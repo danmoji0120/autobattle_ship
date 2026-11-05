@@ -31,10 +31,15 @@ function fileStorage(): Storage {
 
 async function pgStorage(url: string): Promise<Storage> {
   const { default: pg } = await import('pg');
-  const pool = new pg.Pool({ connectionString: url, ssl: url.includes('localhost') ? false : { rejectUnauthorized: false }, max: 2 });
+  // Supabase/Render URLs often carry ?sslmode=require, which recent pg versions treat as strict
+  // verification against the provider's pooler certificate; TLS is configured explicitly instead.
+  const clean = url.replace(/([?&])sslmode=[^&]*&?/, '$1').replace(/[?&]$/, '');
+  const local = /localhost|127\.0\.0\.1/.test(clean);
+  const pool = new pg.Pool({ connectionString: clean, ssl: local ? false : { rejectUnauthorized: false }, max: 2, connectionTimeoutMillis: 15000 });
+  pool.on('error', e => console.error('[siderarium] postgres pool error', e.message));
   await pool.query('CREATE TABLE IF NOT EXISTS siderarium_world (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated TIMESTAMPTZ NOT NULL DEFAULT now())');
   return {
-    name: 'postgres',
+    name: `postgres (${new URL(clean).hostname})`,
     async load() { const r = await pool.query('SELECT data FROM siderarium_world WHERE id = $1', ['main']); return r.rows[0]?.data ?? null; },
     async save(d) { await pool.query('INSERT INTO siderarium_world (id, data, updated) VALUES ($1, $2, now()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()', ['main', JSON.stringify(d)]); },
   };
@@ -43,8 +48,18 @@ async function pgStorage(url: string): Promise<Storage> {
 const MIME: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.ico': 'image/x-icon' };
 
 async function main() {
-  const storage = process.env.DATABASE_URL ? await pgStorage(process.env.DATABASE_URL) : fileStorage();
-  const saved = await storage.load();
+  let storage: Storage = fileStorage();
+  let saved: SaveFile | null = null;
+  if (process.env.DATABASE_URL) {
+    try {
+      const pgS = await pgStorage(process.env.DATABASE_URL);
+      saved = await pgS.load();
+      storage = pgS;
+    } catch (e) {
+      console.error('[siderarium] !!! DATABASE_URL 연결 실패 — 파일 저장으로 대체합니다 (재시작 시 세계가 사라질 수 있음):', (e as Error).message);
+    }
+  }
+  if (storage.name.startsWith('file')) saved = await storage.load();
   let saving = false;
   const game = new GameServer(saved, {
     singleplayer: false, snapInterval: 0.5, saveInterval: 30,
