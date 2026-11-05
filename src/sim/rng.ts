@@ -31,6 +31,7 @@ export class Rng {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
   }
   state(): number[] { return [this.a, this.b, this.c, this.d]; }
+  restore(st: number[]): this { [this.a, this.b, this.c, this.d] = st; return this; }
 }
 
 export function hashString(s: string): number {

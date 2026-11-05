@@ -1,0 +1,1389 @@
+// Authoritative persistent-world simulation. Runs identically on the Node server (multiplayer)
+// and inside the browser (single player). All state lives in `st` (plain JSON).
+
+import { Rng } from '../sim/rng';
+import { World } from '../sim/world';
+import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
+import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
+import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
+import type { Order, OrderRecord } from '../sim/types';
+import type { WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Engagement, WorldEvent, Contract, WCommander, Company } from './types';
+import { emptyCargo, cargoSum, RES } from './types';
+import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
+import { newWorld } from './worldgen';
+import { dist, dist2, rockPos, miningSpot, berthPos, hashId } from './geom';
+
+export const STRAT_DT = 0.25;
+const ENGAGE_R = 420;
+const JOIN_R = 1700;
+const SAFE_R = 1400;
+
+export type Cmd =
+  | { c: 'setOp'; group: string; op: Op }
+  | { c: 'release'; group: string }
+  | { c: 'newGroup'; name: string; parent?: string | null; ships?: string[] }
+  | { c: 'renameGroup'; group: string; name: string }
+  | { c: 'deleteGroup'; group: string }
+  | { c: 'moveShip'; ship: string; group: string }
+  | { c: 'setParent'; group: string; parent: string | null }
+  | { c: 'assignCmd'; group: string; commander: string | null }
+  | { c: 'buyShip'; station: string; classId: string; loadoutId: string; group?: string }
+  | { c: 'sell'; station: string; res: Res; amount: number }
+  | { c: 'buy'; station: string; res: Res; amount: number }
+  | { c: 'repair'; ship: string }
+  | { c: 'refit'; ship: string; loadoutId: string }
+  | { c: 'hire'; commander: string }
+  | { c: 'dismiss'; commander: string }
+  | { c: 'accept'; contract: string }
+  | { c: 'queueModule'; station: string; kind: string }
+  | { c: 'renameCompany'; name: string };
+
+const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
+
+const vadd = (a: V, b: V, k = 1): V => ({ x: a.x + b.x * k, y: a.y + b.y * k, z: a.z + b.z * k });
+const vlerp = (a: V, b: V, t: number): V => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t });
+
+export class WorldSim {
+  st: WorldState;
+  rng: Rng;
+  /** live tactical battles (transient; rebuilt from setup+orders on load) */
+  battles = new Map<string, World>();
+  private battleAcc = new Map<string, number>();
+  private acc = 0;
+  private slow = 0;
+  /** hooks for the server */
+  onBattleOrder?: (eng: string, rec: OrderRecord) => void;
+  onBattleEnd?: (eng: Engagement) => void;
+
+  constructor(st: WorldState) {
+    this.st = st;
+    this.rng = new Rng(st.seed).restore(st.rng.length ? st.rng : new Rng(st.seed).state());
+    // rebuild live battles
+    for (const e of Object.values(st.engagements)) {
+      if (e.done || !e.live) continue;
+      const w = new World(e.setup);
+      w.scheduleReplay(e.orders.map(o => ({ ...o })));
+      while (w.tick < e.tick && !w.outcome) w.step();
+      this.battles.set(e.id, w);
+    }
+  }
+
+  static create(seed = 1): WorldSim { return new WorldSim(newWorld(seed)); }
+
+  serialize(): string { this.st.rng = this.rng.state(); return JSON.stringify(this.st); }
+
+  // ===================================================================== helpers
+
+  id(prefix: string) { return `${prefix}${this.st.nextId++}`; }
+  get time() { return this.st.time; }
+
+  ev(kind: WorldEvent['kind'], text: string, o: Partial<WorldEvent> = {}) {
+    const e: WorldEvent = { id: this.st.eventSeq++, t: this.st.time, kind, text, ...o };
+    this.st.events.push(e);
+    if (this.st.events.length > 400) this.st.events.splice(0, this.st.events.length - 400);
+    return e;
+  }
+
+  say(g: WGroup, text: string, kind: WorldEvent['kind'] = 'radio', gap = 6) {
+    if (this.time - g.lastSay < gap) return;
+    g.lastSay = this.time;
+    const c = this.cmdr(g);
+    const pos = this.groupCenter(g);
+    this.ev(kind, text, { who: `${c.rank ? c.rank + ' ' : ''}${c.name} · ${g.name}`, color: c.color, company: g.owner, pos: pos ?? undefined, ref: g.id });
+  }
+
+  cmdr(g: WGroup): CommanderDef {
+    const c = g.commanderId ? this.st.commanders[g.commanderId] : null;
+    if (c && c.injuredUntil <= this.time) return { ...c, team: 0 };
+    return { ...ACTING_CAPTAIN, name: c ? `${c.name} (부상)` : '선임 함장' };
+  }
+
+  shipsOf(g: WGroup): WShip[] { return g.shipIds.map(id => this.st.ships[id]).filter(Boolean); }
+  groupCenter(g: WGroup): V | null {
+    const s = this.shipsOf(g).filter(x => x.state !== 'battle');
+    if (!s.length) return null;
+    const c = { x: 0, y: 0, z: 0 };
+    for (const x of s) { c.x += x.pos.x; c.y += x.pos.y; c.z += x.pos.z; }
+    return { x: c.x / s.length, y: c.y / s.length, z: c.z / s.length };
+  }
+  opOf(g: WGroup): Op {
+    let cur: WGroup | undefined = g;
+    while (cur && !cur.override && cur.parentId) cur = this.st.groups[cur.parentId];
+    return cur ? cur.op : g.op;
+  }
+  groupValue(g: WGroup, military?: boolean): number {
+    return this.shipsOf(g).filter(s => s.state !== 'battle' && (military === undefined || ECON[s.classId].military === military)).reduce((a, s) => a + shipValue(s.classId) * (0.4 + 0.6 * s.hp), 0);
+  }
+  storage(st: Station, company: string): Cargo { return st.storage[company] ??= emptyCargo(); }
+  hasModule(st: Station, kind: string) { return st.modules.some(m => m.kind === kind && m.built); }
+  canDock(st: Station, company: string) { return st.public || (st.owner === company && this.hasModule(st, 'core')); }
+
+  price(st: Station, res: Res, side: 'sell' | 'buy'): number {
+    const m = st.market?.[res];
+    if (!m) return 0;
+    const ratio = m.stock / m.target;
+    const p = m.base * Math.max(0.45, Math.min(1.7, 1.45 - 0.55 * ratio));
+    return side === 'sell' ? Math.round(p * 10) / 10 : Math.round(p * 1.18 * 10) / 10;
+  }
+
+  // ===================================================================== creation
+
+  spawnShip(owner: string, classId: string, loadoutId: string, groupId: string, pos: V, name?: string): WShip {
+    const id = this.id('s');
+    const names = SHIP_NAMES[owner === 'pirates' ? 1 : 0];
+    const civ: Record<string, string> = { miner: '곡괭이', hauler: '짐꾼', constructor: '석공' };
+    const nm = name ?? (civ[classId] ? `${civ[classId]} ${this.st.nextId % 100}호` : `${this.rng.pick(names)}${this.rng.chance(0.4) ? ' ' + ['II', 'III', 'IV', 'V'][this.rng.int(4)] : ''}`);
+    const s: WShip = { id, owner, classId, loadoutId, name: nm, hp: 1, pos: { ...pos }, vel: { x: 0, y: 0, z: 0 }, heading: this.rng.range(0, 6.28), groupId, state: 'space', task: { k: 'none' }, cargo: emptyCargo(), kills: 0 };
+    this.st.ships[id] = s;
+    this.st.groups[groupId].shipIds.push(id);
+    return s;
+  }
+
+  newGroup(owner: string, name: string, parentId: string | null = null, op: Op = { k: 'idle' }): WGroup {
+    const g: WGroup = { id: this.id('g'), owner, name, parentId, childIds: [], shipIds: [], commanderId: null, op, override: !parentId, status: '대기', cooldown: 0, fleeing: false, lastSay: -99 };
+    this.st.groups[g.id] = g;
+    if (parentId) this.st.groups[parentId].childIds.push(g.id);
+    return g;
+  }
+
+  newCommander(owner: string | null, tier: number, stationId: string | null = null): WCommander {
+    const c: WCommander = { id: this.id('c'), owner, stationId, ...generateCommander(this.rng, tier) };
+    this.st.commanders[c.id] = c;
+    return c;
+  }
+
+  addPlayer(name: string): string {
+    const n = Object.values(this.st.companies).filter(c => c.kind === 'player').length;
+    const id = this.id('p');
+    this.st.companies[id] = {
+      id, name: name.slice(0, 20) || `PMC-${id}`, kind: 'player', color: PLAYER_COLORS[n % PLAYER_COLORS.length], credits: 7000, rep: 0,
+      createdAt: this.time, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [], homeStation: 'astra',
+    };
+    for (const s of Object.values(this.st.stations)) s.storage[id] = emptyCargo();
+    const astra = this.st.stations.astra;
+    const mining = this.newGroup(id, '제1 채굴반');
+    const guard = this.newGroup(id, '경비대');
+    const cm = this.newCommander(id, 1);
+    cm.skill = Math.max(cm.skill, 0.5);
+    guard.commanderId = cm.id;
+    const dock = (s: WShip, i: number) => { s.state = 'docked'; const b = (i + n * 5) % 28; s.task = { k: 'docked', station: 'astra', berth: b }; s.pos = berthPos(astra, b); };
+    let i = 0;
+    dock(this.spawnShip(id, 'miner', 'std', mining.id, astra.pos), i++);
+    dock(this.spawnShip(id, 'miner', 'std', mining.id, astra.pos), i++);
+    dock(this.spawnShip(id, 'destroyer', 'aa', guard.id, astra.pos), i++);
+    dock(this.spawnShip(id, 'corvette', 'gun', guard.id, astra.pos), i++);
+    dock(this.spawnShip(id, 'corvette', 'gun', guard.id, astra.pos), i++);
+    this.ev('world', `신생 PMC "${this.st.companies[id].name}"가 아스트라 자유항에 등록했다.`);
+    this.ev('info', '아스트라 자유항에 정박 중. 채굴반을 소행성 지대로 보내 첫 수익을 올려 보자.', { company: id });
+    return id;
+  }
+
+  // ===================================================================== commands
+
+  command(company: string, cmd: Cmd): string | null {
+    const co = this.st.companies[company];
+    if (!co || co.kind !== 'player') return '알 수 없는 회사';
+    const G = (id: string) => { const g = this.st.groups[id]; return g && g.owner === company ? g : null; };
+    const S = (id: string) => this.st.stations[id];
+    switch (cmd.c) {
+      case 'setOp': {
+        const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
+        const err = this.validateOp(company, g, cmd.op);
+        if (err) return err;
+        if (cmd.op.k === 'found') {
+          const e2 = this.prepareFound(company, g);
+          if (e2) return e2;
+        }
+        g.op = cmd.op; g.override = true; g.fleeing = false;
+        for (const s of this.shipsOf(g)) if (s.state !== 'battle' && s.state !== 'docked') s.task = { k: 'none' };
+        this.ackOp(g, cmd.op);
+        return null;
+      }
+      case 'release': {
+        const g = G(cmd.group); if (!g || !g.parentId) return '상위 부대가 없음';
+        g.override = false; this.say(g, '지휘권 위임 확인. 상위 부대 작전에 합류합니다.', 'radio', 0);
+        return null;
+      }
+      case 'newGroup': {
+        if (cmd.parent && !G(cmd.parent)) return '상위 부대 없음';
+        const g = this.newGroup(company, cmd.name.slice(0, 18) || '새 편대', cmd.parent ?? null);
+        for (const sid of cmd.ships ?? []) this.command(company, { c: 'moveShip', ship: sid, group: g.id });
+        return null;
+      }
+      case 'renameGroup': { const g = G(cmd.group); if (!g) return '부대 없음'; g.name = cmd.name.slice(0, 18) || g.name; return null; }
+      case 'deleteGroup': {
+        const g = G(cmd.group); if (!g) return '부대 없음';
+        const target = g.parentId ? G(g.parentId) : Object.values(this.st.groups).find(x => x.owner === company && x.id !== g.id && !x.parentId);
+        if (g.shipIds.length && !target) return '함선을 옮길 부대가 없음';
+        for (const sid of [...g.shipIds]) this.command(company, { c: 'moveShip', ship: sid, group: target!.id });
+        for (const cid of [...g.childIds]) { const c = this.st.groups[cid]; c.parentId = g.parentId; if (g.parentId) this.st.groups[g.parentId].childIds.push(cid); else c.override = true; }
+        if (g.parentId) { const p = this.st.groups[g.parentId]; p.childIds = p.childIds.filter(x => x !== g.id); }
+        delete this.st.groups[g.id];
+        return null;
+      }
+      case 'moveShip': {
+        const s = this.st.ships[cmd.ship]; const g = G(cmd.group);
+        if (!s || s.owner !== company || !g) return '대상 없음';
+        if (s.state === 'battle') return '전투 중인 함선';
+        const old = this.st.groups[s.groupId];
+        if (old) old.shipIds = old.shipIds.filter(x => x !== s.id);
+        s.groupId = g.id; g.shipIds.push(s.id);
+        if (s.state !== 'docked') s.task = { k: 'none' };
+        return null;
+      }
+      case 'setParent': {
+        const g = G(cmd.group); if (!g) return '부대 없음';
+        if (cmd.parent) {
+          const p = G(cmd.parent); if (!p || p.id === g.id) return '상위 부대 오류';
+          let a: WGroup | undefined = p; while (a) { if (a.id === g.id) return '순환 구조 불가'; a = a.parentId ? this.st.groups[a.parentId] : undefined; }
+        }
+        if (g.parentId) { const op = this.st.groups[g.parentId]; op.childIds = op.childIds.filter(x => x !== g.id); }
+        g.parentId = cmd.parent; if (cmd.parent) { this.st.groups[cmd.parent].childIds.push(g.id); g.override = false; } else g.override = true;
+        return null;
+      }
+      case 'assignCmd': {
+        const g = G(cmd.group); if (!g) return '부대 없음';
+        if (cmd.commander) {
+          const c = this.st.commanders[cmd.commander]; if (!c || c.owner !== company) return '지휘관 없음';
+          for (const o of Object.values(this.st.groups)) if (o.commanderId === c.id) o.commanderId = null;
+        }
+        g.commanderId = cmd.commander;
+        if (cmd.commander) this.say(g, `${g.name} 지휘를 맡겠습니다.`, 'radio', 0);
+        return null;
+      }
+      case 'buyShip': {
+        const st = S(cmd.station); const cls = SHIP_CLASSES[cmd.classId]; const ec = ECON[cmd.classId];
+        if (!st || !cls || !ec) return '구매 불가';
+        const own = st.owner === company && this.hasModule(st, 'shipyard');
+        if (!own && !(st.public && st.services.shipyard.includes(cmd.classId))) return '이 정거장에서 건조하지 않는 함급';
+        if (!own && co.rep < ec.rep) return `연합 평판 ${ec.rep} 필요`;
+        const price = own ? Math.round(ec.price * 0.5) : ec.price;
+        if (co.credits < price) return '자금 부족';
+        if (own && this.storage(st, company).alloy < ec.alloy) return `합금 ${ec.alloy} 필요`;
+        co.credits -= price;
+        if (own) this.storage(st, company).alloy -= ec.alloy;
+        let g = cmd.group ? G(cmd.group) : null;
+        if (!g) g = this.newGroup(company, ec.military ? '신규 편대' : `${cls.type}반`);
+        const s = this.spawnShip(company, cmd.classId, getLoadout(cmd.classId, cmd.loadoutId).id, g.id, st.pos);
+        this.dockShip(s, st);
+        this.ev('money', `${cls.name} ${cls.type} "${s.name}" 인수 (-${price.toLocaleString()} cr)`, { company, pos: st.pos });
+        return null;
+      }
+      case 'sell': case 'buy': {
+        const st = S(cmd.station); if (!st?.market?.[cmd.res]) return '거래 불가';
+        const store = this.storage(st, company);
+        const amt = Math.floor(Math.max(0, cmd.amount));
+        if (cmd.c === 'sell') {
+          const a = Math.min(amt, Math.floor(store[cmd.res])); if (a <= 0) return '창고에 자원 없음';
+          const v = this.sellAt(st, company, cmd.res, a); store[cmd.res] -= a;
+          this.ev('money', `${RES_NAME[cmd.res]} ${a} 판매 +${Math.round(v).toLocaleString()} cr`, { company, pos: st.pos });
+        } else {
+          const m = st.market[cmd.res]; const a = Math.min(amt, Math.floor(m.stock)); const cost = a * this.price(st, cmd.res, 'buy');
+          if (a <= 0) return '재고 없음'; if (co.credits < cost) return '자금 부족';
+          co.credits -= cost; m.stock -= a; store[cmd.res] += a;
+          this.ev('money', `${RES_NAME[cmd.res]} ${a} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
+        }
+        return null;
+      }
+      case 'repair': {
+        const s = this.st.ships[cmd.ship]; if (!s || s.owner !== company || s.state !== 'docked' || s.task.k !== 'docked') return '정박 중인 함선만 수리 가능';
+        const st = S(s.task.station); if (!st.services.repair && !(st.owner === company && this.hasModule(st, 'repair'))) return '수리 시설 없음';
+        const cost = Math.round((1 - s.hp) * ECON[s.classId].price * 0.3);
+        if (co.credits < cost) return '자금 부족';
+        co.credits -= cost; s.hp = 1;
+        this.ev('money', `${s.name} 수리 완료 -${cost.toLocaleString()} cr`, { company });
+        return null;
+      }
+      case 'refit': {
+        const s = this.st.ships[cmd.ship]; if (!s || s.owner !== company || s.task.k !== 'docked') return '정박 중이어야 함';
+        const st = S(s.task.station); if (!st.services.refit && !(st.owner === company && this.hasModule(st, 'shipyard'))) return '개조 시설 없음';
+        const cost = Math.round(ECON[s.classId].price * 0.15);
+        if (co.credits < cost) return '자금 부족';
+        co.credits -= cost; s.loadoutId = getLoadout(s.classId, cmd.loadoutId).id;
+        this.ev('money', `${s.name} 개조: ${getLoadout(s.classId, s.loadoutId).name} -${cost.toLocaleString()} cr`, { company });
+        return null;
+      }
+      case 'hire': {
+        const c = this.st.commanders[cmd.commander]; if (!c || c.owner) return '고용 불가';
+        if (co.credits < c.hireCost) return '자금 부족';
+        co.credits -= c.hireCost; c.owner = company; c.stationId = null;
+        this.ev('money', `${c.rank} ${c.name} 영입 -${c.hireCost.toLocaleString()} cr`, { company, who: c.name, color: c.color });
+        return null;
+      }
+      case 'dismiss': {
+        const c = this.st.commanders[cmd.commander]; if (!c || c.owner !== company) return '대상 없음';
+        for (const g of Object.values(this.st.groups)) if (g.commanderId === c.id) g.commanderId = null;
+        delete this.st.commanders[c.id];
+        return null;
+      }
+      case 'accept': {
+        const k = this.st.contracts[cmd.contract]; if (!k || k.takenBy || k.done) return '수주 불가';
+        if (Object.values(this.st.contracts).filter(x => x.takenBy === company && !x.done).length >= 3) return '동시 계약은 3건까지';
+        k.takenBy = company; k.expires = this.time + (k.kind === 'lair' ? 1800 : 1200);
+        this.ev('info', `계약 수주: ${k.title}`, { company, pos: S(k.stationId).pos });
+        return null;
+      }
+      case 'queueModule': {
+        const st = S(cmd.station); const md = MODULES[cmd.kind];
+        if (!st || st.owner !== company || !md) return '건설 불가';
+        if (st.modules.length >= MAX_MODULES) return '모듈 슬롯 부족';
+        if (md.requires && !st.modules.some(m => m.kind === md.requires)) return `${MODULES[md.requires].name} 필요`;
+        if (co.credits < md.credits) return '자금 부족';
+        co.credits -= md.credits;
+        st.modules.push({ kind: md.kind, progress: 0, built: false, slot: this.freeSlot(st) });
+        this.ev('info', `${st.name}: ${md.name} 건설 예약 (합금 ${md.alloy}${md.crystal ? `, 크리스탈 ${md.crystal}` : ''} 필요)`, { company, pos: st.pos });
+        return null;
+      }
+      case 'renameCompany': co.name = cmd.name.slice(0, 20) || co.name; return null;
+    }
+    return '알 수 없는 명령';
+  }
+
+  private freeSlot(st: Station) { const used = new Set(st.modules.map(m => m.slot)); for (let i = 1; i < MAX_MODULES; i++) if (!used.has(i)) return i; return 0; }
+
+  validateOp(company: string, g: WGroup, op: Op): string | null {
+    const ships = this.shipsOf(g);
+    const sub = this.subtreeShips(g);
+    switch (op.k) {
+      case 'mine': {
+        const f = this.st.fields[op.field]; const st = this.st.stations[op.deliver];
+        if (!f || !st) return '대상 없음';
+        if (!this.canDock(st, company)) return '하역할 수 없는 정거장';
+        if (!sub.some(s => ECON[s.classId].mine > 0)) return '채굴선이 없음';
+        if (op.sell && !st.market) return '시장이 없는 정거장';
+        return null;
+      }
+      case 'haul': {
+        const a = this.st.stations[op.from], b = this.st.stations[op.to];
+        if (!a || !b || a === b || !this.canDock(a, company) || !this.canDock(b, company)) return '운송 경로 오류';
+        if (!sub.some(s => ECON[s.classId].cargo > 0)) return '화물 적재 함선이 없음';
+        return null;
+      }
+      case 'dock': { const st = this.st.stations[op.station]; return st && this.canDock(st, company) ? null : '정박 불가'; }
+      case 'escort': { const t = this.st.groups[op.group]; return t && t.owner === company && t.id !== g.id ? null : '호위 대상 오류'; }
+      case 'attack': {
+        if (op.lair) return this.st.lairs[op.lair]?.alive ? null : '대상 없음';
+        const t = op.group ? this.st.groups[op.group] : null;
+        if (!t || this.st.companies[t.owner]?.kind !== 'pirate') return '공격할 수 없는 대상 (현재는 해적만 공격 가능)';
+        return null;
+      }
+      case 'build': { const st = this.st.stations[op.station]; if (!st || st.owner !== company) return '자사 정거장이 아님'; return sub.some(s => s.classId === 'constructor') ? null : '공작선이 필요'; }
+      case 'found': {
+        if (!ships.some(s => s.classId === 'constructor')) return '공작선이 이 부대에 직접 있어야 함';
+        for (const s of Object.values(this.st.stations)) if (dist2(s.pos, op.at) < 2600) return '다른 정거장과 너무 가깝다 (2,600 이상)';
+        for (const l of Object.values(this.st.lairs)) if (dist2(l.pos, op.at) < 3000) return '해적 은신처와 너무 가깝다';
+        if (Math.hypot(op.at.x, op.at.z) > 15000) return '관제 범위를 벗어남';
+        return null;
+      }
+      default: return null;
+    }
+  }
+
+  private prepareFound(company: string, g: WGroup): string | null {
+    const co = this.st.companies[company];
+    const con = this.shipsOf(g).find(s => s.classId === 'constructor')!;
+    if (con.cargo.alloy >= FOUND_COST.alloy) return co.credits >= FOUND_COST.credits ? (co.credits -= FOUND_COST.credits, null) : `${FOUND_COST.credits} cr 필요`;
+    const need = FOUND_COST.alloy - con.cargo.alloy;
+    // use stored alloy at the docked station, otherwise buy at the nearest public market
+    const at = con.task.k === 'docked' ? this.st.stations[con.task.station] : null;
+    let cost = FOUND_COST.credits;
+    let fromStore = 0;
+    if (at) fromStore = Math.min(need, Math.floor(this.storage(at, company).alloy));
+    const market = Object.values(this.st.stations).filter(s => s.market?.alloy).sort((a, b) => dist(a.pos, con.pos) - dist(b.pos, con.pos))[0];
+    const buy = need - fromStore;
+    if (buy > 0) { if (!market || market.market!.alloy.stock < buy) return '합금 재고 부족'; cost += buy * this.price(market, 'alloy', 'buy'); }
+    if (co.credits < cost) return `자금 부족 (설립비+합금 ${Math.round(cost).toLocaleString()} cr)`;
+    co.credits -= cost;
+    if (at) this.storage(at, company).alloy -= fromStore;
+    if (buy > 0) market.market!.alloy.stock -= buy;
+    con.cargo.alloy += need;
+    this.ev('money', `정거장 설립 자금 및 합금 확보 -${Math.round(cost).toLocaleString()} cr`, { company });
+    return null;
+  }
+
+  private ackOp(g: WGroup, op: Op) {
+    const name = (id?: string) => (id && (this.st.stations[id]?.name ?? this.st.fields[id]?.name ?? this.st.groups[id]?.name ?? this.st.lairs[id]?.name)) || '';
+    const t: Record<string, string> = {
+      idle: '현 위치에서 대기합니다.', move: '지정 좌표로 이동합니다.',
+      dock: `${name((op as any).station)}에 입항합니다.`,
+      mine: `${name((op as any).field)}에서 채굴 작전을 시작합니다. 하역지는 ${name((op as any).deliver)}.`,
+      haul: `${name((op as any).from)} → ${name((op as any).to)} 운송 개시.`,
+      patrol: '순찰 구역으로 향합니다. 해적이 보이면 요격합니다.',
+      escort: `${name((op as any).group)} 호위에 들어갑니다.`,
+      attack: `${name((op as any).group ?? (op as any).lair)} 공격 개시!`,
+      build: `${name((op as any).station)} 건설 작업에 착수합니다.`,
+      found: `신규 정거장 "${(op as any).name}" 부지로 향합니다.`,
+    };
+    this.say(g, t[op.k] ?? '명령 수신.', 'radio', 0);
+  }
+
+  subtreeShips(g: WGroup): WShip[] {
+    const out = this.shipsOf(g);
+    for (const c of g.childIds) { const cg = this.st.groups[c]; if (cg) out.push(...this.subtreeShips(cg)); }
+    return out;
+  }
+
+  // ===================================================================== update
+
+  /** advance world time; dt in seconds (scaled by game speed in single player) */
+  update(dt: number) {
+    // tactical battles step at 30 Hz
+    for (const [id, w] of this.battles) {
+      const e = this.st.engagements[id];
+      let acc = (this.battleAcc.get(id) ?? 0) + dt;
+      while (acc >= w.dt && !w.outcome) { w.step(); acc -= w.dt; }
+      this.battleAcc.set(id, acc);
+      e.tick = w.tick;
+      if (w.outcome) { this.finishEngagement(e, w); this.battles.delete(id); this.battleAcc.delete(id); }
+    }
+    this.acc += dt;
+    while (this.acc >= STRAT_DT) { this.acc -= STRAT_DT; this.tick(STRAT_DT); }
+  }
+
+  tick(dt: number) {
+    const st = this.st;
+    st.time += dt;
+    this.slow += dt;
+    this.economy(dt);
+    this.npcs(dt);
+    for (const g of Object.values(st.groups)) {
+      if (g.cooldown > 0) g.cooldown -= dt;
+      this.runGroup(g, dt);
+    }
+    if (this.slow >= 1) {
+      this.slow = 0;
+      this.detectEngagements();
+      this.contracts();
+      this.milestones();
+      this.cleanup();
+    }
+  }
+
+  // ===================================================================== economy
+
+  private economy(dt: number) {
+    const st = this.st;
+    for (const s of Object.values(st.stations)) {
+      if (s.market) {
+        // stations consume/produce so prices recover over time
+        const m = s.market;
+        const drift = (k: Res, rate: number) => { if (m[k]) m[k].stock = Math.max(0, m[k].stock + rate * dt); };
+        if (s.id === 'nova') { const use = Math.min(m.ore.stock, 3 * dt); m.ore.stock -= use; m.alloy.stock += use * 0.5; }
+        if (s.id === 'helios') { drift('alloy', -1.0); drift('ore', -0.4); }
+        if (s.id === 'astra') { drift('ore', -0.7); drift('alloy', -0.25); }
+        for (const r of RES) if (m[r]) { const d = m[r].target - m[r].stock; m[r].stock += d * 0.0008 * dt * 4; }
+      }
+      if (!s.public) {
+        for (const [cid, store] of Object.entries(s.storage)) {
+          if (cid !== s.owner) continue;
+          if (this.hasModule(s, 'refinery')) {
+            const rate = (this.hasModule(s, 'depot') ? 3 : 2) * dt;
+            const use = Math.min(store.ore, rate * 2);
+            store.ore -= use; store.alloy += use / 2;
+          }
+        }
+        if (this.hasModule(s, 'defense') && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
+      }
+    }
+    for (const f of Object.values(st.fields)) {
+      f.amount = Math.min(f.max, f.amount + f.regen * dt);
+    }
+  }
+
+  // ===================================================================== NPC factions
+
+  private npcs(dt: number) {
+    const st = this.st;
+    // pirate lairs spawn raiding bands
+    for (const l of Object.values(st.lairs)) {
+      if (!l.alive) {
+        if (st.time >= l.respawnAt) {
+          l.alive = true; l.hp = 1; l.nextBand = st.time + 120;
+          this.ev('world', `${l.name}이(가) 재건되었다. 해적 활동이 다시 시작된다.`, { pos: l.pos });
+        }
+        continue;
+      }
+      if (l.hp < 1) l.hp = Math.min(1, l.hp + dt * 0.002);
+      if (st.time < l.nextBand) continue;
+      const bands = Object.values(st.groups).filter(g => g.owner === 'pirates' && g.op.k === 'raid' && g.op.home === l.id && g.shipIds.length);
+      l.nextBand = st.time + 140 + this.rng.range(0, 100);
+      if (bands.length >= l.maxBands) continue;
+      const tier = Math.min(4, 1 + Math.floor(st.time / 700)) + (l.id === 'fang' ? 1 : 0);
+      const comp: [string, string][] = [['corvette', 'gun'], ['corvette', 'torp']];
+      if (tier >= 2) comp.push(['corvette', 'torp']);
+      if (tier >= 3) comp.push(['destroyer', 'strike']);
+      if (tier >= 4) comp.push(['corvette', 'gun'], ['cruiser', 'gun']);
+      if (tier >= 5) comp.push(['destroyer', 'aa']);
+      const g = this.newGroup('pirates', `${this.rng.pick(['갈퀴', '송곳니', '독수리', '하이에나', '피의 달', '녹슨 칼'])} 무리`, null, { k: 'raid', home: l.id });
+      const cm = this.newCommander('pirates', tier * 0.5);
+      cm.voice = 'savage'; cm.aggression = Math.max(cm.aggression, 0.7); cm.color = '#ff7050';
+      g.commanderId = cm.id;
+      for (const [c, lo] of comp) this.spawnShip('pirates', c, lo, g.id, vadd(l.pos, { x: this.rng.range(-150, 150), y: 0, z: this.rng.range(-150, 150) }));
+      this.ev('warn', `${l.name}에서 해적 무리가 출격했다 (${comp.length}척).`, { pos: l.pos, ref: g.id });
+      // bounty contract on this band
+      this.offerContract({ stationId: l.id === 'fang' ? 'helios' : 'astra', kind: 'bounty', title: `현상금: ${g.name}`, desc: `${l.name}에서 출격한 해적 ${comp.length}척을 격멸하라.`, reward: Math.round((comp.reduce((a, [c]) => a + shipValue(c), 0) * 40 + 2500) / 100) * 100, rep: 3, target: g.id });
+    }
+    // union patrol
+    const union = Object.values(st.groups).filter(g => g.owner === 'union' && g.shipIds.length);
+    if (union.length < 1 && (st.time > 5 && Math.floor(st.time) % 120 === 0 && st.time % 1 < dt)) this.spawnUnionPatrol();
+    if (st.time < dt * 1.5) this.spawnUnionPatrol();
+    // guild traders
+    const traders = Object.values(st.groups).filter(g => g.owner === 'guild' && g.shipIds.length);
+    if (traders.length < 3 && (st.time < dt * 1.5 || (Math.floor(st.time) % 90 === 0 && st.time % 1 < dt))) this.spawnTrader();
+  }
+
+  private spawnUnionPatrol() {
+    const h = this.st.stations.helios;
+    const g = this.newGroup('union', '연합 경비대', null, { k: 'guard', route: [h.pos, this.st.stations.astra.pos, this.st.fields.kestrel.pos, this.st.stations.astra.pos], leg: 0 });
+    const c = this.newCommander('union', 2); c.name = '볼트 레인'; c.rank = '경감'; c.color = '#7fb0ff'; c.voice = 'formal';
+    g.commanderId = c.id;
+    for (const [cl, lo] of [['cruiser', 'multi'], ['destroyer', 'aa'], ['destroyer', 'strike']]) this.spawnShip('union', cl, lo, g.id, vadd(h.pos, { x: this.rng.range(-300, 300), y: 0, z: this.rng.range(-300, 300) }));
+  }
+
+  private spawnTrader() {
+    const ids = ['astra', 'nova', 'helios'];
+    const start = this.rng.pick(ids);
+    const route = [start, ...ids.filter(x => x !== start)];
+    const g = this.newGroup('guild', `길드 상선단`, null, { k: 'trade', route, leg: 1 });
+    this.spawnShip('guild', 'hauler', 'std', g.id, vadd(this.st.stations[start].pos, { x: this.rng.range(-300, 300), y: 0, z: this.rng.range(-300, 300) }), `${this.rng.pick(['황금', '은빛', '푸른', '느린'])} ${this.rng.pick(['거북', '낙타', '고래', '돛'])}호`);
+  }
+
+  // ===================================================================== group behaviour
+
+  private runGroup(g: WGroup, dt: number) {
+    const ships = this.shipsOf(g).filter(s => s.state !== 'battle');
+    if (!ships.length) return;
+    const op = this.opOf(g);
+    const c = this.cmdr(g);
+    // ---- commander threat assessment for civilian work
+    if (this.st.companies[g.owner]?.kind === 'player' || g.owner === 'guild') this.threatCheck(g, ships, op, c);
+    for (const s of ships) { s.fx = undefined; }
+    if (g.fleeing) {
+      for (const s of ships) {
+        if (ECON[s.classId].military && op.k !== 'mine' && op.k !== 'haul') { this.behave(s, g, op, dt, c); continue; }
+        const st = this.nearestDock(s.pos, g.owner);
+        if (st) this.goDock(s, st, dt, ECON[s.classId].cruise * 1.1);
+      }
+      g.status = '해적 회피 — 대피 중';
+      return;
+    }
+    for (const s of ships) this.behave(s, g, op, dt, c);
+  }
+
+  private threatCheck(g: WGroup, ships: WShip[], op: Op, c: CommanderDef) {
+    const civ = ships.filter(s => !ECON[s.classId].military && s.state === 'space');
+    if (!civ.length && !g.fleeing) return;
+    const detect = 900 + c.skill * 2300;
+    let threat = 0, nearest = Infinity;
+    for (const p of Object.values(this.st.groups)) {
+      if (p.owner !== 'pirates' || !p.shipIds.length) continue;
+      const pc = this.groupCenter(p); if (!pc) continue;
+      for (const s of (civ.length ? civ : ships)) { const d = dist(pc, s.pos); if (d < detect) { threat += this.groupValue(p); nearest = Math.min(nearest, d); break; } }
+    }
+    if (!g.fleeing && threat > 0) {
+      // friendly protection around: own military in group + nearby escort/patrol groups
+      let guard = this.groupValue(g, true);
+      const gc = this.groupCenter(g)!;
+      for (const o of Object.values(this.st.groups)) {
+        if (o === g || (o.owner !== g.owner && o.owner !== 'union')) continue;
+        const oc = this.groupCenter(o); if (oc && dist(oc, gc) < 1800) guard += this.groupValue(o, true);
+      }
+      if (guard < threat * (1.15 - c.aggression * 0.4)) {
+        g.fleeing = true;
+        (g as any)._safeSince = this.time;
+        this.say(g, c.skill > 0.6 ? `해적 접근 포착 (${Math.round(nearest)}m)! 작업 중단, 정거장으로 철수한다.` : '해, 해적이다! 도망쳐!', 'warn', 3);
+      }
+    } else if (g.fleeing) {
+      if (threat > 0) (g as any)._safeSince = this.time;
+      else if (this.time - ((g as any)._safeSince ?? 0) > 12) { g.fleeing = false; this.say(g, '위협 해제. 작업을 재개합니다.', 'radio', 3); }
+    }
+    void op;
+  }
+
+  nearestDock(p: V, company: string): Station | null {
+    let best: Station | null = null, bd = Infinity;
+    for (const s of Object.values(this.st.stations)) { if (!this.canDock(s, company)) continue; const d = dist(s.pos, p); if (d < bd) { bd = d; best = s; } }
+    return best;
+  }
+
+  // -------------------------------------------------- motion primitives
+
+  private moveTo(s: WShip, to: V, speed: number, dt: number, arrive = 40): boolean {
+    if (s.state === 'docked') this.undock(s);
+    const dx = to.x - s.pos.x, dy = to.y - s.pos.y, dz = to.z - s.pos.z;
+    const d = Math.hypot(dx, dy, dz);
+    if (d < arrive) { s.vel.x *= 0.7; s.vel.y *= 0.7; s.vel.z *= 0.7; s.pos = vadd(s.pos, s.vel, dt); return true; }
+    const want = Math.min(speed, d * 0.9 + 8);
+    const tx = dx / d * want, ty = dy / d * want, tz = dz / d * want;
+    const acc = Math.max(20, speed * 0.7) * dt;
+    const ex = tx - s.vel.x, ey = ty - s.vel.y, ez = tz - s.vel.z;
+    const el = Math.hypot(ex, ey, ez);
+    const k = el > acc ? acc / el : 1;
+    s.vel = { x: s.vel.x + ex * k, y: s.vel.y + ey * k, z: s.vel.z + ez * k };
+    s.pos = vadd(s.pos, s.vel, dt);
+    if (Math.hypot(s.vel.x, s.vel.z) > 3) s.heading = Math.atan2(s.vel.x, s.vel.z);
+    return false;
+  }
+
+  private undock(s: WShip) { s.state = 'space'; if (s.task.k === 'docked') s.task = { k: 'none' }; }
+
+  private dockShip(s: WShip, st: Station) {
+    const used = new Set(Object.values(this.st.ships).filter(o => o.task.k === 'docked' && o.task.station === st.id).map(o => (o.task as any).berth));
+    let b = hashId(s.id) % (BERTH_MAX); let n = 0; while (used.has(b) && n++ < BERTH_MAX) b = (b + 1) % BERTH_MAX;
+    s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
+    s.heading = Math.atan2(st.pos.x - s.pos.x, st.pos.z - s.pos.z) + Math.PI / 2;
+  }
+
+  /** returns true once docked */
+  private goDock(s: WShip, st: Station, dt: number, speed: number): boolean {
+    if (s.state === 'docked' && s.task.k === 'docked' && s.task.station === st.id) return true;
+    const approach = berthPos(st, hashId(s.id) % BERTH_MAX);
+    if (this.moveTo(s, approach, speed, dt, 45)) { this.dockShip(s, st); return true; }
+    return false;
+  }
+
+  private formationSlot(s: WShip, g: WGroup, center: V, spread = 70): V {
+    const idx = g.shipIds.indexOf(s.id);
+    const a = idx * 2.4;
+    const r = idx === 0 ? 0 : spread * (0.6 + Math.floor(idx / 6) * 0.6);
+    return { x: center.x + Math.cos(a) * r, y: center.y + ((idx % 3) - 1) * 18, z: center.z + Math.sin(a) * r };
+  }
+
+  private groupSpeed(g: WGroup, military: boolean): number {
+    const s = this.shipsOf(g).filter(x => x.state !== 'battle' && ECON[x.classId].military === military);
+    return s.length ? Math.min(...s.map(x => ECON[x.classId].cruise * (0.6 + 0.4 * x.hp))) : 100;
+  }
+
+  // -------------------------------------------------- per-ship behaviour
+
+  private behave(s: WShip, g: WGroup, op: Op, dt: number, c: CommanderDef) {
+    const ec = ECON[s.classId];
+    if (ec.cruise <= 0) return;
+    const speed = ec.cruise * (0.6 + 0.4 * s.hp) * (c.specialty === 'maneuver' ? 1.08 : 1);
+    const st = this.st;
+    switch (op.k) {
+      case 'idle': {
+        if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; s.pos = vadd(s.pos, s.vel, dt); }
+        g.status = s.state === 'docked' ? '정박 대기' : '대기';
+        break;
+      }
+      case 'move': {
+        const arrived = this.moveTo(s, this.formationSlot(s, g, op.to), ec.military ? Math.min(speed, this.groupSpeed(g, true)) : speed, dt);
+        g.status = arrived ? '목적지 도착' : '이동 중';
+        break;
+      }
+      case 'dock': {
+        const sta = st.stations[op.station];
+        g.status = this.goDock(s, sta, dt, speed) ? `${sta.name} 정박` : `${sta.name}로 이동`;
+        break;
+      }
+      case 'mine': this.behaveMine(s, g, op, dt, speed, c); break;
+      case 'haul': this.behaveHaul(s, g, op, dt, speed); break;
+      case 'patrol': {
+        if (!ec.military) { this.moveTo(s, this.formationSlot(s, g, op.at, 90), speed, dt); break; }
+        const hostile = this.nearestHostile(s.pos, g.owner, op.radius + 900, op.at, op.radius + 1200);
+        if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 60), speed, dt, 10); g.status = '해적 요격!'; if (!(g as any)._interceptSaid || this.time - (g as any)._interceptSaid > 30) { (g as any)._interceptSaid = this.time; this.say(g, '순찰 구역에 해적 진입. 요격한다!', 'warn', 0); } }
+        else {
+          const a = this.time * 0.05 + hashId(g.id);
+          const p = { x: op.at.x + Math.cos(a) * op.radius * 0.7, y: op.at.y, z: op.at.z + Math.sin(a) * op.radius * 0.7 };
+          this.moveTo(s, this.formationSlot(s, g, p, 60), Math.min(speed, this.groupSpeed(g, true)) * 0.6, dt);
+          g.status = '순찰 중';
+        }
+        break;
+      }
+      case 'escort': {
+        const t = st.groups[op.group];
+        const tc = t ? this.groupCenter(t) : null;
+        if (!tc) { g.status = '호위 대상 소실'; break; }
+        if (ec.military) {
+          const hostile = this.nearestHostile(tc, g.owner, 1600, tc, 1800);
+          if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 50), speed, dt, 10); g.status = `${t.name} 호위 — 위협 요격`; break; }
+        }
+        this.moveTo(s, this.formationSlot(s, g, vadd(tc, { x: 0, y: 40, z: 0 }), 120), speed, dt, 30);
+        g.status = `${t.name} 호위 중`;
+        break;
+      }
+      case 'attack': {
+        let target: V | null = null;
+        let name = '';
+        if (op.lair) { const l = st.lairs[op.lair]; if (l?.alive) { target = l.pos; name = l.name; } }
+        else if (op.group) { const t = st.groups[op.group]; if (t && t.shipIds.length) { target = this.groupCenter(t); name = t.name; } }
+        if (!target) { g.status = '목표 소멸 — 대기'; if (g.override && op.k === 'attack') { g.op = { k: 'idle' }; this.say(g, '목표가 사라졌습니다. 대기합니다.', 'radio', 0); } break; }
+        if (!ec.military) { this.moveTo(s, this.formationSlot(s, g, vlerp(target, s.pos, 0.6), 80), speed, dt); break; }
+        this.moveTo(s, this.formationSlot(s, g, target, 60), Math.min(speed, this.groupSpeed(g, true)), dt, 10);
+        g.status = `${name} 공격 기동`;
+        break;
+      }
+      case 'build': this.behaveBuild(s, g, op.station, dt, speed, c); break;
+      case 'found': {
+        if (s.classId !== 'constructor') { this.moveTo(s, this.formationSlot(s, g, op.at, 120), speed, dt); break; }
+        if (this.moveTo(s, op.at, speed, dt, 60)) this.foundStation(g, s, op);
+        else g.status = `정거장 부지로 이동 (${Math.round(dist(s.pos, op.at))}m)`;
+        break;
+      }
+      case 'raid': this.behaveRaid(s, g, op, dt, speed); break;
+      case 'trade': this.behaveTrade(s, g, op, dt, speed); break;
+      case 'guard': {
+        const hostile = this.nearestHostile(s.pos, g.owner, 2200, s.pos, 2400);
+        if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 50), speed, dt, 10); g.status = '해적 추격'; break; }
+        const wp = op.route[op.leg % op.route.length];
+        const gc = this.groupCenter(g)!;
+        if (dist(gc, wp) < 250 && g.shipIds[0] === s.id) op.leg = (op.leg + 1) % op.route.length;
+        this.moveTo(s, this.formationSlot(s, g, wp, 70), Math.min(speed, this.groupSpeed(g, true)) * 0.7, dt);
+        g.status = '연합 정기 순찰';
+        break;
+      }
+    }
+  }
+
+  private nearestHostile(p: V, owner: string, r: number, anchor: V, leash: number): V | null {
+    const enemyKind = owner === 'pirates' ? null : 'pirate';
+    let best: V | null = null, bd = r;
+    for (const g of Object.values(this.st.groups)) {
+      const k = this.st.companies[g.owner]?.kind;
+      if (enemyKind ? k !== enemyKind : k === 'pirate') continue;
+      if (g.cooldown > 0) continue;
+      const c = this.groupCenter(g); if (!c) continue;
+      const d = dist(c, p);
+      if (d < bd && dist(c, anchor) < leash) { bd = d; best = c; }
+    }
+    return best;
+  }
+
+  private behaveMine(s: WShip, g: WGroup, op: Extract<Op, { k: 'mine' }>, dt: number, speed: number, c: CommanderDef) {
+    const st = this.st;
+    const f = st.fields[op.field]; const dock = st.stations[op.deliver];
+    if (!f || !dock) { g.status = '작전 대상 소멸'; return; }
+    const ec = ECON[s.classId];
+    const groupShips = this.subtreeShipsInOp(g);
+    const haulers = groupShips.filter(x => x.classId === 'hauler' && x.state !== 'battle');
+    if (ec.mine > 0) {
+      const cap = ec.cargo;
+      if (s.state === 'docked') {
+        if (cargoSum(s.cargo) > 0) this.unload(s, dock, op.sell);
+        this.undock(s);
+      }
+      const full = cargoSum(s.cargo) >= cap * 0.98;
+      if (full && (!haulers.length || (s.task as any).why === 'deliver')) {
+        s.task = { k: 'goto', to: dock.pos, why: 'deliver' };
+        if (this.goDock(s, dock, dt, speed)) { this.unload(s, dock, op.sell); this.undock(s); s.task = { k: 'none' }; }
+        g.status = '광석 운반 중';
+        return;
+      }
+      if (full) {
+        const w = ((s as any)._waitFull = ((s as any)._waitFull ?? 0) + dt);
+        // a capable commander doesn't let miners idle: go deliver yourself if the hauler is late
+        if (w > 40 - c.skill * 25) { s.task = { k: 'goto', to: dock.pos, why: 'deliver' }; (s as any)._waitFull = 0; }
+        g.status = '수송선 대기 (화물칸 가득)'; s.vel.x *= 0.8; s.vel.z *= 0.8; return;
+      }
+      (s as any)._waitFull = 0;
+      if (f.amount < 1) { g.status = `${f.name} 고갈 — 재생 대기`; if (cargoSum(s.cargo) > 0) s.task = { k: 'goto', to: dock.pos, why: 'deliver' }; return; }
+      const rock = hashId(s.id) % f.rocks;
+      const spot = miningSpot(f, rock);
+      if (this.moveTo(s, spot, speed, dt, 18)) {
+        const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp);
+        const a = Math.min(rate * dt, f.amount, cap - cargoSum(s.cargo));
+        f.amount -= a; s.cargo[f.res] += a;
+        s.task = { k: 'mine', field: f.id, rock };
+        s.fx = { mining: f.id, rock };
+        const r = rockPos(f, rock); s.heading = Math.atan2(r.x - s.pos.x, r.z - s.pos.z);
+        this.st.companies[g.owner] && (this.st.companies[g.owner].stats.mined += a);
+        g.status = `${f.name} 채굴 중`;
+      } else { s.task = { k: 'goto', to: spot, why: 'field' }; g.status = `${f.name}로 이동`; }
+      return;
+    }
+    if (ec.cargo > 0 && s.classId === 'hauler') {
+      const cap = ec.cargo;
+      if (s.state === 'docked') { if (cargoSum(s.cargo) > 0) this.unload(s, dock, op.sell); this.undock(s); }
+      const miners = groupShips.filter(x => ECON[x.classId].mine > 0 && x.state === 'space');
+      const load = cargoSum(s.cargo);
+      // stick with the current donor until it's empty, otherwise pick the fullest miner
+      let donor = s.task.k === 'transfer' ? miners.find(m => m.id === (s.task as any).with && cargoSum(m.cargo) >= 1) : undefined;
+      if (!donor) donor = miners.filter(m => cargoSum(m.cargo) >= 25).sort((a, b) => cargoSum(b.cargo) - cargoSum(a.cargo))[0];
+      const delivering = (s.task as any).why === 'deliver';
+      if (!delivering && load < cap * 0.92 && donor) {
+        const near = vadd(donor.pos, { x: 0, y: 26, z: 0 });
+        s.task = { k: 'transfer', with: donor.id };
+        if (this.moveTo(s, near, speed, dt, 40)) {
+          const amt = Math.min(30 * dt, cargoSum(donor.cargo), cap - load);
+          let left = amt;
+          for (const r of RES) { const t = Math.min(left, donor.cargo[r]); donor.cargo[r] -= t; s.cargo[r] += t; left -= t; }
+          s.fx = { transfer: donor.id };
+          if ((donor.task as any).why === 'deliver') donor.task = { k: 'none' };
+        }
+        return;
+      }
+      if (load > cap * 0.5 || (load > 0 && !donor) || delivering) {
+        s.task = { k: 'goto', to: dock.pos, why: 'deliver' };
+        if (this.goDock(s, dock, dt, speed)) { this.unload(s, dock, op.sell); this.undock(s); s.task = { k: 'none' }; }
+        return;
+      }
+      this.moveTo(s, this.formationSlot(s, g, vadd(f.pos, { x: 0, y: 60, z: 0 }), 120), speed, dt);
+      return;
+    }
+    if (ec.military) {
+      // escorts orbit the field and intercept intruders
+      const hostile = this.nearestHostile(f.pos, g.owner, f.radius + 1600, f.pos, f.radius + 2000);
+      if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 50), speed, dt, 10); return; }
+      const a = this.time * 0.07 + (g.shipIds.indexOf(s.id) * 0.8);
+      this.moveTo(s, { x: f.pos.x + Math.cos(a) * (f.radius + 150), y: f.pos.y + 50, z: f.pos.z + Math.sin(a) * (f.radius + 150) }, speed * 0.5, dt);
+      return;
+    }
+    this.moveTo(s, this.formationSlot(s, g, f.pos, 150), speed, dt);
+  }
+
+  /** ships that share this group's effective op: the group plus delegated children */
+  private subtreeShipsInOp(g: WGroup): WShip[] {
+    let root = g;
+    while (root.parentId && !root.override) root = this.st.groups[root.parentId];
+    const out: WShip[] = [];
+    const walk = (x: WGroup) => { out.push(...this.shipsOf(x)); for (const c of x.childIds) { const cg = this.st.groups[c]; if (cg && !cg.override) walk(cg); } };
+    walk(root);
+    return out;
+  }
+
+  private behaveHaul(s: WShip, g: WGroup, op: Extract<Op, { k: 'haul' }>, dt: number, speed: number) {
+    const a = this.st.stations[op.from], b = this.st.stations[op.to];
+    const ec = ECON[s.classId];
+    if (!a || !b) return;
+    if (ec.cargo <= 0) {
+      // warships escort the cargo ships of the operation
+      const carriers = this.subtreeShipsInOp(g).filter(x => ECON[x.classId].cargo > 0 && x.state === 'space');
+      if (carriers.length) {
+        const c = carriers[0].pos;
+        const hostile = this.nearestHostile(c, g.owner, 1500, c, 1700);
+        this.moveTo(s, this.formationSlot(s, g, hostile ?? c, 90), speed, dt, 20);
+      } else this.goDock(s, a, dt, speed);
+      return;
+    }
+    if (cargoSum(s.cargo) > 0) {
+      g.status = `${b.name}로 ${RES_NAME[op.res]} 운송`;
+      if (this.goDock(s, b, dt, speed)) { this.unload(s, b, false); this.undock(s); }
+      return;
+    }
+    if (this.goDock(s, a, dt, speed)) {
+      const store = this.storage(a, s.owner);
+      const amt = Math.min(Math.floor(store[op.res]), ec.cargo);
+      if (amt > 0) { store[op.res] -= amt; s.cargo[op.res] += amt; g.status = `${a.name}에서 적재 완료`; this.undock(s); }
+      else g.status = `${a.name} 창고에 ${RES_NAME[op.res]} 없음 — 대기`;
+    } else g.status = `${a.name}로 적재하러 이동`;
+  }
+
+  private behaveBuild(s: WShip, g: WGroup, stationId: string, dt: number, speed: number, c: CommanderDef) {
+    const st = this.st.stations[stationId];
+    if (!st) return;
+    if (s.classId !== 'constructor') { if (this.canDock(st, s.owner)) this.goDock(s, st, dt, speed); else this.moveTo(s, this.formationSlot(s, g, st.pos, 250), speed, dt); return; }
+    const pending = st.modules.find(m => !m.built && (!MODULES[m.kind].requires || st.modules.some(o => o.kind === MODULES[m.kind].requires && o.built)));
+    const orbitA = this.time * 0.15 + hashId(s.id);
+    const spot = pending ? vadd(st.pos, { x: Math.cos(orbitA) * 210, y: 40, z: Math.sin(orbitA) * 210 }) : null;
+    if (!pending) {
+      g.status = `${st.name}: 건설 대기열 없음`;
+      if (this.canDock(st, s.owner)) this.goDock(s, st, dt, speed);
+      return;
+    }
+    if (this.moveTo(s, spot!, speed, dt, 90)) {
+      const md = MODULES[pending.kind];
+      const store = this.storage(st, s.owner);
+      // the constructor unloads what it carries into the site
+      for (const r of RES) if (s.cargo[r] > 0) { store[r] += s.cargo[r]; s.cargo[r] = 0; }
+      const rate = Math.min(dt / md.work * (0.8 + c.skill * 0.5), 1 - pending.progress);
+      const needA = md.alloy * rate, needC = md.crystal * rate;
+      if (store.alloy >= needA - 1e-6 && store.crystal >= needC - 1e-6) {
+        if (pending.progress + rate >= 1 - 1e-9) pending.progress = 1 - rate;
+        store.alloy = Math.max(0, store.alloy - needA); store.crystal = Math.max(0, store.crystal - needC);
+        pending.progress = Math.min(1, pending.progress + rate);
+        s.fx = { welding: `${st.id}:${pending.slot}` };
+        g.status = `${md.name} 건설 ${Math.round(pending.progress * 100)}%`;
+        if (pending.progress >= 1) {
+          pending.built = true;
+          this.ev('world', `${this.st.companies[s.owner].name}: ${st.name}에 ${md.name} 완공!`, { company: undefined, pos: st.pos, ref: st.id });
+          this.say(g, `${md.name} 완공했습니다.`, 'radio', 0);
+        }
+      } else {
+        g.status = `${md.name} — 자재 부족 (합금 ${Math.floor(store.alloy)}/${Math.ceil(md.alloy * (1 - pending.progress))})`;
+        this.say(g, `${md.name} 자재가 부족합니다. 합금을 ${st.name}로 운송해 주십시오.`, 'warn', 60);
+      }
+    }
+  }
+
+  private foundStation(g: WGroup, s: WShip, op: Extract<Op, { k: 'found' }>) {
+    const co = this.st.companies[g.owner];
+    const id = this.id('st');
+    const station: Station = {
+      id, name: op.name.slice(0, 18) || `${co.name} 기지`, owner: g.owner, public: false, style: 3, pos: { ...op.at, y: 0 }, radius: 180,
+      market: null, services: { repair: false, shipyard: [], recruit: false, contracts: false, refit: false },
+      storage: {}, modules: [{ kind: 'core', progress: 0, built: false, slot: 0 }], defenseHp: 1, founded: this.time,
+      desc: `${co.name}의 자체 정거장.`,
+    };
+    for (const cid of Object.keys(this.st.companies)) station.storage[cid] = emptyCargo();
+    this.st.stations[id] = station;
+    const store = station.storage[g.owner];
+    for (const r of RES) { store[r] += s.cargo[r]; s.cargo[r] = 0; }
+    g.op = { k: 'build', station: id }; g.override = true;
+    this.ev('world', `${co.name}이(가) 새 정거장 "${station.name}" 건설에 착수했다.`, { pos: station.pos, ref: id });
+    this.say(g, '부지 도착. 골조 조립을 시작합니다.', 'radio', 0);
+  }
+
+  // -------------------------------------------------- unloading / trade
+
+  private unload(s: WShip, st: Station, sell: boolean) {
+    const co = this.st.companies[s.owner];
+    if (!co) return;
+    let msg = '';
+    for (const r of RES) {
+      let amt = s.cargo[r];
+      if (amt <= 0.01) continue;
+      s.cargo[r] = 0;
+      // contracts first
+      for (const k of Object.values(this.st.contracts)) {
+        if (k.done || k.takenBy !== s.owner || k.kind !== 'delivery' || k.stationId !== st.id || k.res !== r) continue;
+        const use = Math.min(amt, (k.amount ?? 0) - k.progress);
+        k.progress += use; amt -= use;
+        if (k.progress >= (k.amount ?? 0) - 0.01) this.completeContract(k);
+      }
+      if (amt <= 0.01) continue;
+      if (co.kind !== 'player') { if (st.market?.[r]) st.market[r].stock += amt; continue; }
+      if (sell && st.market?.[r]) { const v = this.sellAt(st, s.owner, r, amt); msg += `${RES_NAME[r]} ${Math.round(amt)} → +${Math.round(v).toLocaleString()} cr `; }
+      else { this.storage(st, s.owner)[r] += amt; msg += `${RES_NAME[r]} ${Math.round(amt)} 입고 `; }
+    }
+    if (msg && co.kind === 'player') {
+      const g = this.st.groups[s.groupId];
+      this.ev('money', `${s.name} @ ${st.name}: ${msg.trim()}`, { company: s.owner, pos: st.pos, who: g?.name, color: co.color });
+    }
+  }
+
+  sellAt(st: Station, company: string, r: Res, amt: number): number {
+    // sell in chunks so large dumps walk the price down
+    let total = 0, left = amt;
+    const m = st.market![r];
+    while (left > 0.01) { const chunk = Math.min(left, 50); total += chunk * this.price(st, r, 'sell'); m.stock += chunk; left -= chunk; }
+    const co = this.st.companies[company];
+    co.credits += total; co.stats.earned += total;
+    if (!co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
+    return total;
+  }
+
+  private behaveTrade(s: WShip, g: WGroup, op: Extract<Op, { k: 'trade' }>, dt: number, speed: number) {
+    const target = this.st.stations[op.route[op.leg % op.route.length]];
+    g.status = `${target.name}로 교역`;
+    if (this.goDock(s, target, dt, speed * 0.8)) {
+      const m = target.market!;
+      for (const r of RES) if (s.cargo[r] > 0 && m[r]) { m[r].stock += s.cargo[r]; s.cargo[r] = 0; }
+      // take the most abundant good to the next stop
+      let best: Res = 'alloy', bv = -1;
+      for (const r of RES) if (m[r] && m[r].stock / m[r].target > bv) { bv = m[r].stock / m[r].target; best = r; }
+      const amt = Math.min(250, m[best].stock * 0.15);
+      m[best].stock -= amt; s.cargo[best] += amt;
+      op.leg = (op.leg + 1) % op.route.length;
+      (s as any)._wait = 6;
+    }
+  }
+
+  private behaveRaid(s: WShip, g: WGroup, op: Extract<Op, { k: 'raid' }>, dt: number, speed: number) {
+    const home = this.st.lairs[op.home];
+    const homePos = home?.pos ?? s.pos;
+    const ships = this.shipsOf(g);
+    const hpAvg = ships.reduce((a, x) => a + x.hp, 0) / ships.length;
+    const bandSpeed = Math.min(speed, this.groupSpeed(g, true));
+    if (hpAvg < 0.45 || !home?.alive) {
+      g.status = '은신처로 귀환';
+      if (this.moveTo(s, this.formationSlot(s, g, homePos, 80), bandSpeed, dt, 30)) s.hp = Math.min(1, s.hp + 0.02 * dt);
+      return;
+    }
+    // (re)choose target every few seconds, once per group
+    if (g.shipIds[0] === s.id && (!(g as any)._nextPick || this.time >= (g as any)._nextPick)) {
+      (g as any)._nextPick = this.time + 5;
+      op.target = this.pickRaidTarget(g, homePos);
+    }
+    const t = op.target ? this.st.groups[op.target] : null;
+    const tc = t ? this.groupCenter(t) : null;
+    if (tc) {
+      this.moveTo(s, this.formationSlot(s, g, tc, 40), bandSpeed, dt, 5);
+      g.status = `${t!.name} 사냥 중`;
+    } else {
+      // prowl between the lair and the nearest field
+      const f = Object.values(this.st.fields).filter(x => !x.salvage).sort((a, b) => dist(a.pos, homePos) - dist(b.pos, homePos))[0];
+      const a = this.time * 0.03 + hashId(g.id);
+      const p = vlerp(homePos, f?.pos ?? homePos, 0.5 + 0.5 * Math.sin(a));
+      this.moveTo(s, this.formationSlot(s, g, p, 70), bandSpeed * 0.6, dt);
+      g.status = '배회 중';
+    }
+  }
+
+  private pickRaidTarget(g: WGroup, home: V): string | undefined {
+    let best: string | undefined, bs = 0;
+    const myVal = this.groupValue(g);
+    for (const o of Object.values(this.st.groups)) {
+      const k = this.st.companies[o.owner]?.kind;
+      if (!k || k === 'pirate' || o.cooldown > 0) continue;
+      const c = this.groupCenter(o); if (!c) continue;
+      const sh = this.shipsOf(o).filter(x => x.state === 'space');
+      if (!sh.length) continue;
+      if (dist(c, home) > 9000 + Math.min(6000, this.time * 3)) continue;
+      if (this.isSafe(c, o.owner)) continue;
+      const civ = this.groupValue(o, false), mil = this.groupValue(o, true);
+      if (mil > myVal * 1.3) continue;
+      const score = (civ * 2 + 60) / (mil + 80) / (dist(c, this.groupCenter(g) ?? home) + 1200) * (k === 'guild' ? 0.35 : 1);
+      if (score > bs) { bs = score; best = o.id; }
+    }
+    return best;
+  }
+
+  isSafe(p: V, company: string): boolean {
+    for (const s of Object.values(this.st.stations)) {
+      if (dist(s.pos, p) > SAFE_R) continue;
+      if (s.public) return true;
+      if (this.hasModule(s, 'defense')) return true;
+      void company;
+    }
+    return false;
+  }
+
+  // ===================================================================== engagements
+
+  private detectEngagements() {
+    const st = this.st;
+    const groups = Object.values(st.groups).filter(g => g.shipIds.length && g.cooldown <= 0);
+    const kind = (g: WGroup) => st.companies[g.owner]?.kind;
+    const pir = groups.filter(g => kind(g) === 'pirate');
+    const others = groups.filter(g => kind(g) !== 'pirate');
+    const used = new Set<string>();
+    const tryEngage = (pos: V, lairId?: string) => {
+      const A: WGroup[] = [], B: WGroup[] = [];
+      for (const g of groups) {
+        if (used.has(g.id)) continue;
+        const ss = this.shipsOf(g).filter(s => s.state === 'space');
+        if (!ss.length) continue;
+        if (!ss.some(s => dist(s.pos, pos) < JOIN_R)) continue;
+        (kind(g) === 'pirate' ? A : B).push(g);
+      }
+      const lair = lairId ? st.lairs[lairId] : Object.values(st.lairs).find(l => l.alive && dist(l.pos, pos) < JOIN_R);
+      if (!B.length || (!A.length && !lair)) return;
+      for (const g of [...A, ...B]) used.add(g.id);
+      this.createEngagement(pos, A, B, lair ?? undefined);
+    };
+    for (const p of pir) {
+      if (used.has(p.id)) continue;
+      const pc = this.shipsOf(p).filter(s => s.state === 'space');
+      for (const o of others) {
+        if (used.has(o.id)) continue;
+        const os = this.shipsOf(o).filter(s => s.state === 'space');
+        let hit: V | null = null;
+        for (const a of pc) { for (const b of os) if (dist(a.pos, b.pos) < ENGAGE_R) { hit = vlerp(a.pos, b.pos, 0.5); break; } if (hit) break; }
+        if (hit) { tryEngage(hit); break; }
+      }
+    }
+    // lairs defend themselves
+    for (const l of Object.values(st.lairs)) {
+      if (!l.alive) continue;
+      for (const o of others) {
+        if (used.has(o.id)) continue;
+        const os = this.shipsOf(o).filter(s => s.state === 'space');
+        if (os.some(s => dist(s.pos, l.pos) < 800)) { tryEngage(l.pos, l.id); break; }
+      }
+    }
+  }
+
+  private toGroupSpec(g: WGroup, ships: WShip[], included: Set<string>, team: 0 | 1): GroupSpec[] {
+    const c = this.cmdr(g);
+    const cmd: CommanderDef = { ...c, team };
+    const mil = ships.filter(s => s.groupId === g.id && ECON[s.classId].military);
+    const civ = ships.filter(s => s.groupId === g.id && !ECON[s.classId].military);
+    const spec = (s: WShip): ShipSpec => ({ classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp });
+    const kids: GroupSpec[] = [];
+    for (const cid of g.childIds) if (included.has(cid)) kids.push(...this.toGroupSpec(this.st.groups[cid], ships, included, team));
+    const out: GroupSpec[] = [];
+    if (mil.length || kids.length) out.push({ name: g.name, commander: cmd, ref: g.id, order: 'auto', retreatAt: 0, ships: mil.map(spec), children: kids });
+    if (civ.length) out.push({ name: `${g.name} (비전투)`, commander: cmd, ref: g.id + '#civ', order: 'retreat', retreatAt: 0, ships: civ.map(spec), children: [] });
+    return out;
+  }
+
+  private sideFleet(groups: WGroup[], ships: WShip[], team: 0 | 1, extra: GroupSpec[], title: string): FleetSpec {
+    const ids = new Set(groups.map(g => g.id));
+    const tops = groups.filter(g => !g.parentId || !ids.has(g.parentId));
+    const children: GroupSpec[] = [...extra];
+    for (const t of tops) children.push(...this.toGroupSpec(t, ships, ids, team));
+    // the most capable commander present takes overall command
+    const best = groups.map(g => this.cmdr(g)).sort((a, b) => b.skill - a.skill)[0] ?? { ...ACTING_CAPTAIN };
+    return { name: title, root: { name: title, commander: { ...best, team }, ref: 'root', order: 'engage', retreatAt: 0, ships: [], children } };
+  }
+
+  createEngagement(pos: V, pirates: WGroup[], others: WGroup[], lair?: { id: string; name: string; hp: number; pos: V }) {
+    const st = this.st;
+    const all = [...pirates, ...others];
+    const ships: WShip[] = [];
+    for (const g of all) for (const s of this.shipsOf(g)) if (s.state === 'space') ships.push(s);
+    const extraA: GroupSpec[] = [];
+    if (lair) {
+      extraA.push({ name: lair.name, commander: { ...ACTING_CAPTAIN, name: '은신처 수비대장', team: 1, aggression: 0.8 }, ref: 'lair:' + lair.id, order: 'hold', retreatAt: 0, ships: [{ classId: 'platform', loadoutId: 'std', name: lair.name, ref: 'lair:' + lair.id, hp: lair.hp }], children: [] });
+    }
+    // own stations with defense batteries join nearby fights
+    const extraB: GroupSpec[] = [];
+    let stationId: string | undefined;
+    for (const s of Object.values(st.stations)) {
+      if (s.public || dist(s.pos, pos) > JOIN_R) continue;
+      const n = s.modules.filter(m => m.kind === 'defense' && m.built).length;
+      if (!n) continue;
+      stationId = s.id;
+      extraB.push({ name: `${s.name} 방어 포대`, commander: { ...ACTING_CAPTAIN, name: '포대장', team: 0 }, ref: 'station:' + s.id, order: 'hold', retreatAt: 0,
+        ships: Array.from({ length: n }, (_, i) => ({ classId: 'platform', loadoutId: 'std', name: `${s.name} 포대 ${i + 1}`, ref: `station:${s.id}`, hp: s.defenseHp })), children: [] });
+    }
+    const sideB = [...new Set(others.map(g => g.owner))];
+    const sideA = [...new Set(pirates.map(g => g.owner))];
+    if (lair && !sideA.includes('pirates')) sideA.push('pirates');
+    const live = sideB.some(c => st.companies[c]?.kind === 'player');
+    const titleB = sideB.filter(c => st.companies[c]?.kind === 'player').map(c => st.companies[c].name).join(' · ') || '연합 경비대';
+    const setup = {
+      seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : pos.z > 6000 ? 'wolfpack' : 'kestrel', spawnZ: 720,
+      fleets: [this.sideFleet(others, ships, 0, extraB, titleB), this.sideFleet(pirates, ships, 1, extraA, '해적')] as [FleetSpec, FleetSpec],
+    };
+    const e: Engagement = {
+      id: this.id('e'), pos: { ...pos }, start: st.time, setup, orders: [], tick: 0, sides: [sideB, sideA], groupRefs: all.map(g => g.id),
+      live, done: false, lairId: lair?.id, stationId,
+    };
+    st.engagements[e.id] = e;
+    for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; }
+    const desc = `${pirates.length ? pirates.map(g => g.name).join(', ') : ''}${lair ? (pirates.length ? ' + ' : '') + lair.name : ''}`;
+    for (const c of sideB) if (st.companies[c]?.kind === 'player') this.ev('battle', `교전 발생! ${desc}와(과) 전투 중`, { company: c, pos, ref: e.id });
+    const w = new World(setup);
+    if (live) { this.battles.set(e.id, w); this.battleAcc.set(e.id, 0); }
+    else { w.runUntilEnd(); e.tick = w.tick; this.finishEngagement(e, w); }
+    return e;
+  }
+
+  /** a player's order inside a live battle: validated and stamped a few ticks ahead */
+  battleOrder(company: string, engId: string, groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean }): string | null {
+    const e = this.st.engagements[engId]; const w = this.battles.get(engId);
+    if (!e || !w || e.done) return '전투 없음';
+    const tg = w.groupById.get(groupId); if (!tg) return '부대 없음';
+    if (!this.tacticalOwner(tg.ref).includes(company)) return '지휘 권한 없음';
+    const rec: OrderRecord = { tick: w.tick + 4, groupId, order, retreatAt: opts.retreatAt, release: opts.release };
+    w.scheduleOrder(rec);
+    e.orders.push(rec);
+    this.onBattleOrder?.(engId, rec);
+    return null;
+  }
+
+  /** companies allowed to command a tactical group */
+  tacticalOwner(ref: string | undefined): string[] {
+    if (!ref) return [];
+    if (ref === 'root') return [];
+    if (ref.startsWith('station:')) { const s = this.st.stations[ref.slice(8)]; return s ? [s.owner] : []; }
+    if (ref.startsWith('lair:')) return [];
+    const g = this.st.groups[ref.replace('#civ', '')];
+    return g ? [g.owner] : [];
+  }
+
+  private finishEngagement(e: Engagement, w: World) {
+    const st = this.st;
+    e.done = true; e.tick = w.tick; e.winner = w.outcome?.winner ?? -1;
+    const destroyedPirateValue = new Map<string, number>();
+    const dmgBy = new Map<string, number>();
+    const lostBy = new Map<string, number>();
+    let salvage = 0;
+    const killsByGroup = new Map<string, number>();
+    for (const tg of w.groups) if (tg.ref) killsByGroup.set(tg.ref.replace('#civ', ''), (killsByGroup.get(tg.ref.replace('#civ', '')) ?? 0) + tg.stats.killValue);
+    for (const ts of w.ships) {
+      if (!ts.ref) continue;
+      const owner = ts.ref.startsWith('lair:') ? 'pirates' : ts.ref.startsWith('station:') ? st.stations[ts.ref.slice(8)]?.owner : st.ships[ts.ref]?.owner;
+      if (owner) dmgBy.set(owner, (dmgBy.get(owner) ?? 0) + ts.stats.dmgDealt);
+      const dead = ts.state === 'dead' || ts.state === 'dying';
+      if (ts.ref.startsWith('lair:')) {
+        const l = st.lairs[ts.ref.slice(5)];
+        if (l) { l.hp = dead ? 0 : Math.max(0.05, ts.hp / ts.maxHp); if (dead) this.destroyLair(l, e); }
+        continue;
+      }
+      if (ts.ref.startsWith('station:')) {
+        const s = st.stations[ts.ref.slice(8)];
+        if (s) s.defenseHp = dead ? 0.15 : Math.max(0.1, ts.hp / ts.maxHp);
+        continue;
+      }
+      const s = st.ships[ts.ref];
+      if (!s) continue;
+      if (dead) {
+        salvage += shipValue(s.classId) * 2.2;
+        if (s.owner === 'pirates') destroyedPirateValue.set(ts.ref, shipValue(s.classId));
+        lostBy.set(s.owner, (lostBy.get(s.owner) ?? 0) + 1);
+        const co = st.companies[s.owner]; if (co) co.stats.lost++;
+        const g = st.groups[s.groupId];
+        if (g) g.shipIds = g.shipIds.filter(x => x !== s.id);
+        delete st.ships[s.id];
+      } else {
+        s.hp = Math.max(0.05, ts.hp / ts.maxHp);
+        s.state = 'space'; s.engagement = undefined; s.task = { k: 'none' };
+        // survivors drift out of the battle zone; escapees end up further away
+        const off = ts.state === 'escaped' ? 520 : 140;
+        const ang = this.rng.range(0, Math.PI * 2);
+        s.pos = { x: e.pos.x + Math.cos(ang) * off * this.rng.range(0.4, 1), y: e.pos.y + this.rng.range(-30, 30), z: e.pos.z + Math.sin(ang) * off * this.rng.range(0.4, 1) };
+      }
+    }
+    // groups: cooldown, commander experience & injuries
+    for (const gid of e.groupRefs) {
+      const g = st.groups[gid]; if (!g) continue;
+      g.cooldown = 25; g.fleeing = false;
+      if (g.owner === 'pirates' && g.op.k === 'raid') { g.op.target = undefined; (g as any)._nextPick = this.time + 40; }
+      const cm = g.commanderId ? st.commanders[g.commanderId] : null;
+      if (cm && cm.injuredUntil <= this.time) {
+        cm.battles++;
+        const gain = 12 + (killsByGroup.get(gid) ?? 0) / 12;
+        cm.xp += gain;
+        if (cm.xp >= cm.level * 100) {
+          cm.xp -= cm.level * 100; cm.level++;
+          cm.skill = Math.min(0.95, cm.skill + 0.03);
+          if (cm.owner && st.companies[cm.owner]?.kind === 'player') this.ev('milestone', `${cm.rank} ${cm.name} 숙련도 상승 → Lv.${cm.level} (판단력 ${Math.round(cm.skill * 100)})`, { company: cm.owner, who: cm.name, color: cm.color });
+        }
+        if (!g.shipIds.length) { cm.injuredUntil = this.time + 240; if (cm.owner) this.ev('warn', `${cm.name}의 함대가 전멸했다. 탈출 포드로 귀환, 4분간 부상.`, { company: cm.owner }); }
+      }
+      if (!g.shipIds.length && st.companies[g.owner]?.kind !== 'player') {
+        if (g.commanderId) delete st.commanders[g.commanderId];
+        delete st.groups[g.id];
+      }
+    }
+    // bounties & reputation by damage share
+    const players = e.sides[0].filter(c => st.companies[c]?.kind === 'player');
+    const totalDmg = players.reduce((a, c) => a + (dmgBy.get(c) ?? 0), 0);
+    let bounty = 0;
+    for (const v of destroyedPirateValue.values()) bounty += v * 22;
+    if (e.lairId && !st.lairs[e.lairId]?.alive) bounty += 6000;
+    const won = e.winner === 0;
+    for (const c of players) {
+      const co = st.companies[c];
+      const share = totalDmg > 0 ? (dmgBy.get(c) ?? 0) / totalDmg : 1 / players.length;
+      const pay = Math.round(bounty * share);
+      if (pay > 0) { co.credits += pay; co.stats.earned += pay; }
+      co.rep += Math.round(destroyedPirateValue.size * share);
+      co.stats.kills += Math.round(destroyedPirateValue.size * share);
+      if (won) { co.stats.battlesWon++; if (!co.milestones.includes('first_victory')) this.milestone(co, 'first_victory'); }
+      const lost = lostBy.get(c) ?? 0;
+      e.summary = `${won ? '승리' : e.winner === 1 ? '패배' : '교착'} — 해적 ${destroyedPirateValue.size}척 격침, 아군 손실 ${lost}척${pay ? `, 현상금 +${pay.toLocaleString()} cr` : ''}`;
+      this.ev('battle', `전투 종료: ${e.summary}`, { company: c, pos: e.pos, ref: e.id });
+    }
+    // contracts: bounties on bands wiped out
+    for (const k of Object.values(st.contracts)) {
+      if (k.done || k.kind !== 'bounty' || !k.target) continue;
+      const g = st.groups[k.target];
+      if (g && g.shipIds.length) continue;
+      if (k.takenBy && players.includes(k.takenBy) && (dmgBy.get(k.takenBy) ?? 0) > 0) this.completeContract(k);
+      else { k.done = true; if (k.takenBy) this.ev('info', `계약 "${k.title}" 대상이 다른 세력에 의해 소멸했다.`, { company: k.takenBy }); }
+    }
+    // wreckage becomes a salvage field (alloy)
+    if (salvage > 300) {
+      const f: Field = { id: this.id('wreck'), name: '전투 잔해', pos: { ...e.pos }, radius: 220, res: 'alloy', amount: Math.round(salvage), max: Math.round(salvage), regen: 0, rocks: Math.min(40, 8 + Math.round(salvage / 150)), salvage: true, expires: this.time + 1500, danger: 1 };
+      st.fields[f.id] = f;
+    }
+    if (!players.length) {
+      if (e.sides[0].includes('union')) this.ev('world', won ? '연합 경비대가 해적 무리를 격퇴했다.' : '연합 경비대가 해적에게 패퇴했다! 항로가 위험해진다.', { pos: e.pos });
+      else if (!won && this.rng.chance(0.5)) this.ev('world', '길드 상선이 해적에게 약탈당했다. 시장 공급이 줄어든다.', { pos: e.pos });
+    }
+    this.onBattleEnd?.(e);
+  }
+
+  private destroyLair(l: import('./types').Lair, e: Engagement) {
+    l.alive = false; l.respawnAt = this.time + 1500;
+    const who = e.sides[0].filter(c => this.st.companies[c]?.kind === 'player').map(c => this.st.companies[c].name).join(', ') || '연합군';
+    this.ev('world', `${l.name}이(가) ${who}에 의해 파괴되었다! 주변 항로의 해적 위협이 사라진다.`, { pos: l.pos, ref: l.id });
+    for (const f of Object.values(this.st.fields)) if (dist(f.pos, l.pos) < 9000) f.danger = Math.max(1, f.danger - 1);
+    for (const c of e.sides[0]) {
+      const co = this.st.companies[c];
+      if (co?.kind === 'player') { co.rep += 15; if (!co.milestones.includes('lair')) this.milestone(co, 'lair'); }
+    }
+    for (const k of Object.values(this.st.contracts)) if (!k.done && k.kind === 'lair' && k.target === l.id) {
+      if (k.takenBy && e.sides[0].includes(k.takenBy)) this.completeContract(k); else k.done = true;
+    }
+  }
+
+  // ===================================================================== contracts & progression
+
+  private offerContract(k: Omit<Contract, 'id' | 'progress' | 'expires' | 'takenBy' | 'done'>) {
+    const id = this.id('k');
+    this.st.contracts[id] = { ...k, id, progress: 0, expires: this.time + 900, takenBy: null, done: false };
+  }
+
+  private contracts() {
+    const st = this.st;
+    for (const k of Object.values(st.contracts)) {
+      if (k.done) continue;
+      if (this.time > k.expires) {
+        k.done = true;
+        if (k.takenBy) { const co = st.companies[k.takenBy]; co.rep = Math.max(0, co.rep - 2); this.ev('warn', `계약 기한 만료: ${k.title} (평판 -2)`, { company: k.takenBy }); }
+      }
+    }
+    // stations keep a few delivery jobs posted
+    for (const s of Object.values(st.stations)) {
+      if (!s.public || !s.services.contracts) continue;
+      const open = Object.values(st.contracts).filter(k => !k.done && k.stationId === s.id && k.kind === 'delivery');
+      if (open.length < 2 && this.rng.chance(0.08)) {
+        const res: Res = this.rng.chance(0.7) ? 'ore' : this.rng.chance(0.6) ? 'alloy' : 'crystal';
+        const amount = res === 'crystal' ? 40 + this.rng.int(5) * 20 : res === 'alloy' ? 100 + this.rng.int(4) * 50 : 200 + this.rng.int(5) * 100;
+        const base = s.market?.[res]?.base ?? 20;
+        this.offerContract({ stationId: s.id, kind: 'delivery', title: `${RES_NAME[res]} ${amount} 납품`, desc: `${s.name}에 ${RES_NAME[res]} ${amount}단위를 납품하라. 시장가의 약 1.8배를 지급한다.`, reward: Math.round(amount * base * 1.8 / 50) * 50, rep: 2, res, amount });
+      }
+    }
+    // lair assaults posted by the Union
+    for (const l of Object.values(st.lairs)) {
+      if (!l.alive) continue;
+      if (Object.values(st.contracts).some(k => !k.done && k.kind === 'lair' && k.target === l.id)) continue;
+      this.offerContract({ stationId: 'helios', kind: 'lair', title: `토벌: ${l.name}`, desc: `연합 관리청 의뢰. ${l.name}을(를) 파괴하라. 요새 포대와 수비대가 있다 — 순양함급 이상의 전력을 권장.`, reward: l.id === 'fang' ? 45000 : 30000, rep: 20, target: l.id });
+    }
+    // recruitment pools
+    for (const s of Object.values(st.stations)) {
+      if (!s.services.recruit) continue;
+      const pool = Object.values(st.commanders).filter(c => !c.owner && c.stationId === s.id);
+      if (pool.length < 3 && this.rng.chance(0.05)) this.newCommander(null, s.id === 'helios' ? 2 : 1, s.id);
+    }
+  }
+
+  private completeContract(k: Contract) {
+    if (k.done) return;
+    k.done = true;
+    const co = k.takenBy ? this.st.companies[k.takenBy] : null;
+    if (!co) return;
+    co.credits += k.reward; co.stats.earned += k.reward; co.rep += k.rep; co.stats.contracts++;
+    this.ev('money', `계약 완수: ${k.title} — 보수 +${k.reward.toLocaleString()} cr, 평판 +${k.rep}`, { company: co.id, pos: this.st.stations[k.stationId]?.pos });
+    if (!co.milestones.includes('first_contract')) this.milestone(co, 'first_contract');
+  }
+
+  private milestone(co: Company, id: string) {
+    if (co.milestones.includes(id)) return;
+    co.milestones.push(id);
+    const m = MILESTONES.find(x => x.id === id);
+    if (m) this.ev('milestone', `목표 달성: ${m.title}`, { company: co.id });
+  }
+
+  private milestones() {
+    for (const co of Object.values(this.st.companies)) {
+      if (co.kind !== 'player') continue;
+      const ships = Object.values(this.st.ships).filter(s => s.owner === co.id);
+      if (ships.length >= 8) this.milestone(co, 'fleet_8');
+      if (Object.values(this.st.commanders).filter(c => c.owner === co.id).length >= 3) this.milestone(co, 'commanders_3');
+      if (ships.some(s => s.classId === 'cruiser')) this.milestone(co, 'cruiser');
+      if (ships.some(s => s.classId === 'battleship')) this.milestone(co, 'battleship');
+      const own = Object.values(this.st.stations).filter(s => s.owner === co.id);
+      if (own.some(s => this.hasModule(s, 'core'))) this.milestone(co, 'station');
+      if (own.reduce((a, s) => a + s.modules.filter(m => m.built).length, 0) >= 3) this.milestone(co, 'station_3');
+      if (this.netWorth(co.id) >= 300000) this.milestone(co, 'rich');
+    }
+  }
+
+  netWorth(company: string): number {
+    const co = this.st.companies[company];
+    let v = co.credits;
+    for (const s of Object.values(this.st.ships)) if (s.owner === company) v += ECON[s.classId].price * (0.5 + 0.5 * s.hp);
+    for (const s of Object.values(this.st.stations)) {
+      const store = s.storage[company]; if (store) v += store.ore * 10 + store.alloy * 30 + store.crystal * 90;
+      if (s.owner === company) for (const m of s.modules) if (m.built) v += MODULES[m.kind].credits + MODULES[m.kind].alloy * 30;
+    }
+    return Math.round(v);
+  }
+
+  private cleanup() {
+    const st = this.st;
+    for (const f of Object.values(st.fields)) if (f.salvage && (f.expires < this.time || f.amount < 1)) delete st.fields[f.id];
+    for (const [id, e] of Object.entries(st.engagements)) if (e.done && this.time - e.start > 600) delete st.engagements[id];
+    for (const [id, k] of Object.entries(st.contracts)) if (k.done && this.time - k.expires > 300) delete st.contracts[id];
+    // NPC groups that lost all ships
+    for (const g of Object.values(st.groups)) if (!g.shipIds.length && st.companies[g.owner]?.kind !== 'player') { if (g.commanderId) delete st.commanders[g.commanderId]; delete st.groups[g.id]; }
+  }
+}
+
+const BERTH_MAX = 28;

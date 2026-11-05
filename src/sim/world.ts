@@ -12,6 +12,10 @@ export interface BattleSetup {
   seed: number;
   scenarioId: string;
   fleets: [FleetSpec, FleetSpec];
+  /** half-distance between the two fleets at start (default SPAWN_Z) */
+  spawnZ?: number;
+  /** persistent-world encounters: free-for-all retreat edge relative to spawn */
+  backdrop?: string;
 }
 
 export const DT = 1 / 30;
@@ -47,9 +51,11 @@ export class World {
   private nextId = 1;
   private radioId = 1;
   readonly setup: BattleSetup;
+  readonly spawnZ: number;
 
   constructor(setup: BattleSetup) {
     this.setup = setup;
+    this.spawnZ = setup.spawnZ ?? SPAWN_Z;
     this.rng = new Rng(setup.seed);
     this.lineRng = new Rng(setup.seed ^ 0x5bd1e995);
     this.spawnTeam(0, setup.fleets[0]);
@@ -70,13 +76,13 @@ export class World {
     const names = [...SHIP_NAMES[team]];
     const takeName = () => (names.length ? names.splice(nameRng.int(names.length), 1)[0] : `함선-${this.nextId}`);
     const build = (spec: GroupSpec, parent: Group | null, depth: number): Group => {
-      const cmd = getCommander(spec.commanderId);
+      const cmd = spec.commander ?? getCommander(spec.commanderId);
       const commander: CommanderDef = cmd ?? { ...ACTING_CAPTAIN, team };
       const g: Group = {
         id: this.nextId++, team, name: spec.name, parentId: parent ? parent.id : null, childIds: [], shipIds: [],
         commander, hasCommander: !!cmd, order: { type: 'engage' }, playerOverride: false, retreatAt: spec.retreatAt ?? 0,
         initialHp: 0, initialValue: 0, depth, escortHint: spec.escortTarget ?? null, role: 'line',
-        stats: { kills: 0, killValue: 0, lost: 0, dmgDealt: 0 },
+        stats: { kills: 0, killValue: 0, lost: 0, dmgDealt: 0 }, ref: spec.ref,
         ai: {
           nextThink: 0.5 + this.rng.range(0, 1.2), mainTarget: -1, shipTarget: -1, phase: 'none', waypoint: null, goal: new Vec3(), face: null,
           preferredRange: 900, lastRadio: -99, threatGroup: -1, lastOrderKey: '', committedAt: 0, kiting: false, confused: 0, reactDelay: 0,
@@ -88,6 +94,8 @@ export class World {
       if (parent) parent.childIds.push(g.id);
       for (const ss of spec.ships) {
         const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g);
+        if (ss.ref !== undefined) s.ref = ss.ref;
+        if (ss.hp !== undefined) s.hp = Math.max(1, s.maxHp * Math.min(1, ss.hp));
         g.shipIds.push(s.id);
       }
       for (const c of spec.children) build(c, g, depth + 1);
@@ -137,11 +145,12 @@ export class World {
   private layoutTeam(team: Team, root: Group) {
     const leaves = this.groups.filter(g => g.team === team && g.shipIds.length > 0);
     const zSign = team === 0 ? -1 : 1;
-    const baseZ = SPAWN_Z * zSign;
+    const baseZ = this.spawnZ * zSign;
     const roleOf = (g: Group) => groupRoleOf(this, g);
     const lines = leaves.filter(g => roleOf(g) === 'line');
     const escorts = leaves.filter(g => roleOf(g) === 'escort');
     const raiders = leaves.filter(g => roleOf(g) === 'raider');
+    const civilians = leaves.filter(g => roleOf(g) === 'civilian');
     const spacingOf = (g: Group) => Math.max(...g.shipIds.map(id => this.shipById.get(id)!.radius)) * 9 + 30;
     const widthOf = (g: Group) => spacingOf(g) * g.shipIds.length;
     let totalW = lines.reduce((a, g) => a + widthOf(g) + 80, 0);
@@ -173,6 +182,7 @@ export class World {
       if (i % 2 === 0) { place(g, wingR + w / 2, baseZ + zSign * 60); wingR += w + 120; }
       else { place(g, wingL - w / 2, baseZ + zSign * 60); wingL -= w + 120; }
     });
+    civilians.forEach((g, i) => place(g, (i - (civilians.length - 1) / 2) * 260, baseZ + zSign * 320));
     // team 1 mirrors x so its "left" matches its own facing
     if (team === 1) for (const g of leaves) for (const id of g.shipIds) { const s = this.shipById.get(id)!; s.pos.x *= -1; s.prevPos.copy(s.pos); s.ai.moveTo.copy(s.pos); }
     if (team === 1) for (const g of leaves) if (g.ai.holdPoint) { g.ai.holdPoint.x *= -1; g.ai.goal.x *= -1; }
@@ -196,6 +206,7 @@ export class World {
         }
         case 'hold': order = { type: 'hold' }; break;
         case 'reserve': order = { type: 'reserve' }; break;
+        case 'retreat': order = { type: 'retreat' }; break;
         default: order = null;
       }
       if (order) { g.order = order; g.playerOverride = !isRoot; }
@@ -275,7 +286,7 @@ export class World {
   private applyPending() {
     if (!this.pending.length) return;
     for (const rec of this.pending) {
-      rec.tick = this.tick;
+      if (rec.tick === undefined || rec.tick < this.tick || !(rec as any)._stamped) rec.tick = this.tick;
       this.orderLog.push(rec);
       this.applyOrderRecord(rec);
     }
@@ -285,6 +296,12 @@ export class World {
   /** replay helper: schedule records to apply at their recorded ticks */
   private scheduled: OrderRecord[] = [];
   scheduleReplay(records: OrderRecord[]) { this.scheduled = records.slice().sort((a, b) => a.tick - b.tick); }
+
+  /** lockstep: schedule one order at an explicit tick (server-stamped) */
+  scheduleOrder(rec: OrderRecord) {
+    this.scheduled.push(rec);
+    this.scheduled.sort((a, b) => a.tick - b.tick);
+  }
 
   private applyOrderRecord(rec: OrderRecord) {
     const g = this.groupById.get(rec.groupId);
@@ -366,6 +383,7 @@ export class World {
     this.events.length = 0;
     while (this.scheduled.length && this.scheduled[0].tick <= this.tick) {
       const rec = this.scheduled.shift()!;
+      (rec as any)._stamped = true;
       this.pending.push(rec);
     }
     this.applyPending();
@@ -603,7 +621,7 @@ export class World {
       if (t.team === s.team || t.state !== 'alive') continue;
       const d = muzzle.distTo(t.pos);
       if (d > range) continue;
-      if (w.kind === 'torpedo' && t.role !== 'line' && !(pri && pri.role === 'escort' && t === pri)) continue;
+      if (w.kind === 'torpedo' && t.role !== 'line' && t.role !== 'civilian' && !(pri && pri.role === 'escort' && t === pri)) continue;
       // don't waste missile salvos on distant agile craft
       if (w.kind === 'missile' && t.role === 'raider' && d > 650) continue;
       if (!inArc(t.pos)) continue;
@@ -929,7 +947,7 @@ export class World {
       if (s.state === 'alive') {
         const g = this.groupById.get(s.groupId)!;
         const homeZ = s.team === 0 ? -1 : 1;
-        if (g.order.type === 'retreat' && (s.pos.z * homeZ > SPAWN_Z + 900 || Math.hypot(s.pos.x, s.pos.z) > FIELD_RADIUS + 400)) {
+        if (g.order.type === 'retreat' && (s.pos.z * homeZ > this.spawnZ + 900 || Math.hypot(s.pos.x, s.pos.z) > FIELD_RADIUS + 400)) {
           s.state = 'escaped';
           this.events.push({ t: 'escaped', ship: s.id });
           alive[s.team]--;

@@ -81,6 +81,7 @@ export interface Ship {
   lastAttacker: number;
   throttle: number;     // 0..1 for visuals
   killedBy: number;
+  ref?: string;
 }
 
 export interface Munition {
@@ -140,6 +141,7 @@ export interface Group {
   depth: number;
   escortHint: string | null;
   role: Role;
+  ref?: string;
 }
 
 export type SimEvent =

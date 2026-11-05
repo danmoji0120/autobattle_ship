@@ -6,7 +6,6 @@
 
 import { Vec3, UP, clamp, lerp } from '../math';
 import type { World } from '../world';
-import { SPAWN_Z } from '../world';
 import type { Group, Ship, Order, Team } from '../types';
 import type { Role } from '../data/ships';
 
@@ -24,8 +23,9 @@ export function orderKey(o: Order): string {
 }
 
 export function groupRoleOf(w: World, g: Group): Role {
-  const v: Record<Role, number> = { line: 0, escort: 0, raider: 0 };
+  const v: Record<Role, number> = { line: 0, escort: 0, raider: 0, civilian: 0 };
   for (const s of w.subtreeShips(g, true)) v[s.role] += s.value;
+  if (v.civilian > v.line + v.escort + v.raider) return 'civilian';
   if (v.line >= v.escort && v.line >= v.raider) return 'line';
   return v.raider >= v.escort ? 'raider' : 'escort';
 }
@@ -109,7 +109,7 @@ export function chooseEnemyGroup(w: World, g: Group, ships: Ship[], role: Role, 
     const hpFrac = es.reduce((a, s) => a + s.hp / s.maxHp, 0) / es.length;
     const eRole = e.role;
     let match = 1;
-    if (role === 'raider') match = eRole === 'line' ? 1.6 : eRole === 'escort' ? 0.45 : 0.9;
+    if (role === 'raider') match = eRole === 'line' ? 1.6 : eRole === 'escort' ? 0.45 : eRole === 'civilian' ? 1.8 : 0.9;
     else if (role === 'escort') match = eRole === 'raider' ? 1.8 : 0.8;
     else match = eRole === 'line' ? 1.2 : eRole === 'raider' ? 0.7 : 1;
     // isolated targets are attractive to skilled commanders
@@ -181,6 +181,8 @@ function thinkComposite(w: World, g: Group) {
         let rt = T;
         if (T.role !== 'line') { const alt = chooseEnemyGroup(w, k, w.subtreeShips(k), 'raider', k.ai.mainTarget); if (alt) rt = alt; }
         const prevOrder = k.order;
+        // flanking only makes sense against a heavy battle line; light targets are hunted directly
+        if (rt.role !== 'line') { assign.set(k.id, { type: 'attack', targetGroup: rt.id }); continue; }
         const kc = w.groupCenter(k, new Vec3());
         const side: -1 | 1 = prevOrder.type === 'flank' && prevOrder.targetGroup === rt.id ? prevOrder.side : sideAway(w, g, rt, kc);
         const waitFor = c.skill >= 0.7 && anvil && rt.role === 'line' ? anvil.id : undefined;
@@ -348,6 +350,8 @@ function thinkLeaf(w: World, g: Group, ships: Ship[], order: Order) {
           w.say(g, 'hammer', {}, 2);
         }
       }
+      // never circle forever: commit after a while even if the waypoint keeps moving
+      if (ai.phase === 'transit' && w.time - ai.committedAt > 55) { ai.phase = 'strike'; w.say(g, 'hammer', {}, 2); }
       // opportunist (low discipline, high skill): break off early if the target is already exposed
       if (ai.phase === 'transit' && c.discipline < 0.5 && c.skill > 0.7 && distToT < 700 && exposedFlank(w, T, C)) {
         ai.phase = 'strike';
@@ -512,7 +516,7 @@ function steer(w: World, g: Group) {
   switch (o.type) {
     case 'retreat': {
       for (const s of ships) {
-        s.ai.moveTo.set(s.pos.x * 1.02, s.pos.y, homeZ * (SPAWN_Z + 1600));
+        s.ai.moveTo.set(s.pos.x * 1.02, s.pos.y, homeZ * (w.spawnZ + 1600));
         s.ai.faceTo = null; s.ai.speedCap = s.maxSpeed; s.ai.run = null;
       }
       return;

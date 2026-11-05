@@ -1,4 +1,4 @@
-export type Role = 'line' | 'escort' | 'raider';
+export type Role = 'line' | 'escort' | 'raider' | 'civilian';
 
 /** Ship-local coordinates: x = port(+)/starboard(-), y = up, z = forward. */
 export interface MountDef {
@@ -162,6 +162,41 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
     ],
   },
 };
+
+// Civilian / structural classes used by the persistent world (they can still end up in battles).
+Object.assign(SHIP_CLASSES, {
+  miner: {
+    id: 'miner', name: '곡괭이급', enemyName: '곡괭이급', type: '채굴선', role: 'civilian',
+    length: 30, radius: 6, hp: 2600, armor: { front: 30, side: 22, rear: 14 },
+    maxSpeed: 34, accel: 8, turnRate: 14, lateral: 0.4, cost: 90,
+    desc: '채굴 레이저와 대형 화물칸. 소행성에서 광석과 크리스탈을 캐낸다.',
+    loadouts: [{ id: 'std', name: '표준 채굴', desc: '채굴 레이저 + 자위용 방공포 2기', mounts: [m('pd_gun', [3, 3, 6], 90, 175), m('pd_gun', [-3, 3, -6], -90, 175)] }],
+  },
+  hauler: {
+    id: 'hauler', name: '짐꾼급', enemyName: '짐꾼급', type: '수송선', role: 'civilian',
+    length: 40, radius: 6.5, hp: 3200, armor: { front: 26, side: 20, rear: 12 },
+    maxSpeed: 40, accel: 8, turnRate: 12, lateral: 0.35, cost: 100,
+    desc: '거대한 컨테이너 수송선. 채굴선에서 광석을 받아 정거장으로 나른다.',
+    loadouts: [{ id: 'std', name: '표준 수송', desc: '방공포 2기', mounts: [m('pd_gun', [3.5, 4, 12], 90, 175), m('pd_gun', [-3.5, 4, -12], -90, 175)] }],
+  },
+  constructor: {
+    id: 'constructor', name: '석공급', enemyName: '석공급', type: '공작선', role: 'civilian',
+    length: 34, radius: 6, hp: 3000, armor: { front: 28, side: 22, rear: 14 },
+    maxSpeed: 32, accel: 7, turnRate: 12, lateral: 0.4, cost: 160,
+    desc: '조립 크레인과 드론 격납고를 갖춘 공작선. 정거장을 세우고 모듈을 건설한다.',
+    loadouts: [{ id: 'std', name: '표준 공작', desc: '방공포 2기', mounts: [m('pd_gun', [3, 4, 8], 90, 175), m('pd_gun', [-3, 4, -8], -90, 175)] }],
+  },
+  platform: {
+    id: 'platform', name: '방어 포대', enemyName: '요새 포대', type: '방어 플랫폼', role: 'line',
+    length: 40, radius: 14, hp: 16000, armor: { front: 60, side: 60, rear: 60 },
+    maxSpeed: 0.001, accel: 0, turnRate: 0, lateral: 1, cost: 250,
+    desc: '정거장에 고정된 포대. 움직이지 못하지만 단단하다.',
+    loadouts: [{ id: 'std', name: '포대', desc: '주포 2 + 부포 2 + 방공 4', mounts: [
+      m('heavy_cannon', [0, 8, 6], 0, 180), m('heavy_cannon', [0, 8, -6], 180, 180),
+      m('medium_gun', [8, 4, 0], 90, 180), m('medium_gun', [-8, 4, 0], -90, 180),
+      m('pd_gun', [10, 6, 10], 90, 180), m('pd_gun', [-10, 6, 10], -90, 180), m('pd_gun', [10, 6, -10], 90, 180), m('pd_gun', [-10, 6, -10], -90, 180)] }],
+  },
+} as Record<string, ShipClassDef>);
 
 export function getLoadout(classId: string, loadoutId: string): LoadoutDef {
   const c = SHIP_CLASSES[classId];

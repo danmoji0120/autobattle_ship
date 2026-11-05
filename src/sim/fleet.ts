@@ -1,13 +1,17 @@
 // Serializable fleet description (used by the setup screen, saves, scenarios and replays).
 import { SHIP_CLASSES, shipCost } from './data/ships';
 
-export type InitialOrder = 'auto' | 'engage' | 'flank_left' | 'flank_right' | 'escort' | 'hold' | 'reserve';
+export type InitialOrder = 'auto' | 'engage' | 'flank_left' | 'flank_right' | 'escort' | 'hold' | 'reserve' | 'retreat';
 
-export interface ShipSpec { classId: string; loadoutId: string; name?: string }
+export interface ShipSpec { classId: string; loadoutId: string; name?: string; /** external id (persistent world) */ ref?: string; /** starting hull fraction */ hp?: number }
 
 export interface GroupSpec {
   name: string;
   commanderId?: string | null;
+  /** inline commander (persistent world commanders are not in the static roster) */
+  commander?: import('./data/commanders').CommanderDef | null;
+  /** external id (persistent world group / synthetic root) */
+  ref?: string;
   order: InitialOrder;
   /** for escort: index path of the group to protect; empty → nearest line sibling */
   escortTarget?: string;
@@ -26,6 +30,7 @@ export const INITIAL_ORDER_TEXT: Record<InitialOrder, string> = {
   escort: '아군 호위',
   hold: '진지 사수',
   reserve: '예비대 (대기 후 투입)',
+  retreat: '후퇴',
 };
 
 export function fleetCost(f: FleetSpec): number {
