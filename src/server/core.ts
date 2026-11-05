@@ -5,11 +5,12 @@ import { WorldSim } from '../world/sim';
 import type { ClientMsg, ServerMsg, SaveFile, WorldView } from './protocol';
 import type { WorldEvent } from '../world/types';
 
-export interface Conn { id: string; send(msg: ServerMsg): void; company?: string; lastEvent: number; battles: Set<string> }
+export interface Conn { id: string; send(msg: ServerMsg): void; company?: string; lastEvent: number; battles: Set<string>; view?: string; bytes?: number }
 
 export interface ServerOptions {
   singleplayer: boolean;
-  snapInterval: number;           // seconds of real time between snapshots
+  snapInterval: number;           // seconds of real time between full snapshots
+  movInterval?: number;           // seconds between compact ship-motion packets (default 0.2)
   save?: (data: SaveFile) => void;
   saveInterval?: number;
 }
@@ -29,6 +30,10 @@ export class GameServer {
   private saveAcc = 0;
   readonly opts: ServerOptions;
   private clock = 0;
+  private movAcc = 0;
+  private statAcc = 0;
+  private tickCost: number[] = [];
+  private rateMark = { clock: 0, time: 0 };
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
@@ -74,7 +79,7 @@ export class GameServer {
         // only tell this client about recent events
         c.lastEvent = Math.max(0, this.sim.st.eventSeq - 40);
         c.send({ t: 'welcome', company, token: tok!, sp: this.opts.singleplayer, serverTime: this.sim.time });
-        this.sendSnap(c, this.buildSnap());
+        this.sendSnap(c, this.snapBase());
         this.flushEvents(c);
         this.broadcastPlayers();
         return;
@@ -105,19 +110,41 @@ export class GameServer {
         return;
       }
       case 'ping': c.send({ t: 'pong', at: msg.at, serverTime: this.sim.time }); return;
+      case 'view': if (this.sim.st.systems[msg.sys]) { const changed = c.view !== msg.sys; c.view = msg.sys; if (changed) this.sendSnap(c, this.snapBase()); } return;
     }
   }
 
   /** advance by realDt seconds of wall-clock time */
   step(realDt: number) {
-    const dt = Math.min(realDt, 0.25) * this.speed;
+    // multiplayer catches up after a stall (up to 1 s) so world time keeps pace with the wall clock
+    const dt = Math.min(realDt, this.opts.singleplayer ? 0.25 : 1) * this.speed;
+    const t0 = performance.now();
     if (dt > 0) this.sim.update(dt);
+    this.tickCost.push(performance.now() - t0);
     this.clock += realDt;
     this.snapAcc += realDt;
+    this.movAcc += realDt;
+    this.statAcc += realDt;
     if (this.snapAcc >= this.opts.snapInterval) {
-      this.snapAcc = 0;
-      const snap = this.buildSnap();
-      for (const c of this.conns.values()) if (c.company) { this.sendSnap(c, snap); this.flushEvents(c); }
+      this.snapAcc = 0; this.movAcc = 0;
+      const base = this.snapBase();
+      for (const c of this.conns.values()) if (c.company) { this.sendSnap(c, base); this.flushEvents(c); }
+    } else if (this.movAcc >= (this.opts.movInterval ?? 0.2)) {
+      this.movAcc = 0;
+      for (const c of this.conns.values()) if (c.company) c.send(this.buildMov(c));
+    }
+    if (this.statAcc >= 2) {
+      const span = this.clock - this.rateMark.clock;
+      const rate = span > 0 ? (this.sim.time - this.rateMark.time) / span : 0;
+      this.rateMark = { clock: this.clock, time: this.sim.time };
+      const avg = this.tickCost.reduce((a, b) => a + b, 0) / Math.max(1, this.tickCost.length);
+      const max = Math.max(0, ...this.tickCost);
+      this.tickCost = [];
+      for (const c of this.conns.values()) if (c.company) {
+        c.send({ t: 'stats', tickMs: avg, tickMax: max, rate, bytes: (c.bytes ?? 0) / this.statAcc, ships: Object.keys(this.sim.st.ships).length, conns: this.conns.size, battles: this.sim.battles.size });
+        c.bytes = 0;
+      }
+      this.statAcc = 0;
     }
     if (this.opts.save) {
       this.saveAcc += realDt;
@@ -127,15 +154,48 @@ export class GameServer {
 
   saveNow() { this.opts.save?.(this.snapshotFile()); }
 
-  private buildSnap(): ServerMsg {
-    const { events: _e, rng: _r, ...rest } = this.sim.st;
-    void _e; void _r;
-    // structuredClone is unnecessary for remote clients (JSON on the wire) but local clients must not alias server state
-    const state: WorldView = this.opts.singleplayer ? JSON.parse(JSON.stringify(rest)) : rest;
-    return { t: 'snap', at: this.sim.time, speed: this.speed, state };
+  /** everything except ships (filtered per client); battles without their heavy setup/orders */
+  private snapBase(): Omit<WorldView, 'ships'> {
+    const { events: _e, rng: _r, ships: _s, engagements, ...rest } = this.sim.st;
+    void _e; void _r; void _s;
+    const eng: Record<string, any> = {};
+    for (const [id, e] of Object.entries(engagements)) { const { setup: _x, orders: _o, ...lite } = e; void _x; void _o; eng[id] = lite; }
+    return { ...rest, engagements: eng } as Omit<WorldView, 'ships'>;
   }
 
-  private sendSnap(c: Conn, snap: ServerMsg) { c.send(snap); }
+  /** the system a client is looking at (defaults to where its company is based) */
+  private viewOf(c: Conn): string {
+    if (c.view) return c.view;
+    const co = c.company ? this.sim.st.companies[c.company] : null;
+    const home = co ? this.sim.st.stations[co.homeStation] : null;
+    return (home && this.sim.sysOf(home.pos)?.id) || 'astra';
+  }
+
+  /** interest management: your own ships anywhere + everything in the system you are viewing */
+  private visibleShips(c: Conn): WorldView['ships'] {
+    const view = this.sim.st.systems[this.viewOf(c)];
+    const out: WorldView['ships'] = {};
+    for (const s of Object.values(this.sim.st.ships)) {
+      if (s.owner === c.company || (view && Math.round((s.pos.x - view.origin.x) / 250000) === 0)) out[s.id] = s;
+    }
+    return out;
+  }
+
+  private sendSnap(c: Conn, base: Omit<WorldView, 'ships'>) {
+    const state = { ...base, ships: this.visibleShips(c) } as WorldView;
+    // local clients must not alias server state; remote ones get JSON anyway
+    c.send({ t: 'snap', at: this.sim.time, speed: this.speed, state: this.opts.singleplayer ? JSON.parse(JSON.stringify(state)) : state });
+  }
+
+  private buildMov(c: Conn): ServerMsg {
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    const out: (string | number)[][] = [];
+    for (const s of Object.values(this.visibleShips(c))) {
+      if (s.state !== 'space') continue;
+      out.push([s.id, r1(s.pos.x), r1(s.pos.y), r1(s.pos.z), r1(s.vel.x), r1(s.vel.y), r1(s.vel.z), Math.round(s.heading * 1000) / 1000, s.warp ? (s.warp.phase === 'warp' ? 2 : 1) : 0]);
+    }
+    return { t: 'mov', at: this.sim.time, s: out };
+  }
 
   private flushEvents(c: Conn) {
     const out: WorldEvent[] = [];

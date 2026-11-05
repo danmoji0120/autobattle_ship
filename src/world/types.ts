@@ -40,7 +40,9 @@ export type Op =
   // NPC-only
   | { k: 'raid'; target?: string; home: string }
   | { k: 'trade'; route: string[]; leg: number }
-  | { k: 'guard'; route: V[]; leg: number };
+  | { k: 'guard'; route: V[]; leg: number }
+  | { k: 'garrison'; station: string; radius: number }
+  | { k: 'respond'; home: string; target?: string };
 
 export type OpKind = Op['k'];
 
@@ -69,6 +71,10 @@ export interface WShip {
   kills: number;
   /** visual hints for clients */
   fx?: { mining?: string; rock?: number; transfer?: string; welding?: string };
+  /** in-system high-speed travel: aligning, then warping */
+  warp?: { to: V; phase: 'align' | 'warp'; t: number };
+  /** world time of the last gate jump (client flash) */
+  jumpT?: number;
 }
 
 export interface WGroup {
@@ -85,6 +91,19 @@ export interface WGroup {
   cooldown: number;           // seconds of engagement immunity after battle
   fleeing: boolean;
   lastSay: number;
+  /** NPC force bookkeeping (Union garrisons/patrols/response fleets, pirate bands) */
+  npc?: NpcInfo;
+}
+
+export interface NpcInfo {
+  role: 'garrison' | 'patrol' | 'qrf' | 'band' | 'rogue' | 'trader';
+  sys: string;
+  home: string;               // station id (union) or lair id (pirates)
+  template: [string, string][];
+  nextRefit: number;           // world time of the next replacement ship
+  born: number;
+  slot?: string;               // Union force plan slot
+  homePos?: V;                 // rogue bands without a lair
 }
 
 export interface WCommander extends Omit<CommanderDef, 'team'> {
@@ -116,6 +135,10 @@ export interface Station {
   defenseHp: number;           // fraction for defense platform
   founded: number;
   desc: string;
+  /** broker tax on sales (high-security markets are crowded and regulated) */
+  tax?: number;
+  /** Union presence: garrison size class 0..3 */
+  garrison?: number;
 }
 
 export interface Field {
@@ -131,6 +154,8 @@ export interface Field {
   salvage: boolean;
   expires: number;             // salvage fields decay (0 = permanent)
   danger: number;
+  /** yield multiplier (remote, lawless space is richer) */
+  rich?: number;
 }
 
 export interface Lair {
@@ -143,6 +168,33 @@ export interface Lair {
   respawnAt: number;
   nextBand: number;
   maxBands: number;
+  /** band strength tier (1 small … 5 warlord) */
+  tier?: number;
+  kind?: 'hideout' | 'lair' | 'fortress';
+}
+
+export type SysKind = 'core' | 'settled' | 'frontier' | 'danger' | 'lawless';
+
+export interface Planet { id: string; name: string; pos: V; size: number; color: string; atmo: string; ring: boolean; moons: { name: string; pos: V; size: number }[]; desc: string }
+export interface Gate { id: string; name: string; to: string; exit: string; pos: V }
+
+export interface StarSystem {
+  id: string;
+  name: string;
+  idx: number;
+  origin: V;
+  radius: number;
+  kind: SysKind;
+  security: number;            // base 0..100 (government control)
+  heat: number;                // recent pirate activity 0..100 (lowers effective security, bounded)
+  desc: string;
+  star: { name: string; color: string; size: number };
+  nebula: [string, string];
+  map: { x: number; y: number };
+  planets: Planet[];
+  gates: Gate[];
+  lanes: [string, string][];   // trade lanes between station/gate ids
+  stats: { pirateKills: number; unionLosses: number; civLosses: number; raids: number; bands: number };
 }
 
 export interface Contract {
@@ -177,6 +229,10 @@ export interface Engagement {
   winner?: number;
   lairId?: string;
   stationId?: string;
+  /** NPC-only fights are auto-resolved when this world time is reached */
+  autoEnd?: number;
+  n?: number;                  // ships involved (for clients; setup is not in snapshots)
+  sys?: string;
 }
 
 export interface WorldEvent {
@@ -204,6 +260,7 @@ export interface WorldState {
   stations: Record<string, Station>;
   fields: Record<string, Field>;
   lairs: Record<string, Lair>;
+  systems: Record<string, StarSystem>;
   contracts: Record<string, Contract>;
   engagements: Record<string, Engagement>;
   events: WorldEvent[];        // rolling log

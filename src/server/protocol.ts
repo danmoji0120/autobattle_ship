@@ -9,7 +9,8 @@ export type ClientMsg =
   | { t: 'bjoin'; eng: string }
   | { t: 'border'; id: number; eng: string; groupId: number; order: Order | null; opts: { retreatAt?: number; release?: boolean } }
   | { t: 'speed'; v: number }
-  | { t: 'ping'; at: number };
+  | { t: 'ping'; at: number }
+  | { t: 'view'; sys: string };
 
 /** what clients see of the world (no RNG / auth) */
 export type WorldView = Omit<WorldState, 'events' | 'rng'>;
@@ -23,6 +24,9 @@ export type ServerMsg =
   | { t: 'border'; eng: string; rec: OrderRecord }
   | { t: 'players'; list: { id: string; name: string; online: boolean; color: string }[] }
   | { t: 'pong'; at: number; serverTime: number }
+  /** compact ship kinematics: [id, x, y, z, vx, vy, vz, heading, warp(0/1)] per ship */
+  | { t: 'mov'; at: number; s: (string | number)[][] }
+  | { t: 'stats'; tickMs: number; tickMax: number; rate: number; bytes: number; ships: number; conns: number; battles: number }
   | { t: 'error'; msg: string };
 
 export interface SaveFile { v: number; world: WorldState; auth: Record<string, string> }

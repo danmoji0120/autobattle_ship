@@ -12,12 +12,14 @@ import { Environment } from '../../render/environment';
 import { CameraRig } from '../../render/camera';
 import { ParticleSystem, TrailBatch, Shockwaves } from '../../render/effects';
 import { buildStation, buildPlayerStation, syncPlayerStation, buildLair, buildField, updateField, type StationView, type FieldView } from './meshes';
-import { rockPos, modulePos } from '../../world/geom';
+import { rockPos, modulePos, sysAt } from '../../world/geom';
 import { ECON } from '../../world/data';
+import { SystemScene } from './system';
+import type { StarSystem } from '../../world/types';
 
-interface ShipView { model: ShipModel; pos: THREE.Vector3; heading: number; roll: number; key: string; cls: string; seen: number; speed: number }
+interface ShipView { model: ShipModel; pos: THREE.Vector3; raw: THREE.Vector3; heading: number; roll: number; key: string; cls: string; seen: number; speed: number; warp: number; sys: string; jumpT: number }
 
-export type Pick = { kind: 'ship' | 'station' | 'field' | 'lair' | 'battle'; id: string; pos: THREE.Vector3 };
+export type Pick = { kind: 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string; pos: THREE.Vector3 };
 
 const lerpAngle = (a: number, b: number, t: number) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * t; };
 
@@ -38,6 +40,15 @@ export class StrategicView {
   private battleFx = new Map<string, { t: number }>();
   private time = 0;
   active = true;
+  /** everything in world (global) coordinates hangs off this, offset by -origin of the viewed system */
+  readonly world = new THREE.Group();
+  sys: StarSystem | null = null;
+  private sysScene: SystemScene | null = null;
+  showSecurity = false;
+  private secFade = 0;
+  /** frame timing for diagnostics */
+  frameMs: number[] = [];
+  onSystemChange: ((id: string) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement, private client: GameClient) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -47,15 +58,17 @@ export class StrategicView {
     const w = innerWidth, h = innerHeight;
     this.renderer.setSize(w, h, false);
     this.rig = new CameraRig(w / h);
-    this.rig.maxDist = 42000; this.rig.minDist = 150; this.rig.minPitch = 0.25;
+    this.rig.maxDist = 150000; this.rig.minDist = 150; this.rig.minPitch = 0.25;
     this.rig.dist = 5200; this.rig.pitch = 0.9; this.rig.yaw = 0.5;
-    this.rig.camera.far = 200000; this.rig.camera.updateProjectionMatrix();
+    this.rig.camera.near = 5; this.rig.camera.far = 600000; this.rig.camera.updateProjectionMatrix();
     const pm = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
     this.scene.environmentIntensity = 0.35;
     this.env = new Environment({ planet: '#b86a3e', nebula: ['#33204f', '#123850'], sun: '#ffe2b8' });
-    this.env.grid.scale.setScalar(4.5);
-    this.scene.add(this.env.group, this.glow.mesh, this.smoke.mesh, this.trails.mesh, this.rings.group);
+    this.env.strategic();
+    this.scene.add(this.env.group, this.world);
+    this.world.add(this.glow.mesh, this.smoke.mesh, this.trails.mesh, this.rings.group);
+    for (const m of [this.glow.mesh, this.smoke.mesh, this.trails.mesh]) m.frustumCulled = false;
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.rig.camera));
     this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), 0.8, 0.5, 0.82));
@@ -69,7 +82,39 @@ export class StrategicView {
 
   dispose() { this.renderer.dispose(); this.renderer.forceContextLoss(); }
 
-  focusOn(p: V, dist?: number) { this.rig.focus.set(p.x, p.y, p.z); if (dist) this.rig.dist = dist; }
+  /** jump the camera to a world position, switching the viewed system if needed */
+  focusOn(p: V, dist?: number) {
+    const s = this.client.state ? sysAt(this.client.state.systems, p) : undefined;
+    if (s && s.id !== this.sys?.id) this.setSystem(s.id, false);
+    const o = this.origin;
+    this.rig.focus.set(p.x - o.x, p.y - o.y, p.z - o.z); if (dist) this.rig.dist = dist;
+  }
+
+  get origin(): V { return this.sys?.origin ?? { x: 0, y: 0, z: 0 }; }
+  /** is a world position inside the viewed system? */
+  inView(p: V): boolean { return !!this.sys && Math.abs(p.x - this.sys.origin.x) < 125000; }
+
+  setSystem(id: string, frame = true) {
+    const st = this.client.state; if (!st?.systems[id]) return;
+    if (this.sys?.id === id && this.sysScene) return;
+    const sys = st.systems[id];
+    if (this.sysScene) { this.world.remove(this.sysScene.group); this.sysScene.dispose(); }
+    this.sys = sys;
+    this.sysScene = new SystemScene(sys);
+    this.sysScene.setLanes(st.stations);
+    this.sysScene.updateSecurity(st);
+    this.world.add(this.sysScene.group);
+    this.world.position.set(-sys.origin.x, -sys.origin.y, -sys.origin.z);
+    this.env.setNebula(sys.nebula[0], sys.nebula[1]);
+    this.client.setView(id);
+    // hide the other systems' static objects
+    for (const v of this.stations.values()) v.root.visible = this.inView(v.station.pos);
+    for (const v of this.fields.values()) v.group.visible = this.inView(v.field.pos);
+    for (const [lid, v] of this.lairs) v.obj.visible = this.inView(st.lairs[lid]?.pos ?? { x: 1e9, y: 0, z: 0 });
+    // a fresh view: no stale particles from the last system
+    if (frame) { this.rig.focus.set(0, 0, 0); this.rig.dist = sys.radius * 1.15; this.rig.pitch = 0.95; }
+    this.onSystemChange?.(id);
+  }
 
   // ---------------------------------------------------------------- sync
 
@@ -77,27 +122,29 @@ export class StrategicView {
     const st = this.client.state!;
     for (const s of Object.values(st.stations)) {
       let v = this.stations.get(s.id);
-      if (!v) { v = s.public ? buildStation(s) : buildPlayerStation(s); this.scene.add(v.root); this.stations.set(s.id, v); }
+      if (!v) { v = s.public ? buildStation(s) : buildPlayerStation(s); this.world.add(v.root); this.stations.set(s.id, v); v.root.visible = this.inView(s.pos); }
       v.station = s;
       if (!s.public) syncPlayerStation(v, s);
     }
-    for (const [id, v] of this.fields) if (!st.fields[id]) { this.scene.remove(v.group); this.fields.delete(id); }
+    for (const [id, v] of this.fields) if (!st.fields[id]) { this.world.remove(v.group); this.fields.delete(id); }
     for (const f of Object.values(st.fields)) {
       let v = this.fields.get(f.id);
-      if (!v) { v = buildField(f); this.scene.add(v.group); this.fields.set(f.id, v); }
+      if (!v) { v = buildField(f); this.world.add(v.group); this.fields.set(f.id, v); v.group.visible = this.inView(f.pos); }
       v.field = f;
       updateField(v, f);
     }
     for (const l of Object.values(st.lairs)) {
       let v = this.lairs.get(l.id);
-      if (!v) { v = { obj: buildLair(l), alive: l.alive }; this.scene.add(v.obj); this.lairs.set(l.id, v); }
+      if (!v) { v = { obj: buildLair(l), alive: l.alive }; this.world.add(v.obj); this.lairs.set(l.id, v); v.obj.visible = this.inView(l.pos); }
       if (v.alive && !l.alive) {
         // lair destroyed: big blast, then it smoulders darkly
         this.blast(new THREE.Vector3(l.pos.x, l.pos.y, l.pos.z), 3);
         v.obj.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh && (m.material as any).isMeshBasicMaterial) m.visible = false; });
       } else if (!v.alive && l.alive) v.obj.traverse(o => { o.visible = true; });
       v.alive = l.alive;
+      v.obj.visible = this.inView(l.pos);
     }
+    this.sysScene?.updateSecurity(st);
   }
 
   blast(p: THREE.Vector3, s: number) {
@@ -110,24 +157,26 @@ export class StrategicView {
     this.rings.spawn(p, 600 * s, 2, 0xffb070);
   }
 
-  private shipPos(s: WShip, prev: WShip | undefined, a: number, out: THREE.Vector3) {
-    if (prev && prev.state !== 'battle' && s.state !== 'battle') {
-      const t = Math.min(1, a);
-      out.set(prev.pos.x + (s.pos.x - prev.pos.x) * t, prev.pos.y + (s.pos.y - prev.pos.y) * t, prev.pos.z + (s.pos.z - prev.pos.z) * t);
-      if (a > 1) out.addScaledVector(new THREE.Vector3(s.vel.x, s.vel.y, s.vel.z), (a - 1) * this.client.snapGap / 1000 * this.client.speed);
-    } else out.set(s.pos.x, s.pos.y, s.pos.z);
+  /** where to draw a ship this frame: time-buffered server motion (interp.ts) */
+  private shipPos(s: WShip, out: THREE.Vector3): number {
+    const tr = s.state === 'space' ? this.client.tracks.get(s.id) : undefined;
+    if (tr && tr.samples.length) { tr.at(this.client.clock.renderTime, this.tmpP); out.set(this.tmpP.x, this.tmpP.y, this.tmpP.z); return this.tmpP.h; }
+    out.set(s.pos.x, s.pos.y, s.pos.z);
+    return s.heading;
   }
+  private tmpP = { x: 0, y: 0, z: 0, h: 0 };
 
   // ---------------------------------------------------------------- frame
 
   frame(realDt: number) {
     const st = this.client.state;
     if (!st || !this.active) return;
+    const f0 = performance.now();
     this.time += realDt;
+    this.client.frame(realDt);
+    if (!this.sys) { const co = st.companies[this.client.company]; const home = co && st.stations[co.homeStation]; const s0 = home ? sysAt(st.systems, home.pos) : Object.values(st.systems)[0]; if (s0) this.setSystem(s0.id, false); }
     if (Math.floor(this.time * 2) !== Math.floor((this.time - realDt) * 2)) this.syncStatic();
     if (!this.stations.size) this.syncStatic();
-    const prev = this.client.prev;
-    const a = this.client.alpha();
     const simDt = realDt * this.client.speed;
     // ships
     const seen = new Set<string>();
@@ -138,17 +187,24 @@ export class StrategicView {
       if (!v || v.key !== key) {
         if (v) this.scene.remove(v.model.root);
         const model = buildShip(SHIP_CLASSES[s.classId], getLoadout(s.classId, s.loadoutId), s.owner === 'pirates' ? 1 : 0);
-        this.scene.add(model.root);
+        this.world.add(model.root);
         model.root.rotation.order = 'YXZ';
-        v = { model, pos: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), heading: s.heading, roll: 0, key, cls: s.classId, seen: 0, speed: 0 };
+        v = { model, pos: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), raw: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), heading: s.heading, roll: 0, key, cls: s.classId, seen: 0, speed: 0, warp: 0, sys: '', jumpT: s.jumpT ?? 0 };
         this.ships.set(s.id, v);
       }
-      const p = prev?.ships[s.id];
-      this.shipPos(s, p, a, v.pos);
-      const vis = s.state !== 'battle';
+      const tgtHead = this.shipPos(s, v.raw);
+      // light smoothing on top of interpolation; teleports (gate jumps, docking) snap
+      const gap = v.pos.distanceTo(v.raw);
+      if (gap > 2500 || s.state !== 'space') {
+        if (gap > 2500 && s.state === 'space' && v.model.root.visible && (s.jumpT ?? 0) !== v.jumpT) { this.gateFlash(v.pos.clone()); this.gateFlash(v.raw.clone()); }
+        v.pos.copy(v.raw);
+      } else v.pos.lerp(v.raw, 1 - Math.exp(-realDt * 18));
+      v.jumpT = s.jumpT ?? 0;
+      const tr = this.client.tracks.get(s.id);
+      v.warp = tr?.samples.length ? tr.samples[tr.samples.length - 1].warp : 0;
+      const vis = s.state !== 'battle' && this.inView(v.pos);
       v.model.root.visible = vis;
       if (!vis) continue;
-      const tgtHead = s.heading;
       const dh = lerpAngle(v.heading, tgtHead, Math.min(1, realDt * 3)) - v.heading;
       v.heading += dh;
       v.roll += (THREE.MathUtils.clamp(-dh / Math.max(realDt, 1e-3) * 0.8, -0.5, 0.5) - v.roll) * Math.min(1, realDt * 2);
@@ -156,7 +212,15 @@ export class StrategicView {
       v.model.root.rotation.set(0, v.heading, 0);
       v.model.bank.rotation.z = v.roll;
       v.speed = Math.hypot(s.vel.x, s.vel.z);
-      const thr = s.state === 'docked' ? 0.05 : Math.min(1, v.speed / Math.max(30, ECON[s.classId].cruise));
+      const thr = s.state === 'docked' ? 0.05 : v.warp === 1 ? 0.6 + 0.4 * Math.sin(this.time * 20) : Math.min(1, v.speed / Math.max(30, ECON[s.classId].cruise));
+      if (v.warp === 2) {
+        // warp streak: a long blue-white tail along the direction of travel
+        const back = new THREE.Vector3(-Math.sin(v.heading), 0, -Math.cos(v.heading));
+        const L = SHIP_CLASSES[s.classId].length;
+        const tail = v.pos.clone().addScaledVector(back, Math.min(2200, 120 + v.speed * 0.18));
+        this.trails.seg(v.pos.x, v.pos.y, v.pos.z, tail.x, tail.y, tail.z, L * 0.18, 0.5, 1.2, 2.2, 3.4, 0.9, 0);
+        if (Math.random() < 0.3) this.glow.emit(v.pos, { life: 0.25, size: L * 0.6, size1: L * 0.2, color: 0xa0d8ff, alpha: 0.8 });
+      }
       for (const e of v.model.engines) { e.plume.scale.z = e.base * (1 + thr * 12) * (0.9 + Math.random() * 0.2); e.glow.scale.setScalar(e.base * (0.6 + thr * 0.6)); }
       const blink = Math.sin(this.time * 3 + s.id.length) > 0.6 ? 1 : 0.2;
       for (const l of v.model.lights) l.scale.setScalar(blink);
@@ -166,7 +230,7 @@ export class StrategicView {
         this.smoke.emit(wp, { life: 3, size: 5, size1: 18, color: 0x1e1c1c, alpha: 0.35, drag: 0.3 });
       }
       // engine dust trail when cruising (adds sense of motion at map scale)
-      if (v.speed > 20 && Math.random() < 0.4) this.glow.emit(v.pos.clone().addScaledVector(new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading)), -SHIP_CLASSES[s.classId].length * 0.7), { life: 1.2, size: SHIP_CLASSES[s.classId].length * 0.15, size1: 0.5, color: s.owner === 'pirates' ? 0xff6030 : 0x60b8ff, alpha: 0.35 });
+      if (v.speed > 20 && v.warp !== 2 && Math.random() < 0.4) this.glow.emit(v.pos.clone().addScaledVector(new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading)), -SHIP_CLASSES[s.classId].length * 0.7), { life: 1.2, size: SHIP_CLASSES[s.classId].length * 0.15, size1: 0.5, color: s.owner === 'pirates' ? 0xff6030 : 0x60b8ff, alpha: 0.35 });
     }
     for (const [id, v] of this.ships) if (!seen.has(id)) {
       // a ship disappearing outside battle cleanup = destroyed or sold: brief flash if it was in space
@@ -175,10 +239,13 @@ export class StrategicView {
     }
 
     this.trails.begin(cam(this));
+    // the trail batch orients ribbons toward the camera in its own (world-root) space
+    (this.trails as any).camPos.add(new THREE.Vector3(this.origin.x, this.origin.y, this.origin.z));
     // activity effects
     for (const s of Object.values(st.ships)) {
       if (!s.fx || s.state === 'battle') continue;
       const v = this.ships.get(s.id)!;
+      if (!v.model.root.visible) continue;
       const fwd = new THREE.Vector3(Math.sin(v.heading), 0, Math.cos(v.heading));
       if (s.fx.mining) {
         const f = st.fields[s.fx.mining];
@@ -220,7 +287,7 @@ export class StrategicView {
     for (const v of this.stations.values()) for (const r of v.spin) r.rotation.y += realDt * 0.05;
     // battles in progress: a churning cloud of tracers and flashes
     for (const e of Object.values(st.engagements)) {
-      if (e.done) continue;
+      if (e.done || !this.inView(e.pos)) continue;
       const c = new THREE.Vector3(e.pos.x, e.pos.y, e.pos.z);
       for (let i = 0; i < 3; i++) {
         const a1 = new THREE.Vector3((Math.random() - 0.5) * 900, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 900).add(c);
@@ -238,16 +305,33 @@ export class StrategicView {
     this.glow.update(Math.max(simDt, realDt * 0.3));
     this.smoke.update(Math.max(simDt, realDt * 0.3));
     this.rings.update(realDt);
-    this.env.setGridOpacity(0.07);
     this.rig.update(simDt, realDt);
+    this.env.group.position.copy(this.rig.camera.position);
     this.env.update(this.rig.camera);
+    if (this.sysScene) {
+      this.sysScene.update(realDt, this.time);
+      const camD = this.rig.camera.position.distanceTo(this.rig.focus);
+      const want = this.showSecurity ? 1 : camD > 30000 ? 0.35 : 0;
+      this.secFade += (want - this.secFade) * Math.min(1, realDt * 4);
+      this.sysScene.setSecurityOpacity(this.secFade * 0.9);
+    }
     this.composer.render();
+    this.frameMs.push(performance.now() - f0);
+    if (this.frameMs.length > 120) this.frameMs.shift();
+  }
+
+  gateFlash(p: THREE.Vector3) {
+    this.glow.emit(p, { life: 0.5, size: 80, size1: 260, color: 0x80d0ff, alpha: 1.6 });
+    for (let i = 0; i < 16; i++) { const d = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(); this.glow.emit(p, { life: 0.8, size: 12, size1: 2, color: 0xc0f0ff, vel: d.multiplyScalar(220), drag: 1.5 }); }
+    this.rings.spawn(p, 500, 0.8, 0x60c0ff);
   }
 
   // ---------------------------------------------------------------- picking
 
   project(p: { x: number; y: number; z: number }, out: THREE.Vector3): boolean {
-    out.set(p.x, p.y, p.z).project(this.rig.camera);
+    if (!this.inView(p)) return false;
+    const o = this.origin;
+    out.set(p.x - o.x, p.y - o.y, p.z - o.z).project(this.rig.camera);
     const vis = out.z < 1 && out.z > -1;
     out.x = (out.x * 0.5 + 0.5) * innerWidth; out.y = (-out.y * 0.5 + 0.5) * innerHeight;
     return vis;
@@ -260,7 +344,8 @@ export class StrategicView {
     const test = (kind: Pick['kind'], id: string, p: V, r: number, pxMin: number) => {
       if (!this.project(p, o)) return;
       const d = Math.hypot(o.x - x, o.y - y);
-      const dist = this.rig.camera.position.distanceTo(new THREE.Vector3(p.x, p.y, p.z));
+      const og = this.origin;
+      const dist = this.rig.camera.position.distanceTo(new THREE.Vector3(p.x - og.x, p.y - og.y, p.z - og.z));
       const radPx = Math.max(pxMin, r / dist * innerHeight * 1.1);
       if (d < radPx && d - radPx * 0.5 < bd) { bd = d - radPx * 0.5; best = { kind, id, pos: new THREE.Vector3(p.x, p.y, p.z) }; }
     };
@@ -269,13 +354,17 @@ export class StrategicView {
     for (const s of Object.values(st.stations)) test('station', s.id, s.pos, s.radius, 22);
     for (const l of Object.values(st.lairs)) test('lair', l.id, l.pos, 200, 22);
     for (const f of Object.values(st.fields)) test('field', f.id, f.pos, f.radius * 0.8, 26);
+    for (const g of this.sys?.gates ?? []) test('gate', g.id, g.pos, 300, 22);
+    for (const pl of this.sys?.planets ?? []) if (!best) test('planet', pl.id, pl.pos, pl.size, 18);
     return best;
   }
 
   screenToPlane(x: number, y: number, h = 0): THREE.Vector3 | null {
     const ray = new THREE.Raycaster();
     ray.setFromCamera(new THREE.Vector2(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1), this.rig.camera);
-    return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -h), new THREE.Vector3());
+    const o = this.origin;
+    const hit = ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -(h - o.y)), new THREE.Vector3());
+    return hit ? hit.add(new THREE.Vector3(o.x, o.y, o.z)) : null;
   }
 
   stationOf(id: string): Station | undefined { return this.client.state?.stations[id]; }

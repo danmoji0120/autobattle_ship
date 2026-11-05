@@ -159,6 +159,22 @@ export class Environment {
 
   setGridOpacity(o: number) { this.gridMat.uniforms.uOpacity.value = o; }
 
+  private planetMesh?: THREE.Object3D;
+  private skyMat?: THREE.ShaderMaterial;
+  /** strategic map: only the sky and stars (the star system scene provides planets and light) */
+  strategic() {
+    for (const c of this.group.children) {
+      const m = c as THREE.Mesh;
+      if ((m.material as THREE.ShaderMaterial)?.uniforms?.uNebA) { this.skyMat = m.material as THREE.ShaderMaterial; continue; }
+      if (c instanceof THREE.Points) continue;
+      if (c instanceof THREE.HemisphereLight || c instanceof THREE.AmbientLight) continue;
+      c.visible = false;
+    }
+    if (this.skyMat) this.skyMat.uniforms.uSun.value.set(0, 0, 0);
+    void this.planetMesh;
+  }
+  setNebula(a: string, b: string) { if (this.skyMat) { this.skyMat.uniforms.uNebA.value.set(a); this.skyMat.uniforms.uNebB.value.set(b); } }
+
   update(camera: THREE.Camera) {
     // planet lighting in view space
     const v = this.sunDir.clone().transformDirection(camera.matrixWorldInverse);

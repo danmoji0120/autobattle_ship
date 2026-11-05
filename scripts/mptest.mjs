@@ -20,6 +20,7 @@ class Client {
       const m = JSON.parse(String(raw));
       if (m.t === 'welcome') { this.company = m.company; this.token = m.token; res(); }
       if (m.t === 'snap') this.snap = m.state;
+      if (m.t === 'mov') { this.movs = (this.movs || 0) + 1; for (const r of m.s) { const sh = this.snap?.ships[r[0]]; if (sh) { sh.pos.x = r[1]; sh.pos.z = r[3]; } } }
       if (m.t === 'events') this.events.push(...m.list);
       if (m.t === 'ack') this.acks.get(m.id)?.(m.err);
     });
@@ -32,7 +33,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 let srv = await startServer();
 const a = new Client('알파 PMC'), b = new Client('베타 컴퍼니');
 await a.open(); await b.open();
-await wait(800);
+await wait(1600);
 ok(a.company && b.company && a.company !== b.company, `two companies: ${a.company}, ${b.company}`);
 ok(Object.values(a.snap.companies).some(c => c.id === b.company), 'A sees B in the shared world');
 const mining = a.group('제1 채굴반');
@@ -47,6 +48,20 @@ const moved = after.filter((s, i) => Math.hypot(s.pos.x - before[i].x, s.pos.z -
 ok(moved >= 2, `B observes A's miners moving (${moved} ships moved)`);
 ok(a.events.some(e => e.text.includes('채굴 작전')), 'A received its commander radio');
 ok(!b.events.some(e => e.company === a.company), "B doesn't receive A's private events");
+// players in different systems: B's escort flies through the gate to Drake
+ok((a.movs || 0) > 20, `compact motion packets stream between snapshots (${a.movs})`);
+const esc = b.group('경비대');
+ok(await b.cmd({ c: 'setOp', group: esc.id, op: { k: 'move', to: { ...b.snap.stations.drakeout.pos, x: b.snap.stations.drakeout.pos.x + 1500 } } }) === null, 'B orders its escort to another system (Drake)');
+const sysOf = p => Math.round(p.x / 250000) + 2;
+let inDrake = false;
+for (let i = 0; i < 240 && !inDrake; i++) { await wait(1000); const ss = Object.values(b.snap.ships).filter(s => esc.shipIds.includes(s.id)); inDrake = ss.length > 0 && ss.every(s => sysOf(s.pos) === 2); }
+ok(inDrake, 'B escort jumped through the gate and is in Drake');
+await wait(1500);
+ok(!Object.values(a.snap.ships).some(s => esc.shipIds.includes(s.id)), "A (viewing Astra) is not sent B's ships in Drake (interest management)");
+ok(Object.values(a.snap.ships).some(s => s.owner === a.company), 'A still sees its own ships');
+a.ws.send(JSON.stringify({ t: 'view', sys: 'drake' })); await wait(800);
+ok(Object.values(a.snap.ships).some(s => esc.shipIds.includes(s.id)), "A switches view to Drake and sees B's escort there");
+a.ws.send(JSON.stringify({ t: 'view', sys: 'astra' }));
 // reconnect with token
 const tokA = a.token; a.close(); await wait(500);
 const a2 = new Client('ignored', tokA); await a2.open();

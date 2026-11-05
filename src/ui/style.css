@@ -315,3 +315,22 @@ select { background: rgba(5, 10, 18, 0.92); color: var(--text); border: 1px soli
 .advice { padding: 9px 12px; font-size: 12px; line-height: 1.55; background: rgba(255,179,71,.08); border-bottom: 1px solid rgba(255,179,71,.35); color: #ffe2b0; }
 .advice b { color: #fff; }
 .ycard .btn.go, .info .btn.go { padding: 6px 16px !important; font-size: 13px !important; letter-spacing: .05em; }
+
+/* ---- star systems ---- */
+#sysbar { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; padding: 5px 12px; }
+#sysbar .sysname { font-size: 15px; display: flex; align-items: center; gap: 8px; }
+#sysbar .sysbtns { display: flex; gap: 4px; }
+.secb { display: inline-block; padding: 1px 8px; border-radius: 3px; color: #04121c; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
+.systag { display: inline-block; font-size: 9px; padding: 0 5px; margin-right: 5px; border: 1px solid var(--line); border-radius: 3px; color: var(--accent, #7fd0ff); vertical-align: 1px; }
+#modeHint { top: 104px; }
+.galaxy .gbox { width: min(1020px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; }
+.galsvg { display: block; margin: 6px auto; background: radial-gradient(ellipse at center, rgba(30,60,100,.25), rgba(0,0,0,0) 70%); border-radius: 8px; max-width: 100%; }
+.galsvg text { font-family: "Noto Sans KR", sans-serif; pointer-events: none; }
+.gnode:hover circle { opacity: 1; }
+.galinfo { border-top: 1px solid var(--line); padding: 10px 4px 2px; display: flex; flex-direction: column; gap: 5px; }
+#netdiag { position: absolute; right: 8px; top: 64px; width: 280px; padding-bottom: 8px; font-size: 12px; z-index: 30; }
+#netdiag .dh { margin: 8px 10px 2px; font-size: 10px; color: var(--dim); letter-spacing: .12em; }
+#netdiag .kv2 { display: flex; justify-content: space-between; padding: 1px 10px; }
+#netdiag .kv2 b { font-family: var(--mono); font-weight: 600; }
+#netdiag .small { padding: 6px 10px 0; }
+@media (max-width: 720px) { #sysbar { top: auto; bottom: 8px; } }

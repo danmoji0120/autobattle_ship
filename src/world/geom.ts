@@ -37,3 +37,42 @@ export function modulePos(s: Station, slot: number): V {
   const a = (slot - 1) / 6 * Math.PI * 2;
   return { x: s.pos.x + Math.cos(a) * 150, y: s.pos.y + (slot % 2 ? 20 : -20), z: s.pos.z + Math.sin(a) * 150 };
 }
+
+// ---------------------------------------------------------------- star systems
+// Every system lives in one global coordinate space, each around its own origin far from the
+// others, so proximity logic never crosses systems and positions stay plain vectors.
+export const SYS_SPACING = 250000;
+export const sysIndexAt = (p: V) => Math.round(p.x / SYS_SPACING) + 2;
+export const sysOriginX = (idx: number) => (idx - 2) * SYS_SPACING;
+
+import type { StarSystem } from './types';
+export function sysAt(systems: Record<string, StarSystem>, p: V): StarSystem | undefined {
+  const i = sysIndexAt(p);
+  for (const s of Object.values(systems)) if (s.idx === i) return s;
+  return undefined;
+}
+export const local = (s: StarSystem, p: V): V => ({ x: p.x - s.origin.x, y: p.y - s.origin.y, z: p.z - s.origin.z });
+
+/** gate-graph route: the next gate to take from system a toward b (BFS over links) */
+export function nextGate(systems: Record<string, StarSystem>, from: string, to: string): import('./types').Gate | null {
+  if (from === to) return null;
+  const prev = new Map<string, { sys: string; gate: import('./types').Gate }>();
+  const q = [from]; const seen = new Set([from]);
+  while (q.length) {
+    const cur = q.shift()!;
+    if (cur === to) break;
+    for (const g of systems[cur]?.gates ?? []) if (!seen.has(g.to)) { seen.add(g.to); prev.set(g.to, { sys: cur, gate: g }); q.push(g.to); }
+  }
+  if (!prev.has(to)) return null;
+  let node = to; let step = prev.get(node)!;
+  while (step.sys !== from) { node = step.sys; step = prev.get(node)!; }
+  return step.gate;
+}
+
+/** number of gate jumps between two systems */
+export function jumps(systems: Record<string, StarSystem>, from: string, to: string): number {
+  if (from === to) return 0;
+  const d = new Map([[from, 0]]); const q = [from];
+  while (q.length) { const c = q.shift()!; for (const g of systems[c]?.gates ?? []) if (!d.has(g.to)) { d.set(g.to, d.get(c)! + 1); q.push(g.to); } }
+  return d.get(to) ?? 99;
+}

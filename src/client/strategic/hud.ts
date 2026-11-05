@@ -8,9 +8,12 @@ import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
 import { SPECIALTY_TEXT } from '../../sim/data/commanders';
 import { ECON, MODULES, MAX_MODULES, RES_NAME, RES_COLOR, MILESTONES, FOUND_COST } from '../../world/data';
 import { sfx } from '../../audio/sfx';
+import { secAt, effSec } from '../../world/security';
+import { secBand } from '../../world/worldgen';
+import { sysAt, jumps } from '../../world/geom';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
-type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle'; id: string } | null;
+type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string } | null;
 
 const h = (tag: string, cls = '', html = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -58,6 +61,9 @@ export class PmcHud {
     const hint = h('div', 'panel hidden'); hint.id = 'modeHint'; root.appendChild(hint);
     this.toastBox = h('div'); this.toastBox.id = 'toasts'; root.appendChild(this.toastBox);
     const tip = h('div', 'hidden'); tip.id = 'tooltip'; root.appendChild(tip);
+    const sysbar = h('div', 'panel'); sysbar.id = 'sysbar'; root.appendChild(sysbar);
+    const diag = h('div', 'panel hidden'); diag.id = 'netdiag'; root.appendChild(diag);
+    v.onSystemChange = () => { this.sysKey = ''; this.renderSysbar(); };
     (document.getElementById('newGroup') as HTMLButtonElement).onclick = () => this.cmd({ c: 'newGroup', name: '새 편대', parent: null });
     c.onEvents.push(list => this.onEvents(list));
     this.bindInput();
@@ -141,6 +147,9 @@ export class PmcHud {
       const keyOps: Record<string, string> = { KeyM: 'move', KeyD: 'dock', KeyN: 'mine', KeyP: 'patrol', KeyG: 'escort', KeyA: 'attack', KeyI: 'idle', KeyT: 'release' };
       if (keyOps[e.code] && this.group) this.opButton(keyOps[e.code]);
       if (e.code === 'KeyH' && this.group) this.focusSelected();
+      if (e.code === 'Tab') { e.preventDefault(); this.toggleGalaxy(); }
+      if (e.code === 'KeyV') { this.v.showSecurity = !this.v.showSecurity; this.sysKey = ''; this.renderSysbar(); }
+      if (e.code === 'F3' || e.code === 'Backquote') { e.preventDefault(); document.getElementById('netdiag')!.classList.toggle('hidden'); }
     });
     on(window, 'keyup', (e: KeyboardEvent) => this.keys.delete(e.code));
   }
@@ -189,11 +198,153 @@ export class PmcHud {
       return void this.setOp({ k: 'dock', station: p.id });
     }
     if (p?.kind === 'lair') return void this.setOp({ k: 'attack', lair: p.id });
+    if (p?.kind === 'gate') { const to = this.arrivalPoint(p.id); if (to) return void this.setOp({ k: 'move', to }); }
     if (p?.kind === 'ship') { const s = this.st.ships[p.id]; if (s.owner === this.me && s.groupId !== g.id) return void this.setOp({ k: 'escort', group: s.groupId }); }
     const c = this.center(g);
     const pt = this.v.screenToPlane(x, y, c?.y ?? 0);
     if (pt) this.setOp({ k: 'move', to: { x: pt.x, y: c?.y ?? 0, z: pt.z } });
   }
+
+  /** a point just inside the system on the far side of a gate */
+  private arrivalPoint(gateId: string): V | null {
+    for (const sys of Object.values(this.st.systems)) {
+      const g = sys.gates.find(x => x.id === gateId); if (!g) continue;
+      const dest = this.st.systems[g.to]; const exit = dest?.gates.find(x => x.id === g.exit); if (!dest || !exit) return null;
+      const dx = dest.origin.x - exit.pos.x, dz = dest.origin.z - exit.pos.z, l = Math.hypot(dx, dz) || 1;
+      return { x: exit.pos.x + dx / l * 1800, y: 0, z: exit.pos.z + dz / l * 1800 };
+    }
+    return null;
+  }
+
+  /** where to send a group that is ordered to "go to system X": the main public station, else the inner side of the first gate */
+  private systemDestination(sysId: string): V {
+    const sys = this.st.systems[sysId];
+    const st = Object.values(this.st.stations).filter(s => s.public && sysAt(this.st.systems, s.pos)?.id === sysId).sort((a, b) => (b.garrison ?? 0) - (a.garrison ?? 0))[0];
+    if (st) return { x: st.pos.x + st.radius + 900, y: 0, z: st.pos.z };
+    const g = sys.gates[0];
+    const dx = sys.origin.x - g.pos.x, dz = sys.origin.z - g.pos.z, l = Math.hypot(dx, dz) || 1;
+    return { x: g.pos.x + dx / l * 4000, y: 0, z: g.pos.z + dz / l * 4000 };
+  }
+
+  private secLine(p: V): string {
+    const v = secAt(this.st, p), b = secBand(v);
+    return `<span style="color:${b.color}">지역 치안 ${Math.round(v)} · ${b.name.replace(' 성계', '')}</span>`;
+  }
+
+  private groupSys(g: WGroup): string | undefined { const c = this.center(g) ?? this.shipsOf(g).map(s => s.pos)[0]; return c ? sysAt(this.st.systems, c)?.id : undefined; }
+
+  // ============================================================== system bar · galaxy map · diagnostics
+
+  private sysKey = '';
+  private renderSysbar() {
+    const sys = this.v.sys; if (!sys) return;
+    const live = this.st.systems[sys.id] ?? sys;
+    const eff = effSec(live), band = secBand(eff);
+    const key = `${sys.id}|${Math.round(eff)}|${Math.round(live.heat)}|${this.v.showSecurity}`;
+    if (key === this.sysKey) return;
+    this.sysKey = key;
+    const el = document.getElementById('sysbar')!;
+    const heat = live.heat > 25 ? `<span class="warn">해적 활동 증가</span>` : live.heat > 8 ? '<span class="dim">해적 활동 있음</span>' : '';
+    el.innerHTML = `<div class="sysname"><b>${esc(sys.name)}</b> <span class="secb" style="background:${band.color}">${band.name} · 치안 ${Math.round(eff)}</span> ${heat}</div>
+      <div class="sysbtns"><button class="btn mini" id="galBtn" title="Tab">성계 지도</button><button class="btn mini${this.v.showSecurity ? ' on' : ''}" id="secBtn" title="V">치안 지도</button></div>`;
+    (document.getElementById('galBtn') as HTMLButtonElement).onclick = () => this.toggleGalaxy();
+    (document.getElementById('secBtn') as HTMLButtonElement).onclick = () => { this.v.showSecurity = !this.v.showSecurity; this.sysKey = ''; this.renderSysbar(); };
+  }
+
+  private galaxy: HTMLElement | null = null;
+  toggleGalaxy() {
+    if (this.galaxy) { this.galaxy.remove(); this.galaxy = null; return; }
+    this.galaxy = h('div', 'modal galaxy');
+    this.root.appendChild(this.galaxy);
+    this.galaxy.onclick = e => { if (e.target === this.galaxy) this.toggleGalaxy(); };
+    this.renderGalaxy();
+  }
+
+  private renderGalaxy() {
+    const el = this.galaxy; if (!el) return;
+    const st = this.st;
+    const W = Math.min(980, innerWidth - 40), H = Math.min(560, innerHeight - 160);
+    const P = (s: { map: { x: number; y: number } }) => ({ x: 60 + s.map.x * (W - 120), y: 40 + s.map.y * (H - 80) });
+    const g = this.group ? st.groups[this.group] : null;
+    const gSys = g ? this.groupSys(g) : undefined;
+    const mine = (sid: string) => Object.values(st.ships).filter(s => s.owner === this.me && sysAt(st.systems, s.pos)?.id === sid).length;
+    const myStations = (sid: string) => Object.values(st.stations).filter(s => s.owner === this.me && sysAt(st.systems, s.pos)?.id === sid).length;
+    let svg = `<svg width="${W}" height="${H}" class="galsvg">`;
+    const done = new Set<string>();
+    for (const s of Object.values(st.systems)) for (const gt of s.gates) {
+      const k = [s.id, gt.to].sort().join(); if (done.has(k)) continue; done.add(k);
+      const a = P(s), b = P(st.systems[gt.to]);
+      svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#4a7aa0" stroke-width="2" stroke-dasharray="6 5" opacity=".7"/>`;
+    }
+    for (const s of Object.values(st.systems)) {
+      const p = P(s), eff = effSec(s), band = secBand(eff);
+      const here = this.v.sys?.id === s.id;
+      svg += `<g class="gnode" data-sys="${s.id}" style="cursor:pointer">
+        <circle cx="${p.x}" cy="${p.y}" r="${here ? 30 : 24}" fill="${band.color}" opacity=".16"/>
+        <circle cx="${p.x}" cy="${p.y}" r="11" fill="${s.star.color}" stroke="${band.color}" stroke-width="3"/>
+        ${here ? `<circle cx="${p.x}" cy="${p.y}" r="34" fill="none" stroke="#fff" stroke-width="1" opacity=".6"/>` : ''}
+        <text x="${p.x}" y="${p.y - 38}" text-anchor="middle" fill="#e8f4ff" font-size="14" font-weight="700">${esc(s.name)}</text>
+        <text x="${p.x}" y="${p.y + 44}" text-anchor="middle" fill="${band.color}" font-size="12">${band.name} · 치안 ${Math.round(eff)}</text>
+        ${mine(s.id) || myStations(s.id) ? `<text x="${p.x}" y="${p.y + 60}" text-anchor="middle" fill="#5fd4ff" font-size="11">자사 함선 ${mine(s.id)}${myStations(s.id) ? ` · 기지 ${myStations(s.id)}` : ''}</text>` : ''}
+      </g>`;
+    }
+    svg += '</svg>';
+    const sel = this.galSel && st.systems[this.galSel] ? st.systems[this.galSel] : this.v.sys ? st.systems[this.v.sys.id] : null;
+    let info = '';
+    if (sel) {
+      const eff = effSec(sel);
+      const stations = Object.values(st.stations).filter(x => sysAt(st.systems, x.pos)?.id === sel.id);
+      const fields = Object.values(st.fields).filter(x => !x.salvage && sysAt(st.systems, x.pos)?.id === sel.id);
+      const lairs = Object.values(st.lairs).filter(x => sysAt(st.systems, x.pos)?.id === sel.id);
+      const hops = gSys ? jumps(st.systems, gSys, sel.id) : 0;
+      info = `<div class="galinfo"><div class="stitle">${esc(sel.name)} <span class="secb" style="background:${secBand(eff).color}">${secBand(eff).name} · 치안 ${Math.round(eff)} (기본 ${sel.security})</span></div>
+        <div class="dim">${esc(sel.desc)}</div>
+        <div class="svc">정거장: ${stations.map(x => esc(x.name) + (x.tax ? ` <span class="dim">(세금 ${Math.round(x.tax * 100)}%)</span>` : '')).join(', ') || '없음'}</div>
+        <div class="svc">자원: ${fields.map(f => `${esc(f.name)} <span style="color:${RES_COLOR[f.res]}">${RES_NAME[f.res]}</span>${(f.rich ?? 1) > 1 ? ` <span class="good">×${(f.rich ?? 1).toFixed(2)}</span>` : (f.rich ?? 1) < 1 ? ` <span class="dim">×${(f.rich ?? 1).toFixed(2)}</span>` : ''}`).join(' · ')}</div>
+        ${lairs.length ? `<div class="svc warn">해적 거점: ${lairs.map(l => `${esc(l.name)}${l.alive ? '' : ' (파괴됨)'}`).join(', ')}</div>` : ''}
+        <div class="svc dim">최근 기록 — 해적 격침 ${sel.stats.pirateKills} · 연합 손실 ${sel.stats.unionLosses} · 민간 피해 ${sel.stats.civLosses}${sel.heat > 1 ? ` · 해적 활동도 ${Math.round(sel.heat)}` : ''}</div>
+        <div class="mrow"><button class="btn go" data-view="${sel.id}">이 성계 보기</button>
+        ${g && g.owner === this.me ? `<button class="btn" data-goto="${sel.id}" ${gSys === sel.id ? 'disabled' : ''}>${esc(g.name)} 이동 (${hops}회 점프)</button>` : '<span class="dim small">편대를 선택하면 이 성계로 이동을 명령할 수 있습니다.</span>'}</div></div>`;
+    }
+    el.innerHTML = `<div class="panel sbox gbox"><div class="shdr"><div><div class="stitle">성계 지도</div><div class="dim">점프게이트로 연결된 성계들. 치안이 낮을수록 자원과 보수가 크지만 해적이 강하다. 클릭: 정보 · 더블클릭: 이동해서 보기</div></div><button class="btn" data-close>✕</button></div>${svg}${info}</div>`;
+    el.querySelector<HTMLButtonElement>('[data-close]')!.onclick = () => this.toggleGalaxy();
+    el.querySelectorAll<SVGGElement>('[data-sys]').forEach(n => {
+      n.addEventListener('click', () => { this.galSel = n.dataset.sys!; this.renderGalaxy(); });
+      n.addEventListener('dblclick', () => { this.v.setSystem(n.dataset.sys!); this.toggleGalaxy(); });
+    });
+    el.querySelector<HTMLButtonElement>('[data-view]')?.addEventListener('click', e => { this.v.setSystem((e.target as HTMLElement).dataset.view!); this.toggleGalaxy(); });
+    el.querySelector<HTMLButtonElement>('[data-goto]')?.addEventListener('click', e => { const id = (e.target as HTMLElement).dataset.goto!; this.setOp({ k: 'move', to: this.systemDestination(id) }); this.toggleGalaxy(); });
+  }
+  private galSel: string | null = null;
+
+  private diagT = 0;
+  private renderDiag(dt: number) {
+    const el = document.getElementById('netdiag')!;
+    if (el.classList.contains('hidden')) return;
+    this.diagT -= dt; if (this.diagT > 0) return; this.diagT = 0.5;
+    const fm = this.v.frameMs, avg = fm.reduce((a, b) => a + b, 0) / Math.max(1, fm.length), mx = Math.max(0, ...fm);
+    const ck = this.c.clock, sv = this.c.net.server;
+    const buf = (ck.latestAt - ck.renderTime) / Math.max(0.01, ck.rate);
+    const row = (k: string, v: string, warn = false) => `<div class="kv2"><span>${k}</span><b${warn ? ' class="warn"' : ''}>${v}</b></div>`;
+    el.innerHTML = `<div class="ptitle"><span>진단 (F3)</span></div>
+      <div class="dh">클라이언트 렌더링</div>
+      ${row('렌더 CPU 시간', `${avg.toFixed(1)} ms (최대 ${mx.toFixed(0)})`, avg > 14)}
+      ${row('FPS', `${Math.round(1000 / Math.max(1, this.frameGap))}`, this.frameGap > 34)}
+      <div class="dh">네트워크</div>
+      ${row('왕복 지연 (RTT)', this.c.t.kind === 'local' ? '로컬' : `${Math.round(this.c.net.rtt)} ms`, this.c.net.rtt > 250)}
+      ${row('패킷 간격', `${(ck.gapMean * 1000).toFixed(0)} ms ± ${(ck.gapJitter * 1000).toFixed(0)}`, ck.gapJitter > 0.12)}
+      ${row('보간 버퍼', `${(buf * 1000).toFixed(0)} ms (목표 ${(ck.delayReal * 1000).toFixed(0)})`)}
+      ${row('버퍼 고갈 / 재동기', `${ck.starved} / ${ck.corrections}`, ck.starved > 50)}
+      ${row('수신량', sv ? `${(sv.bytes / 1024).toFixed(1)} KB/s` : '-')}
+      ${row('스냅샷 크기', this.c.net.snapBytes ? `${(this.c.net.snapBytes / 1024).toFixed(1)} KB` : '-')}
+      <div class="dh">서버</div>
+      ${row('틱 처리 시간', sv ? `${sv.tickMs.toFixed(2)} ms (최대 ${sv.tickMax.toFixed(0)})` : '-', !!sv && sv.tickMax > 100)}
+      ${row('월드 진행 속도', sv ? `${(sv.rate / Math.max(0.01, this.c.speed)).toFixed(2)}× 실시간` : '-', !!sv && this.c.speed > 0 && sv.rate / this.c.speed < 0.95)}
+      ${row('함선 / 전투 / 접속', sv ? `${sv.ships} / ${sv.battles} / ${sv.conns}` : '-')}
+      <div class="dim small">서버 진행 속도가 1.0 미만이면 서버 과부하, 패킷 간격 편차가 크면 네트워크, FPS만 낮으면 클라이언트 렌더링 문제입니다.</div>`;
+  }
+  private frameGap = 16;
+  private lastFrameAt = 0;
 
   private bestDeliver(fieldId: string): string {
     const f = this.st.fields[fieldId];
@@ -341,13 +492,18 @@ export class PmcHud {
     if (this.keys.has('ArrowLeft')) rig.pan(sp, 0);
     if (this.keys.has('ArrowRight')) rig.pan(-sp, 0);
     this.refreshT -= dt;
-    if (this.refreshT <= 0) { this.refreshT = 0.4; this.refresh(false); }
+    if (this.refreshT <= 0) { this.refreshT = 0.4; this.refresh(false); if (this.galaxy) this.renderGalaxy(); }
+    const now = performance.now(); if (this.lastFrameAt) this.frameGap += (now - this.lastFrameAt - this.frameGap) * 0.1; this.lastFrameAt = now;
+    this.pingT -= dt; if (this.pingT <= 0) { this.pingT = 2; this.c.ping(); }
     this.drawOverlay();
     this.tooltip();
+    this.renderDiag(dt);
   }
 
+  private pingT = 0;
   refresh(force: boolean) {
     if (!this.c.state) return;
+    this.renderSysbar();
     this.renderTop();
     this.renderOrg();
     this.renderSel(force);
@@ -380,7 +536,7 @@ export class PmcHud {
   private orgKey = '';
   private renderOrg() {
     const groups = this.myGroups();
-    const key = JSON.stringify(groups.map(g => [g.id, g.name, g.parentId, g.shipIds, g.status, g.commanderId, g.op.k, g.override, g.fleeing])) + [...this.expanded].join() + this.group + JSON.stringify(Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [Math.round(s.hp * 50), s.state, Math.round(cargoSum(s.cargo) / 10)]));
+    const key = JSON.stringify(groups.map(g => [g.id, g.name, g.parentId, g.shipIds, g.status, g.commanderId, g.op.k, g.override, g.fleeing, this.groupSys(g)])) + [...this.expanded].join() + this.group + this.v.sys?.id + JSON.stringify(Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [Math.round(s.hp * 50), s.state, Math.round(cargoSum(s.cargo) / 10)]));
     if (key === this.orgKey) return;
     this.orgKey = key;
     const body = document.getElementById('orgBody')!;
@@ -395,8 +551,10 @@ export class PmcHud {
       const hp = ships.length ? ships.reduce((a, s) => a + s.hp, 0) / ships.length : 0;
       const op = g.op;
       const inherited = !g.override && g.parentId;
+      const gs = this.groupSys(g);
+      const sysTag = gs && gs !== this.v.sys?.id ? `<span class="systag">${esc(this.st.systems[gs]?.name ?? '')}</span>` : '';
       row.innerHTML = `<span class="tog">${ships.length || g.childIds.length ? (open ? '▾' : '▸') : ''}</span>
-        <span class="nm">${esc(g.name)}<span class="cmd">${cm ? esc(cm.name) + (cm.injuredUntil > this.st.time ? ' (부상)' : '') : ''}</span><br><span class="stt${g.fleeing ? ' warn' : ''}">${esc(g.status)}</span></span>
+        <span class="nm">${sysTag}${esc(g.name)}<span class="cmd">${cm ? esc(cm.name) + (cm.injuredUntil > this.st.time ? ' (부상)' : '') : ''}</span><br><span class="stt${g.fleeing ? ' warn' : ''}">${esc(g.status)}</span></span>
         <span class="meta">${ships.length}척<span class="hp"><i style="width:${hp * 100}%;background:${hpCol(hp)}"></i></span><span class="ord${inherited ? '' : ' ov'}">${inherited ? '위임' : OP_NAME[op.k]}</span></span>`;
       row.querySelector('.tog')!.addEventListener('click', ev => { ev.stopPropagation(); if (open) this.expanded.delete(g.id); else this.expanded.add(g.id); this.orgKey = ''; this.renderOrg(); });
       row.onclick = () => this.select({ kind: 'group', id: g.id });
@@ -439,6 +597,7 @@ export class PmcHud {
     el.querySelectorAll<HTMLButtonElement>('[data-op]').forEach(b => b.onclick = () => this.opButton(b.dataset.op!));
     el.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(b => b.onclick = () => this.openStation(b.dataset.open!));
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
+    el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
     el.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(b => b.onclick = () => this.setOp(JSON.parse(b.dataset.quick!)));
     const nm = el.querySelector<HTMLInputElement>('[data-rename]'); if (nm) nm.onchange = () => this.cmd({ c: 'renameGroup', group: nm.dataset.rename!, name: nm.value });
     const cs = el.querySelector<HTMLSelectElement>('[data-cmdsel]'); if (cs) cs.onchange = () => this.cmd({ c: 'assignCmd', group: cs.dataset.cmdsel!, commander: cs.value || null });
@@ -455,6 +614,7 @@ export class PmcHud {
       const store = x.storage[this.me];
       return `<div class="info"><div class="ih"><b>${esc(x.name)}</b> <span class="tag" style="background:${st.companies[x.owner]?.color}">${esc(st.companies[x.owner]?.name ?? '')}</span></div>
         <div class="dim">${esc(x.desc)}</div>
+        <div class="svc">${this.secLine(x.pos)}${x.tax ? ` · 판매세 ${Math.round(x.tax * 100)}%` : x.public ? ' · 면세' : ''}</div>
         ${x.public ? `<div class="svc">${x.market ? '시장 ' : ''}${x.services.repair ? '· 수리 ' : ''}${x.services.shipyard.length ? '· 조선소 ' : ''}${x.services.recruit ? '· 인재 ' : ''}${x.services.contracts ? '· 계약' : ''}</div>` : `<div class="svc">모듈 ${x.modules.filter(m => m.built).length}/${x.modules.length} 완공</div>`}
         ${store && (store.ore + store.alloy + store.crystal) > 0 ? `<div class="svc">자사 창고: ${RES.map(r => `${RES_NAME[r]} ${fmt(store[r])}`).join(' · ')}</div>` : ''}
         <button class="btn go" data-open="${x.id}">${own ? '정거장 관리' : '정거장 서비스'}</button></div>`;
@@ -463,7 +623,8 @@ export class PmcHud {
       const f = st.fields[s.id]; if (!f) return '';
       return `<div class="info"><div class="ih"><b>${esc(f.name)}</b> <span style="color:${RES_COLOR[f.res]}">${RES_NAME[f.res]}</span>${f.salvage ? ' <span class="tag">전투 잔해</span>' : ''}</div>
         <div class="bar2"><i style="width:${f.amount / f.max * 100}%;background:${RES_COLOR[f.res]}"></i></div>
-        <div class="dim">매장량 ${fmt(f.amount)} / ${fmt(f.max)}${f.regen ? ` · 재생 ${f.regen}/s` : ` · ${Math.max(0, Math.round((f.expires - st.time) / 60))}분 후 소멸`} · 위험도 ${'▲'.repeat(f.danger)}</div>
+        <div class="dim">매장량 ${fmt(f.amount)} / ${fmt(f.max)}${f.regen ? ` · 재생 ${f.regen}/s` : ` · ${Math.max(0, Math.round((f.expires - st.time) / 60))}분 후 소멸`}${(f.rich ?? 1) !== 1 ? ` · 채굴 효율 ×${(f.rich ?? 1).toFixed(2)}` : ''}</div>
+        <div class="svc">${this.secLine(f.pos)}</div>
         ${this.group ? `<button class="btn" data-quick='${JSON.stringify({ k: 'mine', field: f.id, deliver: this.bestDeliver(f.id), sell: true })}'>선택 편대 채굴 지시 (판매)</button><button class="btn" data-quick='${JSON.stringify({ k: 'mine', field: f.id, deliver: this.bestDeliver(f.id), sell: false })}'>채굴 후 창고 보관</button><button class="btn" data-quick='${JSON.stringify({ k: 'patrol', at: f.pos, radius: f.radius + 400 })}'>이 지역 순찰</button>` : '<div class="dim">편대를 선택하고 우클릭하면 채굴을 지시합니다.</div>'}</div>`;
     }
     if (s.kind === 'lair') {
@@ -482,6 +643,20 @@ export class PmcHud {
         <div class="bar2"><i style="width:${x.hp * 100}%;background:${hpCol(x.hp)}"></i></div>
         ${co?.kind === 'pirate' && this.group ? `<button class="btn danger" data-quick='${JSON.stringify({ k: 'attack', group: x.groupId })}'>선택 편대로 공격</button>` : ''}
         ${e && !e.done ? `<button class="btn go" data-battle="${e.id}">전투 관전</button>` : ''}</div>`;
+    }
+    if (s.kind === 'gate') {
+      const sys = Object.values(st.systems).find(x => x.gates.some(g => g.id === s.id)); const gt = sys?.gates.find(g => g.id === s.id);
+      if (!gt) return '';
+      const dest = st.systems[gt.to];
+      return `<div class="info"><div class="ih"><b style="color:#7fd0ff">⟁ ${esc(gt.name)}</b></div>
+        <div class="dim">${esc(dest.name)} 성계로 통하는 점프게이트. 편대를 선택하고 우클릭하면 게이트를 통과해 건너편으로 이동합니다.</div>
+        <div class="svc">건너편: <span style="color:${secBand(effSec(dest)).color}">${secBand(effSec(dest)).name} · 치안 ${Math.round(effSec(dest))}</span></div>
+        ${this.group ? `<button class="btn go" data-quick='${JSON.stringify({ k: 'move', to: this.arrivalPoint(gt.id) })}'>선택 편대 점프</button>` : ''}
+        <button class="btn" data-viewsys="${dest.id}">${esc(dest.name)} 보기</button></div>`;
+    }
+    if (s.kind === 'planet') {
+      const pl = this.v.sys?.planets.find(x => x.id === s.id); if (!pl) return '';
+      return `<div class="info"><div class="ih"><b>${esc(pl.name)}</b></div><div class="dim">${esc(pl.desc)}${pl.moons.length ? ` 위성 ${pl.moons.length}개: ${pl.moons.map(m => esc(m.name)).join(', ')}.` : ''}</div><div class="svc">${this.secLine(pl.pos)}</div></div>`;
     }
     if (s.kind === 'battle') {
       const e = st.engagements[s.id]; if (!e) return '';
@@ -569,7 +744,8 @@ export class PmcHud {
     const own = Object.values(st.stations).find(x => x.owner === me);
     if (own && own.modules.some(m => !m.built) && !groups.some(g => g.op.k === 'build')) return `공작선 편대에 <b>건설</b> 명령을 내려 ${esc(own.name)} 공사를 진행하세요. 합금이 부족하면 시장에서 사서 <b>운송</b>하세요.`;
     if (own && own.modules.length === 1 && own.modules[0].built) return `${esc(own.name)}에 <b>정제소</b>를 지으면 광석을 합금으로 바꿔 건설·조선에 쓸 수 있습니다.`;
-    if (co.rep >= 10 && !ships.some(x => x.classId === 'cruiser')) return '평판이 올랐습니다. 헬리오스 조선소에서 <b>순양함</b>을 살 수 있습니다.';
+    if (co.rep >= 10 && !ships.some(x => x.classId === 'cruiser')) return '평판이 올랐습니다. 수도 성계 <b>헬리오스</b> 조선소에서 <b>순양함</b>을 살 수 있습니다 (Tab: 성계 지도).';
+    if (co.stats.earned > 30000 && !ships.some(s => sysAt(st.systems, s.pos)?.id !== 'astra')) return '아스트라는 안전하지만 수익이 제한적입니다. <b>Tab</b>으로 성계 지도를 열어 <b>드레이크 변경</b>을 살펴보세요 — 광맥이 풍부하고 보수가 높지만 호위가 필요합니다.';
     return '';
   }
 
@@ -735,6 +911,19 @@ export class PmcHud {
       if (sub) { ctx.font = '10px "Noto Sans KR", sans-serif'; ctx.fillStyle = '#9ab'; ctx.fillText(sub, x - ctx.measureText(sub).width / 2, ly + 13); ctx.font = '600 11px "Noto Sans KR", sans-serif'; }
       this.labels.push({ x0: x - tw / 2 - 5, x1: x + tw / 2 + 5, y0: ly - 11, y1: ly - 11 + hh });
     };
+    // planets and gates
+    for (const pl of v.sys?.planets ?? []) {
+      if (!v.project({ x: pl.pos.x, y: pl.pos.y + pl.size, z: pl.pos.z }, p)) continue;
+      ctx.fillStyle = 'rgba(200,220,240,.75)'; ctx.font = '600 12px "Noto Sans KR", sans-serif';
+      ctx.fillText(pl.name, p.x - ctx.measureText(pl.name).width / 2, p.y - 8);
+      ctx.font = '600 11px "Noto Sans KR", sans-serif';
+    }
+    if (v.sys && v.project(v.sys.origin, p) && camD > 20000) { ctx.fillStyle = 'rgba(255,230,190,.8)'; const t = `☀ ${v.sys.star.name}`; ctx.fillText(t, p.x - ctx.measureText(t).width / 2, p.y - 30); }
+    for (const gt of v.sys?.gates ?? []) {
+      if (!v.project(gt.pos, p)) continue;
+      const dest = st.systems[gt.to];
+      label(p.x, p.y - 24, `⟁ ${dest?.name ?? ''}`, secBand(dest ? effSec(dest) : 50).color, 'rgba(4,16,30,0.8)', dest ? `${secBand(effSec(dest)).name} · 치안 ${Math.round(effSec(dest))}` : undefined);
+    }
     // stations
     for (const s of Object.values(st.stations)) {
       if (!v.project(s.pos, p)) continue;
@@ -830,14 +1019,24 @@ export class PmcHud {
     const tip = document.getElementById('tooltip')!;
     if (this.pointer.down >= 0) { tip.classList.add('hidden'); return; }
     const pk = this.v.pick(this.pointer.x, this.pointer.y);
-    if (!pk) { tip.classList.add('hidden'); return; }
     const st = this.st;
+    if (!pk) {
+      // empty space: local security under the cursor (only when it matters for a decision)
+      const pt = this.v.showSecurity || this.mode === 'found' || this.mode === 'move' ? this.v.screenToPlane(this.pointer.x, this.pointer.y, 0) : null;
+      if (!pt || !this.v.inView(pt)) { tip.classList.add('hidden'); return; }
+      tip.innerHTML = this.secLine(pt);
+      tip.style.left = `${this.pointer.x + 14}px`; tip.style.top = `${this.pointer.y + 12}px`;
+      tip.classList.remove('hidden');
+      return;
+    }
     let html = '';
     if (pk.kind === 'ship') { const s = st.ships[pk.id]; const co = st.companies[s.owner]; html = `<b style="color:${co?.color}">${esc(s.name)}</b> <span class="dim">${SHIP_CLASSES[s.classId].type} · ${esc(co?.name ?? '')}</span><br>선체 ${Math.round(s.hp * 100)}% · ${esc(st.groups[s.groupId]?.status ?? '')}`; }
     else if (pk.kind === 'station') { const s = st.stations[pk.id]; html = `<b>${esc(s.name)}</b><br><span class="dim">클릭: 정보 · 우클릭: 정박</span>`; }
     else if (pk.kind === 'field') { const f = st.fields[pk.id]; html = `<b>${esc(f.name)}</b> ${RES_NAME[f.res]} ${fmt(f.amount)}<br><span class="dim">우클릭: 선택 편대 채굴</span>`; }
     else if (pk.kind === 'lair') html = `<b>☠ ${esc(st.lairs[pk.id].name)}</b>`;
     else if (pk.kind === 'battle') html = '<b>⚔ 교전 중</b><br><span class="dim">클릭하여 전투 화면</span>';
+    else if (pk.kind === 'gate') { const gt = this.v.sys?.gates.find(g => g.id === pk.id); html = `<b>⟁ ${esc(gt?.name ?? '')}</b><br><span class="dim">우클릭: 선택 편대 점프</span>`; }
+    else if (pk.kind === 'planet') { const pl = this.v.sys?.planets.find(x => x.id === pk.id); html = `<b>${esc(pl?.name ?? '')}</b>`; }
     tip.innerHTML = html;
     tip.style.left = `${this.pointer.x + 14}px`; tip.style.top = `${this.pointer.y + 12}px`;
     tip.classList.remove('hidden');

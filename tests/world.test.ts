@@ -6,6 +6,7 @@ import { World } from '../src/sim/world';
 import type { WGroup } from '../src/world/types';
 
 const run = (sim: WorldSim, seconds: number, dt = 0.25) => { for (let t = 0; t < seconds; t += dt) sim.update(dt); };
+const near = (sim: WorldSim, x: number, z: number) => ({ x: sim.st.stations.astra.pos.x + x, y: 0, z: sim.st.stations.astra.pos.z + z });
 const groupNamed = (sim: WorldSim, owner: string, name: string) => Object.values(sim.st.groups).find(g => g.owner === owner && g.name === name) as WGroup;
 
 describe('persistent world', () => {
@@ -47,7 +48,7 @@ describe('persistent world', () => {
     sim.st.companies[p].credits = 60000;
     expect(sim.command(p, { c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })).toBeNull();
     const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
-    expect(sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: { x: 300, y: 0, z: -3300 }, name: '시험기지' } })).toBeNull();
+    expect(sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: near(sim, 2600, 2600), name: '시험기지' } })).toBeNull();
     // prevent pirates from interfering with this test
     for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e9; }
     run(sim, 200);
@@ -60,10 +61,11 @@ describe('persistent world', () => {
   it('pirate encounters become battles whose results persist on the PMC', () => {
     const sim = WorldSim.create(5);
     const p = sim.addPlayer('용병');
+    sim.st.systems.astra.security = 0; // no Union forces: this test is about the player's own fight
     const guard = groupNamed(sim, p, '경비대');
     // spawn a pirate band next to the guard group
     const pg = sim.newGroup('pirates', '시험 무리', null, { k: 'raid', home: 'redclaw' });
-    for (const [c, l] of [['corvette', 'gun'], ['corvette', 'torp']]) sim.spawnShip('pirates', c, l, pg.id, { x: 600, y: 0, z: -2600 });
+    for (const [c, l] of [['corvette', 'gun'], ['corvette', 'torp']]) sim.spawnShip('pirates', c, l, pg.id, near(sim, 600, -2600));
     sim.command(p, { c: 'setOp', group: guard.id, op: { k: 'attack', group: pg.id } });
     let eng: string | undefined;
     for (let i = 0; i < 2400 && !eng; i++) { sim.update(0.25); eng = Object.values(sim.st.engagements).find(e => e.sides[0].includes(p))?.id; }
@@ -81,9 +83,10 @@ describe('persistent world', () => {
   it('save/load round-trips the world, including a battle in progress', () => {
     const sim = WorldSim.create(6);
     const p = sim.addPlayer('세이브');
+    sim.st.systems.astra.security = 0;
     const guard = groupNamed(sim, p, '경비대');
     const pg = sim.newGroup('pirates', '시험 무리', null, { k: 'raid', home: 'redclaw' });
-    sim.spawnShip('pirates', 'corvette', 'gun', pg.id, { x: 500, y: 0, z: -2500 });
+    sim.spawnShip('pirates', 'corvette', 'gun', pg.id, near(sim, 500, -2500));
     sim.command(p, { c: 'setOp', group: guard.id, op: { k: 'attack', group: pg.id } });
     for (let i = 0; i < 2400 && !Object.values(sim.st.engagements).some(e => !e.done); i++) sim.update(0.25);
     const e = Object.values(sim.st.engagements).find(x => !x.done)!;
@@ -133,12 +136,13 @@ describe('authoritative server', () => {
     const inbox: ServerMsg[] = [];
     srv.connect(conn('a', inbox));
     srv.handle('a', { t: 'hello', name: '지휘' });
+    srv.sim.st.systems.astra.security = 0;
     const me = (inbox.find(m => m.t === 'welcome') as any).company as string;
     const sim = srv.sim;
     const guard = Object.values(sim.st.groups).find(g => g.owner === me && g.name === '경비대')!;
     const pg = sim.newGroup('pirates', '시험', null, { k: 'raid', home: 'redclaw' });
-    sim.spawnShip('pirates', 'corvette', 'gun', pg.id, { x: 500, y: 0, z: -2500 });
-    sim.spawnShip('pirates', 'corvette', 'torp', pg.id, { x: 520, y: 0, z: -2520 });
+    sim.spawnShip('pirates', 'corvette', 'gun', pg.id, near(sim, 500, -2500));
+    sim.spawnShip('pirates', 'corvette', 'torp', pg.id, near(sim, 520, -2520));
     sim.command(me, { c: 'setOp', group: guard.id, op: { k: 'attack', group: pg.id } });
     for (let i = 0; i < 2400 && !Object.values(sim.st.engagements).some(e => !e.done); i++) srv.step(0.25);
     const e = Object.values(sim.st.engagements).find(x => !x.done)!;

@@ -62,7 +62,7 @@ async function main() {
   if (storage.name.startsWith('file')) saved = await storage.load();
   let saving = false;
   const game = new GameServer(saved, {
-    singleplayer: false, snapInterval: 0.5, saveInterval: 30,
+    singleplayer: false, snapInterval: 1.0, movInterval: 0.2, saveInterval: 30,
     save: d => { if (saving) return; saving = true; storage.save(d).catch(e => console.error('save failed', e)).finally(() => { saving = false; }); },
   }, Number(process.env.WORLD_SEED ?? 1));
   console.log(`[siderarium] world ${saved ? 'restored' : 'created'} (t=${game.sim.time.toFixed(0)}s) storage=${storage.name}`);
@@ -85,7 +85,7 @@ async function main() {
   let nextConn = 1;
   wss.on('connection', (ws: WebSocket) => {
     const id = `c${nextConn++}`;
-    const conn: Conn = { id, lastEvent: 0, battles: new Set(), send: m => { if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(m)); } };
+    const conn: Conn = { id, lastEvent: 0, battles: new Set(), bytes: 0, send: m => { if (ws.readyState !== ws.OPEN) return; const j = JSON.stringify(m); conn.bytes! += j.length; ws.send(j); } };
     game.connect(conn);
     ws.on('message', raw => {
       let msg: ClientMsg;

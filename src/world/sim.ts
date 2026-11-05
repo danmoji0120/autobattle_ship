@@ -7,16 +7,24 @@ import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
 import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
 import type { Order, OrderRecord } from '../sim/types';
-import type { WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Engagement, WorldEvent, Contract, WCommander, Company } from './types';
+import type { WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Engagement, WorldEvent, Contract, WCommander, Company, StarSystem, Gate, Lair } from './types';
 import { emptyCargo, cargoSum, RES } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
-import { newWorld } from './worldgen';
-import { dist, dist2, rockPos, miningSpot, berthPos, hashId } from './geom';
+import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
+import { effSec, secAt } from './security';
+import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate } from './geom';
 
 export const STRAT_DT = 0.25;
 const ENGAGE_R = 420;
 const JOIN_R = 1700;
-const SAFE_R = 1400;
+const WARP_MIN = 6000;      // trips longer than this use the in-system warp drive
+const WARP_V = 7000;
+const WARP_EXIT = 700;
+const SCRAMBLE_R = 3000;   // hostile warships this close prevent warping out
+const ALIGN: Record<string, number> = { corvette: 3, destroyer: 4, cruiser: 6, battleship: 8, miner: 5, hauler: 6, constructor: 7 };
+
+/** outcome of a battle, from the tactical engine or the NPC auto-resolver */
+interface BattleResult { winner: number; ships: { ref: string; dead: boolean; hp: number; escaped: boolean; dmg: number }[]; groupKills: Map<string, number> }
 
 export type Cmd =
   | { c: 'setOp'; group: string; op: Op }
@@ -56,6 +64,7 @@ export class WorldSim {
   onBattleEnd?: (eng: Engagement) => void;
 
   constructor(st: WorldState) {
+    if ((st.version ?? 0) < WORLD_VERSION) st = migrateWorld(st);
     this.st = st;
     this.rng = new Rng(st.seed).restore(st.rng.length ? st.rng : new Rng(st.seed).state());
     // rebuild live battles
@@ -372,7 +381,11 @@ export class WorldSim {
         if (!ships.some(s => s.classId === 'constructor')) return '공작선이 이 부대에 직접 있어야 함';
         for (const s of Object.values(this.st.stations)) if (dist2(s.pos, op.at) < 2600) return '다른 정거장과 너무 가깝다 (2,600 이상)';
         for (const l of Object.values(this.st.lairs)) if (dist2(l.pos, op.at) < 3000) return '해적 은신처와 너무 가깝다';
-        if (Math.hypot(op.at.x, op.at.z) > 15000) return '관제 범위를 벗어남';
+        const sys = this.sysOf(op.at);
+        if (!sys || Math.hypot(op.at.x - sys.origin.x, op.at.z - sys.origin.z) > sys.radius * 0.95) return '성계 관제 범위를 벗어남';
+        if (sys.security >= 90) return `${sys.name}은(는) 연합 핵심 성계 — 민간 정거장 건설 허가가 나지 않는다`;
+        if (Math.hypot(op.at.x - sys.origin.x, op.at.z - sys.origin.z) < sys.star.size * 2.5) return '항성에 너무 가깝다';
+        for (const pl of sys.planets) if (dist2(pl.pos, op.at) < pl.size * 1.8) return `${pl.name}에 너무 가깝다`;
         return null;
       }
       default: return null;
@@ -434,7 +447,7 @@ export class WorldSim {
       while (acc >= w.dt && !w.outcome) { w.step(); acc -= w.dt; }
       this.battleAcc.set(id, acc);
       e.tick = w.tick;
-      if (w.outcome) { this.finishEngagement(e, w); this.battles.delete(id); this.battleAcc.delete(id); }
+      if (w.outcome) { this.finishEngagement(e, this.resultFromWorld(w)); this.battles.delete(id); this.battleAcc.delete(id); }
     }
     this.acc += dt;
     while (this.acc >= STRAT_DT) { this.acc -= STRAT_DT; this.tick(STRAT_DT); }
@@ -452,7 +465,9 @@ export class WorldSim {
     }
     if (this.slow >= 1) {
       this.slow = 0;
+      this.npcSlow();
       this.detectEngagements();
+      this.resolveAuto();
       this.contracts();
       this.milestones();
       this.cleanup();
@@ -471,6 +486,8 @@ export class WorldSim {
         if (s.id === 'nova') { const use = Math.min(m.ore.stock, 3 * dt); m.ore.stock -= use; m.alloy.stock += use * 0.5; }
         if (s.id === 'helios') { drift('alloy', -1.0); drift('ore', -0.4); }
         if (s.id === 'astra') { drift('ore', -0.7); drift('alloy', -0.25); }
+        if (s.id === 'drakeout' || s.id === 'cinderco') { drift('ore', -0.5); drift('alloy', -0.4); }
+        if (s.id === 'exchange') { drift('crystal', -0.08); }
         for (const r of RES) if (m[r]) { const d = m[r].target - m[r].stock; m[r].stock += d * 0.0008 * dt * 4; }
       }
       if (!s.public) {
@@ -493,58 +510,207 @@ export class WorldSim {
   // ===================================================================== NPC factions
 
   private npcs(dt: number) {
+    // fast part: lair repair; everything else runs once per second in npcSlow()
+    for (const l of Object.values(this.st.lairs)) if (l.alive && l.hp < 1) l.hp = Math.min(1, l.hp + dt * 0.002);
+  }
+
+  /** once per second: security drift, Union force upkeep, pirate activity, trade */
+  private npcSlow() {
     const st = this.st;
-    // pirate lairs spawn raiding bands
+    for (const sys of Object.values(st.systems)) {
+      // government response pushes pirate activity back down; strong in the core, weak on the rim
+      sys.heat = Math.max(0, Math.min(100, sys.heat - (0.002 + sys.security / 100 * 0.012)));
+    }
+    this.unionForces();
+    this.pirateForces();
+    const traders = Object.values(st.groups).filter(g => g.owner === 'guild' && g.shipIds.length);
+    if (traders.length < 5 && (st.time < 3 || this.rng.chance(0.02))) this.spawnTrader();
+  }
+
+  // ------------------------------------------------------------------ Union
+
+  private unionPlan(): { slot: string; role: 'garrison' | 'patrol' | 'qrf'; sys: StarSystem; home: Station; template: [string, string][] }[] {
+    const out: ReturnType<WorldSim['unionPlan']> = [];
+    const T = {
+      g3: [['cruiser', 'multi'], ['destroyer', 'aa'], ['destroyer', 'strike'], ['corvette', 'gun'], ['corvette', 'torp']],
+      g2: [['cruiser', 'multi'], ['destroyer', 'aa'], ['corvette', 'gun'], ['corvette', 'gun']],
+      g1: [['destroyer', 'aa'], ['destroyer', 'strike'], ['corvette', 'gun']],
+      g1weak: [['destroyer', 'strike'], ['corvette', 'gun'], ['corvette', 'gun']],
+      pCore: [['cruiser', 'multi'], ['destroyer', 'aa'], ['destroyer', 'strike'], ['corvette', 'gun'], ['corvette', 'torp']],
+      pSettled: [['cruiser', 'multi'], ['destroyer', 'aa'], ['corvette', 'gun'], ['corvette', 'torp']],
+      pFrontier: [['destroyer', 'aa'], ['destroyer', 'strike'], ['corvette', 'gun']],
+      qCore: [['battleship', 'std'], ['cruiser', 'gun'], ['cruiser', 'missile'], ['destroyer', 'aa']],
+      qSettled: [['cruiser', 'gun'], ['cruiser', 'multi'], ['destroyer', 'aa'], ['destroyer', 'strike'], ['corvette', 'torp']],
+      qFrontier: [['cruiser', 'multi'], ['destroyer', 'aa'], ['destroyer', 'strike']],
+    } as Record<string, [string, string][]>;
+    for (const sys of Object.values(this.st.systems)) {
+      if (sys.security < 15) continue;
+      const stations = Object.values(this.st.stations).filter(x => x.public && (x.garrison ?? 0) > 0 && this.sysOf(x.pos)?.id === sys.id);
+      for (const x of stations) {
+        const t = x.garrison! >= 3 ? T.g3 : x.garrison === 2 ? T.g2 : sys.security < 40 ? T.g1weak : T.g1;
+        out.push({ slot: `garrison:${x.id}`, role: 'garrison', sys, home: x, template: t });
+      }
+      const main = stations.filter(x => x.owner === 'union').sort((a, b) => (b.garrison ?? 0) - (a.garrison ?? 0))[0] ?? stations[0];
+      if (!main) continue;
+      const patrols = sys.security >= 70 ? 2 : sys.security >= 40 ? 1 : 0;
+      for (let i = 0; i < patrols; i++) out.push({ slot: `patrol:${sys.id}:${i}`, role: 'patrol', sys, home: main, template: sys.security >= 90 ? T.pCore : sys.security >= 70 ? T.pSettled : T.pFrontier });
+      if (sys.security >= 40) out.push({ slot: `qrf:${sys.id}`, role: 'qrf', sys, home: main, template: sys.security >= 90 ? T.qCore : sys.security >= 70 ? T.qSettled : T.qFrontier });
+    }
+    return out;
+  }
+
+  /** seconds to replace one lost warship / to rebuild a destroyed force, by system security */
+  private refitTime(sys: StarSystem) { return sys.security >= 90 ? 45 : sys.security >= 70 ? 90 : sys.security >= 40 ? 200 : 420; }
+  private respawnTime(sys: StarSystem) { return sys.security >= 90 ? 120 : sys.security >= 70 ? 240 : sys.security >= 40 ? 600 : 1200; }
+
+  private patrolRoute(sys: StarSystem, i: number): V[] {
+    const pts: V[] = [];
+    const node = (id: string) => this.st.stations[id]?.pos ?? sys.gates.find(g => g.id === id)?.pos;
+    for (const [a, b] of sys.lanes) { const pa = node(a), pb = node(b); if (pa && !pts.some(p => dist2(p, pa) < 500)) pts.push(pa); if (pb && !pts.some(p => dist2(p, pb) < 500)) pts.push(pb); }
+    const fields = Object.values(this.st.fields).filter(f => !f.salvage && this.sysOf(f.pos)?.id === sys.id);
+    for (const f of fields) pts.push({ x: f.pos.x + f.radius + 300, y: f.pos.y, z: f.pos.z });
+    // two patrols walk the circuit in opposite directions, offset by half
+    const r = pts.slice(); if (i % 2) r.reverse();
+    const k = Math.floor(r.length / 2) * (i % 2);
+    return [...r.slice(k), ...r.slice(0, k)];
+  }
+
+  private unionForces() {
+    const st = this.st;
+    const plan = this.unionPlan();
+    const bySlot = new Map<string, WGroup>();
+    for (const g of Object.values(st.groups)) if (g.owner === 'union' && g.npc?.slot) bySlot.set(g.npc.slot, g);
+    for (const p of plan) {
+      let g = bySlot.get(p.slot);
+      const names = { garrison: `${p.home.name} 주둔함대`, patrol: `${p.sys.name} 순찰대 ${p.slot.endsWith('1') ? '2' : '1'}`, qrf: `${p.sys.name} 신속대응함대` };
+      if (!g) {
+        const op: Op = p.role === 'garrison' ? { k: 'garrison', station: p.home.id, radius: p.sys.security >= 90 ? 9000 : p.sys.security >= 70 ? 6500 : 4500 }
+          : p.role === 'patrol' ? { k: 'guard', route: this.patrolRoute(p.sys, Number(p.slot.split(':')[2] ?? 0)), leg: 0 }
+          : { k: 'respond', home: p.home.id };
+        g = this.newGroup('union', names[p.role], null, op);
+        g.npc = { role: p.role, sys: p.sys.id, home: p.home.id, template: p.template, nextRefit: 0, born: this.time, slot: p.slot };
+        const c = this.newCommander('union', p.sys.security >= 90 ? 2.5 : p.sys.security >= 70 ? 2 : 1.2);
+        c.rank = p.role === 'qrf' ? '준장' : p.role === 'garrison' ? '중령' : '경감'; c.color = '#7fb0ff'; c.voice = 'formal';
+        g.commanderId = c.id;
+        for (const [cl, lo] of p.template) this.spawnUnion(g, cl, lo, p.home);
+        continue;
+      }
+      const ships = this.shipsOf(g);
+      const home = st.stations[g.npc!.home] ?? p.home;
+      const c = this.groupCenter(g);
+      const atHome = !c || dist(c, home.pos) < 3500;
+      // field repairs at the home base
+      if (c && atHome) for (const s of ships) if (s.state === 'space' && s.hp < 1) s.hp = Math.min(1, s.hp + 0.012);
+      if (this.time < g.npc!.nextRefit || ships.some(s => s.state === 'battle')) continue;
+      if (!ships.length) {
+        for (const [cl, lo] of p.template) this.spawnUnion(g, cl, lo, home);
+        g.npc!.nextRefit = this.time + this.refitTime(p.sys);
+        if (p.sys.security >= 40) this.ev('world', `${home.name}: ${g.name} 재편성 완료, 작전 재개.`, { pos: home.pos });
+        continue;
+      }
+      if (!atHome || ships.length >= p.template.length) continue;
+      // replace one missing hull from the template
+      const have = ships.map(s => s.classId);
+      const miss = p.template.find(([cl]) => { const i = have.indexOf(cl); if (i >= 0) { have.splice(i, 1); return false; } return true; });
+      if (miss) { this.spawnUnion(g, miss[0], miss[1], home); g.npc!.nextRefit = this.time + this.refitTime(p.sys); }
+    }
+  }
+
+  private spawnUnion(g: WGroup, cl: string, lo: string, home: Station) {
+    const a = this.rng.range(0, Math.PI * 2);
+    return this.spawnShip('union', cl, lo, g.id, { x: home.pos.x + Math.cos(a) * (home.radius + 500), y: home.pos.y + this.rng.range(-40, 40), z: home.pos.z + Math.sin(a) * (home.radius + 500) });
+  }
+
+  // ------------------------------------------------------------------ pirates
+
+  private bandComp(tier: number): [string, string][] {
+    const r = this.rng;
+    const c: [string, string][] = [['corvette', 'gun'], ['corvette', 'torp']];
+    if (tier >= 2) c.push(['corvette', 'torp'], ['destroyer', 'strike']);
+    if (tier >= 3) { c.push(['corvette', 'gun'], ['destroyer', 'aa']); if (r.chance(0.6)) c.push(['cruiser', 'gun']); }
+    if (tier >= 4) c.push(['corvette', 'gun'], ['destroyer', 'strike'], ['cruiser', r.chance(0.5) ? 'missile' : 'gun']);
+    if (tier >= 5) c.push(['battleship', 'std'], ['destroyer', 'aa']);
+    return c;
+  }
+
+  private spawnBand(name: string, comp: [string, string][], at: V, info: Omit<NonNullable<WGroup['npc']>, 'template' | 'nextRefit' | 'born'>, op: Op, tier: number): WGroup {
+    const g = this.newGroup('pirates', name, null, op);
+    g.npc = { ...info, template: comp, nextRefit: 0, born: this.time };
+    const cm = this.newCommander('pirates', tier * 0.5);
+    cm.voice = 'savage'; cm.aggression = Math.max(cm.aggression, 0.7); cm.color = '#ff7050';
+    g.commanderId = cm.id;
+    for (const [c, lo] of comp) this.spawnShip('pirates', c, lo, g.id, vadd(at, { x: this.rng.range(-150, 150), y: 0, z: this.rng.range(-150, 150) }));
+    const sys = this.st.systems[info.sys]; if (sys) sys.stats.bands++;
+    return g;
+  }
+
+  private pirateForces() {
+    const st = this.st;
+    const pirateShips = Object.values(st.ships).filter(s => s.owner === 'pirates').length;
+    const bandName = () => `${this.rng.pick(['갈퀴', '송곳니', '독수리', '하이에나', '피의 달', '녹슨 칼', '자갈', '까마귀', '굶주린 늑대'])} 무리`;
     for (const l of Object.values(st.lairs)) {
+      const sys = this.sysOf(l.pos); if (!sys) continue;
       if (!l.alive) {
         if (st.time >= l.respawnAt) {
-          l.alive = true; l.hp = 1; l.nextBand = st.time + 120;
-          this.ev('world', `${l.name}이(가) 재건되었다. 해적 활동이 다시 시작된다.`, { pos: l.pos });
+          l.alive = true; l.hp = 1; l.nextBand = st.time + 240;
+          this.ev('world', `${sys.name}: ${l.name}이(가) 재건되었다. 해적 활동이 다시 시작된다.`, { pos: l.pos });
         }
         continue;
       }
-      if (l.hp < 1) l.hp = Math.min(1, l.hp + dt * 0.002);
       if (st.time < l.nextBand) continue;
-      const bands = Object.values(st.groups).filter(g => g.owner === 'pirates' && g.op.k === 'raid' && g.op.home === l.id && g.shipIds.length);
-      l.nextBand = st.time + 140 + this.rng.range(0, 100);
-      if (bands.length >= l.maxBands) continue;
-      const tier = Math.min(4, 1 + Math.floor(st.time / 700)) + (l.id === 'fang' ? 1 : 0);
-      const comp: [string, string][] = [['corvette', 'gun'], ['corvette', 'torp']];
-      if (tier >= 2) comp.push(['corvette', 'torp']);
-      if (tier >= 3) comp.push(['destroyer', 'strike']);
-      if (tier >= 4) comp.push(['corvette', 'gun'], ['cruiser', 'gun']);
-      if (tier >= 5) comp.push(['destroyer', 'aa']);
-      const g = this.newGroup('pirates', `${this.rng.pick(['갈퀴', '송곳니', '독수리', '하이에나', '피의 달', '녹슨 칼'])} 무리`, null, { k: 'raid', home: l.id });
-      const cm = this.newCommander('pirates', tier * 0.5);
-      cm.voice = 'savage'; cm.aggression = Math.max(cm.aggression, 0.7); cm.color = '#ff7050';
-      g.commanderId = cm.id;
-      for (const [c, lo] of comp) this.spawnShip('pirates', c, lo, g.id, vadd(l.pos, { x: this.rng.range(-150, 150), y: 0, z: this.rng.range(-150, 150) }));
-      this.ev('warn', `${l.name}에서 해적 무리가 출격했다 (${comp.length}척).`, { pos: l.pos, ref: g.id });
-      // bounty contract on this band
-      this.offerContract({ stationId: l.id === 'fang' ? 'helios' : 'astra', kind: 'bounty', title: `현상금: ${g.name}`, desc: `${l.name}에서 출격한 해적 ${comp.length}척을 격멸하라.`, reward: Math.round((comp.reduce((a, [c]) => a + shipValue(c), 0) * 40 + 2500) / 100) * 100, rep: 3, target: g.id });
+      l.nextBand = st.time + (l.kind === 'hideout' ? 380 : 280) + this.rng.range(0, 180);
+      const bands = Object.values(st.groups).filter(g => g.owner === 'pirates' && g.npc?.home === l.id && g.shipIds.length);
+      if (bands.length >= l.maxBands || pirateShips > 70) continue;
+      // pirates grow bolder while the government is busy elsewhere
+      const tier = Math.max(1, Math.min(5, (l.tier ?? 2) + (sys.heat > 60 ? 1 : 0)));
+      const comp = this.bandComp(tier);
+      const g = this.spawnBand(bandName(), comp, l.pos, { role: 'band', sys: sys.id, home: l.id }, { k: 'raid', home: l.id }, tier);
+      sys.heat = Math.min(100, sys.heat + 1);
+      this.ev('warn', `${sys.name}: ${l.name}에서 해적 무리가 출격했다 (${comp.length}척).`, { pos: l.pos, ref: g.id });
+      this.postBounty(g, comp, sys);
     }
-    // union patrol
-    const union = Object.values(st.groups).filter(g => g.owner === 'union' && g.shipIds.length);
-    if (union.length < 1 && (st.time > 5 && Math.floor(st.time) % 120 === 0 && st.time % 1 < dt)) this.spawnUnionPatrol();
-    if (st.time < dt * 1.5) this.spawnUnionPatrol();
-    // guild traders
-    const traders = Object.values(st.groups).filter(g => g.owner === 'guild' && g.shipIds.length);
-    if (traders.length < 3 && (st.time < dt * 1.5 || (Math.floor(st.time) % 90 === 0 && st.time % 1 < dt))) this.spawnTrader();
+    // settled systems without a lair: occasional rogue bands drift in on the rim, then move on
+    for (const sys of Object.values(st.systems)) {
+      if (sys.security >= 90 || sys.security < 70) continue;
+      const rogues = Object.values(st.groups).filter(g => g.owner === 'pirates' && g.npc?.role === 'rogue' && g.npc.sys === sys.id);
+      for (const g of rogues) {
+        if (this.time - g.npc!.born > 900 && !this.shipsOf(g).some(s => s.state === 'battle')) {
+          for (const s of this.shipsOf(g)) delete st.ships[s.id];
+          g.shipIds = [];
+          this.ev('world', `${sys.name}: 떠돌이 해적 ${g.name}이(가) 성계를 떠났다.`);
+        }
+      }
+      if (rogues.some(g => g.shipIds.length) || !this.rng.chance(1 / 1100)) continue;
+      // find a dark corner: low local security, far from stations
+      let spot: V | null = null;
+      for (let k = 0; k < 12 && !spot; k++) {
+        const a = this.rng.range(0, Math.PI * 2), r = sys.radius * this.rng.range(0.7, 0.95);
+        const p = { x: sys.origin.x + Math.cos(a) * r, y: 0, z: sys.origin.z + Math.sin(a) * r };
+        if (this.secAt(p) < 68) spot = p;
+      }
+      if (!spot) continue;
+      const comp: [string, string][] = [['corvette', 'gun'], ['corvette', 'torp']];
+      if (this.rng.chance(0.5)) comp.push(['corvette', 'gun']);
+      const g = this.spawnBand(`떠돌이 ${bandName()}`, comp, spot, { role: 'rogue', sys: sys.id, home: '', homePos: spot }, { k: 'raid', home: '' }, 1);
+      sys.heat = Math.min(100, sys.heat + 2);
+      this.ev('warn', `${sys.name} 외곽에 떠돌이 해적 ${comp.length}척이 출몰했다. 연합 순찰대가 대응 중.`, { pos: spot, ref: g.id });
+      this.postBounty(g, comp, sys);
+    }
   }
 
-  private spawnUnionPatrol() {
-    const h = this.st.stations.helios;
-    const g = this.newGroup('union', '연합 경비대', null, { k: 'guard', route: [h.pos, this.st.stations.astra.pos, this.st.fields.kestrel.pos, this.st.stations.astra.pos], leg: 0 });
-    const c = this.newCommander('union', 2); c.name = '볼트 레인'; c.rank = '경감'; c.color = '#7fb0ff'; c.voice = 'formal';
-    g.commanderId = c.id;
-    for (const [cl, lo] of [['cruiser', 'multi'], ['destroyer', 'aa'], ['destroyer', 'strike']]) this.spawnShip('union', cl, lo, g.id, vadd(h.pos, { x: this.rng.range(-300, 300), y: 0, z: this.rng.range(-300, 300) }));
+  private postBounty(g: WGroup, comp: [string, string][], sys: StarSystem) {
+    const host = Object.values(this.st.stations).filter(x => x.public && x.services.contracts && this.sysOf(x.pos)?.id === sys.id)[0] ?? this.st.stations.astra;
+    const risk = 1 + (100 - sys.security) / 120;
+    this.offerContract({ stationId: host.id, kind: 'bounty', title: `현상금: ${g.name}`, desc: `${sys.name}에서 활동하는 해적 ${comp.length}척을 격멸하라.`, reward: Math.round((comp.reduce((a, [c]) => a + shipValue(c), 0) * 40 * risk + 2500) / 100) * 100, rep: 3, target: g.id });
   }
 
   private spawnTrader() {
-    const ids = ['astra', 'nova', 'helios'];
+    const ids = ['astra', 'nova', 'barcaco', 'exchange', 'helios', 'drakeout', 'cinderco'].filter(x => this.st.stations[x]);
     const start = this.rng.pick(ids);
-    const route = [start, ...ids.filter(x => x !== start)];
+    const route = [start];
+    while (route.length < 4) { const n = this.rng.pick(ids); if (n !== route[route.length - 1]) route.push(n); }
     const g = this.newGroup('guild', `길드 상선단`, null, { k: 'trade', route, leg: 1 });
+    g.npc = { role: 'trader', sys: this.sysOf(this.st.stations[start].pos)?.id ?? 'astra', home: start, template: [], nextRefit: 0, born: this.time };
     this.spawnShip('guild', 'hauler', 'std', g.id, vadd(this.st.stations[start].pos, { x: this.rng.range(-300, 300), y: 0, z: this.rng.range(-300, 300) }), `${this.rng.pick(['황금', '은빛', '푸른', '느린'])} ${this.rng.pick(['거북', '낙타', '고래', '돛'])}호`);
   }
 
@@ -608,10 +774,92 @@ export class WorldSim {
 
   // -------------------------------------------------- motion primitives
 
+  sysOf(p: V): StarSystem | undefined { return sysAt(this.st.systems, p); }
+
+  effSec(sys: StarSystem): number { return effSec(sys); }
+  secAt(p: V): number { return secAt(this.st, p); }
+
+  /** move toward `to`, routing through jump gates when it lies in another system */
   private moveTo(s: WShip, to: V, speed: number, dt: number, arrive = 40): boolean {
     if (s.state === 'docked') this.undock(s);
+    const here = this.sysOf(s.pos), there = this.sysOf(to);
+    if (here && there && here.id !== there.id) {
+      const gate = nextGate(this.st.systems, here.id, there.id);
+      if (!gate) { s.vel.x *= 0.9; s.vel.z *= 0.9; return false; }
+      if (!s.warp && dist(s.pos, gate.pos) < 180) { this.jump(s, gate); return false; }
+      this.fly(s, gate.pos, speed, dt, 10);
+      return false;
+    }
+    return this.fly(s, to, speed, dt, arrive);
+  }
+
+  private jump(s: WShip, gate: Gate) {
+    const dest = this.st.systems[gate.to];
+    const exit = dest?.gates.find(g => g.id === gate.exit);
+    if (!dest || !exit) return;
+    // emerge a little inward of the exit gate, toward the star
+    const ix = dest.origin.x - exit.pos.x, iz = dest.origin.z - exit.pos.z, l = Math.hypot(ix, iz) || 1;
+    const a = this.rng.range(-0.6, 0.6);
+    const r = 320 + this.rng.range(0, 160);
+    const dx = ix / l, dz = iz / l;
+    s.pos = { x: exit.pos.x + (dx * Math.cos(a) - dz * Math.sin(a)) * r, y: exit.pos.y + this.rng.range(-30, 30), z: exit.pos.z + (dx * Math.sin(a) + dz * Math.cos(a)) * r };
+    s.vel = { x: dx * 40, y: 0, z: dz * 40 };
+    s.heading = Math.atan2(dx, dz);
+    s.jumpT = this.time; s.warp = undefined;
+  }
+
+  /** hostile warships close enough to block a warp-out */
+  private scrambled(s: WShip): boolean {
+    const pirate = s.owner === 'pirates';
+    for (const g of Object.values(this.st.groups)) {
+      const k = this.st.companies[g.owner]?.kind;
+      if (pirate ? k === 'pirate' || k === 'guild' : k !== 'pirate') continue;
+      for (const id of g.shipIds) {
+        const o = this.st.ships[id];
+        if (!o || o.state !== 'space' || !ECON[o.classId].military || o.warp?.phase === 'warp') continue;
+        if (Math.abs(o.pos.x - s.pos.x) < SCRAMBLE_R && dist(o.pos, s.pos) < SCRAMBLE_R) return true;
+      }
+    }
+    return false;
+  }
+
+  /** in-system flight: warp for long legs (align → warp → drop out), sublight otherwise */
+  private fly(s: WShip, to: V, speed: number, dt: number, arrive: number): boolean {
+    let d = dist(s.pos, to);
+    if (!s.warp && d > WARP_MIN && ECON[s.classId].cruise > 0 && !this.scrambled(s)) s.warp = { to: { ...to }, phase: 'align', t: 0 };
+    if (s.warp) {
+      const w = s.warp;
+      w.to = { ...to };
+      const dx = to.x - s.pos.x, dy = to.y - s.pos.y, dz = to.z - s.pos.z;
+      if (w.phase === 'align') {
+        if (d < WARP_MIN * 0.6 || this.scrambled(s)) { s.warp = undefined; return false; }
+        w.t += dt;
+        const want = Math.atan2(dx, dz);
+        let dh = want - s.heading; while (dh > Math.PI) dh -= Math.PI * 2; while (dh < -Math.PI) dh += Math.PI * 2;
+        s.heading += dh * Math.min(1, dt * 1.2);
+        // drift forward slowly while the drive spools
+        const fv = Math.min(speed * 0.5, 30 + w.t * 10);
+        s.vel = { x: Math.sin(s.heading) * fv, y: 0, z: Math.cos(s.heading) * fv };
+        s.pos = vadd(s.pos, s.vel, dt);
+        if (w.t >= (ALIGN[s.classId] ?? 5)) { w.phase = 'warp'; w.t = 0; }
+        return false;
+      }
+      w.t += dt;
+      if (d <= WARP_EXIT) {
+        s.warp = undefined;
+        const k = speed / Math.max(1, d);
+        s.vel = { x: dx * k, y: dy * k, z: dz * k };
+        return false;
+      }
+      const v = Math.min(WARP_V, 300 + 2600 * w.t * w.t, Math.max(speed * 2, (d - WARP_EXIT) * 1.6 + speed));
+      const step = Math.min(v * dt, d - WARP_EXIT * 0.8);
+      s.vel = { x: dx / d * v, y: dy / d * v, z: dz / d * v };
+      s.pos = { x: s.pos.x + dx / d * step, y: s.pos.y + dy / d * step, z: s.pos.z + dz / d * step };
+      s.heading = Math.atan2(dx, dz);
+      d -= step;
+      return false;
+    }
     const dx = to.x - s.pos.x, dy = to.y - s.pos.y, dz = to.z - s.pos.z;
-    const d = Math.hypot(dx, dy, dz);
     if (d < arrive) { s.vel.x *= 0.7; s.vel.y *= 0.7; s.vel.z *= 0.7; s.pos = vadd(s.pos, s.vel, dt); return true; }
     const want = Math.min(speed, d * 0.9 + 8);
     const tx = dx / d * want, ty = dy / d * want, tz = dz / d * want;
@@ -724,13 +972,47 @@ export class WorldSim {
       case 'raid': this.behaveRaid(s, g, op, dt, speed); break;
       case 'trade': this.behaveTrade(s, g, op, dt, speed); break;
       case 'guard': {
-        const hostile = this.nearestHostile(s.pos, g.owner, 2200, s.pos, 2400);
-        if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 50), speed, dt, 10); g.status = '해적 추격'; break; }
+        if (this.unionRepair(s, g, speed, dt)) break;
         const wp = op.route[op.leg % op.route.length];
+        if (!wp) break;
+        const hostile = this.nearestHostile(s.pos, g.owner, 4000, wp, 9000);
+        if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 50), speed, dt, 10); g.status = '해적 추격'; break; }
         const gc = this.groupCenter(g)!;
-        if (dist(gc, wp) < 250 && g.shipIds[0] === s.id) op.leg = (op.leg + 1) % op.route.length;
-        this.moveTo(s, this.formationSlot(s, g, wp, 70), Math.min(speed, this.groupSpeed(g, true)) * 0.7, dt);
+        if (dist(gc, wp) < 400 && g.shipIds[0] === s.id) op.leg = (op.leg + 1) % op.route.length;
+        this.moveTo(s, this.formationSlot(s, g, wp, 70), Math.min(speed, this.groupSpeed(g, true)) * 0.8, dt, 60);
         g.status = '연합 정기 순찰';
+        break;
+      }
+      case 'garrison': {
+        if (this.unionRepair(s, g, speed, dt)) break;
+        const home = st.stations[op.station]; if (!home) break;
+        const hostile = this.nearestHostile(home.pos, g.owner, op.radius, home.pos, op.radius + 2000);
+        if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 50), speed, dt, 10); g.status = '주둔군 요격'; break; }
+        const a = this.time * 0.02 + hashId(g.id);
+        const r = home.radius + 700;
+        this.moveTo(s, this.formationSlot(s, g, { x: home.pos.x + Math.cos(a) * r, y: home.pos.y + 60, z: home.pos.z + Math.sin(a) * r }, 70), Math.min(speed, this.groupSpeed(g, true)) * 0.5, dt, 40);
+        g.status = `${home.name} 주둔 경계`;
+        break;
+      }
+      case 'respond': {
+        if (this.unionRepair(s, g, speed, dt)) break;
+        const home = st.stations[op.home]; if (!home) break;
+        if (g.shipIds[0] === s.id && (!(g as any)._nextPick || this.time >= (g as any)._nextPick)) {
+          (g as any)._nextPick = this.time + 4;
+          const prev = op.target;
+          op.target = this.pickResponse(g, home);
+          if (op.target && op.target !== prev) {
+            const t = st.groups[op.target];
+            const sys = this.sysOf(home.pos);
+            if (t && sys) this.ev('world', `${sys.name}: ${g.name} 출동 — ${t.name} 요격에 나섰다.`, { pos: this.groupCenter(t) ?? home.pos, ref: op.target });
+          }
+        }
+        const t = op.target ? st.groups[op.target] : null;
+        const tc = t ? this.groupCenter(t) : null;
+        if (tc) { this.moveTo(s, this.formationSlot(s, g, tc, 50), Math.min(speed, this.groupSpeed(g, true)), dt, 10); g.status = `신속대응: ${t!.name} 추격`; break; }
+        const r = home.radius + 900;
+        this.moveTo(s, this.formationSlot(s, g, { x: home.pos.x - r, y: home.pos.y + 80, z: home.pos.z }, 80), speed * 0.6, dt, 40);
+        g.status = `${home.name} 대기 (출동 준비)`;
         break;
       }
     }
@@ -781,7 +1063,7 @@ export class WorldSim {
       const rock = hashId(s.id) % f.rocks;
       const spot = miningSpot(f, rock);
       if (this.moveTo(s, spot, speed, dt, 18)) {
-        const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp);
+        const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp) * (f.rich ?? 1);
         const a = Math.min(rate * dt, f.amount, cap - cargoSum(s.cargo));
         f.amount -= a; s.cargo[f.res] += a;
         s.task = { k: 'mine', field: f.id, rock };
@@ -957,6 +1239,7 @@ export class WorldSim {
     let total = 0, left = amt;
     const m = st.market![r];
     while (left > 0.01) { const chunk = Math.min(left, 50); total += chunk * this.price(st, r, 'sell'); m.stock += chunk; left -= chunk; }
+    total *= 1 - (st.tax ?? 0);
     const co = this.st.companies[company];
     co.credits += total; co.stats.earned += total;
     if (!co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
@@ -981,11 +1264,11 @@ export class WorldSim {
 
   private behaveRaid(s: WShip, g: WGroup, op: Extract<Op, { k: 'raid' }>, dt: number, speed: number) {
     const home = this.st.lairs[op.home];
-    const homePos = home?.pos ?? s.pos;
+    const homePos = home?.pos ?? g.npc?.homePos ?? s.pos;
     const ships = this.shipsOf(g);
     const hpAvg = ships.reduce((a, x) => a + x.hp, 0) / ships.length;
     const bandSpeed = Math.min(speed, this.groupSpeed(g, true));
-    if (hpAvg < 0.45 || !home?.alive) {
+    if (hpAvg < 0.45 || (home && !home.alive)) {
       g.status = '은신처로 귀환';
       if (this.moveTo(s, this.formationSlot(s, g, homePos, 80), bandSpeed, dt, 30)) s.hp = Math.min(1, s.hp + 0.02 * dt);
       return;
@@ -1001,11 +1284,18 @@ export class WorldSim {
       this.moveTo(s, this.formationSlot(s, g, tc, 40), bandSpeed, dt, 5);
       g.status = `${t!.name} 사냥 중`;
     } else {
-      // prowl between the lair and the nearest field
-      const f = Object.values(this.st.fields).filter(x => !x.salvage).sort((a, b) => dist(a.pos, homePos) - dist(b.pos, homePos))[0];
-      const a = this.time * 0.03 + hashId(g.id);
-      const p = vlerp(homePos, f?.pos ?? homePos, 0.5 + 0.5 * Math.sin(a));
-      this.moveTo(s, this.formationSlot(s, g, p, 70), bandSpeed * 0.6, dt);
+      // prowl: lurk at a spot (a field, a lane, the lair) for a while, then move on
+      const pr = (g as any)._prowl as { p: V; until: number } | undefined;
+      if (g.shipIds[0] === s.id && (!pr || this.time > pr.until)) {
+        const sys = this.sysOf(homePos);
+        const spots = Object.values(this.st.fields).filter(x => !x.salvage && sys && this.sysOf(x.pos)?.id === sys.id && dist(x.pos, homePos) < sys.radius * 1.4 && this.secAt(x.pos) < 60).map(x => x.pos);
+        spots.push(homePos);
+        const pick = this.rng.pick(spots);
+        (g as any)._prowl = { p: { x: pick.x + this.rng.range(-1500, 1500), y: pick.y, z: pick.z + this.rng.range(-1500, 1500) }, until: this.time + this.rng.range(120, 260) };
+      }
+      const pp = ((g as any)._prowl as { p: V } | undefined)?.p ?? homePos;
+      const a = this.time * 0.05 + hashId(g.id);
+      this.moveTo(s, this.formationSlot(s, g, { x: pp.x + Math.cos(a) * 600, y: pp.y, z: pp.z + Math.sin(a) * 600 }, 70), bandSpeed * 0.6, dt);
       g.status = '배회 중';
     }
   }
@@ -1013,30 +1303,69 @@ export class WorldSim {
   private pickRaidTarget(g: WGroup, home: V): string | undefined {
     let best: string | undefined, bs = 0;
     const myVal = this.groupValue(g);
+    const boldness = 52 + Math.min(22, myVal / 40);
     for (const o of Object.values(this.st.groups)) {
       const k = this.st.companies[o.owner]?.kind;
       if (!k || k === 'pirate' || o.cooldown > 0) continue;
       const c = this.groupCenter(o); if (!c) continue;
       const sh = this.shipsOf(o).filter(x => x.state === 'space');
       if (!sh.length) continue;
-      if (dist(c, home) > 9000 + Math.min(6000, this.time * 3)) continue;
-      if (this.isSafe(c, o.owner)) continue;
+      if (this.sysOf(c) !== this.sysOf(home) || dist(c, home) > (this.sysOf(home)?.radius ?? 40000) * 1.5) continue;
+      // pirates stay out of policed space; bigger bands push further in
+      if (this.secAt(c) > boldness) continue;
       const civ = this.groupValue(o, false), mil = this.groupValue(o, true);
       if (mil > myVal * 1.3) continue;
+      if (this.unionNear(c, 4500) > myVal * 0.8) continue;
       const score = (civ * 2 + 60) / (mil + 80) / (dist(c, this.groupCenter(g) ?? home) + 1200) * (k === 'guild' ? 0.35 : 1);
       if (score > bs) { bs = score; best = o.id; }
     }
     return best;
   }
 
-  isSafe(p: V, company: string): boolean {
-    for (const s of Object.values(this.st.stations)) {
-      if (dist(s.pos, p) > SAFE_R) continue;
-      if (s.public) return true;
-      if (this.hasModule(s, 'defense')) return true;
-      void company;
+  /** Union warship strength near a point */
+  unionNear(p: V, r: number): number {
+    let v = 0;
+    for (const g of Object.values(this.st.groups)) {
+      if (g.owner !== 'union' || !g.shipIds.length) continue;
+      const c = this.groupCenter(g); if (c && Math.abs(c.x - p.x) < r && dist(c, p) < r) v += this.groupValue(g, true);
     }
-    return false;
+    return v;
+  }
+
+  /** damaged Union forces fall back to their base for repairs; returns true while doing so */
+  private unionRepair(s: WShip, g: WGroup, speed: number, dt: number): boolean {
+    if (!g.npc) return false;
+    const ships = this.shipsOf(g).filter(x => x.state !== 'battle');
+    const hp = ships.reduce((a, x) => a + x.hp, 0) / Math.max(1, ships.length);
+    const f = (g as any)._repair as boolean | undefined;
+    if (!f && hp < 0.5) (g as any)._repair = true;
+    if (f && hp > 0.92) (g as any)._repair = false;
+    if (!(g as any)._repair) return false;
+    const home = this.st.stations[g.npc.home]; if (!home) return false;
+    this.moveTo(s, this.formationSlot(s, g, { x: home.pos.x + home.radius + 600, y: home.pos.y, z: home.pos.z }, 70), speed, dt, 40);
+    g.status = '손상 — 기지 귀환 수리';
+    return true;
+  }
+
+  /** response fleets go after bands inside government space, or ones attacking someone nearby */
+  private pickResponse(g: WGroup, home: Station): string | undefined {
+    const sys = this.sysOf(home.pos); if (!sys) return undefined;
+    const reach = sys.security >= 90 ? sys.radius * 1.1 : sys.security >= 70 ? sys.radius * 0.85 : sys.radius * 0.5;
+    const myVal = this.groupValue(g, true);
+    let best: string | undefined, bs = 0;
+    for (const p of Object.values(this.st.groups)) {
+      if (p.owner !== 'pirates' || !p.shipIds.length || p.cooldown > 0) continue;
+      const c = this.groupCenter(p); if (!c || this.sysOf(c)?.id !== sys.id) continue;
+      if (dist(c, home.pos) > reach) continue;
+      const pv = this.groupValue(p);
+      // don't fling a small force at a war band; wait for the garrison and patrols
+      if (pv > myVal * 1.6) continue;
+      const lairNear = Object.values(this.st.lairs).some(l => l.alive && dist2(l.pos, c) < 6000);
+      if (lairNear) continue;
+      const score = (this.secAt(c) + 20) * (pv + 50) / (dist(c, home.pos) + 3000);
+      if (score > bs) { bs = score; best = p.id; }
+    }
+    return best;
   }
 
   // ===================================================================== engagements
@@ -1052,7 +1381,7 @@ export class WorldSim {
       const A: WGroup[] = [], B: WGroup[] = [];
       for (const g of groups) {
         if (used.has(g.id)) continue;
-        const ss = this.shipsOf(g).filter(s => s.state === 'space');
+        const ss = this.shipsOf(g).filter(s => s.state === 'space' && s.warp?.phase !== 'warp');
         if (!ss.length) continue;
         if (!ss.some(s => dist(s.pos, pos) < JOIN_R)) continue;
         (kind(g) === 'pirate' ? A : B).push(g);
@@ -1064,10 +1393,11 @@ export class WorldSim {
     };
     for (const p of pir) {
       if (used.has(p.id)) continue;
-      const pc = this.shipsOf(p).filter(s => s.state === 'space');
+      const pc = this.shipsOf(p).filter(s => s.state === 'space' && s.warp?.phase !== 'warp');
+      if (!pc.length) continue;
       for (const o of others) {
         if (used.has(o.id)) continue;
-        const os = this.shipsOf(o).filter(s => s.state === 'space');
+        const os = this.shipsOf(o).filter(s => s.state === 'space' && s.warp?.phase !== 'warp');
         let hit: V | null = null;
         for (const a of pc) { for (const b of os) if (dist(a.pos, b.pos) < ENGAGE_R) { hit = vlerp(a.pos, b.pos, 0.5); break; } if (hit) break; }
         if (hit) { tryEngage(hit); break; }
@@ -1078,7 +1408,7 @@ export class WorldSim {
       if (!l.alive) continue;
       for (const o of others) {
         if (used.has(o.id)) continue;
-        const os = this.shipsOf(o).filter(s => s.state === 'space');
+        const os = this.shipsOf(o).filter(s => s.state === 'space' && s.warp?.phase !== 'warp');
         if (os.some(s => dist(s.pos, l.pos) < 800)) { tryEngage(l.pos, l.id); break; }
       }
     }
@@ -1112,7 +1442,7 @@ export class WorldSim {
     const st = this.st;
     const all = [...pirates, ...others];
     const ships: WShip[] = [];
-    for (const g of all) for (const s of this.shipsOf(g)) if (s.state === 'space') ships.push(s);
+    for (const g of all) for (const s of this.shipsOf(g)) if (s.state === 'space' && s.warp?.phase !== 'warp') ships.push(s);
     const extraA: GroupSpec[] = [];
     if (lair) {
       extraA.push({ name: lair.name, commander: { ...ACTING_CAPTAIN, name: '은신처 수비대장', team: 1, aggression: 0.8 }, ref: 'lair:' + lair.id, order: 'hold', retreatAt: 0, ships: [{ classId: 'platform', loadoutId: 'std', name: lair.name, ref: 'lair:' + lair.id, hp: lair.hp }], children: [] });
@@ -1133,21 +1463,23 @@ export class WorldSim {
     if (lair && !sideA.includes('pirates')) sideA.push('pirates');
     const live = sideB.some(c => st.companies[c]?.kind === 'player');
     const titleB = sideB.filter(c => st.companies[c]?.kind === 'player').map(c => st.companies[c].name).join(' · ') || '연합 경비대';
+    const sys = this.sysOf(pos);
     const setup = {
-      seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : pos.z > 6000 ? 'wolfpack' : 'kestrel', spawnZ: 720,
+      seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720,
       fleets: [this.sideFleet(others, ships, 0, extraB, titleB), this.sideFleet(pirates, ships, 1, extraA, '해적')] as [FleetSpec, FleetSpec],
     };
     const e: Engagement = {
       id: this.id('e'), pos: { ...pos }, start: st.time, setup, orders: [], tick: 0, sides: [sideB, sideA], groupRefs: all.map(g => g.id),
-      live, done: false, lairId: lair?.id, stationId,
+      live, done: false, lairId: lair?.id, stationId, n: ships.length + (lair ? 1 : 0), sys: sys?.id,
     };
     st.engagements[e.id] = e;
-    for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; }
+    for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; }
     const desc = `${pirates.length ? pirates.map(g => g.name).join(', ') : ''}${lair ? (pirates.length ? ' + ' : '') + lair.name : ''}`;
     for (const c of sideB) if (st.companies[c]?.kind === 'player') this.ev('battle', `교전 발생! ${desc}와(과) 전투 중`, { company: c, pos, ref: e.id });
-    const w = new World(setup);
-    if (live) { this.battles.set(e.id, w); this.battleAcc.set(e.id, 0); }
-    else { w.runUntilEnd(); e.tick = w.tick; this.finishEngagement(e, w); }
+    if (live) { const w = new World(setup); this.battles.set(e.id, w); this.battleAcc.set(e.id, 0); }
+    // nobody is watching an NPC-only fight: settle it with the strength model after a while
+    // (running the full tactical engine here stalled the server for 50-130 ms per battle)
+    else e.autoEnd = st.time + Math.min(90, 20 + ships.length * 2.5);
     return e;
   }
 
@@ -1174,34 +1506,84 @@ export class WorldSim {
     return g ? [g.owner] : [];
   }
 
-  private finishEngagement(e: Engagement, w: World) {
+  private resultFromWorld(w: World): BattleResult {
+    const groupKills = new Map<string, number>();
+    for (const tg of w.groups) if (tg.ref) groupKills.set(tg.ref.replace('#civ', ''), (groupKills.get(tg.ref.replace('#civ', '')) ?? 0) + tg.stats.killValue);
+    const ships: BattleResult['ships'] = [];
+    for (const ts of w.ships) if (ts.ref) ships.push({ ref: ts.ref, dead: ts.state === 'dead' || ts.state === 'dying', hp: ts.hp / ts.maxHp, escaped: ts.state === 'escaped', dmg: ts.stats.dmgDealt });
+    return { winner: w.outcome?.winner ?? -1, ships, groupKills };
+  }
+
+  private resolveAuto() {
+    for (const e of Object.values(this.st.engagements)) if (!e.done && e.autoEnd !== undefined && this.time >= e.autoEnd) this.finishEngagement(e, this.quickResolve(e));
+  }
+
+  /** strength-model resolution for NPC-only fights (Lanchester square law with noise) */
+  private quickResolve(e: Engagement): BattleResult {
+    const st = this.st, r = this.rng;
+    type U = { ref: string; side: number; val: number; hp: number; group?: string };
+    const units: U[] = [];
+    for (const s of Object.values(st.ships)) {
+      if (s.engagement !== e.id) continue;
+      const g = st.groups[s.groupId];
+      const skill = g ? this.cmdr(g).skill : 0.3;
+      const mil = ECON[s.classId].military;
+      units.push({ ref: s.id, side: e.sides[0].includes(s.owner) ? 0 : 1, val: shipValue(s.classId) * (mil ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
+    }
+    if (e.lairId) { const l = st.lairs[e.lairId]; if (l) units.push({ ref: 'lair:' + l.id, side: 1, val: 300 * (0.4 + 0.6 * l.hp), hp: l.hp }); }
+    if (e.stationId) { const x = st.stations[e.stationId]; const n = x?.modules.filter(m => m.kind === 'defense' && m.built).length ?? 0; for (let i = 0; i < n; i++) units.push({ ref: 'station:' + x!.id, side: 0, val: 300 * x!.defenseHp, hp: x!.defenseHp }); }
+    const S = [0, 1].map(k => units.filter(u => u.side === k).reduce((a, u) => a + u.val, 0) * r.range(0.82, 1.18));
+    const winner = S[0] === 0 && S[1] === 0 ? -1 : S[0] >= S[1] ? 0 : 1;
+    const W = Math.max(S[0], S[1]), L = Math.min(S[0], S[1]);
+    const rem = Math.sqrt(Math.max(0, 1 - (L / Math.max(1, W)) ** 2));
+    const dmgW = Math.max(0.04, Math.min(0.85, 1 - rem));
+    const out: BattleResult = { winner, ships: [], groupKills: new Map() };
+    for (const u of units) {
+      if (u.side === winner) {
+        const hp = u.hp - dmgW * r.range(0.4, 1.6);
+        out.ships.push({ ref: u.ref, dead: hp < 0.08 && !u.ref.startsWith('station:'), hp: Math.max(0.08, hp), escaped: false, dmg: u.val });
+        if (u.group) out.groupKills.set(u.group, (out.groupKills.get(u.group) ?? 0) + L / Math.max(1, units.filter(x => x.side === winner).length));
+      } else {
+        const crushing = 1 - L / Math.max(1, W);
+        const dead = u.ref.startsWith('lair:') ? W > L * 1.6 : u.ref.startsWith('station:') ? false : r.chance(0.5 + 0.45 * crushing);
+        out.ships.push({ ref: u.ref, dead, hp: u.ref.startsWith('lair:') ? Math.max(0.05, u.hp - 0.4) : Math.max(0.08, u.hp * r.range(0.2, 0.6)), escaped: !dead, dmg: 0 });
+      }
+    }
+    return out;
+  }
+
+  private finishEngagement(e: Engagement, res: BattleResult) {
     const st = this.st;
-    e.done = true; e.tick = w.tick; e.winner = w.outcome?.winner ?? -1;
+    e.done = true; e.winner = res.winner;
+    const sys = this.sysOf(e.pos);
     const destroyedPirateValue = new Map<string, number>();
     const dmgBy = new Map<string, number>();
     const lostBy = new Map<string, number>();
     let salvage = 0;
-    const killsByGroup = new Map<string, number>();
-    for (const tg of w.groups) if (tg.ref) killsByGroup.set(tg.ref.replace('#civ', ''), (killsByGroup.get(tg.ref.replace('#civ', '')) ?? 0) + tg.stats.killValue);
-    for (const ts of w.ships) {
-      if (!ts.ref) continue;
+    const killsByGroup = res.groupKills;
+    for (const ts of res.ships) {
       const owner = ts.ref.startsWith('lair:') ? 'pirates' : ts.ref.startsWith('station:') ? st.stations[ts.ref.slice(8)]?.owner : st.ships[ts.ref]?.owner;
-      if (owner) dmgBy.set(owner, (dmgBy.get(owner) ?? 0) + ts.stats.dmgDealt);
-      const dead = ts.state === 'dead' || ts.state === 'dying';
+      if (owner) dmgBy.set(owner, (dmgBy.get(owner) ?? 0) + ts.dmg);
+      const dead = ts.dead;
       if (ts.ref.startsWith('lair:')) {
         const l = st.lairs[ts.ref.slice(5)];
-        if (l) { l.hp = dead ? 0 : Math.max(0.05, ts.hp / ts.maxHp); if (dead) this.destroyLair(l, e); }
+        if (l) { l.hp = dead ? 0 : Math.max(0.05, ts.hp); if (dead) this.destroyLair(l, e); }
         continue;
       }
       if (ts.ref.startsWith('station:')) {
         const s = st.stations[ts.ref.slice(8)];
-        if (s) s.defenseHp = dead ? 0.15 : Math.max(0.1, ts.hp / ts.maxHp);
+        if (s) s.defenseHp = dead ? 0.15 : Math.max(0.1, ts.hp);
         continue;
       }
       const s = st.ships[ts.ref];
       if (!s) continue;
       if (dead) {
         salvage += shipValue(s.classId) * 2.2;
+        if (sys) {
+          if (s.owner === 'pirates') { sys.stats.pirateKills++; sys.heat = Math.max(0, sys.heat - 3); }
+          else if (s.owner === 'union') { sys.stats.unionLosses++; sys.heat = Math.min(100, sys.heat + 3); }
+          else { sys.stats.civLosses++; sys.heat = Math.min(100, sys.heat + 4); }
+        }
         if (s.owner === 'pirates') destroyedPirateValue.set(ts.ref, shipValue(s.classId));
         lostBy.set(s.owner, (lostBy.get(s.owner) ?? 0) + 1);
         const co = st.companies[s.owner]; if (co) co.stats.lost++;
@@ -1209,10 +1591,10 @@ export class WorldSim {
         if (g) g.shipIds = g.shipIds.filter(x => x !== s.id);
         delete st.ships[s.id];
       } else {
-        s.hp = Math.max(0.05, ts.hp / ts.maxHp);
+        s.hp = Math.max(0.05, ts.hp);
         s.state = 'space'; s.engagement = undefined; s.task = { k: 'none' };
         // survivors drift out of the battle zone; escapees end up further away
-        const off = ts.state === 'escaped' ? 520 : 140;
+        const off = ts.escaped ? 520 : 140;
         const ang = this.rng.range(0, Math.PI * 2);
         s.pos = { x: e.pos.x + Math.cos(ang) * off * this.rng.range(0.4, 1), y: e.pos.y + this.rng.range(-30, 30), z: e.pos.z + Math.sin(ang) * off * this.rng.range(0.4, 1) };
       }
@@ -1233,6 +1615,12 @@ export class WorldSim {
           if (cm.owner && st.companies[cm.owner]?.kind === 'player') this.ev('milestone', `${cm.rank} ${cm.name} 숙련도 상승 → Lv.${cm.level} (판단력 ${Math.round(cm.skill * 100)})`, { company: cm.owner, who: cm.name, color: cm.color });
         }
         if (!g.shipIds.length) { cm.injuredUntil = this.time + 240; if (cm.owner) this.ev('warn', `${cm.name}의 함대가 전멸했다. 탈출 포드로 귀환, 4분간 부상.`, { company: cm.owner }); }
+      }
+      if (g.owner === 'union' && g.npc) {
+        // lost hulls are replaced from the home yard; a wiped-out force is rebuilt after a delay
+        const sysG = st.systems[g.npc.sys];
+        if (sysG) g.npc.nextRefit = Math.max(g.npc.nextRefit, this.time + (g.shipIds.length ? this.refitTime(sysG) : this.respawnTime(sysG)));
+        continue;
       }
       if (!g.shipIds.length && st.companies[g.owner]?.kind !== 'player') {
         if (g.commanderId) delete st.commanders[g.commanderId];
@@ -1271,15 +1659,20 @@ export class WorldSim {
       const f: Field = { id: this.id('wreck'), name: '전투 잔해', pos: { ...e.pos }, radius: 220, res: 'alloy', amount: Math.round(salvage), max: Math.round(salvage), regen: 0, rocks: Math.min(40, 8 + Math.round(salvage / 150)), salvage: true, expires: this.time + 1500, danger: 1 };
       st.fields[f.id] = f;
     }
-    if (!players.length) {
-      if (e.sides[0].includes('union')) this.ev('world', won ? '연합 경비대가 해적 무리를 격퇴했다.' : '연합 경비대가 해적에게 패퇴했다! 항로가 위험해진다.', { pos: e.pos });
-      else if (!won && this.rng.chance(0.5)) this.ev('world', '길드 상선이 해적에게 약탈당했다. 시장 공급이 줄어든다.', { pos: e.pos });
+    if (!players.length && sys) {
+      const nPir = res.ships.filter(x => st.ships[x.ref]?.owner === 'pirates' || destroyedPirateValue.has(x.ref)).length;
+      if (e.sides[0].includes('union')) {
+        if (!won) this.ev('world', `${sys.name}: 연합군이 해적에게 밀려났다! 주변 항로가 위험해진다.`, { pos: e.pos });
+        else if (destroyedPirateValue.size >= 3 || e.lairId) this.ev('world', `${sys.name}: 연합군이 해적 ${destroyedPirateValue.size}척을 격침했다.`, { pos: e.pos });
+      } else if (!won) { sys.stats.raids++; this.ev('world', `${sys.name}: 길드 상선이 해적에게 약탈당했다.`, { pos: e.pos }); }
+      void nPir;
     }
     this.onBattleEnd?.(e);
   }
 
   private destroyLair(l: import('./types').Lair, e: Engagement) {
-    l.alive = false; l.respawnAt = this.time + 1500;
+    l.alive = false; l.respawnAt = this.time + ((l.tier ?? 2) >= 4 ? 3000 : 2000);
+    const lsys = this.sysOf(l.pos); if (lsys) lsys.heat = Math.max(0, lsys.heat - 40);
     const who = e.sides[0].filter(c => this.st.companies[c]?.kind === 'player').map(c => this.st.companies[c].name).join(', ') || '연합군';
     this.ev('world', `${l.name}이(가) ${who}에 의해 파괴되었다! 주변 항로의 해적 위협이 사라진다.`, { pos: l.pos, ref: l.id });
     for (const f of Object.values(this.st.fields)) if (dist(f.pos, l.pos) < 9000) f.danger = Math.max(1, f.danger - 1);
@@ -1316,20 +1709,27 @@ export class WorldSim {
         const res: Res = this.rng.chance(0.7) ? 'ore' : this.rng.chance(0.6) ? 'alloy' : 'crystal';
         const amount = res === 'crystal' ? 40 + this.rng.int(5) * 20 : res === 'alloy' ? 100 + this.rng.int(4) * 50 : 200 + this.rng.int(5) * 100;
         const base = s.market?.[res]?.base ?? 20;
-        this.offerContract({ stationId: s.id, kind: 'delivery', title: `${RES_NAME[res]} ${amount} 납품`, desc: `${s.name}에 ${RES_NAME[res]} ${amount}단위를 납품하라. 시장가의 약 1.8배를 지급한다.`, reward: Math.round(amount * base * 1.8 / 50) * 50, rep: 2, res, amount });
+        // remote, dangerous stations pay far more for the same cargo
+        const mult = 1.6 + (100 - this.secAt(s.pos)) / 70;
+        this.offerContract({ stationId: s.id, kind: 'delivery', title: `${RES_NAME[res]} ${amount} 납품`, desc: `${s.name}에 ${RES_NAME[res]} ${amount}단위를 납품하라. 시장가의 약 ${mult.toFixed(1)}배를 지급한다.`, reward: Math.round(amount * base * mult / 50) * 50, rep: 2, res, amount });
       }
     }
     // lair assaults posted by the Union
     for (const l of Object.values(st.lairs)) {
       if (!l.alive) continue;
       if (Object.values(st.contracts).some(k => !k.done && k.kind === 'lair' && k.target === l.id)) continue;
-      this.offerContract({ stationId: 'helios', kind: 'lair', title: `토벌: ${l.name}`, desc: `연합 관리청 의뢰. ${l.name}을(를) 파괴하라. 요새 포대와 수비대가 있다 — 순양함급 이상의 전력을 권장.`, reward: l.id === 'fang' ? 45000 : 30000, rep: 20, target: l.id });
+      const lsys = this.sysOf(l.pos);
+      const host = Object.values(st.stations).filter(x => x.public && x.services.contracts).sort((a, b) => dist(a.pos, l.pos) - dist(b.pos, l.pos))[0];
+      const tier = l.tier ?? 2;
+      this.offerContract({ stationId: host?.id ?? 'astra', kind: 'lair', title: `토벌: ${l.name}`, desc: `${lsys?.name ?? ''} — ${l.name}을(를) 파괴하라. 요새 포대와 수비대가 있다 — ${tier >= 4 ? '전함을 포함한 대함대' : tier >= 3 ? '순양함 여러 척' : '순양함급 이상'}의 전력을 권장.`, reward: tier * 14000 + 4000, rep: 8 + tier * 4, target: l.id });
     }
     // recruitment pools
     for (const s of Object.values(st.stations)) {
       if (!s.services.recruit) continue;
       const pool = Object.values(st.commanders).filter(c => !c.owner && c.stationId === s.id);
-      if (pool.length < 3 && this.rng.chance(0.05)) this.newCommander(null, s.id === 'helios' ? 2 : 1, s.id);
+      // veterans gather where the fighting is (and where the money is)
+      const sec = this.secAt(s.pos);
+      if (pool.length < 3 && this.rng.chance(0.05)) this.newCommander(null, s.id === 'helios' ? 2 : sec < 40 ? 1.8 : 1, s.id);
     }
   }
 
@@ -1382,7 +1782,7 @@ export class WorldSim {
     for (const [id, e] of Object.entries(st.engagements)) if (e.done && this.time - e.start > 600) delete st.engagements[id];
     for (const [id, k] of Object.entries(st.contracts)) if (k.done && this.time - k.expires > 300) delete st.contracts[id];
     // NPC groups that lost all ships
-    for (const g of Object.values(st.groups)) if (!g.shipIds.length && st.companies[g.owner]?.kind !== 'player') { if (g.commanderId) delete st.commanders[g.commanderId]; delete st.groups[g.id]; }
+    for (const g of Object.values(st.groups)) if (!g.shipIds.length && st.companies[g.owner]?.kind !== 'player' && !(g.owner === 'union' && g.npc)) { if (g.commanderId) delete st.commanders[g.commanderId]; delete st.groups[g.id]; }
   }
 }
 
