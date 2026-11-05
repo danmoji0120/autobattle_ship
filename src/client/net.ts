@@ -114,8 +114,8 @@ export class GameClient {
         this.state = m.state; this.speed = m.speed; this.snapAt = performance.now();
         if (this.t.kind === 'remote') this.net.snapBytes = JSON.stringify(m).length;
         // ships not in space (docked, in battle) are drawn from the snapshot directly
-        for (const [id, tr] of this.tracks) { const s = m.state.ships[id]; if (!s || s.state !== 'space') { tr.clear(); if (!s) this.tracks.delete(id); } }
-        this.ingest(m.at, Object.values(m.state.ships).filter(s => s.state === 'space').map(s => [s.id, s.pos.x, s.pos.y, s.pos.z, s.vel.x, s.vel.y, s.vel.z, s.heading, s.warp ? (s.warp.phase === 'warp' ? 2 : 1) : 0]));
+        for (const [id, tr] of this.tracks) { const s = m.state.ships[id]; if (!s || (s.state !== 'space' && s.state !== 'battle')) { tr.clear(); if (!s) this.tracks.delete(id); } }
+        this.ingest(m.at, Object.values(m.state.ships).filter(s => s.state === 'space' || (s.state === 'battle' && s.hp > 0)).map(s => [s.id, s.pos.x, s.pos.y, s.pos.z, s.vel.x, s.vel.y, s.vel.z, s.heading, s.warp ? (s.warp.phase === 'warp' ? 2 : 1) : 0]));
         this.onSnap.forEach(f => f());
         break;
       }

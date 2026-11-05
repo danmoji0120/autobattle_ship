@@ -118,7 +118,22 @@ export interface WCommander extends Omit<CommanderDef, 'team'> {
   battles: number;
 }
 
-export interface Module { kind: string; progress: number; built: boolean; slot: number }
+export interface Module {
+  kind: string; progress: number; built: boolean; slot: number;
+  // ── construction plan (unbuilt modules). Queue order = order in Station.modules. ──
+  /** stable id for queue commands */
+  id?: string;
+  /** paused: keeps what it has reserved, takes nothing more, no work is done */
+  paused?: boolean;
+  /** materials set aside for this plan (already taken out of the owner's storage, so nothing else can use them) */
+  reserved?: { alloy: number; crystal: number };
+  /** materials already worked into the structure */
+  used?: { alloy: number; crystal: number };
+  /** credits paid when the plan was registered (refunded pro rata on cancel) */
+  paid?: number;
+  /** all materials secured at least once (for the one-off notification) */
+  secured?: boolean;
+}
 
 export interface Market { [res: string]: { stock: number; target: number; base: number } }
 
@@ -225,16 +240,28 @@ export interface Engagement {
   tick: number;                // tactical ticks simulated by the authority
   sides: [string[], string[]]; // company ids per team
   groupRefs: string[];         // strategic groups involved
-  live: boolean;               // real-time (players involved) vs instantly resolved
+  live: boolean;               // players involved (they may command); NPC-only fights run the same engine
   done: boolean;
   summary?: string;
   winner?: number;
   lairId?: string;
   stationId?: string;
-  /** NPC-only fights are auto-resolved when this world time is reached */
+  /** overload fallback only: resolved by the strength model at this time (not watchable) */
   autoEnd?: number;
+  /** side display names, e.g. ['연합 관리청', '해적'] */
+  names?: [string, string];
+  /** live progress for maps and lists: ships alive / at start, remaining strength 0..1 */
+  prog?: { alive: [number, number]; total: [number, number]; value: [number, number] };
   n?: number;                  // ships involved (for clients; setup is not in snapshots)
   sys?: string;
+}
+
+export interface BattleRecord {
+  id: string; sys?: string; pos: V; start: number; end: number;
+  names: [string, string]; winner: number; summary: string; n: number;
+  /** ships lost per side */
+  losses: [number, number];
+  setup: BattleSetup; orders: OrderRecord[];
 }
 
 export interface WorldEvent {
@@ -247,6 +274,8 @@ export interface WorldEvent {
   company?: string;            // undefined → broadcast to everyone
   pos?: V;
   ref?: string;
+  /** client feedback hook (sound / toast), e.g. 'build_secured' | 'build_start' | 'build_done' */
+  tag?: string;
 }
 
 export interface WorldState {
@@ -265,6 +294,8 @@ export interface WorldState {
   systems: Record<string, StarSystem>;
   contracts: Record<string, Contract>;
   engagements: Record<string, Engagement>;
+  /** finished tactical battles, replayable from setup + seed + orders (newest last) */
+  battleLog?: BattleRecord[];
   events: WorldEvent[];        // rolling log
   eventSeq: number;
   news: string[];

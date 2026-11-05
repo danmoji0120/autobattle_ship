@@ -346,3 +346,40 @@ select { background: rgba(5, 10, 18, 0.92); color: var(--text); border: 1px soli
 select.gone { border-color: var(--warn) !important; color: var(--warn); }
 @media (max-width: 700px) { .minecfg { grid-template-columns: 1fr; } }
 .minecfg .btn, .minecfg .btn.go { padding: 5px 16px !important; font-size: 13px !important; letter-spacing: .05em; }
+/* battle list */
+.modal.battles .box.bl { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 120px); overflow: auto; padding: 14px 18px; }
+.modal.battles .mh { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.modal.battles .mh .dim { font-size: 12px; flex: 1; }
+.modal.battles h3 { margin: 14px 0 6px; font-size: 13px; letter-spacing: .1em; color: var(--cyan); }
+.brow { border: 1px solid rgba(120,170,220,.2); border-radius: 4px; padding: 8px 10px; margin-bottom: 6px; background: rgba(10,20,34,.5); }
+.brow .bh { font-size: 14px; } .brow .en { color: #ff9a7a; } .brow .bm { font-size: 12px; margin: 2px 0 4px; }
+.brow .bb { display: flex; gap: 6px; justify-content: flex-end; align-items: center; font-size: 12px; }
+.brow .tag { font-size: 11px; color: var(--cyan); border: 1px solid currentColor; padding: 0 4px; border-radius: 3px; }
+.bbar { position: relative; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: hidden; margin: 4px 0; }
+.bbar i { position: absolute; left: 0; top: 0; bottom: 0; background: #4fc3f7; }
+.bbar em { position: absolute; right: 0; top: 0; bottom: 0; background: #ff7a5a; }
+#sysbar .btn.hot { color: #ffb08a; border-color: #ff7a5a; }
+.brow .btn.go, .brow .btn { padding: 4px 14px !important; font-size: 12.5px !important; }
+/* station construction */
+.bstore { border: 1px solid rgba(120,170,220,.2); border-radius: 4px; padding: 8px 10px; background: rgba(10,20,34,.5); display: grid; gap: 4px; }
+.bstore .caps { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; }
+.bstore .cap { color: var(--dim); } .bstore .cap.on { color: var(--good, #8fe39a); }
+.bq { display: grid; gap: 5px; }
+.bqrow { display: flex; align-items: center; gap: 10px; border: 1px solid rgba(120,170,220,.2); border-radius: 4px; padding: 6px 8px; cursor: pointer; background: rgba(10,20,34,.45); }
+.bqrow.sel, .bfac.sel { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan) inset; }
+.bqrow .bqn { font-family: var(--mono); color: var(--dim); width: 16px; text-align: center; }
+.bqrow .bqm { flex: 1; min-width: 0; } .bqrow .bar { height: 4px; background: rgba(255,255,255,.07); margin: 3px 0; border-radius: 2px; overflow: hidden; } .bqrow .bar i { display: block; height: 100%; background: var(--cyan); }
+.bqa { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.pst { font-size: 11px; padding: 0 5px; border-radius: 3px; border: 1px solid currentColor; color: var(--dim); }
+.ps-building .pst, .pst.ps-building { color: var(--cyan); } .ps-materials .pst, .pst.ps-materials { color: var(--warn, #ffb050); } .ps-queued .pst, .pst.ps-queued { color: #9fe0a8; } .ps-paused .pst, .pst.ps-paused { color: #aaa; } .ps-prereq .pst, .pst.ps-prereq { color: #c8a0ff; }
+.btn.warnb { color: #ff9a7a; border-color: rgba(255,120,90,.5); }
+.bcols { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(260px, 1.4fr); gap: 12px; margin: 12px 0 8px; }
+@media (max-width: 760px) { .bcols { grid-template-columns: 1fr; } }
+.bcg { margin-bottom: 8px; } .bch { font-size: 12px; letter-spacing: .15em; color: var(--cyan); margin-bottom: 3px; }
+.bfac { border: 1px solid rgba(120,170,220,.18); border-radius: 4px; padding: 5px 8px; margin-bottom: 4px; font-size: 13px; }
+.bfac.own { background: rgba(60,140,90,.12); } .bfac.pick { cursor: pointer; } .bfac.pick:hover { background: rgba(80,160,220,.1); } .bfac.locked { opacity: .55; }
+.bfac .money { float: right; }
+.bdet { border: 1px solid rgba(120,170,220,.25); border-radius: 4px; padding: 10px 12px; background: rgba(8,16,28,.6); display: grid; gap: 6px; align-content: start; }
+.bdet .bdh { font-size: 15px; } .bdet .bmat td, .bdet .bmat th { padding: 3px 6px; }
+.bdet .btn.go { padding: 7px 18px !important; font-size: 14px !important; letter-spacing: .1em; }
+.strength .lbl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }

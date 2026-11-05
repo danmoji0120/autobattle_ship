@@ -17,7 +17,7 @@ import { ECON } from '../../world/data';
 import { SystemScene } from './system';
 import type { StarSystem } from '../../world/types';
 
-interface ShipView { model: ShipModel; pos: THREE.Vector3; raw: THREE.Vector3; heading: number; roll: number; key: string; cls: string; seen: number; speed: number; warp: number; sys: string; jumpT: number }
+interface ShipView { model: ShipModel; pos: THREE.Vector3; raw: THREE.Vector3; heading: number; roll: number; key: string; cls: string; seen: number; speed: number; warp: number; sys: string; jumpT: number; hp: number }
 
 export type Pick = { kind: 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string; pos: THREE.Vector3 };
 
@@ -38,6 +38,25 @@ export class StrategicView {
   fields = new Map<string, FieldView>();
   lairs = new Map<string, { obj: THREE.Group; alive: boolean }>();
   private battleFx = new Map<string, { t: number }>();
+  /** this frame's live fighters per engagement (positions are the rendered ones) */
+  private inBattle = new Map<string, { p: THREE.Vector3; team: number }[]>();
+  private battleTeam(s: WShip): number {
+    const e = this.client.state?.engagements[s.engagement!];
+    return e && e.sides[1].includes(s.owner) ? 1 : 0;
+  }
+  /** a ring + glow at a world position (construction milestones etc.) */
+  flashAt(p: V, color: number) {
+    const c = new THREE.Vector3(p.x, p.y, p.z);
+    this.rings.spawn(c, 700, 1.6, color, new THREE.Vector3(0, 1, 0));
+    this.glow.emit(c, { life: 0.8, size: 120, size1: 320, color, alpha: 1.2 });
+  }
+  private shipBlast(p: THREE.Vector3, L: number) {
+    const c = p.clone();
+    this.glow.emit(c, { life: 0.5, size: L * 1.5, size1: L * 4, color: 0xffe0a0, color1: 0xff5000, alpha: 2 });
+    for (let i = 0; i < 10; i++) this.glow.emit(c, { life: 0.9, size: L * 0.2, size1: L * 0.05, color: 0xffc070, color1: 0xff3000, vel: new THREE.Vector3((Math.random() - 0.5) * L * 6, (Math.random() - 0.3) * L * 3, (Math.random() - 0.5) * L * 6), drag: 1 });
+    this.smoke.emit(c, { life: 5, size: L, size1: L * 4, color: 0x2a2624, alpha: 0.4, drag: 0.3 });
+    this.rings.spawn(c, L * 6, 0.8, 0xff8040, new THREE.Vector3(0, 1, 0));
+  }
   private time = 0;
   active = true;
   /** everything in world (global) coordinates hangs off this, offset by -origin of the viewed system */
@@ -159,7 +178,7 @@ export class StrategicView {
 
   /** where to draw a ship this frame: time-buffered server motion (interp.ts) */
   private shipPos(s: WShip, out: THREE.Vector3): number {
-    const tr = s.state === 'space' ? this.client.tracks.get(s.id) : undefined;
+    const tr = s.state === 'space' || s.state === 'battle' ? this.client.tracks.get(s.id) : undefined;
     if (tr && tr.samples.length) { tr.at(this.client.clock.renderTime, this.tmpP); out.set(this.tmpP.x, this.tmpP.y, this.tmpP.z); return this.tmpP.h; }
     out.set(s.pos.x, s.pos.y, s.pos.z);
     return s.heading;
@@ -180,6 +199,7 @@ export class StrategicView {
     const simDt = realDt * this.client.speed;
     // ships
     const seen = new Set<string>();
+    this.inBattle.clear();
     for (const s of Object.values(st.ships)) {
       seen.add(s.id);
       let v = this.ships.get(s.id);
@@ -189,20 +209,27 @@ export class StrategicView {
         const model = buildShip(SHIP_CLASSES[s.classId], getLoadout(s.classId, s.loadoutId), s.owner === 'pirates' ? 1 : 0);
         this.world.add(model.root);
         model.root.rotation.order = 'YXZ';
-        v = { model, pos: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), raw: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), heading: s.heading, roll: 0, key, cls: s.classId, seen: 0, speed: 0, warp: 0, sys: '', jumpT: s.jumpT ?? 0 };
+        v = { model, pos: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), raw: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), heading: s.heading, roll: 0, key, cls: s.classId, seen: 0, speed: 0, warp: 0, sys: '', jumpT: s.jumpT ?? 0, hp: s.hp };
         this.ships.set(s.id, v);
       }
       const tgtHead = this.shipPos(s, v.raw);
       // light smoothing on top of interpolation; teleports (gate jumps, docking) snap
       const gap = v.pos.distanceTo(v.raw);
-      if (gap > 2500 || s.state !== 'space') {
+      if (gap > 2500 || (s.state !== 'space' && s.state !== 'battle')) {
         if (gap > 2500 && s.state === 'space' && v.model.root.visible && (s.jumpT ?? 0) !== v.jumpT) { this.gateFlash(v.pos.clone()); this.gateFlash(v.raw.clone()); }
         v.pos.copy(v.raw);
       } else v.pos.lerp(v.raw, 1 - Math.exp(-realDt * 18));
       v.jumpT = s.jumpT ?? 0;
       const tr = this.client.tracks.get(s.id);
       v.warp = tr?.samples.length ? tr.samples[tr.samples.length - 1].warp : 0;
-      const vis = s.state !== 'battle' && this.inView(v.pos);
+      // ships in a battle are drawn where the server's tactical sim has them; destroyed ones blow up
+      const fighting = s.state === 'battle';
+      if (fighting && s.engagement) {
+        if (s.hp > 0) { let a = this.inBattle.get(s.engagement); if (!a) this.inBattle.set(s.engagement, a = []); a.push({ p: v.pos, team: this.battleTeam(s) }); }
+        if (s.hp <= 0 && v.hp > 0 && v.model.root.visible) this.shipBlast(v.pos, SHIP_CLASSES[s.classId].length);
+      }
+      v.hp = s.hp;
+      const vis = (!fighting || s.hp > 0) && this.inView(v.pos);
       v.model.root.visible = vis;
       if (!vis) continue;
       const dh = lerpAngle(v.heading, tgtHead, Math.min(1, realDt * 3)) - v.heading;
@@ -289,12 +316,26 @@ export class StrategicView {
     for (const e of Object.values(st.engagements)) {
       if (e.done || !this.inView(e.pos)) continue;
       const c = new THREE.Vector3(e.pos.x, e.pos.y, e.pos.z);
-      for (let i = 0; i < 3; i++) {
+      const fs = this.inBattle.get(e.id);
+      const A = fs?.filter(f => f.team === 0), B = fs?.filter(f => f.team === 1);
+      const real = !!(A?.length && B?.length);
+      if (real) {
+        // real fighters on the map: tracers between opposing ships, impact flashes on the target
+        for (let i = 0; i < Math.min(6, fs!.length); i++) {
+          if (Math.random() > 0.35) continue;
+          const [from, to] = Math.random() < 0.5 ? [A!, B!] : [B!, A!];
+          const a1 = from[(Math.random() * from.length) | 0].p, a2 = to[(Math.random() * to.length) | 0].p;
+          const t0 = Math.random() * 0.7;
+          const col = from === A ? [0.8, 1.8, 3] : [3, 1.6, 0.6];
+          this.trails.seg(a1.x + (a2.x - a1.x) * t0, a1.y + (a2.y - a1.y) * t0, a1.z + (a2.z - a1.z) * t0, a1.x + (a2.x - a1.x) * (t0 + 0.12), a1.y + (a2.y - a1.y) * (t0 + 0.12), a1.z + (a2.z - a1.z) * (t0 + 0.12), 0.5, col[0], col[1], col[2], 0.8, 0, 1);
+          if (Math.random() < 0.25) this.glow.emit(a2.clone().add(new THREE.Vector3((Math.random() - 0.5) * 30, 5, (Math.random() - 0.5) * 30)), { life: 0.25, size: 12, size1: 24, color: 0xffd090, color1: 0x602000, alpha: 1.2 });
+        }
+      } else for (let i = 0; i < 3; i++) {
         const a1 = new THREE.Vector3((Math.random() - 0.5) * 900, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 900).add(c);
         const a2 = new THREE.Vector3((Math.random() - 0.5) * 900, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 900).add(c);
         if (Math.random() < 0.5) this.trails.seg(a1.x, a1.y, a1.z, a1.x + (a2.x - a1.x) * 0.15, a1.y + (a2.y - a1.y) * 0.15, a1.z + (a2.z - a1.z) * 0.15, 0.3, 2, 3, 1.8, 0.8, 0, 1);
       }
-      if (Math.random() < 6 * realDt) {
+      if (!real && Math.random() < 6 * realDt) {
         const p = new THREE.Vector3((Math.random() - 0.5) * 800, (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 800).add(c);
         this.glow.emit(p, { life: 0.4, size: 30, size1: 70, color: 0xffb060, color1: 0x401000, alpha: 1.2 });
         this.smoke.emit(p, { life: 4, size: 20, size1: 60, color: 0x2a2624, alpha: 0.35, drag: 0.3 });

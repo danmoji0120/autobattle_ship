@@ -12,6 +12,8 @@ import { secAt, effSec } from '../../world/security';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
+import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, MATS, type Mat } from '../../world/construction';
+import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
 type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string } | null;
@@ -160,6 +162,7 @@ export class PmcHud {
       if (keyOps[e.code] && this.group) this.opButton(keyOps[e.code]);
       if (e.code === 'KeyH' && this.group) this.focusSelected();
       if (e.code === 'Tab') { e.preventDefault(); this.toggleGalaxy(); }
+      if (e.code === 'KeyB') this.toggleBattles();
       if (e.code === 'KeyV') { this.v.showSecurity = !this.v.showSecurity; this.sysKey = ''; this.renderSysbar(); }
       if (e.code === 'F3' || e.code === 'Backquote') { e.preventDefault(); document.getElementById('netdiag')!.classList.toggle('hidden'); }
     });
@@ -258,15 +261,73 @@ export class PmcHud {
     const sys = this.v.sys; if (!sys) return;
     const live = this.st.systems[sys.id] ?? sys;
     const eff = effSec(live), band = secBand(eff);
-    const key = `${sys.id}|${Math.round(eff)}|${Math.round(live.heat)}|${this.v.showSecurity}`;
+    const nb = Object.values(this.st.engagements).filter(e => !e.done).length;
+    const key = `${sys.id}|${Math.round(eff)}|${Math.round(live.heat)}|${this.v.showSecurity}|${nb}`;
     if (key === this.sysKey) return;
     this.sysKey = key;
     const el = document.getElementById('sysbar')!;
     const heat = live.heat > 25 ? `<span class="warn">해적 활동 증가</span>` : live.heat > 8 ? '<span class="dim">해적 활동 있음</span>' : '';
     el.innerHTML = `<div class="sysname"><b>${esc(sys.name)}</b> <span class="secb" style="background:${band.color}">${band.name} · 치안 ${Math.round(eff)}</span> ${heat}</div>
-      <div class="sysbtns"><button class="btn mini" id="galBtn" title="Tab">성계 지도</button><button class="btn mini${this.v.showSecurity ? ' on' : ''}" id="secBtn" title="V">치안 지도</button></div>`;
+      <div class="sysbtns"><button class="btn mini" id="galBtn" title="Tab">성계 지도</button><button class="btn mini${this.v.showSecurity ? ' on' : ''}" id="secBtn" title="V">치안 지도</button><button class="btn mini${nb ? ' hot' : ''}" id="batBtn" title="B">⚔ 교전${nb ? ` ${nb}` : ''}</button></div>`;
+    (document.getElementById('batBtn') as HTMLButtonElement).onclick = () => this.toggleBattles();
     (document.getElementById('galBtn') as HTMLButtonElement).onclick = () => this.toggleGalaxy();
     (document.getElementById('secBtn') as HTMLButtonElement).onclick = () => { this.v.showSecurity = !this.v.showSecurity; this.sysKey = ''; this.renderSysbar(); };
+  }
+
+  // ── battle list: every running fight (spectate) and the recent record (replay) ──
+  private battles: HTMLElement | null = null;
+  toggleBattles() {
+    if (this.battles) { this.battles.remove(); this.battles = null; return; }
+    this.battles = h('div', 'modal battles');
+    this.root.appendChild(this.battles);
+    trackSelects(this.battles);
+    this.battles.onclick = e => {
+      const t = e.target as HTMLElement;
+      if (t === this.battles) return this.toggleBattles();
+      const b = t.closest<HTMLElement>('[data-watch]');
+      if (b) { const id = b.dataset.watch!; this.toggleBattles(); this.opts.onOpenBattle(id); return; }
+      const f = t.closest<HTMLElement>('[data-bfocus]');
+      if (f) { const e2 = this.st.engagements[f.dataset.bfocus!]; if (e2) { this.v.focusOn(e2.pos, 2600); this.toggleBattles(); } }
+      if (t.closest('[data-a="close"]')) this.toggleBattles();
+    };
+    this.renderBattles();
+  }
+
+  private battleSides(e: { sides: [string[], string[]]; names?: [string, string] }): [string, string] {
+    const st = this.st;
+    return e.names ?? [0, 1].map(i => e.sides[i].map(c => st.companies[c]?.name ?? c).join(', ')) as [string, string];
+  }
+
+  private renderBattles() {
+    const el = this.battles; if (!el) return;
+    const st = this.st;
+    const sysName = (p: V) => sysAt(st.systems, p)?.name ?? '심우주';
+    const bar = (a: number, b: number) => `<div class="bbar"><i style="width:${Math.round(a * 100)}%"></i><em style="width:${Math.round(b * 100)}%"></em></div>`;
+    const live = Object.values(st.engagements).filter(e => !e.done).sort((a, b) => (b.prog ? b.prog.total[0] + b.prog.total[1] : 0) - (a.prog ? a.prog.total[0] + a.prog.total[1] : 0));
+    const rows = live.map(e => {
+      const [na, nb] = this.battleSides(e);
+      const mine = e.sides[0].includes(this.me) || e.sides[1].includes(this.me);
+      const p = e.prog;
+      const t = Math.max(0, Math.round((st.time - e.start)));
+      const watchable = e.autoEnd === undefined;
+      return `<div class="brow" data-b="${e.id}">
+        <div class="bh"><b>${esc(na)}</b> <span class="dim">vs</span> <b class="en">${esc(nb)}</b>${mine ? ' <span class="tag">아군 참전</span>' : ''}</div>
+        <div class="bm dim">${esc(sysName(e.pos))} · ${Math.floor(t / 60)}분 ${t % 60}초 경과${p ? ` · 잔존 ${p.alive[0]}/${p.total[0]} 대 ${p.alive[1]}/${p.total[1]}척` : ''}</div>
+        ${p ? bar(p.value[0], p.value[1]) : ''}
+        <div class="bb"><button class="btn mini" data-bfocus="${e.id}">위치 보기</button>${watchable ? `<button class="btn mini go" data-watch="${e.id}">${mine ? '전투 지휘' : '관전'}</button>` : '<span class="dim">원거리 판정 (관전 불가)</span>'}</div></div>`;
+    }).join('') || '<div class="dim" style="padding:10px">현재 진행 중인 교전이 없습니다.</div>';
+    const log = (st.battleLog ?? []).slice().reverse();
+    const recs = log.map(r => {
+      const ago = Math.max(0, Math.round((st.time - r.end) / 60));
+      const res = r.winner === 0 ? `<b>${esc(r.names[0])}</b> 승리` : r.winner === 1 ? `<b class="en">${esc(r.names[1])}</b> 승리` : '무승부';
+      return `<div class="brow rec" data-r="${r.id}"><div class="bh">${esc(r.names[0])} <span class="dim">vs</span> <span class="en">${esc(r.names[1])}</span></div>
+        <div class="bm dim">${esc(r.sys ? st.systems[r.sys]?.name ?? '' : sysName(r.pos))} · ${ago ? ago + '분 전' : '방금'} · ${res} · 손실 ${r.losses[0]} / ${r.losses[1]}척 (총 ${r.n}척)</div>
+        <div class="bb"><button class="btn mini" data-watch="${r.id}">▶ 리플레이</button></div></div>`;
+    }).join('') || '<div class="dim" style="padding:10px">아직 기록된 전투가 없습니다.</div>';
+    morph(el, `<div class="box bl">
+      <div class="mh"><b>⚔ 교전 현황</b><span class="dim">관전은 전투 결과에 영향을 주지 않습니다 · 관전을 끝내도 전투는 계속됩니다</span><button class="btn mini" data-a="close">닫기 (B)</button></div>
+      <h3>진행 중 (${live.length})</h3><div class="blist">${rows}</div>
+      <h3>최근 전투 기록 (${log.length})</h3><div class="blist">${recs}</div></div>`);
   }
 
   private galaxy: HTMLElement | null = null;
@@ -358,6 +419,7 @@ export class PmcHud {
       ${row('스냅샷 크기', this.c.net.snapBytes ? `${(this.c.net.snapBytes / 1024).toFixed(1)} KB` : '-')}
       <div class="dh">서버</div>
       ${row('틱 처리 시간', sv ? `${sv.tickMs.toFixed(2)} ms (최대 ${sv.tickMax.toFixed(0)})` : '-', !!sv && sv.tickMax > 100)}
+      ${row('NPC 전투 연산', sv?.battleMs !== undefined ? `${sv.battleMs.toFixed(2)} ms/틱 · 진행 중 ${Object.values(this.st.engagements).filter(e => !e.done).length}건` : '-', !!sv && (sv.battleMs ?? 0) > 8)}
       ${row('월드 진행 속도', sv ? `${(sv.rate / Math.max(0.01, this.c.speed)).toFixed(2)}× 실시간` : '-', !!sv && this.c.speed > 0 && sv.rate / this.c.speed < 0.95)}
       ${row('함선 / 전투 / 접속', sv ? `${sv.ships} / ${sv.battles} / ${sv.conns}` : '-')}
       <div class="dim small">서버 진행 속도가 1.0 미만이면 서버 과부하, 패킷 간격 편차가 크면 네트워크, FPS만 낮으면 클라이언트 렌더링 문제입니다.</div>`;
@@ -455,6 +517,9 @@ export class PmcHud {
       if (e.kind === 'battle' && e.text.startsWith('교전 발생') && e.ref) this.battleToast(e);
       else if (e.kind === 'milestone') { this.toast(`★ ${e.text}`, 'good'); sfx.play('win', null, 0.35); }
       else if (e.kind === 'world' && e.text.includes('파괴되었다')) this.toast(e.text, 'world');
+      if (e.tag === 'build_secured') { this.toast(`▣ ${e.text}`, 'good'); sfx.play('confirm', null, 0.35); }
+      else if (e.tag === 'build_start') { sfx.play('drum', null, 0.4); if (e.pos) this.v.flashAt(e.pos, 0x60d0ff); }
+      else if (e.tag === 'build_done') { this.toast(`✔ ${e.text}`, 'good'); sfx.play('win', null, 0.3); if (e.pos) this.v.flashAt(e.pos, 0x9fffb0); }
       if (e.kind === 'radio' || e.kind === 'warn') sfx.play('radio', null, e.kind === 'warn' ? 0.45 : 0.18);
       if (e.kind === 'money' && /\+/.test(e.text)) sfx.play('confirm', null, 0.15);
     }
@@ -465,7 +530,7 @@ export class PmcHud {
     const icon: Record<string, string> = { radio: '◉', info: 'ℹ', warn: '⚠', battle: '⚔', money: '¤', world: '◈', milestone: '★' };
     const el = h('div', `ev ev-${e.kind}`);
     el.innerHTML = `<span class="t">${fmtT(e.t)}</span><span class="ic">${icon[e.kind]}</span><div>${e.who ? `<div class="who" style="color:${e.color ?? 'var(--dim)'}">${esc(e.who)}</div>` : ''}<div class="tx">${esc(e.text)}</div></div>`;
-    if (e.pos) el.onclick = () => { this.v.focusOn(e.pos!, Math.min(this.v.rig.dist, 3000)); if (e.kind === 'battle' && e.ref && this.st.engagements[e.ref] && !this.st.engagements[e.ref].done) this.opts.onOpenBattle(e.ref); else if (e.ref && this.st.groups[e.ref]?.owner === this.me) this.select({ kind: 'group', id: e.ref }); };
+    if (e.pos) el.onclick = () => { this.v.focusOn(e.pos!, Math.min(this.v.rig.dist, 3000)); if ((e.kind === 'battle' || e.kind === 'world') && e.ref && this.st.engagements[e.ref] && !this.st.engagements[e.ref].done) this.opts.onOpenBattle(e.ref); else if (e.ref && this.st.groups[e.ref]?.owner === this.me) this.select({ kind: 'group', id: e.ref }); };
     const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 60;
     body.appendChild(el);
     while (body.children.length > 160) body.firstChild!.remove();
@@ -500,7 +565,7 @@ export class PmcHud {
     if (this.keys.has('ArrowLeft')) rig.pan(sp, 0);
     if (this.keys.has('ArrowRight')) rig.pan(-sp, 0);
     this.refreshT -= dt;
-    if (this.refreshT <= 0) { this.refreshT = 0.4; this.refresh(false); if (this.galaxy) this.renderGalaxy(); }
+    if (this.refreshT <= 0) { this.refreshT = 0.4; this.refresh(false); if (this.galaxy) this.renderGalaxy(); if (this.battles) this.renderBattles(); }
     const now = performance.now(); if (this.lastFrameAt) this.frameGap += (now - this.lastFrameAt - this.frameGap) * 0.1; this.lastFrameAt = now;
     this.pingT -= dt; if (this.pingT <= 0) { this.pingT = 2; this.c.ping(); }
     this.drawOverlay();
@@ -674,8 +739,12 @@ export class PmcHud {
     }
     if (s.kind === 'battle') {
       const e = st.engagements[s.id]; if (!e) return '';
-      return `<div class="info"><div class="ih"><b style="color:#ff9a7a">⚔ 교전 중</b></div><div class="dim">${e.sides.map(side => side.map(cid => esc(st.companies[cid]?.name ?? cid)).join(', ')).join(' vs ')}</div>
-        <button class="btn go" data-battle="${e.id}">${e.sides[0].includes(this.me) ? '전투 지휘' : '전투 관전'}</button></div>`;
+      const [na, nb] = this.battleSides(e);
+      const p = e.prog;
+      const mine = e.sides[0].includes(this.me) || e.sides[1].includes(this.me);
+      return `<div class="info"><div class="ih"><b style="color:#ff9a7a">⚔ 교전 중</b></div><div><b>${esc(na)}</b> <span class="dim">vs</span> <b style="color:#ff9a7a">${esc(nb)}</b></div>
+        ${p ? `<div class="dim">잔존 ${p.alive[0]}/${p.total[0]} 대 ${p.alive[1]}/${p.total[1]}척</div><div class="bbar"><i style="width:${Math.round(p.value[0] * 100)}%"></i><em style="width:${Math.round(p.value[1] * 100)}%"></em></div>` : ''}
+        ${e.done ? '<div class="dim">교전 종료</div>' : e.autoEnd !== undefined ? '<div class="dim">원거리 판정 전투 (관전 불가)</div>' : `<button class="btn go" data-battle="${e.id}">${mine ? '전투 지휘' : '전투 관전'}</button>`}</div>`;
     }
     return '';
   }
@@ -836,7 +905,8 @@ export class PmcHud {
     if (Object.values(st.commanders).filter(c => c.owner === me).length < 2 && co.credits > 4000) return '지휘관 없는 편대는 판단이 느립니다. 자유항 <b>인재</b> 탭에서 지휘관을 영입해 채굴반에 배치하세요.';
     if (!ships.some(x => x.classId === 'constructor') && !Object.values(st.stations).some(x => x.owner === me) && co.credits > 20000) return '자금이 쌓였습니다. <b>공작선</b>을 구매하고 <b>정거장 설립</b>으로 자체 기지를 세울 수 있습니다.';
     const own = Object.values(st.stations).find(x => x.owner === me);
-    if (own && own.modules.some(m => !m.built) && !groups.some(g => g.op.k === 'build')) return `공작선 편대에 <b>건설</b> 명령을 내려 ${esc(own.name)} 공사를 진행하세요. 합금이 부족하면 시장에서 사서 <b>운송</b>하세요.`;
+    if (own && own.modules.some(m => m.kind === 'core' && !m.built) && !groups.some(g => g.op.k === 'build')) return `공작선 편대에 <b>건설</b> 명령을 내려 ${esc(own.name)}의 도킹 허브를 완성하세요. 합금이 부족하면 시장에서 사서 <b>운송</b>하세요.`;
+    if (own && own.modules.some(m => !m.built && (m.reserved?.alloy ?? 0) + (m.used?.alloy ?? 0) < MODULES[m.kind].alloy - 1)) return `${esc(own.name)}의 건설 계획이 <b>자재 대기 중</b>입니다. 채굴선 하역지를 이 정거장으로 지정하거나 합금을 <b>운송</b>하면 자동으로 착공합니다.`;
     if (own && own.modules.length === 1 && own.modules[0].built) return `${esc(own.name)}에 <b>정제소</b>를 지으면 광석을 합금으로 바꿔 건설·조선에 쓸 수 있습니다.`;
     if (co.rep >= 10 && !ships.some(x => x.classId === 'cruiser')) return '평판이 올랐습니다. 수도 성계 <b>헬리오스</b> 조선소에서 <b>순양함</b>을 살 수 있습니다 (Tab: 성계 지도).';
     if (co.stats.earned > 30000 && !ships.some(s => sysAt(st.systems, s.pos)?.id !== 'astra')) return '아스트라는 안전하지만 수익이 제한적입니다. <b>Tab</b>으로 성계 지도를 열어 <b>드레이크 변경</b>을 살펴보세요 — 광맥이 풍부하고 보수가 높지만 호위가 필요합니다.';
@@ -904,7 +974,29 @@ export class PmcHud {
     m.querySelectorAll<HTMLSelectElement>('[data-refit]').forEach(sel => sel.onchange = () => { if (sel.value) this.cmd({ c: 'refit', ship: sel.dataset.refit!, loadoutId: sel.value }); });
     m.querySelectorAll<HTMLButtonElement>('[data-hire]').forEach(b => b.onclick = () => this.cmd({ c: 'hire', commander: b.dataset.hire! }));
     m.querySelectorAll<HTMLButtonElement>('[data-accept]').forEach(b => b.onclick = () => this.cmd({ c: 'accept', contract: b.dataset.accept! }));
-    m.querySelectorAll<HTMLButtonElement>('[data-module]').forEach(b => b.onclick = () => this.cmd({ c: 'queueModule', station: s.id, kind: b.dataset.module! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-module]').forEach(b => b.onclick = async () => {
+      const kind = b.dataset.module!;
+      const before = new Set(s.modules.map(x => x.id));
+      if (await this.cmd({ c: 'queueModule', station: s.id, kind })) {
+        sfx.play('confirm', null, 0.3);
+        // follow the new plan in the detail panel once a snapshot has it
+        const follow = (n: number) => {
+          const np = this.st.stations[s.id]?.modules.find(x => x.kind === kind && !x.built && !before.has(x.id));
+          if (np?.id) { this.bSel = { kind, plan: np.id }; this.renderModal(true); } else if (n > 0) setTimeout(() => follow(n - 1), 250);
+        };
+        follow(12);
+      }
+    });
+    m.querySelectorAll<HTMLElement>('[data-bpick]').forEach(b => b.onclick = () => { this.bSel = { kind: b.dataset.bpick! }; this.renderModal(true); });
+    m.querySelectorAll<HTMLElement>('[data-bplan]').forEach(b => b.onclick = e => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      const pm = s.modules.find(x => x.id === b.dataset.bplan); if (pm) { this.bSel = { kind: pm.kind, plan: pm.id }; this.renderModal(true); }
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-pop]').forEach(b => b.onclick = async () => {
+      const [op, plan] = b.dataset.pop!.split(':');
+      if (op === 'cancel' && !confirm('이 건설 계획을 취소할까요? 예약 자재는 창고로 돌아가고, 이미 투입된 자재는 회수할 수 없습니다.')) return;
+      if (await this.cmd({ c: 'planOp', station: s.id, plan, op: op as 'pause' })) this.renderModal(true);
+    });
   }
 
   private marketHtml(s: Station): string {
@@ -976,21 +1068,105 @@ export class PmcHud {
       <div class="dim small">납품 계약: 해당 정거장에 자원을 하역하면 자동으로 납품됩니다. 현상금: 해당 해적 무리 격멸 전투에 참여하면 완수됩니다.</div>`;
   }
 
+  /** facility picked in the build tab's detail panel: a module kind (new plan) or a plan id */
+  private bSel: { kind: string; plan?: string } | null = null;
+
   private buildHtml(s: Station): string {
     const store = s.storage[this.me] ?? { ore: 0, alloy: 0, crystal: 0 };
     const co = this.st.companies[this.me];
-    const builtKinds = new Set(s.modules.map(m => m.kind));
-    const hasCon = Object.values(this.st.ships).some(x => x.owner === this.me && x.classId === 'constructor');
-    return `<div class="svc">창고: ${RES.map(r => `<span style="color:${RES_COLOR[r]}">${RES_NAME[r]}</span> ${fmt(store[r])}`).join(' · ')}</div>
-      <table class="gt"><tr><th>모듈</th><th>상태</th></tr>${s.modules.map(m => `<tr><td><b>${MODULES[m.kind].name}</b></td><td>${m.built ? '<span class="good">가동 중</span>' : `건설 ${Math.round(m.progress * 100)}%`}</td></tr>`).join('')}</table>
-      <h3>새 모듈 (${s.modules.length}/${MAX_MODULES})</h3>
-      <div class="yard">${Object.values(MODULES).filter(md => md.kind !== 'core' && (!builtKinds.has(md.kind) || md.kind === 'defense' || md.kind === 'depot')).map(md => {
-        const req = !md.requires || s.modules.some(m => m.kind === md.requires);
-        return `<div class="ycard${req ? '' : ' locked'}"><div class="yn"><b>${md.name}</b><span class="money">${fmt(md.credits)} cr</span></div><div class="dim">${esc(md.desc)}</div>
-          <div class="ys">자재: 합금 ${md.alloy}${md.crystal ? ` · 크리스탈 ${md.crystal}` : ''} (건설 중 창고에서 소모) · 작업 ${md.work}초</div>
-          <button class="btn go" data-module="${md.kind}" ${co.credits < md.credits || !req || s.modules.length >= MAX_MODULES ? 'disabled' : ''}>건설 예약</button></div>`;
-      }).join('')}</div>
-      <div class="dim small">건설에는 공작선이 필요합니다${hasCon ? '' : ' (현재 보유하지 않음 — 아스트라 자유항 조선소에서 구매)'}. 공작선 편대에 "건설" 명령을 내리세요. 합금은 시장에서 구매 후 "운송" 명령으로 옮기거나, 정제소 모듈로 광석에서 생산합니다.</div>`;
+    const plans = planList(s);
+    const built = s.modules.filter(m => m.built);
+    const reservedTot = { alloy: 0, crystal: 0 };
+    for (const m of plans) for (const r of MATS) reservedTot[r] += m.reserved?.[r] ?? 0;
+    const shortQ = queueShortfall(s);
+    const has = (k: string) => built.some(m => m.kind === k);
+    const cons = Object.values(this.st.groups).filter(g => g.owner === this.me && g.op.k === 'build' && (g.op as any).station === s.id);
+    const cap = (on: boolean, t: string) => `<span class="cap${on ? ' on' : ''}">${on ? '●' : '○'} ${t}</span>`;
+    const matName = (r: Mat) => `<span style="color:${RES_COLOR[r]}">${RES_NAME[r]}</span>`;
+    // ── storage + capabilities ──
+    let html = `<div class="bstore"><div><b>창고 (가용)</b> ${RES.map(r => `${matName(r as Mat)} <b>${fmt(store[r])}</b>`).join(' · ')}</div>
+      <div class="dim">건설 예약됨: 합금 ${fmt(reservedTot.alloy)} · 크리스탈 ${fmt(reservedTot.crystal)}${shortQ.alloy + shortQ.crystal > 0.5 ? ` · <span class="warn">대기열 부족분 합금 ${fmt(shortQ.alloy)}${shortQ.crystal > 0.5 ? ` · 크리스탈 ${fmt(shortQ.crystal)}` : ''}</span>` : ''}</div>
+      <div class="caps">${cap(has('core'), '정박·하역')}${cap(has('refinery'), '정제')}${cap(has('repair'), '수리')}${cap(has('shipyard'), '조선')}${cap(has('defense'), `방어 ${built.filter(m => m.kind === 'defense').length}기`)}${cap(has('depot'), '확장 창고')}${cap(has('core'), '자체 건설반')}${cap(cons.length > 0, `공작선 ${cons.length}개 편대 투입`)}</div></div>`;
+    // ── construction queue ──
+    html += `<h3>건설 진행 · 대기열 (${plans.length})</h3>`;
+    html += plans.length ? `<div class="bq">${plans.map((m, i) => {
+      const md = MODULES[m.kind]; const ps = planState(s, m);
+      const mats = MATS.filter(r => md[r] > 0).map(r => {
+        const have = (m.used?.[r] ?? 0) + (m.reserved?.[r] ?? 0), miss = missing(m, r);
+        return `${matName(r)} ${fmt(have)}/${fmt(md[r])}${miss > 0.5 ? ` <span class="warn">${fmt(miss)} 부족</span>` : ''}`;
+      }).join(' · ');
+      const sel = this.bSel?.plan === m.id;
+      return `<div class="bqrow ps-${ps}${sel ? ' sel' : ''}" data-bplan="${m.id}"><span class="bqn">${i + 1}</span>
+        <div class="bqm"><div><b>${md.name}</b> <span class="pst">${PLAN_STATE_NAME[ps]}${ps === 'building' ? ` ${Math.round(m.progress * 100)}%` : ''}</span></div>
+        <div class="bar"><i style="width:${Math.round(m.progress * 100)}%"></i></div><div class="small">${mats}</div></div>
+        <div class="bqa"><button class="btn mini" data-pop="up:${m.id}" title="위로" ${i === 0 ? 'disabled' : ''}>▲</button><button class="btn mini" data-pop="down:${m.id}" title="아래로" ${i === plans.length - 1 ? 'disabled' : ''}>▼</button>
+        ${m.paused ? `<button class="btn mini" data-pop="resume:${m.id}">▶ 재개</button>` : `<button class="btn mini" data-pop="pause:${m.id}">⏸ 정지</button>`}
+        ${m.kind === 'core' ? '' : `<button class="btn mini warnb" data-pop="cancel:${m.id}">✕ 취소</button>`}</div></div>`;
+    }).join('')}</div>` : '<div class="dim small">진행 중인 건설이 없습니다.</div>';
+    // ── owned + buildable by category ──
+    const cats: ModuleDef['cat'][] = ['산업', '조선', '물류', '군사', '기타'];
+    const multi = (k: string) => k === 'defense' || k === 'depot';
+    const buildable = (md: ModuleDef) => md.kind !== 'core' && (multi(md.kind) || !s.modules.some(m => m.kind === md.kind));
+    html += `<div class="bcols"><div class="bcat">${cats.map(c => {
+      const mine = built.filter(m => MODULES[m.kind].cat === c);
+      const can = Object.values(MODULES).filter(md => md.cat === c && buildable(md));
+      if (!mine.length && !can.length) return '';
+      return `<div class="bcg"><div class="bch">${c}</div>
+        ${mine.map(m => `<div class="bfac own"><b>${MODULES[m.kind].name}</b> <span class="good">가동 중</span></div>`).join('')}
+        ${can.map(md => { const req = !md.requires || s.modules.some(m => m.kind === md.requires); return `<div class="bfac pick${this.bSel?.kind === md.kind && !this.bSel.plan ? ' sel' : ''}${req ? '' : ' locked'}" data-bpick="${md.kind}"><b>${md.name}</b> <span class="money">${fmt(md.credits)} cr</span><div class="dim small">합금 ${md.alloy}${md.crystal ? ` · 크리스탈 ${md.crystal}` : ''}</div></div>`; }).join('')}</div>`;
+    }).join('')}</div><div class="bdet">${this.buildDetail(s)}</div></div>
+      <div class="dim small">시설 슬롯 ${s.modules.length}/${MAX_MODULES} · 건설 자재는 <b>이 정거장 창고</b>에서만 쓰입니다 (다른 정거장 창고는 운송 필요, 함선 화물은 하역 후 반영). 계획에 예약된 자재는 판매·함선 건조·운송에 쓸 수 없습니다.</div>`;
+    return html;
+  }
+
+  /** detail panel: the selected facility or plan — cost, held / reserved / available / short, time, unlocks */
+  private buildDetail(s: Station): string {
+    const sel = this.bSel;
+    if (!sel) return '<div class="dim" style="padding:12px">왼쪽에서 시설이나 대기열 항목을 선택하면 상세 정보가 표시됩니다.</div>';
+    const md = MODULES[sel.kind]; if (!md) return '';
+    // a single-instance facility that has just been planned: follow its plan
+    if (!sel.plan && sel.kind !== 'defense' && sel.kind !== 'depot') {
+      const pm = s.modules.find(m => m.kind === sel.kind && !m.built);
+      if (pm?.id) { this.bSel = { kind: sel.kind, plan: pm.id }; return this.buildDetail(s); }
+    }
+    const co = this.st.companies[this.me];
+    const store = s.storage[this.me] ?? { ore: 0, alloy: 0, crystal: 0 };
+    const plan = sel.plan ? s.modules.find(m => m.id === sel.plan && !m.built) : undefined;
+    if (sel.plan && !plan) { const done = s.modules.find(m => m.id === sel.plan); return `<div class="bdh"><b>${md.name}</b></div><div class="${done ? 'good' : 'dim'}">${done ? '완공되었습니다.' : '취소된 계획입니다.'}</div>`; }
+    const cons = Object.values(this.st.groups).filter(g => g.owner === this.me && g.op.k === 'build' && (g.op as any).station === s.id);
+    const crew = s.modules.some(m => m.kind === 'core' && m.built) && md.kind !== 'core';
+    const rate = (crew ? STATION_CREW_RATE : 0) + cons.reduce((a, g) => a + (g.commanderId ? 0.8 + (this.st.commanders[g.commanderId]?.skill ?? 0.5) * 0.5 : 1), 0);
+    const left = md.work * (1 - (plan?.progress ?? 0));
+    const tStr = rate > 0 ? `약 ${Math.ceil(left / rate)}초${cons.length ? ` (공작선 ${cons.length}개 편대 + ${crew ? '자체 건설반' : ''})` : ' (자체 건설반만 — 공작선을 투입하면 더 빠름)'}` : '공작선 필요 (도킹 허브는 공작선만 건설 가능)';
+    // materials ahead of a new plan in the queue
+    const ahead = queueShortfall(s);
+    const rows = MATS.filter(r => md[r] > 0).map(r => {
+      const name = `<span style="color:${RES_COLOR[r]}">${RES_NAME[r]}</span>`;
+      if (plan) {
+        const used = plan.used?.[r] ?? 0, res = plan.reserved?.[r] ?? 0, miss = missing(plan, r);
+        return `<tr><td>${name}</td><td class="n">${fmt(md[r])}</td><td class="n">${fmt(used + res)}</td><td class="n">${fmt(res)}</td><td class="n">${fmt(store[r])}</td><td class="n">${miss > 0.5 ? `<span class="warn">${fmt(miss)} 부족</span>` : '<span class="good">충분</span>'}</td></tr>`;
+      }
+      const avail = Math.max(0, store[r] - ahead[r]);
+      const miss = Math.max(0, md[r] - avail);
+      return `<tr><td>${name}</td><td class="n">${fmt(md[r])}</td><td class="n">${fmt(store[r])}</td><td class="n">${fmt(avail)}${ahead[r] > 0.5 ? `<div class="dim small">앞선 계획 ${fmt(ahead[r])} 우선</div>` : ''}</td><td class="n">${miss > 0.5 ? `<span class="warn">${fmt(miss)} 부족</span>` : '<span class="good">충분</span>'}</td></tr>`;
+    }).join('');
+    const ps = plan ? planState(s, plan) : null;
+    const req = !md.requires || s.modules.some(m => m.kind === md.requires);
+    const slots = s.modules.length < MAX_MODULES;
+    const crShort = Math.max(0, md.credits - co.credits);
+    let act = '';
+    if (!plan) {
+      const why = !req ? `${MODULES[md.requires!].name}이(가) 먼저 필요합니다` : !slots ? `시설 슬롯이 가득 찼습니다 (${MAX_MODULES})` : crShort > 0 ? `자금 부족 — ${fmt(crShort)} cr 더 필요` : '';
+      act = `${why ? `<div class="warn">${why}</div>` : ''}<button class="btn go" data-module="${md.kind}" ${why ? 'disabled' : ''}>건설 계획 등록</button>
+        <div class="dim small">자재가 부족해도 등록할 수 있습니다. 자재가 이 정거장 창고에 들어오면 자동으로 예약되고, 모두 확보되면 착공합니다.</div>`;
+    } else act = `<div class="bqa">${plan.paused ? `<button class="btn" data-pop="resume:${plan.id}">▶ 재개</button>` : `<button class="btn" data-pop="pause:${plan.id}">⏸ 일시 정지</button>`}${plan.kind === 'core' ? '' : `<button class="btn warnb" data-pop="cancel:${plan.id}">✕ 계획 취소</button>`}</div>
+      <div class="dim small">일시 정지: 예약 자재는 유지, 작업·추가 확보 중단 · 취소: 예약 자재는 창고로 반환, 투입된 자재는 회수 불가, 크레딧은 남은 공정 비율만큼 환불${plan.progress <= 0 ? ' (착공 전이라 전액)' : ` (현재 ${fmt((plan.paid ?? 0) * (1 - plan.progress))} cr)`}</div>`;
+    return `<div class="bdh"><b>${plan ? '' : ''}${md.name} 건설</b> <span class="dim">· ${md.cat}</span>${ps ? ` <span class="pst ps-${ps}">${PLAN_STATE_NAME[ps]}${ps === 'building' ? ` ${Math.round(plan!.progress * 100)}%` : ''}</span>` : ''}</div>
+      <div class="dim">${esc(md.desc)}</div>
+      <div class="bdr">비용 <b class="money">${fmt(md.credits)} cr</b>${plan ? ' (등록 시 지불됨)' : ` — 보유 ${fmt(co.credits)} cr ${crShort > 0 ? `<span class="warn">${fmt(crShort)} 부족</span>` : '<span class="good">충분</span>'}`}</div>
+      <table class="gt bmat"><tr><th>자재</th><th>필요</th>${plan ? '<th>확보</th><th>예약</th><th>창고 가용</th>' : '<th>창고</th><th>가용</th>'}<th>상태</th></tr>${rows}</table>
+      <div class="bdr">예상 건설 시간: ${tStr}</div>
+      <div class="bdr">완공 시 해금: <b>${esc(md.unlocks)}</b></div>${act}`;
   }
 
   // ============================================================== overlay

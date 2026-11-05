@@ -23,6 +23,7 @@ class Client {
       if (m.t === 'mov') { this.movs = (this.movs || 0) + 1; for (const r of m.s) { const sh = this.snap?.ships[r[0]]; if (sh) { sh.pos.x = r[1]; sh.pos.z = r[3]; } } }
       if (m.t === 'events') this.events.push(...m.list);
       if (m.t === 'ack') this.acks.get(m.id)?.(m.err);
+      if (m.t === 'binit' || m.t === 'error') (this.binits ??= []).push(m);
     });
   }); }
   cmd(cmd) { const id = this.seq++; return new Promise(r => { this.acks.set(id, r); this.ws.send(JSON.stringify({ t: 'cmd', id, cmd })); }); }
@@ -78,4 +79,34 @@ srv = await startServer();
 const a3 = new Client('x', tokA); await a3.open(); await wait(700);
 ok(a3.company === a.company && a3.snap.time >= t1 - 1, `after restart same PMC & world time continues (t=${a3.snap.time.toFixed(1)} ≥ ${t1.toFixed(1)})`);
 { const op = a3.group('제1 채굴반').op; ok(op.k === 'mine' && op.auto === true && op.sell === false && !!a3.snap.stations[op.deliver], `mining settings survive restart (auto → ${op.deliver}, store)`); }
+// ── NPC battle spectating: everyone gets the same battle, spectators can't touch it ──
+{
+  const c2 = new Client('관전자'); await c2.open(); await wait(800);
+  let e = null;
+  for (let i = 0; i < 420 && !e; i++) {
+    await wait(1000);
+    e = Object.values(a3.snap.engagements).find(x => !x.done && x.autoEnd === undefined && !x.sides[0].includes(a3.company) && !x.sides[1].includes(a3.company) && !x.sides[0].includes(c2.company) && !x.sides[1].includes(c2.company));
+  }
+  ok(!!e, `an NPC battle is fought live on the server (${e ? e.names?.join(' vs ') + ', ' + e.n + '척' : 'none in 7 min'})`);
+  if (e) {
+    ok(!!e.prog && e.prog.total[0] + e.prog.total[1] > 0, `live progress is broadcast (${JSON.stringify(e.prog)})`);
+    a3.ws.send(JSON.stringify({ t: 'bjoin', eng: e.id })); c2.ws.send(JSON.stringify({ t: 'bjoin', eng: e.id }));
+    await wait(1500);
+    const ia = a3.binits?.find(m => m.eng === e.id), ib = c2.binits?.find(m => m.eng === e.id);
+    ok(ia && ib && JSON.stringify(ia.setup) === JSON.stringify(ib.setup) && !ia.replay, 'two spectators receive the identical live battle (setup + seed)');
+    const err = await new Promise(r => { const id = a3.seq++; a3.acks.set(id, r); a3.ws.send(JSON.stringify({ t: 'border', id, eng: e.id, groupId: 1, order: null, opts: {} })); });
+    ok(err !== null && err !== '부대 없음', `a spectator cannot order NPC ships (${err})`);
+    // disconnecting a spectator mid-battle is harmless
+    c2.close();
+    let done = false;
+    for (let i = 0; i < 600 && !done; i++) { await wait(1000); done = !!a3.snap.engagements[e.id]?.done || !a3.snap.engagements[e.id]; }
+    ok(done, 'the battle finishes on the server with a spectator gone');
+    const rec = (a3.snap.battleLog ?? []).find(r => r.id === e.id);
+    ok(!!rec && !('setup' in rec), `battle record listed (light: no setup in snapshots) — ${rec?.summary}`);
+    a3.binits = [];
+    a3.ws.send(JSON.stringify({ t: 'bjoin', eng: e.id })); await wait(1200);
+    const rp = a3.binits.find(m => m.eng === e.id);
+    ok(rp?.replay === true && JSON.stringify(rp.setup) === JSON.stringify(ia?.setup), 'finished battle can be replayed from the same setup');
+  }
+}
 a3.close(); srv.kill('SIGTERM');

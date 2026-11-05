@@ -11,10 +11,17 @@ import type { WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Enga
 import { emptyCargo, cargoSum, RES } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
+import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, MATS } from './construction';
+import { STATION_CREW_RATE } from './data';
 import { effSec, secAt } from './security';
 import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate, jumps } from './geom';
 
 export const STRAT_DT = 0.25;
+/** NPC-only battles share this much wall time per update (ms); beyond it they just run a bit slower */
+const NPC_BATTLE_BUDGET_MS = 8;
+/** safety valve: ships in concurrent NPC battles above this fall back to the strength model */
+const NPC_BATTLE_CAP = 160;
+const clockMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 const ENGAGE_R = 420;
 const JOIN_R = 1700;
 const WARP_MIN = 6000;      // trips longer than this use the in-system warp drive
@@ -44,6 +51,7 @@ export type Cmd =
   | { c: 'dismiss'; commander: string }
   | { c: 'accept'; contract: string }
   | { c: 'queueModule'; station: string; kind: string }
+  | { c: 'planOp'; station: string; plan: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
   | { c: 'renameCompany'; name: string };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
@@ -57,6 +65,9 @@ export class WorldSim {
   /** live tactical battles (transient; rebuilt from setup+orders on load) */
   battles = new Map<string, World>();
   private battleAcc = new Map<string, number>();
+  private npcRot = 0;
+  /** wall time spent stepping NPC battles (diagnostics) */
+  npcBattleMs = 0;
   private acc = 0;
   private slow = 0;
   /** hooks for the server */
@@ -67,9 +78,11 @@ export class WorldSim {
     if ((st.version ?? 0) < WORLD_VERSION) st = migrateWorld(st);
     this.st = st;
     this.rng = new Rng(st.seed).restore(st.rng.length ? st.rng : new Rng(st.seed).state());
+    // construction plans: give pre-plan saves their bookkeeping (idempotent)
+    for (const x of Object.values(st.stations)) for (const m of x.modules) normPlan(m, () => this.id('pl'));
     // rebuild live battles
     for (const e of Object.values(st.engagements)) {
-      if (e.done || !e.live) continue;
+      if (e.done || e.autoEnd !== undefined) continue;
       const w = new World(e.setup);
       w.scheduleReplay(e.orders.map(o => ({ ...o })));
       while (w.tick < e.tick && !w.outcome) w.step();
@@ -360,17 +373,83 @@ export class WorldSim {
       case 'queueModule': {
         const st = S(cmd.station); const md = MODULES[cmd.kind];
         if (!st || st.owner !== company || !md) return '건설 불가';
-        if (st.modules.length >= MAX_MODULES) return '모듈 슬롯 부족';
+        if (md.kind === 'core') return '도킹 허브는 정거장 설립 시 함께 건설됨';
+        if (st.modules.length >= MAX_MODULES) return `시설 슬롯 부족 (${st.modules.length}/${MAX_MODULES})`;
         if (md.requires && !st.modules.some(m => m.kind === md.requires)) return `${MODULES[md.requires].name} 필요`;
-        if (co.credits < md.credits) return '자금 부족';
+        if (md.kind !== 'defense' && md.kind !== 'depot' && st.modules.some(m => m.kind === md.kind)) return '이미 보유하거나 계획된 시설';
+        // credits are paid now; materials may arrive later — the plan waits for them
+        if (co.credits < md.credits) return `자금 부족 — ${Math.ceil(md.credits - co.credits).toLocaleString()} cr 더 필요`;
         co.credits -= md.credits;
-        st.modules.push({ kind: md.kind, progress: 0, built: false, slot: this.freeSlot(st) });
-        this.ev('info', `${st.name}: ${md.name} 건설 예약 (합금 ${md.alloy}${md.crystal ? `, 크리스탈 ${md.crystal}` : ''} 필요)`, { company, pos: st.pos });
+        const m = normPlan({ kind: md.kind, progress: 0, built: false, slot: this.freeSlot(st), paid: md.credits }, () => this.id('pl'));
+        st.modules.push(m);
+        // take what is already in storage right away so the panel shows it immediately
+        allocate(st, this.storage(st, company));
+        const short = MATS.filter(r => missing(m, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(m, r))}`);
+        this.ev('info', `${st.name}: ${md.name} 건설 계획 등록 — ${short.length ? `자재 대기 (${short.join(', ')} 부족)` : '자재 확보 완료'}`, { company, pos: st.pos, tag: 'build_plan' });
+        return null;
+      }
+      case 'planOp': {
+        const st = S(cmd.station);
+        if (!st || st.owner !== company) return '자사 정거장이 아님';
+        const m = st.modules.find(x => x.id === cmd.plan && !x.built);
+        if (!m) return '해당 건설 계획이 없음';
+        const md = MODULES[m.kind];
+        const store = this.storage(st, company);
+        switch (cmd.op) {
+          case 'pause': m.paused = true; break;
+          case 'resume': m.paused = false; allocate(st, store); break;
+          case 'cancel': {
+            if (m.kind === 'core') return '도킹 허브는 취소할 수 없음';
+            if (st.modules.some(o => o !== m && MODULES[o.kind].requires === m.kind && !st.modules.some(x => x !== m && x.kind === m.kind && x.built))) return `${md.name}이(가) 필요한 다른 계획이 있음`;
+            const back = cancelRefund(m);
+            store.alloy += back.alloy; store.crystal += back.crystal; co.credits += back.credits;
+            st.modules.splice(st.modules.indexOf(m), 1);
+            allocate(st, store); // freed materials go to the next plan in line
+            this.ev('info', `${st.name}: ${md.name} 계획 취소 — 환불 ${back.credits.toLocaleString()} cr, 예약 자재 반환 (합금 ${Math.round(back.alloy)}${back.crystal ? `, 크리스탈 ${Math.round(back.crystal)}` : ''})${m.progress > 0 ? ` · 투입된 자재는 회수 불가` : ''}`, { company, pos: st.pos });
+            return null;
+          }
+          case 'up': case 'down': case 'top': {
+            const q = st.modules.filter(x => !x.built);
+            const i = q.indexOf(m);
+            const j = cmd.op === 'top' ? 0 : cmd.op === 'up' ? i - 1 : i + 1;
+            if (j < 0 || j >= q.length || j === i) return null;
+            q.splice(i, 1); q.splice(j, 0, m);
+            st.modules = [...st.modules.filter(x => x.built), ...q];
+            break;
+          }
+        }
         return null;
       }
       case 'renameCompany': co.name = cmd.name.slice(0, 20) || co.name; return null;
     }
     return '알 수 없는 명령';
+  }
+
+  /** construction at an owned station: free storage → waiting plans, then the hub's own crew works */
+  private stationWorks(st: Station, dt: number) {
+    if (!st.modules.some(m => !m.built)) return;
+    const store = this.storage(st, st.owner);
+    for (const m of allocate(st, store)) {
+      const act = activePlan(st) === m;
+      this.ev('info', `${st.name}: ${MODULES[m.kind].name} 자재 확보 완료${act ? ' — 건설 시작' : ' — 건설 순서 대기'}`, { company: st.owner, pos: st.pos, tag: 'build_secured' });
+    }
+    const m = activePlan(st);
+    if (m && m.kind !== 'core' && this.hasModule(st, 'core')) this.workOn(st, m, dt / MODULES[m.kind].work * STATION_CREW_RATE, null);
+  }
+
+  /** progress a secured plan; announces start and completion */
+  private workOn(st: Station, m: import('./types').Module, rate: number, g: WGroup | null) {
+    const md = MODULES[m.kind];
+    if (m.progress <= 0 && rate > 0) this.ev('info', `${st.name}: ${md.name} 건설 시작`, { company: st.owner, pos: st.pos, tag: 'build_start' });
+    if (advance(m, rate)) {
+      // rounding crumbs go back; completed modules carry no plan bookkeeping
+      const store = this.storage(st, st.owner);
+      for (const r of MATS) store[r] += m.reserved?.[r] ?? 0;
+      delete m.reserved; delete m.used; delete m.paused; delete m.secured;
+      this.ev('world', `${this.st.companies[st.owner]?.name ?? ''}: ${st.name}에 ${md.name} 완공!`, { pos: st.pos, ref: st.id });
+      this.ev('info', `${st.name}: ${md.name} 완공 — ${md.unlocks}`, { company: st.owner, pos: st.pos, tag: 'build_done' });
+      if (g) this.say(g, `${md.name} 완공했습니다.`, 'radio', 0);
+    }
   }
 
   private freeSlot(st: Station) { const used = new Set(st.modules.map(m => m.slot)); for (let i = 1; i < MAX_MODULES; i++) if (!used.has(i)) return i; return 0; }
@@ -464,17 +543,54 @@ export class WorldSim {
 
   /** advance world time; dt in seconds (scaled by game speed in single player) */
   update(dt: number) {
-    // tactical battles step at 30 Hz
-    for (const [id, w] of this.battles) {
-      const e = this.st.engagements[id];
+    // tactical battles step at 30 Hz with the deterministic engine — the same one every spectator
+    // re-runs locally, so what anyone watches is exactly what the server decides. Battles with
+    // players come first; NPC-only fights share a wall-time budget (if it runs out they simply fall
+    // a little behind real time; the outcome does not depend on timing).
+    const t0 = clockMs();
+    const ids = [...this.battles.keys()];
+    const npcIds = ids.filter(id => !this.st.engagements[id]?.live);
+    const rot = npcIds.length ? this.npcRot++ % npcIds.length : 0;
+    const order = [...ids.filter(id => this.st.engagements[id]?.live), ...npcIds.slice(rot), ...npcIds.slice(0, rot)];
+    let npcSpent = 0;
+    for (const id of order) {
+      const w = this.battles.get(id)!, e = this.st.engagements[id];
+      if (!e) { this.battles.delete(id); continue; }
+      const npc = !e.live;
       let acc = (this.battleAcc.get(id) ?? 0) + dt;
-      while (acc >= w.dt && !w.outcome) { w.step(); acc -= w.dt; }
+      if (npc) acc = Math.min(acc, Math.max(1.5, dt * 2));
+      const s0 = clockMs();
+      while (acc >= w.dt && !w.outcome) {
+        if (npc && clockMs() - t0 > NPC_BATTLE_BUDGET_MS) break;
+        w.step(); acc -= w.dt;
+      }
+      if (npc) npcSpent += clockMs() - s0;
       this.battleAcc.set(id, acc);
       e.tick = w.tick;
-      if (w.outcome) { this.finishEngagement(e, this.resultFromWorld(w)); this.battles.delete(id); this.battleAcc.delete(id); }
+      this.mirrorBattle(e, w);
+      if (w.outcome) { this.finishEngagement(e, this.resultFromWorld(w), true); this.battles.delete(id); this.battleAcc.delete(id); }
     }
+    this.npcBattleMs = this.npcBattleMs * 0.9 + npcSpent * 0.1;
     this.acc += dt;
     while (this.acc >= STRAT_DT) { this.acc -= STRAT_DT; this.tick(STRAT_DT); }
+  }
+
+  /** strategic ships follow their tactical counterparts, so the map shows the fight as it happens */
+  private mirrorBattle(e: Engagement, w: World) {
+    const st = this.st;
+    const alive: [number, number] = [0, 0], total: [number, number] = [0, 0];
+    for (const ts of w.ships) {
+      total[ts.team]++;
+      if (ts.state === 'alive') alive[ts.team]++;
+      if (!ts.ref || ts.ref.includes(':')) continue;
+      const s = st.ships[ts.ref];
+      if (!s || s.engagement !== e.id) continue;
+      s.pos = { x: e.pos.x + ts.pos.x, y: e.pos.y + ts.pos.y, z: e.pos.z + ts.pos.z };
+      s.vel = { x: ts.vel.x, y: ts.vel.y, z: ts.vel.z };
+      s.heading = Math.atan2(ts.fwd.x, ts.fwd.z);
+      s.hp = ts.state === 'dead' || ts.state === 'dying' ? 0 : ts.hp / ts.maxHp;
+    }
+    e.prog = { alive, total, value: [Math.round(w.teamValueFrac(0) * 100) / 100, Math.round(w.teamValueFrac(1) * 100) / 100] };
   }
 
   tick(dt: number) {
@@ -524,6 +640,7 @@ export class WorldSim {
           }
         }
         if (this.hasModule(s, 'defense') && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
+        this.stationWorks(s, dt);
       }
     }
     for (const f of Object.values(st.fields)) {
@@ -1208,37 +1325,37 @@ export class WorldSim {
     const st = this.st.stations[stationId];
     if (!st) return;
     if (s.classId !== 'constructor') { if (this.canDock(st, s.owner)) this.goDock(s, st, dt, speed); else this.moveTo(s, this.formationSlot(s, g, st.pos, 250), speed, dt); return; }
-    const pending = st.modules.find(m => !m.built && (!MODULES[m.kind].requires || st.modules.some(o => o.kind === MODULES[m.kind].requires && o.built)));
+    const store = this.storage(st, s.owner);
+    const waiting = plans(st);
+    const active = activePlan(st);
     const orbitA = this.time * 0.15 + hashId(s.id);
-    const spot = pending ? vadd(st.pos, { x: Math.cos(orbitA) * 210, y: 40, z: Math.sin(orbitA) * 210 }) : null;
-    if (!pending) {
-      g.status = `${st.name}: 건설 대기열 없음`;
+    if (!waiting.length) {
+      g.status = `${st.name}: 건설 계획 없음`;
       if (this.canDock(st, s.owner)) this.goDock(s, st, dt, speed);
       return;
     }
-    if (this.moveTo(s, spot!, speed, dt, 90)) {
-      const md = MODULES[pending.kind];
-      const store = this.storage(st, s.owner);
-      // the constructor unloads what it carries into the site
-      for (const r of RES) if (s.cargo[r] > 0) { store[r] += s.cargo[r]; s.cargo[r] = 0; }
-      const rate = Math.min(dt / md.work * (0.8 + c.skill * 0.5), 1 - pending.progress);
-      const needA = md.alloy * rate, needC = md.crystal * rate;
-      if (store.alloy >= needA - 1e-6 && store.crystal >= needC - 1e-6) {
-        if (pending.progress + rate >= 1 - 1e-9) pending.progress = 1 - rate;
-        store.alloy = Math.max(0, store.alloy - needA); store.crystal = Math.max(0, store.crystal - needC);
-        pending.progress = Math.min(1, pending.progress + rate);
-        s.fx = { welding: `${st.id}:${pending.slot}` };
-        g.status = `${md.name} 건설 ${Math.round(pending.progress * 100)}%`;
-        if (pending.progress >= 1) {
-          pending.built = true;
-          this.ev('world', `${this.st.companies[s.owner].name}: ${st.name}에 ${md.name} 완공!`, { company: undefined, pos: st.pos, ref: st.id });
-          this.say(g, `${md.name} 완공했습니다.`, 'radio', 0);
-        }
-      } else {
-        g.status = `${md.name} — 자재 부족 (합금 ${Math.floor(store.alloy)}/${Math.ceil(md.alloy * (1 - pending.progress))})`;
-        this.say(g, `${md.name} 자재가 부족합니다. 합금을 ${st.name}로 운송해 주십시오.`, 'warn', 60);
-      }
+    const spot = vadd(st.pos, { x: Math.cos(orbitA) * 210, y: 40, z: Math.sin(orbitA) * 210 });
+    if (!this.moveTo(s, spot, speed, dt, 90)) { g.status = `${st.name}로 이동 중 (건설)`; return; }
+    // the constructor unloads what it carries into the station's storage; plans take it from there
+    let unloaded = false;
+    for (const r of RES) if (s.cargo[r] > 0) { store[r] += s.cargo[r]; s.cargo[r] = 0; unloaded = true; }
+    if (unloaded) this.stationWorks(st, 0);
+    if (active) {
+      const md = MODULES[active.kind];
+      this.workOn(st, active, dt / md.work * (0.8 + c.skill * 0.5), g);
+      s.fx = { welding: `${st.id}:${active.slot}` };
+      g.status = active.built ? `${md.name} 완공` : `${md.name} 건설 ${Math.round(active.progress * 100)}%`;
+      return;
     }
+    // nothing buildable: say exactly what is missing (alloy and crystal reported separately)
+    const first = waiting.find(m => !m.paused && prereqBuilt(st, m)) ?? waiting[0];
+    const md = MODULES[first.kind];
+    if (first.paused) { g.status = `${md.name} — 일시 정지됨`; return; }
+    if (!isSecured(first)) {
+      const short = MATS.filter(r => missing(first, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(first, r))} 부족`);
+      g.status = `${md.name} — 자재 대기 (${short.join(', ')})`;
+      this.say(g, `${md.name} 자재 대기 중: ${short.join(', ')}. ${st.name} 창고로 운송하거나 하역해 주십시오.`, 'warn', 90);
+    } else g.status = `${md.name} — 선행 시설 대기`;
   }
 
   private foundStation(g: WGroup, s: WShip, op: Extract<Op, { k: 'found' }>) {
@@ -1247,7 +1364,7 @@ export class WorldSim {
     const station: Station = {
       id, name: op.name.slice(0, 18) || `${co.name} 기지`, owner: g.owner, public: false, style: 3, pos: { ...op.at, y: 0 }, radius: 180,
       market: null, services: { repair: false, shipyard: [], recruit: false, contracts: false, refit: false },
-      storage: {}, modules: [{ kind: 'core', progress: 0, built: false, slot: 0 }], defenseHp: 1, founded: this.time,
+      storage: {}, modules: [normPlan({ kind: 'core', progress: 0, built: false, slot: 0, paid: 0 }, () => this.id('pl'))], defenseHp: 1, founded: this.time,
       desc: `${co.name}의 자체 정거장.`,
     };
     for (const cid of Object.keys(this.st.companies)) station.storage[cid] = emptyCargo();
@@ -1515,7 +1632,7 @@ export class WorldSim {
     const sideA = [...new Set(pirates.map(g => g.owner))];
     if (lair && !sideA.includes('pirates')) sideA.push('pirates');
     const live = sideB.some(c => st.companies[c]?.kind === 'player');
-    const titleB = sideB.filter(c => st.companies[c]?.kind === 'player').map(c => st.companies[c].name).join(' · ') || '연합 경비대';
+    const titleB = sideB.filter(c => st.companies[c]?.kind === 'player').map(c => st.companies[c].name).join(' · ') || sideB.map(c => st.companies[c]?.name ?? c).join(' · ') || '연합 경비대';
     const sys = this.sysOf(pos);
     const setup = {
       seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720,
@@ -1524,15 +1641,18 @@ export class WorldSim {
     const e: Engagement = {
       id: this.id('e'), pos: { ...pos }, start: st.time, setup, orders: [], tick: 0, sides: [sideB, sideA], groupRefs: all.map(g => g.id),
       live, done: false, lairId: lair?.id, stationId, n: ships.length + (lair ? 1 : 0), sys: sys?.id,
+      names: [titleB, lair ? `해적 · ${lair.name}` : '해적'],
     };
     st.engagements[e.id] = e;
     for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; }
     const desc = `${pirates.length ? pirates.map(g => g.name).join(', ') : ''}${lair ? (pirates.length ? ' + ' : '') + lair.name : ''}`;
     for (const c of sideB) if (st.companies[c]?.kind === 'player') this.ev('battle', `교전 발생! ${desc}와(과) 전투 중`, { company: c, pos, ref: e.id });
-    if (live) { const w = new World(setup); this.battles.set(e.id, w); this.battleAcc.set(e.id, 0); }
-    // nobody is watching an NPC-only fight: settle it with the strength model after a while
-    // (running the full tactical engine here stalled the server for 50-130 ms per battle)
+    // every battle runs the real tactical engine in real time (≈3 ms of CPU per battle-second);
+    // only if an absurd number of NPC ships are fighting at once does the strength model take over
+    const npcShips = [...this.battles.keys()].map(id => st.engagements[id]).filter(x => x && !x.live).reduce((a, x) => a + (x.n ?? 0), 0);
+    if (live || npcShips + (e.n ?? 0) <= NPC_BATTLE_CAP) { const w = new World(setup); this.battles.set(e.id, w); this.battleAcc.set(e.id, 0); this.mirrorBattle(e, w); }
     else e.autoEnd = st.time + Math.min(90, 20 + ships.length * 2.5);
+    if (!live && (e.n ?? 0) >= 4 && sys) this.ev('world', `${sys.name}: ${e.names![0]} ↔ ${e.names![1]} 교전 발생 (${e.n}척)${e.autoEnd === undefined ? ' — 클릭하여 관전' : ''}`, { pos, ref: e.id });
     return e;
   }
 
@@ -1568,7 +1688,7 @@ export class WorldSim {
   }
 
   private resolveAuto() {
-    for (const e of Object.values(this.st.engagements)) if (!e.done && e.autoEnd !== undefined && this.time >= e.autoEnd) this.finishEngagement(e, this.quickResolve(e));
+    for (const e of Object.values(this.st.engagements)) if (!e.done && e.autoEnd !== undefined && this.time >= e.autoEnd) this.finishEngagement(e, this.quickResolve(e), false);
   }
 
   /** strength-model resolution for NPC-only fights (Lanchester square law with noise) */
@@ -1605,9 +1725,12 @@ export class WorldSim {
     return out;
   }
 
-  private finishEngagement(e: Engagement, res: BattleResult) {
+  private finishEngagement(e: Engagement, res: BattleResult, tactical = false) {
     const st = this.st;
     e.done = true; e.winner = res.winner;
+    const sideOf = (ref: string) => ref.startsWith('lair:') ? 1 : ref.startsWith('station:') ? 0 : (st.ships[ref] && e.sides[0].includes(st.ships[ref].owner) ? 0 : 1);
+    const losses: [number, number] = [0, 0];
+    for (const ts of res.ships) if (ts.dead && !ts.ref.startsWith('station:')) losses[sideOf(ts.ref)]++;
     const sys = this.sysOf(e.pos);
     const destroyedPirateValue = new Map<string, number>();
     const dmgBy = new Map<string, number>();
@@ -1646,10 +1769,17 @@ export class WorldSim {
       } else {
         s.hp = Math.max(0.05, ts.hp);
         s.state = 'space'; s.engagement = undefined; s.task = { k: 'none' };
-        // survivors drift out of the battle zone; escapees end up further away
-        const off = ts.escaped ? 520 : 140;
-        const ang = this.rng.range(0, Math.PI * 2);
-        s.pos = { x: e.pos.x + Math.cos(ang) * off * this.rng.range(0.4, 1), y: e.pos.y + this.rng.range(-30, 30), z: e.pos.z + Math.sin(ang) * off * this.rng.range(0.4, 1) };
+        if (tactical) {
+          // they are already where the tactical battle left them (mirrored live); keep escapees nearby
+          const dx = s.pos.x - e.pos.x, dz = s.pos.z - e.pos.z, d = Math.hypot(dx, dz);
+          if (d > 2500) { s.pos = { x: e.pos.x + dx / d * 2500, y: e.pos.y, z: e.pos.z + dz / d * 2500 }; }
+          s.vel = { x: 0, y: 0, z: 0 };
+        } else {
+          // strength-model fights: survivors drift out of the battle zone; escapees end up further away
+          const off = ts.escaped ? 520 : 140;
+          const ang = this.rng.range(0, Math.PI * 2);
+          s.pos = { x: e.pos.x + Math.cos(ang) * off * this.rng.range(0.4, 1), y: e.pos.y + this.rng.range(-30, 30), z: e.pos.z + Math.sin(ang) * off * this.rng.range(0.4, 1) };
+        }
       }
     }
     // groups: cooldown, commander experience & injuries
@@ -1719,6 +1849,14 @@ export class WorldSim {
         else if (destroyedPirateValue.size >= 3 || e.lairId) this.ev('world', `${sys.name}: 연합군이 해적 ${destroyedPirateValue.size}척을 격침했다.`, { pos: e.pos });
       } else if (!won) { sys.stats.raids++; this.ev('world', `${sys.name}: 길드 상선이 해적에게 약탈당했다.`, { pos: e.pos }); }
       void nPir;
+    }
+    // a record anyone can replay: the setup (with its seed) and the orders reproduce it exactly
+    const names = e.names ?? ['아군', '해적'];
+    if (!e.summary) e.summary = `${e.winner === 0 ? names[0] + ' 승리' : e.winner === 1 ? names[1] + ' 승리' : '교착'} — 손실 ${names[0]} ${losses[0]}척 · ${names[1]} ${losses[1]}척`;
+    if (tactical) {
+      const log = (st.battleLog ??= []);
+      log.push({ id: e.id, sys: e.sys, pos: { ...e.pos }, start: e.start, end: this.time, names, winner: e.winner ?? -1, summary: e.summary, n: e.n ?? 0, losses, setup: e.setup, orders: e.orders });
+      if (log.length > 30) log.splice(0, log.length - 30);
     }
     this.onBattleEnd?.(e);
   }

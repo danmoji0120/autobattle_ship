@@ -94,10 +94,14 @@ export class GameServer {
       }
       case 'bjoin': {
         const e = this.sim.st.engagements[msg.eng];
-        if (!e) return c.send({ t: 'error', msg: '전투가 끝났거나 존재하지 않음' });
-        c.battles.add(e.id);
-        c.send({ t: 'binit', eng: e.id, setup: e.setup, orders: e.orders, tick: e.tick });
-        return;
+        const rec = this.sim.st.battleLog?.find(r => r.id === msg.eng);
+        // a running battle: join live; a finished one: replay it from its record
+        if (e && !e.done && e.autoEnd === undefined) {
+          c.battles.add(e.id);
+          return c.send({ t: 'binit', eng: e.id, setup: e.setup, orders: e.orders, tick: e.tick, names: e.names });
+        }
+        if (rec) return c.send({ t: 'binit', eng: rec.id, setup: rec.setup, orders: rec.orders, tick: 0, replay: true, names: rec.names });
+        return c.send({ t: 'error', msg: e?.autoEnd !== undefined ? '원거리 판정 전투라 관전할 수 없음' : '전투 기록이 없음' });
       }
       case 'border': {
         if (!c.company) return;
@@ -141,7 +145,7 @@ export class GameServer {
       const max = Math.max(0, ...this.tickCost);
       this.tickCost = [];
       for (const c of this.conns.values()) if (c.company) {
-        c.send({ t: 'stats', tickMs: avg, tickMax: max, rate, bytes: (c.bytes ?? 0) / this.statAcc, ships: Object.keys(this.sim.st.ships).length, conns: this.conns.size, battles: this.sim.battles.size });
+        c.send({ t: 'stats', tickMs: avg, tickMax: max, rate, bytes: (c.bytes ?? 0) / this.statAcc, ships: Object.keys(this.sim.st.ships).length, conns: this.conns.size, battles: this.sim.battles.size, battleMs: this.sim.npcBattleMs });
         c.bytes = 0;
       }
       this.statAcc = 0;
@@ -156,11 +160,12 @@ export class GameServer {
 
   /** everything except ships (filtered per client); battles without their heavy setup/orders */
   private snapBase(): Omit<WorldView, 'ships'> {
-    const { events: _e, rng: _r, ships: _s, engagements, ...rest } = this.sim.st;
+    const { events: _e, rng: _r, ships: _s, engagements, battleLog, ...rest } = this.sim.st;
     void _e; void _r; void _s;
     const eng: Record<string, any> = {};
     for (const [id, e] of Object.entries(engagements)) { const { setup: _x, orders: _o, ...lite } = e; void _x; void _o; eng[id] = lite; }
-    return { ...rest, engagements: eng } as Omit<WorldView, 'ships'>;
+    const log = (battleLog ?? []).map(({ setup: _x, orders: _o, ...lite }) => { void _x; void _o; return lite; });
+    return { ...rest, engagements: eng, battleLog: log } as Omit<WorldView, 'ships'>;
   }
 
   /** the system a client is looking at (defaults to where its company is based) */
@@ -191,7 +196,8 @@ export class GameServer {
     const r1 = (n: number) => Math.round(n * 10) / 10;
     const out: (string | number)[][] = [];
     for (const s of Object.values(this.visibleShips(c))) {
-      if (s.state !== 'space') continue;
+      // battle ships too: their positions mirror the server's tactical sim, so the map shows the fight
+      if (s.state !== 'space' && !(s.state === 'battle' && s.hp > 0)) continue;
       out.push([s.id, r1(s.pos.x), r1(s.pos.y), r1(s.pos.z), r1(s.vel.x), r1(s.vel.y), r1(s.vel.z), Math.round(s.heading * 1000) / 1000, s.warp ? (s.warp.phase === 'warp' ? 2 : 1) : 0]);
     }
     return { t: 'mov', at: this.sim.time, s: out };

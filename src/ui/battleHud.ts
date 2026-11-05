@@ -20,6 +20,8 @@ const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60
 
 export interface HudOptions {
   replay: boolean;
+  /** spectating a battle you have no part in: side names replace "ally/enemy" */
+  spectate?: { sides: [string, string] };
   /** persistent world: which tactical groups this player may command */
   canCommand?: (g: Group) => boolean;
   /** persistent world: results screen returns to the strategic map */
@@ -73,12 +75,21 @@ export class BattleHUD {
     session.onEvents = ev => this.onEvents(ev);
     session.onFrame = dt => this.frame(dt);
     this.refreshTree(); this.refreshCommand();
-    if (opts.replay) this.banner('리플레이', '기록된 명령으로 전투를 재현합니다', 'ally', 'REPLAY');
-    else {
+    if (opts.replay) this.banner('리플레이', opts.spectate ? `${opts.spectate.sides[0]} vs ${opts.spectate.sides[1]} — 서버 판정 그대로 재현합니다` : '기록된 명령으로 전투를 재현합니다', 'ally', 'REPLAY');
+    else if (opts.spectate) {
+      this.banner('관전 중', `${opts.spectate.sides[0]} vs ${opts.spectate.sides[1]} — 서버 전투를 실시간으로 재현합니다`, 'ally', 'LIVE');
+      const tip = h('div', 'panel', `<b style="color:var(--cyan)">관전 모드</b> — 양측 지휘관이 스스로 싸웁니다.<br>
+        <b>전술 지도</b> / <b>추적</b>(함선 더블클릭) / <b>시네마틱</b>(C) 시점 · 부대·함선을 클릭하면 상태를 볼 수 있습니다.<br>
+        <span style="color:var(--dim)">관전을 끝내도 전투는 서버에서 계속됩니다 · 클릭하여 닫기</span>`);
+      Object.assign(tip.style, { position: 'absolute', top: '118px', left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', fontSize: '12.5px', lineHeight: '1.6', maxWidth: '560px', cursor: 'pointer', zIndex: '5' });
+      tip.onclick = () => tip.remove();
+      r0(this.root).appendChild(tip);
+      setTimeout(() => tip.remove(), 12000);
+    } else {
       const tip = h('div', 'panel', `<b style="color:var(--cyan)">지휘관들이 스스로 싸웁니다.</b> 지켜보다가 필요할 때 개입하세요.<br>
         부대 선택 → 아래 명령 버튼, 또는 <b>우클릭</b>(적=공격 · 아군=호위 · 빈곳=이동). ▸로 부대를 펼치면 하위 부대까지 지도에 표시됩니다.<br>
         <span style="color:var(--dim)">Tab: 시네마틱 감상 · Space: 일시정지(정지 중에도 명령 가능) · 클릭하여 닫기</span>`);
-      Object.assign(tip.style, { position: 'absolute', top: '74px', left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', fontSize: '12.5px', lineHeight: '1.6', maxWidth: '560px', cursor: 'pointer', zIndex: '5' });
+      Object.assign(tip.style, { position: 'absolute', top: '118px', left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', fontSize: '12.5px', lineHeight: '1.6', maxWidth: '560px', cursor: 'pointer', zIndex: '5' });
       tip.onclick = () => tip.remove();
       r0(this.root).appendChild(tip);
       setTimeout(() => tip.remove(), 16000);
@@ -99,9 +110,9 @@ export class BattleHUD {
     const top = h('div', 'panel', '');
     top.id = 'topbar';
     top.innerHTML = `
-      <div class="strength"><div class="lbl"><span>아군 전력</span><b id="sa">100%</b></div><div class="bar"><em id="sae"></em><i id="sab"></i></div></div>
+      <div class="strength"><div class="lbl"><span>${esc(this.opts.spectate ? this.opts.spectate.sides[0] : '아군')} 전력</span><b id="sa">100%</b></div><div class="bar"><em id="sae"></em><i id="sab"></i></div></div>
       <div id="clock">0:00<small>교전 시간</small></div>
-      <div class="strength"><div class="lbl"><b id="se">100%</b><span>적 전력</span></div><div class="bar enemy"><em id="see"></em><i id="seb"></i></div></div>
+      <div class="strength"><div class="lbl"><b id="se">100%</b><span>${esc(this.opts.spectate ? this.opts.spectate.sides[1] : '적')} 전력</span></div><div class="bar enemy"><em id="see"></em><i id="seb"></i></div></div>
       <div class="speedgrp" id="speed">
         <button class="btn" data-sp="0" title="일시정지 (Space)">❚❚</button>
         <button class="btn" data-sp="0.5">½×</button>
@@ -754,8 +765,10 @@ export class BattleHUD {
     const enemyLost = w.ships.filter(s => s.team === 1 && (s.state === 'dead' || s.state === 'dying')).length;
     const enemyTotal = w.ships.filter(s => s.team === 1).length;
     modal.innerHTML = `<div class="panel result">
-      <h1 class="${win ? 'win' : 'lose'}">${o.winner === 0 ? '작전 성공' : o.winner === 1 ? '작전 실패' : '무승부'}</h1>
-      <div class="sub">${esc(o.reason)} · 교전 시간 ${fmtTime(o.time)} · 아군 생존 ${survivors}/${mine.length} · 적 격침 ${enemyLost}/${enemyTotal}</div>
+      ${this.opts.spectate ? `<h1 class="${o.winner === 1 ? 'lose' : 'win'}">${o.winner === -1 ? '무승부' : esc(this.opts.spectate.sides[o.winner]) + ' 승리'}</h1>
+      <div class="sub">${esc(o.reason.replace(/^아군/, this.opts.spectate.sides[0]).replace(/^적 /, this.opts.spectate.sides[1] + ' '))} · 교전 시간 ${fmtTime(o.time)} · ${esc(this.opts.spectate.sides[0])} 생존 ${survivors}/${mine.length} · ${esc(this.opts.spectate.sides[1])} 격침 ${enemyLost}/${enemyTotal}</div>`
+      : `<h1 class="${win ? 'win' : 'lose'}">${o.winner === 0 ? '작전 성공' : o.winner === 1 ? '작전 실패' : '무승부'}</h1>
+      <div class="sub">${esc(o.reason)} · 교전 시간 ${fmtTime(o.time)} · 아군 생존 ${survivors}/${mine.length} · 적 격침 ${enemyLost}/${enemyTotal}</div>`}
       <div class="cols">
         <div>
           <h3>전투 하이라이트</h3>
@@ -769,7 +782,7 @@ export class BattleHUD {
           <table class="gt"><tr><th>부대</th><th>격침</th><th>손실</th><th>피해</th><th>평가</th><th></th></tr>${topGroups.map(evalLine).join('')}</table>
         </div>
       </div>
-      <div class="acts">${this.opts.campaign ? `<button class="btn go" data-a="return">전략 지도로 복귀</button>` : `
+      <div class="acts">${this.opts.campaign ? `${this.opts.spectate ? '<button class="btn" data-a="replay">처음부터 다시 보기</button>' : ''}<button class="btn go" data-a="return">전략 지도로 복귀</button>` : `
         <button class="btn" data-a="replay">리플레이 보기</button>
         <button class="btn" data-a="restart">같은 조건으로 재도전</button>
         <button class="btn go" data-a="exit">함대 편성으로</button>`}
@@ -779,7 +792,7 @@ export class BattleHUD {
     const bind = (k: string, f: () => void) => { const b = modal.querySelector<HTMLButtonElement>(`[data-a="${k}"]`); if (b) b.onclick = f; };
     bind('replay', () => this.opts.onReplay()); bind('restart', () => this.opts.onRestart()); bind('exit', () => this.opts.onExit());
     bind('return', () => this.opts.campaign?.onReturn());
-    this.s.view.audio?.play(win ? 'win' : 'lose', null, 0.8);
+    this.s.view.audio?.play(this.opts.spectate || win ? 'win' : 'lose', null, 0.8);
   }
 }
 
