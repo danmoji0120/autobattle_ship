@@ -342,6 +342,8 @@ export interface WorldEvent {
 }
 
 export interface WorldState {
+  /** sim sub-tick accumulators (restored on load) */
+  clock?: { acc: number; slow: number; npcRot: number; battleAcc?: Record<string, number> };
   version: number;
   seed: number;
   rng: number[];

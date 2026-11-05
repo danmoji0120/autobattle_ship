@@ -108,11 +108,18 @@ export class WorldSim {
       while (w.tick < e.tick && !w.outcome) w.step();
       this.battles.set(e.id, w);
     }
+    const c = st.clock;
+    if (c) { this.acc = c.acc; this.slow = c.slow; this.npcRot = c.npcRot; for (const [k, v] of Object.entries(c.battleAcc ?? {})) if (this.battles.has(k)) this.battleAcc.set(k, v); }
   }
 
   static create(seed = 1): WorldSim { return new WorldSim(newWorld(seed)); }
 
-  serialize(): string { this.st.rng = this.rng.state(); return JSON.stringify(this.st); }
+  serialize(): string {
+    this.st.rng = this.rng.state();
+    // sub-tick accumulators, so a restored world continues exactly where it stopped
+    this.st.clock = { acc: this.acc, slow: this.slow, npcRot: this.npcRot, battleAcc: Object.fromEntries(this.battleAcc) };
+    return JSON.stringify(this.st);
+  }
 
   // ===================================================================== helpers
 
