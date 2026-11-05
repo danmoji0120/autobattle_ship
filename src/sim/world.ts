@@ -668,7 +668,7 @@ export class World {
     m.lastFire = this.time;
     if (m.targetIsMunition) {
       const mu = this.munitionById.get(m.targetId)!;
-      const chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.9 : 1);
+      const chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.6 : 1);
       const hit = this.rng.chance(chance);
       const to = mu.pos.clone();
       if (!hit) to.add(new Vec3(this.rng.range(-8, 8), this.rng.range(-8, 8), this.rng.range(-8, 8)));

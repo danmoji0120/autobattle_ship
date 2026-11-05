@@ -16,8 +16,8 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: #02040a; color: var(--text); font-family: var(--font); overflow: hidden; user-select: none; }
 #view { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
-#overlay { position: fixed; inset: 0; pointer-events: none; }
-#app { position: fixed; inset: 0; pointer-events: none; }
+#overlay { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+#app { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
 #app > * { pointer-events: auto; }
 button { font-family: var(--font); }
 .hidden { display: none !important; }

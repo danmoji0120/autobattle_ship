@@ -42,6 +42,7 @@ export const SCENARIOS: ScenarioDef[] = [
         G('제1 포열', 'vorn', 'hold', [...S('battleship', 'fortress', 1), ...S('battleship', 'std', 1)], [], 0),
         G('제2 포열', 'ilsa', 'hold', [...S('battleship', 'std', 1), ...S('battleship', 'fortress', 1)], [], 0),
         G('방공 전대', 'hesk', 'auto', S('destroyer', 'aa', 4), [], 0.2),
+        G('포격 전대', null, 'hold', S('cruiser', 'gun', 2), [], 0),
         G('경계대', 'rask', 'engage', S('corvette', 'gun', 4), [], 0.3),
       ]),
     },
@@ -54,9 +55,9 @@ export const SCENARIOS: ScenarioDef[] = [
     enemy: {
       name: '늑대 무리',
       root: G('늑대 무리', 'zeta', 'engage', [], [
-        G('송곳니 편대', 'rask', 'flank_left', S('corvette', 'torp', 6), [], 0),
-        G('발톱 편대', null, 'flank_right', [...S('corvette', 'torp', 5), ...S('corvette', 'gun', 1)], [], 0),
-        G('그림자 편대', 'vorn', 'auto', S('corvette', 'torp', 5), [], 0),
+        G('송곳니 편대', 'rask', 'flank_left', S('corvette', 'torp', 5), [], 0),
+        G('발톱 편대', null, 'flank_right', [...S('corvette', 'torp', 4), ...S('corvette', 'gun', 1)], [], 0),
+        G('그림자 편대', 'vorn', 'auto', S('corvette', 'torp', 4), [], 0),
         G('사냥개 편대', 'hesk', 'auto', S('corvette', 'gun', 5), [], 0.3),
         G('모함 전대', 'ilsa', 'auto', [...S('cruiser', 'missile', 2), ...S('cruiser', 'gun', 1), ...S('destroyer', 'strike', 2)], [], 0.3),
       ]),

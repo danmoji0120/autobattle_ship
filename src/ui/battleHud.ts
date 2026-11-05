@@ -556,6 +556,7 @@ export class BattleHUD {
     ctx.clearRect(0, 0, W, H);
     const w = this.s.world, v = this.s.view;
     const tactical = v.rig.mode === 'tactical';
+    if (v.rig.mode === 'director' || this.resultShown) { this.unitsDrawn = []; return; }
     const sel = this.selGroup();
     const selShips = new Set(sel ? w.subtreeShips(sel).map(s => s.id) : []);
     const p = this.p;
