@@ -85,10 +85,11 @@ export function upgradeIndustry(st: WorldState) {
 }
 
 /** one public market, dt seconds: local production, consumption, industry and drift */
-export function npcMarketStep(s: Station, m: Market, dt: number, heat: number) {
+export function npcMarketStep(s: Station, m: Market, dt: number, heat: number, regional = 1) {
   const p = PROFILES[s.id];
-  // pirate activity in the system chokes supply (convoys don't arrive, mines shut down)
-  const supply = Math.max(0.15, 1 - heat / 120);
+  // pirate activity in the system chokes supply (convoys don't arrive, mines shut down);
+  // merchant influence and post-liberation reconstruction raise it (factions.ts)
+  const supply = Math.max(0.15, 1 - heat / 120) * regional;
   if (p) {
     for (const [k, r] of Object.entries(p.use)) if (m[k]) m[k].stock = Math.max(0, m[k].stock - r * dt);
     for (const k of p.make) if (m[k] && m[k].stock < m[k].target) m[k].stock += Math.max(0.0004 * m[k].target, 0.002) * dt * supply;

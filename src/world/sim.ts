@@ -14,7 +14,8 @@ import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
 import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
-import { upgradeIndustry, npcMarketStep, SALVAGE_MIX } from './economy';
+import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
+import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInfluence } from './factions';
 import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot } from './research';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
@@ -223,7 +224,7 @@ export class WorldSim {
 
   private npcMarket(s: Station, m: import('./types').Market, dt: number) {
     const sys = this.sysOf(s.pos);
-    npcMarketStep(s, m, dt, sys?.heat ?? 0);
+    npcMarketStep(s, m, dt, sys?.heat ?? 0, supplyMul(sys, this.time));
   }
 
   canDock(st: Station, company: string) { return st.public || (st.owner === company && this.hasModule(st, 'core')); }
@@ -973,6 +974,7 @@ export class WorldSim {
       // government response pushes pirate activity back down; strong in the core, weak on the rim
       sys.heat = Math.max(0, Math.min(100, sys.heat - (0.002 + sys.security / 100 * 0.012)));
     }
+    factionStep(st, 1);
     this.unionForces();
     this.pirateForces();
     const traders = Object.values(st.groups).filter(g => g.owner === 'guild' && g.shipIds.length);
@@ -1103,6 +1105,7 @@ export class WorldSim {
     for (const l of Object.values(st.lairs)) {
       const sys = this.sysOf(l.pos); if (!sys) continue;
       if (!l.alive) {
+        if (st.time >= l.respawnAt && ensureInfluence(st, sys, st.time).pirates < LAIR_FOOTHOLD) { l.respawnAt = st.time + 300; continue; }
         if (st.time >= l.respawnAt) {
           l.alive = true; l.hp = 1; l.nextBand = st.time + 240;
           this.ev('world', `${sys.name}: ${l.name}이(가) 재건되었다. 해적 활동이 다시 시작된다.`, { pos: l.pos });
@@ -1114,7 +1117,7 @@ export class WorldSim {
       const bands = Object.values(st.groups).filter(g => g.owner === 'pirates' && g.npc?.home === l.id && g.shipIds.length);
       if (bands.length >= l.maxBands || pirateShips > 70) continue;
       // pirates grow bolder while the government is busy elsewhere
-      const tier = Math.max(1, Math.min(5, (l.tier ?? 2) + (sys.heat > 60 ? 1 : 0)));
+      const tier = Math.max(1, Math.min(5, (l.tier ?? 2) + (sys.heat > 60 || (sys.inf?.pirates ?? 0) > 70 ? 1 : 0)));
       const comp = this.bandComp(tier);
       const g = this.spawnBand(bandName(), comp, l.pos, { role: 'band', sys: sys.id, home: l.id }, { k: 'raid', home: l.id }, tier);
       sys.heat = Math.min(100, sys.heat + 1);
@@ -2241,7 +2244,7 @@ export class WorldSim {
       if (dead) {
         salvage += shipValue(s.classId) * 2.2;
         if (sys) {
-          if (s.owner === 'pirates') { sys.stats.pirateKills++; sys.heat = Math.max(0, sys.heat - 3); }
+          if (s.owner === 'pirates') { sys.stats.pirateKills++; sys.heat = Math.max(0, sys.heat - 3); bump(sys, { pirates: -0.6, union: 0.2 }); }
           else if (s.owner === 'union') { sys.stats.unionLosses++; sys.heat = Math.min(100, sys.heat + 3); }
           else { sys.stats.civLosses++; sys.heat = Math.min(100, sys.heat + 4); }
         }
@@ -2333,7 +2336,7 @@ export class WorldSim {
       if (e.sides[0].includes('union')) {
         if (!won) this.ev('world', `${sys.name}: 연합군이 해적에게 밀려났다! 주변 항로가 위험해진다.`, { pos: e.pos });
         else if (destroyedPirateValue.size >= 3 || e.lairId) this.ev('world', `${sys.name}: 연합군이 해적 ${destroyedPirateValue.size}척을 격침했다.`, { pos: e.pos });
-      } else if (!won) { sys.stats.raids++; this.ev('world', `${sys.name}: 길드 상선이 해적에게 약탈당했다.`, { pos: e.pos }); }
+      } else if (!won) { sys.stats.raids++; bump(sys, { pirates: 3, guild: -3 }); this.ev('world', `${sys.name}: 길드 상선이 해적에게 약탈당했다.`, { pos: e.pos }); }
       void nPir;
     }
     // a record anyone can replay: the setup (with its seed) and the orders reproduce it exactly
@@ -2350,6 +2353,14 @@ export class WorldSim {
   private destroyLair(l: import('./types').Lair, e: Engagement) {
     l.alive = false; l.respawnAt = this.time + ((l.tier ?? 2) >= 4 ? 3000 : 2000);
     const lsys = this.sysOf(l.pos); if (lsys) lsys.heat = Math.max(0, lsys.heat - 40);
+    // the region changes hands: pirates lose their foothold, the Union and the merchants move in
+    if (lsys) {
+      ensureInfluence(this.st, lsys, this.time);
+      bump(lsys, { pirates: -25 - (l.tier ?? 2) * 3, union: 8, guild: 8 });
+      lsys.recoverUntil = this.time + RECOVERY_TIME;
+      l.respawnAt = this.time + ((l.tier ?? 2) >= 4 ? 3000 : 2000) * (1 + (lsys.inf?.union ?? 50) / 100);
+      this.reconstructionContracts(lsys);
+    }
     const who = e.sides[0].filter(c => this.st.companies[c]?.kind === 'player').map(c => this.st.companies[c].name).join(', ') || '연합군';
     this.ev('world', `${l.name}이(가) ${who}에 의해 파괴되었다! 주변 항로의 해적 위협이 사라진다.`, { pos: l.pos, ref: l.id });
     for (const f of Object.values(this.st.fields)) if (dist(f.pos, l.pos) < 9000) f.danger = Math.max(1, f.danger - 1);
@@ -2364,9 +2375,23 @@ export class WorldSim {
 
   // ===================================================================== contracts & progression
 
-  private offerContract(k: Omit<Contract, 'id' | 'progress' | 'expires' | 'takenBy' | 'done'>) {
+  private offerContract(k: Omit<Contract, 'id' | 'progress' | 'expires' | 'takenBy' | 'done'>, life = 900) {
     const id = this.id('k');
-    this.st.contracts[id] = { ...k, id, progress: 0, expires: this.time + 900, takenBy: null, done: false };
+    this.st.contracts[id] = { ...k, id, progress: 0, expires: this.time + life, takenBy: null, done: false };
+    return id;
+  }
+
+  /** a liberated system needs building materials: its stations post well-paid, long-lived delivery contracts */
+  private reconstructionContracts(sys: StarSystem) {
+    const hosts = Object.values(this.st.stations).filter(s => s.public && s.market && this.sysOf(s.pos) === sys).slice(0, 2);
+    const goods = ['structure', 'machinery', 'electronics', 'armor_plate', 'alloy', 'composite'];
+    for (const h of hosts) for (let i = 0; i < 2; i++) {
+      const res = this.rng.pick(goods);
+      const amount = Math.max(5, Math.round(targetFor(res) * this.rng.range(0.08, 0.16) / 5) * 5);
+      const base = h.market?.[res]?.base ?? itemPriceOf(res);
+      this.offerContract({ stationId: h.id, kind: 'delivery', title: `재건 물자: ${RES_NAME[res]} ${amount}`, desc: `해적 거점이 무너진 ${sys.name}의 재건에 ${RES_NAME[res]} ${amount}단위가 필요하다. 시장가의 2.2배를 지급한다.`, reward: Math.round(amount * base * 2.2 / 50) * 50, rep: 4, res, amount }, RECOVERY_TIME);
+    }
+    if (hosts.length) this.ev('world', `${sys.name}: 해방 후 재건이 시작되었다 — 상인 길드가 진출하고 재건 물자 납품 계약이 게시되었다.`, { pos: hosts[0].pos });
   }
 
   private contracts() {
@@ -2383,8 +2408,10 @@ export class WorldSim {
       if (!s.public || !s.services.contracts) continue;
       const open = Object.values(st.contracts).filter(k => !k.done && k.stationId === s.id && k.kind === 'delivery');
       if (open.length < 2 && this.rng.chance(0.08)) {
-        const res: Res = this.rng.chance(0.7) ? 'ore' : this.rng.chance(0.6) ? 'alloy' : 'crystal';
-        const amount = res === 'crystal' ? 40 + this.rng.int(5) * 20 : res === 'alloy' ? 100 + this.rng.int(4) * 50 : 200 + this.rng.int(5) * 100;
+        // half the time: one of the goods this station's region consumes (refined goods, parts, equipment)
+        const local = Object.keys(PROFILES[s.id]?.use ?? {}).filter(k => s.market?.[k] && !['ore', 'alloy', 'crystal'].includes(k));
+        const res: Res = local.length && this.rng.chance(0.5) ? this.rng.pick(local) : this.rng.chance(0.7) ? 'ore' : this.rng.chance(0.6) ? 'alloy' : 'crystal';
+        const amount = res === 'crystal' ? 40 + this.rng.int(5) * 20 : res === 'alloy' ? 100 + this.rng.int(4) * 50 : res === 'ore' ? 200 + this.rng.int(5) * 100 : Math.max(4, Math.round(targetFor(res) * this.rng.range(0.06, 0.14) / 2) * 2);
         const base = s.market?.[res]?.base ?? 20;
         // remote, dangerous stations pay far more for the same cargo
         const mult = 1.6 + (100 - this.secAt(s.pos)) / 70;

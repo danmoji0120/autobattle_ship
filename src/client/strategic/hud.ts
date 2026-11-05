@@ -9,6 +9,7 @@ import { SPECIALTY_TEXT } from '../../sim/data/commanders';
 import { ECON, MODULES, MAX_MODULES, RES_NAME, RES_COLOR, MILESTONES, FOUND_COST } from '../../world/data';
 import { sfx } from '../../audio/sfx';
 import { secAt, effSec } from '../../world/security';
+import { FACTION_NAME, LAIR_FOOTHOLD } from '../../world/factions';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
@@ -383,7 +384,8 @@ export class PmcHud {
         <div class="dim">${esc(sel.desc)}</div>
         <div class="svc">정거장: ${stations.map(x => esc(x.name) + (x.tax ? ` <span class="dim">(세금 ${Math.round(x.tax * 100)}%)</span>` : '')).join(', ') || '없음'}</div>
         <div class="svc">자원: ${fields.map(f => `${esc(f.name)} <span style="color:${RES_COLOR[f.res]}">${RES_NAME[f.res]}</span>${(f.rich ?? 1) > 1 ? ` <span class="good">×${(f.rich ?? 1).toFixed(2)}</span>` : (f.rich ?? 1) < 1 ? ` <span class="dim">×${(f.rich ?? 1).toFixed(2)}</span>` : ''}`).join(' · ')}</div>
-        ${lairs.length ? `<div class="svc warn">해적 거점: ${lairs.map(l => `${esc(l.name)}${l.alive ? '' : ' (파괴됨)'}`).join(', ')}</div>` : ''}
+        ${lairs.length ? `<div class="svc warn">해적 거점: ${lairs.map(l => `${esc(l.name)}${l.alive ? '' : ` (파괴됨${(sel.inf?.pirates ?? 0) < LAIR_FOOTHOLD ? ' — 해적 세력이 약해 재건 불가' : ''})`}`).join(', ')}</div>` : ''}
+        ${sel.inf ? `<div class="svc">세력 판도 ${(['union', 'pirates', 'guild'] as const).map(k => `<span class="infb" title="${FACTION_NAME[k]}"><b style="color:${k === 'union' ? '#7fb0ff' : k === 'pirates' ? '#ff4a3a' : '#e8c070'}">${FACTION_NAME[k]}</b> <i><u style="width:${Math.round(sel.inf![k])}%;background:${k === 'union' ? '#7fb0ff' : k === 'pirates' ? '#ff4a3a' : '#e8c070'}"></u></i> ${Math.round(sel.inf![k])}</span>`).join(' ')}${(sel.recoverUntil ?? 0) > st.time ? ' <span class="good">· 재건 호황 (시장 공급 증가)</span>' : ''}</div>` : ''}
         <div class="svc dim">최근 기록 — 해적 격침 ${sel.stats.pirateKills} · 연합 손실 ${sel.stats.unionLosses} · 민간 피해 ${sel.stats.civLosses}${sel.heat > 1 ? ` · 해적 활동도 ${Math.round(sel.heat)}` : ''}</div>
         <div class="mrow"><button class="btn go" data-view="${sel.id}">이 성계 보기</button>
         ${g && g.owner === this.me ? `<button class="btn" data-goto="${sel.id}" ${gSys === sel.id ? 'disabled' : ''}>${esc(g.name)} 이동 (${hops}회 점프)</button>` : '<span class="dim small">편대를 선택하면 이 성계로 이동을 명령할 수 있습니다.</span>'}</div></div>`;

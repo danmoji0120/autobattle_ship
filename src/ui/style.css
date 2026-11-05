@@ -401,3 +401,6 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .tst-run { border-left: 3px solid #5fd4ff; }
 .tst-queued { border-left: 3px solid #ffb35f; }
 .tst-ok { border-left: 3px solid #8aa0b8; }
+.infb { display: inline-flex; align-items: center; gap: 4px; margin-right: 10px; font-size: 12px; }
+.infb i { display: inline-block; width: 60px; height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.infb u { display: block; height: 100%; text-decoration: none; }

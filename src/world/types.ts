@@ -271,6 +271,10 @@ export interface StarSystem {
   gates: Gate[];
   lanes: [string, string][];   // trade lanes between station/gate ids
   stats: { pirateKills: number; unionLosses: number; civLosses: number; raids: number; bands: number };
+  /** faction influence 0..100 (factions.ts) */
+  inf?: { union: number; pirates: number; guild: number };
+  /** reconstruction boom after a lair falls */
+  recoverUntil?: number;
 }
 
 export interface Contract {
