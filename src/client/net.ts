@@ -53,19 +53,31 @@ export class WsTransport implements Transport {
   private queue: ClientMsg[] = [];
   private closed = false;
   private hello: ClientMsg | null = null;
+  private tries = 0;
+  /** decides after a drop whether to reconnect (false: the session is gone — stop and re-authenticate).
+   *  Close code 4401 = the server ended the session (logout, password change, expiry). */
+  shouldRetry: (code: number, reason: string) => Promise<boolean> = async () => true;
   constructor(private url: string) { this.open(); }
   private open() {
     this.onStatus('connecting');
     const ws = new WebSocket(this.url);
     this.ws = ws;
     ws.onopen = () => {
+      this.tries = 0;
       this.onStatus('open');
       if (this.hello) ws.send(JSON.stringify(this.hello));
       for (const m of this.queue) ws.send(JSON.stringify(m));
       this.queue = [];
     };
     ws.onmessage = ev => { try { this.onMessage(JSON.parse(ev.data)); } catch (e) { console.error(e); } };
-    ws.onclose = () => { this.onStatus('closed'); if (!this.closed) setTimeout(() => this.open(), 1500); };
+    ws.onclose = ev => {
+      this.onStatus('closed');
+      if (this.closed) return;
+      this.shouldRetry(ev.code, ev.reason).then(again => {
+        if (!again || this.closed) { this.closed = true; return; }
+        setTimeout(() => { if (!this.closed) this.open(); }, Math.min(10000, 1500 * 2 ** Math.min(3, this.tries++)));
+      });
+    };
   }
   send(m: ClientMsg) {
     if (m.t === 'hello') this.hello = m;
@@ -96,6 +108,10 @@ export class GameClient {
   onSnap: (() => void)[] = [];
   onEvents: ((e: WorldEvent[]) => void)[] = [];
   onWelcome: (() => void)[] = [];
+  /** accounts: the server wants a sign-in / a PMC for this account / refused the PMC request */
+  onAuthNeeded: (() => void) | null = null;
+  onNeedPmc: (() => void) | null = null;
+  onPmcErr: ((msg: string) => void) | null = null;
   onBattle: ((m: Extract<ServerMsg, { t: 'binit' | 'border' }>) => void) | null = null;
   private acks = new Map<number, (e: string | null) => void>();
   private seq = 1;
@@ -106,6 +122,7 @@ export class GameClient {
   }
 
   join(name: string, token?: string) { this.t.send({ t: 'hello', name, token }); }
+  createPmc(name: string, legacy?: string) { this.t.send({ t: 'createPmc', name, legacy }); }
 
   private receive(m: ServerMsg) {
     switch (m.t) {
@@ -133,6 +150,9 @@ export class GameClient {
       case 'players': this.players = m.list; break;
       case 'binit': case 'border': this.onBattle?.(m); break;
       case 'error': console.warn('[server]', m.msg); break;
+      case 'auth': this.onAuthNeeded?.(); break;
+      case 'needPmc': this.onNeedPmc?.(); break;
+      case 'pmcErr': this.onPmcErr?.(m.msg); break;
     }
   }
 

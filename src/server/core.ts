@@ -5,10 +5,14 @@ import { WorldSim } from '../world/sim';
 import type { ClientMsg, ServerMsg, SaveFile, WorldView } from './protocol';
 import type { WorldEvent } from '../world/types';
 
-export interface Conn { id: string; send(msg: ServerMsg): void; company?: string; lastEvent: number; battles: Set<string>; view?: string; bytes?: number }
+export interface Conn { id: string; send(msg: ServerMsg): void; company?: string; lastEvent: number; battles: Set<string>; view?: string; bytes?: number;
+  /** account UUID, set by the transport after it verified the session (never taken from a message) */
+  account?: string }
 
 export interface ServerOptions {
   singleplayer: boolean;
+  /** multiplayer with accounts: a connection controls exactly the PMC linked to its verified account */
+  accounts?: boolean;
   snapInterval: number;           // seconds of real time between full snapshots
   movInterval?: number;           // seconds between compact ship-motion packets (default 0.2)
   save?: (data: SaveFile) => void;
@@ -24,6 +28,8 @@ function token(): string {
 export class GameServer {
   sim: WorldSim;
   auth: Record<string, string>;
+  /** account UUID → company */
+  accounts: Record<string, string>;
   conns = new Map<string, Conn>();
   speed = 1;
   private snapAcc = 0;
@@ -39,13 +45,65 @@ export class GameServer {
     this.opts = opts;
     this.sim = save ? new WorldSim(save.world) : WorldSim.create(seed);
     this.auth = save?.auth ?? {};
+    this.accounts = save?.accounts ?? {};
     for (const c of Object.values(this.sim.st.companies)) c.online = false;
     this.sim.onBattleOrder = (eng, rec) => {
       for (const c of this.conns.values()) if (c.battles.has(eng)) c.send({ t: 'border', eng, rec });
     };
   }
 
-  snapshotFile(): SaveFile { return { v: 1, world: JSON.parse(this.sim.serialize()), auth: this.auth }; }
+  snapshotFile(): SaveFile { return { v: 1, world: JSON.parse(this.sim.serialize()), auth: this.auth, accounts: this.accounts }; }
+
+  /** the company an account controls in this world (null: none yet, or its PMC is gone) */
+  companyOf(account: string): string | null {
+    const id = this.accounts[account];
+    return id && this.sim.st.companies[id]?.kind === 'player' ? id : null;
+  }
+
+  /** a connection enters the world as `company` */
+  private enter(c: Conn, company: string, tok: string) {
+    c.company = company;
+    const co = this.sim.st.companies[company];
+    const wasOnline = co.online;
+    co.online = true;
+    if (!wasOnline) this.sim.ev('world', `${co.name} 접속.`);
+    // only tell this client about recent events
+    c.lastEvent = Math.max(0, this.sim.st.eventSeq - 40);
+    c.send({ t: 'welcome', company, token: tok, sp: this.opts.singleplayer, serverTime: this.sim.time });
+    this.sendSnap(c, this.snapBase());
+    this.flushEvents(c);
+    this.broadcastPlayers();
+  }
+
+  /** PMC creation for an account: exactly once (the check and the link happen in one synchronous step,
+   *  so duplicate or concurrent requests from several tabs all land on the same company) */
+  private createPmc(c: Conn, name: string, legacy?: string): string | null {
+    if (!c.account) return '로그인이 필요합니다';
+    const have = this.companyOf(c.account);
+    if (have) { this.enter(c, have, ''); return null; }
+    const n = String(name ?? '').normalize('NFKC').replace(/[\u0000-\u001f<>]/g, '').trim();
+    let company: string | null = null;
+    if (legacy) {
+      // carry over a PMC created before accounts existed: the old random browser token proves possession;
+      // it is consumed, and a PMC already linked to some account can never be claimed
+      const id = typeof legacy === 'string' && /^[0-9a-f]{32}$/.test(legacy) ? this.auth[legacy] : undefined;
+      if (!id || this.sim.st.companies[id]?.kind !== 'player') return '이 브라우저의 이전 PMC 정보를 찾을 수 없습니다 (월드가 초기화되었거나 이미 이전됨)';
+      if (Object.values(this.accounts).includes(id)) { delete this.auth[legacy]; return '이미 다른 계정으로 이전된 PMC입니다'; }
+      delete this.auth[legacy];
+      company = id;
+      this.sim.ev('world', `${this.sim.st.companies[id].name}이(가) 정식 계정으로 이전되었다.`);
+    } else {
+      if (n.length < 2 || n.length > 20) return 'PMC 이름은 2~20자입니다';
+      const taken = Object.values(this.sim.st.companies).some(o => o.name.toLowerCase() === n.toLowerCase());
+      if (taken) return '이미 존재하는 회사 이름입니다';
+      company = this.sim.addPlayer(n);
+    }
+    this.accounts[c.account] = company;
+    this.saveNow(); // the link and the starting assets are persisted together right away
+    // every open tab of this account enters with the same PMC
+    for (const o of this.conns.values()) if (o.account === c.account && !o.company) this.enter(o, company, '');
+    return null;
+  }
 
   connect(conn: Conn) { this.conns.set(conn.id, conn); }
 
@@ -64,6 +122,13 @@ export class GameServer {
     if (!c) return;
     switch (msg.t) {
       case 'hello': {
+        if (this.opts.accounts) {
+          // identity is the verified account only; tokens and names in the message are ignored
+          if (!c.account) return c.send({ t: 'auth', need: 'login' });
+          const company = this.companyOf(c.account);
+          if (!company) return c.send({ t: 'needPmc' });
+          return this.enter(c, company, '');
+        }
         let company = msg.token ? this.auth[msg.token] : undefined;
         let tok = msg.token;
         if (!company || !this.sim.st.companies[company]) {
@@ -71,17 +136,12 @@ export class GameServer {
           tok = token();
           this.auth[tok] = company;
         }
-        c.company = company;
-        const co = this.sim.st.companies[company];
-        const wasOnline = co.online;
-        co.online = true;
-        if (!wasOnline) this.sim.ev('world', `${co.name} 접속.`);
-        // only tell this client about recent events
-        c.lastEvent = Math.max(0, this.sim.st.eventSeq - 40);
-        c.send({ t: 'welcome', company, token: tok!, sp: this.opts.singleplayer, serverTime: this.sim.time });
-        this.sendSnap(c, this.snapBase());
-        this.flushEvents(c);
-        this.broadcastPlayers();
+        return this.enter(c, company, tok!);
+      }
+      case 'createPmc': {
+        if (!this.opts.accounts) return;
+        const err = this.createPmc(c, msg.name, msg.legacy);
+        if (err) c.send({ t: 'pmcErr', msg: err });
         return;
       }
       case 'cmd': {
@@ -93,6 +153,7 @@ export class GameServer {
         return;
       }
       case 'bjoin': {
+        if (!c.company) return c.send({ t: 'error', msg: '로그인 필요' });
         const e = this.sim.st.engagements[msg.eng];
         const rec = this.sim.st.battleLog?.find(r => r.id === msg.eng);
         // a running battle: join live; a finished one: replay it from its record
@@ -104,7 +165,7 @@ export class GameServer {
         return c.send({ t: 'error', msg: e?.autoEnd !== undefined ? '원거리 판정 전투라 관전할 수 없음' : '전투 기록이 없음' });
       }
       case 'border': {
-        if (!c.company) return;
+        if (!c.company) return c.send({ t: 'ack', id: msg.id, err: '로그인 필요' });
         const err = this.sim.battleOrder(c.company, msg.eng, msg.groupId, msg.order, msg.opts);
         c.send({ t: 'ack', id: msg.id, err });
         return;
@@ -114,7 +175,7 @@ export class GameServer {
         return;
       }
       case 'ping': c.send({ t: 'pong', at: msg.at, serverTime: this.sim.time }); return;
-      case 'view': if (this.sim.st.systems[msg.sys]) { const changed = c.view !== msg.sys; c.view = msg.sys; if (changed) this.sendSnap(c, this.snapBase()); } return;
+      case 'view': if (c.company && this.sim.st.systems[msg.sys]) { const changed = c.view !== msg.sys; c.view = msg.sys; if (changed) this.sendSnap(c, this.snapBase()); } return;
     }
   }
 
@@ -212,6 +273,6 @@ export class GameServer {
 
   private broadcastPlayers() {
     const list = Object.values(this.sim.st.companies).filter(c => c.kind === 'player').map(c => ({ id: c.id, name: c.name, online: !!c.online, color: c.color }));
-    for (const c of this.conns.values()) c.send({ t: 'players', list });
+    for (const c of this.conns.values()) if (c.company) c.send({ t: 'players', list });
   }
 }

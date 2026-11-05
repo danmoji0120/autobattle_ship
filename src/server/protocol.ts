@@ -4,7 +4,10 @@ import type { Order, OrderRecord } from '../sim/types';
 import type { BattleSetup } from '../sim/world';
 
 export type ClientMsg =
+  /** multiplayer: identity comes from the authenticated session, never from this message */
   | { t: 'hello'; name: string; token?: string }
+  /** create the account's PMC (once); `legacy` = an old browser token to carry over an unclaimed PMC */
+  | { t: 'createPmc'; name: string; legacy?: string }
   | { t: 'cmd'; id: number; cmd: Cmd }
   | { t: 'bjoin'; eng: string }
   | { t: 'border'; id: number; eng: string; groupId: number; order: Order | null; opts: { retreatAt?: number; release?: boolean } }
@@ -29,6 +32,17 @@ export type ServerMsg =
   /** compact ship kinematics: [id, x, y, z, vx, vy, vz, heading, warp(0/1)] per ship */
   | { t: 'mov'; at: number; s: (string | number)[][] }
   | { t: 'stats'; tickMs: number; tickMax: number; rate: number; bytes: number; ships: number; conns: number; battles: number; battleMs?: number }
-  | { t: 'error'; msg: string };
+  | { t: 'error'; msg: string }
+  /** the connection has no signed-in account */
+  | { t: 'auth'; need: 'login' }
+  /** signed in, but the account has no PMC in this world yet */
+  | { t: 'needPmc' }
+  | { t: 'pmcErr'; msg: string };
 
-export interface SaveFile { v: number; world: WorldState; auth: Record<string, string> }
+export interface SaveFile {
+  v: number; world: WorldState;
+  /** legacy (pre-account) browser tokens → company; only usable once, to carry a PMC over to an account */
+  auth: Record<string, string>;
+  /** account UUID → company id in this world. Saved with the world, so backups and resets stay consistent */
+  accounts?: Record<string, string>;
+}
