@@ -816,9 +816,9 @@ export class World {
     } else if (r < 0.9) { crit = 'fire'; t.crit.fire = 12; }
     else { crit = 'bridge'; t.crit.bridge = 10; }
     this.events.push({ t: 'crit', ship: t.id, crit, pos: t.pos.clone() });
-    if (t.role !== 'raider') {
+    if (t.role !== 'raider' && t.team === 0) {
       const g = this.groupById.get(t.groupId)!;
-      if (this.time - g.ai.lastRadio > 7) {
+      if (this.time - g.ai.lastRadio > 7 && (crit !== 'fire' || t.value >= 250)) {
         g.ai.lastRadio = this.time;
         const msg: RadioMsg = {
           id: this.radioId++, time: this.time, team: t.team, groupId: g.id, who: `${t.name} 함장`, rank: '', color: g.commander.color,

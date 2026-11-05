@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "balance": "vite-node scripts/balance.ts",
-    "playtest": "node scripts/playtest.mjs"
+    "playtest": "node scripts/uitest.mjs",
+    "shots": "node scripts/shot.mjs"
   },
   "dependencies": {
     "@fontsource/noto-sans-kr": "^5.3.1",

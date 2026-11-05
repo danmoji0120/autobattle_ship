@@ -227,7 +227,13 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
   const root = new THREE.Group();
   root.position.set(md.pos[0], md.pos[1], md.pos[2]);
   let barrels: THREE.Group | null = new THREE.Group();
-  const add = (g: THREE.BufferGeometry, mat: THREE.Material, parent: THREE.Object3D = root) => { const mesh = new THREE.Mesh(g, mat); parent.add(mesh); return mesh; };
+  // collect sub-parts per (parent, material) and merge them to keep draw calls low
+  const buckets = new Map<THREE.Object3D, Map<THREE.Material, THREE.BufferGeometry[]>>();
+  const add = (g: THREE.BufferGeometry, mat: THREE.Material, parent: THREE.Object3D = root) => {
+    let b = buckets.get(parent); if (!b) { b = new Map(); buckets.set(parent, b); }
+    let arr = b.get(mat); if (!arr) { arr = []; b.set(mat, arr); }
+    arr.push(g);
+  };
   let rotates = true;
   switch (md.weapon) {
     case 'heavy_cannon': {
@@ -282,6 +288,7 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
       break;
     }
   }
+  for (const [parent, b] of buckets) for (const [mat, geos] of b) parent.add(new THREE.Mesh(mergeAll(geos), mat));
   if (barrels) root.add(barrels);
   root.rotation.y = md.facing * Math.PI / 180;
   void w;
@@ -289,6 +296,18 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
 }
 
 // -------------------------------------------------------------------------- build
+
+function normalizeGeo(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const ng = g.index ? g.toNonIndexed() : g;
+  for (const k of Object.keys(ng.attributes)) if (!['position', 'normal', 'uv'].includes(k)) ng.deleteAttribute(k);
+  ng.clearGroups();
+  return ng;
+}
+function mergeAll(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
+  if (geos.length === 1) return geos[0];
+  return mergeGeometries(geos.map(normalizeGeo)) ?? geos[0];
+}
+const turretCache = new Map<string, TurretView>();
 
 const geoCache = new Map<string, { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; parts: Parts }>();
 
@@ -331,22 +350,30 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
   hullMats.push(m.hull);
 
   const turrets: TurretView[] = [];
+  const peds: [THREE.BufferGeometry[], THREE.BufferGeometry[]] = [[], []];
   for (const md of loadout.mounts) {
-    const t = buildTurret(md, team);
+    const key = `${md.weapon}:${team}`;
+    let proto = turretCache.get(key);
+    if (!proto) { proto = buildTurret({ ...md, pos: [0, 0, 0], facing: 0 }, team); turretCache.set(key, proto); }
+    const root = proto.root.clone(true);
+    root.position.set(md.pos[0], md.pos[1], md.pos[2]);
+    root.rotation.y = md.facing * Math.PI / 180;
+    const barrels = proto.barrels ? root.children[root.children.length - 1] : null;
+    const t: TurretView = { root, barrels, mount: md, recoil: 0, rotates: proto.rotates };
     // pedestal for raised mounts so nothing floats
-    const ped = new THREE.Mesh(cyl(WEAPONS[md.weapon].caliber * 0.6 + 0.3, WEAPONS[md.weapon].caliber * 0.7 + 0.4, 3, md.pos[0], md.pos[1] - 2, md.pos[2]), m.dark);
-    (md.pos[2] >= 0 ? front : rear).add(ped);
+    peds[md.pos[2] >= 0 ? 0 : 1].push(cyl(WEAPONS[md.weapon].caliber * 0.6 + 0.3, WEAPONS[md.weapon].caliber * 0.7 + 0.4, 3, md.pos[0], md.pos[1] - 2, md.pos[2]));
     (md.pos[2] >= 0 ? front : rear).add(t.root);
     turrets.push(t);
   }
+  if (peds[0].length) front.add(new THREE.Mesh(mergeAll(peds[0]), m.dark));
+  if (peds[1].length) rear.add(new THREE.Mesh(mergeAll(peds[1]), m.dark));
 
   const engines: ShipModel['engines'] = [];
   const glowGeo = new THREE.CircleGeometry(1, 20);
   const plumeGeo = new THREE.ConeGeometry(1, 1, 16, 1, true);
   plumeGeo.rotateX(-Math.PI / 2); plumeGeo.translate(0, 0, -0.5);
+  rear.add(new THREE.Mesh(mergeAll(parts.engines.map(e => cyl(e.r * 1.1, e.r * 1.35, e.r * 1.6, e.x, e.y, e.z + e.r * 0.6, 'z', 14))), m.trim));
   for (const e of parts.engines) {
-    const noz = new THREE.Mesh(cyl(e.r * 1.1, e.r * 1.35, e.r * 1.6, e.x, e.y, e.z + e.r * 0.6, 'z', 14), m.trim);
-    rear.add(noz);
     const glow = new THREE.Mesh(glowGeo, m.engine);
     glow.position.set(e.x, e.y, e.z - 0.25); glow.rotation.y = Math.PI; glow.scale.setScalar(e.r);
     rear.add(glow);
