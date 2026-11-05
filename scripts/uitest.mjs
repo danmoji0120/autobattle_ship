@@ -7,7 +7,7 @@ const errors = [];
 page.on('pageerror', e => errors.push(e.message));
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 const ok = (c, msg) => { console.log(`${c ? 'PASS' : 'FAIL'} ${msg}`); if (!c) process.exitCode = 1; };
-await page.goto('http://localhost:5173/?manual=1');
+await page.goto('http://localhost:5173/?skirmish&manual=1');
 await page.waitForFunction(() => window.fleetcmd);
 // setup screen interactions
 await page.click('[data-cat=destroyer]');

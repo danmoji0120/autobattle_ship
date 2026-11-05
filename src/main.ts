@@ -11,6 +11,7 @@ import { getScenario } from './sim/data/scenarios';
 import type { BattleSetup } from './sim/world';
 import type { OrderRecord } from './sim/types';
 import { sfx } from './audio/sfx';
+import { showMenu, startCampaign, type Campaign } from './client/app';
 
 const getCanvas = () => document.getElementById('view') as HTMLCanvasElement;
 const app = document.getElementById('app')!;
@@ -26,13 +27,26 @@ function unlockAudio() { sfx.init(); }
 addEventListener('pointerdown', unlockAudio, { capture: true });
 addEventListener('keydown', unlockAudio, { capture: true });
 
+let campaign: Campaign | null = null;
+
+function showMainMenu() {
+  teardownBattle();
+  setup?.dispose(); setup = null;
+  campaign?.stop(); campaign = null;
+  getCanvas().style.visibility = 'hidden';
+  showMenu(app, {
+    onSkirmish: () => showSetup(),
+    onCampaign: (mode, name) => { campaign = startCampaign(mode, name, app, () => { campaign = null; showMainMenu(); }); },
+  });
+}
+
 function showSetup() {
   teardownBattle();
   getCanvas().style.visibility = 'hidden';
   setup = new SetupScreen(app, r => {
     setup?.dispose(); setup = null;
     startBattle({ seed: (Date.now() & 0x7fffffff) >>> 0, scenarioId: r.scenarioId, fleets: [r.fleet, getScenario(r.scenarioId).enemy] });
-  });
+  }, () => showMainMenu());
 }
 
 function teardownBattle() {
@@ -73,10 +87,12 @@ function startBattle(bs: BattleSetup, replay: OrderRecord[] | null = null) {
 }
 
 // expose for automated play-testing
-(window as any).fleetcmd = { startBattle, showSetup, get session() { return session; }, get lastOrders() { return lastOrders; } };
+(window as any).fleetcmd = { startBattle, showSetup, showMainMenu, get session() { return session; }, get lastOrders() { return lastOrders; } };
 
 
 if (params.has('auto')) {
   const scen = params.get('scenario') ?? loadScenarioId();
   startBattle({ seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [loadFleet(), getScenario(scen).enemy] });
-} else showSetup();
+} else if (params.has('skirmish')) showSetup();
+else if (params.has('sp')) campaign = startCampaign(params.get('sp') === 'new' ? 'sp-new' : 'sp-continue', params.get('name') ?? '테스트 PMC', app, () => showMainMenu());
+else showMainMenu();

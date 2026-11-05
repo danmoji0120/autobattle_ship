@@ -1,7 +1,14 @@
 import { World, type BattleSetup } from '../sim/world';
 import { BattleView, type AudioSink } from '../render/battleView';
 import { getScenario } from '../sim/data/scenarios';
-import type { SimEvent } from '../sim/types';
+import type { SimEvent, Order } from '../sim/types';
+
+export interface SessionOptions {
+  /** lockstep mode: returns the tactical tick the authority has reached (fractional) */
+  lockstep?: () => number;
+  /** route player orders through the network instead of applying them locally */
+  orderSink?: (groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean }) => void;
+}
 
 /** Runs the fixed-step simulation and drives the renderer at display rate. */
 export class BattleSession {
@@ -17,7 +24,10 @@ export class BattleSession {
   onFrame: ((realDt: number) => void) | null = null;
   slowmo = 1;
 
-  constructor(canvas: HTMLCanvasElement, setup: BattleSetup, audio: AudioSink | null) {
+  readonly opts: SessionOptions;
+
+  constructor(canvas: HTMLCanvasElement, setup: BattleSetup, audio: AudioSink | null, opts: SessionOptions = {}) {
+    this.opts = opts;
     this.world = new World(setup);
     this.view = new BattleView(canvas, getScenario(setup.scenarioId).backdrop);
     this.view.audio = audio;
@@ -37,9 +47,15 @@ export class BattleSession {
     this.raf = requestAnimationFrame(loop);
   }
 
+  issueOrder(groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean } = {}) {
+    if (this.opts.orderSink) this.opts.orderSink(groupId, order, opts);
+    else this.world.issueOrder(groupId, order, opts);
+  }
+
   /** advance by realDt seconds of wall time (exposed for automated tests) */
   tick(realDt: number) {
     const w = this.world;
+    if (this.opts.lockstep) return this.tickLockstep(realDt);
     const camScale = this.view.rig.timeScaleRequest;
     this.slowmo += (camScale - this.slowmo) * Math.min(1, realDt * (camScale < this.slowmo ? 12 : 2));
     const scale = this.paused || w.outcome ? 0 : this.timeScale * this.slowmo;
@@ -56,6 +72,21 @@ export class BattleSession {
     }
     if (steps >= 12) this.acc = 0;
     this.view.frame(Math.min(1, this.acc / w.dt), realDt * scale, realDt);
+    this.onFrame?.(realDt);
+  }
+
+  private tickLockstep(realDt: number) {
+    const w = this.world;
+    const target = this.opts.lockstep!();
+    let steps = 0, simDt = 0;
+    // catch up quickly if far behind (joining mid-battle), otherwise track the authority smoothly
+    const maxSteps = target - w.tick > 90 ? 400 : 6;
+    while (w.tick < Math.floor(target) && steps < maxSteps && !w.outcome) {
+      w.step(); steps++; simDt += w.dt;
+      if (w.events.length) { if (steps < 30 || target - w.tick < 30) this.view.handleEvents(w.events); this.onEvents?.(w.events); }
+    }
+    const alpha = Math.max(0, Math.min(1, target - w.tick));
+    this.view.frame(w.outcome ? 1 : alpha, simDt || (this.paused ? 0 : realDt * 0.0), realDt);
     this.onFrame?.(realDt);
   }
 

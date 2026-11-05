@@ -20,6 +20,14 @@ const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60
 
 export interface HudOptions {
   replay: boolean;
+  /** persistent world: which tactical groups this player may command */
+  canCommand?: (g: Group) => boolean;
+  /** persistent world: results screen returns to the strategic map */
+  campaign?: { onReturn: () => void };
+  /** where to attach the overlay canvas (defaults to document.body) */
+  overlayParent?: HTMLElement;
+  /** world speed control (single-player campaign) or none (multiplayer) */
+  onSpeed?: ((v: number) => void) | 'none';
   onExit: () => void;
   onRestart: () => void;
   onReplay: () => void;
@@ -51,13 +59,15 @@ export class BattleHUD {
     this.s = session; this.root = root; this.opts = opts;
     this.overlay = document.createElement('canvas');
     this.overlay.id = 'overlay';
-    document.body.appendChild(this.overlay);
+    (opts.overlayParent ?? document.body).appendChild(this.overlay);
     this.ctx = this.overlay.getContext('2d')!;
     this.build();
+    if (opts.onSpeed === 'none') document.getElementById('speed')?.classList.add('hidden');
     const w = session.world;
     // expand player root and enemy root by default so the main groups are visible
     this.expanded.add(w.roots[0]); this.expanded.add(w.roots[1]);
     this.selected = w.roots[0];
+    if (opts.canCommand) { const mine = w.groups.find(g => g.team === 0 && opts.canCommand!(g) && w.subtreeShips(g).length); this.selected = mine ? mine.id : w.roots[0]; }
     this.bindInput();
     this.resize();
     session.onEvents = ev => this.onEvents(ev);
@@ -150,6 +160,8 @@ export class BattleHUD {
   }
 
   private setSpeed(sp: number) {
+    if (typeof this.opts.onSpeed === 'function') { this.opts.onSpeed(sp === 0 ? 0 : sp); }
+    if (this.opts.onSpeed === 'none') return;
     if (sp === 0) this.s.paused = !this.s.paused;
     else { this.s.paused = false; this.s.timeScale = sp; }
     this.root.querySelectorAll<HTMLButtonElement>('[data-sp]').forEach(b => {
@@ -281,7 +293,7 @@ export class BattleHUD {
     if (this.opts.replay) return;
     if (this.mode) { this.setMode(null); return; }
     const g = this.selGroup();
-    if (!g || g.team !== 0) return;
+    if (!g || !this.mayCommand(g)) return;
     const { ship, group } = this.pickUnit(x, y);
     if (group && group.team === 1) this.issue(g, { type: 'attack', targetGroup: group.id, targetShip: shift && ship ? ship.id : undefined });
     else if (group && group.team === 0 && group.id !== g.id) this.issue(g, { type: 'escort', guardGroup: group.id });
@@ -328,6 +340,8 @@ export class BattleHUD {
     this.refreshCommand();
   }
 
+  private mayCommand(g: Group): boolean { return g.team === 0 && !this.opts.replay && (!this.opts.canCommand || this.opts.canCommand(g)); }
+
   private selGroup(): Group | null { return this.selected !== null ? this.s.world.groupById.get(this.selected) ?? null : null; }
 
   select(id: number) {
@@ -338,7 +352,7 @@ export class BattleHUD {
   }
 
   private issue(g: Group, o: Order) {
-    this.s.world.issueOrder(g.id, o);
+    this.s.issueOrder(g.id, o);
     this.s.view.audio?.play('confirm', null, 0.6);
     setTimeout(() => { this.refreshTree(); this.refreshCommand(); }, 60);
   }
@@ -346,13 +360,13 @@ export class BattleHUD {
   private orderBtn(kind: string) {
     if (this.opts.replay) return;
     const g = this.selGroup();
-    if (!g || g.team !== 0) return;
+    if (!g || !this.mayCommand(g)) return;
     this.s.view.audio?.play('click', null, 0.4);
     switch (kind) {
       case 'engage': this.issue(g, { type: 'engage' }); break;
       case 'hold': this.issue(g, { type: 'hold' }); break;
       case 'retreat': this.issue(g, { type: 'retreat' }); break;
-      case 'release': if (g.playerOverride && g.parentId !== null && !g.ai.routed) { this.s.world.issueOrder(g.id, null, { release: true }); setTimeout(() => this.refreshCommand(), 60); } break;
+      case 'release': if (g.playerOverride && g.parentId !== null && !g.ai.routed) { this.s.issueOrder(g.id, null, { release: true }); setTimeout(() => this.refreshCommand(), 60); } break;
       case 'attack': case 'escort': case 'move': case 'flank_l': case 'flank_r': this.setMode(this.mode === kind ? null : kind as TargetMode); break;
     }
   }
@@ -502,7 +516,7 @@ export class BattleHUD {
     const c = g.commander;
     const initials = c.name.replace(/\s/g, '').slice(0, 2);
     const o = g.order;
-    const isPlayer = g.team === 0 && !this.opts.replay;
+    const isPlayer = this.mayCommand(g);
     const btn = (k: string, label: string, key: string, on: boolean, extra = '') => `<button class="btn${on ? ' on' : ''} ${extra}" data-o="${k}" ${isPlayer && ships.length ? '' : 'disabled'}>${label}<span class="key">${key}</span></button>`;
     const delegated = !g.playerOverride || g.parentId === null;
     el.innerHTML = `
@@ -538,7 +552,7 @@ export class BattleHUD {
         <div class="hint" id="ghint"></div>
       </div>`;
     el.querySelectorAll<HTMLButtonElement>('[data-o]').forEach(b => b.onclick = () => this.orderBtn(b.dataset.o!));
-    el.querySelectorAll<HTMLButtonElement>('[data-rt]').forEach(b => b.onclick = () => { this.s.world.issueOrder(g.id, null, { retreatAt: Number(b.dataset.rt) }); setTimeout(() => this.refreshCommand(), 60); });
+    el.querySelectorAll<HTMLButtonElement>('[data-rt]').forEach(b => b.onclick = () => { this.s.issueOrder(g.id, null, { retreatAt: Number(b.dataset.rt) }); setTimeout(() => this.refreshCommand(), 60); });
     this.updateStatusLine(g);
   }
 
@@ -755,16 +769,16 @@ export class BattleHUD {
           <table class="gt"><tr><th>부대</th><th>격침</th><th>손실</th><th>피해</th><th>평가</th><th></th></tr>${topGroups.map(evalLine).join('')}</table>
         </div>
       </div>
-      <div class="acts">
+      <div class="acts">${this.opts.campaign ? `<button class="btn go" data-a="return">전략 지도로 복귀</button>` : `
         <button class="btn" data-a="replay">리플레이 보기</button>
         <button class="btn" data-a="restart">같은 조건으로 재도전</button>
-        <button class="btn go" data-a="exit">함대 편성으로</button>
+        <button class="btn go" data-a="exit">함대 편성으로</button>`}
       </div>
     </div>`;
     this.root.appendChild(modal);
-    modal.querySelector<HTMLButtonElement>('[data-a="replay"]')!.onclick = () => this.opts.onReplay();
-    modal.querySelector<HTMLButtonElement>('[data-a="restart"]')!.onclick = () => this.opts.onRestart();
-    modal.querySelector<HTMLButtonElement>('[data-a="exit"]')!.onclick = () => this.opts.onExit();
+    const bind = (k: string, f: () => void) => { const b = modal.querySelector<HTMLButtonElement>(`[data-a="${k}"]`); if (b) b.onclick = f; };
+    bind('replay', () => this.opts.onReplay()); bind('restart', () => this.opts.onRestart()); bind('exit', () => this.opts.onExit());
+    bind('return', () => this.opts.campaign?.onReturn());
     this.s.view.audio?.play(win ? 'win' : 'lose', null, 0.8);
   }
 }

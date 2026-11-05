@@ -31,9 +31,10 @@ export class SetupScreen {
   private catSel = { classId: 'battleship', loadoutId: 'std' };
   private preview: { renderer: THREE.WebGLRenderer; scene: THREE.Scene; cam: THREE.PerspectiveCamera; model: THREE.Object3D | null; raf: number } | null = null;
   private onStart: (r: SetupResult) => void;
+  onBack: (() => void) | null = null;
 
-  constructor(root: HTMLElement, onStart: (r: SetupResult) => void) {
-    this.root = root; this.onStart = onStart;
+  constructor(root: HTMLElement, onStart: (r: SetupResult) => void, onBack?: () => void) {
+    this.root = root; this.onStart = onStart; this.onBack = onBack ?? null;
     this.fleet = loadFleet();
     this.scenarioId = loadScenarioId();
     this.sel = this.fleet.root;
@@ -85,6 +86,7 @@ export class SetupScreen {
       <div class="sfoot">
         <div class="budget${cost > PLAYER_BUDGET ? ' over' : ''}">${cost} / ${PLAYER_BUDGET}<div style="font-size:10px;color:var(--dim);letter-spacing:.2em">함대 예산</div></div>
         <div class="brief"><b>${esc(sc.name)}</b> — ${esc(sc.brief)}<br><span style="color:var(--cyan)">전술 조언:</span> ${esc(sc.tip)}</div>
+        ${this.onBack ? '<button class="btn" id="back">◂ 메인 메뉴</button>' : ''}
         <button class="btn" id="reset">기본 편성 복원</button>
         <button class="btn go" id="go" ${cost > PLAYER_BUDGET || countShips(f) === 0 ? 'disabled' : ''}>출격</button>
       </div>
@@ -193,6 +195,7 @@ export class SetupScreen {
       walk(this.fleet.root, g => { if (g.commanderId === id) g.commanderId = null; });
       this.sel.commanderId = id; this.commit();
     });
+    const back = r.querySelector('#back') as HTMLButtonElement | null; if (back) back.onclick = () => this.onBack?.();
     (r.querySelector('#reset') as HTMLButtonElement).onclick = () => { this.fleet = defaultPlayerFleet(); this.sel = this.fleet.root; this.commit(); };
     (r.querySelector('#go') as HTMLButtonElement).onclick = () => { saveFleet(this.fleet); this.onStart({ fleet: JSON.parse(JSON.stringify(this.fleet)), scenarioId: this.scenarioId }); };
   }

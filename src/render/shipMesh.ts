@@ -199,6 +199,74 @@ function design(cls: ShipClassDef, team: 0 | 1): { profile: Profile; W: number; 
         },
       };
     }
+    case 'miner': {
+      const profile: Profile = [[-0.5, 0.75], [-0.25, 1], [0.2, 0.95], [0.4, 0.7], [0.5, 0.45]];
+      const W = 6;
+      return {
+        profile, W, build: (p) => {
+          p.hull.push(slab(profile, L, W, -0.5, 0, -2.4, 4.4), slab(profile, L, W, 0, 0.5, -2.4, 4.4));
+          p.hull.push(box(4.4, 2.6, 8, 0, 3.2, -8));                       // bridge block
+          p.dark.push(box(3, 1.2, 3.6, 0, 5, -9));
+          // twin mining arms + emitter
+          for (const x of [-3.4, 3.4]) { p.trim.push(box(1.2, 1.4, 10, x, 0, L * 0.5 + 3)); p.dark.push(box(2, 2, 2, x, 0, L * 0.5 + 8)); }
+          p.accent.push(box(1, 1, 0.6, 3.4, 0, L * 0.5 + 9.2), box(1, 1, 0.6, -3.4, 0, L * 0.5 + 9.2));
+          // side ore hoppers
+          for (const x of [-W - 1.2, W + 1.2]) { p.dark.push(cyl(2.2, 2.2, 14, x, -0.6, -1, 'z', 10)); p.trim.push(box(0.4, 0.5, 14, x * 1.12, 1.2, -1)); }
+          p.light.push(new THREE.Vector3(0, 6, -9), new THREE.Vector3(W + 2, 0, -8), new THREE.Vector3(-W - 2, 0, -8));
+          p.dark.push(box(W * 1.4, 3.6, 3, 0, -0.4, -L * 0.5 - 1));
+          p.engines.push({ x: 2.6, y: 0, z: -L * 0.5 - 3, r: 1.4 }, { x: -2.6, y: 0, z: -L * 0.5 - 3, r: 1.4 });
+        },
+      };
+    }
+    case 'hauler': {
+      const profile: Profile = [[-0.5, 1], [0.5, 1]];
+      const W = 1.6;
+      return {
+        profile, W, build: (p) => {
+          p.dark.push(box(3.2, 2.4, L * 0.92, 0, 0, -1));                    // spine
+          p.hull.push(box(7, 5, 7, 0, 1, L * 0.5 - 2), box(5, 2, 3, 0, 4.4, L * 0.5 - 3)); // cab
+          p.accent.push(box(5.2, 0.5, 0.3, 0, 3.6, L * 0.5 + 1.5));
+          // cargo containers: 2 x 4 on each side
+          for (let i = 0; i < 4; i++) for (const x of [-3.4, 3.4]) for (const y of [-1.8, 2.2]) {
+            const z = -L * 0.38 + i * 7.6;
+            (i + (x > 0 ? 1 : 0) + (y > 0 ? 1 : 0)) % 2 ? p.hull.push(box(3.4, 3.6, 7, x, y, z)) : p.trim.push(box(3.4, 3.6, 7, x, y, z));
+          }
+          p.light.push(new THREE.Vector3(0, 5.6, L * 0.5 - 3), new THREE.Vector3(5.4, 4, -L * 0.4), new THREE.Vector3(-5.4, 4, -L * 0.4));
+          p.dark.push(box(7, 5, 3, 0, 0, -L * 0.5 - 0.5));
+          p.engines.push({ x: 2.2, y: 0, z: -L * 0.5 - 2.5, r: 1.6 }, { x: -2.2, y: 0, z: -L * 0.5 - 2.5, r: 1.6 });
+        },
+      };
+    }
+    case 'constructor': {
+      const profile: Profile = [[-0.5, 0.9], [-0.1, 1], [0.3, 0.8], [0.5, 0.35]];
+      const W = 5.5;
+      return {
+        profile, W, build: (p) => {
+          p.hull.push(slab(profile, L, W, -0.5, 0, -2.2, 4), slab(profile, L, W, 0, 0.5, -2.2, 4));
+          p.hull.push(box(6, 3, 9, 0, 3.2, 2));
+          // crane gantry
+          p.trim.push(box(0.8, 9, 0.8, 4.5, 5.5, -6), box(0.8, 9, 0.8, -4.5, 5.5, -6), box(10, 0.8, 0.8, 0, 10, -6), box(0.8, 0.8, 16, 0, 10, 1));
+          p.accent.push(box(1.4, 1.4, 1.4, 0, 9, 9));
+          p.dark.push(box(8, 2.4, 8, 0, 2.2, -10));                          // drone bay
+          p.accent.push(box(6, 0.3, 0.4, 0, 3.5, -6));
+          p.light.push(new THREE.Vector3(0, 11, 9), new THREE.Vector3(5, 10, -6), new THREE.Vector3(-5, 10, -6));
+          p.dark.push(box(W * 1.3, 3.4, 3, 0, -0.4, -L * 0.5 - 1));
+          p.engines.push({ x: 2.4, y: 0, z: -L * 0.5 - 3, r: 1.3 }, { x: -2.4, y: 0, z: -L * 0.5 - 3, r: 1.3 });
+        },
+      };
+    }
+    case 'platform': {
+      const profile: Profile = [[-0.5, 1], [0.5, 1]];
+      const W = 12;
+      return {
+        profile, W, build: (p) => {
+          p.hull.push(cyl(13, 15, 5, 0, 0, 0, 'y', 8), cyl(7, 9, 4, 0, 4.5, 0, 'y', 8));
+          p.dark.push(cyl(16, 16, 1.2, 0, -2.8, 0, 'y', 8), cyl(2, 3, 8, 0, -7, 0, 'y', 6));
+          p.accent.push(box(30, 0.4, 0.4, 0, -1.6, 0), box(0.4, 0.4, 30, 0, -1.6, 0));
+          p.light.push(new THREE.Vector3(14, 0, 0), new THREE.Vector3(-14, 0, 0), new THREE.Vector3(0, 0, 14), new THREE.Vector3(0, 0, -14));
+        },
+      };
+    }
     default: {
       // corvette
       const profile: Profile = enemy ? [[-0.5, 0.7], [-0.25, 1], [0.1, 0.45], [0.5, 0.1]] : [[-0.5, 1], [-0.3, 0.85], [0.5, 0.1]];
@@ -372,7 +440,7 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
   const glowGeo = new THREE.CircleGeometry(1, 20);
   const plumeGeo = new THREE.ConeGeometry(1, 1, 16, 1, true);
   plumeGeo.rotateX(-Math.PI / 2); plumeGeo.translate(0, 0, -0.5);
-  rear.add(new THREE.Mesh(mergeAll(parts.engines.map(e => cyl(e.r * 1.1, e.r * 1.35, e.r * 1.6, e.x, e.y, e.z + e.r * 0.6, 'z', 14))), m.trim));
+  if (parts.engines.length) rear.add(new THREE.Mesh(mergeAll(parts.engines.map(e => cyl(e.r * 1.1, e.r * 1.35, e.r * 1.6, e.x, e.y, e.z + e.r * 0.6, 'z', 14))), m.trim));
   for (const e of parts.engines) {
     const glow = new THREE.Mesh(glowGeo, m.engine);
     glow.position.set(e.x, e.y, e.z - 0.25); glow.rotation.y = Math.PI; glow.scale.setScalar(e.r);

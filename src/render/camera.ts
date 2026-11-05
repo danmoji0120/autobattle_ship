@@ -52,13 +52,16 @@ export class CameraRig {
 
   orbit(dx: number, dy: number) {
     this.yaw -= dx * 0.005;
-    this.pitch = THREE.MathUtils.clamp(this.pitch + dy * 0.004, this.mode === 'tactical' ? 0.12 : -1.2, 1.52);
+    this.pitch = THREE.MathUtils.clamp(this.pitch + dy * 0.004, this.mode === 'tactical' ? this.minPitch : -1.2, 1.52);
   }
   zoom(f: number) {
     if (this.mode === 'follow') { this.followZoom = THREE.MathUtils.clamp(this.followZoom * f, 0.35, 6); return; }
-    this.dist = THREE.MathUtils.clamp(this.dist * f, 120, 9000);
+    this.dist = THREE.MathUtils.clamp(this.dist * f, this.minDist, this.maxDist);
   }
   followZoom = 1;
+  minDist = 120;
+  maxDist = 9000;
+  minPitch = 0.12;
   pan(dx: number, dy: number) {
     const s = this.dist * 0.0011;
     const right = tmp.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
