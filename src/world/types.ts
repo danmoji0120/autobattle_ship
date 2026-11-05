@@ -5,9 +5,12 @@ import type { CommanderDef } from '../sim/data/commanders';
 import type { BattleSetup } from '../sim/world';
 import type { OrderRecord } from '../sim/types';
 
-export type Res = 'ore' | 'alloy' | 'crystal';
+/** item id (see industry.ts ITEMS / EQUIPMENT / 'bp:<tech>') */
+export type Res = string;
+/** the three original goods (always present in a cargo record for save compatibility) */
 export const RES: Res[] = ['ore', 'alloy', 'crystal'];
-export type Cargo = Record<Res, number>;
+/** sparse item → amount map; read with qty(), never index blindly */
+export type Cargo = Record<string, number>;
 export interface V { x: number; y: number; z: number }
 
 export type CompanyKind = 'player' | 'union' | 'guild' | 'pirate';
@@ -24,7 +27,13 @@ export interface Company {
   stats: { earned: number; mined: number; kills: number; lost: number; battlesWon: number; contracts: number };
   milestones: string[];
   homeStation: string;
+  /** researched technologies */
+  tech?: string[];
+  /** research projects (one lab slot each while running) */
+  research?: ResearchProject[];
 }
+
+export interface ResearchProject { id: string; tech: string; station: string; left: number; total: number; started: boolean; paused?: boolean; why?: string; source?: 'lab' | 'salvage' }
 
 export type Op =
   | { k: 'idle' }
@@ -33,7 +42,7 @@ export type Op =
   /** deliver: unloading station; sell: sell there (else store in the company's storage there);
    *  auto: the server picks (and re-picks) the most suitable reachable station */
   | { k: 'mine'; field: string; deliver: string; sell: boolean; auto?: boolean }
-  | { k: 'haul'; from: string; to: string; res: Res }
+  | { k: 'haul'; from: string; to: string; res: Res }   // res '*auto' = supply what `to` lacks, '*all' = move everything
   | { k: 'patrol'; at: V; radius: number }
   | { k: 'escort'; group: string }
   | { k: 'attack'; group?: string; lair?: string }
@@ -69,6 +78,8 @@ export interface WShip {
   state: 'space' | 'docked' | 'battle' | 'building';
   task: ShipTask;
   cargo: Cargo;
+  /** installed fitting modules (EQUIPMENT ids) */
+  fit?: string[];
   engagement?: string;
   kills: number;
   /** visual hints for clients */
@@ -146,9 +157,9 @@ export interface Module {
   /** paused: keeps what it has reserved, takes nothing more, no work is done */
   paused?: boolean;
   /** materials set aside for this plan (already taken out of the owner's storage, so nothing else can use them) */
-  reserved?: { alloy: number; crystal: number };
+  reserved?: Record<string, number>;
   /** materials already worked into the structure */
-  used?: { alloy: number; crystal: number };
+  used?: Record<string, number>;
   /** credits paid when the plan was registered (refunded pro rata on cancel) */
   paid?: number;
   /** all materials secured at least once (for the one-off notification) */
@@ -176,7 +187,32 @@ export interface Station {
   tax?: number;
   /** Union presence: garrison size class 0..3 */
   garrison?: number;
+  // ── industry (own stations) ──
+  /** production orders, served in queue order */
+  orders?: import('./production').ProdOrder[];
+  /** running production jobs (inputs already consumed) */
+  jobs?: import('./production').ProdJob[];
+  /** ship construction queue (yard slots) */
+  builds?: ShipBuild[];
+  /** id counter for orders/jobs/builds at this station */
+  seq?: number;
+  /** player sell orders listed at this station (goods held in escrow) */
+  listings?: Listing[];
 }
+
+export interface ShipBuild {
+  id: string; classId: string; loadoutId: string;
+  /** fitting modules installed at launch */
+  fit: string[];
+  group?: string;
+  /** seconds of yard work left / total; started = parts consumed */
+  left: number; total: number; started: boolean;
+  paid: number;
+  paused?: boolean;
+  why?: string;
+}
+
+export interface Listing { id: string; seller: string; item: string; qty: number; price: number; t: number }
 
 export interface Field {
   id: string;
@@ -184,6 +220,8 @@ export interface Field {
   pos: V;
   radius: number;
   res: Res;
+  /** what a mined unit is made of (item → fraction); res alone when absent */
+  mix?: Record<string, number>;
   amount: number;
   max: number;
   regen: number;               // per second
@@ -319,7 +357,17 @@ export interface WorldState {
   events: WorldEvent[];        // rolling log
   eventSeq: number;
   news: string[];
+  /** industry data upgrade applied (see economy.ts) */
+  industryV?: number;
 }
 
 export const emptyCargo = (): Cargo => ({ ore: 0, alloy: 0, crystal: 0 });
-export const cargoSum = (c: Cargo) => c.ore + c.alloy + c.crystal;
+export const qty = (c: Cargo | undefined, r: string) => c?.[r] ?? 0;
+export const addc = (c: Cargo, r: string, n: number) => { c[r] = (c[r] ?? 0) + n; if (Math.abs(c[r]) < 1e-9 && !RES.includes(r)) delete c[r]; };
+export const cargoSum = (c: Cargo) => { let n = 0; for (const k in c) n += c[k]; return n; };
+/** item ids with a positive amount */
+export const cargoKeys = (c: Cargo) => Object.keys(c).filter(k => c[k] > 1e-9);
+/** take up to n of r; returns what was taken */
+export const takec = (c: Cargo, r: string, n: number) => { const t = Math.max(0, Math.min(n, qty(c, r))); if (t > 0) addc(c, r, -t); return t; };
+/** has at least `need` of every item */
+export const hasAll = (c: Cargo, need: Record<string, number>) => Object.entries(need).every(([k, n]) => qty(c, k) >= n - 1e-9);

@@ -8,10 +8,14 @@ import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
 import type { Order, OrderRecord } from '../sim/types';
 import type { March, WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Engagement, WorldEvent, Contract, WCommander, Company, StarSystem, Gate, Lair } from './types';
-import { emptyCargo, cargoSum, RES } from './types';
+import { emptyCargo, cargoSum, RES, qty, addc, takec, cargoKeys } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
-import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, MATS } from './construction';
+import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
+import { stepProduction, storageCap, stationNeeds, type ProdOrder } from './production';
+import { RECIPES, ITEMS, TECHS, EQUIPMENT, techFx, itemPrice as itemPriceOf } from './industry';
+import { upgradeIndustry, npcMarketStep, SALVAGE_MIX } from './economy';
+const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
 import { effSec, secAt } from './security';
 import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate, jumps } from './geom';
@@ -53,6 +57,11 @@ export type Cmd =
   | { c: 'accept'; contract: string }
   | { c: 'queueModule'; station: string; kind: string }
   | { c: 'planOp'; station: string; plan: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
+  | { c: 'prodOrder'; station: string; recipe: string; mode: 'count' | 'stock'; n: number }
+  | { c: 'prodOp'; station: string; order: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' | 'set'; n?: number }
+  | { c: 'list'; station: string; item: string; qty: number; price: number }
+  | { c: 'delist'; station: string; listing: string }
+  | { c: 'buyListing'; station: string; listing: string; qty: number }
   | { c: 'renameCompany'; name: string };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
@@ -79,6 +88,8 @@ export class WorldSim {
     if ((st.version ?? 0) < WORLD_VERSION) st = migrateWorld(st);
     this.st = st;
     this.rng = new Rng(st.seed).restore(st.rng.length ? st.rng : new Rng(st.seed).state());
+    // industry: field compositions, NPC markets for the new goods, legacy facility kinds (idempotent)
+    upgradeIndustry(st);
     // construction plans: give pre-plan saves their bookkeeping (idempotent)
     for (const x of Object.values(st.stations)) for (const m of x.modules) normPlan(m, () => this.id('pl'));
     // rebuild live battles
@@ -166,6 +177,33 @@ export class WorldSim {
       if (d < bd) { bd = d; best = st.id; }
     }
     return best;
+  }
+
+  /** free warehouse space for a company at a station (public stations: unlimited) */
+  room(st: Station, company: string): number {
+    if (st.owner !== company) return Infinity;
+    const cap = storageCap(st);
+    return cap > 0 ? Math.max(0, cap - cargoSum(this.storage(st, company))) : Infinity;
+  }
+  overCap(st: Station, company: string, add: number) { return this.room(st, company) < add; }
+  /** public markets and own stations with a trade hub host a player exchange */
+  hasExchange(st: Station) { return (st.public && !!st.market) || this.hasModule(st, 'trade_hub'); }
+
+  /** what a hauler loads at `a` for this haul order, in priority order */
+  private haulPick(op: Extract<Op, { k: 'haul' }>, a: Station, b: Station, store: Cargo): [string, number][] {
+    if (op.res === '*all') return cargoKeys(store).map(k => [k, store[k]] as [string, number]);
+    if (op.res === '*auto') {
+      // what the destination's production orders and construction plans are short of
+      const need = stationNeeds(b);
+      for (const m of plans(b)) if (!m.paused) for (const r of matsOf(m.kind)) { const x = missing(m, r) - qty(this.storage(b, b.owner), r); if (x > 0) need[r] = Math.max(need[r] ?? 0, x); }
+      return Object.entries(need).filter(([k]) => qty(store, k) >= 1).sort((x, y) => y[1] * (ITEMS[y[0]]?.price ?? 50) - x[1] * (ITEMS[x[0]]?.price ?? 50));
+    }
+    return [[op.res, qty(store, op.res)]];
+  }
+
+  private npcMarket(s: Station, m: import('./types').Market, dt: number) {
+    const sys = this.sysOf(s.pos);
+    npcMarketStep(s, m, dt, sys?.heat ?? 0);
   }
 
   canDock(st: Station, company: string) { return st.public || (st.owner === company && this.hasModule(st, 'core')); }
@@ -316,14 +354,14 @@ export class WorldSim {
       case 'buyShip': {
         const st = S(cmd.station); const cls = SHIP_CLASSES[cmd.classId]; const ec = ECON[cmd.classId];
         if (!st || !cls || !ec) return '구매 불가';
-        const own = st.owner === company && this.hasModule(st, 'shipyard');
+        const own = st.owner === company && this.hasModule(st, 'yard_s');
         if (!own && !(st.public && st.services.shipyard.includes(cmd.classId))) return '이 정거장에서 건조하지 않는 함급';
         if (!own && co.rep < ec.rep) return `연합 평판 ${ec.rep} 필요`;
         const price = own ? Math.round(ec.price * 0.5) : ec.price;
         if (co.credits < price) return '자금 부족';
-        if (own && this.storage(st, company).alloy < ec.alloy) return `합금 ${ec.alloy} 필요`;
+        if (own && qty(this.storage(st, company), 'alloy') < ec.alloy) return `합금 ${ec.alloy} 필요`;
         co.credits -= price;
-        if (own) this.storage(st, company).alloy -= ec.alloy;
+        if (own) addc(this.storage(st, company), 'alloy', -ec.alloy);
         let g = cmd.group ? G(cmd.group) : null;
         if (!g) g = this.newGroup(company, ec.military ? '신규 편대' : `${cls.type}반`);
         const s = this.spawnShip(company, cmd.classId, getLoadout(cmd.classId, cmd.loadoutId).id, g.id, st.pos);
@@ -336,13 +374,14 @@ export class WorldSim {
         const store = this.storage(st, company);
         const amt = Math.floor(Math.max(0, cmd.amount));
         if (cmd.c === 'sell') {
-          const a = Math.min(amt, Math.floor(store[cmd.res])); if (a <= 0) return '창고에 자원 없음';
-          const v = this.sellAt(st, company, cmd.res, a); store[cmd.res] -= a;
+          const a = Math.min(amt, Math.floor(qty(store, cmd.res))); if (a <= 0) return '창고에 자원 없음';
+          const v = this.sellAt(st, company, cmd.res, a); addc(store, cmd.res, -a);
           this.ev('money', `${RES_NAME[cmd.res]} ${a} 판매 +${Math.round(v).toLocaleString()} cr`, { company, pos: st.pos });
         } else {
           const m = st.market[cmd.res]; const a = Math.min(amt, Math.floor(m.stock)); const cost = a * this.price(st, cmd.res, 'buy');
           if (a <= 0) return '재고 없음'; if (co.credits < cost) return '자금 부족';
-          co.credits -= cost; m.stock -= a; store[cmd.res] += a;
+          if (st.owner !== company && this.overCap(st, company, a)) return '창고 용량 부족';
+          co.credits -= cost; m.stock -= a; addc(store, cmd.res, a);
           this.ev('money', `${RES_NAME[cmd.res]} ${a} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
         }
         return null;
@@ -391,7 +430,8 @@ export class WorldSim {
         if (md.kind === 'core') return '도킹 허브는 정거장 설립 시 함께 건설됨';
         if (st.modules.length >= MAX_MODULES) return `시설 슬롯 부족 (${st.modules.length}/${MAX_MODULES})`;
         if (md.requires && !st.modules.some(m => m.kind === md.requires)) return `${MODULES[md.requires].name} 필요`;
-        if (md.kind !== 'defense' && md.kind !== 'depot' && st.modules.some(m => m.kind === md.kind)) return '이미 보유하거나 계획된 시설';
+        if (md.tech && !co.tech?.includes(md.tech)) return `연구 필요: ${techName(md.tech)}`;
+        if (md.max !== undefined && st.modules.filter(m => m.kind === md.kind).length >= md.max) return md.max === 1 ? '이미 보유하거나 계획된 시설 (정거장당 1개)' : `정거장당 최대 ${md.max}개`;
         // credits are paid now; materials may arrive later — the plan waits for them
         if (co.credits < md.credits) return `자금 부족 — ${Math.ceil(md.credits - co.credits).toLocaleString()} cr 더 필요`;
         co.credits -= md.credits;
@@ -399,7 +439,7 @@ export class WorldSim {
         st.modules.push(m);
         // take what is already in storage right away so the panel shows it immediately
         allocate(st, this.storage(st, company));
-        const short = MATS.filter(r => missing(m, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(m, r))}`);
+        const short = matsOf(m.kind).filter(r => missing(m, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(m, r))}`);
         this.ev('info', `${st.name}: ${md.name} 건설 계획 등록 — ${short.length ? `자재 대기 (${short.join(', ')} 부족)` : '자재 확보 완료'}`, { company, pos: st.pos, tag: 'build_plan' });
         return null;
       }
@@ -417,10 +457,11 @@ export class WorldSim {
             if (m.kind === 'core') return '도킹 허브는 취소할 수 없음';
             if (st.modules.some(o => o !== m && MODULES[o.kind].requires === m.kind && !st.modules.some(x => x !== m && x.kind === m.kind && x.built))) return `${md.name}이(가) 필요한 다른 계획이 있음`;
             const back = cancelRefund(m);
-            store.alloy += back.alloy; store.crystal += back.crystal; co.credits += back.credits;
+            for (const [k, n] of Object.entries(back.mats)) addc(store, k, n);
+            co.credits += back.credits;
             st.modules.splice(st.modules.indexOf(m), 1);
             allocate(st, store); // freed materials go to the next plan in line
-            this.ev('info', `${st.name}: ${md.name} 계획 취소 — 환불 ${back.credits.toLocaleString()} cr, 예약 자재 반환 (합금 ${Math.round(back.alloy)}${back.crystal ? `, 크리스탈 ${Math.round(back.crystal)}` : ''})${m.progress > 0 ? ` · 투입된 자재는 회수 불가` : ''}`, { company, pos: st.pos });
+            this.ev('info', `${st.name}: ${md.name} 계획 취소 — 환불 ${back.credits.toLocaleString()} cr, 예약 자재 반환 (${Object.entries(back.mats).map(([k, n]) => `${RES_NAME[k]} ${Math.round(n)}`).join(', ') || '없음'})${m.progress > 0 ? ` · 투입된 자재는 회수 불가` : ''}`, { company, pos: st.pos });
             return null;
           }
           case 'up': case 'down': case 'top': {
@@ -433,6 +474,83 @@ export class WorldSim {
             break;
           }
         }
+        return null;
+      }
+      case 'prodOrder': {
+        const st = S(cmd.station); const r = RECIPES[cmd.recipe];
+        if (!st || st.owner !== company) return '자사 정거장이 아님';
+        if (!r) return '알 수 없는 레시피';
+        if (r.tech && !co.tech?.includes(r.tech)) return `연구 필요: ${techName(r.tech)}`;
+        if (!st.modules.some(m => m.kind === r.fac)) return `${MODULES[r.fac].name}이(가) 없습니다 — 먼저 건설하세요`;
+        const n = Math.floor(cmd.n);
+        if (!(n >= 1 && n <= 1e6)) return '수량 오류';
+        if ((st.orders ?? []).length >= 40) return '생산 주문은 정거장당 40개까지';
+        st.seq = (st.seq ?? 0) + 1;
+        (st.orders ??= []).push({ id: `o${st.seq}`, recipe: r.id, mode: cmd.mode === 'stock' ? 'stock' : 'count', n, done: 0 });
+        stepProduction(st, co, 0);
+        return null;
+      }
+      case 'prodOp': {
+        const st = S(cmd.station);
+        if (!st || st.owner !== company) return '자사 정거장이 아님';
+        const q = st.orders ?? []; const o = q.find(x => x.id === cmd.order);
+        if (!o) return '주문 없음';
+        const i = q.indexOf(o);
+        switch (cmd.op) {
+          case 'pause': o.paused = true; break;
+          case 'resume': o.paused = false; break;
+          // running batches finish (their inputs are already spent); nothing new starts
+          case 'cancel': q.splice(i, 1); break;
+          case 'set': { const n = Math.floor(cmd.n ?? 0); if (!(n >= 1 && n <= 1e6)) return '수량 오류'; o.n = n; break; }
+          case 'up': case 'down': case 'top': {
+            const j = cmd.op === 'top' ? 0 : cmd.op === 'up' ? i - 1 : i + 1;
+            if (j < 0 || j >= q.length || j === i) return null;
+            q.splice(i, 1); q.splice(j, 0, o);
+          }
+        }
+        stepProduction(st, co, 0);
+        return null;
+      }
+      // ── player market: goods are held in escrow at the station until sold or withdrawn ──
+      case 'list': {
+        const st = S(cmd.station); if (!st) return '정거장 없음';
+        if (!this.hasExchange(st)) return '이 정거장에는 거래소가 없습니다';
+        const n = Math.floor(cmd.qty), price = Math.round(cmd.price * 10) / 10;
+        if (!(n >= 1) || !(price > 0 && price < 1e8)) return '수량·가격 오류';
+        const store = this.storage(st, company);
+        if (qty(store, cmd.item) < n) return '보관함에 수량 부족';
+        if ((st.listings ?? []).filter(l => l.seller === company).length >= 20) return '정거장당 매물은 20개까지';
+        addc(store, cmd.item, -n);
+        st.seq = (st.seq ?? 0) + 1;
+        (st.listings ??= []).push({ id: `l${st.seq}`, seller: company, item: cmd.item, qty: n, price, t: this.time });
+        this.ev('world', `${co.name}이(가) ${st.name} 거래소에 ${RES_NAME[cmd.item]} ${n}을(를) 개당 ${price.toLocaleString()} cr에 내놓았다.`, { pos: st.pos, ref: st.id });
+        return null;
+      }
+      case 'delist': {
+        const st = S(cmd.station); const l = st?.listings?.find(x => x.id === cmd.listing);
+        if (!st || !l || l.seller !== company) return '매물 없음';
+        addc(this.storage(st, company), l.item, l.qty);
+        st.listings!.splice(st.listings!.indexOf(l), 1);
+        return null;
+      }
+      case 'buyListing': {
+        const st = S(cmd.station); const l = st?.listings?.find(x => x.id === cmd.listing);
+        if (!st || !l) return '매물이 이미 팔렸거나 내려갔습니다';
+        if (l.seller === company) return '자기 매물';
+        const n = Math.min(Math.floor(cmd.qty), l.qty);
+        if (!(n >= 1)) return '수량 오류';
+        const cost = n * l.price;
+        if (co.credits < cost) return `자금 부족 — ${Math.ceil(cost - co.credits).toLocaleString()} cr 더 필요`;
+        if (this.overCap(st, company, n)) return '창고 용량 부족';
+        const seller = this.st.companies[l.seller];
+        co.credits -= cost;
+        const net = cost * (1 - (st.tax ?? 0.02));
+        if (seller) { seller.credits += net; seller.stats.earned += net; }
+        addc(this.storage(st, company), l.item, n);
+        l.qty -= n;
+        if (l.qty <= 0) st.listings!.splice(st.listings!.indexOf(l), 1);
+        this.ev('money', `${st.name} 거래소: ${RES_NAME[l.item]} ${n} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
+        if (seller) this.ev('money', `${st.name} 거래소: ${co.name}이(가) ${RES_NAME[l.item]} ${n} 구매 +${Math.round(net).toLocaleString()} cr`, { company: l.seller, pos: st.pos });
         return null;
       }
       case 'renameCompany': co.name = cmd.name.slice(0, 20) || co.name; return null;
@@ -459,7 +577,7 @@ export class WorldSim {
     if (advance(m, rate)) {
       // rounding crumbs go back; completed modules carry no plan bookkeeping
       const store = this.storage(st, st.owner);
-      for (const r of MATS) store[r] += m.reserved?.[r] ?? 0;
+      for (const [r, n] of Object.entries(m.reserved ?? {})) if (n > 0) addc(store, r, n);
       delete m.reserved; delete m.used; delete m.paused; delete m.secured;
       this.ev('world', `${this.st.companies[st.owner]?.name ?? ''}: ${st.name}에 ${md.name} 완공!`, { pos: st.pos, ref: st.id });
       this.ev('info', `${st.name}: ${md.name} 완공 — ${md.unlocks}`, { company: st.owner, pos: st.pos, tag: 'build_done' });
@@ -484,6 +602,8 @@ export class WorldSim {
         const a = this.st.stations[op.from], b = this.st.stations[op.to];
         if (!a || !b || a === b || !this.canDock(a, company) || !this.canDock(b, company)) return '운송 경로 오류';
         if (!sub.some(s => ECON[s.classId].cargo > 0)) return '화물 적재 함선이 없음';
+        if (op.res === '*auto' && ![a, b].some(x => x.owner === company && x.modules.some(m => m.kind === 'logistics' && m.built))) return '자동 보급에는 물류센터가 필요 (출발지나 목적지)';
+        if (op.res !== '*auto' && op.res !== '*all' && !ITEMS[op.res] && !EQUIPMENT[op.res] && !op.res.startsWith('bp:')) return '알 수 없는 품목';
         return null;
       }
       case 'dock': { const st = this.st.stations[op.station]; return st && this.canDock(st, company) ? null : '정박 불가'; }
@@ -519,13 +639,13 @@ export class WorldSim {
     const at = con.task.k === 'docked' ? this.st.stations[con.task.station] : null;
     let cost = FOUND_COST.credits;
     let fromStore = 0;
-    if (at) fromStore = Math.min(need, Math.floor(this.storage(at, company).alloy));
+    if (at) fromStore = Math.min(need, Math.floor(qty(this.storage(at, company), 'alloy')));
     const market = Object.values(this.st.stations).filter(s => s.market?.alloy).sort((a, b) => dist(a.pos, con.pos) - dist(b.pos, con.pos))[0];
     const buy = need - fromStore;
     if (buy > 0) { if (!market || market.market!.alloy.stock < buy) return '합금 재고 부족'; cost += buy * this.price(market, 'alloy', 'buy'); }
     if (co.credits < cost) return `자금 부족 (설립비+합금 ${Math.round(cost).toLocaleString()} cr)`;
     co.credits -= cost;
-    if (at) this.storage(at, company).alloy -= fromStore;
+    if (at) addc(this.storage(at, company), 'alloy', -fromStore);
     if (buy > 0) market.market!.alloy.stock -= buy;
     con.cargo.alloy += need;
     this.ev('money', `정거장 설립 자금 및 합금 확보 -${Math.round(cost).toLocaleString()} cr`, { company });
@@ -637,25 +757,14 @@ export class WorldSim {
       if (s.market) {
         // stations consume/produce so prices recover over time
         const m = s.market;
-        const drift = (k: Res, rate: number) => { if (m[k]) m[k].stock = Math.max(0, m[k].stock + rate * dt); };
-        if (s.id === 'nova') { const use = Math.min(m.ore.stock, 3 * dt); m.ore.stock -= use; m.alloy.stock += use * 0.5; }
-        if (s.id === 'helios') { drift('alloy', -1.0); drift('ore', -0.4); }
-        if (s.id === 'astra') { drift('ore', -0.7); drift('alloy', -0.25); }
-        if (s.id === 'drakeout' || s.id === 'cinderco') { drift('ore', -0.5); drift('alloy', -0.4); }
-        if (s.id === 'exchange') { drift('crystal', -0.08); }
-        for (const r of RES) if (m[r]) { const d = m[r].target - m[r].stock; m[r].stock += d * 0.0008 * dt * 4; }
+        this.npcMarket(s, m, dt);
       }
       if (!s.public) {
-        for (const [cid, store] of Object.entries(s.storage)) {
-          if (cid !== s.owner) continue;
-          if (this.hasModule(s, 'refinery')) {
-            const rate = (this.hasModule(s, 'depot') ? 3 : 2) * dt;
-            const use = Math.min(store.ore, rate * 2);
-            store.ore -= use; store.alloy += use / 2;
-          }
-        }
         if (this.hasModule(s, 'defense') && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
         this.stationWorks(s, dt);
+        for (const e of stepProduction(s, st.companies[s.owner], dt)) {
+          if (e.kind === 'finished') this.ev('info', `${s.name}: 생산 주문 완료 — ${RECIPES[e.recipe].name}`, { company: s.owner, pos: s.pos, tag: 'prod_done' });
+        }
       }
     }
     for (const f of Object.values(st.fields)) {
@@ -1380,8 +1489,9 @@ export class WorldSim {
       const spot = miningSpot(f, rock);
       if (this.moveTo(s, spot, speed, dt, 18)) {
         const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp) * (f.rich ?? 1);
-        const a = Math.min(rate * dt, f.amount, cap - cargoSum(s.cargo));
-        f.amount -= a; s.cargo[f.res] += a;
+        const a = Math.min(rate * dt * techFx(this.st.companies[g.owner]?.tech).mineMul, f.amount, cap - cargoSum(s.cargo));
+        f.amount -= a;
+        for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) addc(s.cargo, k, a * w);
         s.task = { k: 'mine', field: f.id, rock };
         s.fx = { mining: f.id, rock };
         const r = rockPos(f, rock); s.heading = Math.atan2(r.x - s.pos.x, r.z - s.pos.z);
@@ -1405,7 +1515,7 @@ export class WorldSim {
         if (this.moveTo(s, near, speed, dt, 40)) {
           const amt = Math.min(30 * dt, cargoSum(donor.cargo), cap - load);
           let left = amt;
-          for (const r of RES) { const t = Math.min(left, donor.cargo[r]); donor.cargo[r] -= t; s.cargo[r] += t; left -= t; }
+          for (const r of cargoKeys(donor.cargo)) { const t = takec(donor.cargo, r, left); addc(s.cargo, r, t); left -= t; if (left <= 1e-9) break; }
           s.fx = { transfer: donor.id };
           if ((donor.task as any).why === 'deliver') donor.task = { k: 'none' };
         }
@@ -1473,16 +1583,23 @@ export class WorldSim {
       } else this.goDock(s, a, dt, speed);
       return;
     }
-    if (cargoSum(s.cargo) > 0) {
-      g.status = `${b.name}로 ${RES_NAME[op.res]} 운송`;
-      if (this.goDock(s, b, dt, speed)) { this.unload(s, b, false); this.undock(s); }
+    const label = op.res === '*auto' ? '자동 보급' : op.res === '*all' ? '전 품목' : RES_NAME[op.res];
+    if (cargoSum(s.cargo) > 0.5) {
+      g.status = `${b.name}로 ${label} 운송`;
+      if (this.goDock(s, b, dt, speed)) {
+        this.unload(s, b, false);
+        if (cargoSum(s.cargo) > 0.5) g.status = `${b.name} 창고 가득 — 하역 대기`; else this.undock(s);
+      }
       return;
     }
     if (this.goDock(s, a, dt, speed)) {
       const store = this.storage(a, s.owner);
-      const amt = Math.min(Math.floor(store[op.res]), ec.cargo);
-      if (amt > 0) { store[op.res] -= amt; s.cargo[op.res] += amt; g.status = `${a.name}에서 적재 완료`; this.undock(s); }
-      else g.status = `${a.name} 창고에 ${RES_NAME[op.res]} 없음 — 대기`;
+      const cap = ec.cargo * techFx(this.st.companies[s.owner]?.tech).cargoMul;
+      const pick = this.haulPick(op, a, b, store);
+      let room = cap;
+      for (const [k, want] of pick) { const t = takec(store, k, Math.min(room, Math.floor(want))); addc(s.cargo, k, t); room -= t; if (room < 1) break; }
+      if (cap - room > 0) { g.status = `${a.name}에서 적재 완료 (${Math.round(cap - room)})`; this.undock(s); }
+      else g.status = op.res === '*auto' ? `${b.name}에 부족한 원료가 ${a.name} 창고에 없음 — 대기` : `${a.name} 창고에 ${label} 없음 — 대기`;
     } else g.status = `${a.name}로 적재하러 이동`;
   }
 
@@ -1503,7 +1620,7 @@ export class WorldSim {
     if (!this.moveTo(s, spot, speed, dt, 90)) { g.status = `${st.name}로 이동 중 (건설)`; return; }
     // the constructor unloads what it carries into the station's storage; plans take it from there
     let unloaded = false;
-    for (const r of RES) if (s.cargo[r] > 0) { store[r] += s.cargo[r]; s.cargo[r] = 0; unloaded = true; }
+    for (const r of cargoKeys(s.cargo)) { addc(store, r, takec(s.cargo, r, s.cargo[r])); unloaded = true; }
     if (unloaded) this.stationWorks(st, 0);
     if (active) {
       const md = MODULES[active.kind];
@@ -1517,7 +1634,7 @@ export class WorldSim {
     const md = MODULES[first.kind];
     if (first.paused) { g.status = `${md.name} — 일시 정지됨`; return; }
     if (!isSecured(first)) {
-      const short = MATS.filter(r => missing(first, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(first, r))} 부족`);
+      const short = matsOf(first.kind).filter(r => missing(first, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(first, r))} 부족`);
       g.status = `${md.name} — 자재 대기 (${short.join(', ')})`;
       this.say(g, `${md.name} 자재 대기 중: ${short.join(', ')}. ${st.name} 창고로 운송하거나 하역해 주십시오.`, 'warn', 90);
     } else g.status = `${md.name} — 선행 시설 대기`;
@@ -1535,7 +1652,7 @@ export class WorldSim {
     for (const cid of Object.keys(this.st.companies)) station.storage[cid] = emptyCargo();
     this.st.stations[id] = station;
     const store = station.storage[g.owner];
-    for (const r of RES) { store[r] += s.cargo[r]; s.cargo[r] = 0; }
+    for (const r of cargoKeys(s.cargo)) addc(store, r, takec(s.cargo, r, s.cargo[r]));
     g.op = { k: 'build', station: id }; g.override = true;
     this.ev('world', `${co.name}이(가) 새 정거장 "${station.name}" 건설에 착수했다.`, { pos: station.pos, ref: id });
     this.say(g, '부지 도착. 골조 조립을 시작합니다.', 'radio', 0);
@@ -1547,10 +1664,17 @@ export class WorldSim {
     const co = this.st.companies[s.owner];
     if (!co) return;
     let msg = '';
-    for (const r of RES) {
-      let amt = s.cargo[r];
+    // an own station only takes what fits in its warehouse; the rest stays aboard
+    let room = st.owner === s.owner ? this.room(st, s.owner) : Infinity;
+    let held = 0;
+    for (const r of cargoKeys(s.cargo)) {
+      let amt = qty(s.cargo, r);
       if (amt <= 0.01) continue;
-      s.cargo[r] = 0;
+      const toStore = !(sell && st.market?.[r]) && co.kind === 'player';
+      if (toStore && amt > room) { held += amt - Math.max(0, room); amt = Math.max(0, room); }
+      takec(s.cargo, r, amt);
+      if (toStore) room -= amt;
+      if (amt <= 0.01) continue;
       // contracts first
       for (const k of Object.values(this.st.contracts)) {
         if (k.done || k.takenBy !== s.owner || k.kind !== 'delivery' || k.stationId !== st.id || k.res !== r) continue;
@@ -1561,8 +1685,9 @@ export class WorldSim {
       if (amt <= 0.01) continue;
       if (co.kind !== 'player') { if (st.market?.[r]) st.market[r].stock += amt; continue; }
       if (sell && st.market?.[r]) { const v = this.sellAt(st, s.owner, r, amt); msg += `${RES_NAME[r]} ${Math.round(amt)} → +${Math.round(v).toLocaleString()} cr `; }
-      else { this.storage(st, s.owner)[r] += amt; msg += `${RES_NAME[r]} ${Math.round(amt)} 입고 `; }
+      else { addc(this.storage(st, s.owner), r, amt); msg += `${RES_NAME[r]} ${Math.round(amt)} 입고 `; }
     }
+    if (held > 0.5 && co.kind === 'player') this.ev('warn', `${st.name} 창고 가득 — ${s.name}이(가) 화물 ${Math.round(held)}을(를) 하역하지 못함. 창고를 증설하거나 재고를 옮기세요.`, { company: s.owner, pos: st.pos, tag: 'storage_full' });
     if (msg && co.kind === 'player') {
       const g = this.st.groups[s.groupId];
       this.ev('money', `${s.name} @ ${st.name}: ${msg.trim()}`, { company: s.owner, pos: st.pos, who: g?.name, color: co.color });
@@ -1586,12 +1711,19 @@ export class WorldSim {
     g.status = `${target.name}로 교역`;
     if (this.goDock(s, target, dt, speed * 0.8)) {
       const m = target.market!;
-      for (const r of RES) if (s.cargo[r] > 0 && m[r]) { m[r].stock += s.cargo[r]; s.cargo[r] = 0; }
-      // take the most abundant good to the next stop
-      let best: Res = 'alloy', bv = -1;
-      for (const r of RES) if (m[r] && m[r].stock / m[r].target > bv) { bv = m[r].stock / m[r].target; best = r; }
-      const amt = Math.min(250, m[best].stock * 0.15);
-      m[best].stock -= amt; s.cargo[best] += amt;
+      for (const r of cargoKeys(s.cargo)) { const n = takec(s.cargo, r, s.cargo[r]); if (m[r]) m[r].stock += n; }
+      // take the most abundant good that the next stop is short of (real arbitrage between regions)
+      const next = this.st.stations[op.route[(op.leg + 1) % op.route.length]]?.market;
+      let best: Res = 'alloy', bv = -Infinity;
+      for (const r of Object.keys(m)) {
+        if (r.startsWith('bp:')) continue;
+        const here = m[r].stock / m[r].target, there = next?.[r] ? next[r].stock / next[r].target : 1;
+        const v = here - there;
+        if (v > bv) { bv = v; best = r; }
+      }
+      const unit = Math.max(1, ITEMS[best]?.price ?? 50);
+      const amt = Math.min(250 * 30 / unit + 5, m[best].stock * 0.15);
+      m[best].stock -= amt; addc(s.cargo, best, amt);
       op.leg = (op.leg + 1) % op.route.length;
       (s as any)._wait = 6;
     }
@@ -2004,7 +2136,7 @@ export class WorldSim {
     }
     // wreckage becomes a salvage field (alloy)
     if (salvage > 300) {
-      const f: Field = { id: this.id('wreck'), name: '전투 잔해', pos: { ...e.pos }, radius: 220, res: 'alloy', amount: Math.round(salvage), max: Math.round(salvage), regen: 0, rocks: Math.min(40, 8 + Math.round(salvage / 150)), salvage: true, expires: this.time + 1500, danger: 1 };
+      const f: Field = { id: this.id('wreck'), name: '전투 잔해', pos: { ...e.pos }, radius: 220, res: 'alloy', mix: { ...SALVAGE_MIX }, amount: Math.round(salvage), max: Math.round(salvage), regen: 0, rocks: Math.min(40, 8 + Math.round(salvage / 150)), salvage: true, expires: this.time + 1500, danger: 1 };
       st.fields[f.id] = f;
     }
     if (!players.length && sys) {
@@ -2126,8 +2258,8 @@ export class WorldSim {
     let v = co.credits;
     for (const s of Object.values(this.st.ships)) if (s.owner === company) v += ECON[s.classId].price * (0.5 + 0.5 * s.hp);
     for (const s of Object.values(this.st.stations)) {
-      const store = s.storage[company]; if (store) v += store.ore * 10 + store.alloy * 30 + store.crystal * 90;
-      if (s.owner === company) for (const m of s.modules) if (m.built) v += MODULES[m.kind].credits + MODULES[m.kind].alloy * 30;
+      const store = s.storage[company]; if (store) for (const k of cargoKeys(store)) v += store[k] * itemPriceOf(k);
+      if (s.owner === company) for (const m of s.modules) if (m.built) v += MODULES[m.kind].credits + Object.entries(MODULES[m.kind].mats).reduce((a, [k, n]) => a + n * itemPriceOf(k), 0);
     }
     return Math.round(v);
   }

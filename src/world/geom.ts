@@ -34,8 +34,12 @@ export function berthPos(s: Station, i: number): V {
 
 export function modulePos(s: Station, slot: number): V {
   if (slot === 0) return { ...s.pos };
-  const a = (slot - 1) / 6 * Math.PI * 2;
-  return { x: s.pos.x + Math.cos(a) * 150, y: s.pos.y + (slot % 2 ? 20 : -20), z: s.pos.z + Math.sin(a) * 150 };
+  // rings around the hub: 6, then 10, then 14 per ring
+  let i = slot - 1, ring = 0, n = 6;
+  while (i >= n) { i -= n; ring++; n += 4; }
+  const a = i / n * Math.PI * 2 + ring * 0.37;
+  const r = 150 + ring * 115;
+  return { x: s.pos.x + Math.cos(a) * r, y: s.pos.y + (slot % 2 ? 20 : -20) + (ring % 2 ? 30 : 0), z: s.pos.z + Math.sin(a) * r };
 }
 
 // ---------------------------------------------------------------- star systems

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { GameClient } from '../net';
 import type { StrategicView, Pick } from './view';
 import type { WGroup, WShip, Op, Station, Res, WorldEvent, V } from '../../world/types';
-import { RES, cargoSum } from '../../world/types';
+import { RES, cargoSum, qty, cargoKeys } from '../../world/types';
 import type { WorldView } from '../../server/protocol';
 import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
 import { SPECIALTY_TEXT } from '../../sim/data/commanders';
@@ -12,7 +12,9 @@ import { secAt, effSec } from '../../world/security';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
-import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, MATS, type Mat } from '../../world/construction';
+import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, matsOf, type Mat } from '../../world/construction';
+import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS } from './industryUi';
+import { TECHS, ITEMS } from '../../world/industry';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
@@ -48,6 +50,7 @@ export class PmcHud {
   private modal: HTMLElement | null = null;
   private modalStation: string | null = null;
   private modalTab = 'market';
+  private ind = newIndUi();
   private tabScroll = new Map<string, number>();
   private pointer = { x: 0, y: 0, down: -1, sx: 0, sy: 0, moved: false, over: false };
   private keys = new Set<string>();
@@ -463,11 +466,30 @@ export class PmcHud {
     }
   }
 
+  /** what to carry: a chooser listing the goods actually stored at the origin, plus the two bulk modes */
   private openHaulRes(from: string, to: string) {
-    const res = (prompt('운송할 자원 (광석 / 합금 / 크리스탈)', '합금') ?? '').trim();
-    const map: Record<string, Res> = { 광석: 'ore', 합금: 'alloy', 크리스탈: 'crystal', ore: 'ore', alloy: 'alloy', crystal: 'crystal' };
-    if (map[res]) this.setOp({ k: 'haul', from, to, res: map[res] });
     this.setMode(null);
+    const A = this.st.stations[from], B = this.st.stations[to];
+    const store = A.storage[this.me] ?? {};
+    const logi = [A, B].some(x => x.owner === this.me && x.modules.some(m => m.kind === 'logistics' && m.built));
+    const items = cargoKeys(store).filter(k => store[k] >= 1).sort((x, y) => store[y] - store[x]);
+    document.getElementById('haulPick')?.remove();
+    const box = h('div', 'panel haulpick');
+    box.id = 'haulPick';
+    box.innerHTML = `<div class="shdr"><b>운송: ${esc(A.name)} → ${esc(B.name)}</b><button class="btn" data-x>✕</button></div>
+      <div class="hpl"><button class="btn${logi ? '' : ' locked'}" data-hr="*auto" ${logi ? '' : 'disabled'}><b>자동 보급</b><div class="dim small">${logi ? `${esc(B.name)}의 생산·건설에 부족한 원료만 골라 실어 나름` : '물류센터(출발지나 목적지)가 필요'}</div></button>
+      <button class="btn" data-hr="*all"><b>전 품목</b><div class="dim small">출발지 보관품을 모두 옮김</div></button>
+      ${items.map(k => `<button class="btn" data-hr="${k}">${iname(k)} <span class="dim">${fmt(store[k])}</span></button>`).join('') || '<div class="dim small">출발지 보관함이 비어 있습니다 (지금 비어 있어도 품목을 지정해 둘 수 있음)</div>'}</div>
+      <div class="frow"><input class="search" data-hq placeholder="다른 품목 이름 입력 후 Enter"></div>`;
+    document.body.appendChild(box);
+    box.querySelector<HTMLButtonElement>('[data-x]')!.onclick = () => box.remove();
+    box.querySelectorAll<HTMLButtonElement>('[data-hr]').forEach(b => b.onclick = () => { this.setOp({ k: 'haul', from, to, res: b.dataset.hr! }); box.remove(); });
+    const q = box.querySelector<HTMLInputElement>('[data-hq]')!;
+    q.onkeydown = e => {
+      if (e.key !== 'Enter') return;
+      const id = Object.keys(ITEMS).find(k => ITEMS[k].name === q.value.trim() || k === q.value.trim());
+      if (id) { this.setOp({ k: 'haul', from, to, res: id }); box.remove(); } else this.toast('그런 품목이 없습니다', 'warn');
+    };
   }
 
   private hint(t: string) { const e = document.getElementById('modeHint')!; e.textContent = t; e.classList.remove('hidden'); }
@@ -587,7 +609,7 @@ export class PmcHud {
   private renderTop() {
     const co = this.st.companies[this.me];
     if (!co) return;
-    const stores = Object.values(this.st.stations).reduce((a, s) => { const x = s.storage[this.me]; if (x) for (const r of RES) a[r] += x[r]; return a; }, { ore: 0, alloy: 0, crystal: 0 } as Record<Res, number>);
+    const stores = Object.values(this.st.stations).reduce((a, s) => { const x = s.storage[this.me]; if (x) for (const r of RES) a[r] += qty(x, r); return a; }, { ore: 0, alloy: 0, crystal: 0 } as Record<Res, number>);
     const ships = Object.values(this.st.ships).filter(s => s.owner === this.me);
     const players = this.c.players.filter(p => p.id !== this.me);
     const el = document.getElementById('ptop')!;
@@ -696,7 +718,7 @@ export class PmcHud {
         <div class="dim">${esc(x.desc)}</div>
         <div class="svc">${this.secLine(x.pos)}${x.tax ? ` · 판매세 ${Math.round(x.tax * 100)}%` : x.public ? ' · 면세' : ''}</div>
         ${x.public ? `<div class="svc">${x.market ? '시장 ' : ''}${x.services.repair ? '· 수리 ' : ''}${x.services.shipyard.length ? '· 조선소 ' : ''}${x.services.recruit ? '· 인재 ' : ''}${x.services.contracts ? '· 계약' : ''}</div>` : `<div class="svc">모듈 ${x.modules.filter(m => m.built).length}/${x.modules.length} 완공</div>`}
-        ${store && (store.ore + store.alloy + store.crystal) > 0 ? `<div class="svc">자사 창고: ${RES.map(r => `${RES_NAME[r]} ${fmt(store[r])}`).join(' · ')}</div>` : ''}
+        ${store && cargoSum(store) > 0.5 ? `<div class="svc">자사 창고: ${cargoKeys(store).filter(r => store[r] >= 0.5).slice(0, 8).map(r => `${RES_NAME[r]} ${fmt(store[r])}`).join(' · ')}${cargoKeys(store).length > 8 ? ' …' : ''}</div>` : ''}
         <button class="btn go" data-open="${x.id}">${own ? '정거장 관리' : '정거장 서비스'}</button></div>`;
     }
     if (s.kind === 'field') {
@@ -872,7 +894,7 @@ export class PmcHud {
     const cap = ECON[s.classId].cargo;
     const docked = s.task.k === 'docked' ? this.st.stations[(s.task as any).station] : null;
     return `<div class="shipd"><b>${esc(s.name)}</b> <span class="dim">${SHIP_CLASSES[s.classId].name} ${SHIP_CLASSES[s.classId].type} · ${esc(getLoadout(s.classId, s.loadoutId).name)}</span>
-      · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${RES.filter(r => s.cargo[r] > 0.5).map(r => `${RES_NAME[r]} ${Math.round(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}` : ''}
+      · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${cargoKeys(s.cargo).filter(r => s.cargo[r] > 0.5).map(r => `${RES_NAME[r]} ${Math.round(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}` : ''}
       ${docked ? ` · ⚓ ${esc(docked.name)} <button class="btn mini" data-open="${docked.id}">수리·개조</button>` : ''}
       <select data-mvship="${s.id}"><option value="">편대 이동…</option><option value="__new">→ 새 편대로 분리</option>${groups.filter(g => g.id !== s.groupId).map(g => `<option value="${g.id}">→ ${esc(g.name)}</option>`).join('')}</select></div>`;
   }
@@ -908,7 +930,7 @@ export class PmcHud {
     if (!ships.some(x => x.classId === 'constructor') && !Object.values(st.stations).some(x => x.owner === me) && co.credits > 20000) return '자금이 쌓였습니다. <b>공작선</b>을 구매하고 <b>정거장 설립</b>으로 자체 기지를 세울 수 있습니다.';
     const own = Object.values(st.stations).find(x => x.owner === me);
     if (own && own.modules.some(m => m.kind === 'core' && !m.built) && !groups.some(g => g.op.k === 'build')) return `공작선 편대에 <b>건설</b> 명령을 내려 ${esc(own.name)}의 도킹 허브를 완성하세요. 합금이 부족하면 시장에서 사서 <b>운송</b>하세요.`;
-    if (own && own.modules.some(m => !m.built && (m.reserved?.alloy ?? 0) + (m.used?.alloy ?? 0) < MODULES[m.kind].alloy - 1)) return `${esc(own.name)}의 건설 계획이 <b>자재 대기 중</b>입니다. 채굴선 하역지를 이 정거장으로 지정하거나 합금을 <b>운송</b>하면 자동으로 착공합니다.`;
+    if (own && own.modules.some(m => !m.built && matsOf(m.kind).some(r => missing(m, r) > 1))) return `${esc(own.name)}의 건설 계획이 <b>자재 대기 중</b>입니다. 채굴선 하역지를 이 정거장으로 지정하거나 합금을 <b>운송</b>하면 자동으로 착공합니다.`;
     if (own && own.modules.length === 1 && own.modules[0].built) return `${esc(own.name)}에 <b>정제소</b>를 지으면 광석을 합금으로 바꿔 건설·조선에 쓸 수 있습니다.`;
     if (co.rep >= 10 && !ships.some(x => x.classId === 'cruiser')) return '평판이 올랐습니다. 수도 성계 <b>헬리오스</b> 조선소에서 <b>순양함</b>을 살 수 있습니다 (Tab: 성계 지도).';
     if (co.stats.earned > 30000 && !ships.some(s => sysAt(st.systems, s.pos)?.id !== 'astra')) return '아스트라는 안전하지만 수익이 제한적입니다. <b>Tab</b>으로 성계 지도를 열어 <b>드레이크 변경</b>을 살펴보세요 — 광맥이 풍부하고 보수가 높지만 호위가 필요합니다.';
@@ -931,14 +953,15 @@ export class PmcHud {
     const s = this.st.stations[this.modalStation!];
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
-    const key = JSON.stringify([this.modalTab, Math.round(co.credits), co.rep, this.myGroups().map(g => g.id + g.name), s.storage[this.me], s.market, s.modules, Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
+    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
     const tabs: [string, string, boolean][] = [
-      ['market', '시장', !!s.market], ['yard', '조선소', s.services.shipyard.length > 0 || (own && s.modules.some(m => m.kind === 'shipyard' && m.built))],
+      ['market', '시장', !!s.market || s.modules.some(m => m.kind === 'trade_hub' && m.built)], ['store', '창고·물류', own || cargoSum(s.storage[this.me] ?? {}) > 0.5],
+      ['build', '건설', own], ['prod', '생산', own],
+      ['yard', '조선소', s.services.shipyard.length > 0 || (own && s.modules.some(m => m.kind.startsWith('yard_') && m.built))],
       ['dock', '수리·개조', true], ['recruit', '인재', s.services.recruit], ['contracts', '계약', s.services.contracts || Object.values(this.st.contracts).some(k => k.stationId === s.id)],
-      ['build', '건설·창고', own],
     ];
     const vis = tabs.filter(t => t[2]);
     if (!vis.some(t => t[0] === this.modalTab)) this.modalTab = vis[0][0];
@@ -950,6 +973,8 @@ export class PmcHud {
       case 'recruit': body = this.recruitHtml(s); break;
       case 'contracts': body = this.contractsHtml(s); break;
       case 'build': body = this.buildHtml(s); break;
+      case 'store': body = storeHtml(this.st, s, this.me, this.ind); break;
+      case 'prod': body = prodHtml(this.st, s, this.me, this.ind); break;
     }
     trackSelects(this.modal);
     // patched in place (not rebuilt): open dropdowns, picks, typed text and scroll survive live updates
@@ -971,6 +996,26 @@ export class PmcHud {
       const lo = loSel?.value ?? SHIP_CLASSES[cls].loadouts[0].id;
       const grp = grpSel?.value || undefined;
       this.cmd({ c: 'buyShip', station: s.id, classId: cls, loadoutId: lo, group: grp });
+    });
+    // industry panels: filters, recipe pick, orders
+    const ui = this.ind;
+    const pickers: [string, keyof typeof ui][] = [['icat', 'invCat'], ['rfac', 'recFac'], ['mcat', 'mkCat'], ['rsel', 'recSel']];
+    for (const [attr, key] of pickers) m.querySelectorAll<HTMLElement>(`[data-${attr}]`).forEach(b => b.onclick = () => { (ui as any)[key] = b.getAttribute(`data-${attr}`); this.renderModal(true); });
+    const searches: [string, keyof typeof ui][] = [['iq', 'invQ'], ['rq', 'recQ'], ['mq', 'mkQ']];
+    for (const [attr, key] of searches) { const inp = m.querySelector<HTMLInputElement>(`[data-${attr}]`); if (inp) inp.oninput = () => { (ui as any)[key] = inp.value; this.renderModal(true); }; }
+    m.querySelectorAll<HTMLButtonElement>('[data-porder]').forEach(b => b.onclick = async () => {
+      const mode = (m.querySelector<HTMLSelectElement>('[data-pmode]')?.value ?? 'count') as 'count' | 'stock';
+      const n = Number(m.querySelector<HTMLInputElement>('[data-pn]')?.value ?? 1);
+      if (await this.cmd({ c: 'prodOrder', station: s.id, recipe: b.dataset.porder!, mode, n })) { sfx.play('confirm', null, 0.3); this.toast('생산 주문 등록', 'info'); }
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-delist]').forEach(b => b.onclick = () => this.cmd({ c: 'delist', station: s.id, listing: b.dataset.delist! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-buyl]').forEach(b => b.onclick = () => { const [l, n] = b.dataset.buyl!.split(':'); this.cmd({ c: 'buyListing', station: s.id, listing: l, qty: Number(n) }); });
+    const lb = m.querySelector<HTMLButtonElement>('[data-list]');
+    if (lb) lb.onclick = () => this.cmd({ c: 'list', station: s.id, item: m.querySelector<HTMLSelectElement>('[data-lit]')!.value, qty: Number(m.querySelector<HTMLInputElement>('[data-lq]')!.value), price: Number(m.querySelector<HTMLInputElement>('[data-lp]')!.value) });
+    m.querySelectorAll<HTMLButtonElement>('[data-oop]').forEach(b => b.onclick = async () => {
+      const [op, order] = b.dataset.oop!.split(':');
+      if (op === 'cancel' && !confirm('생산 주문을 취소할까요? 이미 시작된 배치는 끝까지 생산됩니다 (투입된 재료는 돌아오지 않음).')) return;
+      await this.cmd({ c: 'prodOp', station: s.id, order, op: op as 'pause' });
     });
     m.querySelectorAll<HTMLButtonElement>('[data-repair]').forEach(b => b.onclick = () => this.cmd({ c: 'repair', ship: b.dataset.repair! }));
     m.querySelectorAll<HTMLSelectElement>('[data-refit]').forEach(sel => sel.onchange = () => { if (sel.value) this.cmd({ c: 'refit', ship: sel.dataset.refit!, loadoutId: sel.value }); });
@@ -1002,16 +1047,8 @@ export class PmcHud {
   }
 
   private marketHtml(s: Station): string {
-    const store = s.storage[this.me] ?? { ore: 0, alloy: 0, crystal: 0 };
-    const price = (r: Res, side: 'sell' | 'buy') => { const m = s.market![r]; const p = m.base * Math.max(0.45, Math.min(1.7, 1.45 - 0.55 * m.stock / m.target)); return side === 'sell' ? p : p * 1.18; };
-    return `<table class="gt"><tr><th>자원</th><th>시장 재고</th><th>자사 창고</th><th>매입가 (팔 때)</th><th>판매가 (살 때)</th><th></th></tr>
-      ${RES.filter(r => s.market![r]).map(r => {
-        const m = s.market![r];
-        const trend = m.stock < m.target * 0.6 ? '<span style="color:var(--good)">▲ 품귀</span>' : m.stock > m.target * 1.4 ? '<span style="color:var(--enemy)">▼ 과잉</span>' : '';
-        return `<tr><td style="color:${RES_COLOR[r]}"><b>${RES_NAME[r]}</b></td><td class="n">${fmt(m.stock)} ${trend}</td><td class="n">${fmt(store[r])}</td><td class="n">${price(r, 'sell').toFixed(1)}</td><td class="n">${price(r, 'buy').toFixed(1)}</td>
-          <td><button class="btn mini" data-trade="sell:${r}:100" ${store[r] < 1 ? 'disabled' : ''}>100 판매</button><button class="btn mini" data-trade="sell:${r}:${Math.floor(store[r])}" ${store[r] < 1 ? 'disabled' : ''}>전량 판매</button><button class="btn mini" data-trade="buy:${r}:100">100 구매</button></td></tr>`;
-      }).join('')}</table>
-      <div class="dim small">채굴 편대에 "판매" 하역지를 지정하면 자동으로 이곳에 팔립니다. 많이 팔수록 가격이 떨어지고, 시간이 지나면 회복됩니다. 구매한 자원은 이 정거장 창고에 보관되며, 운송 명령으로 옮길 수 있습니다.</div>`;
+    const price = (r: Res, side: 'sell' | 'buy') => { const m = s.market?.[r]; if (!m) return 0; const p = m.base * Math.max(0.45, Math.min(1.7, 1.45 - 0.55 * m.stock / m.target)); return side === 'sell' ? p : p * 1.18; };
+    return marketPanel(this.st, s, this.me, this.ind, price);
   }
 
   private yardHtml(s: Station): string {
@@ -1024,7 +1061,7 @@ export class PmcHud {
       const c = SHIP_CLASSES[id]; const e = ECON[id];
       const price = own ? Math.round(e.price * 0.5) : e.price;
       const locked = !own && co.rep < e.rep;
-      const canAlloy = !own || (store?.alloy ?? 0) >= e.alloy;
+      const canAlloy = !own || qty(store, 'alloy') >= e.alloy;
       return `<div class="ycard${locked ? ' locked' : ''}"><div class="yn"><b>${c.name} ${c.type}</b><span class="money">${fmt(price)} cr${own ? ` + 합금 ${e.alloy}` : ''}</span></div>
         <div class="dim">${esc(c.desc)}</div>
         <div class="ys">내구 ${c.hp} · 순항 ${e.cruise} ${e.cargo ? `· 화물 ${e.cargo}` : ''}${e.mine ? ` · 채굴 ${e.mine}/s` : ''}</div>
@@ -1032,7 +1069,7 @@ export class PmcHud {
         <div class="yrow"><select data-lo="${id}" data-keep>${c.loadouts.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('')}</select>
         <select data-grp="${id}" data-keep><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
         <button class="btn go" data-buyship="${id}" ${co.credits < price || !canAlloy ? 'disabled' : ''}>구매</button></div>
-        ${co.credits < price ? `<div class="warn small">자금 부족 — ${fmt(price - co.credits)} cr 더 필요</div>` : !canAlloy ? `<div class="warn small">합금 부족 — 이 정거장 창고 ${fmt(store?.alloy ?? 0)}/${e.alloy}</div>` : ''}`}</div>`;
+        ${co.credits < price ? `<div class="warn small">자금 부족 — ${fmt(price - co.credits)} cr 더 필요</div>` : !canAlloy ? `<div class="warn small">합금 부족 — 이 정거장 창고 ${fmt(qty(store, 'alloy'))}/${e.alloy}</div>` : ''}`}</div>`;
     }).join('')}</div>`;
   }
 
@@ -1040,7 +1077,7 @@ export class PmcHud {
     const ships = Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id);
     const own = s.owner === this.me;
     const canRepair = s.services.repair || (own && s.modules.some(m => m.kind === 'repair' && m.built));
-    const canRefit = s.services.refit || (own && s.modules.some(m => m.kind === 'shipyard' && m.built));
+    const canRefit = s.services.refit || (own && s.modules.some(m => (m.kind === 'fitting' || m.kind.startsWith('yard_')) && m.built));
     if (!ships.length) return `<div class="dim">이 정거장에 정박한 자사 함선이 없습니다. 편대를 선택하고 정거장을 우클릭하면 정박합니다.</div>`;
     return `<table class="gt"><tr><th>함선</th><th>선체</th><th>무장</th><th></th></tr>${ships.map(x => {
       const c = SHIP_CLASSES[x.classId];
@@ -1074,28 +1111,27 @@ export class PmcHud {
   private bSel: { kind: string; plan?: string } | null = null;
 
   private buildHtml(s: Station): string {
-    const store = s.storage[this.me] ?? { ore: 0, alloy: 0, crystal: 0 };
+    const store = s.storage[this.me] ?? {};
     const co = this.st.companies[this.me];
     const plans = planList(s);
     const built = s.modules.filter(m => m.built);
-    const reservedTot = { alloy: 0, crystal: 0 };
-    for (const m of plans) for (const r of MATS) reservedTot[r] += m.reserved?.[r] ?? 0;
+    const reservedTot: Record<string, number> = {};
+    for (const m of plans) for (const [r, n] of Object.entries(m.reserved ?? {})) if (n > 0.01) reservedTot[r] = (reservedTot[r] ?? 0) + n;
     const shortQ = queueShortfall(s);
-    const has = (k: string) => built.some(m => m.kind === k);
     const cons = Object.values(this.st.groups).filter(g => g.owner === this.me && g.op.k === 'build' && (g.op as any).station === s.id);
-    const cap = (on: boolean, t: string) => `<span class="cap${on ? ' on' : ''}">${on ? '●' : '○'} ${t}</span>`;
-    const matName = (r: Mat) => `<span style="color:${RES_COLOR[r]}">${RES_NAME[r]}</span>`;
-    // ── storage + capabilities ──
-    let html = `<div class="bstore"><div><b>창고 (가용)</b> ${RES.map(r => `${matName(r as Mat)} <b>${fmt(store[r])}</b>`).join(' · ')}</div>
-      <div class="dim">건설 예약됨: 합금 ${fmt(reservedTot.alloy)} · 크리스탈 ${fmt(reservedTot.crystal)}${shortQ.alloy + shortQ.crystal > 0.5 ? ` · <span class="warn">대기열 부족분 합금 ${fmt(shortQ.alloy)}${shortQ.crystal > 0.5 ? ` · 크리스탈 ${fmt(shortQ.crystal)}` : ''}</span>` : ''}</div>
-      <div class="caps">${cap(has('core'), '정박·하역')}${cap(has('refinery'), '정제')}${cap(has('repair'), '수리')}${cap(has('shipyard'), '조선')}${cap(has('defense'), `방어 ${built.filter(m => m.kind === 'defense').length}기`)}${cap(has('depot'), '확장 창고')}${cap(has('core'), '자체 건설반')}${cap(cons.length > 0, `공작선 ${cons.length}개 편대 투입`)}</div></div>`;
+    const lst = (c: Record<string, number>) => Object.entries(c).map(([k, n]) => `${iname(k)} ${fmt(n)}`).join(' · ');
+    const count = (k: string) => built.filter(m => m.kind === k).length;
+    // ── summary ──
+    let html = `<div class="bstore"><div><b>시설</b> ${built.length}개 가동 · 계획 ${plans.length} · 슬롯 ${s.modules.length}/${MAX_MODULES}${cons.length ? ` · 공작선 ${cons.length}개 편대 투입` : ''}${count('core') ? ' · 자체 건설반' : ''}</div>
+      ${Object.keys(reservedTot).length ? `<div class="dim small">건설 예약됨: ${lst(reservedTot)}</div>` : ''}
+      ${Object.keys(shortQ).length ? `<div class="small"><span class="warn">대기열 부족분</span>: ${lst(shortQ)} — 이 정거장 창고로 운송하세요 (수송선 '자동 보급'도 건설 부족분을 실어 옵니다)</div>` : ''}</div>`;
     // ── construction queue ──
     html += `<h3>건설 진행 · 대기열 (${plans.length})</h3>`;
     html += plans.length ? `<div class="bq">${plans.map((m, i) => {
       const md = MODULES[m.kind]; const ps = planState(s, m);
-      const mats = MATS.filter(r => md[r] > 0).map(r => {
+      const mats = matsOf(m.kind).map(r => {
         const have = (m.used?.[r] ?? 0) + (m.reserved?.[r] ?? 0), miss = missing(m, r);
-        return `${matName(r)} ${fmt(have)}/${fmt(md[r])}${miss > 0.5 ? ` <span class="warn">${fmt(miss)} 부족</span>` : ''}`;
+        return `${iname(r)} ${fmt(have)}/${fmt(md.mats[r])}${miss > 0.5 ? ` <span class="warn">${fmt(miss)} 부족</span>` : ''}`;
       }).join(' · ');
       const sel = this.bSel?.plan === m.id;
       return `<div class="bqrow ps-${ps}${sel ? ' sel' : ''}" data-bplan="${m.id}"><span class="bqn">${i + 1}</span>
@@ -1106,18 +1142,21 @@ export class PmcHud {
         ${m.kind === 'core' ? '' : `<button class="btn mini warnb" data-pop="cancel:${m.id}">✕ 취소</button>`}</div></div>`;
     }).join('')}</div>` : '<div class="dim small">진행 중인 건설이 없습니다.</div>';
     // ── owned + buildable by category ──
-    const cats: ModuleDef['cat'][] = ['산업', '조선', '물류', '군사', '기타'];
-    const multi = (k: string) => k === 'defense' || k === 'depot';
-    const buildable = (md: ModuleDef) => md.kind !== 'core' && (multi(md.kind) || !s.modules.some(m => m.kind === md.kind));
-    html += `<div class="bcols"><div class="bcat">${cats.map(c => {
-      const mine = built.filter(m => MODULES[m.kind].cat === c);
+    const planned = (k: string) => s.modules.filter(m => m.kind === k).length;
+    const buildable = (md: ModuleDef) => md.kind !== 'core' && (md.max === undefined || planned(md.kind) < md.max);
+    html += `<div class="bcols"><div class="bcat">${FAC_CATS.map(c => {
+      const kinds = [...new Set(built.filter(m => MODULES[m.kind]?.cat === c).map(m => m.kind))];
       const can = Object.values(MODULES).filter(md => md.cat === c && buildable(md));
-      if (!mine.length && !can.length) return '';
+      if (!kinds.length && !can.length) return '';
       return `<div class="bcg"><div class="bch">${c}</div>
-        ${mine.map(m => `<div class="bfac own"><b>${MODULES[m.kind].name}</b> <span class="good">가동 중</span></div>`).join('')}
-        ${can.map(md => { const req = !md.requires || s.modules.some(m => m.kind === md.requires); return `<div class="bfac pick${this.bSel?.kind === md.kind && !this.bSel.plan ? ' sel' : ''}${req ? '' : ' locked'}" data-bpick="${md.kind}"><b>${md.name}</b> <span class="money">${fmt(md.credits)} cr</span><div class="dim small">합금 ${md.alloy}${md.crystal ? ` · 크리스탈 ${md.crystal}` : ''}</div></div>`; }).join('')}</div>`;
+        ${kinds.map(k => `<div class="bfac own"><b>${MODULES[k].name}</b>${count(k) > 1 ? ` ×${count(k)}` : ''} <span class="good">가동 중</span></div>`).join('')}
+        ${can.map(md => {
+          const req = !md.requires || s.modules.some(m => m.kind === md.requires);
+          const tech = !md.tech || co.tech?.includes(md.tech);
+          return `<div class="bfac pick${this.bSel?.kind === md.kind && !this.bSel.plan ? ' sel' : ''}${req && tech ? '' : ' locked'}" data-bpick="${md.kind}"><b>${md.name}</b>${planned(md.kind) ? ` <span class="dim">(+${planned(md.kind)})</span>` : ''} <span class="money">${fmt(md.credits)} cr</span><div class="dim small">${lst(md.mats)}${tech ? '' : ` · <span class="warn">연구: ${esc(TECHS[md.tech!]?.name ?? '')}</span>`}</div></div>`;
+        }).join('')}</div>`;
     }).join('')}</div><div class="bdet">${this.buildDetail(s)}</div></div>
-      <div class="dim small">시설 슬롯 ${s.modules.length}/${MAX_MODULES} · 건설 자재는 <b>이 정거장 창고</b>에서만 쓰입니다 (다른 정거장 창고는 운송 필요, 함선 화물은 하역 후 반영). 계획에 예약된 자재는 판매·함선 건조·운송에 쓸 수 없습니다.</div>`;
+      <div class="dim small">건설 자재는 <b>이 정거장 창고</b>에서만 쓰입니다 (다른 정거장 창고는 운송 필요, 함선 화물은 하역 후 반영). 계획에 예약된 자재는 판매·생산·운송에 쓸 수 없습니다. 같은 시설을 여러 개 지으면 처리량(라인)이 늘어납니다.</div>`;
     return html;
   }
 
@@ -1127,44 +1166,46 @@ export class PmcHud {
     if (!sel) return '<div class="dim" style="padding:12px">왼쪽에서 시설이나 대기열 항목을 선택하면 상세 정보가 표시됩니다.</div>';
     const md = MODULES[sel.kind]; if (!md) return '';
     // a single-instance facility that has just been planned: follow its plan
-    if (!sel.plan && sel.kind !== 'defense' && sel.kind !== 'depot') {
+    if (!sel.plan && md.max === 1) {
       const pm = s.modules.find(m => m.kind === sel.kind && !m.built);
       if (pm?.id) { this.bSel = { kind: sel.kind, plan: pm.id }; return this.buildDetail(s); }
     }
     const co = this.st.companies[this.me];
-    const store = s.storage[this.me] ?? { ore: 0, alloy: 0, crystal: 0 };
+    const store = s.storage[this.me] ?? {};
     const plan = sel.plan ? s.modules.find(m => m.id === sel.plan && !m.built) : undefined;
     if (sel.plan && !plan) { const done = s.modules.find(m => m.id === sel.plan); return `<div class="bdh"><b>${md.name}</b></div><div class="${done ? 'good' : 'dim'}">${done ? '완공되었습니다.' : '취소된 계획입니다.'}</div>`; }
     const cons = Object.values(this.st.groups).filter(g => g.owner === this.me && g.op.k === 'build' && (g.op as any).station === s.id);
     const crew = s.modules.some(m => m.kind === 'core' && m.built) && md.kind !== 'core';
     const rate = (crew ? STATION_CREW_RATE : 0) + cons.reduce((a, g) => a + (g.commanderId ? 0.8 + (this.st.commanders[g.commanderId]?.skill ?? 0.5) * 0.5 : 1), 0);
     const left = md.work * (1 - (plan?.progress ?? 0));
-    const tStr = rate > 0 ? `약 ${Math.ceil(left / rate)}초${cons.length ? ` (공작선 ${cons.length}개 편대 + ${crew ? '자체 건설반' : ''})` : ' (자체 건설반만 — 공작선을 투입하면 더 빠름)'}` : '공작선 필요 (도킹 허브는 공작선만 건설 가능)';
-    // materials ahead of a new plan in the queue
+    const tStr = rate > 0 ? `약 ${fmtT(left / rate)}${cons.length ? ` (공작선 ${cons.length}개 편대${crew ? ' + 자체 건설반' : ''})` : ' (자체 건설반만 — 공작선을 투입하면 더 빠름)'}` : '공작선 필요 (도킹 허브는 공작선만 건설 가능)';
     const ahead = queueShortfall(s);
-    const rows = MATS.filter(r => md[r] > 0).map(r => {
-      const name = `<span style="color:${RES_COLOR[r]}">${RES_NAME[r]}</span>`;
+    const rows = Object.entries(md.mats).map(([r, need]) => {
+      const name = iname(r); const have = qty(store, r);
       if (plan) {
         const used = plan.used?.[r] ?? 0, res = plan.reserved?.[r] ?? 0, miss = missing(plan, r);
-        return `<tr><td>${name}</td><td class="n">${fmt(md[r])}</td><td class="n">${fmt(used + res)}</td><td class="n">${fmt(res)}</td><td class="n">${fmt(store[r])}</td><td class="n">${miss > 0.5 ? `<span class="warn">${fmt(miss)} 부족</span>` : '<span class="good">충분</span>'}</td></tr>`;
+        return `<tr><td>${name}</td><td class="n">${fmt(need)}</td><td class="n">${fmt(used + res)}</td><td class="n">${fmt(res)}</td><td class="n">${fmt(have)}</td><td class="n">${miss > 0.5 ? `<span class="warn">${fmt(miss)} 부족</span>` : '<span class="good">충분</span>'}</td></tr>`;
       }
-      const avail = Math.max(0, store[r] - ahead[r]);
-      const miss = Math.max(0, md[r] - avail);
-      return `<tr><td>${name}</td><td class="n">${fmt(md[r])}</td><td class="n">${fmt(store[r])}</td><td class="n">${fmt(avail)}${ahead[r] > 0.5 ? `<div class="dim small">앞선 계획 ${fmt(ahead[r])} 우선</div>` : ''}</td><td class="n">${miss > 0.5 ? `<span class="warn">${fmt(miss)} 부족</span>` : '<span class="good">충분</span>'}</td></tr>`;
+      const avail = Math.max(0, have - (ahead[r] ?? 0));
+      const miss = Math.max(0, need - avail);
+      return `<tr><td>${name}</td><td class="n">${fmt(need)}</td><td class="n">${fmt(have)}</td><td class="n">${fmt(avail)}${(ahead[r] ?? 0) > 0.5 ? `<div class="dim small">앞선 계획 ${fmt(ahead[r])} 우선</div>` : ''}</td><td class="n">${miss > 0.5 ? `<span class="warn">${fmt(miss)} 부족</span>` : '<span class="good">충분</span>'}</td></tr>`;
     }).join('');
     const ps = plan ? planState(s, plan) : null;
     const req = !md.requires || s.modules.some(m => m.kind === md.requires);
+    const tech = !md.tech || co.tech?.includes(md.tech);
     const slots = s.modules.length < MAX_MODULES;
     const crShort = Math.max(0, md.credits - co.credits);
+    const extra = [md.power > 0 ? `전력 +${md.power}` : md.power < 0 ? `전력 소모 ${-md.power}` : '', md.lines ? `라인 ${md.lines}` : '', md.storage ? `창고 +${fmt(md.storage)}` : '', md.max ? `정거장당 최대 ${md.max}` : '여러 개 건설 가능'].filter(Boolean).join(' · ');
     let act = '';
     if (!plan) {
-      const why = !req ? `${MODULES[md.requires!].name}이(가) 먼저 필요합니다` : !slots ? `시설 슬롯이 가득 찼습니다 (${MAX_MODULES})` : crShort > 0 ? `자금 부족 — ${fmt(crShort)} cr 더 필요` : '';
+      const why = !tech ? `연구 필요: ${esc(TECHS[md.tech!]?.name ?? md.tech!)}` : !req ? `${MODULES[md.requires!].name}이(가) 먼저 필요합니다` : !slots ? `시설 슬롯이 가득 찼습니다 (${MAX_MODULES})` : crShort > 0 ? `자금 부족 — ${fmt(crShort)} cr 더 필요` : '';
       act = `${why ? `<div class="warn">${why}</div>` : ''}<button class="btn go" data-module="${md.kind}" ${why ? 'disabled' : ''}>건설 계획 등록</button>
         <div class="dim small">자재가 부족해도 등록할 수 있습니다. 자재가 이 정거장 창고에 들어오면 자동으로 예약되고, 모두 확보되면 착공합니다.</div>`;
     } else act = `<div class="bqa">${plan.paused ? `<button class="btn" data-pop="resume:${plan.id}">▶ 재개</button>` : `<button class="btn" data-pop="pause:${plan.id}">⏸ 일시 정지</button>`}${plan.kind === 'core' ? '' : `<button class="btn warnb" data-pop="cancel:${plan.id}">✕ 계획 취소</button>`}</div>
       <div class="dim small">일시 정지: 예약 자재는 유지, 작업·추가 확보 중단 · 취소: 예약 자재는 창고로 반환, 투입된 자재는 회수 불가, 크레딧은 남은 공정 비율만큼 환불${plan.progress <= 0 ? ' (착공 전이라 전액)' : ` (현재 ${fmt((plan.paid ?? 0) * (1 - plan.progress))} cr)`}</div>`;
-    return `<div class="bdh"><b>${plan ? '' : ''}${md.name} 건설</b> <span class="dim">· ${md.cat}</span>${ps ? ` <span class="pst ps-${ps}">${PLAN_STATE_NAME[ps]}${ps === 'building' ? ` ${Math.round(plan!.progress * 100)}%` : ''}</span>` : ''}</div>
+    return `<div class="bdh"><b>${md.name} 건설</b> <span class="dim">· ${md.cat}</span>${ps ? ` <span class="pst ps-${ps}">${PLAN_STATE_NAME[ps]}${ps === 'building' ? ` ${Math.round(plan!.progress * 100)}%` : ''}</span>` : ''}</div>
       <div class="dim">${esc(md.desc)}</div>
+      <div class="bdr small">${extra}</div>
       <div class="bdr">비용 <b class="money">${fmt(md.credits)} cr</b>${plan ? ' (등록 시 지불됨)' : ` — 보유 ${fmt(co.credits)} cr ${crShort > 0 ? `<span class="warn">${fmt(crShort)} 부족</span>` : '<span class="good">충분</span>'}`}</div>
       <table class="gt bmat"><tr><th>자재</th><th>필요</th>${plan ? '<th>확보</th><th>예약</th><th>창고 가용</th>' : '<th>창고</th><th>가용</th>'}<th>상태</th></tr>${rows}</table>
       <div class="bdr">예상 건설 시간: ${tStr}</div>

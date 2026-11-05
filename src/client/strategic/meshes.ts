@@ -109,11 +109,52 @@ export function buildStation(s: Station): StationView {
 
 // ------------------------------------------------------------------ player stations (modular)
 
+/** facility kinds share a handful of silhouettes; size tells yard classes apart */
+const LOOK: Record<string, [string, number]> = {
+  yard_s: ['shipyard', 0.8], yard_m: ['shipyard', 1.05], yard_l: ['shipyard', 1.35], yard_xl: ['shipyard', 1.7], fitting: ['shipyard', 0.6],
+  warehouse: ['depot', 1], dock: ['depot', 0.8], armory: ['depot', 0.7], hangar: ['depot', 1.1],
+  smelter: ['refinery', 0.9], alloy_plant: ['refinery', 1], rare_refinery: ['refinery', 0.85], gas_plant: ['refinery', 0.9], composite_plant: ['refinery', 1],
+  machine_shop: ['factory', 0.9], hull_works: ['factory', 1.1], electronics_fab: ['factory', 0.85], engine_plant: ['factory', 1], reactor_plant: ['factory', 1.05], weapons_factory: ['factory', 1], armor_plant: ['factory', 1],
+  lab_basic: ['lab', 0.85], lab_materials: ['lab', 0.9], lab_propulsion: ['lab', 0.9], lab_electronics: ['lab', 0.9], lab_weapons: ['lab', 0.95], design_bureau: ['lab', 1.05], lab_industry: ['lab', 0.9], lab_tactics: ['lab', 0.85],
+  logistics: ['depot', 0.9], trade_hub: ['lab', 0.8], comms: ['comms', 1], habitat: ['habitat', 1], power: ['power', 1],
+};
+
 function moduleMesh(kind: string): THREE.Group {
   const m = mats();
   const g = new THREE.Group();
   const add = (geo: THREE.BufferGeometry, mat: THREE.Material) => { g.add(mesh(geo, mat)); };
+  const look = LOOK[kind];
+  if (look && look[0] !== kind) { const inner = moduleMesh(look[0]); inner.scale.setScalar(look[1]); g.add(inner); return g; }
   switch (kind) {
+    case 'factory':
+      add(new THREE.BoxGeometry(60, 34, 44), m.hull);
+      add(tr(new THREE.BoxGeometry(62, 6, 46), 0, 20, 0), m.trim);
+      for (const x of [-18, 0, 18]) add(tr(new THREE.CylinderGeometry(5, 6, 30, 8), x, 34, -10), m.hullDark);
+      add(tr(new THREE.BoxGeometry(40, 4, 4), 0, 4, 23), m.glowWarm);
+      break;
+    case 'lab':
+      add(new THREE.CylinderGeometry(32, 36, 22, 12), m.hullDark);
+      add(tr(new THREE.SphereGeometry(28, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), 0, 11, 0), m.hull);
+      add(tr(new THREE.CylinderGeometry(1.5, 1.5, 50), 0, 50, 0), m.trim);
+      add(tr(new THREE.SphereGeometry(4, 8, 6), 0, 76, 0), m.glowCyan);
+      break;
+    case 'power':
+      add(new THREE.CylinderGeometry(18, 18, 50, 12), m.hullDark);
+      add(tr(new THREE.TorusGeometry(36, 7, 10, 32).rotateX(Math.PI / 2), 0, 0, 0), m.hull);
+      add(tr(new THREE.TorusGeometry(36, 2, 6, 32).rotateX(Math.PI / 2), 0, 8, 0), m.glowCyan);
+      add(tr(new THREE.SphereGeometry(12, 12, 8), 0, 30, 0), m.glowWarm);
+      break;
+    case 'comms':
+      add(new THREE.BoxGeometry(24, 20, 24), m.hullDark);
+      add(tr(new THREE.CylinderGeometry(1.5, 1.5, 70), 0, 45, 0), m.trim);
+      add(tr(new THREE.CylinderGeometry(26, 4, 10, 16, 1, true), 0, 30, 0), m.hull);
+      add(tr(new THREE.SphereGeometry(3, 8, 6), 0, 82, 0), m.glowRed);
+      break;
+    case 'habitat':
+      add(tr(new THREE.TorusGeometry(40, 9, 10, 36).rotateX(Math.PI / 2), 0, 0, 0), m.hull);
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; add(tr(new THREE.BoxGeometry(40, 3, 3).rotateY(-a), Math.cos(a) * 20, 0, Math.sin(a) * 20), m.trim); }
+      add(tr(new THREE.TorusGeometry(40, 2, 6, 36).rotateX(Math.PI / 2), 0, 8, 0), m.glowGreen);
+      break;
     case 'core':
       add(new THREE.CylinderGeometry(55, 55, 70, 6), m.hull);
       add(tr(new THREE.CylinderGeometry(30, 55, 30, 6), 0, 50, 0), m.trim);

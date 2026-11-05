@@ -1,4 +1,5 @@
 import type { Res } from './types';
+import { FACILITIES, ITEMS, itemName, type FacilityDef } from './industry';
 import { SHIP_CLASSES } from '../sim/data/ships';
 import type { Specialty, Voice } from '../sim/data/commanders';
 import type { Rng } from '../sim/rng';
@@ -24,38 +25,22 @@ export const ECON: Record<string, ShipEcon> = {
   platform: { cruise: 0, cargo: 0, mine: 0, price: 0, alloy: 0, rep: 0, military: true },
 };
 
-export const RES_NAME: Record<Res, string> = { ore: '광석', alloy: '합금', crystal: '크리스탈' };
-export const RES_COLOR: Record<Res, string> = { ore: '#d9a06b', alloy: '#b8c8d8', crystal: '#7fd8ff' };
+/** display name / colour of any item id (raw, refined, parts, equipment, blueprints) */
+export const RES_NAME: Record<Res, string> = new Proxy({} as Record<Res, string>, { get: (_, k) => itemName(String(k)) });
+export const RES_COLOR: Record<Res, string> = new Proxy({} as Record<Res, string>, { get: (_, k) => ITEMS[String(k)]?.color ?? (String(k).startsWith('bp:') ? '#9fd0ff' : '#e0c0a0') });
 
 export function shipValue(classId: string): number { return SHIP_CLASSES[classId]?.cost ?? 50; }
 
-export interface ModuleDef {
-  kind: string;
-  name: string;
-  desc: string;
-  alloy: number;
-  crystal: number;
-  credits: number;
-  work: number;            // seconds of constructor work
-  requires?: string;
-  /** management category */
-  cat: '산업' | '조선' | '물류' | '군사' | '기타';
-  /** what completing it switches on */
-  unlocks: string;
-}
+/** station facilities — defined in industry.ts (data-driven) */
+export type ModuleDef = FacilityDef;
 
 /** how fast a docking hub's own crew builds (fraction of a constructor's base rate) */
 export const STATION_CREW_RATE = 0.5;
 
-export const MODULES: Record<string, ModuleDef> = {
-  core: { kind: 'core', name: '도킹 허브', desc: '정거장의 심장. 정박·창고·자체 하역이 가능해진다.', alloy: 300, crystal: 0, credits: 8000, work: 60, cat: '기타', unlocks: '정박 · 자사 창고 · 채굴선 하역 · 정거장 자체 건설반 (공작선 없이도 다른 시설 건설)' },
-  repair: { kind: 'repair', name: '정비소', desc: '정박한 자사 함선을 무료로 천천히 수리한다.', alloy: 180, crystal: 0, credits: 5000, work: 45, requires: 'core', cat: '군사', unlocks: '정박 함선 무료 수리' },
-  refinery: { kind: 'refinery', name: '정제소', desc: '창고의 광석을 합금으로 정제한다 (광석 2 → 합금 1).', alloy: 220, crystal: 0, credits: 7000, work: 55, requires: 'core', cat: '산업', unlocks: '광석 → 합금 자동 정제 (초당 광석 4)' },
-  defense: { kind: 'defense', name: '방어 포대', desc: '정거장 주변 전투에 중포대로 참전한다. 해적이 접근을 꺼린다.', alloy: 300, crystal: 10, credits: 9000, work: 60, requires: 'core', cat: '군사', unlocks: '정거장 방어 포대 (여러 기 건설 가능) · 주변 치안 상승' },
-  shipyard: { kind: 'shipyard', name: '조선소', desc: '합금으로 함선을 직접 건조한다 (공용 조선소의 절반 가격).', alloy: 400, crystal: 40, credits: 15000, work: 90, requires: 'core', cat: '조선', unlocks: '함선 자체 건조 (가격 50% + 합금) · 장비 개조' },
-  depot: { kind: 'depot', name: '확장 창고', desc: '정제 효율 +50%, 채굴선 하역 속도 증가.', alloy: 150, crystal: 0, credits: 3000, work: 35, requires: 'core', cat: '물류', unlocks: '정제 속도 +50% · 하역 속도 증가' },
-};
-export const MAX_MODULES = 7;
+export const MODULES: Record<string, FacilityDef> = FACILITIES;
+/** facility kinds from older saves → their current equivalent */
+export const LEGACY_MODULE: Record<string, string> = { shipyard: 'yard_s', depot: 'warehouse' };
+export const MAX_MODULES = 40;
 
 export const FOUND_COST = { credits: 8000, alloy: 300 };
 
