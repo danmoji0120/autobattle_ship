@@ -673,6 +673,7 @@ export class PmcHud {
     morph(el, html);
     this.bindMineForm(el);
     el.querySelectorAll<HTMLButtonElement>('[data-op]').forEach(b => b.onclick = () => this.opButton(b.dataset.op!));
+    el.querySelectorAll<HTMLInputElement>('[data-detach]').forEach(b => b.onchange = () => this.cmd({ c: 'setDetached', group: b.dataset.detach!, on: b.checked }));
     el.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(b => b.onclick = () => this.openStation(b.dataset.open!));
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
     el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
@@ -780,6 +781,7 @@ export class PmcHud {
           ${opb('build', '건설', '', hasCon)}${opb('found', '정거장 설립', '', ships.some(s => s.classId === 'constructor'))}
           ${opb('idle', '대기', 'I')}${g.parentId ? `<button class="btn${!g.override ? ' on' : ''}" data-op="release" title="상위 편대 지휘관에게 위임">위임<span class="key">T</span></button>` : ''}
         </div>
+        ${g.parentId ? `<div class="row small"><label class="chk" title="체크하면 이 편대는 본대 진형에서 빠져 자기 속도로 앞서 움직입니다 (정찰·선봉). 해제하면 본대와 함께 가장 느린 함선 속도로 이동합니다."><input type="checkbox" data-detach="${g.id}" ${g.detached ? 'checked' : ''}> 독립 기동 (정찰·선봉 — 본대보다 먼저 움직임)</label></div>` : ''}
         ${hasMiner ? this.mineFormHtml(g) : ''}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}

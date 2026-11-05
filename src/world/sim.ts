@@ -7,7 +7,7 @@ import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
 import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
 import type { Order, OrderRecord } from '../sim/types';
-import type { WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Engagement, WorldEvent, Contract, WCommander, Company, StarSystem, Gate, Lair } from './types';
+import type { March, WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Engagement, WorldEvent, Contract, WCommander, Company, StarSystem, Gate, Lair } from './types';
 import { emptyCargo, cargoSum, RES } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
@@ -35,6 +35,7 @@ interface BattleResult { winner: number; ships: { ref: string; dead: boolean; hp
 
 export type Cmd =
   | { c: 'setOp'; group: string; op: Op }
+  | { c: 'setDetached'; group: string; on: boolean }
   | { c: 'release'; group: string }
   | { c: 'newGroup'; name: string; parent?: string | null; ships?: string[] }
   | { c: 'renameGroup'; group: string; name: string }
@@ -127,6 +128,12 @@ export class WorldSim {
     const c = { x: 0, y: 0, z: 0 };
     for (const x of s) { c.x += x.pos.x; c.y += x.pos.y; c.z += x.pos.z; }
     return { x: c.x / s.length, y: c.y / s.length, z: c.z / s.length };
+  }
+  /** the group whose order `g` is executing (itself if it has an explicit order or no parent) */
+  opOwner(g: WGroup): WGroup {
+    let cur: WGroup = g;
+    while (!cur.override && cur.parentId && this.st.groups[cur.parentId]) cur = this.st.groups[cur.parentId];
+    return cur;
   }
   opOf(g: WGroup): Op {
     let cur: WGroup | undefined = g;
@@ -231,6 +238,14 @@ export class WorldSim {
     const G = (id: string) => { const g = this.st.groups[id]; return g && g.owner === company ? g : null; };
     const S = (id: string) => this.st.stations[id];
     switch (cmd.c) {
+      case 'setDetached': {
+        const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
+        if (!g.parentId) return '최상위 함대는 이미 독립 기동';
+        g.detached = cmd.on; g.march = undefined;
+        const top = this.marchOwner(this.st.groups[g.parentId] ?? g); top.march = undefined;
+        this.say(g, cmd.on ? '독립 기동 — 정찰·선봉 임무로 본대보다 앞서 움직입니다.' : '본대 합류 — 함대 진형을 유지합니다.', 'radio', 0);
+        return null;
+      }
       case 'setOp': {
         const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
         // automatic unloading: resolve the station now (and again whenever it stops being usable)
@@ -241,7 +256,7 @@ export class WorldSim {
           const e2 = this.prepareFound(company, g);
           if (e2) return e2;
         }
-        g.op = cmd.op; g.override = true; g.fleeing = false;
+        g.op = cmd.op; g.override = true; g.fleeing = false; g.march = undefined;
         for (const s of this.shipsOf(g)) if (s.state !== 'battle' && s.state !== 'docked') s.task = { k: 'none' };
         this.ackOp(g, cmd.op);
         return null;
@@ -874,7 +889,156 @@ export class WorldSim {
       g.status = '해적 회피 — 대피 중';
       return;
     }
+    if ((op.k === 'move' || op.k === 'attack') && this.st.companies[g.owner]?.kind === 'player') {
+      const m = this.fleetMarch(g, op, dt);
+      if (m) { for (const s of ships) this.marchShip(s, g, op, m, dt, c); return; }
+    }
     for (const s of ships) this.behave(s, g, op, dt, c);
+  }
+
+  // -------------------------------------------------- coordinated fleet movement
+  //
+  // A fleet (the group holding the order plus every subordinate that inherits it, minus groups
+  // explicitly detached as scouts/vanguard) moves as one: it first rallies, then advances at the pace
+  // of its slowest ship, warps only when every hull is aligned, regroups on each side of a jump gate,
+  // and for an attack stops at a staging point short of the target until it is assembled — only then
+  // does it go in. Commanders set how tight the formation is and how long they wait for stragglers.
+
+  /** ships that move with this fleet (not detached, not fighting) */
+  private fleetMembers(owner: WGroup): { ships: WShip[]; groups: WGroup[] } {
+    const groups: WGroup[] = [], ships: WShip[] = [];
+    const walk = (x: WGroup) => {
+      groups.push(x);
+      for (const id of x.shipIds) { const s = this.st.ships[id]; if (s && s.state !== 'battle' && ECON[s.classId].cruise > 0) ships.push(s); }
+      for (const cid of x.childIds) { const c = this.st.groups[cid]; if (c && !c.override && !c.detached) walk(c); }
+    };
+    walk(owner);
+    return { ships, groups };
+  }
+
+  private fleetSlot(s: WShip, members: WShip[], at: V, toward: V | null): V {
+    // line abreast across the axis of travel, heavier ships in the middle row
+    const idx = members.indexOf(s);
+    const n = members.length;
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n * 2)));
+    const row = Math.floor(idx / cols), col = idx % cols - (cols - 1) / 2;
+    let fx = 0, fz = 1;
+    if (toward) { const dx = toward.x - at.x, dz = toward.z - at.z, l = Math.hypot(dx, dz); if (l > 1) { fx = dx / l; fz = dz / l; } }
+    const gap = 110;
+    return { x: at.x + (-fz) * col * gap - fx * row * gap, y: at.y + ((idx % 3) - 1) * 20, z: at.z + fx * col * gap - fz * row * gap };
+  }
+
+  private marchRoute(from: V, to: V): V[] {
+    const out: V[] = [];
+    let here = this.sysOf(from);
+    const there = this.sysOf(to);
+    for (let k = 0; k < 8 && here && there && here.id !== there.id; k++) {
+      const gate = nextGate(this.st.systems, here.id, there.id); if (!gate) break;
+      const inward = (p: V, o: V, d: number) => { const dx = o.x - p.x, dz = o.z - p.z, l = Math.hypot(dx, dz) || 1; return { x: p.x + dx / l * d, y: p.y, z: p.z + dz / l * d }; };
+      out.push(inward(gate.pos, here.origin, 650));                       // regroup before the gate
+      const dest = this.st.systems[gate.to]; const exit = dest?.gates.find(x => x.id === gate.exit);
+      if (!dest || !exit) break;
+      out.push(inward(exit.pos, dest.origin, 900));                       // and after it
+      here = dest;
+    }
+    out.push(to);
+    return out;
+  }
+
+  private attackTarget(op: Op): V | null {
+    if (op.k !== 'attack') return null;
+    if (op.lair) { const l = this.st.lairs[op.lair]; return l?.alive ? l.pos : null; }
+    if (op.group) { const t = this.st.groups[op.group]; return t && t.shipIds.length ? this.groupCenter(t) : null; }
+    return null;
+  }
+
+  /** update (once per tick) and return the fleet's march state; null → no coordinated move */
+  private fleetMarch(g: WGroup, op: Op, dt: number): March | null {
+    const owner = this.marchOwner(g);
+    if ((owner as any)._marchT === this.time && owner.march) return owner.march;
+    (owner as any)._marchT = this.time;
+    const { ships } = this.fleetMembers(owner);
+    (owner as any)._members = ships;
+    if (!ships.length) return null;
+    const c = this.cmdr(owner);
+    const target = this.attackTarget(op);
+    if (op.k === 'attack' && !target) return null;
+    const key = op.k === "move" ? `m:${Math.round(op.to.x)}:${Math.round(op.to.z)}` : op.k === "attack" ? `a:${op.lair ?? op.group}` : "";
+    const cen = this.centroid(ships);
+    let m = owner.march;
+    if (!m || m.key !== key) {
+      const dest = op.k === 'move' ? op.to : target!;
+      m = owner.march = { key, phase: 'assemble', wp: this.marchRoute(cen, dest), i: 0, at: cen, since: this.time, warpGo: false, speed: 0, members: ships.length, inPlace: 0 };
+      if (ships.length > 1) this.say(owner, `함대 집결 — ${ships.length}척, 가장 느린 함선에 맞춰 함께 이동한다.`, 'radio', 5);
+    }
+    // the slowest hull sets the pace; a skilled commander keeps the line tighter and moves a bit faster
+    m.speed = Math.min(...ships.map(s => ECON[s.classId].cruise * (0.6 + 0.4 * s.hp))) * (0.92 + c.skill * 0.08);
+    m.members = ships.length;
+    const leash = 260 + 70 * Math.sqrt(ships.length) * (1.25 - c.skill * 0.4);
+    const patience = 60 + c.skill * 120 - c.aggression * 40;     // seconds before stragglers are left behind
+    const near = (p: V) => ships.filter(s => dist(s.pos, p) < leash + 120 + Math.sqrt(ships.length) * 60).length;
+    const warn = (txt: string) => this.say(owner, txt, 'warn', 30);
+    // stage short of an attack target; aggressive commanders stage closer
+    const stage = (t: V, from: V): V => { const d = 2600 - c.aggression * 900; const dx = from.x - t.x, dz = from.z - t.z, l = Math.hypot(dx, dz) || 1; return l <= d ? from : { x: t.x + dx / l * d, y: t.y, z: t.z + dz / l * d }; };
+    if (ships.some(s => s.engagement) && op.k === 'attack') m.phase = 'engage';
+    switch (m.phase) {
+      case 'assemble': {
+        m.inPlace = near(m.at);
+        if (m.inPlace >= ships.length || this.time - m.since > patience) {
+          if (m.inPlace < ships.length) warn(`낙오 함선 ${ships.length - m.inPlace}척 — 더 기다리지 않고 출발한다.`);
+          m.phase = 'transit'; m.since = this.time;
+        }
+        break;
+      }
+      case 'transit': {
+        const last = m.i >= m.wp.length - 1;
+        if (last && target) m.wp[m.i] = stage(target, this.centroid(ships));
+        const wp = m.wp[m.i];
+        m.at = wp;
+        m.inPlace = near(wp);
+        // all ships aligned (or not warping) → release the drives together
+        m.warpGo = ships.every(s => !s.warp || s.warp.phase === 'warp' || s.warp.t >= (ALIGN[s.classId] ?? 5)) || this.time - m.since > patience;
+        if (m.inPlace >= ships.length || (m.inPlace >= ships.length * 0.75 && this.time - m.since > patience * 3)) {
+          if (!last) { m.i++; m.since = this.time; m.warpGo = false; break; }
+          m.phase = op.k === 'move' ? 'arrived' : 'ready'; m.since = this.time;
+          if (op.k === 'attack') this.say(owner, `집결 완료 (${m.inPlace}/${ships.length}척). 전 함대 교전 준비 — 공격 개시!`, 'radio', 0);
+          else this.say(owner, `함대 전원 목적지 도착 (${m.inPlace}/${ships.length}척).`, 'radio', 0);
+        }
+        break;
+      }
+      case 'ready': if (this.time - m.since > 2) m.phase = 'engage'; break;
+    }
+    if (op.k === 'move' && m.phase === 'arrived') m.at = op.to;
+    return m;
+  }
+
+  private centroid(ships: WShip[]): V {
+    let x = 0, y = 0, z = 0; for (const s of ships) { x += s.pos.x; y += s.pos.y; z += s.pos.z; }
+    const n = ships.length || 1; return { x: x / n, y: y / n, z: z / n };
+  }
+
+  /** the fleet a group moves with: up the inheritance chain, stopping at detached scouts/vanguards */
+  marchOwner(g: WGroup): WGroup {
+    let cur: WGroup = g;
+    while (!cur.override && !cur.detached && cur.parentId && this.st.groups[cur.parentId]) cur = this.st.groups[cur.parentId];
+    return cur;
+  }
+
+  private marchShip(s: WShip, g: WGroup, op: Op, m: March, dt: number, c: CommanderDef) {
+    const owner = this.marchOwner(g);
+    const members: WShip[] = (owner as any)._members ?? this.fleetMembers(owner).ships;
+    const own = ECON[s.classId].cruise * (0.6 + 0.4 * s.hp);
+    (s as any)._holdWarp = !m.warpGo;
+    if (m.phase === 'engage') { (s as any)._holdWarp = false; this.behave(s, g, op, dt, c); g.status = `${g.status} (함대 공격)`; return; }
+    const next = m.wp[Math.min(m.i + 1, m.wp.length - 1)];
+    const slot = this.fleetSlot(s, members, m.at, m.phase === 'assemble' ? m.wp[0] : next);
+    // rallying ships may hurry; once moving, nobody outruns the slowest
+    const speed = m.phase === 'assemble' ? own : Math.min(own, m.speed);
+    this.moveTo(s, slot, speed, dt, 30);
+    const n = `${m.inPlace}/${m.members}척`;
+    g.status = m.phase === 'assemble' ? `함대 집결 중 (${n})`
+      : m.phase === 'transit' ? `함대 이동 — 속도 ${Math.round(m.speed)} (최저속 함선 기준 · ${m.i + 1}/${m.wp.length} 구간 · ${n})`
+      : m.phase === 'ready' ? `집결 완료 — 공격 준비 (${n})` : op.k === 'move' ? '목적지 도착' : '공격';
   }
 
   private threatCheck(g: WGroup, ships: WShip[], op: Op, c: CommanderDef) {
@@ -982,7 +1146,8 @@ export class WorldSim {
         const fv = Math.min(speed * 0.5, 30 + w.t * 10);
         s.vel = { x: Math.sin(s.heading) * fv, y: 0, z: Math.cos(s.heading) * fv };
         s.pos = vadd(s.pos, s.vel, dt);
-        if (w.t >= (ALIGN[s.classId] ?? 5)) { w.phase = 'warp'; w.t = 0; }
+        // fleet warps wait until every ship is aligned, then go together
+        if (w.t >= (ALIGN[s.classId] ?? 5) && !(s as any)._holdWarp) { w.phase = 'warp'; w.t = 0; }
         return false;
       }
       w.t += dt;

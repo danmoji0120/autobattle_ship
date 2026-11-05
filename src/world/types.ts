@@ -95,6 +95,26 @@ export interface WGroup {
   lastSay: number;
   /** NPC force bookkeeping (Union garrisons/patrols/response fleets, pirate bands) */
   npc?: NpcInfo;
+  /** scouts / vanguard: moves on its own instead of keeping station with the parent fleet */
+  detached?: boolean;
+  /** fleet movement state, kept on the group whose order the fleet is executing */
+  march?: March;
+}
+
+/** coordinated fleet movement: rally → move as one at the slowest ship's pace → stage → attack together */
+export interface March {
+  key: string;
+  phase: 'assemble' | 'transit' | 'arrived' | 'ready' | 'engage';
+  wp: V[];
+  i: number;
+  /** current rally / waypoint point */
+  at: V;
+  since: number;
+  /** all members aligned: release the warp drives together */
+  warpGo: boolean;
+  speed: number;
+  members: number;
+  inPlace: number;
 }
 
 export interface NpcInfo {
