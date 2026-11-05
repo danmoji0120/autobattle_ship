@@ -15,6 +15,7 @@ const ORDER_COLOR: Record<string, string> = {
 
 const h = (tag: string, cls = '', html = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+const r0 = (e: HTMLElement) => e;
 const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
 export interface HudOptions {
@@ -63,6 +64,15 @@ export class BattleHUD {
     session.onFrame = dt => this.frame(dt);
     this.refreshTree(); this.refreshCommand();
     if (opts.replay) this.banner('리플레이', '기록된 명령으로 전투를 재현합니다', 'ally', 'REPLAY');
+    else {
+      const tip = h('div', 'panel', `<b style="color:var(--cyan)">지휘관들이 스스로 싸웁니다.</b> 지켜보다가 필요할 때 개입하세요.<br>
+        부대 선택 → 아래 명령 버튼, 또는 <b>우클릭</b>(적=공격 · 아군=호위 · 빈곳=이동). ▸로 부대를 펼치면 하위 부대까지 지도에 표시됩니다.<br>
+        <span style="color:var(--dim)">Tab: 시네마틱 감상 · Space: 일시정지(정지 중에도 명령 가능) · 클릭하여 닫기</span>`);
+      Object.assign(tip.style, { position: 'absolute', top: '74px', left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', fontSize: '12.5px', lineHeight: '1.6', maxWidth: '560px', cursor: 'pointer', zIndex: '5' });
+      tip.onclick = () => tip.remove();
+      r0(this.root).appendChild(tip);
+      setTimeout(() => tip.remove(), 16000);
+    }
   }
 
   dispose() {
