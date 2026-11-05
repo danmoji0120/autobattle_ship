@@ -13,7 +13,7 @@ import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, matsOf, type Mat } from '../../world/construction';
-import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml } from './industryUi';
+import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
 import { TECHS, ITEMS } from '../../world/industry';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 
@@ -953,7 +953,7 @@ export class PmcHud {
     const s = this.st.stations[this.modalStation!];
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
-    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
+    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
@@ -961,6 +961,7 @@ export class PmcHud {
       ['market', '시장', !!s.market || s.modules.some(m => m.kind === 'trade_hub' && m.built)], ['store', '창고·물류', own || cargoSum(s.storage[this.me] ?? {}) > 0.5],
       ['build', '건설', own], ['prod', '생산', own],
       ['yard', '조선소', s.services.shipyard.length > 0 || (own && s.modules.some(m => m.kind.startsWith('yard_') && m.built))],
+      ['research', '연구', own || Object.keys(s.storage[this.me] ?? {}).some(k => k.startsWith('bp:') && (s.storage[this.me][k] ?? 0) >= 1)],
       ['dock', '수리·개조', true], ['recruit', '인재', s.services.recruit], ['contracts', '계약', s.services.contracts || Object.values(this.st.contracts).some(k => k.stationId === s.id)],
     ];
     const vis = tabs.filter(t => t[2]);
@@ -975,6 +976,7 @@ export class PmcHud {
       case 'build': body = this.buildHtml(s); break;
       case 'store': body = storeHtml(this.st, s, this.me, this.ind); break;
       case 'prod': body = prodHtml(this.st, s, this.me, this.ind); break;
+      case 'research': body = researchHtml(this.st, s, this.me, this.ind); break;
     }
     trackSelects(this.modal);
     // patched in place (not rebuilt): open dropdowns, picks, typed text and scroll survive live updates
@@ -1020,6 +1022,18 @@ export class PmcHud {
       const [op, build] = b.dataset.bop!.split(':');
       if (op === 'cancel' && !confirm('건조를 취소할까요? 기공 전이면 공임 전액 환불, 기공 후에는 남은 공정만큼만 환불되고 투입된 부품은 회수할 수 없습니다.')) return;
       await this.cmd({ c: 'buildOp', station: s.id, build, op: op as 'pause' });
+    });
+    // research
+    m.querySelectorAll<HTMLElement>('[data-rfield]').forEach(b => b.onclick = () => { ui.rField = b.dataset.rfield!; this.renderModal(true); });
+    m.querySelectorAll<HTMLElement>('[data-tsel]').forEach(b => b.onclick = () => { ui.tSel = b.dataset.tsel!; this.renderModal(true); });
+    m.querySelectorAll<HTMLButtonElement>('[data-tres]').forEach(b => b.onclick = () => this.cmd({ c: 'research', station: s.id, tech: b.dataset.tres! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-tsalv]').forEach(b => b.onclick = () => this.cmd({ c: 'research', station: s.id, tech: b.dataset.tsalv!, source: 'salvage' }));
+    m.querySelectorAll<HTMLButtonElement>('[data-tcopy]').forEach(b => b.onclick = () => this.cmd({ c: 'research', station: s.id, tech: b.dataset.tcopy!, source: 'copy' }));
+    m.querySelectorAll<HTMLButtonElement>('[data-tlearn]').forEach(b => b.onclick = () => this.cmd({ c: 'learnBlueprint', station: s.id, tech: b.dataset.tlearn! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-rop]').forEach(b => b.onclick = async () => {
+      const [op, project] = b.dataset.rop!.split(':');
+      if (op === 'cancel' && !confirm('연구를 취소할까요? 시작 전이면 비용 전액 환불, 시작 후에는 남은 진행분만큼만 환불되고 소모된 재료는 회수할 수 없습니다.')) return;
+      await this.cmd({ c: 'researchOp', project, op: op as 'pause' });
     });
     m.querySelectorAll<HTMLButtonElement>('[data-dofit]').forEach(b => b.onclick = () => { const [sid, k] = b.dataset.dofit!.split(':'); const sh = this.st.ships[sid]; this.cmd({ c: 'fitShip', ship: sid, fit: [...(sh?.fit ?? []), k] }); });
     m.querySelectorAll<HTMLButtonElement>('[data-unfit]').forEach(b => b.onclick = () => { const [sid, i] = b.dataset.unfit!.split(':'); const f = [...(this.st.ships[sid]?.fit ?? [])]; f.splice(Number(i), 1); this.cmd({ c: 'fitShip', ship: sid, fit: f }); });

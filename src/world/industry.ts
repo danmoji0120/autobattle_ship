@@ -269,6 +269,8 @@ export const TECHS: Record<string, TechDef> = Object.fromEntries([
   T({ id: 'refining_2', name: '고효율 정련', field: 'industry', time: 2400, credits: 5000, cost: { machinery: 8, chemicals: 10 }, pre: ['process_control'], desc: '정련 수율 개선.', unlocks: '레시피: 고효율 금속 정련 (금속 +30%)' }),
   T({ id: 'composites', name: '복합소재 공학', field: 'industry', time: 3600, credits: 8000, cost: { silicon: 20, chemicals: 20, machinery: 6 }, pre: ['process_control'], desc: '적층 복합소재.', unlocks: '시설: 복합소재 공장 · 레시피: 복합 구조재', bp: 30000 }),
   T({ id: 'microelectronics', name: '미세 전자공학', field: 'electronics', time: 4800, credits: 10000, cost: { electronics: 10, silicon: 20, crystal: 4 }, pre: ['process_control'], desc: '고밀도 회로.', unlocks: '레시피: 고밀도 회로 (전자부품 +75%)' }),
+  T({ id: 'research_methods', name: '연구 방법론', field: 'station', time: 2400, credits: 5000, cost: { electronics: 6 }, desc: '실험 설계와 자료 공유 표준화.', unlocks: '모든 연구 속도 +20%', fx: { researchMul: 1.2 } }),
+  T({ id: 'quantum_computing', name: '양자 연산', field: 'electronics', time: 10800, credits: 30000, cost: { electronics: 30, crystal: 20, rare_metal: 6 }, pre: ['microelectronics', 'research_methods'], desc: '시뮬레이션 기반 설계.', unlocks: '모든 연구 속도 +25%', fx: { researchMul: 1.25 } }),
   T({ id: 'lean_production', name: '린 생산', field: 'industry', time: 7200, credits: 14000, cost: { machinery: 20, electronics: 10 }, pre: ['refining_2'], desc: '재고와 대기 시간 최소화.', unlocks: '모든 시설 생산 속도 +15%', fx: { prodMul: 1.15 } }),
   T({ id: 'modular_assembly', name: '모듈식 조립', field: 'shipeng', time: 7200, credits: 16000, cost: { structure: 30, precision: 6, electronics: 10 }, pre: ['process_control'], desc: '블록 단위 선체 조립.', unlocks: '함선 건조 속도 +20%', fx: { buildMul: 1.2 } }),
   T({ id: 'automated_yards', name: '자동화 조선', field: 'shipeng', time: 21600, credits: 40000, cost: { electronics: 40, precision: 20, machinery: 40 }, pre: ['modular_assembly', 'lean_production'], desc: '로봇 조선 라인.', unlocks: '함선 건조 속도 +25%', fx: { buildMul: 1.25 } }),
@@ -298,7 +300,7 @@ export const TECHS: Record<string, TechDef> = Object.fromEntries([
   T({ id: 'particle_lance', name: '입자 창', field: 'weapons', time: 28800, credits: 60000, cost: { crystal: 40, rare_metal: 20, electronics: 30 }, pre: ['energy_weapons', 'railguns'], desc: '고출력 입자빔.', unlocks: '장비: 입자 창' }),
   // defense
   T({ id: 'reactive_armor', name: '반응장갑', field: 'defense', time: 5400, credits: 10000, cost: { composite: 12, chemicals: 10 }, pre: ['composites'], desc: '폭발 반응 장갑.', unlocks: '장비: 복합 반응장갑 · 레시피: 복합 장갑판' }),
-  T({ id: 'damage_control', name: '응급 수리', field: 'defense', time: 3600, credits: 6000, cost: { machinery: 10, electronics: 4 }, desc: '함내 손상 통제.', unlocks: '수리 속도 +50%', fx: { repairMul: 1.5 } }),
+  T({ id: 'damage_control', name: '응급 수리', field: 'defense', time: 3600, credits: 6000, cost: { machinery: 10, electronics: 4 }, desc: '함내 손상 통제.', unlocks: '수리 비용 -33%', fx: { repairMul: 1.5 } }),
   // ship engineering (hull designs)
   T({ id: 'frigate_design', name: '호위함 설계', field: 'shipeng', time: 3600, credits: 8000, cost: { structure: 10, electronics: 6 }, desc: '경량 호위함 설계.', unlocks: '함선: 호위함 건조', bp: 20000 }),
   T({ id: 'medium_hulls', name: '중형 선체', field: 'shipeng', time: 5400, credits: 14000, cost: { structure: 30, precision: 4, electronics: 8 }, pre: ['frigate_design'], desc: '중형 선체 골조.', unlocks: '시설: 중형 조선소', bp: 40000 }),

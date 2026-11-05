@@ -31,9 +31,10 @@ export interface Company {
   tech?: string[];
   /** research projects (one lab slot each while running) */
   research?: ResearchProject[];
+  rseq?: number;
 }
 
-export interface ResearchProject { id: string; tech: string; station: string; left: number; total: number; started: boolean; paused?: boolean; why?: string; source?: 'lab' | 'salvage' }
+export interface ResearchProject { id: string; tech: string; station: string; left: number; total: number; started: boolean; paid?: number; paused?: boolean; why?: string; source?: 'lab' | 'salvage' | 'copy' }
 
 export type Op =
   | { k: 'idle' }

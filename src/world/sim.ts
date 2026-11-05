@@ -15,6 +15,7 @@ import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, 
 import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX } from './economy';
+import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot } from './research';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
 import { effSec, secAt } from './security';
@@ -65,6 +66,9 @@ export type Cmd =
   | { c: 'buildShip'; station: string; classId: string; loadoutId: string; fit?: string[]; group?: string }
   | { c: 'buildOp'; station: string; build: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
   | { c: 'fitShip'; ship: string; fit: string[] }
+  | { c: 'research'; station: string; tech: string; source?: 'lab' | 'salvage' | 'copy' }
+  | { c: 'researchOp'; project: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
+  | { c: 'learnBlueprint'; station: string; tech: string }
   | { c: 'renameCompany'; name: string };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
@@ -263,7 +267,7 @@ export class WorldSim {
     const id = this.id('p');
     this.st.companies[id] = {
       id, name: name.slice(0, 20) || `PMC-${id}`, kind: 'player', color: PLAYER_COLORS[n % PLAYER_COLORS.length], credits: 7000, rep: 0,
-      createdAt: this.time, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [], homeStation: 'astra',
+      createdAt: this.time, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [], homeStation: 'astra', tech: [], research: [],
     };
     for (const s of Object.values(this.st.stations)) s.storage[id] = emptyCargo();
     const astra = this.st.stations.astra;
@@ -406,7 +410,7 @@ export class WorldSim {
       case 'repair': {
         const s = this.st.ships[cmd.ship]; if (!s || s.owner !== company || s.state !== 'docked' || s.task.k !== 'docked') return '정박 중인 함선만 수리 가능';
         const st = S(s.task.station); if (!st.services.repair && !(st.owner === company && this.hasModule(st, 'repair'))) return '수리 시설 없음';
-        const cost = Math.round((1 - s.hp) * ECON[s.classId].price * 0.3);
+        const cost = Math.round((1 - s.hp) * ECON[s.classId].price * 0.3 / techFx(co.tech).repairMul);
         if (co.credits < cost) return '자금 부족';
         co.credits -= cost; s.hp = 1;
         this.ev('money', `${s.name} 수리 완료 -${cost.toLocaleString()} cr`, { company });
@@ -624,6 +628,52 @@ export class WorldSim {
           }
         }
         stepBuilds(st, co, 0);
+        return null;
+      }
+      case 'research': {
+        const st = S(cmd.station);
+        if (!st) return '정거장 없음';
+        const src = cmd.source ?? 'lab';
+        const err = canQueue(co, st, cmd.tech, src);
+        if (err) return err;
+        if ((co.research ?? []).length >= 30) return '연구 대기열은 30개까지';
+        const cr = projectCredits(cmd.tech, src), time = projectTime(cmd.tech, src);
+        co.credits -= cr;
+        co.rseq = (co.rseq ?? 0) + 1;
+        (co.research ??= []).push({ id: `r${co.rseq}`, tech: cmd.tech, station: st.id, left: time, total: time, started: false, paid: cr, source: src });
+        stepResearch(this.st, co, 0);
+        this.ev('info', `${st.name}: ${src === 'copy' ? '설계도 복제' : src === 'salvage' ? '노획품 분석' : '연구'} 등록 — ${techName(cmd.tech)}`, { company, pos: st.pos, tag: 'research_plan' });
+        return null;
+      }
+      case 'researchOp': {
+        const q = co.research ?? []; const r = q.find(x => x.id === cmd.project);
+        if (!r) return '연구 항목 없음';
+        const i = q.indexOf(r);
+        switch (cmd.op) {
+          case 'pause': r.paused = true; break;
+          case 'resume': r.paused = false; break;
+          case 'cancel': {
+            // materials are spent when the project starts; credits come back for the unfinished part
+            const back = Math.round((r.paid ?? 0) * (r.started ? Math.max(0, r.left / r.total) : 1));
+            co.credits += back; q.splice(i, 1);
+            this.ev('info', `연구 취소: ${techName(r.tech)} — 환불 ${back.toLocaleString()} cr${r.started ? ' · 소모된 재료는 회수 불가' : ''}`, { company });
+            break;
+          }
+          case 'up': case 'down': case 'top': {
+            const j = cmd.op === 'top' ? 0 : cmd.op === 'up' ? i - 1 : i + 1;
+            if (j < 0 || j >= q.length || j === i) return null;
+            q.splice(i, 1); q.splice(j, 0, r);
+          }
+        }
+        stepResearch(this.st, co, 0);
+        return null;
+      }
+      case 'learnBlueprint': {
+        const st = S(cmd.station);
+        if (!st) return '정거장 없음';
+        const err = learnBlueprint(co, st, cmd.tech);
+        if (err) return err;
+        this.ev('milestone', `설계도 습득: ${techName(cmd.tech)} — ${TECHS[cmd.tech].unlocks}`, { company, pos: st.pos });
         return null;
       }
       case 'fitShip': {
@@ -858,6 +908,25 @@ export class WorldSim {
     }
   }
 
+  /** salvage_ops: recovered parts and captured equipment go to the nearest station the company can store at */
+  private salvageWrecks(co: Company, wrecks: Record<string, number>[], share: number, pos: V) {
+    const loot: Record<string, number> = {};
+    const rng = () => this.rng.next();
+    for (const w of wrecks) { if (rng() > share) continue; for (const [k, n] of Object.entries(wreckLoot(rng, w))) loot[k] = (loot[k] ?? 0) + n; }
+    if (!Object.keys(loot).length) return;
+    const sys = sysAt(this.st.systems, pos);
+    let best: Station | null = null, bd = Infinity;
+    for (const x of Object.values(this.st.stations)) {
+      if (!(x.public || x.owner === co.id)) continue;
+      const d = dist(x.pos, pos) + (sysAt(this.st.systems, x.pos) === sys ? 0 : 1e7) - (x.owner === co.id ? 5000 : 0);
+      if (d < bd) { bd = d; best = x; }
+    }
+    if (!best) return;
+    const S = best.storage[co.id] ??= emptyCargo();
+    for (const [k, n] of Object.entries(loot)) addc(S, k, n);
+    this.ev('money', `전장 회수: ${Object.entries(loot).map(([k, n]) => `${RES_NAME[k]} ${n}`).join(', ')} → ${best.name} 창고`, { company: co.id, pos: best.pos, tag: 'salvage' });
+  }
+
   // ===================================================================== economy
 
   private economy(dt: number) {
@@ -875,6 +944,14 @@ export class WorldSim {
         for (const e of stepProduction(s, st.companies[s.owner], dt)) {
           if (e.kind === 'finished') this.ev('info', `${s.name}: 생산 주문 완료 — ${RECIPES[e.recipe].name}`, { company: s.owner, pos: s.pos, tag: 'prod_done' });
         }
+      }
+    }
+    for (const co of Object.values(st.companies)) {
+      if (co.kind !== 'player' || !co.research?.length) continue;
+      for (const p of stepResearch(st, co, dt)) {
+        const t = TECHS[p.tech];
+        if (p.source === 'copy') this.ev('info', `설계도 복제 완료: ${t.name} — ${st.stations[p.station]?.name ?? ''} 창고`, { company: co.id, tag: 'research_done' });
+        else this.ev('milestone', `연구 완료: ${t.name} — ${t.unlocks}`, { company: co.id, tag: 'research_done' });
       }
     }
     for (const f of Object.values(st.fields)) {
@@ -2140,6 +2217,7 @@ export class WorldSim {
     for (const ts of res.ships) if (ts.dead && !ts.ref.startsWith('station:')) losses[sideOf(ts.ref)]++;
     const sys = this.sysOf(e.pos);
     const destroyedPirateValue = new Map<string, number>();
+    const wrecks: Record<string, number>[] = [];
     const dmgBy = new Map<string, number>();
     const lostBy = new Map<string, number>();
     let salvage = 0;
@@ -2167,7 +2245,7 @@ export class WorldSim {
           else if (s.owner === 'union') { sys.stats.unionLosses++; sys.heat = Math.min(100, sys.heat + 3); }
           else { sys.stats.civLosses++; sys.heat = Math.min(100, sys.heat + 4); }
         }
-        if (s.owner === 'pirates') destroyedPirateValue.set(ts.ref, shipValue(s.classId));
+        if (s.owner === 'pirates') { destroyedPirateValue.set(ts.ref, shipValue(s.classId)); wrecks.push(loadoutEquipment(getLoadout(s.classId, s.loadoutId).mounts)); }
         lostBy.set(s.owner, (lostBy.get(s.owner) ?? 0) + 1);
         const co = st.companies[s.owner]; if (co) co.stats.lost++;
         const g = st.groups[s.groupId];
@@ -2197,7 +2275,7 @@ export class WorldSim {
       const cm = g.commanderId ? st.commanders[g.commanderId] : null;
       if (cm && cm.injuredUntil <= this.time) {
         cm.battles++;
-        const gain = 12 + (killsByGroup.get(gid) ?? 0) / 12;
+        const gain = (12 + (killsByGroup.get(gid) ?? 0) / 12) * (cm.owner ? techFx(st.companies[cm.owner]?.tech).skillGain : 1);
         cm.xp += gain;
         if (cm.xp >= cm.level * 100) {
           cm.xp -= cm.level * 100; cm.level++;
@@ -2235,6 +2313,7 @@ export class WorldSim {
       const lost = lostBy.get(c) ?? 0;
       e.summary = `${won ? '승리' : e.winner === 1 ? '패배' : '교착'} — 해적 ${destroyedPirateValue.size}척 격침, 아군 손실 ${lost}척${pay ? `, 현상금 +${pay.toLocaleString()} cr` : ''}`;
       this.ev('battle', `전투 종료: ${e.summary}`, { company: c, pos: e.pos, ref: e.id });
+      if (co.tech?.includes('salvage_ops') && wrecks.length) this.salvageWrecks(co, wrecks, share, e.pos);
     }
     // contracts: bounties on bands wiped out
     for (const k of Object.values(st.contracts)) {

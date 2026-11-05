@@ -10,9 +10,11 @@ import { stationPower, storageCap, facLines, facilityLoad, prodSpeed, recipeOk, 
 import { HULLS } from '../../world/industry';
 import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
+import { FIELD_NAME, techFx, type Field } from '../../world/industry';
+import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 
-export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[] }
-export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', recQ: '', recSel: null, mkCat: 'all', mkQ: '', hull: null, fit: [] });
+export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
+export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', recQ: '', recSel: null, mkCat: 'all', mkQ: '', hull: null, fit: [], rField: 'all', tSel: null });
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => (Math.abs(n) >= 100 || Number.isInteger(n) ? Math.round(n) : Math.round(n * 10) / 10).toLocaleString();
@@ -225,6 +227,82 @@ export function fitHtml(w: WorldState, ship: { id: string; classId: string; fit?
   const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module' && (cur.includes(x.id) || qty(store, x.id) >= 1));
   return `<div class="small">피팅 ${fitUnits(cur)}/${slots}: ${cur.map((k, i) => `<button class="chip on" data-unfit="${ship.id}:${i}" title="해제 — 창고로">${esc(EQUIPMENT[k]?.name ?? k)} ✕</button>`).join(' ') || '<span class="dim">없음</span>'}
     ${mods.filter(m => !cur.includes(m.id) || qty(store, m.id) >= 1).map(m => `<button class="chip" data-dofit="${ship.id}:${m.id}" ${fitUnits([...cur, m.id]) > slots || qty(store, m.id) < 1 ? 'disabled' : ''} title="${esc(m.desc)}">+ ${esc(m.name)} (${m.size}칸, ${fmt(qty(store, m.id))})</button>`).join(' ')}</div>`;
+}
+
+// ───────────────────────────────────────────────────────── research
+
+const FIELDS = Object.keys(FIELD_NAME) as Field[];
+
+/** state of a tech for a company: known / in queue / available / locked */
+function techState(co: any, id: string): ['known' | 'run' | 'queued' | 'ok' | 'locked', string] {
+  if (co.tech?.includes(id)) return ['known', '보유'];
+  const p = (co.research ?? []).find((r: any) => r.tech === id && r.source !== 'copy');
+  if (p) return p.started ? ['run', `연구 중 ${Math.round((1 - p.left / p.total) * 100)}%`] : ['queued', '대기열'];
+  const queued = new Set((co.research ?? []).map((r: any) => r.tech));
+  const miss = (TECHS[id].pre ?? []).filter(x => !co.tech?.includes(x) && !queued.has(x));
+  return miss.length ? ['locked', `선행: ${miss.map(x => TECHS[x].name).join(', ')}`] : ['ok', '연구 가능'];
+}
+
+export function researchHtml(w: WorldState, s: Station, me: string, ui: IndUi): string {
+  const co = w.companies[me];
+  const own = s.owner === me;
+  const store: Cargo = s.storage[me] ?? {};
+  const slots = own ? labSlots(s) : [];
+  const fields = new Set(slots.flatMap(x => x.fields));
+  const mul = techFx(co.tech).researchMul * (own ? stationPower(s).factor : 1);
+  const q = co.research ?? [];
+  // labs
+  let html = `<div class="bstore"><div><b>연구 슬롯</b> ${slots.length ? slots.map(x => `<span class="cap">${esc(FACILITIES[x.kind].name)} <span class="dim">(${x.fields.map(f => FIELD_NAME[f]).join('·')})</span></span>`).join(' · ') : `<span class="warn">${own ? '연구소가 없습니다 — 건설 탭의 「연구」 분류에서 기초과학 연구소부터 지으세요' : '자사 정거장에서만 연구할 수 있습니다 (설계도 습득은 어디서나 가능)'}</span>`}</div>
+    <div class="dim small">보유 기술 ${co.tech?.length ?? 0}/${Object.keys(TECHS).length} · 연구 속도 ×${mul.toFixed(2)} · 연구소마다 슬롯이 있어 여러 연구를 동시에 진행합니다. 재료는 연구가 시작될 때 이 정거장 창고에서 소모됩니다.</div></div>`;
+  // queue (company-wide)
+  html += `<h3>연구 대기열 (${q.length})</h3>${q.length ? `<div class="bq">${q.map((r, i) => `<div class="bqrow${r.started ? ' ps-building' : r.paused ? ' ps-paused' : ' ps-materials'}"><span class="bqn">${i + 1}</span>
+    <div class="bqm"><div><b>${esc(TECHS[r.tech]?.name ?? r.tech)}</b> <span class="dim">· ${r.source === 'copy' ? '설계도 복제' : r.source === 'salvage' ? '노획품 분석' : FIELD_NAME[TECHS[r.tech]?.field]} · ${esc(w.stations[r.station]?.name ?? '')}</span> <span class="pst">${esc(r.why ?? '대기')}</span></div>
+    <div class="bar"><i style="width:${Math.round((1 - r.left / r.total) * 100)}%"></i></div>
+    <div class="small">${r.started ? `남은 시간 ${dur(r.left / Math.max(0.01, mul))}` : `필요: ${itemList(projectCost(r))}`}</div></div>
+    <div class="bqa"><button class="btn mini" data-rop="up:${r.id}" ${i === 0 ? 'disabled' : ''}>▲</button><button class="btn mini" data-rop="down:${r.id}" ${i === q.length - 1 ? 'disabled' : ''}>▼</button>
+    ${r.paused ? `<button class="btn mini" data-rop="resume:${r.id}">▶</button>` : `<button class="btn mini" data-rop="pause:${r.id}">⏸</button>`}<button class="btn mini warnb" data-rop="cancel:${r.id}">✕</button></div></div>`).join('')}</div>` : '<div class="dim small">진행 중인 연구가 없습니다.</div>'}`;
+  // blueprints in this storage
+  const bps = cargoKeys(store).filter(k => k.startsWith('bp:') && qty(store, k) >= 1);
+  if (bps.length) html += `<h3>보유 설계도 (이 정거장 창고)</h3><div class="chips">${bps.map(k => { const t = k.slice(3); const kn = co.tech?.includes(t); const miss = missingPre(co as any, t); return `<button class="chip" data-tlearn="${t}" ${kn || miss.length ? 'disabled' : ''} title="${kn ? '이미 보유' : miss.length ? '선행 기술 필요' : '설계도를 소모해 기술 습득'}">${esc(TECHS[t]?.name ?? t)} ×${fmt(qty(store, k))} — ${kn ? '보유' : miss.length ? '선행 필요' : '습득'}</button>`; }).join('')}</div>`;
+  // tree
+  html += `<h3>기술 트리</h3>${chips('rfield', ui.rField, [['all', '전체'], ...FIELDS.map(f => [f, FIELD_NAME[f] + (fields.has(f) ? '' : ' ·')] as [string, string])])}`;
+  const show = FIELDS.filter(f => ui.rField === 'all' || ui.rField === f);
+  html += `<div class="bcols"><div class="rlist">${show.map(f => {
+    const ts = Object.values(TECHS).filter(t => t.field === f).sort((a, b) => depth(a.id) - depth(b.id) || a.time - b.time);
+    return `<div class="dim small" style="margin:6px 0 2px">${FIELD_NAME[f]}${fields.has(f) ? '' : ' <span class="warn">— 이 정거장에 연구소 없음</span>'}</div>` + ts.map(t => {
+      const [k, label] = techState(co, t.id);
+      return `<div class="bfac pick tst-${k}${ui.tSel === t.id ? ' sel' : ''}${k === 'locked' ? ' locked' : ''}" data-tsel="${t.id}" style="margin-left:${depth(t.id) * 10}px"><b>${esc(t.name)}</b> <span class="dim small">${dur(t.time)}</span><div class="small ${k === 'known' ? 'good' : k === 'locked' ? 'dim' : ''}">${esc(label)}</div></div>`;
+    }).join('');
+  }).join('')}</div><div class="bdet">${ui.tSel && TECHS[ui.tSel] ? techDetail(w, s, me, ui.tSel, fields, store) : '<div class="dim" style="padding:12px">기술을 선택하면 선행 조건·비용·해금 내용을 볼 수 있습니다.</div>'}</div></div>`;
+  return html;
+}
+const depthMemo = new Map<string, number>();
+function depth(id: string): number {
+  if (depthMemo.has(id)) return depthMemo.get(id)!;
+  const d = Math.min(6, Math.max(0, ...(TECHS[id]?.pre ?? []).map(p => depth(p) + 1)));
+  depthMemo.set(id, d); return d;
+}
+function techDetail(w: WorldState, s: Station, me: string, id: string, fields: Set<string>, store: Cargo): string {
+  const t = TECHS[id]; const co = w.companies[me];
+  const own = s.owner === me;
+  const [k, label] = techState(co, id);
+  const cost = projectCost({ tech: id, source: 'lab' });
+  const rows = Object.entries(cost).map(([r, n]) => `<tr><td>${iname(r)}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, r))}</td><td class="n">${qty(store, r) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, r))} 부족</span>`}</td></tr>`).join('');
+  const after = Object.values(TECHS).filter(x => x.pre?.includes(id)).map(x => x.name);
+  const why = !own ? '자사 정거장에서만 연구' : !fields.has(t.field) ? `${FIELD_NAME[t.field]} 연구소 필요` : k === 'known' ? '' : k === 'run' || k === 'queued' ? '이미 대기열에 있음' : k === 'locked' ? label : co.credits < t.credits ? `자금 부족 — ${fmt(t.credits - co.credits)} cr` : '';
+  const sal = salvageItem(id);
+  const canSal = own && fields.has(t.field) && k === 'ok' && sal && qty(store, sal) >= 1;
+  const canCopy = own && fields.has(t.field) && k === 'known' && !!t.bp;
+  return `<div class="bdh"><b>${esc(t.name)}</b> <span class="dim">· ${FIELD_NAME[t.field]} · ${esc(t.desc)}</span></div>
+    <div class="bdr"><b>해금:</b> ${esc(t.unlocks)}</div>
+    <div class="bdr small">선행: ${(t.pre ?? []).map(p => `<span class="${co.tech?.includes(p) ? 'good' : 'warn'}">${esc(TECHS[p].name)}</span>`).join(', ') || '없음'}${after.length ? ` · 후속: ${after.map(esc).join(', ')}` : ''}</div>
+    <div class="bdr">연구 ${dur(t.time)} (슬롯 1개 기준) · 비용 <b class="money">${fmt(t.credits)} cr</b> (등록 시)${t.bp ? ` · 설계도 시세 ${fmt(t.bp)} cr` : ''}</div>
+    <table class="gt bmat"><tr><th>소모 재료 (시작 시)</th><th class="n">필요</th><th class="n">창고</th><th class="n">상태</th></tr>${rows}</table>
+    <div class="small ${k === 'known' ? 'good' : ''}">상태: ${esc(label)}</div>
+    ${why ? `<div class="warn">${esc(why)}</div>` : ''}${k !== 'known' ? `<button class="btn go" data-tres="${id}" ${why ? 'disabled' : ''}>연구 등록</button>` : ''}
+    ${sal ? `<button class="btn" data-tsalv="${id}" ${canSal ? '' : 'disabled'} title="노획한 ${esc(itemName(sal))} 1개를 분해 분석 — 시간 ${dur(projectTime(id, 'salvage'))}, 비용 ${fmt(projectCredits(id, 'salvage'))} cr, 재료 30%">노획품 분석 (${esc(itemName(sal))} 보유 ${fmt(qty(store, sal))})</button>` : ''}
+    ${t.bp ? `<button class="btn" data-tcopy="${id}" ${canCopy ? '' : 'disabled'} title="보유 기술을 거래 가능한 설계도로 — ${dur(projectTime(id, 'copy'))}, ${fmt(projectCredits(id, 'copy'))} cr, ${Object.entries(COPY_COST).map(([r, n]) => itemName(r) + ' ' + n).join(', ')}">설계도 복제</button>` : ''}
+    <div class="dim small">재료가 부족해도 등록할 수 있습니다 — 슬롯이 비고 재료가 이 정거장 창고에 모이면 자동으로 시작합니다. 선행 연구가 대기열 앞에 있으면 함께 등록할 수 있습니다.</div>`;
 }
 
 export { FAC_CATS };

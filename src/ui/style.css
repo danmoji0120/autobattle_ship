@@ -397,3 +397,7 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .haulpick .shdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .haulpick .hpl { display: grid; gap: 5px; }
 .haulpick .hpl .btn { text-align: left; }
+.tst-known { border-left: 3px solid #4fd38a; }
+.tst-run { border-left: 3px solid #5fd4ff; }
+.tst-queued { border-left: 3px solid #ffb35f; }
+.tst-ok { border-left: 3px solid #8aa0b8; }
