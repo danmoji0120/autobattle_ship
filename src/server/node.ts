@@ -34,12 +34,29 @@ const SAVE_FILE = path.resolve(process.env.SAVE_FILE ?? 'data/world.json');
 
 interface Storage { load(): Promise<SaveFile | null>; save(d: SaveFile): Promise<void>; name: string;
   /** keep a copy of a save under its own key (never overwritten); returns the stored copy read back */
-  backup(key: string, d: SaveFile): Promise<SaveFile | null> }
+  backup(key: string, d: SaveFile): Promise<SaveFile | null>;
+  /** world reset requested by token (WORLD_RESET): back up the current world, replace it with `fresh`,
+   *  fence off every instance still holding the old one. Idempotent per token. */
+  reset(token: string, fresh: () => SaveFile): Promise<{ done: boolean; backup?: string; why?: string }>;
+  /** set once a save was refused because a newer world generation exists (this instance is stale) */
+  fenced?: boolean }
 
 function fileStorage(): Storage {
   return {
     name: `file ${SAVE_FILE}`,
     async load() { try { return JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8')); } catch { return null; } },
+    async reset(tokenId, fresh) {
+      const mark = SAVE_FILE + '.reset';
+      if (fs.existsSync(mark) && fs.readFileSync(mark, 'utf8') === tokenId) return { done: false, why: '이미 적용된 초기화 토큰' };
+      const key = `backup-reset-${tokenId}`;
+      const f = SAVE_FILE.replace(/\.json$/, '') + `.${key}.json`;
+      if (fs.existsSync(SAVE_FILE) && !fs.existsSync(f)) fs.copyFileSync(SAVE_FILE, f);
+      if (fs.existsSync(SAVE_FILE) && fs.readFileSync(f, 'utf8') !== fs.readFileSync(SAVE_FILE, 'utf8')) return { done: false, why: '백업 검증 실패' };
+      fs.mkdirSync(path.dirname(SAVE_FILE), { recursive: true });
+      fs.writeFileSync(SAVE_FILE, JSON.stringify(fresh()));
+      fs.writeFileSync(mark, tokenId);
+      return { done: true, backup: key };
+    },
     async backup(key, d) {
       const f = SAVE_FILE.replace(/\.json$/, '') + `.${key}.json`;
       fs.mkdirSync(path.dirname(f), { recursive: true });
@@ -64,15 +81,50 @@ async function pgStorage(url: string): Promise<Storage> {
   const pool = new pg.Pool({ connectionString: clean, ssl: local ? false : { rejectUnauthorized: false }, max: 2, connectionTimeoutMillis: 15000 });
   pool.on('error', e => console.error('[siderarium] postgres pool error', e.message));
   await pool.query('CREATE TABLE IF NOT EXISTS siderarium_world (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated TIMESTAMPTZ NOT NULL DEFAULT now())');
-  return {
+  // world generation: bumped by a reset; a save only lands while the row still has the generation this
+  // instance loaded, so an older instance (autosave, shutdown save during a deploy) can never write back
+  await pool.query('ALTER TABLE siderarium_world ADD COLUMN IF NOT EXISTS gen BIGINT NOT NULL DEFAULT 0');
+  let gen = 0;
+  const st: Storage = {
     name: `postgres (${new URL(clean).hostname})`,
-    async load() { const r = await pool.query('SELECT data FROM siderarium_world WHERE id = $1', ['main']); return r.rows[0]?.data ?? null; },
+    async load() { const r = await pool.query('SELECT data, gen FROM siderarium_world WHERE id = $1', ['main']); gen = Number(r.rows[0]?.gen ?? 0); return r.rows[0]?.data ?? null; },
+    async reset(tokenId, fresh) {
+      const c = await pool.connect();
+      try {
+        await c.query('BEGIN');
+        // the main row is locked: a concurrent autosave from the running instance waits, then misses
+        const cur = await c.query('SELECT gen, md5(data::text) AS h FROM siderarium_world WHERE id = $1 FOR UPDATE', ['main']);
+        const applied = await c.query("SELECT data->>'token' AS t FROM siderarium_world WHERE id = 'meta:reset'");
+        if (applied.rows[0]?.t === tokenId) { await c.query('ROLLBACK'); return { done: false, why: '이미 적용된 초기화 토큰' }; }
+        const key = `backup-reset-${tokenId}`;
+        if (cur.rows.length) {
+          await c.query('INSERT INTO siderarium_world (id, data, updated, gen) SELECT $1, data, now(), gen FROM siderarium_world WHERE id = $2 ON CONFLICT (id) DO NOTHING', [key, 'main']);
+          const b = await c.query('SELECT md5(data::text) AS h FROM siderarium_world WHERE id = $1', [key]);
+          if (b.rows[0]?.h !== cur.rows[0].h) { await c.query('ROLLBACK'); return { done: false, why: `백업 검증 실패 (${b.rows[0]?.h} ≠ ${cur.rows[0].h})` }; }
+        }
+        const next = Number(cur.rows[0]?.gen ?? 0) + 1;
+        await c.query('INSERT INTO siderarium_world (id, data, updated, gen) VALUES ($1, $2, now(), $3) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now(), gen = EXCLUDED.gen', ['main', JSON.stringify(fresh()), next]);
+        await c.query("INSERT INTO siderarium_world (id, data, updated) VALUES ('meta:reset', $1, now()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()", [JSON.stringify({ token: tokenId, backup: key, gen: next, at: new Date().toISOString() })]);
+        await c.query('COMMIT');
+        gen = next;
+        return { done: true, backup: cur.rows.length ? key : undefined };
+      } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
+    },
     async backup(key, d) {
       await pool.query('INSERT INTO siderarium_world (id, data, updated) VALUES ($1, $2, now()) ON CONFLICT (id) DO NOTHING', [key, JSON.stringify(d)]);
       const r = await pool.query('SELECT data FROM siderarium_world WHERE id = $1', [key]); return r.rows[0]?.data ?? null;
     },
-    async save(d) { await pool.query('INSERT INTO siderarium_world (id, data, updated) VALUES ($1, $2, now()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()', ['main', JSON.stringify(d)]); },
+    async save(d) {
+      if (st.fenced) return;
+      const r = await pool.query('UPDATE siderarium_world SET data = $2, updated = now() WHERE id = $1 AND gen = $3', ['main', JSON.stringify(d), gen]);
+      if (r.rowCount) return;
+      const ins = await pool.query('INSERT INTO siderarium_world (id, data, updated, gen) VALUES ($1, $2, now(), $3) ON CONFLICT (id) DO NOTHING', ['main', JSON.stringify(d), gen]);
+      if (ins.rowCount) return;
+      st.fenced = true;
+      console.error(`[siderarium] !!! 저장 거부: 더 새로운 월드 세대가 있습니다 (이 인스턴스 gen=${gen}). 이 인스턴스는 더 이상 저장하지 않습니다.`);
+    },
   };
+  return st;
 }
 
 const MIME: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.ico': 'image/x-icon' };
@@ -90,6 +142,17 @@ async function main() {
     }
   }
   if (storage.name.startsWith('file')) saved = await storage.load();
+  // operator-requested world reset (env WORLD_RESET=<token>): applied once per token
+  const resetTok = (process.env.WORLD_RESET ?? '').trim();
+  if (resetTok) {
+    if (!/^[A-Za-z0-9_-]{4,40}$/.test(resetTok)) { console.error('[siderarium] !!! WORLD_RESET 토큰 형식 오류 (영숫자·_- 4~40자)'); process.exit(1); }
+    const seed = Number(process.env.WORLD_SEED ?? 1);
+    const r = await storage.reset(resetTok, () => ({ v: 1, world: JSON.parse(WorldSim.create(seed).serialize()), auth: {} }));
+    if (r.done) {
+      console.log(`[siderarium] WORLD RESET applied (token ${resetTok}) — previous world kept as ${r.backup ?? '(없음)'}`);
+      saved = await storage.load();
+    } else console.log(`[siderarium] WORLD_RESET ${resetTok}: ${r.why} — 초기화하지 않음`);
+  }
   // safe migration: an older save is copied to its own backup key (read back and compared) before the
   // new code touches it; the migrated world must keep every player, credit, ship, station and stored good
   let before: ReturnType<typeof census> | null = null;
@@ -161,7 +224,8 @@ async function main() {
 
   const shutdown = async () => {
     console.log('[siderarium] saving before exit…');
-    try { await storage.save(game.snapshotFile()); } catch (e) { console.error(e); }
+    if (storage.fenced) console.log('[siderarium] 새 월드 세대가 있어 종료 저장을 건너뜁니다');
+    else try { await storage.save(game.snapshotFile()); } catch (e) { console.error(e); }
     process.exit(0);
   };
   process.on('SIGTERM', shutdown);
