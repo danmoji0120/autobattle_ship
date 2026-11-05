@@ -213,7 +213,12 @@ export function stepBuilds(st: Station, co: Company | undefined, dt: number): Sh
     if (i < 0) { b.why = '조선소 슬롯 사용 중 — 순서 대기'; continue; }
     const need = buildNeeds(b.classId, b.loadoutId, b.fit);
     const sh = shortText(store, need);
-    if (sh) { b.why = `부품 부족: ${sh}`; continue; }
+    if (sh) {
+      // say so when construction plans are taking the same goods first (they reserve as materials arrive)
+      const rivals = Object.keys(need).filter(k => qty(store, k) < need[k] && st.modules.some(m => !m.built && (m.reserved?.[k] ?? 0) > 0));
+      b.why = `부품 부족: ${sh}${rivals.length ? ` — ${rivals.map(itemName).join(', ')}을(를) 건설 계획이 먼저 확보 중` : ''}`;
+      continue;
+    }
     for (const [k, n] of Object.entries(need)) addc(store, k, -n);
     b.started = true; used.add(i); taken.set(b.id, i);
     b.why = `건조 시작 — ${FACILITIES[slots[i].kind].name}`;

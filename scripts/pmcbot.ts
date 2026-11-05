@@ -13,6 +13,7 @@ import type { Station } from '../src/world/types';
 const hours = Number(process.argv[2] ?? 12);
 const seed = Number(process.argv[3] ?? 7);
 const verbose = process.argv.includes('-v');
+const shipFirst = process.argv.includes('--ships');
 const sim = WorldSim.create(seed);
 const me = sim.addPlayer('검증 PMC');
 const st = sim.st;
@@ -32,7 +33,7 @@ cmd({ c: 'setOp', group: G('제1 채굴반')!.id, op: { k: 'mine', field: 'kestr
 cmd({ c: 'setOp', group: G('경비대')!.id, op: { k: 'escort', group: G('제1 채굴반')!.id } });
 
 // facility build order of a sensible industrial start (each needs its credits; tech-gated ones wait)
-const PLAN = ['power', 'refinery', 'warehouse', 'smelter', 'alloy_plant', 'machine_shop', 'hull_works', 'lab_basic', 'armor_plant', 'logistics', 'electronics_fab', 'yard_s', 'power', 'gas_plant', 'weapons_factory', 'lab_propulsion', 'fitting', 'engine_plant', 'reactor_plant', 'design_bureau', 'lab_industry', 'power', 'yard_s', 'warehouse'];
+const PLAN = shipFirst ? ['power', 'refinery', 'smelter', 'alloy_plant', 'hull_works', 'armor_plant', 'warehouse', 'yard_s', 'machine_shop', 'electronics_fab', 'logistics', 'lab_basic', 'weapons_factory', 'power', 'yard_s', 'fitting', 'lab_propulsion', 'engine_plant', 'reactor_plant', 'warehouse'] : ['power', 'refinery', 'warehouse', 'smelter', 'alloy_plant', 'machine_shop', 'hull_works', 'lab_basic', 'armor_plant', 'logistics', 'electronics_fab', 'yard_s', 'power', 'gas_plant', 'weapons_factory', 'lab_propulsion', 'fitting', 'engine_plant', 'reactor_plant', 'design_bureau', 'lab_industry', 'power', 'yard_s', 'warehouse'];
 const RESEARCH = ['process_control', 'station_engineering', 'research_methods', 'mining_lasers', 'fusion_reactors', 'ship_propulsion', 'frigate_design', 'refining_2', 'logistics_ai', 'modular_assembly', 'medium_hulls', 'lean_production', 'fire_control', 'composites'];
 const STOCK: [string, number][] = [['metal', 300], ['alloy', 400], ['titanium', 80], ['silicon', 120], ['machinery', 60], ['structure', 80], ['armor_plate', 30], ['electronics', 30], ['precision', 16], ['chemicals', 60], ['weapon_parts', 10], ['eq_autocannon', 4], ['eq_pd_gun', 2], ['engine', 2], ['reactor', 2], ['sensor', 2]];
 const RAW_BUY = ['titanium_ore', 'silicate', 'crystal', 'gas', 'chemicals'];
@@ -88,7 +89,8 @@ function policy() {
   // facilities
   const S = base.storage[me];
   const queued = base.modules.filter(m => !m.built).length;
-  if (queued < 2) {
+  const waitingBuild = (base.builds ?? []).some(b => !b.started);
+  if (queued < 2 && !waitingBuild) {
     const counts: Record<string, number> = {};
     for (const k of PLAN) {
       counts[k] = (counts[k] ?? 0) + 1;
@@ -123,7 +125,7 @@ function policy() {
   for (const [r, n] of Object.entries(need).sort((a, b) => itemPrice(b[0]) * b[1] - itemPrice(a[0]) * a[1])) {
     const makeable = Object.values(RECIPES).some(x => x.out[r] && built(base, x.fac) > 0 && (!x.tech || co.tech?.includes(x.tech)));
     if (makeable && !['engine', 'reactor', 'sensor'].includes(r) && r !== 'alloy') continue;
-    for (const at of ['astra', 'bastion', 'nova', 'barcaco']) { const k = marketBuy(at, r, Math.ceil(n), 12000); if (k) { bought += k * itemPrice(r); if (hauler) cmd({ c: 'setOp', group: hauler, op: { k: 'haul', from: at, to: base.id, res: built(base, 'logistics') ? '*auto' : '*all' } }); break; } }
+    for (const at of ['astra', 'bastion', 'nova', 'barcaco', 'helios']) { const k = marketBuy(at, r, Math.ceil(n), ['engine', 'reactor', 'sensor', 'eq_autocannon', 'eq_pd_gun', 'eq_torpedo'].includes(r) ? 3000 : 25000); if (k) { bought += k * itemPrice(r); if (hauler) cmd({ c: 'setOp', group: hauler, op: { k: 'haul', from: at, to: base.id, res: built(base, 'logistics') ? '*auto' : '*all' } }); break; } }
   }
   // the first own hulls
   if (yardSlots(base).length) {
@@ -149,7 +151,7 @@ for (let step = 0; st.time < hours * 3600; step++) {
     if (st.time > 10 && HULLS[s.classId] && !['miner', 'hauler', 'constructor'].includes(s.classId) && st.events.slice(-30).some(e => e.company === me && /진수/.test(e.text))) mark(`첫 자체 건조 ${s.classId}`);
   }
   if (co.tech?.length && !milestones.some(m => m[0] === '첫 연구 완료')) mark('첫 연구 완료');
-  if (st.time - lastLog >= 3600) {
+  if (st.time - lastLog >= (process.argv.includes('--fine') ? 900 : 3600)) {
     lastLog = st.time;
     const base = own();
     const sh = ships();
@@ -159,6 +161,7 @@ for (let step = 0; st.time < hours * 3600; step++) {
     produced = (base?.orders ?? []).reduce((x, o) => x + o.done, 0);
     const p = perf.slice(-7200).sort((x, y) => x - y);
     console.log(`[${(st.time / 3600).toFixed(0)}h] cr=${Math.round(co.credits).toLocaleString()} 순자산≈${Math.round(nw).toLocaleString()} 함선=${sh.length} (${[...new Set(sh.map(s => s.classId))].map(c => c + '×' + sh.filter(s => s.classId === c).length).join(' ')}) 시설=${base ? base.modules.filter(m => m.built).length + '/' + base.modules.length : '-'} 기술=${co.tech?.length ?? 0} 연구중=${co.research?.length ?? 0} 주문완료=${produced} 건조대기=${base?.builds?.length ?? 0} 평판=${co.rep} 격침=${co.stats.kills} 손실=${co.stats.lost} | 음수=${neg} NaN=${nan} | tick p50=${p[p.length >> 1]?.toFixed(2)}ms p99=${p[Math.floor(p.length * 0.99)]?.toFixed(2)}ms 세이브=${(sim.serialize().length / 1024).toFixed(0)}KB heap=${(process.memoryUsage().heapUsed / 1048576).toFixed(0)}MB`);
+    if (base?.builds?.length) console.log('   builds', base.builds.map(b => `${b.classId}:${b.started ? Math.round((1 - b.left / b.total) * 100) + '%' : ''} ${b.why}`).join(' | '), '| hauler', hauler ? `${st.groups[hauler]?.status} ${JSON.stringify(st.groups[hauler]?.op)}` : '-');
     if (base && verbose) console.log('   storage', Object.entries(base.storage[me]).filter(([, v]) => v >= 1).map(([k, v]) => `${k}:${Math.round(v)}`).join(' '));
     if (base && verbose) console.log('   orders', (base.orders ?? []).map(o => `${o.recipe}:${o.done}${o.why ? '(' + o.why + ')' : ''}`).join(' '));
   }

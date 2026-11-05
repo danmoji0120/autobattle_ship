@@ -7,7 +7,7 @@ import { influenceSec } from './factions';
 interface SecWorld { systems: Record<string, StarSystem>; stations: Record<string, Station>; lairs: Record<string, Lair> }
 
 /** effective system security: base minus recent pirate activity, bounded so a capital never collapses */
-export const effSec = (sys: StarSystem) => sys.security - Math.min(sys.heat * 0.3, 4 + (100 - sys.security) * 0.35) + influenceSec(sys);
+export const effSec = (sys: StarSystem) => Math.max(0, Math.min(100, sys.security - Math.min(sys.heat * 0.3, 4 + (100 - sys.security) * 0.35) + influenceSec(sys)));
 
 const hasDefense = (s: Station) => s.modules.some(m => m.kind === 'defense' && m.built);
 
