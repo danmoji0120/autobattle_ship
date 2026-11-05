@@ -107,6 +107,7 @@ export class BattleView {
 
   dispose() {
     this.renderer.dispose();
+    this.renderer.forceContextLoss();
     this.scene.traverse(o => { if ((o as THREE.Mesh).geometry) (o as THREE.Mesh).geometry.dispose?.(); });
   }
 

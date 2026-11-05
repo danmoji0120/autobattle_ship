@@ -1,14 +1,82 @@
+import '@fontsource/noto-sans-kr/400.css';
+import '@fontsource/noto-sans-kr/700.css';
+import '@fontsource/noto-sans-kr/900.css';
+import '@fontsource/rajdhani/500.css';
+import '@fontsource/rajdhani/700.css';
+import './ui/style.css';
 import { BattleSession } from './game/session';
-import { defaultPlayerFleet } from './sim/fleet';
+import { BattleHUD } from './ui/battleHud';
+import { SetupScreen, loadFleet, loadScenarioId } from './ui/setup';
 import { getScenario } from './sim/data/scenarios';
+import type { BattleSetup } from './sim/world';
+import type { OrderRecord } from './sim/types';
+import { sfx } from './audio/sfx';
 
-const canvas = document.getElementById('view') as HTMLCanvasElement;
-Object.assign(document.body.style, { margin: '0', background: '#000', overflow: 'hidden' });
-Object.assign(canvas.style, { width: '100vw', height: '100vh', display: 'block' });
+const getCanvas = () => document.getElementById('view') as HTMLCanvasElement;
+const app = document.getElementById('app')!;
 const params = new URLSearchParams(location.search);
-const scen = params.get('scenario') ?? 'kestrel';
-const s = new BattleSession(canvas, { seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [defaultPlayerFleet(), getScenario(scen).enemy] }, null);
-(window as any).session = s;
-if (params.get('cam') === 'director') s.view.rig.setMode('director');
-addEventListener('resize', () => s.view.resize(innerWidth, innerHeight));
-if (!params.has('manual')) s.start();
+
+let session: BattleSession | null = null;
+let hud: BattleHUD | null = null;
+let setup: SetupScreen | null = null;
+let lastSetup: BattleSetup | null = null;
+let lastOrders: OrderRecord[] = [];
+
+function unlockAudio() { sfx.init(); }
+addEventListener('pointerdown', unlockAudio, { capture: true });
+addEventListener('keydown', unlockAudio, { capture: true });
+
+function showSetup() {
+  teardownBattle();
+  getCanvas().style.visibility = 'hidden';
+  setup = new SetupScreen(app, r => {
+    setup?.dispose(); setup = null;
+    startBattle({ seed: (Date.now() & 0x7fffffff) >>> 0, scenarioId: r.scenarioId, fleets: [r.fleet, getScenario(r.scenarioId).enemy] });
+  });
+}
+
+function teardownBattle() {
+  hud?.dispose(); hud = null;
+  if (session) { sfx.stopMusic(); session.dispose(); session = null; }
+}
+
+function startBattle(bs: BattleSetup, replay: OrderRecord[] | null = null) {
+  teardownBattle();
+  lastSetup = bs;
+  const old = getCanvas();
+  // a fresh canvas per battle avoids stale GL state
+  const fresh = old.cloneNode() as HTMLCanvasElement;
+  fresh.style.visibility = 'visible';
+  old.replaceWith(fresh);
+  (window as any).__canvas = fresh;
+  const s = new BattleSession(fresh, bs, sfx);
+  session = s;
+  if (replay) { s.world.scheduleReplay(replay); s.view.rig.setMode('director'); }
+  hud = new BattleHUD(app, s, {
+    replay: !!replay,
+    onExit: () => { lastOrders = s.world.orderLog.slice(); showSetup(); },
+    onRestart: () => startBattle({ ...bs, seed: bs.seed }),
+    onReplay: () => { const orders = replay ?? s.world.orderLog.slice(); lastOrders = orders; startBattle(bs, orders); },
+  });
+  if (replay) hud.select(s.world.roots[0]);
+  const innerFrame = s.onFrame;
+  s.onFrame = dt => {
+    innerFrame?.(dt);
+    sfx.listener = s.view.rig.camera.position;
+    sfx.updateMusic(Math.min(1, s.world.intensity / 25));
+  };
+  sfx.startMusic();
+  (window as any).session = s;
+  (window as any).hud = hud;
+  if (params.get('cam') === 'director') s.view.rig.setMode('director');
+  if (!params.has('manual')) s.start();
+}
+
+// expose for automated play-testing
+(window as any).fleetcmd = { startBattle, showSetup, get session() { return session; }, get lastOrders() { return lastOrders; } };
+
+
+if (params.has('auto')) {
+  const scen = params.get('scenario') ?? loadScenarioId();
+  startBattle({ seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [loadFleet(), getScenario(scen).enemy] });
+} else showSetup();

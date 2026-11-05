@@ -57,7 +57,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
   },
   pd_gun: {
     id: 'pd_gun', name: '근접 방어 기관포', kind: 'pd',
-    damage: 6, pen: 8, range: 320, speed: 0, reload: 0.1, salvo: 1, salvoGap: 0,
+    damage: 4, pen: 8, range: 320, speed: 0, reload: 0.1, salvo: 1, salvoGap: 0,
     spread: 0, turnSpeed: 400, caliber: 0.4, pdChance: 0.05, sound: 'pd',
     desc: '미사일과 어뢰를 요격한다. 접근한 초계함도 긁는다.',
   },

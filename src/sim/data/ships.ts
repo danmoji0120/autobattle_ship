@@ -139,7 +139,7 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
   },
   corvette: {
     id: 'corvette', name: '스틸레토급', enemyName: '바이퍼급', type: '고속 초계함', role: 'raider',
-    length: 14, radius: 2.4, hp: 820, armor: { front: 10, side: 8, rear: 6 },
+    length: 14, radius: 2.4, hp: 1000, armor: { front: 10, side: 8, rear: 6 },
     maxSpeed: 118, accel: 42, turnRate: 80, lateral: 0.2, cost: 45,
     desc: '빠르고 연약한 사냥꾼. 측후방을 파고들어 어뢰를 꽂는다.',
     loadouts: [
