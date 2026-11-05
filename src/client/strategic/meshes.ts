@@ -123,7 +123,7 @@ function moduleMesh(kind: string): THREE.Group {
   const m = mats();
   const g = new THREE.Group();
   const add = (geo: THREE.BufferGeometry, mat: THREE.Material) => { g.add(mesh(geo, mat)); };
-  const look = LOOK[kind];
+  const look = Object.hasOwn(LOOK, kind) ? LOOK[kind] : undefined;
   if (look && look[0] !== kind) { const inner = moduleMesh(look[0]); inner.scale.setScalar(look[1]); g.add(inner); return g; }
   switch (kind) {
     case 'factory':

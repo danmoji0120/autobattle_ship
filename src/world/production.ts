@@ -148,3 +148,75 @@ export function stationNeeds(st: Station): Record<string, number> {
 }
 
 export { hasAll, ITEMS };
+
+// ───────────────────────────────────────────────────────── shipyards
+
+import type { ShipBuild } from './types';
+import { HULLS, loadoutEquipment, EQUIPMENT } from './industry';
+import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
+
+export const YARD_NAME = ['', '소형', '중형', '대형', '초대형'];
+/** build slots at a station: one per built yard, with its size class */
+export function yardSlots(st: Station): { kind: string; size: number }[] {
+  return st.modules.filter(m => m.built && FACILITIES[m.kind]?.yard).map(m => ({ kind: m.kind, size: FACILITIES[m.kind].yard! })).sort((a, b) => a.size - b.size);
+}
+/** everything a hull build consumes when it starts: hull parts + the loadout's weapons + fitted modules */
+export function buildNeeds(classId: string, loadoutId: string, fit: string[]): Record<string, number> {
+  const need: Record<string, number> = { ...(HULLS[classId]?.parts ?? {}) };
+  for (const [k, n] of Object.entries(loadoutEquipment(getLoadout(classId, loadoutId).mounts))) need[k] = (need[k] ?? 0) + n;
+  for (const k of fit) need[k] = (need[k] ?? 0) + 1;
+  return need;
+}
+export const fitUnits = (fit: string[]) => fit.reduce((a, k) => a + (EQUIPMENT[k]?.size ?? 1), 0);
+export const hullName = (classId: string) => { const c = SHIP_CLASSES[classId]; return c ? `${c.name} ${c.type}` : classId; };
+
+/** which slot each started build occupies (smallest that fits, queue order) */
+function assignSlots(st: Station): Map<string, number> {
+  const slots = yardSlots(st);
+  const used = new Set<number>();
+  const out = new Map<string, number>();
+  for (const b of st.builds ?? []) {
+    if (!b.started) continue;
+    const need = HULLS[b.classId]?.yard ?? 1;
+    const i = slots.findIndex((s, j) => !used.has(j) && s.size >= need);
+    if (i >= 0) { used.add(i); out.set(b.id, i); }
+  }
+  return out;
+}
+
+export function buildSpeed(st: Station, co: Company | undefined) { return stationPower(st).factor * techFx(co?.tech).buildMul; }
+
+/** advance a station's ship construction; returns builds that just completed (removed from the queue) */
+export function stepBuilds(st: Station, co: Company | undefined, dt: number): ShipBuild[] {
+  const q = st.builds;
+  if (!q?.length) return [];
+  const store = (st.storage[st.owner] ??= { ore: 0, alloy: 0, crystal: 0 });
+  const slots = yardSlots(st);
+  const taken = assignSlots(st);
+  const used = new Set(taken.values());
+  const speed = buildSpeed(st, co);
+  const done: ShipBuild[] = [];
+  for (const b of [...q]) {
+    const h = HULLS[b.classId];
+    if (b.started) {
+      if (b.paused) { b.why = '일시 정지 (슬롯 유지)'; continue; }
+      if (!taken.has(b.id)) { b.why = '조선소 슬롯 없음'; continue; }
+      b.left -= dt * speed;
+      b.why = `건조 중 — ${FACILITIES[slots[taken.get(b.id)!].kind].name}`;
+      if (b.left <= 0) { q.splice(q.indexOf(b), 1); done.push(b); }
+      continue;
+    }
+    if (b.paused) { b.why = '일시 정지'; continue; }
+    if (h.tech && !co?.tech?.includes(h.tech)) { b.why = '설계 연구 필요'; continue; }
+    if (!slots.some(s => s.size >= h.yard)) { b.why = `${YARD_NAME[h.yard]} 이상 조선소 필요`; continue; }
+    const i = slots.findIndex((s, j) => !used.has(j) && s.size >= h.yard);
+    if (i < 0) { b.why = '조선소 슬롯 사용 중 — 순서 대기'; continue; }
+    const need = buildNeeds(b.classId, b.loadoutId, b.fit);
+    const sh = shortText(store, need);
+    if (sh) { b.why = `부품 부족: ${sh}`; continue; }
+    for (const [k, n] of Object.entries(need)) addc(store, k, -n);
+    b.started = true; used.add(i); taken.set(b.id, i);
+    b.why = `건조 시작 — ${FACILITIES[slots[i].kind].name}`;
+  }
+  return done;
+}

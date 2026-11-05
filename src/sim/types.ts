@@ -53,6 +53,8 @@ export interface ShipAI {
 }
 
 export interface Ship {
+  /** fitted ECM / evasive drives: widens incoming shell dispersion */
+  evasion?: number;
   id: number;
   team: Team;
   name: string;

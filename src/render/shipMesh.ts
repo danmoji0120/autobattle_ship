@@ -124,6 +124,8 @@ function cyl(rt: number, rb: number, h: number, x: number, y: number, z: number,
 
 interface Parts { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[] }
 
+const MESH_ALIAS: Record<string, [string, number]> = { frigate: ['destroyer', 1.0], light_cruiser: ['cruiser', 1.0], battlecruiser: ['battleship', 0.92], dreadnought: ['battleship', 1.6] };
+
 function design(cls: ShipClassDef, team: 0 | 1): { profile: Profile; W: number; build: (p: Parts, L: number) => void } {
   const L = cls.length;
   const enemy = team === 1;
@@ -343,6 +345,22 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
       add(cyl(0.16, 0.16, 1.8, 0, 0, 0.9, 'z', 6), m.gun, barrels);
       break;
     }
+    case 'pulse_laser': {
+      add(cyl(1.3, 1.5, 2, 0, -0.9, 0), m.dark);
+      add(new THREE.SphereGeometry(1.4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), m.hull);
+      barrels.position.set(0, 0.5, 0.8);
+      add(cyl(0.22, 0.3, 4, 0, 0, 2, 'z', 8), m.gun, barrels);
+      add(cyl(0.34, 0.34, 0.3, 0, 0, 3.9, 'z', 8), m.accent, barrels);
+      break;
+    }
+    case 'particle_lance': {
+      add(cyl(2.6, 3.0, 3, 0, -1.6, 0), m.dark);
+      add(box(4.8, 2.4, 7, 0, 0.5, 0), m.hull);
+      barrels.position.set(0, 0.5, 2.5);
+      add(cyl(0.9, 1.1, 18, 0, 0, 9, 'z', 12), m.gun, barrels);
+      for (let k = 0; k < 5; k++) add(cyl(1.4, 1.4, 0.4, 0, 0, 3 + k * 3, 'z', 12), m.accent, barrels);
+      break;
+    }
     case 'missile_rack': {
       rotates = false; barrels = null;
       add(box(2.2, 1, 3.2, 0, 0, 0), m.dark);
@@ -397,9 +415,17 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
   const key = `${cls.id}:${team}`;
   let cached = geoCache.get(key);
   if (!cached) {
-    const d = design(cls, team);
+    // new hull classes reuse a base silhouette at their own length, widened/narrowed
+    const al = Object.hasOwn(MESH_ALIAS, cls.id) ? MESH_ALIAS[cls.id] : undefined;
+    const d = design(al ? { ...cls, id: al[0] } : cls, team);
     const parts: Parts = { hull: [], dark: [], trim: [], accent: [], light: [], engines: [] };
     d.build(parts, cls.length);
+    if (al) {
+      const k = al[1];
+      for (const g of [...parts.hull, ...parts.dark, ...parts.trim, ...parts.accent]) g.scale(k, k, 1);
+      for (const e of parts.engines) { e.x *= k; e.y *= k; e.r *= k; }
+      for (const l of parts.light) { l.x *= k; l.y *= k; }
+    }
     cached = { hull: parts.hull, dark: parts.dark, trim: parts.trim, accent: parts.accent, parts };
     geoCache.set(key, cached);
   }

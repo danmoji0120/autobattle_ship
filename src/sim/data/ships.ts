@@ -80,7 +80,7 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
     ],
   },
   cruiser: {
-    id: 'cruiser', name: '세이버급', enemyName: '레이저백급', type: '순양함', role: 'line',
+    id: 'cruiser', name: '세이버급', enemyName: '레이저백급', type: '중순양함', role: 'line',
     length: 38, radius: 5.5, hp: 5000, armor: { front: 40, side: 30, rear: 18 },
     maxSpeed: 46, accel: 10, turnRate: 17, lateral: 0.4, cost: 140,
     desc: '다재다능한 주력함. 미사일 일제사격으로 적 방공망을 시험한다.',
@@ -113,7 +113,7 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
     ],
   },
   destroyer: {
-    id: 'destroyer', name: '아이기스급', enemyName: '바실리스크급', type: '호위구축함', role: 'escort',
+    id: 'destroyer', name: '아이기스급', enemyName: '바실리스크급', type: '구축함', role: 'escort',
     length: 24, radius: 3.8, hp: 2400, armor: { front: 24, side: 18, rear: 12 },
     maxSpeed: 64, accel: 16, turnRate: 32, lateral: 0.5, cost: 80,
     desc: '함대의 방패. 방공포로 미사일과 어뢰를 걷어낸다.',
@@ -138,7 +138,7 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
     ],
   },
   corvette: {
-    id: 'corvette', name: '스틸레토급', enemyName: '바이퍼급', type: '고속 초계함', role: 'raider',
+    id: 'corvette', name: '스틸레토급', enemyName: '바이퍼급', type: '초계함', role: 'raider',
     length: 14, radius: 2.4, hp: 1000, armor: { front: 10, side: 8, rear: 6 },
     maxSpeed: 118, accel: 42, turnRate: 80, lateral: 0.2, cost: 45,
     desc: '빠르고 연약한 사냥꾼. 측후방을 파고들어 어뢰를 꽂는다.',
@@ -162,6 +162,61 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
     ],
   },
 };
+
+// Hull classes that PMCs design and build themselves (persistent world). Mount positions are in the
+// hull's own scale; the 3D model reuses a base silhouette stretched to the hull's size.
+Object.assign(SHIP_CLASSES, {
+  frigate: {
+    id: 'frigate', name: '랜서급', enemyName: '자칼급', type: '호위함', role: 'escort',
+    length: 20, radius: 3.2, hp: 1700, armor: { front: 18, side: 14, rear: 9 },
+    maxSpeed: 84, accel: 24, turnRate: 48, lateral: 0.42, cost: 60,
+    desc: '초계함보다 단단하고 구축함보다 빠른 호위함. 방공과 경함정 사냥을 겸한다.',
+    loadouts: [
+      { id: 'patrol', name: '초계', desc: '기관포 2 + 어뢰 1 + 방공포 2.', mounts: [m('autocannon', [1.6, 1.4, 5], 0, 60), m('autocannon', [-1.6, 1.4, 5], 0, 60), m('torpedo', [0, 0.8, 8], 0, 25), m('pd_gun', [1.8, 2, -3], 90, 175), m('pd_gun', [-1.8, 2, -3], -90, 175)] },
+      { id: 'aa', name: '방공 호위', desc: '방공포 4 + 기관포 2. 미사일 요격.', mounts: [m('autocannon', [0, 2.2, 6], 0, 120), m('autocannon', [0, 2.2, -5], 180, 120), m('pd_gun', [1.8, 2, 3], 90, 175), m('pd_gun', [-1.8, 2, 3], -90, 175), m('pd_gun', [1.8, 2, -3], 90, 175), m('pd_gun', [-1.8, 2, -3], -90, 175)] },
+      { id: 'missile', name: '미사일 호위', desc: 'VLS 1기 + 기관포 + 방공포 2.', costDelta: 8, mounts: [m('missile_rack', [0, 1.8, 0], 0, 180), m('autocannon', [0, 2.2, 6], 0, 120), m('pd_gun', [1.8, 2, -4], 90, 175), m('pd_gun', [-1.8, 2, -4], -90, 175)] },
+    ],
+  },
+  light_cruiser: {
+    id: 'light_cruiser', name: '팔코급', enemyName: '하운드급', type: '경순양함', role: 'line',
+    length: 32, radius: 4.8, hp: 3600, armor: { front: 32, side: 24, rear: 14 },
+    maxSpeed: 54, accel: 13, turnRate: 22, lateral: 0.45, cost: 105,
+    desc: '빠른 순양함. 구축함 전대를 이끌거나 측면을 돈다. 중순양함보다 얇다.',
+    loadouts: [
+      { id: 'gun', name: '포격', desc: '부포 3 + 방공포 3.', mounts: [m('medium_gun', [0, 3.2, 8], 0, 150), m('medium_gun', [0, 4.2, 3], 0, 150), m('medium_gun', [0, 3.2, -8], 180, 150), m('pd_gun', [3, 2.6, 10], 90, 175), m('pd_gun', [-3, 2.6, 10], -90, 175), m('pd_gun', [0, 4.4, -12], 180, 175)] },
+      { id: 'missile', name: '미사일', desc: 'VLS 2 + 부포 1 + 방공포 2.', costDelta: 10, mounts: [m('medium_gun', [0, 3.2, 8], 0, 150), m('missile_rack', [2.8, 2.6, 0], 0, 180), m('missile_rack', [-2.8, 2.6, 0], 0, 180), m('pd_gun', [3, 2.6, 10], 90, 175), m('pd_gun', [-3, 2.6, 10], -90, 175)] },
+      { id: 'laser', name: '레이저', desc: '펄스 레이저 3 + 방공포 2. 즉발 고정밀, 장갑 관통은 낮다.', costDelta: 15, mounts: [m('pulse_laser', [0, 3.2, 8], 0, 150), m('pulse_laser', [0, 4.2, 3], 0, 150), m('pulse_laser', [0, 3.2, -8], 180, 150), m('pd_gun', [3, 2.6, 10], 90, 175), m('pd_gun', [-3, 2.6, 10], -90, 175)] },
+    ],
+  },
+  battlecruiser: {
+    id: 'battlecruiser', name: '발키리급', enemyName: '레비아탄급', type: '순양전함', role: 'line',
+    length: 54, radius: 7, hp: 9000, armor: { front: 54, side: 38, rear: 22 },
+    maxSpeed: 42, accel: 9, turnRate: 12, lateral: 0.38, cost: 220,
+    desc: '전함급 주포와 순양함의 속도. 대신 장갑이 얇아 정면 난타전은 피해야 한다.',
+    loadouts: [
+      { id: 'heavy', name: '주포', desc: '주포 2 + 부포 4 + 방공 4.', mounts: [m('heavy_cannon', [0, 4.6, 14], 0, 150), m('heavy_cannon', [0, 6.4, 6], 0, 150), m('medium_gun', [5.2, 3, 8], 90, 100), m('medium_gun', [-5.2, 3, 8], -90, 100), m('medium_gun', [5.2, 3, -6], 90, 100), m('medium_gun', [-5.2, 3, -6], -90, 100), m('pd_gun', [4.4, 3.6, 19], 90, 175), m('pd_gun', [-4.4, 3.6, 19], -90, 175), m('pd_gun', [4.6, 3.6, -20], 90, 175), m('pd_gun', [-4.6, 3.6, -20], -90, 175)] },
+      { id: 'rail', name: '레일건', desc: '레일 캐논 2 + 부포 2 + 방공 4.', costDelta: 30, mounts: [m('rail_cannon', [0, 4.6, 14], 0, 70), m('rail_cannon', [0, 6.4, 6], 0, 70), m('medium_gun', [5.2, 3, 0], 90, 100), m('medium_gun', [-5.2, 3, 0], -90, 100), m('pd_gun', [4.4, 3.6, 19], 90, 175), m('pd_gun', [-4.4, 3.6, 19], -90, 175), m('pd_gun', [4.6, 3.6, -20], 90, 175), m('pd_gun', [-4.6, 3.6, -20], -90, 175)] },
+      { id: 'lance', name: '입자 창', desc: '입자 창 2 + 부포 2 + 방공 4. 초장거리 일격.', costDelta: 45, mounts: [m('particle_lance', [0, 4.6, 14], 0, 60), m('particle_lance', [0, 6.4, 6], 0, 60), m('medium_gun', [5.2, 3, 0], 90, 100), m('medium_gun', [-5.2, 3, 0], -90, 100), m('pd_gun', [4.4, 3.6, 19], 90, 175), m('pd_gun', [-4.4, 3.6, 19], -90, 175), m('pd_gun', [4.6, 3.6, -20], 90, 175), m('pd_gun', [-4.6, 3.6, -20], -90, 175)] },
+    ],
+  },
+  dreadnought: {
+    id: 'dreadnought', name: '임페라토르급', enemyName: '아포칼립스급', type: '초대형 전함', role: 'line',
+    length: 92, radius: 12, hp: 26000, armor: { front: 90, side: 66, rear: 40 },
+    maxSpeed: 24, accel: 4, turnRate: 6, lateral: 0.3, cost: 600,
+    desc: '움직이는 요새. 대형 조선소로도 부족해 전용 건조 독이 필요하다.',
+    loadouts: [
+      { id: 'std', name: '전열', desc: '주포 5 + 부포 6 + VLS 2 + 방공 8.', mounts: [
+        m('heavy_cannon', [0, 7.5, 30], 0, 150), m('heavy_cannon', [0, 10.5, 16], 0, 150), m('heavy_cannon', [0, 12, 2], 0, 150), m('heavy_cannon', [0, 7.5, -26], 180, 150), m('heavy_cannon', [0, 10.5, -14], 180, 150),
+        m('medium_gun', [9, 5, 20], 90, 100), m('medium_gun', [-9, 5, 20], -90, 100), m('medium_gun', [9, 5, 0], 90, 100), m('medium_gun', [-9, 5, 0], -90, 100), m('medium_gun', [9, 5, -18], 90, 100), m('medium_gun', [-9, 5, -18], -90, 100),
+        m('missile_rack', [5, 6, 8], 0, 180), m('missile_rack', [-5, 6, 8], 0, 180),
+        m('pd_gun', [7, 6, 36], 90, 175), m('pd_gun', [-7, 6, 36], -90, 175), m('pd_gun', [8, 6, 10], 90, 175), m('pd_gun', [-8, 6, 10], -90, 175), m('pd_gun', [8, 6, -10], 90, 175), m('pd_gun', [-8, 6, -10], -90, 175), m('pd_gun', [7.5, 6, -36], 90, 175), m('pd_gun', [-7.5, 6, -36], -90, 175)] },
+      { id: 'lance', name: '입자 창 전열', desc: '입자 창 3 + 주포 2 + 부포 4 + 방공 8.', costDelta: 80, mounts: [
+        m('particle_lance', [0, 7.5, 30], 0, 60), m('particle_lance', [0, 10.5, 16], 0, 60), m('particle_lance', [0, 12, 2], 0, 60), m('heavy_cannon', [0, 7.5, -26], 180, 150), m('heavy_cannon', [0, 10.5, -14], 180, 150),
+        m('medium_gun', [9, 5, 20], 90, 100), m('medium_gun', [-9, 5, 20], -90, 100), m('medium_gun', [9, 5, -18], 90, 100), m('medium_gun', [-9, 5, -18], -90, 100),
+        m('pd_gun', [7, 6, 36], 90, 175), m('pd_gun', [-7, 6, 36], -90, 175), m('pd_gun', [8, 6, 10], 90, 175), m('pd_gun', [-8, 6, 10], -90, 175), m('pd_gun', [8, 6, -10], 90, 175), m('pd_gun', [-8, 6, -10], -90, 175), m('pd_gun', [7.5, 6, -36], 90, 175), m('pd_gun', [-7.5, 6, -36], -90, 175)] },
+    ],
+  },
+} as Record<string, ShipClassDef>);
 
 // Civilian / structural classes used by the persistent world (they can still end up in battles).
 Object.assign(SHIP_CLASSES, {

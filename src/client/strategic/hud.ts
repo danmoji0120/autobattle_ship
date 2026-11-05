@@ -13,7 +13,7 @@ import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, matsOf, type Mat } from '../../world/construction';
-import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS } from './industryUi';
+import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml } from './industryUi';
 import { TECHS, ITEMS } from '../../world/industry';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 
@@ -953,7 +953,7 @@ export class PmcHud {
     const s = this.st.stations[this.modalStation!];
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
-    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
+    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
@@ -968,7 +968,7 @@ export class PmcHud {
     let body = '';
     switch (this.modalTab) {
       case 'market': body = this.marketHtml(s); break;
-      case 'yard': body = this.yardHtml(s); break;
+      case 'yard': body = own ? yardOwnHtml(this.st, s, this.me, this.ind, this.myGroups()) : this.yardHtml(s); break;
       case 'dock': body = this.dockHtml(s); break;
       case 'recruit': body = this.recruitHtml(s); break;
       case 'contracts': body = this.contractsHtml(s); break;
@@ -1008,6 +1008,21 @@ export class PmcHud {
       const n = Number(m.querySelector<HTMLInputElement>('[data-pn]')?.value ?? 1);
       if (await this.cmd({ c: 'prodOrder', station: s.id, recipe: b.dataset.porder!, mode, n })) { sfx.play('confirm', null, 0.3); this.toast('생산 주문 등록', 'info'); }
     });
+    // shipyard + fitting
+    m.querySelectorAll<HTMLElement>('[data-hull]').forEach(b => b.onclick = () => { ui.hull = b.dataset.hull!; ui.fit = []; (ui as any).lo = undefined; this.renderModal(true); });
+    const hlo = m.querySelector<HTMLSelectElement>('[data-hlo]'); if (hlo) hlo.onchange = () => { (ui as any).lo = hlo.value; this.renderModal(true); };
+    m.querySelectorAll<HTMLButtonElement>('[data-hfit]').forEach(b => b.onclick = () => { const k = b.dataset.hfit!; const i = ui.fit.indexOf(k); if (i >= 0) ui.fit.splice(i, 1); else ui.fit.push(k); this.renderModal(true); });
+    m.querySelectorAll<HTMLButtonElement>('[data-hbuild]').forEach(b => b.onclick = async () => {
+      const grp = m.querySelector<HTMLSelectElement>('[data-hgrp]')?.value || undefined;
+      if (await this.cmd({ c: 'buildShip', station: s.id, classId: b.dataset.hbuild!, loadoutId: (ui as any).lo ?? SHIP_CLASSES[b.dataset.hbuild!].loadouts[0].id, fit: [...ui.fit], group: grp })) { sfx.play('confirm', null, 0.3); this.toast('건조 등록', 'good'); }
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-bop]').forEach(b => b.onclick = async () => {
+      const [op, build] = b.dataset.bop!.split(':');
+      if (op === 'cancel' && !confirm('건조를 취소할까요? 기공 전이면 공임 전액 환불, 기공 후에는 남은 공정만큼만 환불되고 투입된 부품은 회수할 수 없습니다.')) return;
+      await this.cmd({ c: 'buildOp', station: s.id, build, op: op as 'pause' });
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-dofit]').forEach(b => b.onclick = () => { const [sid, k] = b.dataset.dofit!.split(':'); const sh = this.st.ships[sid]; this.cmd({ c: 'fitShip', ship: sid, fit: [...(sh?.fit ?? []), k] }); });
+    m.querySelectorAll<HTMLButtonElement>('[data-unfit]').forEach(b => b.onclick = () => { const [sid, i] = b.dataset.unfit!.split(':'); const f = [...(this.st.ships[sid]?.fit ?? [])]; f.splice(Number(i), 1); this.cmd({ c: 'fitShip', ship: sid, fit: f }); });
     m.querySelectorAll<HTMLButtonElement>('[data-delist]').forEach(b => b.onclick = () => this.cmd({ c: 'delist', station: s.id, listing: b.dataset.delist! }));
     m.querySelectorAll<HTMLButtonElement>('[data-buyl]').forEach(b => b.onclick = () => { const [l, n] = b.dataset.buyl!.split(':'); this.cmd({ c: 'buyListing', station: s.id, listing: l, qty: Number(n) }); });
     const lb = m.querySelector<HTMLButtonElement>('[data-list]');
@@ -1078,13 +1093,15 @@ export class PmcHud {
     const own = s.owner === this.me;
     const canRepair = s.services.repair || (own && s.modules.some(m => m.kind === 'repair' && m.built));
     const canRefit = s.services.refit || (own && s.modules.some(m => (m.kind === 'fitting' || m.kind.startsWith('yard_')) && m.built));
+    const store = s.storage[this.me] ?? {};
     if (!ships.length) return `<div class="dim">이 정거장에 정박한 자사 함선이 없습니다. 편대를 선택하고 정거장을 우클릭하면 정박합니다.</div>`;
     return `<table class="gt"><tr><th>함선</th><th>선체</th><th>무장</th><th></th></tr>${ships.map(x => {
       const c = SHIP_CLASSES[x.classId];
       const cost = Math.round((1 - x.hp) * ECON[x.classId].price * 0.3);
       return `<tr><td><b>${esc(x.name)}</b> <span class="dim">${c.type}</span></td><td><span style="color:${hpCol(x.hp)}">${Math.round(x.hp * 100)}%</span></td>
-        <td>${canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (개조 ${fmt(ECON[x.classId].price * 0.15)} cr)</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
-        <td>${x.hp < 0.999 && canRepair ? `<button class="btn" data-repair="${x.id}">수리 ${fmt(cost)} cr</button>` : ''}</td></tr>`;
+        <td>${canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (${own ? '창고의 무장 장비로 교체' : `개조 ${fmt(ECON[x.classId].price * 0.15)} cr`})</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
+        <td>${x.hp < 0.999 && canRepair ? `<button class="btn" data-repair="${x.id}">수리 ${fmt(cost)} cr</button>` : ''}</td></tr>
+        ${canRefit ? `<tr class="fitrow"><td colspan="4">${fitHtml(this.st, x, store)}</td></tr>` : ''}`;
     }).join('')}</table>${own && s.modules.some(m => m.kind === 'repair' && m.built) ? '<div class="dim small">정비소: 이곳에 정박한 자사 함선은 무료로 천천히 수리됩니다.</div>' : ''}`;
   }
 

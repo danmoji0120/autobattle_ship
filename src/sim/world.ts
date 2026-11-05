@@ -3,7 +3,7 @@ import { Rng, hashString } from './rng';
 import { SHIP_CLASSES, getLoadout, shipCost, SHIP_NAMES } from './data/ships';
 import { WEAPONS, type WeaponDef } from './data/weapons';
 import { getCommander, ACTING_CAPTAIN, type CommanderDef } from './data/commanders';
-import type { FleetSpec, GroupSpec } from './fleet';
+import type { FleetSpec, GroupSpec, ShipFx } from './fleet';
 import type { Group, Ship, Munition, Mount, Order, SimEvent, RadioMsg, Highlight, Outcome, OrderRecord, Team } from './types';
 import { line } from './ai/lines';
 import { updateAI, orderKey, groupRoleOf } from './ai/commander';
@@ -93,7 +93,7 @@ export class World {
       this.groups.push(g); this.groupById.set(g.id, g);
       if (parent) parent.childIds.push(g.id);
       for (const ss of spec.ships) {
-        const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g);
+        const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g, ss.fx);
         if (ss.ref !== undefined) s.ref = ss.ref;
         if (ss.hp !== undefined) s.hp = Math.max(1, s.maxHp * Math.min(1, ss.hp));
         g.shipIds.push(s.id);
@@ -106,14 +106,16 @@ export class World {
     this.layoutTeam(team, root);
   }
 
-  private createShip(team: Team, classId: string, loadoutId: string, name: string, g: Group): Ship {
+  private createShip(team: Team, classId: string, loadoutId: string, name: string, g: Group, fx: ShipFx = {}): Ship {
     const cls = SHIP_CLASSES[classId];
     const lo = getLoadout(classId, loadoutId);
     const cmd = g.commander;
     const spec = cmd.specialty;
-    const speedMul = (lo.speedMul ?? 1) * (spec === 'maneuver' ? 1.08 : 1);
-    const armorMul = lo.armorMul ?? 1;
-    const hp = cls.hp * (lo.hpMul ?? 1);
+    const speedMul = (lo.speedMul ?? 1) * (spec === 'maneuver' ? 1.08 : 1) * (fx.speedMul ?? 1);
+    const armorMul = (lo.armorMul ?? 1) * (fx.armorMul ?? 1);
+    const hp = cls.hp * (lo.hpMul ?? 1) * (fx.hpMul ?? 1);
+    // range / reload changes are baked into per-mount weapon copies (deterministic, replay-safe)
+    const wmod = (id: string) => { const w = WEAPONS[id]; const r = w.kind === 'pd' ? 1 : fx.rangeMul ?? 1, rl = fx.reloadMul ?? 1, mg = fx.magMul ?? 1; return r === 1 && rl === 1 && (mg === 1 || w.magazine === undefined) ? w : { ...w, range: w.range * r, reload: w.reload * rl, magazine: w.magazine !== undefined ? Math.round(w.magazine * mg) : undefined }; };
     const s: Ship = {
       id: this.nextId++, team, name, cls, loadout: lo, role: cls.role, groupId: g.id,
       pos: new Vec3(), prevPos: new Vec3(), vel: new Vec3(), yaw: team === 0 ? 0 : Math.PI, pitch: 0, prevYaw: 0, prevPitch: 0, fwd: new Vec3(0, 0, 1),
@@ -125,16 +127,17 @@ export class World {
       crit: { engine: 0, fire: 0, bridge: 0 },
       ai: { moveTo: new Vec3(), faceTo: null, speedCap: cls.maxSpeed, targetId: -1, run: null, jink: this.rng.range(0, 10), lastRetarget: 0 },
       stats: { dmgDealt: 0, dmgTaken: 0, kills: 0, killValue: 0, shots: 0, hits: 0, ricochets: 0, intercepts: 0, torpHits: 0, rearHits: 0 },
-      gunnery: 0.75 + 0.4 * cmd.skill + (spec === 'gunnery' ? 0.22 : 0),
-      pdBonus: 1 + (spec === 'defense' ? 0.3 : 0) + cmd.skill * 0.15,
+      gunnery: (0.75 + 0.4 * cmd.skill + (spec === 'gunnery' ? 0.22 : 0)) * (fx.accMul ?? 1),
+      pdBonus: (1 + (spec === 'defense' ? 0.3 : 0) + cmd.skill * 0.15) * (fx.pdMul ?? 1),
+      evasion: fx.evasion ?? 0,
       value: shipCost(classId, loadoutId), recentDamage: 0, lastAttacker: -1, throttle: 0, killedBy: -1,
     };
     lo.mounts.forEach((md, i) => {
       const f = md.facing * Math.PI / 180;
       const mount: Mount = {
-        index: i, def: md, weapon: WEAPONS[md.weapon], facingLocal: new Vec3(Math.sin(f), 0, Math.cos(f)),
+        index: i, def: md, weapon: wmod(md.weapon), facingLocal: new Vec3(Math.sin(f), 0, Math.cos(f)),
         aim: new Vec3(), cooldown: this.rng.range(0, WEAPONS[md.weapon].reload), salvoLeft: 0, salvoTimer: 0,
-        targetId: -1, targetIsMunition: false, retarget: this.rng.range(0, 0.4), disabled: 0, lastFire: -99, ammo: WEAPONS[md.weapon].magazine ?? Infinity,
+        targetId: -1, targetIsMunition: false, retarget: this.rng.range(0, 0.4), disabled: 0, lastFire: -99, ammo: wmod(md.weapon).magazine ?? Infinity,
       };
       s.mounts.push(mount);
     });
@@ -659,7 +662,8 @@ export class World {
       // small, fast targets are much harder to track
       const tgt = this.shipById.get(m.targetId);
       const agility = tgt ? 1 + clamp(tgt.vel.length() / tgt.radius / 25, 0, 2.2) : 1;
-      const spread = w.spread / s.gunnery * (s.crit.bridge > 0 ? 1.6 : 1) * agility;
+      // ECM / evasive drives on the target widen the dispersion
+      const spread = w.spread / s.gunnery * (s.crit.bridge > 0 ? 1.6 : 1) * agility / (1 - Math.min(0.5, tgt?.evasion ?? 0));
       const side = new Vec3().crossVectors(dir, UP).normalize();
       const up = new Vec3().crossVectors(side, dir).normalize();
       dir.addScaled(side, this.rng.gauss() * spread).addScaled(up, this.rng.gauss() * spread).normalize();

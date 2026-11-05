@@ -6,10 +6,13 @@ import type { WorldView as WorldState } from '../../server/protocol';
 import { qty, cargoKeys, cargoSum } from '../../world/types';
 import { ITEMS, ITEM_CAT_NAME, RECIPES, FACILITIES, FAC_CATS, TECHS, EQUIPMENT, itemName, itemCat, type ItemCat, type RecipeDef } from '../../world/industry';
 import { RES_COLOR } from '../../world/data';
-import { stationPower, storageCap, facLines, facilityLoad, prodSpeed, recipeOk, stationNeeds, builtCount } from '../../world/production';
+import { stationPower, storageCap, facLines, facilityLoad, prodSpeed, recipeOk, stationNeeds, builtCount, yardSlots, buildNeeds, fitUnits, buildSpeed, YARD_NAME, hullName } from '../../world/production';
+import { HULLS } from '../../world/industry';
+import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
+import { ECON } from '../../world/data';
 
-export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string }
-export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', recQ: '', recSel: null, mkCat: 'all', mkQ: '' });
+export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[] }
+export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', recQ: '', recSel: null, mkCat: 'all', mkQ: '', hull: null, fit: [] });
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => (Math.abs(n) >= 100 || Number.isInteger(n) ? Math.round(n) : Math.round(n * 10) / 10).toLocaleString();
@@ -156,6 +159,72 @@ function npcMarketHtml(s: Station, store: Cargo, ui: IndUi, price: (r: string, s
         <td><button class="btn mini" data-trade="sell:${r}:${L}" ${have < 1 ? 'disabled' : ''}>${L} 판매</button><button class="btn mini" data-trade="sell:${r}:${Math.floor(have)}" ${have < 1 ? 'disabled' : ''}>전량</button><button class="btn mini" data-trade="buy:${r}:${L}" ${m.stock < 1 ? 'disabled' : ''}>${L} 구매</button></td></tr>`;
     }).join('') || '<tr><td colspan="6" class="dim">조건에 맞는 품목이 없습니다.</td></tr>'}</table>
     <div class="dim small">이 지역에서 생산되는 품목은 재고가 회복되고, 소비되는 품목은 줄어듭니다. 성계의 해적 활동이 높으면 공급이 막혀 값이 오릅니다. 구매품은 이 정거장의 자사 보관함에 들어갑니다.</div>`;
+}
+
+// ───────────────────────────────────────────────────────── own shipyard
+
+const HULL_ORDER = ['corvette', 'frigate', 'miner', 'hauler', 'destroyer', 'light_cruiser', 'constructor', 'cruiser', 'battlecruiser', 'battleship', 'dreadnought'];
+
+export function yardOwnHtml(w: WorldState, s: Station, me: string, ui: IndUi, groups: { id: string; name: string }[]): string {
+  const co = w.companies[me];
+  const store: Cargo = s.storage[me] ?? {};
+  const slots = yardSlots(s);
+  const q = s.builds ?? [];
+  const speed = buildSpeed(s, co);
+  // slot occupancy, same rule as the server (smallest fitting slot, queue order)
+  const used = new Set<number>(); const at = new Map<string, number>();
+  for (const b of q) if (b.started) { const i = slots.findIndex((x, j) => !used.has(j) && x.size >= HULLS[b.classId].yard); if (i >= 0) { used.add(i); at.set(b.id, i); } }
+  let html = `<div class="bstore"><div><b>조선소 슬롯</b> ${slots.length ? slots.map((y, i) => {
+    const b = q.find(x => at.get(x.id) === i);
+    return `<span class="cap${b ? ' on' : ''}">${YARD_NAME[y.size]} ${b ? `— ${esc(hullName(b.classId))} ${Math.round((1 - b.left / b.total) * 100)}%` : '— 비어 있음'}</span>`;
+  }).join(' · ') : '<span class="warn">조선소가 없습니다 — 건설 탭에서 소형 조선소를 지으세요</span>'}</div>
+    <div class="dim small">건조 속도 ×${speed.toFixed(2)} · 조선소를 여러 개 지으면 동시에 여러 척을 건조합니다. 큰 조선소는 작은 함선도 건조할 수 있습니다.</div></div>`;
+  html += `<h3>건조 대기열 (${q.length})</h3>${q.length ? `<div class="bq">${q.map((b, i) => `<div class="bqrow${b.started ? ' ps-building' : b.paused ? ' ps-paused' : ' ps-materials'}"><span class="bqn">${i + 1}</span>
+    <div class="bqm"><div><b>${esc(hullName(b.classId))}</b> <span class="dim">· ${esc(getLoadout(b.classId, b.loadoutId).name)}${b.fit.length ? ` · ${b.fit.map(k => esc(EQUIPMENT[k]?.name ?? k)).join(', ')}` : ''}</span> <span class="pst">${esc(b.why ?? '대기')}</span></div>
+    <div class="bar"><i style="width:${Math.round((1 - b.left / b.total) * 100)}%"></i></div>
+    <div class="small">${b.started ? `남은 시간 ${dur(b.left / Math.max(0.01, speed))}` : `필요: ${itemList(buildNeeds(b.classId, b.loadoutId, b.fit))}`}</div></div>
+    <div class="bqa"><button class="btn mini" data-bop="up:${b.id}" ${i === 0 ? 'disabled' : ''}>▲</button><button class="btn mini" data-bop="down:${b.id}" ${i === q.length - 1 ? 'disabled' : ''}>▼</button>
+    ${b.paused ? `<button class="btn mini" data-bop="resume:${b.id}">▶</button>` : `<button class="btn mini" data-bop="pause:${b.id}">⏸</button>`}<button class="btn mini warnb" data-bop="cancel:${b.id}">✕</button></div></div>`).join('')}</div>` : '<div class="dim small">건조 중인 함선이 없습니다.</div>'}`;
+  // hull catalog
+  html += `<h3>함선 설계</h3><div class="bcols"><div class="rlist">${HULL_ORDER.filter(id => HULLS[id]).map(id => {
+    const h = HULLS[id], c = SHIP_CLASSES[id];
+    const known = !h.tech || co.tech?.includes(h.tech);
+    const yardOk = slots.some(y => y.size >= h.yard);
+    return `<div class="bfac pick${ui.hull === id ? ' sel' : ''}${known && yardOk ? '' : ' locked'}" data-hull="${id}"><b>${esc(c.name)} ${esc(c.type)}</b> <span class="dim small">${YARD_NAME[h.yard]} · ${dur(h.time)}</span><div class="small">${known ? '' : '<span class="warn">설계 연구 필요</span> '}${yardOk ? '' : `<span class="dim">${YARD_NAME[h.yard]} 조선소 필요</span>`}</div></div>`;
+  }).join('')}</div><div class="bdet">${ui.hull ? hullDetail(w, s, me, ui, groups) : '<div class="dim" style="padding:12px">함급을 선택하면 필요 부품·조선소·시간·무장·피팅을 고를 수 있습니다.</div>'}</div></div>`;
+  return html;
+}
+
+function hullDetail(w: WorldState, s: Station, me: string, ui: IndUi, groups: { id: string; name: string }[]): string {
+  const id = ui.hull!; const h = HULLS[id], c = SHIP_CLASSES[id], e = ECON[id];
+  const co = w.companies[me];
+  const store: Cargo = s.storage[me] ?? {};
+  const lo = getLoadout(id, (ui as any).lo ?? c.loadouts[0].id);
+  const fit = ui.fit.filter(k => EQUIPMENT[k]);
+  const need = buildNeeds(id, lo.id, fit);
+  const rows = Object.entries(need).map(([k, n]) => `<tr><td>${iname(k)}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
+  const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module');
+  const known = !h.tech || co.tech?.includes(h.tech);
+  const yardOk = yardSlots(s).some(y => y.size >= h.yard);
+  const why = !known ? `설계 연구 필요: ${esc(TECHS[h.tech!]?.name ?? '')}` : !yardOk ? `${YARD_NAME[h.yard]} 이상 조선소가 필요합니다` : co.credits < h.credits ? `자금 부족 — ${fmt(h.credits - co.credits)} cr` : fitUnits(fit) > h.slots ? '피팅 슬롯 초과' : '';
+  return `<div class="bdh"><b>${esc(c.name)} ${esc(c.type)}</b> <span class="dim">· ${esc(c.desc)}</span></div>
+    <div class="bdr small">내구 ${fmt(c.hp)} · 장갑 ${c.armor.front}/${c.armor.side}/${c.armor.rear} · 최고속 ${c.maxSpeed} · 선회 ${c.turnRate}°/s · 길이 ${c.length}m · 순항 ${e?.cruise ?? '-'} · 피팅 슬롯 ${h.slots}${e?.cargo ? ` · 화물 ${e.cargo}` : ''}${e?.mine ? ` · 채굴 ${e.mine}/s` : ''}</div>
+    <div class="bdr">조선소 <b>${YARD_NAME[h.yard]}</b> 이상 · 건조 ${dur(h.time)} · 공임 <b class="money">${fmt(h.credits)} cr</b> (등록 시)</div>
+    <div class="yrow"><select data-hlo data-keep>${c.loadouts.map(l => `<option value="${l.id}"${l.id === lo.id ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select><select data-hgrp data-keep><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select></div>
+    <div class="dim small">${esc(lo.desc)}</div>
+    <div class="bdr small">피팅 (${fitUnits(fit)}/${h.slots}): ${mods.map(m => { const on = fit.includes(m.id); return `<button class="chip${on ? ' on' : ''}" data-hfit="${m.id}" title="${esc(m.desc)}">${esc(m.name)} <span class="dim">${m.size}칸 · 보유 ${fmt(qty(store, m.id))}</span></button>`; }).join(' ')}</div>
+    <table class="gt bmat"><tr><th>소모 부품·장비</th><th class="n">필요</th><th class="n">창고</th><th class="n">상태</th></tr>${rows}</table>
+    ${why ? `<div class="warn">${why}</div>` : ''}<button class="btn go" data-hbuild="${id}" ${why ? 'disabled' : ''}>건조 등록</button>
+    <div class="dim small">부품이 부족해도 등록할 수 있습니다. 조선소 슬롯이 비고 모든 부품·장비가 이 정거장 창고에 있으면 자동으로 기공하며, 그때 부품이 차감됩니다.</div>`;
+}
+
+/** fitting panel for one docked ship */
+export function fitHtml(w: WorldState, ship: { id: string; classId: string; fit?: string[] }, store: Cargo): string {
+  const h = HULLS[ship.classId]; const slots = h?.slots ?? 1;
+  const cur = ship.fit ?? [];
+  const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module' && (cur.includes(x.id) || qty(store, x.id) >= 1));
+  return `<div class="small">피팅 ${fitUnits(cur)}/${slots}: ${cur.map((k, i) => `<button class="chip on" data-unfit="${ship.id}:${i}" title="해제 — 창고로">${esc(EQUIPMENT[k]?.name ?? k)} ✕</button>`).join(' ') || '<span class="dim">없음</span>'}
+    ${mods.filter(m => !cur.includes(m.id) || qty(store, m.id) >= 1).map(m => `<button class="chip" data-dofit="${ship.id}:${m.id}" ${fitUnits([...cur, m.id]) > slots || qty(store, m.id) < 1 ? 'disabled' : ''} title="${esc(m.desc)}">+ ${esc(m.name)} (${m.size}칸, ${fmt(qty(store, m.id))})</button>`).join(' ')}</div>`;
 }
 
 export { FAC_CATS };

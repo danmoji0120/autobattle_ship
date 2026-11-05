@@ -257,7 +257,7 @@ export interface TechDef {
   /** what it actually unlocks / changes */
   unlocks: string;
   /** numeric effects applied while known */
-  fx?: Partial<{ mineMul: number; prodMul: number; buildMul: number; researchMul: number; refineMul: number; cargoMul: number; skillGain: number; repairMul: number }>;
+  fx?: Partial<{ mineMul: number; prodMul: number; buildMul: number; researchMul: number; refineMul: number; cargoMul: number; skillGain: number; repairMul: number; cruiseMul: number; constructMul: number }>;
   /** NPC tech brokers sell this blueprint (credits) */
   bp?: number;
 }
@@ -278,13 +278,13 @@ export const TECHS: Record<string, TechDef> = Object.fromEntries([
   T({ id: 'deep_core', name: '심부 채굴', field: 'resources', time: 7200, credits: 12000, cost: { machinery: 16, precision: 6 }, pre: ['mining_lasers'], desc: '소행성 심부 굴착.', unlocks: '채굴 속도 +25%', fx: { mineMul: 1.25 } }),
   T({ id: 'cargo_compression', name: '화물 압축', field: 'resources', time: 5400, credits: 9000, cost: { composite: 10, machinery: 10 }, pre: ['mining_lasers'], desc: '화물칸 압축 저장.', unlocks: '채굴선·수송선 적재량 +25%', fx: { cargoMul: 1.25 } }),
   // station
-  T({ id: 'station_engineering', name: '정거장 공학', field: 'station', time: 2400, credits: 5000, cost: { structure: 10, machinery: 6 }, desc: '건설 공정 표준화.', unlocks: '정거장 시설 건설 속도 +25%' }),
+  T({ id: 'station_engineering', name: '정거장 공학', field: 'station', time: 2400, credits: 5000, cost: { structure: 10, machinery: 6 }, desc: '건설 공정 표준화.', unlocks: '정거장 시설 건설 속도 +25%', fx: { constructMul: 1.25 } }),
   T({ id: 'fusion_reactors', name: '핵융합 반응로', field: 'station', time: 4800, credits: 12000, cost: { electronics: 10, crystal: 10, machinery: 10 }, pre: ['station_engineering'], desc: '소형 융합로 설계.', unlocks: '시설: 반응로 공장', bp: 45000 }),
   T({ id: 'logistics_ai', name: '물류 AI', field: 'station', time: 3600, credits: 6000, cost: { electronics: 8 }, pre: ['station_engineering'], desc: '수송 경로 최적화.', unlocks: '수송선 적재량 +15% · 자동 보급 효율', fx: { cargoMul: 1.15 } }),
   // propulsion
   T({ id: 'ship_propulsion', name: '함선 추진기관', field: 'propulsion', time: 2400, credits: 5000, cost: { machinery: 8, chemicals: 10 }, desc: '함선용 추진기 생산 기술.', unlocks: '시설: 엔진 공장', bp: 20000 }),
   T({ id: 'vector_thrust', name: '벡터 추진', field: 'propulsion', time: 5400, credits: 10000, cost: { precision: 6, machinery: 10 }, pre: ['ship_propulsion'], desc: '추력 편향 노즐.', unlocks: '장비: 벡터 추진기' }),
-  T({ id: 'warp_tuning', name: '워프 조율', field: 'propulsion', time: 7200, credits: 14000, cost: { electronics: 12, crystal: 8 }, pre: ['ship_propulsion'], desc: '워프 정렬 시간 단축.', unlocks: '전 함선 순항 속도 +10%' }),
+  T({ id: 'warp_tuning', name: '워프 조율', field: 'propulsion', time: 7200, credits: 14000, cost: { electronics: 12, crystal: 8 }, pre: ['ship_propulsion'], desc: '워프 정렬 시간 단축.', unlocks: '전 함선 순항 속도 +10%', fx: { cruiseMul: 1.1 } }),
   // electronics
   T({ id: 'fire_control', name: '사격통제', field: 'electronics', time: 3600, credits: 8000, cost: { electronics: 8, precision: 2 }, desc: '탄도 계산기.', unlocks: '장비: 사격통제장치' }),
   T({ id: 'long_sensors', name: '장거리 센서', field: 'electronics', time: 4800, credits: 9000, cost: { sensor: 1, electronics: 6 }, pre: ['fire_control'], desc: '고감도 탐지.', unlocks: '장비: 장거리 센서' }),
@@ -314,9 +314,20 @@ export const TECHS: Record<string, TechDef> = Object.fromEntries([
   T({ id: 'salvage_ops', name: '전장 회수', field: 'tactics', time: 5400, credits: 8000, cost: { machinery: 10 }, pre: ['fleet_doctrine'], desc: '격침된 적함에서 부품 회수.', unlocks: '해적 격침 시 무장 부품·전자부품 노획 · 노획 장비 분석' }),
 ].map(t => [t.id, t]));
 
+/** combat effects of a ship's fitted modules plus company research */
+export function fitFx(fit: string[] | undefined, tech: string[] | undefined, armory = false) {
+  const fx = { hpMul: 1, armorMul: 1, speedMul: 1, accMul: 1, reloadMul: 1, evasion: 0, pdMul: 1, rangeMul: 1, magMul: armory ? 1.5 : 1 };
+  for (const id of fit ?? []) {
+    const e = EQUIPMENT[id]?.fx; if (!e) continue;
+    for (const [k, v] of Object.entries(e)) { if (k === 'evasion') fx.evasion += v as number; else (fx as any)[k] *= v as number; }
+  }
+  if (tech?.includes('combined_arms')) fx.accMul *= 1.05;
+  return fx;
+}
+
 /** a company's effective multipliers from known techs */
 export function techFx(known: string[] | undefined) {
-  const out = { mineMul: 1, prodMul: 1, buildMul: 1, researchMul: 1, refineMul: 1, cargoMul: 1, skillGain: 1, repairMul: 1 };
+  const out = { mineMul: 1, prodMul: 1, buildMul: 1, researchMul: 1, refineMul: 1, cargoMul: 1, skillGain: 1, repairMul: 1, cruiseMul: 1, constructMul: 1 };
   for (const id of known ?? []) { const t = TECHS[id]; if (!t?.fx) continue; for (const [k, v] of Object.entries(t.fx)) (out as any)[k] *= v as number; }
   return out;
 }

@@ -16,6 +16,10 @@ export interface ShipEcon {
 
 export const ECON: Record<string, ShipEcon> = {
   corvette: { cruise: 150, cargo: 0, mine: 0, price: 3200, alloy: 60, rep: 0, military: true },
+  frigate: { cruise: 130, cargo: 0, mine: 0, price: 4600, alloy: 90, rep: 5, military: true },
+  light_cruiser: { cruise: 100, cargo: 0, mine: 0, price: 10500, alloy: 180, rep: 10, military: true },
+  battlecruiser: { cruise: 80, cargo: 0, mine: 0, price: 26000, alloy: 420, rep: 40, military: true },
+  dreadnought: { cruise: 55, cargo: 0, mine: 0, price: 120000, alloy: 1600, rep: 999, military: true },
   destroyer: { cruise: 115, cargo: 0, mine: 0, price: 6500, alloy: 120, rep: 0, military: true },
   cruiser: { cruise: 90, cargo: 0, mine: 0, price: 15000, alloy: 260, rep: 10, military: true },
   battleship: { cruise: 70, cargo: 0, mine: 0, price: 36000, alloy: 600, rep: 30, military: true },

@@ -12,8 +12,8 @@ import { emptyCargo, cargoSum, RES, qty, addc, takec, cargoKeys } from './types'
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
-import { stepProduction, storageCap, stationNeeds, type ProdOrder } from './production';
-import { RECIPES, ITEMS, TECHS, EQUIPMENT, techFx, itemPrice as itemPriceOf } from './industry';
+import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
+import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX } from './economy';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
@@ -32,7 +32,7 @@ const WARP_MIN = 6000;      // trips longer than this use the in-system warp dri
 const WARP_V = 7000;
 const WARP_EXIT = 700;
 const SCRAMBLE_R = 3000;   // hostile warships this close prevent warping out
-const ALIGN: Record<string, number> = { corvette: 3, destroyer: 4, cruiser: 6, battleship: 8, miner: 5, hauler: 6, constructor: 7 };
+const ALIGN: Record<string, number> = { corvette: 3, frigate: 3.5, destroyer: 4, light_cruiser: 5, cruiser: 6, battlecruiser: 7, battleship: 8, dreadnought: 11, miner: 5, hauler: 6, constructor: 7 };
 
 /** outcome of a battle, from the tactical engine or the NPC auto-resolver */
 interface BattleResult { winner: number; ships: { ref: string; dead: boolean; hp: number; escaped: boolean; dmg: number }[]; groupKills: Map<string, number> }
@@ -62,6 +62,9 @@ export type Cmd =
   | { c: 'list'; station: string; item: string; qty: number; price: number }
   | { c: 'delist'; station: string; listing: string }
   | { c: 'buyListing'; station: string; listing: string; qty: number }
+  | { c: 'buildShip'; station: string; classId: string; loadoutId: string; fit?: string[]; group?: string }
+  | { c: 'buildOp'; station: string; build: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
+  | { c: 'fitShip'; ship: string; fit: string[] }
   | { c: 'renameCompany'; name: string };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
@@ -177,6 +180,19 @@ export class WorldSim {
       if (d < bd) { bd = d; best = st.id; }
     }
     return best;
+  }
+
+  /** strategic cruise speed: hull, fitted drives, propulsion research */
+  cruiseOf(s: WShip): number {
+    const co = this.st.companies[s.owner];
+    if (!co || co.kind !== 'player') return ECON[s.classId].cruise;
+    return ECON[s.classId].cruise * techFx(co.tech).cruiseMul * (s.fit?.length ? fitFx(s.fit, undefined).speedMul : 1);
+  }
+  /** combat effects of a ship's fitting + its company's research and armouries */
+  shipFxOf(s: WShip) {
+    const co = this.st.companies[s.owner];
+    const armory = Object.values(this.st.stations).some(x => x.owner === s.owner && this.hasModule(x, 'armory'));
+    return fitFx(s.fit, co?.tech, armory);
   }
 
   /** free warehouse space for a company at a station (public stations: unlimited) */
@@ -354,8 +370,9 @@ export class WorldSim {
       case 'buyShip': {
         const st = S(cmd.station); const cls = SHIP_CLASSES[cmd.classId]; const ec = ECON[cmd.classId];
         if (!st || !cls || !ec) return '구매 불가';
-        const own = st.owner === company && this.hasModule(st, 'yard_s');
-        if (!own && !(st.public && st.services.shipyard.includes(cmd.classId))) return '이 정거장에서 건조하지 않는 함급';
+        if (st.owner === company) return '자사 조선소는 부품으로 직접 건조합니다 — 조선소 탭의 건조 대기열을 쓰세요';
+        const own = false;
+        if (!(st.public && st.services.shipyard.includes(cmd.classId))) return '이 정거장에서 건조하지 않는 함급';
         if (!own && co.rep < ec.rep) return `연합 평판 ${ec.rep} 필요`;
         const price = own ? Math.round(ec.price * 0.5) : ec.price;
         if (co.credits < price) return '자금 부족';
@@ -397,7 +414,19 @@ export class WorldSim {
       }
       case 'refit': {
         const s = this.st.ships[cmd.ship]; if (!s || s.owner !== company || s.task.k !== 'docked') return '정박 중이어야 함';
-        const st = S(s.task.station); if (!st.services.refit && !(st.owner === company && this.hasModule(st, 'shipyard'))) return '개조 시설 없음';
+        const st = S(s.task.station);
+        const ownFit = st.owner === company && (this.hasModule(st, 'fitting') || yardSlots(st).length > 0);
+        if (!st.services.refit && !ownFit) return '개조 시설 없음';
+        if (ownFit) {
+          // own facility: the new weapons come from storage, the old ones go back into it
+          const cur = loadoutEquipment(getLoadout(s.classId, s.loadoutId).mounts), nxt = loadoutEquipment(getLoadout(s.classId, cmd.loadoutId).mounts);
+          const store = this.storage(st, company);
+          for (const [k, n] of Object.entries(nxt)) if (n > (cur[k] ?? 0) && qty(store, k) < n - (cur[k] ?? 0)) return `${RES_NAME[k]} ${n - (cur[k] ?? 0)} 필요 (보관함에 ${Math.floor(qty(store, k))})`;
+          for (const k of new Set([...Object.keys(cur), ...Object.keys(nxt)])) addc(store, k, (cur[k] ?? 0) - (nxt[k] ?? 0));
+          s.loadoutId = getLoadout(s.classId, cmd.loadoutId).id;
+          this.ev('money', `${s.name} 무장 교체: ${getLoadout(s.classId, s.loadoutId).name} (기존 무장은 창고로)`, { company });
+          return null;
+        }
         const cost = Math.round(ECON[s.classId].price * 0.15);
         if (co.credits < cost) return '자금 부족';
         co.credits -= cost; s.loadoutId = getLoadout(s.classId, cmd.loadoutId).id;
@@ -553,6 +582,73 @@ export class WorldSim {
         if (seller) this.ev('money', `${st.name} 거래소: ${co.name}이(가) ${RES_NAME[l.item]} ${n} 구매 +${Math.round(net).toLocaleString()} cr`, { company: l.seller, pos: st.pos });
         return null;
       }
+      case 'buildShip': {
+        const st = S(cmd.station); const h = HULLS[cmd.classId]; const cls = SHIP_CLASSES[cmd.classId];
+        if (!st || st.owner !== company) return '자사 정거장이 아님';
+        if (!h || !cls) return '건조할 수 없는 함급';
+        if (h.tech && !co.tech?.includes(h.tech)) return `설계 연구 필요: ${techName(h.tech)}`;
+        if (!yardSlots(st).some(y => y.size >= h.yard)) return `${YARD_NAME[h.yard]} 이상 조선소가 필요합니다`;
+        const lo = getLoadout(cmd.classId, cmd.loadoutId);
+        const fit = (cmd.fit ?? []).filter(k => EQUIPMENT[k]?.kind === 'module');
+        if (fitUnits(fit) > h.slots) return `피팅 슬롯 초과 (${fitUnits(fit)}/${h.slots})`;
+        if ((st.builds ?? []).length >= 20) return '건조 대기열은 20척까지';
+        if (co.credits < h.credits) return `자금 부족 — ${Math.ceil(h.credits - co.credits).toLocaleString()} cr 더 필요`;
+        const g = cmd.group ? G(cmd.group) : null;
+        co.credits -= h.credits;
+        st.seq = (st.seq ?? 0) + 1;
+        (st.builds ??= []).push({ id: `b${st.seq}`, classId: cmd.classId, loadoutId: lo.id, fit, group: g?.id, left: h.time, total: h.time, started: false, paid: h.credits });
+        stepBuilds(st, co, 0);
+        this.ev('info', `${st.name}: ${hullName(cmd.classId)} 건조 등록 (${lo.name})`, { company, pos: st.pos, tag: 'build_plan' });
+        return null;
+      }
+      case 'buildOp': {
+        const st = S(cmd.station);
+        if (!st || st.owner !== company) return '자사 정거장이 아님';
+        const q = st.builds ?? []; const b = q.find(x => x.id === cmd.build);
+        if (!b) return '건조 항목 없음';
+        const i = q.indexOf(b);
+        switch (cmd.op) {
+          case 'pause': b.paused = true; break;
+          case 'resume': b.paused = false; break;
+          case 'cancel': {
+            // before the keel is laid nothing is spent but credits; after, parts are already in the hull
+            const back = Math.round(b.paid * (b.started ? Math.max(0, b.left / b.total) : 1));
+            co.credits += back; q.splice(i, 1);
+            this.ev('info', `${st.name}: ${hullName(b.classId)} 건조 취소 — 환불 ${back.toLocaleString()} cr${b.started ? ' · 투입된 부품은 회수 불가' : ''}`, { company, pos: st.pos });
+            break;
+          }
+          case 'up': case 'down': case 'top': {
+            const j = cmd.op === 'top' ? 0 : cmd.op === 'up' ? i - 1 : i + 1;
+            if (j < 0 || j >= q.length || j === i) return null;
+            q.splice(i, 1); q.splice(j, 0, b);
+          }
+        }
+        stepBuilds(st, co, 0);
+        return null;
+      }
+      case 'fitShip': {
+        const s = this.st.ships[cmd.ship];
+        if (!s || s.owner !== company || s.task.k !== 'docked') return '정박 중인 자사 함선만 장비를 바꿀 수 있습니다';
+        const st = S(s.task.station);
+        const ownFit = st.owner === company && (this.hasModule(st, 'fitting') || yardSlots(st).length > 0);
+        if (!ownFit && !(st.public && st.services.refit)) return '피팅 시설이 없는 정거장';
+        const fit = cmd.fit.filter(k => EQUIPMENT[k]?.kind === 'module');
+        const slots = HULLS[s.classId]?.slots ?? 1;
+        if (fitUnits(fit) > slots) return `피팅 슬롯 초과 (${fitUnits(fit)}/${slots})`;
+        // the difference moves between the ship and this station's storage, all or nothing
+        const cur: Record<string, number> = {}, nxt: Record<string, number> = {};
+        for (const k of s.fit ?? []) cur[k] = (cur[k] ?? 0) + 1;
+        for (const k of fit) nxt[k] = (nxt[k] ?? 0) + 1;
+        const store = this.storage(st, company);
+        for (const [k, n] of Object.entries(nxt)) if (n > (cur[k] ?? 0) && qty(store, k) < n - (cur[k] ?? 0)) return `${RES_NAME[k]} 부족 (보관함에 ${Math.floor(qty(store, k))})`;
+        const fee = ownFit ? 0 : 400 + Object.keys(nxt).length * 300;
+        if (co.credits < fee) return '자금 부족';
+        co.credits -= fee;
+        for (const k of new Set([...Object.keys(cur), ...Object.keys(nxt)])) addc(store, k, (cur[k] ?? 0) - (nxt[k] ?? 0));
+        s.fit = fit;
+        this.ev('money', `${s.name} 장비 변경: ${fit.map(k => EQUIPMENT[k].name).join(', ') || '없음'}${fee ? ` -${fee.toLocaleString()} cr` : ''}`, { company, pos: st.pos });
+        return null;
+      }
       case 'renameCompany': co.name = cmd.name.slice(0, 20) || co.name; return null;
     }
     return '알 수 없는 명령';
@@ -567,7 +663,7 @@ export class WorldSim {
       this.ev('info', `${st.name}: ${MODULES[m.kind].name} 자재 확보 완료${act ? ' — 건설 시작' : ' — 건설 순서 대기'}`, { company: st.owner, pos: st.pos, tag: 'build_secured' });
     }
     const m = activePlan(st);
-    if (m && m.kind !== 'core' && this.hasModule(st, 'core')) this.workOn(st, m, dt / MODULES[m.kind].work * STATION_CREW_RATE, null);
+    if (m && m.kind !== 'core' && this.hasModule(st, 'core')) this.workOn(st, m, dt / MODULES[m.kind].work * STATION_CREW_RATE * techFx(this.st.companies[st.owner]?.tech).constructMul, null);
   }
 
   /** progress a secured plan; announces start and completion */
@@ -583,6 +679,19 @@ export class WorldSim {
       this.ev('info', `${st.name}: ${md.name} 완공 — ${md.unlocks}`, { company: st.owner, pos: st.pos, tag: 'build_done' });
       if (g) this.say(g, `${md.name} 완공했습니다.`, 'radio', 0);
     }
+  }
+
+  /** a finished hull leaves the yard: docked at the station, in its assigned group */
+  private launchBuild(st: Station, b: import('./types').ShipBuild) {
+    const company = st.owner;
+    const cls = SHIP_CLASSES[b.classId];
+    let g = b.group ? this.st.groups[b.group] : undefined;
+    if (!g || g.owner !== company) g = this.newGroup(company, ECON[b.classId]?.military ? '신조함 편대' : `${cls.type}반`);
+    const s = this.spawnShip(company, b.classId, b.loadoutId, g.id, st.pos);
+    s.fit = [...b.fit];
+    this.dockShip(s, st);
+    this.ev('world', `${this.st.companies[company]?.name}: ${st.name} 조선소에서 ${cls.name} ${cls.type} "${s.name}" 진수!`, { pos: st.pos, ref: st.id });
+    this.ev('info', `${st.name}: ${hullName(b.classId)} "${s.name}" 진수 — ${g.name}에 배속`, { company, pos: st.pos, tag: 'ship_done' });
   }
 
   private freeSlot(st: Station) { const used = new Set(st.modules.map(m => m.slot)); for (let i = 1; i < MAX_MODULES; i++) if (!used.has(i)) return i; return 0; }
@@ -762,6 +871,7 @@ export class WorldSim {
       if (!s.public) {
         if (this.hasModule(s, 'defense') && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
         this.stationWorks(s, dt);
+        for (const b of stepBuilds(s, st.companies[s.owner], dt)) this.launchBuild(s, b);
         for (const e of stepProduction(s, st.companies[s.owner], dt)) {
           if (e.kind === 'finished') this.ev('info', `${s.name}: 생산 주문 완료 — ${RECIPES[e.recipe].name}`, { company: s.owner, pos: s.pos, tag: 'prod_done' });
         }
@@ -1081,7 +1191,7 @@ export class WorldSim {
       if (ships.length > 1) this.say(owner, `함대 집결 — ${ships.length}척, 가장 느린 함선에 맞춰 함께 이동한다.`, 'radio', 5);
     }
     // the slowest hull sets the pace; a skilled commander keeps the line tighter and moves a bit faster
-    m.speed = Math.min(...ships.map(s => ECON[s.classId].cruise * (0.6 + 0.4 * s.hp))) * (0.92 + c.skill * 0.08);
+    m.speed = Math.min(...ships.map(s => this.cruiseOf(s) * (0.6 + 0.4 * s.hp))) * (0.92 + c.skill * 0.08);
     m.members = ships.length;
     const leash = 260 + 70 * Math.sqrt(ships.length) * (1.25 - c.skill * 0.4);
     const patience = 60 + c.skill * 120 - c.aggression * 40;     // seconds before stragglers are left behind
@@ -1136,7 +1246,7 @@ export class WorldSim {
   private marchShip(s: WShip, g: WGroup, op: Op, m: March, dt: number, c: CommanderDef) {
     const owner = this.marchOwner(g);
     const members: WShip[] = (owner as any)._members ?? this.fleetMembers(owner).ships;
-    const own = ECON[s.classId].cruise * (0.6 + 0.4 * s.hp);
+    const own = this.cruiseOf(s) * (0.6 + 0.4 * s.hp);
     (s as any)._holdWarp = !m.warpGo;
     if (m.phase === 'engage') { (s as any)._holdWarp = false; this.behave(s, g, op, dt, c); g.status = `${g.status} (함대 공격)`; return; }
     const next = m.wp[Math.min(m.i + 1, m.wp.length - 1)];
@@ -1314,7 +1424,7 @@ export class WorldSim {
 
   private groupSpeed(g: WGroup, military: boolean): number {
     const s = this.shipsOf(g).filter(x => x.state !== 'battle' && ECON[x.classId].military === military);
-    return s.length ? Math.min(...s.map(x => ECON[x.classId].cruise * (0.6 + 0.4 * x.hp))) : 100;
+    return s.length ? Math.min(...s.map(x => this.cruiseOf(x) * (0.6 + 0.4 * x.hp))) : 100;
   }
 
   // -------------------------------------------------- per-ship behaviour
@@ -1322,7 +1432,7 @@ export class WorldSim {
   private behave(s: WShip, g: WGroup, op: Op, dt: number, c: CommanderDef) {
     const ec = ECON[s.classId];
     if (ec.cruise <= 0) return;
-    const speed = ec.cruise * (0.6 + 0.4 * s.hp) * (c.specialty === 'maneuver' ? 1.08 : 1);
+    const speed = this.cruiseOf(s) * (0.6 + 0.4 * s.hp) * (c.specialty === 'maneuver' ? 1.08 : 1);
     const st = this.st;
     switch (op.k) {
       case 'idle': {
@@ -1624,7 +1734,7 @@ export class WorldSim {
     if (unloaded) this.stationWorks(st, 0);
     if (active) {
       const md = MODULES[active.kind];
-      this.workOn(st, active, dt / md.work * (0.8 + c.skill * 0.5), g);
+      this.workOn(st, active, dt / md.work * (0.8 + c.skill * 0.5) * techFx(this.st.companies[s.owner]?.tech).constructMul, g);
       s.fx = { welding: `${st.id}:${active.slot}` };
       g.status = active.built ? `${md.name} 완공` : `${md.name} 건설 ${Math.round(active.progress * 100)}%`;
       return;
@@ -1886,7 +1996,7 @@ export class WorldSim {
     const cmd: CommanderDef = { ...c, team };
     const mil = ships.filter(s => s.groupId === g.id && ECON[s.classId].military);
     const civ = ships.filter(s => s.groupId === g.id && !ECON[s.classId].military);
-    const spec = (s: WShip): ShipSpec => ({ classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp });
+    const spec = (s: WShip): ShipSpec => ({ classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp, ...(this.st.companies[s.owner]?.kind === 'player' ? { fx: this.shipFxOf(s) } : {}) });
     const kids: GroupSpec[] = [];
     for (const cid of g.childIds) if (included.has(cid)) kids.push(...this.toGroupSpec(this.st.groups[cid], ships, included, team));
     const out: GroupSpec[] = [];

@@ -61,4 +61,14 @@ export const WEAPONS: Record<string, WeaponDef> = {
     spread: 0, turnSpeed: 400, caliber: 0.4, pdChance: 0.05, sound: 'pd',
     desc: '미사일과 어뢰를 요격한다. 접근한 초계함도 긁는다.',
   },
+  pulse_laser: {
+    id: 'pulse_laser', name: '펄스 레이저', kind: 'shell',
+    damage: 40, pen: 34, range: 900, speed: 3200, reload: 1.6, salvo: 3, salvoGap: 0.08,
+    spread: 0.004, turnSpeed: 90, caliber: 1.0, sound: 'medium', desc: '거의 즉발하는 에너지 펄스. 빠른 표적에 강하고 중장갑엔 약하다.',
+  },
+  particle_lance: {
+    id: 'particle_lance', name: '입자 창', kind: 'shell',
+    damage: 520, pen: 110, range: 1800, speed: 2600, reload: 12, salvo: 1, salvoGap: 0,
+    spread: 0.003, turnSpeed: 16, caliber: 2.8, sound: 'rail', desc: '고출력 입자빔. 먼 거리에서 대형함의 장갑을 꿰뚫는다.',
+  },
 };

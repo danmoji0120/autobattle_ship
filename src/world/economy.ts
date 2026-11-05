@@ -6,7 +6,9 @@ import { emptyCargo } from './types';
 import { ITEMS, TECHS, itemPrice, EQUIPMENT } from './industry';
 import { LEGACY_MODULE } from './data';
 
-export const INDUSTRY_VERSION = 1;
+export const INDUSTRY_VERSION = 2;
+/** hulls on sale at public yards from industry v2 (bought complete with standard weapons) */
+const YARD_ADD: Record<string, string[]> = { helios: ['frigate', 'light_cruiser', 'battlecruiser'], bastion: ['frigate', 'light_cruiser'], drakeout: ['frigate'], astra: ['frigate'] };
 
 /** what a mined unit of each field is made of */
 export const FIELD_MIX: Record<string, Record<string, number>> = {
@@ -58,6 +60,7 @@ function addGood(m: Market, id: string, mult: number, fill: number) {
 /** idempotent: older saves gain field compositions, the new goods and renamed facilities */
 export function upgradeIndustry(st: WorldState) {
   if ((st.industryV ?? 0) >= INDUSTRY_VERSION) return;
+  for (const [id, add] of Object.entries(YARD_ADD)) { const x = st.stations[id]; if (x) for (const c of add) if (!x.services.shipyard.includes(c)) x.services.shipyard.push(c); }
   for (const f of Object.values(st.fields)) if (!f.mix) f.mix = FIELD_MIX[f.id] ?? (f.salvage ? { ...SALVAGE_MIX } : undefined);
   for (const s of Object.values(st.stations)) {
     for (const m of s.modules) if (LEGACY_MODULE[m.kind]) m.kind = LEGACY_MODULE[m.kind];
@@ -70,7 +73,7 @@ export function upgradeIndustry(st: WorldState) {
     }
     if (!s.public) {
       // the old refinery turned ore into alloy by itself; keep that running as a standing order
-      if (s.modules.some(m => m.kind === 'refinery' && m.built) && !(s.orders ?? []).length) {
+      if ((st.industryV ?? 0) < 1 && s.modules.some(m => m.kind === 'refinery' && m.built) && !(s.orders ?? []).length) {
         s.seq = (s.seq ?? 0) + 1;
         s.orders = [{ id: `o${s.seq}`, recipe: 'alloy_direct', mode: 'stock', n: 5000, done: 0 }];
       }
