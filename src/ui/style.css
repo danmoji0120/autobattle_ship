@@ -334,3 +334,15 @@ select { background: rgba(5, 10, 18, 0.92); color: var(--text); border: 1px soli
 #netdiag .kv2 b { font-family: var(--mono); font-weight: 600; }
 #netdiag .small { padding: 6px 10px 0; }
 @media (max-width: 720px) { #sysbar { top: auto; bottom: 8px; } }
+.sectip { white-space: nowrap; }
+.sectip i { font-style: normal; font-weight: 700; color: #08111a; border-radius: 3px; padding: 0 5px; margin-left: 4px; font-size: 11px; }
+/* mining job form */
+.minecfg { margin: 6px 0; padding: 7px 8px; border: 1px solid rgba(255,190,90,.28); background: rgba(40,28,10,.35); border-radius: 4px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px 8px; font-size: 12px; }
+.minecfg .mh, .minecfg .mstat, .minecfg .row, .minecfg .warn { grid-column: 1 / -1; }
+.minecfg label { display: flex; flex-direction: column; gap: 2px; color: var(--dim); font-size: 11px; min-width: 0; }
+.minecfg select { width: 100%; min-width: 0; }
+.minecfg .mstat { color: #c9d6e2; line-height: 1.5; }
+.minecfg .row { display: flex; gap: 6px; }
+select.gone { border-color: var(--warn) !important; color: var(--warn); }
+@media (max-width: 700px) { .minecfg { grid-template-columns: 1fr; } }
+.minecfg .btn, .minecfg .btn.go { padding: 5px 16px !important; font-size: 13px !important; letter-spacing: .05em; }

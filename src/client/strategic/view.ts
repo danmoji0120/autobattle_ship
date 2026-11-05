@@ -310,10 +310,11 @@ export class StrategicView {
     this.env.update(this.rig.camera);
     if (this.sysScene) {
       this.sysScene.update(realDt, this.time);
-      const camD = this.rig.camera.position.distanceTo(this.rig.focus);
-      const want = this.showSecurity ? 1 : camD > 30000 ? 0.35 : 0;
-      this.secFade += (want - this.secFade) * Math.min(1, realDt * 4);
-      this.sysScene.setSecurityOpacity(this.secFade * 0.9);
+      // the security map only exists while the player has it switched on (never auto-shown by zoom)
+      const want = this.showSecurity ? 1 : 0;
+      this.secFade += (want - this.secFade) * Math.min(1, realDt * 8);
+      if (!this.showSecurity && this.secFade < 0.02) this.secFade = 0;
+      this.sysScene.setSecurityOpacity(this.secFade);
     }
     this.composer.render();
     this.frameMs.push(performance.now() - f0);

@@ -25,3 +25,26 @@ export function secAt(w: SecWorld, p: V, sys = sysAt(w.systems, p)): number {
   for (const l of Object.values(w.lairs)) if (l.alive && Math.abs(l.pos.x - p.x) < 20000) v -= 35 * Math.max(0, 1 - Math.hypot(l.pos.x - p.x, l.pos.z - p.z) / 14000);
   return Math.max(0, Math.min(100, v));
 }
+
+/** The same field as secAt, flattened into point sources relative to the system origin. The
+ *  client's security-map shader evaluates exactly this per pixel (see SystemScene), so the map, the
+ *  cursor readout and the server AI all agree. */
+export interface SecField { eff: number; rim: number; radius: number; src: [number, number, number, number][] }
+export function secField(w: SecWorld, sys: StarSystem): SecField {
+  const src: SecField['src'] = [];
+  const near = (p: V) => Math.abs(p.x - sys.origin.x) < sys.radius + 20000;
+  for (const st of Object.values(w.stations)) {
+    if (!near(st.pos)) continue;
+    if (st.public && st.garrison) src.push([st.pos.x - sys.origin.x, st.pos.z - sys.origin.z, st.garrison * 5, 9000]);
+    else if (!st.public && hasDefense(st)) src.push([st.pos.x - sys.origin.x, st.pos.z - sys.origin.z, 10, 5000]);
+  }
+  for (const l of Object.values(w.lairs)) if (l.alive && near(l.pos)) src.push([l.pos.x - sys.origin.x, l.pos.z - sys.origin.z, -35, 14000]);
+  return { eff: effSec(sys), rim: sys.security >= 70 ? 20 : 12, radius: sys.radius, src };
+}
+/** evaluate a SecField at (dx, dz) from the system origin — the shader's formula, in JS */
+export function secFieldAt(f: SecField, dx: number, dz: number): number {
+  const r = Math.hypot(dx, dz) / f.radius;
+  let v = f.eff - Math.max(0, Math.min(1, (r - 0.5) / 0.5)) * f.rim;
+  for (const [x, z, a, R] of f.src) v += a * Math.max(0, 1 - Math.hypot(x - dx, z - dz) / R);
+  return Math.max(0, Math.min(100, v));
+}

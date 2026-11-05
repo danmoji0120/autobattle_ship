@@ -11,6 +11,7 @@ import { sfx } from '../../audio/sfx';
 import { secAt, effSec } from '../../world/security';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
+import { morph, trackSelects } from '../../ui/morph';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
 type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string } | null;
@@ -25,6 +26,13 @@ const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: 
 
 export interface PmcHudOpts { onOpenBattle: (eng: string) => void; onExit: () => void }
 
+/** zones of local security as shown under the cursor (same thresholds as the system bands) */
+const secZone = (v: number) => v >= 90 ? { name: '핵심 관리 구역', grade: '안전', color: '#6fe0ff' }
+  : v >= 70 ? { name: '일반 거주 구역', grade: '안전', color: '#7dffb0' }
+  : v >= 40 ? { name: '변방 구역', grade: '주의', color: '#ffd166' }
+  : v >= 15 ? { name: '위험 구역', grade: '위험', color: '#ff8a4c' }
+  : { name: '무법 구역', grade: '매우 위험', color: '#ff4a3a' };
+
 export class PmcHud {
   private root: HTMLElement;
   private overlay: HTMLCanvasElement;
@@ -38,7 +46,8 @@ export class PmcHud {
   private modal: HTMLElement | null = null;
   private modalStation: string | null = null;
   private modalTab = 'market';
-  private pointer = { x: 0, y: 0, down: -1, sx: 0, sy: 0, moved: false };
+  private tabScroll = new Map<string, number>();
+  private pointer = { x: 0, y: 0, down: -1, sx: 0, sy: 0, moved: false, over: false };
   private keys = new Set<string>();
   private disposers: (() => void)[] = [];
   private toastBox: HTMLElement;
@@ -119,7 +128,10 @@ export class PmcHud {
     const on = (el: HTMLElement | Window, ev: string, fn: (e: any) => void, o?: any) => { el.addEventListener(ev, fn, o); this.disposers.push(() => el.removeEventListener(ev, fn, o)); };
     on(cv, 'contextmenu', (e: Event) => e.preventDefault());
     on(cv, 'pointerdown', (e: PointerEvent) => { this.pointer.down = e.button; this.pointer.sx = e.clientX; this.pointer.sy = e.clientY; this.pointer.moved = false; cv.setPointerCapture(e.pointerId); });
+    // the canvas only gets pointer events where no UI panel covers it
+    on(cv, 'pointerleave', () => { this.pointer.over = false; });
     on(cv, 'pointermove', (e: PointerEvent) => {
+      this.pointer.over = true;
       const dx = e.clientX - this.pointer.x, dy = e.clientY - this.pointer.y;
       this.pointer.x = e.clientX; this.pointer.y = e.clientY;
       if (this.pointer.down < 0) return;
@@ -188,7 +200,7 @@ export class PmcHud {
     const pirate = this.pirateGroupAt(p);
     if (pirate) return void this.setOp({ k: 'attack', group: pirate });
     if (p?.kind === 'field') {
-      if (hasMiner) return void this.setOp({ k: 'mine', field: p.id, deliver: this.bestDeliver(p.id), sell: true });
+      if (hasMiner) return void this.setOp({ k: 'mine', field: p.id, deliver: '', sell: true, auto: true }); // quick start: automatic unloading & sale (edit in the group panel)
       const f = this.st.fields[p.id];
       return void this.setOp({ k: 'patrol', at: f.pos, radius: f.radius + 400 });
     }
@@ -224,6 +236,12 @@ export class PmcHud {
     const g = sys.gates[0];
     const dx = sys.origin.x - g.pos.x, dz = sys.origin.z - g.pos.z, l = Math.hypot(dx, dz) || 1;
     return { x: g.pos.x + dx / l * 4000, y: 0, z: g.pos.z + dz / l * 4000 };
+  }
+
+  /** cursor readout: score, zone and a coloured grade */
+  private secCursor(p: V): string {
+    const v = secAt(this.st, p), z = secZone(v);
+    return `<span class="sectip"><b style="color:${z.color}">지역 치안 ${Math.round(v)}</b> · ${z.name} <i style="background:${z.color}">${z.grade}</i></span>`;
   }
 
   private secLine(p: V): string {
@@ -306,14 +324,15 @@ export class PmcHud {
         <div class="mrow"><button class="btn go" data-view="${sel.id}">이 성계 보기</button>
         ${g && g.owner === this.me ? `<button class="btn" data-goto="${sel.id}" ${gSys === sel.id ? 'disabled' : ''}>${esc(g.name)} 이동 (${hops}회 점프)</button>` : '<span class="dim small">편대를 선택하면 이 성계로 이동을 명령할 수 있습니다.</span>'}</div></div>`;
     }
-    el.innerHTML = `<div class="panel sbox gbox"><div class="shdr"><div><div class="stitle">성계 지도</div><div class="dim">점프게이트로 연결된 성계들. 치안이 낮을수록 자원과 보수가 크지만 해적이 강하다. 클릭: 정보 · 더블클릭: 이동해서 보기</div></div><button class="btn" data-close>✕</button></div>${svg}${info}</div>`;
+    morph(el, `<div class="panel sbox gbox"><div class="shdr"><div><div class="stitle">성계 지도</div><div class="dim">점프게이트로 연결된 성계들. 치안이 낮을수록 자원과 보수가 크지만 해적이 강하다. 클릭: 정보 · 더블클릭: 이동해서 보기</div></div><button class="btn" data-close>✕</button></div>${svg}${info}</div>`);
     el.querySelector<HTMLButtonElement>('[data-close]')!.onclick = () => this.toggleGalaxy();
     el.querySelectorAll<SVGGElement>('[data-sys]').forEach(n => {
-      n.addEventListener('click', () => { this.galSel = n.dataset.sys!; this.renderGalaxy(); });
-      n.addEventListener('dblclick', () => { this.v.setSystem(n.dataset.sys!); this.toggleGalaxy(); });
+      // property handlers: the map is morphed in place, so listeners must not pile up
+      n.onclick = () => { this.galSel = n.dataset.sys!; this.renderGalaxy(); };
+      n.ondblclick = () => { this.v.setSystem(n.dataset.sys!); this.toggleGalaxy(); };
     });
-    el.querySelector<HTMLButtonElement>('[data-view]')?.addEventListener('click', e => { this.v.setSystem((e.target as HTMLElement).dataset.view!); this.toggleGalaxy(); });
-    el.querySelector<HTMLButtonElement>('[data-goto]')?.addEventListener('click', e => { const id = (e.target as HTMLElement).dataset.goto!; this.setOp({ k: 'move', to: this.systemDestination(id) }); this.toggleGalaxy(); });
+    const vb = el.querySelector<HTMLButtonElement>('[data-view]'); if (vb) vb.onclick = e => { this.v.setSystem((e.target as HTMLElement).dataset.view!); this.toggleGalaxy(); };
+    const gb = el.querySelector<HTMLButtonElement>('[data-goto]'); if (gb) gb.onclick = e => { const id = (e.target as HTMLElement).dataset.goto!; this.setOp({ k: 'move', to: this.systemDestination(id) }); this.toggleGalaxy(); };
   }
   private galSel: string | null = null;
 
@@ -346,17 +365,6 @@ export class PmcHud {
   private frameGap = 16;
   private lastFrameAt = 0;
 
-  private bestDeliver(fieldId: string): string {
-    const f = this.st.fields[fieldId];
-    let best = 'astra', bd = Infinity;
-    for (const s of Object.values(this.st.stations)) {
-      if (!(s.public && s.market) && !(s.owner === this.me && s.modules.some(m => m.kind === 'core' && m.built))) continue;
-      const d = Math.hypot(s.pos.x - f.pos.x, s.pos.z - f.pos.z) * (s.owner === this.me ? 0.7 : 1);
-      if (d < bd) { bd = d; best = s.id; }
-    }
-    return best;
-  }
-
   private subtree(g: WGroup): WShip[] {
     const out = this.shipsOf(g);
     for (const cid of g.childIds) { const cg = this.st.groups[cid]; if (cg) out.push(...this.subtree(cg)); }
@@ -378,7 +386,7 @@ export class PmcHud {
       case 'move': { const pt = plane(); if (pt) this.setOp({ k: 'move', to: pt }); return; }
       case 'patrol': { if (p?.kind === 'field') { const f = this.st.fields[p.id]; this.setOp({ k: 'patrol', at: f.pos, radius: f.radius + 400 }); return; } const pt = plane(); if (pt) this.setOp({ k: 'patrol', at: pt, radius: 900 }); return; }
       case 'dock': if (p?.kind === 'station') this.setOp({ k: 'dock', station: p.id }); else this.hint('정박할 정거장을 클릭하세요'); return;
-      case 'mine': if (p?.kind === 'field') this.setOp({ k: 'mine', field: p.id, deliver: this.bestDeliver(p.id), sell: true }); else this.hint('소행성 지대를 클릭하세요'); return;
+      case 'mine': if (p?.kind === 'field') { this.mineForm = { group: g.id, field: p.id, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.setMode(null); this.hint('하역 목적지와 하역 방식을 고른 뒤 「작업 시작」을 누르세요'); this.refresh(true); } else this.hint('소행성 지대를 클릭하세요'); return;
       case 'haul_from': if (p?.kind === 'station') { this.haulFrom = p.id; this.mode = 'haul_to'; this.hint('운송 목적지 정거장을 클릭하세요'); } else this.hint('출발 정거장을 클릭하세요'); return;
       case 'haul_to': if (p?.kind === 'station' && this.haulFrom) this.openHaulRes(this.haulFrom, p.id); else this.hint('목적지 정거장을 클릭하세요'); return;
       case 'escort': { const s = p?.kind === 'ship' ? this.st.ships[p.id] : null; if (s && s.owner === this.me && s.groupId !== g.id) this.setOp({ k: 'escort', group: s.groupId }); else this.hint('호위할 자사 함선을 클릭하세요'); return; }
@@ -405,7 +413,7 @@ export class PmcHud {
     this.mode = m;
     const e = document.getElementById('modeHint')!;
     const txt: Record<string, string> = {
-      move: '이동 지점 클릭', dock: '정박할 정거장 클릭', mine: '채굴할 소행성 지대 클릭 (하역지는 가장 가까운 정거장)', haul_from: '운송 출발 정거장 클릭',
+      move: '이동 지점 클릭', dock: '정박할 정거장 클릭', mine: '채굴할 소행성 지대 클릭 → 하역 목적지·방식 설정', haul_from: '운송 출발 정거장 클릭',
       patrol: '순찰 지점 또는 소행성 지대 클릭', escort: '호위할 자사 함선 클릭', attack: '해적 함선 또는 은신처 클릭', build: '건설할 자사 정거장 클릭',
       found: `정거장 부지 클릭 — 다른 정거장과 2,600 이상 떨어져야 함 (비용 ${fmt(FOUND_COST.credits)} cr + 합금 ${FOUND_COST.alloy})`,
     };
@@ -585,7 +593,10 @@ export class PmcHud {
     const el = document.getElementById('sel')!;
     const s = this.sel;
     const g = this.group ? this.st.groups[this.group] : null;
-    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, g?.status, g?.commanderId, g?.parentId, g?.override, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, s?.kind === 'field' ? Math.round((this.st.fields[s.id]?.amount ?? 0) / 20) : 0, Math.round(this.st.companies[this.me]?.credits / 100)]);
+    // drop a mining edit once the server reflects it (or after a few seconds)
+    if (this.mineForm?.live && g && (g.id !== this.mineForm.group || performance.now() - this.mineForm.t > 4000 || (g.op.k === 'mine' && this.sameMine(g.op, this.mineForm)))) this.mineForm = null;
+    if (this.mineForm && !this.mineForm.live && this.mineForm.group !== this.group) this.mineForm = null;
+    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.parentId, g?.override, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, s?.kind === 'field' ? Math.round((this.st.fields[s.id]?.amount ?? 0) / 20) : 0, Math.round(this.st.companies[this.me]?.credits / 100)]);
     if (!force && selKey === this.lastSelKey) return;
     this.lastSelKey = selKey;
     if (!s && !g) { el.classList.add('hidden'); return; }
@@ -593,12 +604,15 @@ export class PmcHud {
     let html = '';
     if (s && s.kind !== 'group' && !(s.kind === 'ship' && this.st.ships[s.id]?.owner === this.me)) html += this.infoHtml(s);
     if (g && g.owner === this.me) html += this.groupHtml(g);
-    el.innerHTML = html;
+    trackSelects(el);
+    morph(el, html);
+    this.bindMineForm(el);
     el.querySelectorAll<HTMLButtonElement>('[data-op]').forEach(b => b.onclick = () => this.opButton(b.dataset.op!));
     el.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(b => b.onclick = () => this.openStation(b.dataset.open!));
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
     el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
     el.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(b => b.onclick = () => this.setOp(JSON.parse(b.dataset.quick!)));
+    el.querySelectorAll<HTMLButtonElement>('[data-minehere]').forEach(b => b.onclick = () => { if (!this.group) return; this.mineForm = { group: this.group, field: b.dataset.minehere!, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.refresh(true); });
     const nm = el.querySelector<HTMLInputElement>('[data-rename]'); if (nm) nm.onchange = () => this.cmd({ c: 'renameGroup', group: nm.dataset.rename!, name: nm.value });
     const cs = el.querySelector<HTMLSelectElement>('[data-cmdsel]'); if (cs) cs.onchange = () => this.cmd({ c: 'assignCmd', group: cs.dataset.cmdsel!, commander: cs.value || null });
     const ps = el.querySelector<HTMLSelectElement>('[data-parent]'); if (ps) ps.onchange = () => this.cmd({ c: 'setParent', group: ps.dataset.parent!, parent: ps.value || null });
@@ -625,7 +639,7 @@ export class PmcHud {
         <div class="bar2"><i style="width:${f.amount / f.max * 100}%;background:${RES_COLOR[f.res]}"></i></div>
         <div class="dim">매장량 ${fmt(f.amount)} / ${fmt(f.max)}${f.regen ? ` · 재생 ${f.regen}/s` : ` · ${Math.max(0, Math.round((f.expires - st.time) / 60))}분 후 소멸`}${(f.rich ?? 1) !== 1 ? ` · 채굴 효율 ×${(f.rich ?? 1).toFixed(2)}` : ''}</div>
         <div class="svc">${this.secLine(f.pos)}</div>
-        ${this.group ? `<button class="btn" data-quick='${JSON.stringify({ k: 'mine', field: f.id, deliver: this.bestDeliver(f.id), sell: true })}'>선택 편대 채굴 지시 (판매)</button><button class="btn" data-quick='${JSON.stringify({ k: 'mine', field: f.id, deliver: this.bestDeliver(f.id), sell: false })}'>채굴 후 창고 보관</button><button class="btn" data-quick='${JSON.stringify({ k: 'patrol', at: f.pos, radius: f.radius + 400 })}'>이 지역 순찰</button>` : '<div class="dim">편대를 선택하고 우클릭하면 채굴을 지시합니다.</div>'}</div>`;
+        ${this.group ? `<button class="btn" data-minehere="${f.id}">이 지대 채굴 설정…</button><button class="btn" data-quick='${JSON.stringify({ k: 'patrol', at: f.pos, radius: f.radius + 400 })}'>이 지역 순찰</button>` : '<div class="dim">편대를 선택하고 우클릭하면 채굴을 지시합니다.</div>'}</div>`;
     }
     if (s.kind === 'lair') {
       const l = st.lairs[s.id]; if (!l) return '';
@@ -697,9 +711,89 @@ export class PmcHud {
           ${opb('build', '건설', '', hasCon)}${opb('found', '정거장 설립', '', ships.some(s => s.classId === 'constructor'))}
           ${opb('idle', '대기', 'I')}${g.parentId ? `<button class="btn${!g.override ? ' on' : ''}" data-op="release" title="상위 편대 지휘관에게 위임">위임<span class="key">T</span></button>` : ''}
         </div>
+        ${hasMiner ? this.mineFormHtml(g) : ''}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}
       </div></div>`;
+  }
+
+  // ------------------------------------------------------------ mining job form
+  // field → unloading station (auto / own / public, any reachable system) → store or sell → start.
+  // While a mining op runs the same form shows its settings, and changes apply immediately.
+
+  private mineForm: { group: string; field: string; deliver: string; sell: boolean; live: boolean; t: number } | null = null;
+
+  private sameMine(op: Extract<Op, { k: 'mine' }>, f: { field: string; deliver: string; sell: boolean }) {
+    return op.field === f.field && op.sell === f.sell && (f.deliver === 'auto' ? !!op.auto : !op.auto && op.deliver === f.deliver);
+  }
+
+  /** client mirror of the server's deliverProblem (the server re-validates every order) */
+  private deliverWhy(stId: string, sell: boolean): string | null {
+    const x = this.st.stations[stId];
+    if (!x) return '정거장이 사라짐';
+    if (!(x.public || (x.owner === this.me && x.modules.some(m => m.kind === 'core' && m.built)))) return x.owner === this.me ? '핵심 모듈 미완성' : '하역 권한 없음';
+    if (sell && !x.market) return '시장 없음 — 판매 불가';
+    return null;
+  }
+
+  private mineFormHtml(g: WGroup): string {
+    const st = this.st;
+    const op = g.op.k === 'mine' && (g.override || !g.parentId) ? g.op : null;
+    const form = this.mineForm?.group === g.id ? this.mineForm : op ? { field: op.field, deliver: op.auto ? 'auto' : op.deliver, sell: op.sell, live: true } : null;
+    if (!form) return '';
+    const f = st.fields[form.field];
+    const fsys = f ? sysAt(st.systems, f.pos)?.id : undefined;
+    const sysName = (p: V) => st.systems[sysAt(st.systems, p)?.id ?? '']?.name ?? '';
+    const hop = (p: V) => { const ss = sysAt(st.systems, p)?.id; const j = fsys && ss ? jumps(st.systems, fsys, ss) : 0; return j ? ` · 점프 ${j}회` : ''; };
+    const stOpt = (x: Station) => { const why = this.deliverWhy(x.id, form.sell); return `<option value="${x.id}"${form.deliver === x.id ? ' selected' : ''}${why ? ' disabled' : ''}>${esc(x.name)} (${sysName(x.pos)}${hop(x.pos)})${why ? ` — ${why}` : x.tax ? ` · 세금 ${Math.round(x.tax * 100)}%` : ''}</option>`; };
+    const all = Object.values(st.stations);
+    const own = all.filter(x => x.owner === this.me), pub = all.filter(x => x.public);
+    const fieldsBySys = Object.values(st.systems).map(sy => [sy, Object.values(st.fields).filter(x => sysAt(st.systems, x.pos)?.id === sy.id)] as const).filter(([, fs]) => fs.length);
+    // what will actually happen
+    const autoId = form.deliver === 'auto' ? (op?.auto && op.field === form.field && op.sell === form.sell ? op.deliver : null) : form.deliver;
+    const dest = autoId ? st.stations[autoId] : null;
+    const why = form.deliver === 'auto' ? null : this.deliverWhy(form.deliver, form.sell);
+    const problem = op && form.live ? this.deliverWhy(op.deliver, op.sell) : why;
+    return `<div class="minecfg" data-mineform="${g.id}">
+      <div class="mh"><b>${form.live ? '채굴 작업' : '채굴 작업 설정'}</b>${form.live ? `<span class="dim"> · 변경 즉시 적용</span>` : ''}</div>
+      <label>채굴 구역<select data-mf="field">${fieldsBySys.map(([sy, fs]) => `<optgroup label="${esc(sy.name)}">${fs.map(x => `<option value="${x.id}"${x.id === form.field ? ' selected' : ''}>${esc(x.name)} · ${RES_NAME[x.res]} ${fmt(x.amount)}${(x.rich ?? 1) !== 1 ? ` · 효율 ×${(x.rich ?? 1).toFixed(2)}` : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <label>하역 목적지<select data-mf="deliver"><option value="auto"${form.deliver === 'auto' ? ' selected' : ''}>자동 선택 (가까운 이용 가능 정거장)</option>
+        ${own.length ? `<optgroup label="내 정거장">${own.map(stOpt).join('')}</optgroup>` : ''}<optgroup label="공용 정거장">${pub.map(stOpt).join('')}</optgroup></select></label>
+      <label>하역 방식<select data-mf="sell"><option value="0"${!form.sell ? ' selected' : ''}>창고 보관 (정거장 내 자사 창고)</option><option value="1"${form.sell ? ' selected' : ''}>자동 판매 (정거장 시장)</option></select></label>
+      <div class="mstat">${f ? `채굴 구역: <b>${esc(f.name)}</b> <span class="dim">(${sysName(f.pos)})</span>` : '<span class="warn">채굴 구역 없음</span>'}
+        · 하역 목적지: <b>${form.deliver === 'auto' ? `자동${dest ? ` → ${esc(dest.name)}` : ''}` : esc(st.stations[form.deliver]?.name ?? '(소멸)')}</b>
+        · 하역 방식: <b>${form.sell ? '자동 판매' : '창고 보관'}</b>${form.live ? ` · 현재 작업: <b>${esc(g.status)}</b>` : ''}</div>
+      ${problem ? `<div class="warn small">⚠ 하역지 문제: ${problem}. 화물은 판매되지 않고 보관됩니다 — 목적지를 다시 지정하세요.</div>` : ''}
+      ${form.live ? '' : `<div class="row"><button class="btn go" data-mf-start ${why || !f ? 'disabled' : ''}>작업 시작</button><button class="btn" data-mf-cancel>취소</button></div>`}
+    </div>`;
+  }
+
+  private bindMineForm(el: Element) {
+    const box = el.querySelector<HTMLElement>('[data-mineform]'); if (!box) return;
+    const gid = box.dataset.mineform!;
+    const g = this.st.groups[gid]; if (!g) return;
+    const cur = () => {
+      if (this.mineForm?.group === gid) return { ...this.mineForm };
+      const op = g.op as Extract<Op, { k: 'mine' }>;
+      return { group: gid, field: op.field, deliver: op.auto ? 'auto' : op.deliver, sell: op.sell, live: true, t: 0 };
+    };
+    const toOp = (f: { field: string; deliver: string; sell: boolean }): Op => f.deliver === 'auto' ? { k: 'mine', field: f.field, deliver: '', sell: f.sell, auto: true } : { k: 'mine', field: f.field, deliver: f.deliver, sell: f.sell };
+    box.querySelectorAll<HTMLSelectElement>('[data-mf]').forEach(sel => sel.onchange = () => {
+      const f = cur();
+      const k = sel.dataset.mf!;
+      if (k === 'field') f.field = sel.value; else if (k === 'deliver') f.deliver = sel.value; else f.sell = sel.value === '1';
+      // switching to "sell" with a station that has no market: fall back to automatic choice, visibly
+      if (k === 'sell' && f.deliver !== 'auto' && this.deliverWhy(f.deliver, f.sell)) { f.deliver = 'auto'; this.toast('이 정거장에서는 판매할 수 없어 하역 목적지를 자동 선택으로 바꿨습니다.', 'warn'); }
+      f.t = performance.now();
+      this.mineForm = f;
+      if (f.live) this.cmd({ c: 'setOp', group: gid, op: toOp(f) }).then(ok => { if (!ok) this.mineForm = null; this.refresh(true); });
+      else this.refresh(true);
+    });
+    const start = box.querySelector<HTMLButtonElement>('[data-mf-start]');
+    const doneHint = () => document.getElementById('modeHint')?.classList.add('hidden');
+    if (start) start.onclick = () => { const f = cur(); this.cmd({ c: 'setOp', group: gid, op: toOp(f) }).then(ok => { if (ok) { this.mineForm = null; doneHint(); } this.refresh(true); }); };
+    const cancel = box.querySelector<HTMLButtonElement>('[data-mf-cancel]');
+    if (cancel) cancel.onclick = () => { this.mineForm = null; doneHint(); this.refresh(true); };
   }
 
   private shipDetail(s: WShip): string {
@@ -765,7 +859,7 @@ export class PmcHud {
     const s = this.st.stations[this.modalStation!];
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
-    const key = JSON.stringify([this.modalTab, Math.round(co.credits), s.storage[this.me], s.market, s.modules, Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
+    const key = JSON.stringify([this.modalTab, Math.round(co.credits), co.rep, this.myGroups().map(g => g.id + g.name), s.storage[this.me], s.market, s.modules, Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
@@ -785,16 +879,25 @@ export class PmcHud {
       case 'contracts': body = this.contractsHtml(s); break;
       case 'build': body = this.buildHtml(s); break;
     }
-    this.modal.innerHTML = `<div class="panel sbox"><div class="shdr"><div><div class="stitle">${esc(s.name)}</div><div class="dim">${esc(s.desc)}</div></div><div class="money">${fmt(co.credits)} cr</div><button class="btn" data-close>✕</button></div>
-      <div class="tabs">${vis.map(([k, l]) => `<button class="btn${k === this.modalTab ? ' on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div><div class="sbody2">${body}</div></div>`;
+    trackSelects(this.modal);
+    // patched in place (not rebuilt): open dropdowns, picks, typed text and scroll survive live updates
+    morph(this.modal, `<div class="panel sbox"><div class="shdr"><div><div class="stitle">${esc(s.name)}</div><div class="dim">${esc(s.desc)}</div></div><div class="money">${fmt(co.credits)} cr</div><button class="btn" data-close>✕</button></div>
+      <div class="tabs">${vis.map(([k, l]) => `<button class="btn${k === this.modalTab ? ' on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div><div class="sbody2" data-body="${this.modalTab}">${body}</div></div>`);
     const m = this.modal;
     m.querySelector<HTMLButtonElement>('[data-close]')!.onclick = () => this.closeModal();
-    m.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b => b.onclick = () => { this.modalTab = b.dataset.tab!; this.renderModal(true); });
+    m.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b => b.onclick = () => {
+      // each tab keeps its own scroll position
+      const cur = m.querySelector<HTMLElement>('.sbody2'); if (cur) this.tabScroll.set(this.modalTab, cur.scrollTop);
+      this.modalTab = b.dataset.tab!; this.renderModal(true);
+      const nb = m.querySelector<HTMLElement>('.sbody2'); if (nb) nb.scrollTop = this.tabScroll.get(this.modalTab) ?? 0;
+    });
     m.querySelectorAll<HTMLButtonElement>('[data-trade]').forEach(b => b.onclick = () => { const [kind, res, amt] = b.dataset.trade!.split(':'); this.cmd({ c: kind as 'sell' | 'buy', station: s.id, res: res as Res, amount: Number(amt) }); });
     m.querySelectorAll<HTMLButtonElement>('[data-buyship]').forEach(b => b.onclick = () => {
       const cls = b.dataset.buyship!;
-      const lo = (m.querySelector(`[data-lo="${cls}"]`) as HTMLSelectElement)?.value ?? SHIP_CLASSES[cls].loadouts[0].id;
-      const grp = (m.querySelector(`[data-grp="${cls}"]`) as HTMLSelectElement)?.value || undefined;
+      const loSel = m.querySelector<HTMLSelectElement>(`[data-lo="${cls}"]`), grpSel = m.querySelector<HTMLSelectElement>(`[data-grp="${cls}"]`);
+      if (loSel?.classList.contains('gone') || grpSel?.classList.contains('gone')) { this.toast('선택한 무장 또는 배속 편대를 더 이상 사용할 수 없습니다. 다시 선택하세요.', 'warn'); return; }
+      const lo = loSel?.value ?? SHIP_CLASSES[cls].loadouts[0].id;
+      const grp = grpSel?.value || undefined;
       this.cmd({ c: 'buyShip', station: s.id, classId: cls, loadoutId: lo, group: grp });
     });
     m.querySelectorAll<HTMLButtonElement>('[data-repair]').forEach(b => b.onclick = () => this.cmd({ c: 'repair', ship: b.dataset.repair! }));
@@ -832,9 +935,10 @@ export class PmcHud {
         <div class="dim">${esc(c.desc)}</div>
         <div class="ys">내구 ${c.hp} · 순항 ${e.cruise} ${e.cargo ? `· 화물 ${e.cargo}` : ''}${e.mine ? ` · 채굴 ${e.mine}/s` : ''}</div>
         ${locked ? `<div class="warn">연합 평판 ${e.rep} 필요 (현재 ${co.rep}) — 해적 토벌과 계약으로 평판을 올리세요</div>` : `
-        <div class="yrow"><select data-lo="${id}">${c.loadouts.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('')}</select>
-        <select data-grp="${id}"><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
-        <button class="btn go" data-buyship="${id}" ${co.credits < price || !canAlloy ? 'disabled' : ''}>구매</button></div>`}</div>`;
+        <div class="yrow"><select data-lo="${id}" data-keep>${c.loadouts.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('')}</select>
+        <select data-grp="${id}" data-keep><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
+        <button class="btn go" data-buyship="${id}" ${co.credits < price || !canAlloy ? 'disabled' : ''}>구매</button></div>
+        ${co.credits < price ? `<div class="warn small">자금 부족 — ${fmt(price - co.credits)} cr 더 필요</div>` : !canAlloy ? `<div class="warn small">합금 부족 — 이 정거장 창고 ${fmt(store?.alloy ?? 0)}/${e.alloy}</div>` : ''}`}</div>`;
     }).join('')}</div>`;
   }
 
@@ -1022,9 +1126,11 @@ export class PmcHud {
     const st = this.st;
     if (!pk) {
       // empty space: local security under the cursor (only when it matters for a decision)
-      const pt = this.v.showSecurity || this.mode === 'found' || this.mode === 'move' ? this.v.screenToPlane(this.pointer.x, this.pointer.y, 0) : null;
-      if (!pt || !this.v.inView(pt)) { tip.classList.add('hidden'); return; }
-      tip.innerHTML = this.secLine(pt);
+      // empty space with the security map on: the exact local security under the cursor
+      const pt = this.v.showSecurity && this.pointer.over ? this.v.screenToPlane(this.pointer.x, this.pointer.y, 0) : null;
+      const sys = pt && this.v.sys;
+      if (!pt || !sys || !this.v.inView(pt) || Math.hypot(pt.x - sys.origin.x, pt.z - sys.origin.z) > sys.radius * 1.02) { tip.classList.add('hidden'); return; }
+      tip.innerHTML = this.secCursor(pt);
       tip.style.left = `${this.pointer.x + 14}px`; tip.style.top = `${this.pointer.y + 12}px`;
       tip.classList.remove('hidden');
       return;

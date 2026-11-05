@@ -30,7 +30,9 @@ export type Op =
   | { k: 'idle' }
   | { k: 'move'; to: V }
   | { k: 'dock'; station: string }
-  | { k: 'mine'; field: string; deliver: string; sell: boolean }
+  /** deliver: unloading station; sell: sell there (else store in the company's storage there);
+   *  auto: the server picks (and re-picks) the most suitable reachable station */
+  | { k: 'mine'; field: string; deliver: string; sell: boolean; auto?: boolean }
   | { k: 'haul'; from: string; to: string; res: Res }
   | { k: 'patrol'; at: V; radius: number }
   | { k: 'escort'; group: string }

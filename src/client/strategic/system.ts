@@ -2,7 +2,40 @@
 // security map. Built in global coordinates and parented to the view's world root.
 import * as THREE from 'three';
 import type { StarSystem, Station, Lair, V } from '../../world/types';
-import { secAt } from '../../world/security';
+import { secField } from '../../world/security';
+
+const SEC_MAX = 48;
+const SEC_VS = /* glsl */`
+varying vec2 vP;
+// plane local (x, y) → system-local (x, z): the plane is rotated -90° about X
+void main() { vP = vec2(position.x, -position.y); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const SEC_FS = /* glsl */`
+uniform float uEff; uniform float uRim; uniform float uR; uniform int uN; uniform vec4 uSrc[${SEC_MAX}]; uniform float uAlpha;
+varying vec2 vP;
+vec3 bandCol(float v) {
+  // core / settled / frontier / danger / lawless, blended across a few points at each border
+  vec3 c = vec3(1.00, 0.20, 0.16);
+  c = mix(c, vec3(1.00, 0.48, 0.18), smoothstep(13.0, 17.0, v));
+  c = mix(c, vec3(1.00, 0.80, 0.25), smoothstep(37.0, 43.0, v));
+  c = mix(c, vec3(0.35, 1.00, 0.58), smoothstep(67.0, 73.0, v));
+  c = mix(c, vec3(0.30, 0.85, 1.00), smoothstep(88.0, 92.0, v));
+  return c;
+}
+float iso(float v, float t, float w) { float d = abs(v - t) / max(fwidth(v), 1e-4); return 1.0 - smoothstep(w * 0.5, w * 0.5 + 1.0, d); }
+void main() {
+  float r = length(vP) / uR;
+  if (r > 1.02) discard;
+  float v = uEff - clamp((r - 0.5) / 0.5, 0.0, 1.0) * uRim;
+  for (int i = 0; i < ${SEC_MAX}; i++) { if (i >= uN) break; vec4 s = uSrc[i]; v += s.z * max(0.0, 1.0 - length(vP - s.xy) / s.w); }
+  v = clamp(v, 0.0, 100.0);
+  vec3 col = bandCol(v);
+  // danger glows, safety is a light tint; band borders are crisp anti-aliased lines
+  float fill = mix(0.36, 0.17, smoothstep(10.0, 70.0, v));
+  float major = max(max(iso(v, 15.0, 2.2), iso(v, 40.0, 2.2)), max(iso(v, 70.0, 2.2), iso(v, 90.0, 2.2)));
+  float edge = 1.0 - smoothstep(0.96, 1.02, r);
+  float a = clamp(fill + major * 0.9, 0.0, 1.0) * edge * uAlpha;
+  gl_FragColor = vec4(mix(col, vec3(1.0), major * 0.25) * (0.85 + major * 0.25), a);
+}`;
 
 const PLANET_VS = /* glsl */`
 varying vec3 vN; varying vec3 vW; varying vec3 vL;
@@ -76,9 +109,7 @@ export class SystemScene {
   private starMat: THREE.ShaderMaterial;
   private planetMats: THREE.ShaderMaterial[] = [];
   private secPlane: THREE.Mesh;
-  private secTex: THREE.DataTexture;
-  private secMat: THREE.MeshBasicMaterial;
-  private secKey = '';
+  private secMat: THREE.ShaderMaterial;
   private spin: THREE.Object3D[] = [];
   readonly sys: StarSystem;
 
@@ -154,14 +185,15 @@ export class SystemScene {
       this.group.add(obj);
       this.gates.push({ id: g.id, obj, disc, pos: g.pos });
     }
-    // security map: a soft colour wash on the ecliptic plane
-    const N = 192;
-    this.secTex = new THREE.DataTexture(new Uint8Array(N * N * 4), N, N, THREE.RGBAFormat);
-    this.secTex.magFilter = THREE.LinearFilter; this.secTex.minFilter = THREE.LinearFilter;
-    this.secMat = new THREE.MeshBasicMaterial({ map: this.secTex, transparent: true, opacity: 0.0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    // security map: evaluated per pixel in a shader from the same formula as secAt (no texture, so
+    // band borders stay sharp and smooth at any zoom); hidden unless the player turns it on
+    this.secMat = new THREE.ShaderMaterial({
+      vertexShader: SEC_VS, fragmentShader: SEC_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      uniforms: { uEff: { value: 0 }, uRim: { value: 0 }, uR: { value: sys.radius }, uN: { value: 0 }, uSrc: { value: Array.from({ length: SEC_MAX }, () => new THREE.Vector4()) }, uAlpha: { value: 0 } },
+    });
     this.secPlane = new THREE.Mesh(new THREE.PlaneGeometry(sys.radius * 2.1, sys.radius * 2.1), this.secMat);
     this.secPlane.rotation.x = -Math.PI / 2; this.secPlane.position.set(o.x, -200, o.z);
-    this.secPlane.renderOrder = -4;
+    this.secPlane.renderOrder = -4; this.secPlane.visible = false;
     this.group.add(this.secPlane);
     // system boundary
     this.group.add(circle(sys.radius, new THREE.LineBasicMaterial({ color: 0x40a0ff, transparent: true, opacity: 0.18 }), o.x, o.z, -200));
@@ -178,39 +210,18 @@ export class SystemScene {
     this.group.add(lines);
   }
 
-  /** recompute the security wash when stations, lairs or system heat change */
+  /** push the current security field (heat, garrisons, defences, lairs) into the shader */
   updateSecurity(w: { systems: Record<string, StarSystem>; stations: Record<string, Station>; lairs: Record<string, Lair> }) {
     const sys = w.systems[this.sys.id]; if (!sys) return;
-    const key = `${Math.round(sys.heat)}|${Object.values(w.lairs).map(l => l.alive ? 1 : 0).join('')}|${Object.keys(w.stations).length}|${Object.values(w.stations).reduce((a, s) => a + s.modules.filter(m => m.built).length, 0)}`;
-    if (key === this.secKey) return;
-    this.secKey = key;
-    const N = this.secTex.image.width, d = this.secTex.image.data as Uint8Array;
-    const R = sys.radius * 1.05;
-    const col = (v: number): [number, number, number] => v >= 90 ? [60, 200, 255] : v >= 70 ? [70, 230, 140] : v >= 40 ? [230, 190, 70] : v >= 15 ? [240, 110, 50] : [240, 40, 40];
-    const band = (v: number) => v >= 90 ? 4 : v >= 70 ? 3 : v >= 40 ? 2 : v >= 15 ? 1 : 0;
-    const vals = new Float32Array(N * N), rrs = new Float32Array(N * N);
-    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      const x = sys.origin.x + (i / (N - 1) * 2 - 1) * R, z = sys.origin.z - (j / (N - 1) * 2 - 1) * R;
-      rrs[j * N + i] = Math.hypot(x - sys.origin.x, z - sys.origin.z) / sys.radius;
-      vals[j * N + i] = rrs[j * N + i] > 1.02 ? -1 : secAt(w, { x, y: 0, z }, sys);
-    }
-    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      const k = (j * N + i) * 4, v = vals[j * N + i], rr = rrs[j * N + i];
-      if (v < 0) { d[k] = d[k + 1] = d[k + 2] = 0; d[k + 3] = 255; continue; }
-      const b = band(v);
-      // contour where a neighbour falls in another band: the readable part of the map
-      let edge = false;
-      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + di, jj = j + dj; if (ii < 0 || jj < 0 || ii >= N || jj >= N) continue; const nv = vals[jj * N + ii]; if (nv >= 0 && band(nv) !== b) edge = true; }
-      const [r, g, bl] = col(v);
-      const fade = 1 - Math.min(1, Math.max(0, (rr - 0.92) / 0.1));
-      // safe space is only tinted; dangerous space glows
-      const a = fade * (edge ? 0.75 : b >= 3 ? 0.03 : b === 2 ? 0.07 : b === 1 ? 0.13 : 0.17);
-      d[k] = r * a; d[k + 1] = g * a; d[k + 2] = bl * a; d[k + 3] = 255;
-    }
-    this.secTex.needsUpdate = true;
+    const f = secField(w, sys), u = this.secMat.uniforms;
+    u.uEff.value = f.eff; u.uRim.value = f.rim; u.uR.value = f.radius;
+    // the strongest sources first if a system ever has more than the shader holds
+    const src = f.src.length > SEC_MAX ? [...f.src].sort((a, b) => Math.abs(b[2]) * b[3] - Math.abs(a[2]) * a[3]).slice(0, SEC_MAX) : f.src;
+    u.uN.value = src.length;
+    src.forEach(([x, z, amp, r], i) => (u.uSrc.value[i] as THREE.Vector4).set(x, z, amp, r));
   }
 
-  setSecurityOpacity(o: number) { this.secMat.opacity = o; this.secPlane.visible = o > 0.003; }
+  setSecurityOpacity(o: number) { this.secMat.uniforms.uAlpha.value = o; this.secPlane.visible = o > 0.003; }
 
   update(dt: number, time: number) {
     this.starMat.uniforms.uTime.value = time;

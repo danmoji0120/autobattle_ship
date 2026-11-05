@@ -12,7 +12,7 @@ import { emptyCargo, cargoSum, RES } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
 import { effSec, secAt } from './security';
-import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate } from './geom';
+import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate, jumps } from './geom';
 
 export const STRAT_DT = 0.25;
 const ENGAGE_R = 420;
@@ -125,6 +125,29 @@ export class WorldSim {
   }
   storage(st: Station, company: string): Cargo { return st.storage[company] ??= emptyCargo(); }
   hasModule(st: Station, kind: string) { return st.modules.some(m => m.kind === kind && m.built); }
+  /** why a station can't take this mining delivery (null = fine) */
+  deliverProblem(st: Station | undefined, company: string, sell: boolean): string | null {
+    if (!st) return '하역 정거장이 사라짐';
+    if (!this.canDock(st, company)) return st.owner === company ? '정거장 핵심 모듈 미완성' : '하역 권한 없음';
+    if (sell && !st.market) return '시장이 없는 정거장 (자동 판매 불가 — 창고 보관을 선택하세요)';
+    return null;
+  }
+
+  /** best station to unload a field's ore: same system first, own stations preferred for storage */
+  autoDeliver(company: string, fieldId: string, sell: boolean): string | null {
+    const f = this.st.fields[fieldId]; if (!f) return null;
+    const fs = sysAt(this.st.systems, f.pos)?.id;
+    let best: string | null = null, bd = Infinity;
+    for (const st of Object.values(this.st.stations)) {
+      if (this.deliverProblem(st, company, sell)) continue;
+      const ss = sysAt(this.st.systems, st.pos)?.id;
+      const j = fs && ss ? jumps(this.st.systems, fs, ss) : 0;
+      const d = (Math.hypot(st.pos.x - f.pos.x, st.pos.z - f.pos.z) + j * 200000) * (!sell && st.owner === company ? 0.6 : 1);
+      if (d < bd) { bd = d; best = st.id; }
+    }
+    return best;
+  }
+
   canDock(st: Station, company: string) { return st.public || (st.owner === company && this.hasModule(st, 'core')); }
 
   price(st: Station, res: Res, side: 'sell' | 'buy'): number {
@@ -197,6 +220,8 @@ export class WorldSim {
     switch (cmd.c) {
       case 'setOp': {
         const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
+        // automatic unloading: resolve the station now (and again whenever it stops being usable)
+        if (cmd.op.k === 'mine' && cmd.op.auto) cmd.op = { ...cmd.op, deliver: this.autoDeliver(company, cmd.op.field, cmd.op.sell) ?? '' };
         const err = this.validateOp(company, g, cmd.op);
         if (err) return err;
         if (cmd.op.k === 'found') {
@@ -356,11 +381,10 @@ export class WorldSim {
     switch (op.k) {
       case 'mine': {
         const f = this.st.fields[op.field]; const st = this.st.stations[op.deliver];
-        if (!f || !st) return '대상 없음';
-        if (!this.canDock(st, company)) return '하역할 수 없는 정거장';
+        if (!f) return '소행성 지대 없음';
+        if (!st) return op.auto ? '하역 가능한 정거장이 없음' : '하역 정거장 없음';
         if (!sub.some(s => ECON[s.classId].mine > 0)) return '채굴선이 없음';
-        if (op.sell && !st.market) return '시장이 없는 정거장';
-        return null;
+        return this.deliverProblem(st, company, op.sell);
       }
       case 'haul': {
         const a = this.st.stations[op.from], b = this.st.stations[op.to];
@@ -1034,19 +1058,25 @@ export class WorldSim {
 
   private behaveMine(s: WShip, g: WGroup, op: Extract<Op, { k: 'mine' }>, dt: number, speed: number, c: CommanderDef) {
     const st = this.st;
-    const f = st.fields[op.field]; const dock = st.stations[op.deliver];
-    if (!f || !dock) { g.status = '작전 대상 소멸'; return; }
+    const f = st.fields[op.field];
+    if (!f) { g.status = '작전 대상 소멸'; return; }
+    const dock = this.mineDock(g, op);
     const ec = ECON[s.classId];
     const groupShips = this.subtreeShipsInOp(g);
     const haulers = groupShips.filter(x => x.classId === 'hauler' && x.state !== 'battle');
     if (ec.mine > 0) {
       const cap = ec.cargo;
       if (s.state === 'docked') {
-        if (cargoSum(s.cargo) > 0) this.unload(s, dock, op.sell);
+        if (cargoSum(s.cargo) > 0 && dock) this.unload(s, dock, op.sell);
         this.undock(s);
       }
       const full = cargoSum(s.cargo) >= cap * 0.98;
-      if (full && (!haulers.length || (s.task as any).why === 'deliver')) {
+      if (!dock && (full || (s.task as any).why === 'deliver')) {
+        // nowhere valid to unload: hold the ore (never sell it somewhere the player didn't choose)
+        s.task = { k: 'none' }; s.vel.x *= 0.8; s.vel.z *= 0.8;
+        g.status = '하역지 사용 불가 — 화물 보관 중, 목적지 재지정 필요'; return;
+      }
+      if (full && dock && (!haulers.length || (s.task as any).why === 'deliver')) {
         s.task = { k: 'goto', to: dock.pos, why: 'deliver' };
         if (this.goDock(s, dock, dt, speed)) { this.unload(s, dock, op.sell); this.undock(s); s.task = { k: 'none' }; }
         g.status = '광석 운반 중';
@@ -1055,11 +1085,15 @@ export class WorldSim {
       if (full) {
         const w = ((s as any)._waitFull = ((s as any)._waitFull ?? 0) + dt);
         // a capable commander doesn't let miners idle: go deliver yourself if the hauler is late
-        if (w > 40 - c.skill * 25) { s.task = { k: 'goto', to: dock.pos, why: 'deliver' }; (s as any)._waitFull = 0; }
+        if (w > 40 - c.skill * 25 && dock) { s.task = { k: 'goto', to: dock.pos, why: 'deliver' }; (s as any)._waitFull = 0; }
         g.status = '수송선 대기 (화물칸 가득)'; s.vel.x *= 0.8; s.vel.z *= 0.8; return;
       }
       (s as any)._waitFull = 0;
-      if (f.amount < 1) { g.status = `${f.name} 고갈 — 재생 대기`; if (cargoSum(s.cargo) > 0) s.task = { k: 'goto', to: dock.pos, why: 'deliver' }; return; }
+      if (f.amount < 1) {
+        g.status = `${f.name} 고갈 — 재생 대기`;
+        if (cargoSum(s.cargo) > 0 && dock) { s.task = { k: 'goto', to: dock.pos, why: 'deliver' }; if (this.goDock(s, dock, dt, speed)) { this.unload(s, dock, op.sell); this.undock(s); s.task = { k: 'none' }; } }
+        return;
+      }
       const rock = hashId(s.id) % f.rocks;
       const spot = miningSpot(f, rock);
       if (this.moveTo(s, spot, speed, dt, 18)) {
@@ -1076,7 +1110,7 @@ export class WorldSim {
     }
     if (ec.cargo > 0 && s.classId === 'hauler') {
       const cap = ec.cargo;
-      if (s.state === 'docked') { if (cargoSum(s.cargo) > 0) this.unload(s, dock, op.sell); this.undock(s); }
+      if (s.state === 'docked') { if (cargoSum(s.cargo) > 0 && dock) this.unload(s, dock, op.sell); this.undock(s); }
       const miners = groupShips.filter(x => ECON[x.classId].mine > 0 && x.state === 'space');
       const load = cargoSum(s.cargo);
       // stick with the current donor until it's empty, otherwise pick the fullest miner
@@ -1095,7 +1129,8 @@ export class WorldSim {
         }
         return;
       }
-      if (load > cap * 0.5 || (load > 0 && !donor) || delivering) {
+      if (!dock && (load > cap * 0.5 || delivering)) { s.task = { k: 'none' }; this.moveTo(s, this.formationSlot(s, g, vadd(f.pos, { x: 0, y: 60, z: 0 }), 120), speed, dt); return; }
+      if (dock && (load > cap * 0.5 || (load > 0 && !donor) || delivering)) {
         s.task = { k: 'goto', to: dock.pos, why: 'deliver' };
         if (this.goDock(s, dock, dt, speed)) { this.unload(s, dock, op.sell); this.undock(s); s.task = { k: 'none' }; }
         return;
@@ -1112,6 +1147,24 @@ export class WorldSim {
       return;
     }
     this.moveTo(s, this.formationSlot(s, g, f.pos, 150), speed, dt);
+  }
+
+  /** the station this mining op unloads at right now, or null (and one warning) if it can't be used */
+  private mineDock(g: WGroup, op: Extract<Op, { k: 'mine' }>): Station | null {
+    let st: Station | undefined = this.st.stations[op.deliver];
+    let why = this.deliverProblem(st, g.owner, op.sell);
+    if (why && op.auto) {
+      const alt = this.autoDeliver(g.owner, op.field, op.sell);
+      if (alt) { op.deliver = alt; st = this.st.stations[alt]; why = null; this.say(g, `자동 하역지 변경: ${st.name}.`, 'radio', 0.3); }
+    }
+    const warned = (g as any)._dockWarn as string | undefined;
+    if (!why) { if (warned) delete (g as any)._dockWarn; return st!; }
+    if (warned !== op.deliver + why) {
+      (g as any)._dockWarn = op.deliver + why;
+      const co = this.st.companies[g.owner];
+      if (co?.kind === 'player') this.ev('warn', `${g.name}: ${st ? `하역지 ${st.name} 사용 불가 — ${why}` : '하역 정거장이 사라졌습니다'}. 화물은 판매하지 않고 보관 중입니다. 하역 목적지를 다시 지정하세요.`, { company: g.owner, who: g.name, pos: st?.pos });
+    }
+    return null;
   }
 
   /** ships that share this group's effective op: the group plus delegated children */

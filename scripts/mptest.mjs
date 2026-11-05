@@ -67,6 +67,8 @@ const tokA = a.token; a.close(); await wait(500);
 const a2 = new Client('ignored', tokA); await a2.open();
 ok(a2.company === a.company, 'token reconnect restores the same PMC');
 await wait(600);
+ok(await a2.cmd({ c: 'setOp', group: mining.id, op: { k: 'mine', field: 'kestrel', deliver: '', sell: false, auto: true } }) === null, 'A switches mining to automatic destination + storage');
+await wait(1200);
 const t1 = a2.snap.time;
 // restart server: state persists
 a2.close(); b.close();
@@ -75,5 +77,5 @@ ok(fs.existsSync(SAVE), 'world saved on shutdown');
 srv = await startServer();
 const a3 = new Client('x', tokA); await a3.open(); await wait(700);
 ok(a3.company === a.company && a3.snap.time >= t1 - 1, `after restart same PMC & world time continues (t=${a3.snap.time.toFixed(1)} ≥ ${t1.toFixed(1)})`);
-ok(a3.group('제1 채굴반').op.k === 'mine', 'orders survive restart');
+{ const op = a3.group('제1 채굴반').op; ok(op.k === 'mine' && op.auto === true && op.sell === false && !!a3.snap.stations[op.deliver], `mining settings survive restart (auto → ${op.deliver}, store)`); }
 a3.close(); srv.kill('SIGTERM');
