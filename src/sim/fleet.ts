@@ -3,7 +3,15 @@ import { SHIP_CLASSES, shipCost } from './data/ships';
 
 export type InitialOrder = 'auto' | 'engage' | 'flank_left' | 'flank_right' | 'escort' | 'hold' | 'reserve' | 'retreat';
 
-export interface ShipSpec { classId: string; loadoutId: string; name?: string; /** external id (persistent world) */ ref?: string; /** starting hull fraction */ hp?: number; /** fitted equipment / research effects */ fx?: ShipFx }
+export interface ShipSpec {
+  classId: string; loadoutId: string; name?: string;
+  /** external id (persistent world) */ ref?: string;
+  /** starting hull fraction */ hp?: number;
+  /** fitted equipment / research effects */ fx?: ShipFx;
+  /** actual fitted weapons (Fitting V2) — replaces the loadout's mounts; the hull variant's structural
+   *  modifiers come with them. Absent = the class loadout as before. */
+  fit?: { name: string; mounts: import('./data/ships').MountDef[]; hpMul?: number; armorMul?: number; speedMul?: number };
+}
 /** combat effects of fitted modules and research (all default 1, evasion 0) */
 export interface ShipFx { hpMul?: number; armorMul?: number; speedMul?: number; accMul?: number; reloadMul?: number; evasion?: number; pdMul?: number; rangeMul?: number; magMul?: number }
 

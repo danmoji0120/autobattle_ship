@@ -1,13 +1,16 @@
 // Content registry: merges every pack into id-indexed tables. Game code reads hulls, variants,
 // presets and assets only through here. Pure data — safe on server and client.
-import type { AssetDef, ContentPack, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef } from './schema';
+import type { AssetDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef } from './schema';
 import { PACKS } from './packs';
+import { EQUIPMENT } from '../world/industry';
 
 export interface Registry {
   packs: ContentPack[];
   hulls: Record<string, HullDef>;
   variants: Record<string, VariantDef>;
   presets: Record<string, PresetDef>;
+  /** fitting rules per EQUIPMENT id */
+  equipment: Record<string, EquipSpec>;
   assets: Record<string, AssetDef>;
   /** `${classId}/${loadoutId}` → mapping */
   legacy: Record<string, LegacyLoadoutMap>;
@@ -18,7 +21,7 @@ export interface Registry {
 }
 
 export function buildRegistry(packs: ContentPack[]): Registry {
-  const r: Registry = { packs, hulls: {}, variants: {}, presets: {}, assets: {}, legacy: {}, origin: {}, dupes: [] };
+  const r: Registry = { packs, hulls: {}, variants: {}, presets: {}, equipment: {}, assets: {}, legacy: {}, origin: {}, dupes: [] };
   const put = <T extends { id: string }>(tab: Record<string, T>, kind: string, x: T, pack: string) => {
     const k = `${kind}:${x.id}`;
     if (r.origin[k]) r.dupes.push(`${kind} "${x.id}" (${r.origin[k]} · ${pack})`); else { tab[x.id] = x; r.origin[k] = pack; }
@@ -27,6 +30,7 @@ export function buildRegistry(packs: ContentPack[]): Registry {
     for (const h of p.hulls ?? []) put(r.hulls, 'hull', h, p.id);
     for (const v of p.variants ?? []) put(r.variants, 'variant', v, p.id);
     for (const x of p.presets ?? []) put(r.presets, 'preset', x, p.id);
+    for (const e of p.equipment ?? []) put(r.equipment, 'equipment', e, p.id);
     for (const a of p.assets ?? []) put(r.assets, 'asset', a, p.id);
     for (const l of p.legacy ?? []) { const k = `${l.classId}/${l.loadoutId}`; if (r.legacy[k]) r.dupes.push(`legacy "${k}"`); else r.legacy[k] = l; }
   }
@@ -50,12 +54,17 @@ export function variantLayout(variantId: string, reg: Registry = CONTENT): { hul
 /** combat-engine mounts of a preset (same shape as LoadoutDef.mounts) */
 export function presetMounts(presetId: string, reg: Registry = CONTENT): { weapon: string; pos: [number, number, number]; facing: number; arc: number }[] {
   const p = reg.presets[presetId]; if (!p) return [];
-  const lay = variantLayout(p.variant, reg); if (!lay) return [];
+  return layoutMounts(p.variant, p.weapons, reg);
+}
+
+/** combat mounts for a variant with equipment on hardpoints (hardpoint id → EQUIPMENT id), in the
+ *  variant's hardpoint order; items that are not weapons are skipped */
+export function layoutMounts(variantId: string, onHp: Record<string, string>, reg: Registry = CONTENT): { weapon: string; pos: [number, number, number]; facing: number; arc: number }[] {
+  const lay = variantLayout(variantId, reg); if (!lay) return [];
   const out = [];
   for (const hp of lay.hardpoints) {
-    const w = p.weapons[hp.id]; if (!w) continue;
-    const weapon = typeof w === 'string' ? w : w.weapon, arc = typeof w === 'string' ? hp.arc : Math.min(w.arc, hp.arc);
-    out.push({ weapon, pos: hp.pos, facing: hp.facing, arc });
+    const eq = onHp[hp.id]; const weapon = eq && EQUIPMENT[eq]?.weapon; if (!weapon) continue;
+    out.push({ weapon, pos: hp.pos, facing: hp.facing, arc: Math.min(hp.arc, hp.arcBy?.[eq] ?? hp.arc) });
   }
   return out;
 }
@@ -67,6 +76,7 @@ export function legacyOf(classId: string, loadoutId: string, reg: Registry = CON
 }
 
 export const hullsOfClass = (classId: string, reg: Registry = CONTENT) => Object.values(reg.hulls).filter(h => h.classId === classId);
+export const presetsOfHull = (hullId: string, reg: Registry = CONTENT) => Object.values(reg.presets).filter(p => p.hull === hullId);
 export const variantsOfHull = (hullId: string, reg: Registry = CONTENT) => Object.values(reg.variants).filter(v => v.hull === hullId);
 export const assetsFor = (contentId: string, reg: Registry = CONTENT) => Object.values(reg.assets).filter(a => a.for === contentId);
 /** URL of a registered asset, relative to the page (vite serves public/ at the root) */

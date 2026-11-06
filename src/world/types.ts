@@ -31,9 +31,12 @@ export interface Company {
   tech?: string[];
   /** research projects (one lab slot each while running) */
   research?: ResearchProject[];
+  /** saved fitting presets (fitting screen) */
+  fitPresets?: FitPreset[];
   rseq?: number;
 }
 
+export interface FitPreset { id: string; name: string; hull: string; variant: string; hp: Record<string, string>; bay: Record<string, string> }
 export interface ResearchProject { id: string; tech: string; station: string; left: number; total: number; started: boolean; paid?: number; paused?: boolean; why?: string; source?: 'lab' | 'salvage' | 'copy' }
 
 export type Op =
@@ -75,6 +78,8 @@ export interface WShip {
   /** content registry hull + structural variant (set from contentV 1; see world/migrate.ts) */
   hull?: string;
   variant?: string;
+  /** fitted equipment (player ships, contentV ≥ 2) — see world/fitting.ts */
+  fitting?: import('./fitting').ShipFitting;
   name: string;
   hp: number;                // 0..1 hull fraction (persists between battles)
   pos: V; vel: V; heading: number;
@@ -374,6 +379,8 @@ export interface WorldState {
   contentV?: number;
   /** items created by migrations (asset conservation ledger) */
   grants?: import('./migrate').GrantRecord[];
+  /** existing items that changed form during migrations (not new) */
+  conversions?: import('./migrate').ConversionRecord[];
 }
 
 export const emptyCargo = (): Cargo => ({ ore: 0, alloy: 0, crystal: 0 });

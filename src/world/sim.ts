@@ -11,7 +11,9 @@ import type { March, WorldState, WShip, WGroup, Op, V, Res, Station, Field, Carg
 import { emptyCargo, cargoSum, RES, qty, addc, takec, cargoKeys } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
-import { migrateContent, syncShipContent, type MigrationReport } from './migrate';
+import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from './migrate';
+import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, type ShipFitting } from './fitting';
+import { CONTENT, legacyOf } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
 import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
@@ -68,6 +70,11 @@ export type Cmd =
   | { c: 'buildShip'; station: string; classId: string; loadoutId: string; fit?: string[]; group?: string }
   | { c: 'buildOp'; station: string; build: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
   | { c: 'fitShip'; ship: string; fit: string[] }
+  /** Fitting V2: set hardpoint weapons and bay modules (and optionally the structural variant).
+   *  `buy` lets a public station sell missing items at 1.2× market price. */
+  | { c: 'fit'; ship: string; variant?: string; hp: Record<string, string>; bay: Record<string, string>; buy?: boolean; preset?: string }
+  | { c: 'savePreset'; name: string; variant: string; hp: Record<string, string>; bay: Record<string, string> }
+  | { c: 'delPreset'; id: string }
   | { c: 'research'; station: string; tech: string; source?: 'lab' | 'salvage' | 'copy' }
   | { c: 'researchOp'; project: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
   | { c: 'learnBlueprint'; station: string; tech: string }
@@ -213,6 +220,81 @@ export class WorldSim {
     return fitFx(s.fit, co?.tech, armory);
   }
 
+  // ------------------------------------------------------------------ fitting V2 (growth P2)
+
+  /** does this ship use Fitting V2? (player ships once the save reached FITTING_V) */
+  fitsV2(s: WShip): boolean {
+    return (this.st.contentV ?? 0) >= FITTING_V && this.st.companies[s.owner]?.kind === 'player';
+  }
+
+  /** (re)build a ship's fitting from its legacy loadout + modules. Returns modules that found no bay
+   *  (the caller puts them in storage — nothing is dropped). */
+  private legacyFitting(s: WShip): string[] {
+    const r = fittingFromLegacy(s.classId, s.loadoutId, s.fit); if (!r) return [];
+    s.hull = r.hull; s.variant = r.variant; s.fitting = r.fitting;
+    s.fit = bayModules(r.variant, r.fitting);
+    r.fitting.sig = legacySig(s.loadoutId, s.fit);
+    return r.unplaced;
+  }
+
+  /** combat-engine fitting of a V2 ship: mounts from its hardpoints, hull mods from its variant */
+  fittingSpec(s: WShip): ShipSpec['fit'] | undefined {
+    if (!s.fitting || !s.variant) return undefined;
+    // same synthesis the renderers use (shipLoadout), so what is drawn is what fights
+    const l = shipLoadout(s);
+    return { name: l.name, mounts: l.mounts, hpMul: l.hpMul, armorMul: l.armorMul, speedMul: l.speedMul };
+  }
+
+  /** move a docked V2 ship to a new fitting: rules → inventory (all or nothing) → fees → apply.
+   *  Removed items go to the company's storage at that station; added items come from it, or are
+   *  bought (public stations, `buy`). Returns an error message, or null. */
+  private applyFitting(company: string, s: WShip, variant: string, nf: ShipFitting, o: { buy?: boolean; preset?: string; what: string }): string | null {
+    const co = this.st.companies[company];
+    if (!s.fitting || !s.variant || !s.hull) return '이 함선은 아직 피팅 V2가 적용되지 않았습니다';
+    if (s.task.k !== 'docked') return '정박 중이어야 함';
+    const st = this.st.stations[s.task.station];
+    const ownFit = st.owner === company && (this.hasModule(st, 'fitting') || yardSlots(st).length > 0);
+    const pub = !!(st.public && st.services.refit);
+    if (!ownFit && !pub) return '피팅 시설이 없는 정거장';
+    const v = Object.hasOwn(CONTENT.variants, variant) ? CONTENT.variants[variant] : undefined;
+    if (!v || v.hull !== s.hull) return '이 선체의 변형이 아님';
+    // blueprint-graded variants open with the blueprint system (P6); until then only common ones
+    if (variant !== s.variant && v.blueprint !== 'common') return `${v.name}: 설계도 필요 (아직 획득 경로 없음)`;
+    const rep = checkFitting(variant, nf);
+    if (rep.errors.length) return rep.errors[0] + (rep.errors.length > 1 ? ` 외 ${rep.errors.length - 1}건` : '');
+    const delta = itemDelta(fittingItems(s.fitting), fittingItems(nf));
+    const store = this.storage(st, company);
+    const buyList: [string, number][] = [];
+    for (const [k, n] of Object.entries(delta)) {
+      if (n <= 0) continue;
+      const short = n - Math.floor(qty(store, k) + 1e-9);
+      if (short <= 0) continue;
+      const e = EQUIPMENT[k];
+      if (!o.buy || !pub) return `${e?.name ?? k} ${short}개 부족 (보관함에 ${Math.floor(qty(store, k))})${pub ? '' : ' — 자사 시설은 장비를 판매하지 않음'}`;
+      if (e?.tech && !co.tech?.includes(e.tech)) return `${e.name}: 연구 필요 (${techName(e.tech)}) — 구매 불가`;
+      buyList.push([k, short]);
+    }
+    const buyCost = Math.round(buyList.reduce((a, [k, n]) => a + n * itemPriceOf(k) * 1.2, 0));
+    const changed = Object.keys(delta).length;
+    const varFee = variant !== s.variant && !ownFit ? Math.round(ECON[s.classId].price * 0.15) : 0;
+    const fee = ownFit ? 0 : (changed ? 400 + changed * 300 : 0) + varFee;
+    if (!changed && variant === s.variant) return '변경 사항 없음';
+    if (co.credits < fee + buyCost) return `자금 부족 — ${(fee + buyCost).toLocaleString()} cr 필요`;
+    // all checks passed: from here nothing can fail
+    co.credits -= fee + buyCost;
+    for (const [k, n] of buyList) addc(store, k, n);
+    for (const [k, n] of Object.entries(delta)) addc(store, k, -n);
+    const pid = o.preset ?? matchingPreset(variant, nf);
+    s.variant = variant;
+    s.fitting = { hp: { ...nf.hp }, bay: { ...nf.bay }, ...(pid ? { preset: pid } : {}) };
+    s.fit = bayModules(variant, s.fitting);
+    s.loadoutId = loadoutLabel(s.classId, variant, s.fitting);
+    s.fitting.sig = legacySig(s.loadoutId, s.fit);
+    const cost = fee + buyCost;
+    this.ev('money', `${s.name} ${o.what}${buyList.length ? ` · 장비 ${buyList.reduce((a, x) => a + x[1], 0)}개 구매` : ''}${cost ? ` -${cost.toLocaleString()} cr` : ''} (빠진 장비는 보관함으로)`, { company, pos: st.pos });
+    return null;
+  }
+
   /** free warehouse space for a company at a station (public stations: unlimited) */
   room(st: Station, company: string): number {
     if (st.owner !== company) return Infinity;
@@ -259,6 +341,7 @@ export class WorldSim {
     const nm = name ?? (civ[classId] ? `${civ[classId]} ${this.st.nextId % 100}호` : `${this.rng.pick(names)}${this.rng.chance(0.4) ? ' ' + ['II', 'III', 'IV', 'V'][this.rng.int(4)] : ''}`);
     const s: WShip = { id, owner, classId, loadoutId, name: nm, hp: 1, pos: { ...pos }, vel: { x: 0, y: 0, z: 0 }, heading: this.rng.range(0, 6.28), groupId, state: 'space', task: { k: 'none' }, cargo: emptyCargo(), kills: 0 };
     syncShipContent(this.st, s);
+    if (this.fitsV2(s)) this.legacyFitting(s);
     this.st.ships[id] = s;
     this.st.groups[groupId].shipIds.push(id);
     return s;
@@ -433,6 +516,18 @@ export class WorldSim {
       }
       case 'refit': {
         const s = this.st.ships[cmd.ship]; if (!s || s.owner !== company || s.task.k !== 'docked') return '정박 중이어야 함';
+        if (s.fitting) {
+          // V2: a loadout is a hull preset — its weapons on the hardpoints, current modules kept
+          const m = legacyOf(s.classId, getLoadout(s.classId, cmd.loadoutId).id); const p = m && CONTENT.presets[m.preset];
+          if (!p) return '알 수 없는 무장 구성';
+          let bay = s.fitting.bay;
+          if (p.variant !== s.variant) {
+            const pl = placeModules(p.variant, s.fit ?? []);
+            if (pl.unplaced.length) return '이 구성으로는 장착 모듈을 모두 수용할 수 없음';
+            bay = pl.bay;
+          }
+          return this.applyFitting(company, s, p.variant, { hp: { ...p.weapons }, bay: { ...bay } }, { buy: true, preset: p.id, what: `무장 구성 변경: ${p.name}` });
+        }
         const st = S(s.task.station);
         const ownFit = st.owner === company && (this.hasModule(st, 'fitting') || yardSlots(st).length > 0);
         if (!st.services.refit && !ownFit) return '개조 시설 없음';
@@ -698,6 +793,13 @@ export class WorldSim {
       case 'fitShip': {
         const s = this.st.ships[cmd.ship];
         if (!s || s.owner !== company || s.task.k !== 'docked') return '정박 중인 자사 함선만 장비를 바꿀 수 있습니다';
+        if (s.fitting) {
+          // V2: modules go into bays (typed bays first), weapons stay
+          const mods = (Array.isArray(cmd.fit) ? cmd.fit : []).filter(k => EQUIPMENT[k]?.kind === 'module').slice(0, 16);
+          const pl = placeModules(s.variant!, mods);
+          if (pl.unplaced.length) return `내부 베이 부족 — ${pl.unplaced.map(k => EQUIPMENT[k].name).join(', ')} 장착 불가`;
+          return this.applyFitting(company, s, s.variant!, { hp: { ...s.fitting.hp }, bay: pl.bay }, { what: '모듈 변경' });
+        }
         const st = S(s.task.station);
         const ownFit = st.owner === company && (this.hasModule(st, 'fitting') || yardSlots(st).length > 0);
         if (!ownFit && !(st.public && st.services.refit)) return '피팅 시설이 없는 정거장';
@@ -716,6 +818,35 @@ export class WorldSim {
         for (const k of new Set([...Object.keys(cur), ...Object.keys(nxt)])) addc(store, k, (cur[k] ?? 0) - (nxt[k] ?? 0));
         s.fit = fit;
         this.ev('money', `${s.name} 장비 변경: ${fit.map(k => EQUIPMENT[k].name).join(', ') || '없음'}${fee ? ` -${fee.toLocaleString()} cr` : ''}`, { company, pos: st.pos });
+        return null;
+      }
+      case 'fit': {
+        const s = this.st.ships[cmd.ship];
+        if (!s || s.owner !== company) return '자사 함선이 아님';
+        if (!s.fitting) return '이 함선은 아직 피팅 V2가 적용되지 않았습니다';
+        const obj = (x: unknown) => typeof x === 'object' && x !== null && !Array.isArray(x);
+        if (!obj(cmd.hp) || !obj(cmd.bay)) return '잘못된 피팅 데이터';
+        const variant = typeof cmd.variant === 'string' ? cmd.variant : s.variant!;
+        const preset = typeof cmd.preset === 'string' && (Object.hasOwn(CONTENT.presets, cmd.preset) || co.fitPresets?.some(x => x.id === cmd.preset)) ? cmd.preset : undefined;
+        return this.applyFitting(company, s, variant, normFitting(cmd), { buy: !!cmd.buy, preset, what: '피팅 변경' });
+      }
+      case 'savePreset': {
+        const v = typeof cmd.variant === 'string' && Object.hasOwn(CONTENT.variants, cmd.variant) ? CONTENT.variants[cmd.variant] : undefined; if (!v) return '알 수 없는 선체 변형';
+        const nf = normFitting(cmd);
+        const rep = checkFitting(cmd.variant, nf); if (rep.errors.length) return `저장 불가 — ${rep.errors[0]}`;
+        const list = (co.fitPresets ??= []);
+        const name = String(cmd.name ?? '').trim().slice(0, 24) || '내 피팅';
+        const same = list.find(x => x.name === name && x.hull === v.hull);
+        if (!same && list.length >= 20) return '피팅 프리셋은 20개까지 저장할 수 있습니다';
+        const p = { id: same?.id ?? this.id('fp'), name, hull: v.hull, variant: cmd.variant, hp: nf.hp, bay: nf.bay };
+        if (same) Object.assign(same, p); else list.push(p);
+        this.ev('info', `피팅 프리셋 저장: ${name}`, { company });
+        return null;
+      }
+      case 'delPreset': {
+        const list = co.fitPresets ?? []; const i = list.findIndex(x => x.id === cmd.id);
+        if (i < 0) return '프리셋 없음';
+        list.splice(i, 1);
         return null;
       }
       case 'renameCompany': co.name = cmd.name.slice(0, 20) || co.name; return null;
@@ -758,6 +889,7 @@ export class WorldSim {
     if (!g || g.owner !== company) g = this.newGroup(company, ECON[b.classId]?.military ? '신조함 편대' : `${cls.type}반`);
     const s = this.spawnShip(company, b.classId, b.loadoutId, g.id, st.pos);
     s.fit = [...b.fit];
+    if (this.fitsV2(s)) for (const m of this.legacyFitting(s)) addc(this.storage(st, company), m, 1);
     this.dockShip(s, st);
     this.ev('world', `${this.st.companies[company]?.name}: ${st.name} 조선소에서 ${cls.name} ${cls.type} "${s.name}" 진수!`, { pos: st.pos, ref: st.id });
     this.ev('info', `${st.name}: ${hullName(b.classId)} "${s.name}" 진수 — ${g.name}에 배속`, { company, pos: st.pos, tag: 'ship_done' });
@@ -2094,7 +2226,7 @@ export class WorldSim {
     const cmd: CommanderDef = { ...c, team };
     const mil = ships.filter(s => s.groupId === g.id && ECON[s.classId].military);
     const civ = ships.filter(s => s.groupId === g.id && !ECON[s.classId].military);
-    const spec = (s: WShip): ShipSpec => ({ classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp, ...(this.st.companies[s.owner]?.kind === 'player' ? { fx: this.shipFxOf(s) } : {}) });
+    const spec = (s: WShip): ShipSpec => { const fit = this.fittingSpec(s); return { classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp, ...(this.st.companies[s.owner]?.kind === 'player' ? { fx: this.shipFxOf(s) } : {}), ...(fit ? { fit } : {}) }; };
     const kids: GroupSpec[] = [];
     for (const cid of g.childIds) if (included.has(cid)) kids.push(...this.toGroupSpec(this.st.groups[cid], ships, included, team));
     const out: GroupSpec[] = [];

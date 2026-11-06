@@ -1,7 +1,8 @@
-# SIDERARIUM 콘텐츠 스키마 (P1 초안)
+# SIDERARIUM 콘텐츠 스키마 (P2)
 
 > 기준 코드: `src/content/schema.ts`. 이 문서와 코드가 다르면 코드가 맞고 문서를 고친다.
-> P2에서 장비·내부 슬롯 규격이 추가되고 Codex 제작 가이드(`CODEX_CONTENT_GUIDE.md`) 초안이 나온다. P7에서 최종본.
+> P2: 장비 규격(EquipSpec), 내부 베이, 전력·질량, 하드포인트별 무기 사계(`arcBy`), 장비 id 프리셋, 함선 피팅 저장 형식 추가.
+> 실제 작업 절차는 `docs/CODEX_CONTENT_GUIDE.md`. P7에서 최종본.
 
 ## 1. 구조
 
@@ -10,6 +11,7 @@ ContentPack (src/content/packs/<id>/index.ts)
   hulls[]     HullDef      실제 선체 (외형·하드포인트·내부 슬롯)
   variants[]  VariantDef   선체의 구조적 변형 (장비 미포함)
   presets[]   PresetDef    이름 붙은 무장 배치안
+  equipment[] EquipSpec    장비의 피팅 규격 (크기·질량·전력·마운트)
   legacy[]    LegacyLoadoutMap  기존 (classId, loadoutId) → 새 콘텐츠 (core 팩 전용)
   assets[]    AssetDef     그래픽 자산 등록
 ```
@@ -39,8 +41,10 @@ ContentPack (src/content/packs/<id>/index.ts)
 | `tier` | 1~4 | 기술 단계 |
 | `size` | Size | 산업선은 S~XL로 크기 구분, 전투선은 조선소 등급 기준 |
 | `hardpoints` | HardpointDef[] | §3.1 |
-| `internals` | InternalSlotDef[] | `{ id, kind, size }`, kind = `engine`·`reactor`·`sensor`·`fcs`·`ew`·`armor`·`special` (P2부터 사용) |
-| `moduleSlots` | 0~12 | 기존 모듈 슬롯 수 (P2에서 internals로 대체) |
+| `internals` | InternalSlotDef[] | 내부 베이 `{ id, kind, size }`, kind = `engine`·`reactor`·`sensor`·`fcs`·`ew`·`armor`·`special`(범용) |
+| `moduleSlots` | 0~12 | 기존 모듈 슬롯 수 (참고용, mk1 선체의 기존 호환 기준) |
+| `power` | 0~1000 | 기본 전력 공급량. 반응로 모듈이 공급을 더한다 |
+| `mass` | 0~3000 | 장비 적재 질량 한도 (무장 + 모듈) |
 | `mesh` | `{ base, scale, model? }` | `base` = 절차적 실루엣 계열(함급 id), `scale` 0.2~5, `model` = 등록된 `ship-model` 에셋 id |
 | `blueprint` | BlueprintGrade | |
 
@@ -55,9 +59,15 @@ ContentPack (src/content/packs/<id>/index.ts)
 | `size` | 장착 가능한 최대 무기 크기 |
 | `type` | `ballistic` · `energy` · `missile` · `universal` · `pd` |
 | `mount` | `turret`(사계 안에서 선회) · `fixed`(함 자체를 돌려 조준, arc ≤ 45 권장) · `vls`(수직 발사) · `spinal`(용골 축, arc ≤ 15 권장) |
+| `arcBy?` | `{ [장비 id]: 사계 }` — 특정 장비가 이 하드포인트에서 더 좁게 선회할 때 (0 < 값 ≤ arc). 예: 대형 레일포는 포탑 사계 70° |
 
-**장착 규칙:** 무기 크기 ≤ 하드포인트 크기. PD 무기는 크기만 맞으면 어느 하드포인트에나, PD 하드포인트는 PD 무기만.
+**장착 규칙 (서버가 강제, `src/content/rules.ts`):** 장비 크기 ≤ 하드포인트 크기. PD 무기는 크기만 맞으면 어느 하드포인트에나, PD 하드포인트는 PD 무기만.
 universal은 모든 무기. 그 외에는 계열이 같아야 한다(실탄 = 함포·레일, 에너지 = 레이저·입자, 미사일 = 미사일·어뢰).
+장비에 `mounts`가 있으면 하드포인트의 mount가 그 목록에 있어야 한다. 실제 사계 = min(arc, arcBy[장비]).
+
+**내부 베이 규칙:** 모듈 종류 = 베이 kind (또는 베이가 `special`), 모듈 크기 ≤ 베이 크기.
+
+**전력·질량:** Σ(장비 power ≥ 0) ≤ 선체 power + Σ(반응로 공급), Σ(장비 mass) ≤ 선체 mass. 하나라도 어기면 피팅 적용 불가.
 
 ## 4. VariantDef
 
@@ -71,15 +81,31 @@ universal은 모든 무기. 그 외에는 계열이 같아야 한다(실탄 = �
 
 변형은 **구조만** 바꾼다. 무장 배치는 프리셋으로 표현한다. 모든 선체는 변형이 최소 1개(기본형) 있어야 한다.
 
+## 4.5 EquipSpec (장비 규격)
+
+장비 자체(이름·가격·연구·전투 효과)는 `src/world/industry.ts`의 `EQUIPMENT`, 피팅 규격은 팩의 `equipment[]`.
+모든 `EQUIPMENT`는 규격이 있어야 한다(없으면 검증 오류).
+
+| 필드 | 설명 |
+|---|---|
+| `id` | `EQUIPMENT` id (예: `eq_laser`, `mod_reactor`) |
+| `slot` | `hardpoint`(무장) 또는 내부 베이 kind (`engine`·`reactor`·`sensor`·`fcs`·`ew`·`armor`) |
+| `size` | S·M·L·XL |
+| `mass` | 0~200 |
+| `power` | −200~200. 음수 = 공급(반응로만 허용, 그 외는 경고) |
+| `mounts?` | 무장만: 장착 가능한 mount 목록 (없으면 전부) |
+
 ## 5. PresetDef
 
 | 필드 | 설명 |
 |---|---|
 | `id`, `hull`, `variant`, `name`, `desc` | `variant`는 `hull`의 변형이어야 함 |
-| `weapons` | `{ [하드포인트 id]: 무기 id }`. 무기 id는 `src/sim/data/weapons.ts` (P2부터 장비 id) |
+| `weapons` | `{ [하드포인트 id]: 장비 id }` (예: `"hp01": "eq_heavy_cannon"`). 장착 규칙·전력·질량을 모두 만족해야 함 |
 | `costDelta?` | NPC 구매가 차이 |
 
-`{ weapon, arc }` 형태는 기존 데이터를 완전히 똑같이 재현하려고 core 팩에만 쓴 사계 축소 표기다. 새 콘텐츠에서 쓰면 경고가 나온다.
+P1의 `{ weapon, arc }` 표기는 P2에서 없어졌다. 사계 축소는 하드포인트의 `arcBy`로 표현한다.
+
+프리셋은 모듈을 정하지 않는다. 선체 프리셋을 적용하면 무장만 바뀌고 장착 모듈은 유지된다(회사 프리셋은 모듈 포함).
 
 ## 6. 그래픽 자산 (AssetDef)
 
@@ -117,4 +143,14 @@ universal은 모든 무기. 그 외에는 계열이 같아야 한다(실탄 = �
 |---|---|---|
 | `WShip` | `hull`, `variant` | `contentV ≥ 1`부터. 로드아웃 변경 시 자동 동기화 |
 | `ShipBuild` | `hull`, `variant` | 건조 대기열 |
-| `WorldState` | `contentV`, `grants[]` | 마이그레이션 버전, 지급 원장 |
+| `WShip` | `fitting` | `contentV ≥ 2`, 플레이어 함선만. `{ hp: {하드포인트→장비}, bay: {베이→모듈}, preset?, sig }` — 무장·모듈의 **원본**. `loadoutId`는 표시용 라벨, `fit`은 베이 모듈 사본 |
+| `Company` | `fitPresets[]` | 회사 피팅 프리셋 (최대 20) `{ id, name, hull, variant, hp, bay }` |
+| `WorldState` | `contentV`, `grants[]`, `conversions[]` | 마이그레이션 버전, 지급 원장, 형태 변환 원장(기존 아이템이 모양만 바뀐 기록, 지급 아님) |
+
+**하드포인트·베이 id는 세이브에 저장된다.** 공개된 선체의 id를 바꾸거나 지우면 기존 함선 피팅이 깨진다. 대신 새 변형/선체를 추가한다.
+
+## 9. mk1 선체 호환 보장
+
+기존 12개 선체(`*_mk1`)는 내부 베이가 모두 `special` M, 개수 = `moduleSlots`. `power`/`mass`는 "기존 프리셋 + 기존에 허용되던 모든 모듈 조합(Σ크기 ≤ 슬롯)" 중 최댓값과 **정확히** 같다.
+그래서 기존 함선은 전부 그대로 들어가고, 베이만으로 예전보다 많이 싣지는 못한다(예: 2슬롯 코르벳에 증가 장갑 2개 → 질량 초과).
+검증기가 모든 조합을 전수 검사한다. mk1 선체의 power/mass/베이를 줄이면 검증 오류가 난다.

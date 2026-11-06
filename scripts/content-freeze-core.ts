@@ -1,4 +1,4 @@
-// One-off generator (P1): turns the legacy ship tables (SHIP_CLASSES loadouts + HULLS) into the
+// HISTORICAL — do not re-run (it would overwrite hand edits). One-off generator (P1): turns the legacy ship tables (SHIP_CLASSES loadouts + HULLS) into the
 // explicit core content pack src/content/packs/core/hulls.ts. After P1 that file is the source of
 // truth and is edited by hand; this script stays only to document how it was derived.
 //   npx vite-node scripts/content-freeze-core.ts
@@ -34,7 +34,7 @@ for (const c of Object.values(SHIP_CLASSES)) {
   const yard = h?.yard ?? 3;
   hulls.push({
     id: hullId, classId: c.id, name: c.name, tier: Math.min(4, yard) as 1 | 2 | 3 | 4, size: SIZE[yard - 1],
-    hardpoints: hps, internals: [], moduleSlots: h?.slots ?? 0,
+    hardpoints: hps, internals: [], moduleSlots: h?.slots ?? 0, power: 0, mass: 0, // power/mass/bays were set by hand in P2
     mesh: { base: c.id, scale: 1 }, blueprint: h?.tech ? 'advanced' : 'common', desc: c.desc,
   });
   const baseVar = `${hullId}_std`;

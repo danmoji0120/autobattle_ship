@@ -193,7 +193,7 @@ interface AssetDef { id; kind; file; for; author?; license?; notes? }
 P2 이후 확정 예정(초안):
 
 ```ts
-interface ShipFitting { hull; variant; hp: Record<hardpointId, itemInstanceId>; internal: Record<slotId, itemInstanceId>; preset? }
+interface ShipFitting { hp: Record<hardpointId, equipmentId>; bay: Record<bayId, equipmentId>; preset?; sig? }   // P2 확정 (src/world/fitting.ts)
 interface ItemInstance { id; item; origin: 'owned' | 'legacy-mounted' | 'grant'; since: number }   // §6
 interface UpkeepState { mode: 'active' | 'docked' | 'reserve'; due: number; stage: 0|1|2|3; reason?: string }
 interface MarketLine { stock; target; base; demand; demandCap; recover }
@@ -208,10 +208,13 @@ interface ResearchDef { id; field: ResearchField; tier; time; pre; cost{credits,
 
 ### 6.1 원칙
 1. **비파괴·결정적 매핑:** `classId → hull`, `loadoutId → variant (+preset)`. 매핑 불가 항목은 그대로 두고 보고(`unmapped`). 삭제 없음.
-2. **별도 버전:** `st.contentV` (현재 `CONTENT_VERSION = 1`). `WORLD_VERSION`·`INDUSTRY_VERSION`·`WORLD_RESET`·세대 펜스·계정 테이블은 건드리지 않는다.
+2. **별도 버전:** `st.contentV` (P1 = 1, P2 = 2 피팅). `WORLD_VERSION`·`INDUSTRY_VERSION`·`WORLD_RESET`·세대 펜스·계정 테이블은 건드리지 않는다.
 3. **기존 소유분과 신규 지급분의 구분:**
    - 기존 소유 장비 = 창고의 장비 아이템 + 함선에 장착된 모듈 + **로드아웃에 장착된 무기**(현재는 함선의 일부로만 존재하지만, P1부터 센서스에서 장비로 센다).
-   - P2에서 장착 무기를 실물 아이템으로 바꿀 때 그 아이템은 `origin: 'legacy-mounted'`(기존 자산의 형태 변환)로 표시하고, 수량은 센서스의 기존 장착 수와 정확히 같아야 한다.
+   - P2에서 장착 무기를 실물 아이템으로 바꿀 때 그 아이템은 기존 자산의 형태 변환으로 기록하고, 수량은 센서스의 기존 장착 수와 정확히 같아야 한다.
+     **P2 구현 결정:** 장비는 창고에서 수량 스택(`Cargo`)으로 보관되므로 개별 인스턴스(`ItemInstance.origin`) 대신
+     회사·아이템별 **변환 원장 `st.conversions`** (`{v, company, item, n, ships, why}`)로 기록한다. 지급(`grants`)이 아니므로
+     센서스 식에 더해지지 않는다. 개별 인스턴스가 필요해지면(P6 청사진 등) 그때 도입한다.
    - 새 시스템이 요구하지만 기존에 어떤 형태로도 없던 장비·청사진은 `origin: 'grant'`로 만들고 **`st.grants` 원장에 한 건씩 기록**한다 (`{v, at, company, ref, item, n, why}`).
 4. **보존 검증식:** 회사·아이템별로 `마이그레이션 후 수량 = 이전 수량 + 원장에 기록된 지급 수량`. 플레이어 수·함선·정거장·시설 수는 동일, 크레딧 ±1 이내. 하나라도 어긋나면 서버는 저장하지 않고 종료한다(`compareCensus`).
 5. **멱등성:** 같은 마이그레이션을 다시 실행해도 아무것도 바뀌지 않는다. 이전 코드로 롤백한 동안 생긴 함선은 다시 올렸을 때 자동 보정된다.
@@ -224,6 +227,10 @@ interface ResearchDef { id; field: ResearchField; tier; time; pre; cost{credits,
 
 ### 6.3 되돌리기 절차 (리허설 완료)
 - **코드 롤백:** Render에서 이전 배포로 롤백(또는 이전 커밋 재배포). 콘텐츠 마이그레이션은 필드 추가만 하므로 이전 코드가 마이그레이션된 세이브를 그대로 읽고 저장한다(리허설 3단계 확인). 다시 새 코드로 올리면 그 사이 생긴 함선이 자동 보정된다.
+- **P2(c2) 이후 코드 롤백 주의:** P1 이하 코드는 `fitting`을 모르고 `loadoutId`(라벨)·`fit`만 본다. 사용자 피팅(프리셋과 다른
+  무장)을 가진 함선은 롤백 중에는 라벨 로드아웃으로 싸우고, 이전 코드에서 그 함선을 개조하면 장비 계산이 실제 장착과 어긋날 수 있다.
+  다시 올리면 `fitting.sig` 불일치로 그 함선만 기존 로드아웃 기준으로 재구성된다(테스트로 확인). 따라서 c2 적용 **후** P1 이전으로
+  코드를 되돌려야 하면 **데이터 롤백(c2 적용 직전 백업)도 함께** 한다. c2 적용 전(현재 운영)에는 코드 롤백만으로 안전하다.
 - **데이터 롤백:**
   `UPDATE siderarium_world SET data = (SELECT data FROM siderarium_world WHERE id = '<백업 키>'), gen = gen + 1, updated = now() WHERE id = 'main';`
   `gen` 증가로 실행 중인 인스턴스는 다음 저장 시 펜스되어 더 이상 쓰지 않는다(리허설 확인). 이어서 서버를 재시작하면 복원된 월드를 읽는다. 데이터 롤백 후 코드를 그대로 두면 dry-run 모드로 동작하므로 재적용 전까지 다시 마이그레이션되지 않는다(`CONTENT_MIGRATE` 해제 필요).
@@ -235,6 +242,7 @@ interface ResearchDef { id; field: ResearchField; tier; time; pre; cost{credits,
 | 단계 | 테스트 | 완료 기준 |
 |---|---|---|
 | 공통 | `npm test`, `tsc`, `build:server`, `npm run content:check`, `scripts/mptest.mjs`, 싱글플레이 브라우저 스모크 | 전부 통과. **UI/UX·시각 품질·조작 편의 점검**(해당 단계에 화면 변경이 있으면 1080p/1440p 스크린샷과 조작 흐름 기록) |
+| P2 | 장착 규칙·서버 거부 13종, 장착/해제 총량 불변·실패 원자성, 25 프리셋 전투 다이제스트 동일, 렌더 포탑 = 하드포인트, v2 마이그레이션 보존·변환 원장·반환·sig 재구성, mptest 실행 수 가드 | 리허설(파일) 통과, 피팅 화면 1080p·1440p |
 | P1 | 레지스트리 무결성, 기존 25 로드아웃 → 프리셋 마운트 완전 일치, 검증기가 깨진 데이터 12종 검출, 에셋 등록 규칙, 마이그레이션 멱등·센서스·왕복, dry-run 무변경, 롤백·재적용 보정 | 리허설(파일·Postgres) 통과, 운영 dry-run 로그 확인 |
 | P2 | 장착 규칙(크기/타입/마운트/전력/질량), 서버 거부, 장착·해제 시 총량 불변, 타사 함선 거부, 프리셋 적용, 전투 결과 동일(시드 고정) | 피팅 화면에서 비교·필터·정렬·되돌리기 가능, 실시간 갱신 중 입력 유지 |
 | P3 | 선체·변형 검증, 산업선 크기별 조선소 제한, 모든 선체 메시 생성 스모크 | **선체 구별성 체크리스트**: 실루엣(상면·측면 스크린샷 비교), 하드포인트 배치·사계 차이, 역할 설명이 같은 함급 내 다른 선체와 겹치지 않음 |

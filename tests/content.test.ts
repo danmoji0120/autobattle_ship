@@ -40,7 +40,7 @@ describe('content registry (P1)', () => {
     const hp = (size: any, type: any) => ({ id: 'hp', pos: [0, 0, 0] as [number, number, number], facing: 0, arc: 90, size, type, mount: 'turret' as const });
     expect(weaponFits('heavy_cannon', hp('M', 'ballistic'))).toMatch(/크기/);
     expect(weaponFits('heavy_cannon', hp('L', 'ballistic'))).toBeNull();
-    expect(weaponFits('pulse_laser', hp('M', 'ballistic'))).toMatch(/energy/);
+    expect(weaponFits('pulse_laser', hp('M', 'ballistic'))).toMatch(/에너지/);
     expect(weaponFits('pulse_laser', hp('M', 'universal'))).toBeNull();
     expect(weaponFits('pd_gun', hp('S', 'missile'))).toBeNull();      // PD fits any hardpoint of its size
     expect(weaponFits('autocannon', hp('S', 'pd'))).toMatch(/방공/);  // a PD hardpoint takes only PD
@@ -65,10 +65,10 @@ describe('content registry (P1)', () => {
       ['hardpoint off the hull', p => { p.hulls![0].hardpoints[0].pos = [0, 0, 900]; }, /선체 범위/],
       ['duplicate hardpoint id', p => { p.hulls![1].hardpoints[1].id = p.hulls![1].hardpoints[0].id; }, /하드포인트 id 중복/],
       ['bad arc', p => { p.hulls![2].hardpoints[0].arc = 0; }, /arc/],
-      ['weapon too big for hardpoint', p => { const pr = p.presets!.find(x => x.id === 'corvette_gun')!; pr.weapons.hp02 = 'heavy_cannon'; }, /크기/],
-      ['preset on a missing hardpoint', p => { p.presets![0].weapons.zz9 = 'pd_gun'; }, /없는 하드포인트/],
+      ['weapon too big for hardpoint', p => { const pr = p.presets!.find(x => x.id === 'corvette_gun')!; pr.weapons.hp02 = 'eq_heavy_cannon'; }, /크기/],
+      ['preset on a missing hardpoint', p => { p.presets![0].weapons.zz9 = 'eq_pd_gun'; }, /없는 하드포인트/],
       ['variant of a missing hull', p => { p.variants![0].hull = 'ghost'; }, /hull "ghost" 없음/],
-      ['legacy fidelity broken', p => { const pr = p.presets!.find(x => x.id === 'destroyer_aa')!; pr.weapons.hp01 = 'autocannon'; }, /기존 로드아웃과 다름/],
+      ['legacy fidelity broken', p => { const pr = p.presets!.find(x => x.id === 'destroyer_aa')!; pr.weapons.hp01 = 'eq_autocannon'; }, /기존 로드아웃과 다름/],
       ['structure drift', p => { p.variants!.find(v => v.id === 'battleship_mk1_fortress')!.mods!.armorMul = 1.3; }, /구조 보정/],
       ['legacy mapping missing', p => { p.legacy!.pop(); }, /매핑되지 않음/],
       ['out-of-range mods', p => { p.variants![0].mods = { speedMul: 3 }; }, /0\.5~1\.5/],
@@ -112,8 +112,8 @@ describe('content save migration (P1)', () => {
     expect(sim.command(p, { c: 'buyShip', station: 'helios', classId: 'cruiser', loadoutId: 'missile' })).toBeNull();
     run(sim, 120);
     const st: WorldState = JSON.parse(sim.serialize());
-    delete st.contentV; delete st.grants;
-    for (const s of Object.values(st.ships)) { delete s.hull; delete s.variant; }
+    delete st.contentV; delete st.grants; delete st.conversions;
+    for (const s of Object.values(st.ships)) { delete s.hull; delete s.variant; delete s.fitting; }
     for (const x of Object.values(st.stations)) for (const b of x.builds ?? []) { delete b.hull; delete b.variant; }
     return { st, p };
   }
@@ -173,7 +173,7 @@ describe('content save migration (P1)', () => {
     expect(prev.command(p, { c: 'buyShip', station: 'astra', classId: 'destroyer', loadoutId: 'strike' })).toBeNull();
     const back: WorldState = JSON.parse(prev.serialize());
     const fresh = Object.values(back.ships).find(s => s.owner === p && s.classId === 'destroyer')!;
-    delete fresh.hull; delete fresh.variant;
+    delete fresh.hull; delete fresh.variant; delete fresh.fitting;
     const sim = new WorldSim(back, { migrateContent: false });
     expect(sim.st.ships[fresh.id].hull).toBe('destroyer_mk1');
     expect(sim.st.ships[fresh.id].variant).toBe('destroyer_mk1_std');
@@ -190,5 +190,20 @@ describe('content save migration (P1)', () => {
     const r = sim.command(p, { c: 'refit', ship: s.id, loadoutId: 'fortress' });
     expect(r).toBeNull();
     expect(sim.st.ships[s.id].variant).toBe('battleship_mk1_fortress');
+  });
+});
+
+describe('Codex content guide (docs/CODEX_CONTENT_GUIDE.md §3)', () => {
+  it('the example pack in the guide validates, and is usable by the fitting rules', async () => {
+    const md = (await import('node:fs')).readFileSync('docs/CODEX_CONTENT_GUIDE.md', 'utf8');
+    const code = md.slice(md.indexOf('export const FRONTIER_PACK'), md.indexOf('};', md.indexOf('export const FRONTIER_PACK')) + 2)
+      .replace('export const FRONTIER_PACK: ContentPack =', 'return');
+    const pack = new Function(code)() as ContentPack;
+    const reg = buildRegistry([...PACKS, pack]);
+    expect(validateContent(reg)).toEqual([]);
+    const { checkFitting } = await import('../src/world/fitting');
+    const p = reg.presets.cruiser_picket_aa;
+    expect(checkFitting(p.variant, { hp: p.weapons, bay: {} }, reg).errors).toEqual([]);
+    expect(presetMounts(p.id, reg).filter(m => m.weapon === 'pd_gun').length).toBe(5);
   });
 });

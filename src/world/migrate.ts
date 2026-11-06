@@ -9,8 +9,15 @@ import { legacyOf } from '../content/registry';
 import { EQUIPMENT } from './industry';
 import { getLoadout } from '../sim/data/ships';
 import { loadoutEquipment } from './industry';
+import { fittingFromLegacy, fittingItems, legacySig, bayModules } from './fitting';
+import { addc } from './types';
 
-export const CONTENT_VERSION = 1;
+export const CONTENT_VERSION = 2;
+/** contentV from which player ships carry a real fitting (P2) */
+export const FITTING_V = 2;
+
+/** an existing item that changed form (e.g. a loadout weapon that became a fitted item) — not new */
+export interface ConversionRecord { v: number; company: string; item: string; n: number; ships: number; why: string }
 
 /** an item the migration created (it did not exist in the old save in any form) */
 export interface GrantRecord {
@@ -29,6 +36,12 @@ export interface MigrationReport {
   /** ships/builds whose class is unknown to the registry (left untouched) */
   unmapped: string[];
   granted: GrantRecord[];
+  /** player ships that received a fitting (v2) */
+  fitted: number;
+  /** existing items that changed form, per company/item */
+  converted: ConversionRecord[];
+  /** modules that had no bay and went to the company's storage (nothing is dropped) */
+  returned: { company: string; ship: string; station: string; item: string }[];
 }
 
 /** hull + variant of a ship from its legacy class/loadout */
@@ -40,6 +53,8 @@ export function contentOf(classId: string, loadoutId: string): { hull: string; v
 /** keep hull/variant in step with the ship's loadout (call after spawning or refitting) */
 export function syncShipContent(st: WorldState, s: WShip | ShipBuild): void {
   if ((st.contentV ?? 0) < 1) return;
+  // a fitted ship's variant is chosen by its fitting, not derived from the loadout label
+  if ('fitting' in s && s.fitting) return;
   const c = contentOf(s.classId, s.loadoutId);
   if (c) { s.hull = c.hull; s.variant = c.variant; }
 }
@@ -48,7 +63,7 @@ export function syncShipContent(st: WorldState, s: WShip | ShipBuild): void {
  *  code after the save was migrated (rollback then roll forward). */
 export function migrateContent(st: WorldState): MigrationReport {
   const from = st.contentV ?? 0;
-  const rep: MigrationReport = { from, to: Math.max(from, CONTENT_VERSION), ships: 0, builds: 0, unmapped: [], granted: [] };
+  const rep: MigrationReport = { from, to: Math.max(from, CONTENT_VERSION), ships: 0, builds: 0, unmapped: [], granted: [], fitted: 0, converted: [], returned: [] };
   st.grants ??= [];
   // v1: every ship and queued build gets its hull and structural variant (no items change hands)
   const fill = (x: WShip | ShipBuild, kind: 'ship' | 'build') => {
@@ -59,6 +74,34 @@ export function migrateContent(st: WorldState): MigrationReport {
   };
   for (const s of Object.values(st.ships)) if (fill(s, 'ship')) rep.ships++;
   for (const x of Object.values(st.stations)) for (const b of x.builds ?? []) if (fill(b, 'build')) rep.builds++;
+  // v2: player ships get a real fitting — the weapons their loadout mounted and the modules they had
+  // become fitted items (same items, new form: recorded as conversions, not grants). Also repairs ships
+  // made or refitted by an older build after the save was migrated (their loadout/fit changed).
+  const conv = new Map<string, ConversionRecord>();
+  for (const s of Object.values(st.ships)) {
+    if (st.companies[s.owner]?.kind !== 'player') continue;
+    if (s.fitting && s.fitting.sig === legacySig(s.loadoutId, s.fit)) continue;
+    const r = fittingFromLegacy(s.classId, s.loadoutId, s.fit);
+    if (!r) { rep.unmapped.push(`fitting ${s.id} (${s.classId}/${s.loadoutId})`); continue; }
+    s.hull = r.hull; s.variant = r.variant; s.fitting = r.fitting;
+    for (const m of r.unplaced) {
+      const at = s.task.k === 'docked' ? (s.task as any).station : st.companies[s.owner].homeStation;
+      const x = st.stations[at] ?? Object.values(st.stations).find(y => y.public);
+      if (!x) continue;
+      addc((x.storage[s.owner] ??= { ore: 0, alloy: 0, crystal: 0 }), m, 1);
+      rep.returned.push({ company: s.owner, ship: s.id, station: x.id, item: m });
+    }
+    s.fit = bayModules(r.variant, r.fitting);
+    r.fitting.sig = legacySig(s.loadoutId, s.fit);
+    rep.fitted++;
+    for (const [item, n] of Object.entries(fittingItems(r.fitting))) {
+      const k = `${s.owner}/${item}`;
+      const c = conv.get(k) ?? { v: 2, company: s.owner, item, n: 0, ships: 0, why: '로드아웃 무장·장착 모듈 → 피팅 장비' };
+      c.n += n; c.ships++; conv.set(k, c);
+    }
+  }
+  rep.converted = [...conv.values()];
+  if (rep.converted.length) (st.conversions ??= []).push(...rep.converted);
   st.contentV = rep.to;
   st.grants.push(...rep.granted);
   return rep;
@@ -82,6 +125,7 @@ export function census(w: WorldState) {
   const add = (k: string, n: number) => { equipment[k] = (equipment[k] ?? 0) + n; };
   for (const s of Object.values(w.stations ?? {})) for (const id of ids) for (const [k, v] of Object.entries(s.storage?.[id] ?? {})) if (isEquip(k)) add(k, Number(v) || 0);
   for (const s of ships) {
+    if (s.fitting) { for (const [k, n] of Object.entries(fittingItems(s.fitting))) add(k, n); continue; }
     for (const k of s.fit ?? []) add(k, 1);
     for (const [k, n] of Object.entries(loadoutEquipment(getLoadout(s.classId, s.loadoutId)?.mounts ?? []))) add(k, n);
   }

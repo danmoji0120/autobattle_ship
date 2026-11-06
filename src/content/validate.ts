@@ -2,11 +2,12 @@
 // asset registration. Pure — file access is injected so it runs in tests and in the CLI
 // (scripts/content-check.ts, `npm run content:check`). Errors block a merge; warnings are review notes.
 import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
-import { WEAPONS } from '../sim/data/weapons';
 import { COMMANDERS } from '../sim/data/commanders';
-import { EQUIPMENT, ITEMS, FACILITIES } from '../world/industry';
-import { ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_STYLES, SIZES, sizeRank, type AssetKind, type HardpointDef, type HardpointType, type Size } from './schema';
+import { EQUIPMENT, ITEMS, FACILITIES, HULLS } from '../world/industry';
+import { placeModules } from '../world/fitting';
+import { ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_STYLES, SIZES, type AssetKind, type HardpointDef } from './schema';
 import { presetMounts, variantLayout, type Registry } from './registry';
+import { hpAccepts, fitTotals } from './rules';
 
 export interface Issue { level: 'error' | 'warn'; where: string; msg: string }
 
@@ -20,27 +21,25 @@ export interface AssetFs {
 const ID = /^[a-z][a-z0-9_]{1,47}$/;
 const HP_ID = /^[a-z][a-z0-9_]{1,23}$/;
 
-/** weapon category, as hardpoints see it */
-export function weaponType(weapon: string): HardpointType {
-  const w = WEAPONS[weapon];
-  if (!w) return 'universal';
-  if (w.kind === 'pd') return 'pd';
-  if (w.kind === 'missile' || w.kind === 'torpedo') return 'missile';
-  return weapon === 'pulse_laser' || weapon === 'particle_lance' ? 'energy' : 'ballistic';
+export { weaponType } from './rules';
+
+/** every multiset of legacy modules with Σ size ≤ slots (what fitShip allowed before P2) */
+const setCache = new Map<number, string[][]>();
+export function legacyModuleSets(slots: number): string[][] {
+  const hit = setCache.get(slots); if (hit) return hit;
+  const mods = Object.values(EQUIPMENT).filter(e => e.kind === 'module');
+  const go = (n: number, from: number): string[][] => {
+    const out: string[][] = [[]];
+    for (let i = from; i < mods.length; i++) if (mods[i].size <= n) for (const r of go(n - mods[i].size, i)) out.push([mods[i].id, ...r]);
+    return out;
+  };
+  const r = go(slots, 0); setCache.set(slots, r); return r;
 }
-/** size class of a weapon (from its equipment item; unknown = S) */
-export function weaponSize(weapon: string): Size {
-  const e = Object.values(EQUIPMENT).find(x => x.weapon === weapon);
-  return SIZES[(e?.size ?? 1) - 1];
-}
-/** can this weapon go on this hardpoint? (PD fits any hardpoint of its size; a PD hardpoint takes only PD) */
+/** legacy helper kept for tests: can this combat weapon go on this hardpoint? */
 export function weaponFits(weapon: string, hp: HardpointDef): string | null {
-  if (!WEAPONS[weapon]) return `알 수 없는 무기 "${weapon}"`;
-  if (sizeRank(weaponSize(weapon)) > sizeRank(hp.size)) return `무기 크기 ${weaponSize(weapon)} > 하드포인트 ${hp.size}`;
-  const t = weaponType(weapon);
-  if (hp.type === 'pd' && t !== 'pd') return `방공 하드포인트에 ${t} 무기`;
-  if (t !== 'pd' && hp.type !== 'universal' && hp.type !== t) return `${hp.type} 하드포인트에 ${t} 무기`;
-  return null;
+  const eq = Object.values(EQUIPMENT).find(e => e.weapon === weapon);
+  if (!eq) return `알 수 없는 무기 "${weapon}"`;
+  return hpAccepts({ ...hp, arcBy: undefined }, eq.id);
 }
 
 export const ASSET_RULES: Record<AssetKind, { dir: string; ext: string[]; maxBytes: number; target: string }> = {
@@ -100,8 +99,30 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     if (!SIZES.includes(p.size)) err(at, `size "${p.size}"`);
     if (!HARDPOINT_TYPES.includes(p.type)) err(at, `type "${p.type}"`);
     if (!MOUNT_STYLES.includes(p.mount)) err(at, `mount "${p.mount}"`);
+    for (const [eq, a] of Object.entries(p.arcBy ?? {})) {
+      if (!EQUIPMENT[eq]?.weapon) err(at, `arcBy 의 "${eq}" 는 무장 장비가 아님`);
+      if (!(a > 0 && a <= p.arc)) err(at, `arcBy.${eq} = ${a} (0 초과, arc ${p.arc} 이하)`);
+    }
     if (p.mount === 'spinal' && p.arc > 15) warn(at, `spinal 마운트의 arc ${p.arc}° 는 넓음 (≤15 권장)`);
     if (p.mount === 'fixed' && p.arc > 45) warn(at, `fixed 마운트의 arc ${p.arc}° 는 넓음 (≤45 권장)`);
+  }
+
+  // ── equipment fitting rules: every equipment item needs exactly one spec
+  for (const e of Object.values(EQUIPMENT)) if (!reg.equipment[e.id]) err(`equipment ${e.id}`, '피팅 규격(EquipSpec) 없음');
+  for (const e of Object.values(reg.equipment)) {
+    const at = `equipment ${e.id}`, item = EQUIPMENT[e.id];
+    if (!item) { err(at, 'EQUIPMENT 에 없는 장비'); continue; }
+    if (!SIZES.includes(e.size)) err(at, `size "${e.size}"`);
+    if (item.kind === 'weapon' && e.slot !== 'hardpoint') err(at, '무장은 slot: hardpoint');
+    if (item.kind === 'module' && !INTERNAL_KINDS.includes(e.slot as any)) err(at, `모듈의 slot "${e.slot}" 은 내부 베이 종류여야 함`);
+    if (!(e.mass >= 0 && e.mass <= 200)) err(at, `mass ${e.mass} (0~200)`);
+    if (!(e.power >= -200 && e.power <= 200)) err(at, `power ${e.power} (-200~200)`);
+    if (e.power < 0 && e.slot !== 'reactor') warn(at, '전력 공급(음수 power)은 보통 reactor 장비');
+    for (const m of e.mounts ?? []) if (!MOUNT_STYLES.includes(m)) err(at, `mounts "${m}"`);
+  }
+  for (const h of Object.values(reg.hulls)) {
+    if (!(h.power >= 0 && h.power <= 1000)) err(`hull ${h.id}`, `power ${h.power} (0~1000)`);
+    if (!(h.mass > 0 && h.mass <= 3000)) err(`hull ${h.id}`, `mass ${h.mass} (0 초과 3000 이하)`);
   }
 
   // ── variants
@@ -136,16 +157,14 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     if (v.hull !== p.hull) err(at, `variant "${p.variant}" 는 hull "${v.hull}" 의 변형`);
     const lay = variantLayout(p.variant, reg);
     if (!lay) { err(at, `variant "${p.variant}" 의 선체를 찾을 수 없음`); continue; }
-    for (const [hpId, w] of Object.entries(p.weapons)) {
+    for (const [hpId, eq] of Object.entries(p.weapons)) {
       const hp = lay.hardpoints.find(x => x.id === hpId);
       if (!hp) { err(`${at}/${hpId}`, '변형에 없는 하드포인트'); continue; }
-      const weapon = typeof w === 'string' ? w : w.weapon;
-      const why = weaponFits(weapon, hp); if (why) err(`${at}/${hpId}`, why);
-      if (typeof w !== 'string') {
-        if (!(w.arc > 0 && w.arc <= hp.arc)) err(`${at}/${hpId}`, `arc 재정의 ${w.arc} 는 하드포인트 arc ${hp.arc} 이하여야 함`);
-        if (packOf('preset', p.id) !== 'core') warn(`${at}/${hpId}`, 'arc 재정의는 기존 데이터 호환용 — 새 콘텐츠는 별도 하드포인트 사용');
-      }
+      const why = hpAccepts(hp, eq, reg); if (why) err(`${at}/${hpId}`, why);
     }
+    const st = fitTotals(reg, p.hull, p.weapons, {});
+    if (st && st.power > st.supply) err(at, `전력 초과 ${st.power}/${st.supply}`);
+    if (st && st.mass > st.cap) err(at, `적재 초과 ${st.mass}/${st.cap}`);
     if (!Object.keys(p.weapons).length && SHIP_CLASSES[reg.hulls[p.hull].classId]?.role !== 'civilian') warn(at, '무장이 없는 프리셋');
   }
 
@@ -161,6 +180,13 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     const mods = v.mods ?? {};
     if ((mods.hpMul ?? 1) !== (l.hpMul ?? 1) || (mods.armorMul ?? 1) !== (l.armorMul ?? 1) || (mods.speedMul ?? 1) !== (l.speedMul ?? 1)) err(at, '변형 구조 보정이 기존 로드아웃과 다름');
     if ((p.costDelta ?? 0) !== (l.costDelta ?? 0)) err(at, `costDelta ${p.costDelta ?? 0} ≠ 기존 ${l.costDelta ?? 0}`);
+    // every module set an old ship of this class could carry (Σ size ≤ slots) must still fit with
+    // this preset — bays, power and mass — or migrating that ship would strip modules
+    const bad = legacyModuleSets(HULLS[c.id]?.slots ?? 0).find(set => {
+      const pl = placeModules(v.id, set, reg); if (pl.unplaced.length) return true;
+      const t = fitTotals(reg, h.id, p.weapons, pl.bay)!; return t.power > t.supply || t.mass > t.cap;
+    });
+    if (bad) err(at, `기존 모듈 조합 [${bad.join(', ')}] 이 이 선체에 들어가지 않음 (베이·전력·질량)`);
   }
 
   // ── assets

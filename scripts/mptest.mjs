@@ -7,7 +7,11 @@ import WebSocket from 'ws';
 const PORT = 8199, SAVE = 'data/mptest.json', ACCTS = 'data/accounts.json';
 const BASE = `http://localhost:${PORT}`;
 fs.rmSync(SAVE, { force: true }); fs.rmSync(ACCTS, { force: true });
-const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (!c) process.exitCode = 1; };
+let passed = 0, failed = 0;
+const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (c) passed++; else { failed++; process.exitCode = 1; } };
+// every check must run: a skipped branch (e.g. no NPC battle found) must not look like a clean pass
+const EXPECTED = 61;
+process.on('exit', () => { const n = passed + failed; console.log(`mptest: ${passed} PASS / ${failed} FAIL (${n}/${EXPECTED} checks ran)`); if (n !== EXPECTED) { console.log(`FAIL expected ${EXPECTED} checks, ran ${n}`); process.exitCode = 1; } });
 const startServer = () => new Promise(res => {
   const p = spawn('node', ['dist-server/server.mjs'], { env: { ...process.env, PORT: String(PORT), SAVE_FILE: SAVE, WORLD_SEED: '5', DATABASE_URL: process.env.MPTEST_DATABASE_URL ?? '' } });
   let out = '';
@@ -91,6 +95,28 @@ ok(Object.values(a.snap.companies).some(c => c.id === b.company), 'A sees B in t
 {
   const me = await ba.get('/api/auth/me');
   ok(me.status === 200 && me.body.company?.id === a.company, `/me reports A's PMC (${me.body.company?.name})`);
+}
+// ── Fitting V2 over the wire: the server enforces ownership and the rules, and moves real items ──
+{
+  const fs2 = Object.values(a.snap.ships).filter(s => s.owner === a.company && s.fitting && s.task.k === 'docked' && Object.keys(s.fitting.hp).length && s.groupId !== a.group('제1 채굴반')?.id && s.classId !== 'miner');
+  ok(fs2.length > 0 && fs2.every(s => s.variant && s.fitting.sig), `A's warships carry a server fitting (${fs2.length} docked)`);
+  const sh = fs2[0], st = sh.task.station;
+  const hpIds = Object.keys(sh.fitting.hp);
+  ok(/자사 함선이 아님/.test(await b.cmd({ c: 'fit', ship: sh.id, hp: {}, bay: {} }) ?? ''), "B cannot refit A's ship");
+  const big = await a.cmd({ c: 'fit', ship: sh.id, hp: { ...sh.fitting.hp, [hpIds[0]]: 'eq_heavy_cannon' }, bay: sh.fitting.bay });
+  ok(/크기 초과|하드포인트/.test(big ?? ''), `oversized weapon rejected by the server (${big})`);
+  const ghost = await a.cmd({ c: 'fit', ship: sh.id, hp: { ...sh.fitting.hp, hp99: 'eq_pd_gun' }, bay: sh.fitting.bay });
+  ok(/없는 하드포인트/.test(ghost ?? ''), `unknown hardpoint rejected (${ghost})`);
+  const item = sh.fitting.hp[hpIds[0]];
+  const had = Math.floor(a.snap.stations[st].storage?.[a.company]?.[item] ?? 0);
+  const { [hpIds[0]]: _gone, ...less } = sh.fitting.hp;
+  const r1 = await a.cmd({ c: 'fit', ship: sh.id, hp: less, bay: sh.fitting.bay });
+  await wait(1400);
+  const now = a.snap.ships[sh.id];
+  ok(r1 === null && !now.fitting.hp[hpIds[0]] && Math.floor(a.snap.stations[st].storage[a.company][item]) === had + 1, `unfitting moves the weapon to station storage (${r1 ?? 'ok'})`);
+  const r2 = await a.cmd({ c: 'fit', ship: sh.id, hp: { ...less, [hpIds[0]]: item }, bay: sh.fitting.bay });
+  await wait(1400);
+  ok(r2 === null && a.snap.ships[sh.id].fitting.hp[hpIds[0]] === item && Math.floor(a.snap.stations[st].storage[a.company][item] ?? 0) === had, `refitting takes it back — nothing duplicated (${r2 ?? 'ok'})`);
 }
 const mining = a.group('제1 채굴반');
 const err = await a.cmd({ c: 'setOp', group: mining.id, op: { k: 'mine', field: 'kestrel', deliver: 'astra', sell: true } });

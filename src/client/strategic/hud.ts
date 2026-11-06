@@ -15,7 +15,10 @@ import { sysAt, jumps } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, matsOf, type Mat } from '../../world/construction';
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
-import { TECHS, ITEMS } from '../../world/industry';
+import { TECHS, ITEMS, EQUIPMENT } from '../../world/industry';
+import { FittingScreen } from './fittingUi';
+import { CONTENT } from '../../content/registry';
+import { checkFitting } from '../../world/fitting';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
@@ -159,7 +162,7 @@ export class PmcHud {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT') return;
       this.keys.add(e.code);
-      if (e.code === 'Escape') { if (this.modal) this.closeModal(); else if (this.mode) this.setMode(null); else this.select(null); }
+      if (e.code === 'Escape') { if (this.fitScreen) this.fitScreen.close(); else if (this.modal) this.closeModal(); else if (this.mode) this.setMode(null); else this.select(null); }
       if (e.code === 'Space' && this.c.sp) { e.preventDefault(); this.c.setSpeed(this.c.speed > 0 ? 0 : 1); }
       if (this.c.sp && /^Digit[1-4]$/.test(e.code)) this.c.setSpeed([1, 2, 4, 8][Number(e.code.slice(5)) - 1]);
       const keyOps: Record<string, string> = { KeyM: 'move', KeyD: 'dock', KeyN: 'mine', KeyP: 'patrol', KeyG: 'escort', KeyA: 'attack', KeyI: 'idle', KeyT: 'release' };
@@ -606,6 +609,7 @@ export class PmcHud {
     this.renderSel(force);
     this.renderGoals();
     if (this.modal && this.modalStation) this.renderModal(force);
+    this.fitScreen?.update();
   }
 
   private renderTop() {
@@ -953,11 +957,16 @@ export class PmcHud {
   closeModal() { this.modal?.remove(); this.modal = null; this.modalStation = null; }
 
   private modalKey = '';
+  private fitScreen: FittingScreen | null = null;
+  openFitting(shipId: string) {
+    this.fitScreen?.close();
+    this.fitScreen = new FittingScreen(this.root, () => this.c.state, this.me, shipId, c => this.cmd(c), () => { this.fitScreen = null; });
+  }
   private renderModal(force: boolean) {
     const s = this.st.stations[this.modalStation!];
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
-    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
+    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit, x.variant, x.fitting]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
@@ -1051,6 +1060,7 @@ export class PmcHud {
       await this.cmd({ c: 'prodOp', station: s.id, order, op: op as 'pause' });
     });
     m.querySelectorAll<HTMLButtonElement>('[data-repair]').forEach(b => b.onclick = () => this.cmd({ c: 'repair', ship: b.dataset.repair! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-openfit]').forEach(b => b.onclick = () => this.openFitting(b.dataset.openfit!));
     m.querySelectorAll<HTMLSelectElement>('[data-refit]').forEach(sel => sel.onchange = () => { if (sel.value) this.cmd({ c: 'refit', ship: sel.dataset.refit!, loadoutId: sel.value }); });
     m.querySelectorAll<HTMLButtonElement>('[data-hire]').forEach(b => b.onclick = () => this.cmd({ c: 'hire', commander: b.dataset.hire! }));
     m.querySelectorAll<HTMLButtonElement>('[data-accept]').forEach(b => b.onclick = () => this.cmd({ c: 'accept', contract: b.dataset.accept! }));
@@ -1106,6 +1116,16 @@ export class PmcHud {
     }).join('')}</div>`;
   }
 
+  /** one-line description of a V2 fitting: variant, weapons ×n, modules */
+  private fitSummary(x: WShip): string {
+    const f = x.fitting!; const n: Record<string, number> = {};
+    for (const k of Object.values(f.hp)) n[k] = (n[k] ?? 0) + 1;
+    const w = Object.entries(n).map(([k, c]) => `${esc(EQUIPMENT[k]?.name ?? k)}${c > 1 ? ` ×${c}` : ''}`).join(', ');
+    const m = Object.values(f.bay).map(k => esc(EQUIPMENT[k]?.name ?? k)).join(', ');
+    const bad = checkFitting(x.variant!, f).errors.length;
+    return `<b>${esc(CONTENT.variants[x.variant!]?.name ?? '')}</b> <span class="dim">· ${w || '무장 없음'}${m ? ` · 모듈: ${m}` : ''}</span>${bad ? ' <span class="warn">⚠ 규칙 위반 장비</span>' : ''}`;
+  }
+
   private dockHtml(s: Station): string {
     const ships = Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id);
     const own = s.owner === this.me;
@@ -1117,9 +1137,9 @@ export class PmcHud {
       const c = SHIP_CLASSES[x.classId];
       const cost = Math.round((1 - x.hp) * ECON[x.classId].price * 0.3);
       return `<tr><td><b>${esc(x.name)}</b> <span class="dim">${c.type}</span></td><td><span style="color:${hpCol(x.hp)}">${Math.round(x.hp * 100)}%</span></td>
-        <td>${canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (${own ? '창고의 무장 장비로 교체' : `개조 ${fmt(ECON[x.classId].price * 0.15)} cr`})</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
+        <td>${x.fitting ? `${this.fitSummary(x)} ${canRefit ? `<button class="btn go" data-openfit="${x.id}">피팅</button>` : '<span class="dim small">(피팅 시설 없음)</span>'}` : canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (${own ? '창고의 무장 장비로 교체' : `개조 ${fmt(ECON[x.classId].price * 0.15)} cr`})</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
         <td>${x.hp < 0.999 && canRepair ? `<button class="btn" data-repair="${x.id}">수리 ${fmt(cost)} cr</button>` : ''}</td></tr>
-        ${canRefit ? `<tr class="fitrow"><td colspan="4">${fitHtml(this.st, x, store)}</td></tr>` : ''}`;
+        ${canRefit && !x.fitting ? `<tr class="fitrow"><td colspan="4">${fitHtml(this.st, x, store)}</td></tr>` : ''}`;
     }).join('')}</table>${own && s.modules.some(m => m.kind === 'repair' && m.built) ? '<div class="dim small">정비소: 이곳에 정박한 자사 함선은 무료로 천천히 수리됩니다.</div>' : ''}`;
   }
 

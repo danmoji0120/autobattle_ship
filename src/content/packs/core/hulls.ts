@@ -1,21 +1,27 @@
 // Core content pack: the original 12 ship classes as hulls, variants and fitting presets.
 // Derived once from the legacy tables by scripts/content-freeze-core.ts (P1); edit by hand from now on.
-// Hardpoint ids are saved on ships from P2 on: never renumber or reuse them. See docs/CONTENT_SCHEMA.md.
+// Hardpoint and bay ids are saved on ships (fittings): never renumber or reuse them. See docs/CONTENT_SCHEMA.md.
+// mk1 hulls are the first-generation modular designs: every internal bay is a universal (special) M bay,
+// so every legacy module combination (≤ moduleSlots units) still has a bay. power/mass are exactly the
+// largest need of any legacy preset + any legacy-valid module set (P2): everything an old ship could
+// carry still fits, and bays alone do not let it carry more than before (e.g. two armour plates on a
+// 2-slot corvette stay over the mass limit). The validator checks this exhaustively. Typed bays
+// arrive with the P3 hulls.
 import type { HullDef, VariantDef, PresetDef, LegacyLoadoutMap } from '../../schema';
 
 export const CORE_HULLS: HullDef[] = [
   {
-    id: "battleship_mk1", classId: "battleship", name: "아퀼라급", tier: 3, size: "L", moduleSlots: 6, blueprint: "advanced",
-    mesh: {"base":"battleship","scale":1}, internals: [],
+    id: "battleship_mk1", classId: "battleship", name: "아퀼라급", tier: 3, size: "L", moduleSlots: 6, power: 114, mass: 222, blueprint: "advanced",
+    mesh: {"base":"battleship","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}, {"id":"bay3","kind":"special","size":"M"}, {"id":"bay4","kind":"special","size":"M"}, {"id":"bay5","kind":"special","size":"M"}, {"id":"bay6","kind":"special","size":"M"}],
     desc: "함대의 중심. 압도적인 주포와 두꺼운 전면 장갑. 측후방은 상대적으로 취약하다.",
     hardpoints: [
-      {"id":"hp01","pos":[0,5.2,17],"facing":0,"arc":150,"size":"L","type":"ballistic","mount":"turret"},
-      {"id":"hp02","pos":[0,7.4,7],"facing":0,"arc":150,"size":"L","type":"ballistic","mount":"turret"},
-      {"id":"hp03","pos":[0,5.2,-17],"facing":180,"arc":175,"size":"L","type":"ballistic","mount":"turret"},
+      {"id":"hp01","pos":[0,5.2,17],"facing":0,"arc":150,"size":"L","type":"ballistic","mount":"turret","arcBy":{"eq_rail_cannon":70}},
+      {"id":"hp02","pos":[0,7.4,7],"facing":0,"arc":150,"size":"L","type":"ballistic","mount":"turret","arcBy":{"eq_rail_cannon":70}},
+      {"id":"hp03","pos":[0,5.2,-17],"facing":180,"arc":175,"size":"L","type":"ballistic","mount":"turret","arcBy":{"eq_heavy_cannon":150}},
       {"id":"hp04","pos":[6.2,3.4,11],"facing":90,"arc":100,"size":"M","type":"ballistic","mount":"turret"},
       {"id":"hp05","pos":[-6.2,3.4,11],"facing":-90,"arc":100,"size":"M","type":"ballistic","mount":"turret"},
-      {"id":"hp06","pos":[6.2,3.4,-6],"facing":90,"arc":175,"size":"M","type":"ballistic","mount":"turret"},
-      {"id":"hp07","pos":[-6.2,3.4,-6],"facing":-90,"arc":175,"size":"M","type":"ballistic","mount":"turret"},
+      {"id":"hp06","pos":[6.2,3.4,-6],"facing":90,"arc":175,"size":"M","type":"ballistic","mount":"turret","arcBy":{"eq_medium_gun":100}},
+      {"id":"hp07","pos":[-6.2,3.4,-6],"facing":-90,"arc":175,"size":"M","type":"ballistic","mount":"turret","arcBy":{"eq_medium_gun":100}},
       {"id":"hp08","pos":[5,4.2,23],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
       {"id":"hp09","pos":[-5,4.2,23],"facing":-90,"arc":175,"size":"S","type":"pd","mount":"turret"},
       {"id":"hp10","pos":[5.4,4.2,-24],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
@@ -24,8 +30,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "cruiser_mk1", classId: "cruiser", name: "세이버급", tier: 3, size: "L", moduleSlots: 4, blueprint: "common",
-    mesh: {"base":"cruiser","scale":1}, internals: [],
+    id: "cruiser_mk1", classId: "cruiser", name: "세이버급", tier: 3, size: "L", moduleSlots: 4, power: 46, mass: 98, blueprint: "common",
+    mesh: {"base":"cruiser","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}, {"id":"bay3","kind":"special","size":"M"}, {"id":"bay4","kind":"special","size":"M"}],
     desc: "다재다능한 주력함. 미사일 일제사격으로 적 방공망을 시험한다.",
     hardpoints: [
       {"id":"hp01","pos":[0,3.6,9],"facing":0,"arc":150,"size":"M","type":"ballistic","mount":"turret"},
@@ -45,8 +51,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "destroyer_mk1", classId: "destroyer", name: "아이기스급", tier: 2, size: "M", moduleSlots: 3, blueprint: "common",
-    mesh: {"base":"destroyer","scale":1}, internals: [],
+    id: "destroyer_mk1", classId: "destroyer", name: "아이기스급", tier: 2, size: "M", moduleSlots: 3, power: 34, mass: 57, blueprint: "common",
+    mesh: {"base":"destroyer","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}, {"id":"bay3","kind":"special","size":"M"}],
     desc: "함대의 방패. 방공포로 미사일과 어뢰를 걷어낸다.",
     hardpoints: [
       {"id":"hp01","pos":[0,3,7],"facing":0,"arc":150,"size":"M","type":"ballistic","mount":"turret"},
@@ -63,8 +69,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "corvette_mk1", classId: "corvette", name: "스틸레토급", tier: 1, size: "S", moduleSlots: 2, blueprint: "common",
-    mesh: {"base":"corvette","scale":1}, internals: [],
+    id: "corvette_mk1", classId: "corvette", name: "스틸레토급", tier: 1, size: "S", moduleSlots: 2, power: 22, mass: 38, blueprint: "common",
+    mesh: {"base":"corvette","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}],
     desc: "빠르고 연약한 사냥꾼. 측후방을 파고들어 어뢰를 꽂는다.",
     hardpoints: [
       {"id":"hp01","pos":[0,0.4,5],"facing":0,"arc":25,"size":"M","type":"missile","mount":"fixed"},
@@ -76,8 +82,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "frigate_mk1", classId: "frigate", name: "랜서급", tier: 1, size: "S", moduleSlots: 2, blueprint: "advanced",
-    mesh: {"base":"frigate","scale":1}, internals: [],
+    id: "frigate_mk1", classId: "frigate", name: "랜서급", tier: 1, size: "S", moduleSlots: 2, power: 24, mass: 40, blueprint: "advanced",
+    mesh: {"base":"frigate","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}],
     desc: "초계함보다 단단하고 구축함보다 빠른 호위함. 방공과 경함정 사냥을 겸한다.",
     hardpoints: [
       {"id":"hp01","pos":[1.6,1.4,5],"facing":0,"arc":60,"size":"S","type":"ballistic","mount":"turret"},
@@ -95,8 +101,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "light_cruiser_mk1", classId: "light_cruiser", name: "팔코급", tier: 2, size: "M", moduleSlots: 3, blueprint: "advanced",
-    mesh: {"base":"light_cruiser","scale":1}, internals: [],
+    id: "light_cruiser_mk1", classId: "light_cruiser", name: "팔코급", tier: 2, size: "M", moduleSlots: 3, power: 52, mass: 61, blueprint: "advanced",
+    mesh: {"base":"light_cruiser","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}, {"id":"bay3","kind":"special","size":"M"}],
     desc: "빠른 순양함. 구축함 전대를 이끌거나 측면을 돈다. 중순양함보다 얇다.",
     hardpoints: [
       {"id":"hp01","pos":[0,3.2,8],"facing":0,"arc":150,"size":"M","type":"universal","mount":"turret"},
@@ -110,12 +116,12 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "battlecruiser_mk1", classId: "battlecruiser", name: "발키리급", tier: 3, size: "L", moduleSlots: 5, blueprint: "advanced",
-    mesh: {"base":"battlecruiser","scale":1}, internals: [],
+    id: "battlecruiser_mk1", classId: "battlecruiser", name: "발키리급", tier: 3, size: "L", moduleSlots: 5, power: 114, mass: 169, blueprint: "advanced",
+    mesh: {"base":"battlecruiser","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}, {"id":"bay3","kind":"special","size":"M"}, {"id":"bay4","kind":"special","size":"M"}, {"id":"bay5","kind":"special","size":"M"}],
     desc: "전함급 주포와 순양함의 속도. 대신 장갑이 얇아 정면 난타전은 피해야 한다.",
     hardpoints: [
-      {"id":"hp01","pos":[0,4.6,14],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret"},
-      {"id":"hp02","pos":[0,6.4,6],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret"},
+      {"id":"hp01","pos":[0,4.6,14],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret","arcBy":{"eq_rail_cannon":70,"eq_lance":60}},
+      {"id":"hp02","pos":[0,6.4,6],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret","arcBy":{"eq_rail_cannon":70,"eq_lance":60}},
       {"id":"hp03","pos":[5.2,3,8],"facing":90,"arc":100,"size":"M","type":"ballistic","mount":"turret"},
       {"id":"hp04","pos":[-5.2,3,8],"facing":-90,"arc":100,"size":"M","type":"ballistic","mount":"turret"},
       {"id":"hp05","pos":[5.2,3,-6],"facing":90,"arc":100,"size":"M","type":"ballistic","mount":"turret"},
@@ -129,13 +135,13 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "dreadnought_mk1", classId: "dreadnought", name: "임페라토르급", tier: 4, size: "XL", moduleSlots: 8, blueprint: "advanced",
-    mesh: {"base":"dreadnought","scale":1}, internals: [],
+    id: "dreadnought_mk1", classId: "dreadnought", name: "임페라토르급", tier: 4, size: "XL", moduleSlots: 8, power: 202, mass: 372, blueprint: "advanced",
+    mesh: {"base":"dreadnought","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}, {"id":"bay2","kind":"special","size":"M"}, {"id":"bay3","kind":"special","size":"M"}, {"id":"bay4","kind":"special","size":"M"}, {"id":"bay5","kind":"special","size":"M"}, {"id":"bay6","kind":"special","size":"M"}, {"id":"bay7","kind":"special","size":"M"}, {"id":"bay8","kind":"special","size":"M"}],
     desc: "움직이는 요새. 대형 조선소로도 부족해 전용 건조 독이 필요하다.",
     hardpoints: [
-      {"id":"hp01","pos":[0,7.5,30],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret"},
-      {"id":"hp02","pos":[0,10.5,16],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret"},
-      {"id":"hp03","pos":[0,12,2],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret"},
+      {"id":"hp01","pos":[0,7.5,30],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret","arcBy":{"eq_lance":60}},
+      {"id":"hp02","pos":[0,10.5,16],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret","arcBy":{"eq_lance":60}},
+      {"id":"hp03","pos":[0,12,2],"facing":0,"arc":150,"size":"L","type":"universal","mount":"turret","arcBy":{"eq_lance":60}},
       {"id":"hp04","pos":[0,7.5,-26],"facing":180,"arc":150,"size":"L","type":"ballistic","mount":"turret"},
       {"id":"hp05","pos":[0,10.5,-14],"facing":180,"arc":150,"size":"L","type":"ballistic","mount":"turret"},
       {"id":"hp06","pos":[9,5,20],"facing":90,"arc":100,"size":"M","type":"ballistic","mount":"turret"},
@@ -157,8 +163,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "miner_mk1", classId: "miner", name: "곡괭이급", tier: 1, size: "S", moduleSlots: 1, blueprint: "common",
-    mesh: {"base":"miner","scale":1}, internals: [],
+    id: "miner_mk1", classId: "miner", name: "곡괭이급", tier: 1, size: "S", moduleSlots: 1, power: 10, mass: 9, blueprint: "common",
+    mesh: {"base":"miner","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}],
     desc: "채굴 레이저와 대형 화물칸. 소행성에서 광석과 크리스탈을 캐낸다.",
     hardpoints: [
       {"id":"hp01","pos":[3,3,6],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
@@ -166,8 +172,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "hauler_mk1", classId: "hauler", name: "짐꾼급", tier: 1, size: "S", moduleSlots: 1, blueprint: "common",
-    mesh: {"base":"hauler","scale":1}, internals: [],
+    id: "hauler_mk1", classId: "hauler", name: "짐꾼급", tier: 1, size: "S", moduleSlots: 1, power: 10, mass: 9, blueprint: "common",
+    mesh: {"base":"hauler","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}],
     desc: "거대한 컨테이너 수송선. 채굴선에서 광석을 받아 정거장으로 나른다.",
     hardpoints: [
       {"id":"hp01","pos":[3.5,4,12],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
@@ -175,8 +181,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "constructor_mk1", classId: "constructor", name: "석공급", tier: 2, size: "M", moduleSlots: 1, blueprint: "common",
-    mesh: {"base":"constructor","scale":1}, internals: [],
+    id: "constructor_mk1", classId: "constructor", name: "석공급", tier: 2, size: "M", moduleSlots: 1, power: 10, mass: 9, blueprint: "common",
+    mesh: {"base":"constructor","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}],
     desc: "조립 크레인과 드론 격납고를 갖춘 공작선. 정거장을 세우고 모듈을 건설한다.",
     hardpoints: [
       {"id":"hp01","pos":[3,4,8],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
@@ -184,7 +190,7 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "platform_mk1", classId: "platform", name: "방어 포대", tier: 3, size: "L", moduleSlots: 0, blueprint: "common",
+    id: "platform_mk1", classId: "platform", name: "방어 포대", tier: 3, size: "L", moduleSlots: 0, power: 36, mass: 108, blueprint: "common",
     mesh: {"base":"platform","scale":1}, internals: [],
     desc: "정거장에 고정된 포대. 움직이지 못하지만 단단하다.",
     hardpoints: [
@@ -217,31 +223,31 @@ export const CORE_VARIANTS: VariantDef[] = [
 ];
 
 export const CORE_PRESETS: PresetDef[] = [
-  {"id":"battleship_std","hull":"battleship_mk1","variant":"battleship_mk1_std","name":"표준 전열","desc":"3기의 3연장 주포. 정면 화력전의 왕.","weapons":{"hp01":"heavy_cannon","hp02":"heavy_cannon","hp03":{"weapon":"heavy_cannon","arc":150},"hp04":"medium_gun","hp05":"medium_gun","hp06":{"weapon":"medium_gun","arc":100},"hp07":{"weapon":"medium_gun","arc":100},"hp08":"pd_gun","hp09":"pd_gun","hp10":"pd_gun","hp11":"pd_gun"}},
-  {"id":"battleship_rail","hull":"battleship_mk1","variant":"battleship_mk1_std","name":"레일건 장거리","desc":"전방 레일 캐논 2기. 사거리 밖에서 먼저 때린다.","weapons":{"hp01":{"weapon":"rail_cannon","arc":70},"hp02":{"weapon":"rail_cannon","arc":70},"hp03":{"weapon":"heavy_cannon","arc":150},"hp04":"medium_gun","hp05":"medium_gun","hp08":"pd_gun","hp09":"pd_gun","hp10":"pd_gun","hp11":"pd_gun"},"costDelta":30},
-  {"id":"battleship_fortress","hull":"battleship_mk1","variant":"battleship_mk1_fortress","name":"요새형","desc":"주포 2기, 방공포 8기, 증가 장갑. 느리지만 무너지지 않는다.","weapons":{"hp01":"heavy_cannon","hp02":"heavy_cannon","hp04":"medium_gun","hp05":"medium_gun","hp08":"pd_gun","hp09":"pd_gun","hp06":"pd_gun","hp07":"pd_gun","hp10":"pd_gun","hp11":"pd_gun","hp03":"pd_gun","hp12":"pd_gun"},"costDelta":20},
-  {"id":"cruiser_multi","hull":"cruiser_mk1","variant":"cruiser_mk1_std","name":"다목적","desc":"부포 2기 + 미사일 발사기 2기.","weapons":{"hp01":"medium_gun","hp02":"medium_gun","hp03":"missile_rack","hp04":"missile_rack","hp05":"pd_gun","hp06":"pd_gun"}},
-  {"id":"cruiser_missile","hull":"cruiser_mk1","variant":"cruiser_mk1_std","name":"미사일 순양함","desc":"발사기 4기. 원거리 포화 공격 특화.","weapons":{"hp01":"medium_gun","hp07":"missile_rack","hp08":"missile_rack","hp09":"missile_rack","hp10":"missile_rack","hp05":"pd_gun","hp06":"pd_gun"},"costDelta":10},
-  {"id":"cruiser_gun","hull":"cruiser_mk1","variant":"cruiser_mk1_std","name":"포격 순양함","desc":"부포 4기. 근중거리 난타전에 강하다.","weapons":{"hp11":"medium_gun","hp12":"medium_gun","hp02":"medium_gun","hp13":"medium_gun","hp05":"pd_gun","hp06":"pd_gun","hp14":"pd_gun"}},
-  {"id":"destroyer_aa","hull":"destroyer_mk1","variant":"destroyer_mk1_std","name":"방공","desc":"방공포 6기. 미사일·어뢰 요격 특화.","weapons":{"hp01":"medium_gun","hp02":"pd_gun","hp03":"pd_gun","hp04":"pd_gun","hp05":"pd_gun","hp06":"pd_gun","hp07":"pd_gun"}},
-  {"id":"destroyer_strike","hull":"destroyer_mk1","variant":"destroyer_mk1_std","name":"대함","desc":"부포 2기 + 어뢰 1기. 공격적인 호위.","weapons":{"hp01":"medium_gun","hp08":"medium_gun","hp09":"torpedo","hp10":"pd_gun","hp11":"pd_gun"}},
-  {"id":"corvette_torp","hull":"corvette_mk1","variant":"corvette_mk1_std","name":"뇌격","desc":"어뢰 1기(2연사) + 기관포 2기.","weapons":{"hp01":"torpedo","hp02":"autocannon","hp03":"autocannon","hp04":"pd_gun"}},
-  {"id":"corvette_gun","hull":"corvette_mk1","variant":"corvette_mk1_std","name":"강습","desc":"기관포 4기. 적 경함정과 호위함 사냥.","weapons":{"hp02":"autocannon","hp03":"autocannon","hp05":"autocannon","hp06":"autocannon","hp04":"pd_gun"}},
-  {"id":"frigate_patrol","hull":"frigate_mk1","variant":"frigate_mk1_std","name":"초계","desc":"기관포 2 + 어뢰 1 + 방공포 2.","weapons":{"hp01":"autocannon","hp02":"autocannon","hp03":"torpedo","hp04":"pd_gun","hp05":"pd_gun"}},
-  {"id":"frigate_aa","hull":"frigate_mk1","variant":"frigate_mk1_std","name":"방공 호위","desc":"방공포 4 + 기관포 2. 미사일 요격.","weapons":{"hp06":"autocannon","hp07":"autocannon","hp08":"pd_gun","hp09":"pd_gun","hp04":"pd_gun","hp05":"pd_gun"}},
-  {"id":"frigate_missile","hull":"frigate_mk1","variant":"frigate_mk1_std","name":"미사일 호위","desc":"VLS 1기 + 기관포 + 방공포 2.","weapons":{"hp10":"missile_rack","hp06":"autocannon","hp11":"pd_gun","hp12":"pd_gun"},"costDelta":8},
-  {"id":"light_cruiser_gun","hull":"light_cruiser_mk1","variant":"light_cruiser_mk1_std","name":"포격","desc":"부포 3 + 방공포 3.","weapons":{"hp01":"medium_gun","hp02":"medium_gun","hp03":"medium_gun","hp04":"pd_gun","hp05":"pd_gun","hp06":"pd_gun"}},
-  {"id":"light_cruiser_missile","hull":"light_cruiser_mk1","variant":"light_cruiser_mk1_std","name":"미사일","desc":"VLS 2 + 부포 1 + 방공포 2.","weapons":{"hp01":"medium_gun","hp07":"missile_rack","hp08":"missile_rack","hp04":"pd_gun","hp05":"pd_gun"},"costDelta":10},
-  {"id":"light_cruiser_laser","hull":"light_cruiser_mk1","variant":"light_cruiser_mk1_std","name":"레이저","desc":"펄스 레이저 3 + 방공포 2. 즉발 고정밀, 장갑 관통은 낮다.","weapons":{"hp01":"pulse_laser","hp02":"pulse_laser","hp03":"pulse_laser","hp04":"pd_gun","hp05":"pd_gun"},"costDelta":15},
-  {"id":"battlecruiser_heavy","hull":"battlecruiser_mk1","variant":"battlecruiser_mk1_std","name":"주포","desc":"주포 2 + 부포 4 + 방공 4.","weapons":{"hp01":"heavy_cannon","hp02":"heavy_cannon","hp03":"medium_gun","hp04":"medium_gun","hp05":"medium_gun","hp06":"medium_gun","hp07":"pd_gun","hp08":"pd_gun","hp09":"pd_gun","hp10":"pd_gun"}},
-  {"id":"battlecruiser_rail","hull":"battlecruiser_mk1","variant":"battlecruiser_mk1_std","name":"레일건","desc":"레일 캐논 2 + 부포 2 + 방공 4.","weapons":{"hp01":{"weapon":"rail_cannon","arc":70},"hp02":{"weapon":"rail_cannon","arc":70},"hp11":"medium_gun","hp12":"medium_gun","hp07":"pd_gun","hp08":"pd_gun","hp09":"pd_gun","hp10":"pd_gun"},"costDelta":30},
-  {"id":"battlecruiser_lance","hull":"battlecruiser_mk1","variant":"battlecruiser_mk1_std","name":"입자 창","desc":"입자 창 2 + 부포 2 + 방공 4. 초장거리 일격.","weapons":{"hp01":{"weapon":"particle_lance","arc":60},"hp02":{"weapon":"particle_lance","arc":60},"hp11":"medium_gun","hp12":"medium_gun","hp07":"pd_gun","hp08":"pd_gun","hp09":"pd_gun","hp10":"pd_gun"},"costDelta":45},
-  {"id":"dreadnought_std","hull":"dreadnought_mk1","variant":"dreadnought_mk1_std","name":"전열","desc":"주포 5 + 부포 6 + VLS 2 + 방공 8.","weapons":{"hp01":"heavy_cannon","hp02":"heavy_cannon","hp03":"heavy_cannon","hp04":"heavy_cannon","hp05":"heavy_cannon","hp06":"medium_gun","hp07":"medium_gun","hp08":"medium_gun","hp09":"medium_gun","hp10":"medium_gun","hp11":"medium_gun","hp12":"missile_rack","hp13":"missile_rack","hp14":"pd_gun","hp15":"pd_gun","hp16":"pd_gun","hp17":"pd_gun","hp18":"pd_gun","hp19":"pd_gun","hp20":"pd_gun","hp21":"pd_gun"}},
-  {"id":"dreadnought_lance","hull":"dreadnought_mk1","variant":"dreadnought_mk1_std","name":"입자 창 전열","desc":"입자 창 3 + 주포 2 + 부포 4 + 방공 8.","weapons":{"hp01":{"weapon":"particle_lance","arc":60},"hp02":{"weapon":"particle_lance","arc":60},"hp03":{"weapon":"particle_lance","arc":60},"hp04":"heavy_cannon","hp05":"heavy_cannon","hp06":"medium_gun","hp07":"medium_gun","hp10":"medium_gun","hp11":"medium_gun","hp14":"pd_gun","hp15":"pd_gun","hp16":"pd_gun","hp17":"pd_gun","hp18":"pd_gun","hp19":"pd_gun","hp20":"pd_gun","hp21":"pd_gun"},"costDelta":80},
-  {"id":"miner_std","hull":"miner_mk1","variant":"miner_mk1_std","name":"표준 채굴","desc":"채굴 레이저 + 자위용 방공포 2기","weapons":{"hp01":"pd_gun","hp02":"pd_gun"}},
-  {"id":"hauler_std","hull":"hauler_mk1","variant":"hauler_mk1_std","name":"표준 수송","desc":"방공포 2기","weapons":{"hp01":"pd_gun","hp02":"pd_gun"}},
-  {"id":"constructor_std","hull":"constructor_mk1","variant":"constructor_mk1_std","name":"표준 공작","desc":"방공포 2기","weapons":{"hp01":"pd_gun","hp02":"pd_gun"}},
-  {"id":"platform_std","hull":"platform_mk1","variant":"platform_mk1_std","name":"포대","desc":"주포 2 + 부포 2 + 방공 4","weapons":{"hp01":"heavy_cannon","hp02":"heavy_cannon","hp03":"medium_gun","hp04":"medium_gun","hp05":"pd_gun","hp06":"pd_gun","hp07":"pd_gun","hp08":"pd_gun"}},
+  {"id":"battleship_std","hull":"battleship_mk1","variant":"battleship_mk1_std","name":"표준 전열","desc":"3기의 3연장 주포. 정면 화력전의 왕.","weapons":{"hp01":"eq_heavy_cannon","hp02":"eq_heavy_cannon","hp03":"eq_heavy_cannon","hp04":"eq_medium_gun","hp05":"eq_medium_gun","hp06":"eq_medium_gun","hp07":"eq_medium_gun","hp08":"eq_pd_gun","hp09":"eq_pd_gun","hp10":"eq_pd_gun","hp11":"eq_pd_gun"}},
+  {"id":"battleship_rail","hull":"battleship_mk1","variant":"battleship_mk1_std","name":"레일건 장거리","desc":"전방 레일 캐논 2기. 사거리 밖에서 먼저 때린다.","weapons":{"hp01":"eq_rail_cannon","hp02":"eq_rail_cannon","hp03":"eq_heavy_cannon","hp04":"eq_medium_gun","hp05":"eq_medium_gun","hp08":"eq_pd_gun","hp09":"eq_pd_gun","hp10":"eq_pd_gun","hp11":"eq_pd_gun"},"costDelta":30},
+  {"id":"battleship_fortress","hull":"battleship_mk1","variant":"battleship_mk1_fortress","name":"요새형","desc":"주포 2기, 방공포 8기, 증가 장갑. 느리지만 무너지지 않는다.","weapons":{"hp01":"eq_heavy_cannon","hp02":"eq_heavy_cannon","hp04":"eq_medium_gun","hp05":"eq_medium_gun","hp08":"eq_pd_gun","hp09":"eq_pd_gun","hp06":"eq_pd_gun","hp07":"eq_pd_gun","hp10":"eq_pd_gun","hp11":"eq_pd_gun","hp03":"eq_pd_gun","hp12":"eq_pd_gun"},"costDelta":20},
+  {"id":"cruiser_multi","hull":"cruiser_mk1","variant":"cruiser_mk1_std","name":"다목적","desc":"부포 2기 + 미사일 발사기 2기.","weapons":{"hp01":"eq_medium_gun","hp02":"eq_medium_gun","hp03":"eq_missile_rack","hp04":"eq_missile_rack","hp05":"eq_pd_gun","hp06":"eq_pd_gun"}},
+  {"id":"cruiser_missile","hull":"cruiser_mk1","variant":"cruiser_mk1_std","name":"미사일 순양함","desc":"발사기 4기. 원거리 포화 공격 특화.","weapons":{"hp01":"eq_medium_gun","hp07":"eq_missile_rack","hp08":"eq_missile_rack","hp09":"eq_missile_rack","hp10":"eq_missile_rack","hp05":"eq_pd_gun","hp06":"eq_pd_gun"},"costDelta":10},
+  {"id":"cruiser_gun","hull":"cruiser_mk1","variant":"cruiser_mk1_std","name":"포격 순양함","desc":"부포 4기. 근중거리 난타전에 강하다.","weapons":{"hp11":"eq_medium_gun","hp12":"eq_medium_gun","hp02":"eq_medium_gun","hp13":"eq_medium_gun","hp05":"eq_pd_gun","hp06":"eq_pd_gun","hp14":"eq_pd_gun"}},
+  {"id":"destroyer_aa","hull":"destroyer_mk1","variant":"destroyer_mk1_std","name":"방공","desc":"방공포 6기. 미사일·어뢰 요격 특화.","weapons":{"hp01":"eq_medium_gun","hp02":"eq_pd_gun","hp03":"eq_pd_gun","hp04":"eq_pd_gun","hp05":"eq_pd_gun","hp06":"eq_pd_gun","hp07":"eq_pd_gun"}},
+  {"id":"destroyer_strike","hull":"destroyer_mk1","variant":"destroyer_mk1_std","name":"대함","desc":"부포 2기 + 어뢰 1기. 공격적인 호위.","weapons":{"hp01":"eq_medium_gun","hp08":"eq_medium_gun","hp09":"eq_torpedo","hp10":"eq_pd_gun","hp11":"eq_pd_gun"}},
+  {"id":"corvette_torp","hull":"corvette_mk1","variant":"corvette_mk1_std","name":"뇌격","desc":"어뢰 1기(2연사) + 기관포 2기.","weapons":{"hp01":"eq_torpedo","hp02":"eq_autocannon","hp03":"eq_autocannon","hp04":"eq_pd_gun"}},
+  {"id":"corvette_gun","hull":"corvette_mk1","variant":"corvette_mk1_std","name":"강습","desc":"기관포 4기. 적 경함정과 호위함 사냥.","weapons":{"hp02":"eq_autocannon","hp03":"eq_autocannon","hp05":"eq_autocannon","hp06":"eq_autocannon","hp04":"eq_pd_gun"}},
+  {"id":"frigate_patrol","hull":"frigate_mk1","variant":"frigate_mk1_std","name":"초계","desc":"기관포 2 + 어뢰 1 + 방공포 2.","weapons":{"hp01":"eq_autocannon","hp02":"eq_autocannon","hp03":"eq_torpedo","hp04":"eq_pd_gun","hp05":"eq_pd_gun"}},
+  {"id":"frigate_aa","hull":"frigate_mk1","variant":"frigate_mk1_std","name":"방공 호위","desc":"방공포 4 + 기관포 2. 미사일 요격.","weapons":{"hp06":"eq_autocannon","hp07":"eq_autocannon","hp08":"eq_pd_gun","hp09":"eq_pd_gun","hp04":"eq_pd_gun","hp05":"eq_pd_gun"}},
+  {"id":"frigate_missile","hull":"frigate_mk1","variant":"frigate_mk1_std","name":"미사일 호위","desc":"VLS 1기 + 기관포 + 방공포 2.","weapons":{"hp10":"eq_missile_rack","hp06":"eq_autocannon","hp11":"eq_pd_gun","hp12":"eq_pd_gun"},"costDelta":8},
+  {"id":"light_cruiser_gun","hull":"light_cruiser_mk1","variant":"light_cruiser_mk1_std","name":"포격","desc":"부포 3 + 방공포 3.","weapons":{"hp01":"eq_medium_gun","hp02":"eq_medium_gun","hp03":"eq_medium_gun","hp04":"eq_pd_gun","hp05":"eq_pd_gun","hp06":"eq_pd_gun"}},
+  {"id":"light_cruiser_missile","hull":"light_cruiser_mk1","variant":"light_cruiser_mk1_std","name":"미사일","desc":"VLS 2 + 부포 1 + 방공포 2.","weapons":{"hp01":"eq_medium_gun","hp07":"eq_missile_rack","hp08":"eq_missile_rack","hp04":"eq_pd_gun","hp05":"eq_pd_gun"},"costDelta":10},
+  {"id":"light_cruiser_laser","hull":"light_cruiser_mk1","variant":"light_cruiser_mk1_std","name":"레이저","desc":"펄스 레이저 3 + 방공포 2. 즉발 고정밀, 장갑 관통은 낮다.","weapons":{"hp01":"eq_laser","hp02":"eq_laser","hp03":"eq_laser","hp04":"eq_pd_gun","hp05":"eq_pd_gun"},"costDelta":15},
+  {"id":"battlecruiser_heavy","hull":"battlecruiser_mk1","variant":"battlecruiser_mk1_std","name":"주포","desc":"주포 2 + 부포 4 + 방공 4.","weapons":{"hp01":"eq_heavy_cannon","hp02":"eq_heavy_cannon","hp03":"eq_medium_gun","hp04":"eq_medium_gun","hp05":"eq_medium_gun","hp06":"eq_medium_gun","hp07":"eq_pd_gun","hp08":"eq_pd_gun","hp09":"eq_pd_gun","hp10":"eq_pd_gun"}},
+  {"id":"battlecruiser_rail","hull":"battlecruiser_mk1","variant":"battlecruiser_mk1_std","name":"레일건","desc":"레일 캐논 2 + 부포 2 + 방공 4.","weapons":{"hp01":"eq_rail_cannon","hp02":"eq_rail_cannon","hp11":"eq_medium_gun","hp12":"eq_medium_gun","hp07":"eq_pd_gun","hp08":"eq_pd_gun","hp09":"eq_pd_gun","hp10":"eq_pd_gun"},"costDelta":30},
+  {"id":"battlecruiser_lance","hull":"battlecruiser_mk1","variant":"battlecruiser_mk1_std","name":"입자 창","desc":"입자 창 2 + 부포 2 + 방공 4. 초장거리 일격.","weapons":{"hp01":"eq_lance","hp02":"eq_lance","hp11":"eq_medium_gun","hp12":"eq_medium_gun","hp07":"eq_pd_gun","hp08":"eq_pd_gun","hp09":"eq_pd_gun","hp10":"eq_pd_gun"},"costDelta":45},
+  {"id":"dreadnought_std","hull":"dreadnought_mk1","variant":"dreadnought_mk1_std","name":"전열","desc":"주포 5 + 부포 6 + VLS 2 + 방공 8.","weapons":{"hp01":"eq_heavy_cannon","hp02":"eq_heavy_cannon","hp03":"eq_heavy_cannon","hp04":"eq_heavy_cannon","hp05":"eq_heavy_cannon","hp06":"eq_medium_gun","hp07":"eq_medium_gun","hp08":"eq_medium_gun","hp09":"eq_medium_gun","hp10":"eq_medium_gun","hp11":"eq_medium_gun","hp12":"eq_missile_rack","hp13":"eq_missile_rack","hp14":"eq_pd_gun","hp15":"eq_pd_gun","hp16":"eq_pd_gun","hp17":"eq_pd_gun","hp18":"eq_pd_gun","hp19":"eq_pd_gun","hp20":"eq_pd_gun","hp21":"eq_pd_gun"}},
+  {"id":"dreadnought_lance","hull":"dreadnought_mk1","variant":"dreadnought_mk1_std","name":"입자 창 전열","desc":"입자 창 3 + 주포 2 + 부포 4 + 방공 8.","weapons":{"hp01":"eq_lance","hp02":"eq_lance","hp03":"eq_lance","hp04":"eq_heavy_cannon","hp05":"eq_heavy_cannon","hp06":"eq_medium_gun","hp07":"eq_medium_gun","hp10":"eq_medium_gun","hp11":"eq_medium_gun","hp14":"eq_pd_gun","hp15":"eq_pd_gun","hp16":"eq_pd_gun","hp17":"eq_pd_gun","hp18":"eq_pd_gun","hp19":"eq_pd_gun","hp20":"eq_pd_gun","hp21":"eq_pd_gun"},"costDelta":80},
+  {"id":"miner_std","hull":"miner_mk1","variant":"miner_mk1_std","name":"표준 채굴","desc":"채굴 레이저 + 자위용 방공포 2기","weapons":{"hp01":"eq_pd_gun","hp02":"eq_pd_gun"}},
+  {"id":"hauler_std","hull":"hauler_mk1","variant":"hauler_mk1_std","name":"표준 수송","desc":"방공포 2기","weapons":{"hp01":"eq_pd_gun","hp02":"eq_pd_gun"}},
+  {"id":"constructor_std","hull":"constructor_mk1","variant":"constructor_mk1_std","name":"표준 공작","desc":"방공포 2기","weapons":{"hp01":"eq_pd_gun","hp02":"eq_pd_gun"}},
+  {"id":"platform_std","hull":"platform_mk1","variant":"platform_mk1_std","name":"포대","desc":"주포 2 + 부포 2 + 방공 4","weapons":{"hp01":"eq_heavy_cannon","hp02":"eq_heavy_cannon","hp03":"eq_medium_gun","hp04":"eq_medium_gun","hp05":"eq_pd_gun","hp06":"eq_pd_gun","hp07":"eq_pd_gun","hp08":"eq_pd_gun"}},
 ];
 
 export const CORE_LEGACY: LegacyLoadoutMap[] = [

@@ -1,9 +1,9 @@
 import { Vec3, UP, clamp, lerp, wrapAngle, dirFromYawPitch, yawOf, pitchOf, localToWorld, worldDirToLocal, segSegDistSq, angleBetween, rotateToward } from './math';
 import { Rng, hashString } from './rng';
-import { SHIP_CLASSES, getLoadout, shipCost, SHIP_NAMES } from './data/ships';
+import { SHIP_CLASSES, getLoadout, shipCost, SHIP_NAMES, type LoadoutDef } from './data/ships';
 import { WEAPONS, type WeaponDef } from './data/weapons';
 import { getCommander, ACTING_CAPTAIN, type CommanderDef } from './data/commanders';
-import type { FleetSpec, GroupSpec, ShipFx } from './fleet';
+import type { FleetSpec, GroupSpec, ShipFx, ShipSpec } from './fleet';
 import type { Group, Ship, Munition, Mount, Order, SimEvent, RadioMsg, Highlight, Outcome, OrderRecord, Team } from './types';
 import { line } from './ai/lines';
 import { updateAI, orderKey, groupRoleOf } from './ai/commander';
@@ -93,7 +93,7 @@ export class World {
       this.groups.push(g); this.groupById.set(g.id, g);
       if (parent) parent.childIds.push(g.id);
       for (const ss of spec.ships) {
-        const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g, ss.fx);
+        const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g, ss.fx, ss.fit);
         if (ss.ref !== undefined) s.ref = ss.ref;
         if (ss.hp !== undefined) s.hp = Math.max(1, s.maxHp * Math.min(1, ss.hp));
         g.shipIds.push(s.id);
@@ -106,9 +106,11 @@ export class World {
     this.layoutTeam(team, root);
   }
 
-  private createShip(team: Team, classId: string, loadoutId: string, name: string, g: Group, fx: ShipFx = {}): Ship {
+  private createShip(team: Team, classId: string, loadoutId: string, name: string, g: Group, fx: ShipFx = {}, fit?: ShipSpec['fit']): Ship {
     const cls = SHIP_CLASSES[classId];
-    const lo = getLoadout(classId, loadoutId);
+    const base = getLoadout(classId, loadoutId);
+    // a fitted ship fights with exactly what is mounted on it (renderer turrets follow the same mounts)
+    const lo: LoadoutDef = fit ? { id: base.id, name: fit.name, desc: '', mounts: fit.mounts, hpMul: fit.hpMul, armorMul: fit.armorMul, speedMul: fit.speedMul, costDelta: base.costDelta } : base;
     const cmd = g.commander;
     const spec = cmd.specialty;
     const speedMul = (lo.speedMul ?? 1) * (spec === 'maneuver' ? 1.08 : 1) * (fx.speedMul ?? 1);

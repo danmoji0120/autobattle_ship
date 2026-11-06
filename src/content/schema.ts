@@ -31,12 +31,27 @@ export interface HardpointDef {
   size: Size;
   type: HardpointType;
   mount: MountStyle;
+  /** narrower traverse for specific equipment at this spot (EQUIPMENT id → arc), e.g. a long-barrel
+   *  main gun fouling the superstructure. Equipment not listed uses `arc`. */
+  arcBy?: Record<string, number>;
 }
 
 /** internal equipment bays (P2 fills these; listed here so the data model is final) */
 export type InternalKind = 'engine' | 'reactor' | 'sensor' | 'fcs' | 'ew' | 'armor' | 'special';
 export const INTERNAL_KINDS: InternalKind[] = ['engine', 'reactor', 'sensor', 'fcs', 'ew', 'armor', 'special'];
 export interface InternalSlotDef { id: string; kind: InternalKind; size: Size }
+
+/** fitting rules of one equipment item (EQUIPMENT id). `slot: 'hardpoint'` = weapon; otherwise the
+ *  internal bay kind it needs (a `special` bay takes any module). power < 0 supplies power. */
+export interface EquipSpec {
+  id: string;
+  slot: 'hardpoint' | InternalKind;
+  size: Size;
+  mass: number;
+  power: number;
+  /** hardpoint mount styles it can use (weapons; default: any) */
+  mounts?: MountStyle[];
+}
 
 /** blueprint rarity (P6 owns the rules; content declares the grade from the start) */
 export type BlueprintGrade = 'common' | 'advanced' | 'faction' | 'rare' | 'unique';
@@ -52,8 +67,12 @@ export interface HullDef {
   size: Size;
   hardpoints: HardpointDef[];
   internals: InternalSlotDef[];
-  /** legacy generic module slots (HULLS.slots) — replaced by `internals` in P2 */
+  /** legacy generic module slot units (HULLS.slots); kept for reference — P2 fitting uses `internals` */
   moduleSlots: number;
+  /** built-in power supply (fitted equipment draws from it; reactor modules add to it) */
+  power: number;
+  /** equipment mass capacity (sum of fitted weapon + module mass) */
+  mass: number;
   /** mesh family used by the procedural renderer + scale; `model` = registered asset id (optional) */
   mesh: { base: string; scale: number; model?: string };
   blueprint: BlueprintGrade;
@@ -74,16 +93,15 @@ export interface VariantDef {
   model?: string;
 }
 
-/** a named equipment layout for a hull: hardpoint id → combat weapon id (EQUIPMENT ids from P2) */
+/** a named weapon layout for a hull variant (hardpoint id → weapon equipment item) */
 export interface PresetDef {
   id: string;
   hull: string;
   variant: string;
   name: string;
   desc: string;
-  /** `{ weapon, arc }` narrows the hardpoint's arc for that weapon (kept for exact legacy fidelity;
-   *  new content should give the weapon its own hardpoint instead) */
-  weapons: Record<string, string | { weapon: string; arc: number }>;
+  /** hardpoint id → EQUIPMENT id (weapon items) */
+  weapons: Record<string, string>;
   /** price difference vs the hull's base cost (credits, NPC purchase) */
   costDelta?: number;
 }
@@ -116,6 +134,7 @@ export interface ContentPack {
   hulls?: HullDef[];
   variants?: VariantDef[];
   presets?: PresetDef[];
+  equipment?: EquipSpec[];
   legacy?: LegacyLoadoutMap[];
   assets?: AssetDef[];
 }

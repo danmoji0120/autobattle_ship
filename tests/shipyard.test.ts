@@ -126,7 +126,7 @@ describe('shipbuilding from parts, yards and fitting', () => {
     const cv = ships(sim, p, 'corvette').find(s => s.task.k === 'docked' && (s.task as any).station === own.id)!;
     expect(cv).toBeTruthy();
     const S = own.storage[p]; S.mod_armor = 1; S.mod_ecm = 1; S.mod_engine = 1;
-    expect(sim.command(p, { c: 'fitShip', ship: cv.id, fit: ['mod_armor', 'mod_engine'] })).toMatch(/슬롯 초과/);  // 2 + 1 > 2
+    expect(sim.command(p, { c: 'fitShip', ship: cv.id, fit: ['mod_armor', 'mod_engine'] })).toMatch(/적재 초과/);  // legacy: 2 + 1 units > 2 slots; V2: over the mass limit
     expect(sim.command(p, { c: 'fitShip', ship: cv.id, fit: ['mod_ecm', 'mod_engine'] })).toBeNull();
     expect(cv.fit).toEqual(['mod_ecm', 'mod_engine']);
     expect(qty(S, 'mod_ecm')).toBe(0); expect(qty(S, 'mod_engine')).toBe(0);

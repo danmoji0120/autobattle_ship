@@ -6,7 +6,8 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { GameClient } from '../net';
 import type { WShip, V, Station } from '../../world/types';
-import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
+import { SHIP_CLASSES } from '../../sim/data/ships';
+import { shipLoadout, shipLoadoutKey } from '../../world/fitting';
 import { buildShip, type ShipModel } from '../../render/shipMesh';
 import { Environment } from '../../render/environment';
 import { CameraRig } from '../../render/camera';
@@ -203,10 +204,10 @@ export class StrategicView {
     for (const s of Object.values(st.ships)) {
       seen.add(s.id);
       let v = this.ships.get(s.id);
-      const key = `${s.classId}:${s.loadoutId}`;
+      const key = shipLoadoutKey(s);
       if (!v || v.key !== key) {
         if (v) this.scene.remove(v.model.root);
-        const model = buildShip(SHIP_CLASSES[s.classId], getLoadout(s.classId, s.loadoutId), s.owner === 'pirates' ? 1 : 0);
+        const model = buildShip(SHIP_CLASSES[s.classId], shipLoadout(s), s.owner === 'pirates' ? 1 : 0);
         this.world.add(model.root);
         model.root.rotation.order = 'YXZ';
         v = { model, pos: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), raw: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z), heading: s.heading, roll: 0, key, cls: s.classId, seen: 0, speed: 0, warp: 0, sys: '', jumpT: s.jumpT ?? 0, hp: s.hp };

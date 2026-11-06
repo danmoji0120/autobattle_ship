@@ -183,8 +183,9 @@ async function main() {
         const bad = compareCensus(before, census(sim.st));
         const s1 = sim.serialize();
         const round = new WorldSim(JSON.parse(s1)).serialize() === s1;
-        console.log(`[siderarium] content migration DRY RUN c${cv}→c${rep.to}: ships ${rep.ships} · builds ${rep.builds} · unmapped ${rep.unmapped.length} · granted ${rep.granted.length} · census ${bad.length ? 'MISMATCH ' + bad.join('; ') : 'OK'} · round-trip ${round ? 'OK' : 'FAIL'} — 적용하지 않음 (CONTENT_MIGRATE=apply 로 적용)`);
+        console.log(`[siderarium] content migration DRY RUN c${cv}→c${rep.to}: ships ${rep.ships} · builds ${rep.builds} · fitted ${rep.fitted} · converted ${rep.converted.reduce((a, c) => a + c.n, 0)} items · returned ${rep.returned.length} · unmapped ${rep.unmapped.length} · granted ${rep.granted.length} · census ${bad.length ? 'MISMATCH ' + bad.join('; ') : 'OK'} · round-trip ${round ? 'OK' : 'FAIL'} — 적용하지 않음 (CONTENT_MIGRATE=apply 로 적용)`);
         if (rep.unmapped.length) console.log(`[siderarium] dry run unmapped: ${rep.unmapped.slice(0, 20).join(', ')}`);
+        if (rep.returned.length) console.log(`[siderarium] dry run returned to storage: ${rep.returned.slice(0, 20).map(r => `${r.ship}:${r.item}@${r.station}`).join(', ')}`);
       } catch (e) { console.error('[siderarium] content migration DRY RUN failed:', (e as Error).stack); }
     }
   }
@@ -206,7 +207,7 @@ async function main() {
     if (bad.length) {
       console.error('[siderarium] !!! 마이그레이션 검증 실패 — 저장하지 않고 종료합니다', JSON.stringify({ bad, before, after })); process.exit(1);
     }
-    if (game.sim.contentReport && game.sim.contentReport.from < game.sim.contentReport.to) console.log(`[siderarium] content migration applied c${game.sim.contentReport.from}→c${game.sim.contentReport.to}: ships ${game.sim.contentReport.ships} · builds ${game.sim.contentReport.builds} · granted ${game.sim.contentReport.granted.length}`);
+    if (game.sim.contentReport && game.sim.contentReport.from < game.sim.contentReport.to) console.log(`[siderarium] content migration applied c${game.sim.contentReport.from}→c${game.sim.contentReport.to}: ships ${game.sim.contentReport.ships} · builds ${game.sim.contentReport.builds} · fitted ${game.sim.contentReport.fitted} · returned ${game.sim.contentReport.returned.length} · granted ${game.sim.contentReport.granted.length}`);
     // restore check: the migrated world serializes and loads back identically
     const s1 = game.sim.serialize();
     const ok = new WorldSim(JSON.parse(s1), { migrateContent: applyContent }).serialize() === s1;
