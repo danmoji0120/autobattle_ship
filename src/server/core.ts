@@ -17,6 +17,9 @@ export interface ServerOptions {
   movInterval?: number;           // seconds between compact ship-motion packets (default 0.2)
   save?: (data: SaveFile) => void;
   saveInterval?: number;
+  /** apply the content-model migration to an older save (default true; the production server keeps it
+   *  off until approved and only dry-runs it — see node.ts CONTENT_MIGRATE) */
+  migrateContent?: boolean;
 }
 
 function token(): string {
@@ -43,7 +46,7 @@ export class GameServer {
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
-    this.sim = save ? new WorldSim(save.world) : WorldSim.create(seed);
+    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent }) : WorldSim.create(seed);
     this.auth = save?.auth ?? {};
     this.accounts = save?.accounts ?? {};
     for (const c of Object.values(this.sim.st.companies)) c.online = false;

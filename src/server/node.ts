@@ -4,6 +4,8 @@
 //   SAVE_FILE     otherwise the world is saved to this JSON file (default ./data/world.json)
 //   WORLD_SEED    seed for a brand-new world
 //   WORLD_RESET   token: replace the world with a fresh one once per token (accounts are kept)
+//   CONTENT_MIGRATE  'apply' moves an older save onto the content model (growth project); anything else
+//                 (default) only dry-runs the migration on an in-memory copy and logs the result
 //   SESSION_TTL_HOURS  idle lifetime of a sign-in session (default 336 = 14 days, renewed while used)
 // Accounts (login ID + password, see accounts.ts) live in siderarium_accounts / siderarium_sessions
 // (or data/accounts.json without a database). The WebSocket only opens for a valid session cookie.
@@ -16,22 +18,8 @@ import type { ClientMsg, SaveFile } from './protocol';
 import { WorldSim } from '../world/sim';
 import { INDUSTRY_VERSION } from '../world/economy';
 import { WORLD_VERSION } from '../world/worldgen';
+import { CONTENT_VERSION, census, compareCensus, migrateContent } from '../world/migrate';
 import { AuthService, AuthError, memoryStore, pgAccountStore, type AccountStore } from './accounts';
-
-/** what must survive any migration: players, their money, ships, stations and stored goods */
-function census(w: any) {
-  const players = Object.values<any>(w.companies ?? {}).filter(c => c.kind === 'player');
-  const ids = new Set(players.map(c => c.id));
-  const goods = (c: Record<string, number>) => Object.values(c ?? {}).reduce((a, v) => a + (Number(v) || 0), 0);
-  return {
-    players: players.length,
-    credits: Math.round(players.reduce((a, c) => a + c.credits, 0)),
-    ships: Object.values<any>(w.ships ?? {}).filter(s => ids.has(s.owner)).length,
-    stations: Object.values<any>(w.stations ?? {}).filter(s => ids.has(s.owner)).length,
-    modules: Object.values<any>(w.stations ?? {}).filter(s => ids.has(s.owner)).reduce((a, s) => a + s.modules.length, 0),
-    stored: Math.round(Object.values<any>(w.stations ?? {}).reduce((a, s) => a + [...ids].reduce((b, id) => b + goods(s.storage?.[id]), 0), 0)),
-  };
-}
 
 const PORT = Number(process.env.PORT ?? 8080);
 const ROOT = path.resolve(process.env.STATIC_DIR ?? 'dist');
@@ -168,18 +156,36 @@ async function main() {
     } else console.log(`[siderarium] WORLD_RESET ${resetTok}: ${r.why} — 초기화하지 않음`);
   }
   // safe migration: an older save is copied to its own backup key (read back and compared) before the
-  // new code touches it; the migrated world must keep every player, credit, ship, station and stored good
+  // new code touches it; the migrated world must keep every player, credit, ship, station, stored good
+  // and piece of equipment (plus exactly what the migration recorded as granted)
+  const applyContent = process.env.CONTENT_MIGRATE === 'apply';
   let before: ReturnType<typeof census> | null = null;
   if (saved) {
     before = census(saved.world);
-    const old = `${saved.world.version ?? 0}.${saved.world.industryV ?? 0}`;
-    if ((saved.world.version ?? 0) < WORLD_VERSION || (saved.world.industryV ?? 0) < INDUSTRY_VERSION) {
-      const key = `backup-pre-v${old}`;
-      const copy = await storage.backup(key, saved);
-      if (!copy || JSON.stringify(copy.world.companies) !== JSON.stringify(saved.world.companies) || census(copy.world).stored !== before.stored) {
-        console.error(`[siderarium] !!! 세이브 백업(${key}) 검증 실패 — 마이그레이션을 중단합니다`); process.exit(1);
-      }
-      console.log(`[siderarium] save backup ${key} written and verified (${JSON.stringify(census(copy.world))})`);
+    const cv = saved.world.contentV ?? 0;
+    const old = `${saved.world.version ?? 0}.${saved.world.industryV ?? 0}${cv || applyContent ? `.c${cv}` : ''}`;
+    const contentDue = applyContent && cv < CONTENT_VERSION;
+    if ((saved.world.version ?? 0) < WORLD_VERSION || (saved.world.industryV ?? 0) < INDUSTRY_VERSION || contentDue) {
+      // backup keys are never overwritten: if this key already holds an older copy (the migration was
+      // rolled back and is being applied again), the new copy goes to the next free suffix
+      const same = (c: SaveFile | null) => !!c && JSON.stringify(c.world.companies) === JSON.stringify(saved!.world.companies) && census(c.world).stored === before!.stored;
+      let key = `backup-pre-v${old}`, copy: SaveFile | null = null;
+      for (let i = 1; i <= 9 && !same(copy); i++) { key = i === 1 ? `backup-pre-v${old}` : `backup-pre-v${old}-${i}`; copy = await storage.backup(key, saved); }
+      if (!same(copy)) { console.error(`[siderarium] !!! 세이브 백업(${key}) 검증 실패 — 마이그레이션을 중단합니다`); process.exit(1); }
+      console.log(`[siderarium] save backup ${key} written and verified (${JSON.stringify(census(copy!.world))})`);
+    }
+    if (cv < CONTENT_VERSION && !applyContent) {
+      // dry run on a copy of the real save: nothing is written, the result is only logged
+      try {
+        const copy = structuredClone(saved.world);
+        const sim = new WorldSim(copy, { migrateContent: true });
+        const rep = sim.contentReport!;
+        const bad = compareCensus(before, census(sim.st));
+        const s1 = sim.serialize();
+        const round = new WorldSim(JSON.parse(s1)).serialize() === s1;
+        console.log(`[siderarium] content migration DRY RUN c${cv}→c${rep.to}: ships ${rep.ships} · builds ${rep.builds} · unmapped ${rep.unmapped.length} · granted ${rep.granted.length} · census ${bad.length ? 'MISMATCH ' + bad.join('; ') : 'OK'} · round-trip ${round ? 'OK' : 'FAIL'} — 적용하지 않음 (CONTENT_MIGRATE=apply 로 적용)`);
+        if (rep.unmapped.length) console.log(`[siderarium] dry run unmapped: ${rep.unmapped.slice(0, 20).join(', ')}`);
+      } catch (e) { console.error('[siderarium] content migration DRY RUN failed:', (e as Error).stack); }
     }
   }
   if (!accountStore) {
@@ -190,19 +196,20 @@ async function main() {
   console.log(`[siderarium] accounts: ${accountStore.name} · ${Object.keys(saved?.accounts ?? {}).length} linked PMCs · ${Object.keys(saved?.auth ?? {}).length} legacy tokens`);
   let saving = false;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, snapInterval: 1.0, movInterval: 0.2, saveInterval: 30,
+    singleplayer: false, accounts: true, migrateContent: applyContent, snapInterval: 1.0, movInterval: 0.2, saveInterval: 30,
     save: d => { if (saving) return; saving = true; storage.save(d).catch(e => console.error('save failed', e)).finally(() => { saving = false; }); },
   }, Number(process.env.WORLD_SEED ?? 1));
   console.log(`[siderarium] world ${saved ? 'restored' : 'created'} (t=${game.sim.time.toFixed(0)}s) storage=${storage.name}`);
   if (before) {
     const after = census(game.sim.st);
-    const lost = (['players', 'ships', 'stations', 'modules'] as const).filter(k => after[k] < before![k]);
-    if (lost.length || Math.abs(after.credits - before.credits) > 1 || after.stored < before.stored - 1) {
-      console.error('[siderarium] !!! 마이그레이션 검증 실패 — 저장하지 않고 종료합니다', JSON.stringify({ before, after })); process.exit(1);
+    const bad = compareCensus(before, after);
+    if (bad.length) {
+      console.error('[siderarium] !!! 마이그레이션 검증 실패 — 저장하지 않고 종료합니다', JSON.stringify({ bad, before, after })); process.exit(1);
     }
+    if (game.sim.contentReport && game.sim.contentReport.from < game.sim.contentReport.to) console.log(`[siderarium] content migration applied c${game.sim.contentReport.from}→c${game.sim.contentReport.to}: ships ${game.sim.contentReport.ships} · builds ${game.sim.contentReport.builds} · granted ${game.sim.contentReport.granted.length}`);
     // restore check: the migrated world serializes and loads back identically
     const s1 = game.sim.serialize();
-    const ok = new WorldSim(JSON.parse(s1)).serialize() === s1;
+    const ok = new WorldSim(JSON.parse(s1), { migrateContent: applyContent }).serialize() === s1;
     if (!ok) { console.error('[siderarium] !!! 복원 검증 실패 — 저장하지 않고 종료합니다'); process.exit(1); }
     console.log(`[siderarium] migration check OK ${JSON.stringify(after)} · restore round-trip identical`);
   }

@@ -11,6 +11,7 @@ import type { March, WorldState, WShip, WGroup, Op, V, Res, Station, Field, Carg
 import { emptyCargo, cargoSum, RES, qty, addc, takec, cargoKeys } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
+import { migrateContent, syncShipContent, type MigrationReport } from './migrate';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
 import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
@@ -88,12 +89,17 @@ export class WorldSim {
   npcBattleMs = 0;
   private acc = 0;
   private slow = 0;
+  /** what the content migration did on load (null = not run) */
+  contentReport: MigrationReport | null = null;
   /** hooks for the server */
   onBattleOrder?: (eng: string, rec: OrderRecord) => void;
   onBattleEnd?: (eng: Engagement) => void;
 
-  constructor(st: WorldState) {
+  /** `migrateContent: false` keeps an unmigrated save on contentV 0 (server dry-run mode); a save
+   *  that is already migrated is always kept consistent */
+  constructor(st: WorldState, opts: { migrateContent?: boolean } = {}) {
     if ((st.version ?? 0) < WORLD_VERSION) st = migrateWorld(st);
+    if (opts.migrateContent !== false || (st.contentV ?? 0) >= 1) this.contentReport = migrateContent(st);
     this.st = st;
     this.rng = new Rng(st.seed).restore(st.rng.length ? st.rng : new Rng(st.seed).state());
     // industry: field compositions, NPC markets for the new goods, legacy facility kinds (idempotent)
@@ -252,6 +258,7 @@ export class WorldSim {
     const civ: Record<string, string> = { miner: '곡괭이', hauler: '짐꾼', constructor: '석공' };
     const nm = name ?? (civ[classId] ? `${civ[classId]} ${this.st.nextId % 100}호` : `${this.rng.pick(names)}${this.rng.chance(0.4) ? ' ' + ['II', 'III', 'IV', 'V'][this.rng.int(4)] : ''}`);
     const s: WShip = { id, owner, classId, loadoutId, name: nm, hp: 1, pos: { ...pos }, vel: { x: 0, y: 0, z: 0 }, heading: this.rng.range(0, 6.28), groupId, state: 'space', task: { k: 'none' }, cargo: emptyCargo(), kills: 0 };
+    syncShipContent(this.st, s);
     this.st.ships[id] = s;
     this.st.groups[groupId].shipIds.push(id);
     return s;
@@ -436,12 +443,14 @@ export class WorldSim {
           for (const [k, n] of Object.entries(nxt)) if (n > (cur[k] ?? 0) && qty(store, k) < n - (cur[k] ?? 0)) return `${RES_NAME[k]} ${n - (cur[k] ?? 0)} 필요 (보관함에 ${Math.floor(qty(store, k))})`;
           for (const k of new Set([...Object.keys(cur), ...Object.keys(nxt)])) addc(store, k, (cur[k] ?? 0) - (nxt[k] ?? 0));
           s.loadoutId = getLoadout(s.classId, cmd.loadoutId).id;
+          syncShipContent(this.st, s);
           this.ev('money', `${s.name} 무장 교체: ${getLoadout(s.classId, s.loadoutId).name} (기존 무장은 창고로)`, { company });
           return null;
         }
         const cost = Math.round(ECON[s.classId].price * 0.15);
         if (co.credits < cost) return '자금 부족';
         co.credits -= cost; s.loadoutId = getLoadout(s.classId, cmd.loadoutId).id;
+        syncShipContent(this.st, s);
         this.ev('money', `${s.name} 개조: ${getLoadout(s.classId, s.loadoutId).name} -${cost.toLocaleString()} cr`, { company });
         return null;
       }
@@ -608,7 +617,9 @@ export class WorldSim {
         const g = cmd.group ? G(cmd.group) : null;
         co.credits -= h.credits;
         st.seq = (st.seq ?? 0) + 1;
-        (st.builds ??= []).push({ id: `b${st.seq}`, classId: cmd.classId, loadoutId: lo.id, fit, group: g?.id, left: h.time, total: h.time, started: false, paid: h.credits });
+        const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: cmd.classId, loadoutId: lo.id, fit, group: g?.id, left: h.time, total: h.time, started: false, paid: h.credits };
+        syncShipContent(this.st, nb);
+        (st.builds ??= []).push(nb);
         stepBuilds(st, co, 0);
         this.ev('info', `${st.name}: ${hullName(cmd.classId)} 건조 등록 (${lo.name})`, { company, pos: st.pos, tag: 'build_plan' });
         return null;

@@ -15,7 +15,8 @@
     "shots": "node scripts/shot.mjs",
     "build:server": "esbuild src/server/node.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outfile=dist-server/server.mjs",
     "start": "node dist-server/server.mjs",
-    "worldbot": "vite-node scripts/worldbot.ts"
+    "worldbot": "vite-node scripts/worldbot.ts",
+    "content:check": "vite-node scripts/content-check.ts"
   },
   "dependencies": {
     "@fontsource/noto-sans-kr": "^5.3.1",

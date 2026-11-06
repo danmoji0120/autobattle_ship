@@ -72,6 +72,9 @@ export interface WShip {
   owner: string;
   classId: string;
   loadoutId: string;
+  /** content registry hull + structural variant (set from contentV 1; see world/migrate.ts) */
+  hull?: string;
+  variant?: string;
   name: string;
   hp: number;                // 0..1 hull fraction (persists between battles)
   pos: V; vel: V; heading: number;
@@ -203,6 +206,7 @@ export interface Station {
 
 export interface ShipBuild {
   id: string; classId: string; loadoutId: string;
+  hull?: string; variant?: string;
   /** fitting modules installed at launch */
   fit: string[];
   group?: string;
@@ -366,6 +370,10 @@ export interface WorldState {
   news: string[];
   /** industry data upgrade applied (see economy.ts) */
   industryV?: number;
+  /** content-model migration applied (world/migrate.ts CONTENT_VERSION) */
+  contentV?: number;
+  /** items created by migrations (asset conservation ledger) */
+  grants?: import('./migrate').GrantRecord[];
 }
 
 export const emptyCargo = (): Cargo => ({ ore: 0, alloy: 0, crystal: 0 });
