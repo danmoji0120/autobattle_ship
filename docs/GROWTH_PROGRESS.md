@@ -196,6 +196,9 @@ dry-run(기본) 경로는 바뀌지 않았다. 부가: `SAVE_INTERVAL_S`(기본 
   일치, 왕복 OK). 이전 코드로 되돌리는 동안에는 운영비·시장 v3가 멈추고 매물 잠금이 무시되지만, 매물은 구매 시 재검사되므로
   잘못된 거래는 일어나지 않는다. 백업 행 복원 절차는 P2와 같음(§6.3).
 - 브라우저 <!--BROWSER-->
+- 운영 사본 dry-run (8a939e3 배포 부팅, 메모리 상 사본, 쓰기 없음): `c0→c3: ships 146 · builds 0 · fitted 19 · converted 71 items ·
+  returned 0 · unmapped 0 · granted 18 · census OK · round-trip OK — 적용하지 않음`. granted 18 = 플레이어가 이미 가진 선체의
+  설계도(원장 기록, 자산 아님). 운영 DB 읽기 전용 확인(06:18 UTC): `main` gen 1·contentV 없음·c3 필드 없음, 정상 저장 계속.
 
 **경제 시뮬레이션** (`scripts/econsim.ts`, 4 채굴선 + 1 수송선 묶음 × 배수, 자동 채굴·판매, 시작 자금 2만, 초기 함대 제거)
 <!--ECON-->
