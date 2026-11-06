@@ -9,6 +9,7 @@
 //  - energy weapons hit shields hard and need no ammunition but draw heavy power; kinetic weapons and
 //    plasma are poor against shields; missiles and torpedoes can be shot down and burn ammunition;
 //  - every weapon is made from the existing goods + at most two new intermediates (munitions, optics).
+import type { VariantDef, PresetDef } from '../../schema';
 import type { ArmContent, ModuleContent, ItemContent, TechContent, FacilityContent, RecipeContent } from '../../schema';
 
 export const P5_ITEMS: ItemContent[] = [
@@ -205,3 +206,27 @@ export const CORE_WEAPON_META: Record<string, { family: string; tier: number; ro
   pulse_laser: { family: 'laser', tier: 2, role: 'general', vsShield: 1.25 },
   particle_lance: { family: 'particle', tier: 3, role: 'anti-capital', vsShield: 1.6 },
 };
+
+/** energy-capable structures for the small and medium hulls: before P5 only light cruisers and up had
+ *  energy hardpoints, so the small lasers had nowhere to go on the ships they are meant for. Each
+ *  replaces two kinetic turrets with energy turrets at the same spots (same size and arc) and adds
+ *  power conduits (electronics); building or refitting to one needs the laser research. */
+const swap = (ids: string[], hp: { id: string; pos: [number, number, number]; facing: number; arc: number; size: 'S' | 'M' }[]) =>
+  ({ remove: ids, add: hp.map(h => ({ ...h, type: 'energy' as const, mount: 'turret' as const })) });
+export const P5_VARIANTS: VariantDef[] = [
+  { id: 'corvette_mk1_laser', hull: 'corvette_mk1', name: '광학 포탑형', desc: '전방 실탄 포탑 2기를 에너지 포탑으로 바꾼 구조. 레이저를 단다. 전력 배선 추가.', blueprint: 'common',
+    hardpoints: swap(['hp02', 'hp03'], [{ id: 'e1', pos: [1.9, 0.9, 3], facing: 0, arc: 40, size: 'S' }, { id: 'e2', pos: [-1.9, 0.9, 3], facing: 0, arc: 40, size: 'S' }]),
+    parts: { electronics: 2 }, needs: { tech: ['optical_lasers'] } },
+  { id: 'frigate_mk1_laser', hull: 'frigate_mk1', name: '광학 포탑형', desc: '함수 실탄 포탑 2기를 에너지 포탑으로 바꾼 구조. 전력 배선 추가.', blueprint: 'common',
+    hardpoints: swap(['hp01', 'hp02'], [{ id: 'e1', pos: [1.6, 1.4, 5], facing: 0, arc: 60, size: 'S' }, { id: 'e2', pos: [-1.6, 1.4, 5], facing: 0, arc: 60, size: 'S' }]),
+    parts: { electronics: 3 }, needs: { tech: ['optical_lasers'] } },
+  { id: 'destroyer_mk1_laser', hull: 'destroyer_mk1', name: '광학 포탑형', desc: '전·후방 중형 포탑을 에너지 포탑으로 바꾼 구조. 청색 레이저·플라즈마를 단다. 전력 배선 추가.', blueprint: 'common',
+    hardpoints: swap(['hp01', 'hp08'], [{ id: 'e1', pos: [0, 3, 7], facing: 0, arc: 150, size: 'M' }, { id: 'e2', pos: [0, 3, -7], facing: 180, arc: 150, size: 'M' }]),
+    parts: { electronics: 6 }, needs: { tech: ['optical_lasers'] } },
+];
+
+export const P5_PRESETS: PresetDef[] = [
+  { id: 'cv_laser', hull: 'corvette_mk1', variant: 'corvette_mk1_laser', name: '광학 강습', desc: '적색 레이저 2 + 기관포 2 + 방공 1.', weapons: { e1: 'eq_laser_red', e2: 'eq_laser_red', hp05: 'eq_autocannon', hp06: 'eq_autocannon', hp04: 'eq_pd_gun' } },
+  { id: 'ff_laser', hull: 'frigate_mk1', variant: 'frigate_mk1_laser', name: '광학 호위', desc: '적색 레이저 2 + 방공 4.', weapons: { e1: 'eq_laser_red', e2: 'eq_laser_red', hp04: 'eq_pd_gun', hp05: 'eq_pd_gun', hp08: 'eq_pd_gun', hp09: 'eq_pd_gun' } },
+  { id: 'dd_laser', hull: 'destroyer_mk1', variant: 'destroyer_mk1_laser', name: '광학 포열', desc: '청색 레이저 2 + 방공 4.', weapons: { e1: 'eq_laser_blue', e2: 'eq_laser_blue', hp02: 'eq_pd_gun', hp03: 'eq_pd_gun', hp04: 'eq_pd_gun', hp05: 'eq_pd_gun' } },
+];

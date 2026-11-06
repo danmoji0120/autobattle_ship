@@ -11,7 +11,7 @@ import type { WorldView } from '../../server/protocol';
 import type { WShip, Station } from '../../world/types';
 import type { Cmd } from '../../world/sim';
 import { qty } from '../../world/types';
-import { CONTENT, variantLayout, presetsOfHull, variantsOfHull, weaponRole } from '../../content/registry';
+import { CONTENT, variantLayout, presetsOfHull, variantsOfHull, weaponRole, contentAvail } from '../../content/registry';
 import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arcOf } from '../../content/rules';
 import type { HardpointDef, InternalSlotDef } from '../../content/schema';
 import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bayModules, type ShipFitting } from '../../world/fitting';
@@ -196,9 +196,9 @@ export class FittingScreen {
         <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${b.id} · ${BAY_NAME[b.kind]} 베이</small></span>
         ${eq ? `<span class="fx" data-fclr="bay:${b.id}" title="비우기">✕</span>` : ''}</button>`;
     };
-    const hullPresets = presetsOfHull(hull.id);
+    const hullPresets = presetsOfHull(hull.id).filter(x => contentAvail(x.id, this.st!.contentV));
     const myPresets = (co.fitPresets ?? []).filter(x => x.hull === hull.id);
-    const variants = variantsOfHull(hull.id);
+    const variants = variantsOfHull(hull.id).filter(v => v.id === s.variant || contentAvail(v.id, this.st!.contentV));
     const items = (n: [string, number][]) => n.map(([k, c]) => `${esc(EQUIPMENT[k]?.name ?? k)}${c > 1 ? ` ×${c}` : ''}`).join(', ');
 
     morph(this.el, `<div class="panel fbox">

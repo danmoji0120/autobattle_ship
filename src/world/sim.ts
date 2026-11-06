@@ -13,7 +13,7 @@ import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MI
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
 import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from './migrate';
 import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, type ShipFitting } from './fitting';
-import { CONTENT, legacyOf } from '../content/registry';
+import { CONTENT, legacyOf, contentAvail } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
 import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, growthFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
@@ -298,6 +298,8 @@ export class WorldSim {
     if (!ownFit && !pub) return '피팅 시설이 없는 정거장';
     const v = Object.hasOwn(CONTENT.variants, variant) ? CONTENT.variants[variant] : undefined;
     if (!v || v.hull !== s.hull) return '이 선체의 변형이 아님';
+    if (variant !== s.variant && !contentAvail(variant, this.st.contentV)) return `${v.name}: 이 월드에서는 아직 사용할 수 없는 구조`;
+    if (variant !== s.variant && growthOn(this.st)) { const nt = (v.needs?.tech ?? []).find(t => !co.tech?.includes(t)); if (nt) return `${v.name}: 연구 필요 (${techName(nt)})`; }
     // blueprint-graded variants: changing *to* one needs its blueprint (P6); a ship that already is
     // that variant (built or bought) keeps it without one
     if (variant !== s.variant && v.blueprint !== 'common') {
@@ -1058,6 +1060,7 @@ export class WorldSim {
     const p = cmd.preset ? CONTENT.presets[cmd.preset] : undefined;
     const variant = cmd.variant ?? p?.variant ?? `${cmd.hull}_std`;
     if (CONTENT.variants[variant]?.hull !== cmd.hull) return '이 선체의 변형이 아님';
+    if (!contentAvail(variant, this.st.contentV)) return '이 월드에서는 아직 사용할 수 없는 구조';
     if (p && (p.hull !== cmd.hull || p.variant !== variant)) return '이 선체 변형의 프리셋이 아님';
     return { hull: cmd.hull, variant, preset: p?.id ?? Object.values(CONTENT.presets).find(x => x.variant === variant)?.id };
   }

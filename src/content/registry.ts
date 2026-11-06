@@ -40,8 +40,8 @@ export function buildRegistry(packs: ContentPack[]): Registry {
   };
   for (const p of packs) {
     for (const h of p.hulls ?? []) put(r.hulls, 'hull', h, p.id);
-    for (const v of p.variants ?? []) put(r.variants, 'variant', v, p.id);
-    for (const x of p.presets ?? []) put(r.presets, 'preset', x, p.id);
+    for (const v of p.variants ?? []) { put(r.variants, 'variant', v, p.id); if ((p.minContentV ?? 0) >= 3) r.growthOnly.add(v.id); }
+    for (const x of p.presets ?? []) { put(r.presets, 'preset', x, p.id); if ((p.minContentV ?? 0) >= 3) r.growthOnly.add(x.id); }
     for (const e of p.equipment ?? []) put(r.equipment, 'equipment', e, p.id);
     for (const a of p.assets ?? []) put(r.assets, 'asset', a, p.id);
     for (const b of p.blueprints ?? []) put(r.blueprints, 'blueprint', b, p.id);

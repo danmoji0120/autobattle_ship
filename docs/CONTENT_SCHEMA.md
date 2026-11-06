@@ -1,4 +1,4 @@
-# SIDERARIUM 콘텐츠 스키마 (P2 + P3/P4/P6)
+# SIDERARIUM 콘텐츠 스키마 (P2 + P3/P4/P6 + P5)
 
 > 기준 코드: `src/content/schema.ts`. 이 문서와 코드가 다르면 코드가 맞고 문서를 고친다.
 > P2: 장비 규격(EquipSpec), 내부 베이, 전력·질량, 하드포인트별 무기 사계(`arcBy`), 장비 id 프리셋, 함선 피팅 저장 형식 추가.
@@ -243,6 +243,9 @@ P1의 `{ weapon, arc }` 표기는 P2에서 없어졌다. 사계 축소는 하드
 | `Station` | `funds`, `fundsMax`, `shipStock`, `shipListings` | 공영 정거장 구매 예산, 선체별 재고 `{ n, t, why? }`, 플레이어 함선 매물 |
 | `ShipBuild` | `preset` | growth 선체 건조의 무장 프리셋 |
 | `WorldState` | `uniques` | 유일 설계도 보유자 |
+| `Company` | `tech[]` | P5 연구 id 포함 (성장 월드) |
+| `Station.storage` / 생산 대기열 | 재화·무장·모듈 id, 레시피 id | P5 `munitions`·`optics`·`eq_*`·`mod_*` |
+| `WShip.fitting` | P5 무장·모듈 id, 광학 포탑형 변형 id | 전투 시 실드·계열 효과는 저장하지 않고 피팅·연구에서 매번 계산 |
 
 **설계도 id·선체 id·변형 id는 세이브에 저장된다.** 이름 변경·삭제 금지.
 
@@ -257,3 +260,34 @@ P1의 `{ weapon, arc }` 표기는 P2에서 없어졌다. 사계 축소는 하드
 기존 12개 선체(`*_mk1`)는 내부 베이가 모두 `special` M, 개수 = `moduleSlots`. `power`/`mass`는 "기존 프리셋 + 기존에 허용되던 모든 모듈 조합(Σ크기 ≤ 슬롯)" 중 최댓값과 **정확히** 같다.
 그래서 기존 함선은 전부 그대로 들어가고, 베이만으로 예전보다 많이 싣지는 못한다(예: 2슬롯 코르벳에 증가 장갑 2개 → 질량 초과).
 검증기가 모든 조합을 전수 검사한다. mk1 선체의 power/mass/베이를 줄이면 검증 오류가 난다.
+
+
+## 10. P5 무장·연구·시설 데이터 (contentV ≥ 3)
+
+`ContentPack` 에 `minContentV: 3` 과 함께 다음 배열을 둔다. 필드 표·수치 기준·오류 진단은
+`docs/CODEX_CONTENT_GUIDE.md` §13~§25 에 있다.
+
+| 배열 | 형식 | 설치 위치 (registry.installContent) |
+|---|---|---|
+| `items` | ItemContent | `ITEMS` |
+| `arms` | ArmContent | `EQUIPMENT` (kind weapon) + `WEAPONS` (id = `eq_` 뗀 것) + `RECIPES` (id = 무장 id) + `reg.equipment` 규격 |
+| `modules` | ModuleContent | `EQUIPMENT` (kind module, `cfx`) + `RECIPES` + `reg.equipment` |
+| `techs` | TechContent | `TECHS` (`area`, `needLab`, `cfx`) |
+| `facilities` | FacilityContent | `FACILITIES` |
+| `recipes` | RecipeContent | `RECIPES` |
+| `variants` / `presets` | VariantDef / PresetDef | 기존과 같음 — 성장 전용으로 표시 |
+
+- 모든 설치 항목에는 `growth: true` 가 붙고, `reg.growthOnly` 에 들어간다. `contentAvail(id, contentV)` 로 판정한다.
+- 기존 표의 **뒤에** 덧붙인다 (`??=`). 기존 id 의 행은 덮어쓰지 않는다.
+- 기본 무장에는 메타데이터만 붙는다 (`family`, `tier`, `vsShield`). `role` 은 붙이지 않아 c0 표적 선택이 그대로다.
+- 기본 연구에는 `area` 만 붙는다 (`CORE_TECH_AREA`).
+
+전투 반영:
+
+- **실드**
+  - `ShipFx.shield` 는 선체 HP 대비 비율이다. 실드 모듈 합에 연구 `shieldMul` 을 곱한다.
+  - `ShipFx.shieldRegen` 은 초당 회복 비율이다. 피격 후 4초가 지나면 회복한다.
+  - 피격 시 실드가 `damage × vsShield` 를 먼저 흡수한다. 남은 비율만큼 선체 피해가 들어간다.
+- **계열 효과**: `ShipFx.fam[family] = { dmg, reload, range }`. 해당 분야 연구의 `cfx` 에서 나온다.
+- **역할**: 신규 무장은 `role` 로 표적 선호가 정해진다 (`weaponRole`).
+- **보급**: `supply` 는 함선 운영비의 보급에 더해진다. 물류 연구의 `supplyMul`·`upkeepMul` 이 곱해진다.

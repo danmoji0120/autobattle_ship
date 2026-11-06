@@ -1,8 +1,9 @@
-# Codex 콘텐츠 제작 가이드 (P2 초안 + P3/P4/P6 보강)
+# Codex 콘텐츠 제작 가이드 (P2 초안 + P3/P4/P6 보강 + P5/P7 무장·연구·시설)
 
 > 대상: 함선·변형·프리셋·그래픽 자산을 추가하는 Codex(및 사람) 작업자.
 > 필드 정의는 `docs/CONTENT_SCHEMA.md`, 규칙 구현은 `src/content/rules.ts`·`src/content/validate.ts`.
-> 이 문서와 코드가 다르면 코드가 맞다. 최종본은 P7.
+> P5 무장·연구·시설·레시피·품목은 §13~§25 (P7). 처음이면 §13의 예제 팩부터 복사한다.
+> 이 문서와 코드가 다르면 코드가 맞다.
 
 ---
 
@@ -18,7 +19,8 @@
 | 새 **절차적 실루엣**(`mesh.base`) | **엔진(Claude)** | `src/render/shipMesh.ts` + `src/content/meshBases.ts` — 이슈로 요청. 기존 13종 + 함급 실루엣은 자유롭게 사용 |
 | 운영비·시장·예산 **규칙**(간접비, 체납 단계, 예산 회복률) | **엔진(Claude)** | 선체별 수치(`upkeep`)만 Codex |
 | 기존 장비의 피팅 규격(`equipment.ts`) 조정 | Codex 제안 → 검토 | 밸런스 변경이므로 PR 설명에 근거 필수 |
-| 새 무기·모듈 **종류**, 새 아이템·레시피·연구 | **엔진(Claude)** | `EQUIPMENT`/`WEAPONS`/`RECIPES` 수정이 필요 — 이슈로 요청 |
+| 새 **무장**·**내부 모듈**·**연구**·**시설**·**레시피**·**중간재** (P5 데이터) | Codex (데이터) | 팩의 `arms`/`modules`/`techs`/`facilities`/`recipes`/`items` (§13~§25). 엔진 테이블은 직접 고치지 않는다 |
+| 새 무장 **계열**(family)·새 전투 효과 키·새 연구 분야 | **엔진(Claude)** | 전투 엔진·검증기 규칙이 함께 바뀌어야 함 — 이슈로 요청 |
 | 전투 엔진, 서버 명령, 세이브 마이그레이션 | **엔진(Claude)** | Codex는 손대지 않는다 |
 | `*_mk1` 선체의 하드포인트·베이 **삭제·id 변경**, power/mass 축소 | **금지** | 기존 플레이어 함선이 깨진다 (검증기가 막는다) |
 
@@ -238,3 +240,402 @@ export const FRONTIER_ASSETS: AssetDef[] = [
 - [ ] 게임 화면 스크린샷 첨부
 - [ ] 새 선체: `_std` 변형 + 프리셋 + 선체 설계도 + `build`가 있고, 산업선이면 크기별 트레이드오프가 `desc`·수치에 드러난다
 - [ ] 세이브·서버·전투 엔진 파일(`src/world/*`, `src/sim/*`, `src/server/*`)을 건드리지 않았다
+
+
+---
+
+# P5/P7 — 무장·연구·시설 콘텐츠 (§13~§25)
+
+> 이 부분은 P5에서 생긴 데이터(무장 계열·티어, 실드, 13개 연구 분야, 전문 시설, 레시피)를
+> 팩으로 추가하는 방법이다. 전부 **성장 월드(contentV ≥ 3) 전용**이다. 기존(c0) 월드에는 보이지도
+> 쓰이지도 않으며, 이 규칙은 엔진이 지킨다 (§24).
+
+## 13. 예제 팩 — 처음 시작할 때 복사할 것
+
+`src/content/packs/example/index.ts` 는 실제로 게임에 들어가 있는 가장 작은 완결 팩이다.
+
+- 연구 1개 (`twin_emitters`, 에너지 분야, 선행 `optical_lasers`)
+- 무장 1개 (`eq_laser_twin`, 레이저 2티어 S, 대소형함, 기존 `energy_fab` 에서 기존 재화로 생산)
+
+이 팩이 거치는 전 과정은 `tests/example-pack.test.ts` 가 매번 검사한다.
+
+1. 검증 통과
+2. 게임 테이블 등록
+3. c0 월드에서 차단
+4. 연구 해금
+5. 생산 (실제 재료·시간)
+6. 장착 (초계함을 광학 포탑형으로 개장)
+7. 전투에서 발사·명중
+8. 저장 후 다시 불러와도 유지
+
+새 팩은 이 폴더를 복사한 뒤 다음 순서로 만든다.
+
+1. `cp -r src/content/packs/example src/content/packs/<내팩>` 후 id 를 모두 바꾼다 (§16).
+2. `src/content/packs/index.ts` 의 `PACKS` 끝에 한 줄 추가 (**맨 뒤**에 — 앞에 넣으면 안 된다, §16).
+3. `npm run content:check` → 0 error.
+4. 예제 테스트를 복사해 `tests/<내팩>.test.ts` 로 바꾸고 `npx vitest run tests/<내팩>.test.ts`.
+5. 게임에서 확인 (§22).
+
+## 14. 파일 구조
+
+```
+src/content/
+  schema.ts                ← 모든 데이터 형식 (ArmContent, ModuleContent, TechContent …). 읽기 전용
+  registry.ts              ← 팩을 모아 게임 테이블에 설치 (installContent). 엔진 — 수정 금지
+  validate.ts              ← 선체·변형·프리셋 검증. 엔진
+  validateArsenal.ts       ← P5 검증 (무장·모듈·연구·시설·레시피·품목). 엔진
+  packs/
+    index.ts               ← PACKS 목록 (팩 추가 = 한 줄)
+    core/                  ← 기본 콘텐츠. 수정 금지 (기존 세이브가 의존)
+    growth/
+      hulls.ts, blueprints.ts      ← P3/P6
+      arsenal.ts                   ← P5 본 콘텐츠 (참고용 대형 예시)
+      index.ts                     ← GROWTH_PACK, ARSENAL_PACK
+    example/index.ts       ← §13 예제
+src/world/econConfig.ts    ← 경제 기준선 c4-b1 (가격 배수·조선소 비용). 동결 — P9 전에는 수정 금지
+```
+
+팩 하나에는 아래 배열을 원하는 만큼 넣는다. 모두 선택 항목이다.
+
+```ts
+export const MY_PACK: ContentPack = {
+  id: 'my_pack', name: '…', minContentV: 3,   // P5 데이터가 있으면 반드시 3
+  items, arms, modules, techs, facilities, recipes,   // P5
+  hulls, variants, presets, blueprints, assets,       // P3/P6 (§3~§11)
+};
+```
+
+## 15. 스키마 — 필수·선택 필드
+
+정의 원본은 `src/content/schema.ts`.
+
+### ArmContent (무장 = 장비 + 전투 수치 + 생산법을 한 레코드에)
+
+| 필드 | 필수 | 의미 |
+|---|---|---|
+| `id` | ● | `eq_` 로 시작. 전투 무장 id 는 앞의 `eq_` 를 뗀 것 |
+| `name`, `desc` | ● | 화면 표시. desc 에 **장단점**(무엇에 강하고 무엇에 약한지)을 쓴다 |
+| `family` | ● | `cannon`, `coil`, `laser`, `plasma`, `particle`, `missile`, `torpedo`, `pd` |
+| `tier` | ● | 1~5 (계열 안의 단계) |
+| `role` | ● | `anti-small`, `general`, `anti-capital`, `pd` — 전투 AI 표적 선호와 UI 설명 |
+| `size` | ● | `S`, `M`, `L` (하드포인트 크기 이하에만 장착) |
+| `mass`, `power` | ● | 질량 0~60, 전력 0~80 (선체 공급량에서 빠진다) |
+| `mounts` | ○ | `turret`, `fixed`, `vls`, `spinal`. 생략하면 모든 마운트 |
+| `tech` | ○ | 생산을 여는 연구. **2티어 이상은 사실상 필수** (없으면 warning) |
+| `combat` | ● | 아래 WeaponStats |
+| `vis` | ○ | `{ color: '#rrggbb', len, wid, beam? }` 전투 예광·빔 모양 |
+| `recipe` | ● | `{ fac: 시설 kind, time: 초, in: {재화: 수량} }` — 산출은 무장 1개 |
+| `supply` | ○ | 운용 중 시간당 소모 재화 (실탄·추진제). 에너지 무장은 보통 없음 |
+
+WeaponStats (`combat`)의 필드는 다음과 같다.
+
+- 필수
+  - `kind`: 계열이 정한다 — missile→`missile`, torpedo→`torpedo`, pd→`pd`, 나머지→`shell`
+  - `damage`, `pen` (관통), `range`, `speed` (탄속), `reload`
+  - `salvo`, `salvoGap`, `spread`, `turnSpeed` (포탑 선회, 도/초), `caliber`
+- 선택
+  - `vsShield`: 실드에 대한 효율. 1 = 그대로, 에너지는 1.2~1.4, 실탄은 0.6~0.8
+  - `sound`
+  - 미사일·어뢰는 `guidedTurn`, `munitionHp` 필수
+  - pd는 `pdChance` 필수
+
+### ModuleContent (내부 모듈)
+
+- 필수
+  - `id`: `mod_` 로 시작
+  - `slot`: 내부 베이 종류
+  - `size`, `mass`
+  - `power`: 음수면 전력 **공급** (반응로)
+  - `fx`: CombatFx
+  - `recipe`
+- 선택: `tech`
+
+모듈에는 두 가지 제약이 있다.
+
+- 계열 한정 효과(`fx.family`)를 쓸 수 없다. 그런 효과는 연구로 만든다.
+- 실드(`fx.shield`)를 주는 모듈은 반드시 전력을 소모해야 한다.
+
+### TechContent (연구)
+
+| 필드 | 필수 | 의미 |
+|---|---|---|
+| `id`, `name`, `desc` | ● | |
+| `area` | ● | 13개 분야 중 하나 (§17) |
+| `field` | ● | 어느 연구소가 연구하는가. 연구소 시설의 `lab` 목록에 있어야 함 |
+| `time`, `credits`, `cost` | ● | 시간(초)·자금·재료 — 연구 시작 시 실제로 소모 |
+| `pre` | ○ | 선행 연구 id 목록 |
+| `needLab` | ○ | 고급 연구: 이 전문 연구소가 정거장에 있어야 함 |
+| `unlocks` | ● | 연구 트리에 표시되는 요약 ("무장: … · 레이저 사거리 +8%") |
+| `fx` | ○ | 회사 전체 전략 효과 (`buildMul`, `mineMul`, `supplyMul` …) |
+| `cfx` | ○ | 전투 효과 (`dmgMul`, `accMul`, `shieldMul` …, 무장 분야는 `family` 지정) |
+
+`fx`·`cfx` 가 없어도 된다. 다만 그때는 그 연구가 무언가를 **해금**해야 한다. 해금 대상은
+무장·모듈·시설·레시피의 `tech`, 다른 연구의 `pre`, 변형의 `needs.tech` 중 하나다. 아무것도
+하지 않는 연구는 error 다.
+
+### FacilityContent / RecipeContent / ItemContent
+
+- **FacilityContent**
+  - 필드는 기존 `FACILITIES` 행과 같다: `kind`, `name`, `cat`, `desc`, `credits`, `mats` (건설 자재), `work`, `power`, `unlocks`
+  - 선택 필드
+    - `lines`: 생산 라인 수
+    - `requires`: 선행 시설
+    - `tech`: 건설 연구
+    - `lab`: 연구소면 연구 가능한 field 목록
+  - 생산·연구·조선·저장 중 아무 역할도 없는 시설은 warning
+- **RecipeContent**
+  - 필드: `id`, `name`, `fac`, `time`, `in`, `out`, 선택 `tech`
+  - 재료 없는 레시피와 같은 재화를 넣어 같은 재화를 만드는 레시피는 error
+- **ItemContent** (새 재화)
+  - 필드: `id`, `name`, `cat` (`refined`, `part`, `shippart`), `tier`, `price`, `color`, `desc`
+  - 만드는 레시피가 없으면 error
+  - 어디에도 쓰이지 않으면 warning
+  - **새 중간재는 최소화한다.** P5 전체가 `munitions`·`optics` 두 개만 추가했다. 먼저 기존 재화(`alloy`, `electronics`, `weapon_parts`, `precision`, `crystal`, `rare_metal`, `chemicals`, `metal`, `silicon` …)로 만들 수 있는지 본다.
+
+### VariantDef (P5 추가 사항)
+
+- 소형·중형 선체의 에너지 포탑 구조(`corvette_mk1_laser` 등)는 무장 팩(`arsenal.ts`의 `P5_VARIANTS`)에 있다.
+- `minContentV: 3` 팩의 변형·프리셋은 자동으로 성장 전용이 된다.
+- `needs.tech` 는 성장 월드에서 건조와 **개장(구조 변경)** 둘 다에 적용된다.
+
+## 16. ID와 참조 규칙
+
+- 형식
+  - 소문자·숫자·`_` 만 쓴다.
+  - 무장은 `eq_…`, 모듈은 `mod_…`.
+- id 는 **한 번 배포되면 바꾸지 않는다.** 세이브가 다음을 id 로 저장한다.
+  - 연구 목록 `company.tech`
+  - 보관함 재화 `storage`
+  - 피팅 `fitting.hp`·`fitting.bay`
+  - 생산 대기열 `recipe`
+- 기존 id 와 겹치면 안 된다. 품목·시설·연구·전투 무장 id 모두 해당하며, 검증기가 충돌을 막는다.
+- 모든 참조는 존재해야 한다.
+  - `tech`, `pre`, `needLab`
+  - `recipe.fac`, `recipe.in`, `supply`
+  - 시설의 `requires`
+  - 레시피의 `in`·`out`
+  - 팩 안의 것이든 기존 테이블의 것이든 상관없다.
+- **성장 전용 참조 금지 (c0 팩).** `minContentV` 가 없는 팩이 성장 전용 연구·재화를 참조하면 error 다.
+- **팩 순서**
+  - `PACKS` 의 **맨 뒤에** 추가한다.
+  - 설치는 기존 테이블 뒤에 덧붙이는 방식이라, 기존 조회 결과("첫 번째로 맞는 것")가 바뀌지 않는다.
+  - 앞에 끼워 넣으면 기존 월드의 결과가 달라질 수 있다.
+
+## 17. 연구 분야와 효과 — 분야끼리 효과를 겹치지 않는다
+
+13개 분야는 각자 **자기만의 효과 종류**를 가진다. 정의는 `AREA_EFFECTS` (`validateArsenal.ts`)이며,
+다른 분야의 효과를 쓰면 error 다.
+
+| 분야 | 전략 효과 `fx` | 전투 효과 `cfx` |
+|---|---|---|
+| hull 선체 | buildMul | hpMul |
+| propulsion 추진 | cruiseMul | speedMul |
+| power 동력 | — | shieldRegenMul |
+| kinetic 실탄 | — | dmgMul·reloadMul·rangeMul (**family: coil·cannon**) |
+| energy 에너지 | — | dmgMul·reloadMul·rangeMul (**family: laser·plasma·particle**) |
+| missile 유도 | — | dmgMul·reloadMul·rangeMul (**family: missile·torpedo**) |
+| defense 방어 | repairMul | armorMul·shieldMul |
+| electronics 전자 | — | accMul·pdMul |
+| industry 산업 | prodMul·refineMul | — |
+| resource 자원 | mineMul | — |
+| logistics 물류 | cargoMul·supplyMul·upkeepMul | — |
+| station 정거장 | researchMul·constructMul | — |
+| tactics 전술 | skillGain | evasion |
+
+배수 효과의 범위는 0.5~1.5 다. 그 밖의 효과는 다음 상한을 따른다.
+
+- `evasion`: 0.2 이하
+- 모듈 `shield`: 0.5 이하
+- `shieldRegen`: 0.1 이하
+
+같은 분야 안에서도 같은 효과를 여러 연구가 반복하지 않게 한다. 반복하면 곱해서 커진다. 단계별로
+다른 축(사거리 → 연사 → 관통 해금)을 주는 것이 원칙이다.
+
+**연구와 설계도는 별개다.**
+
+- 연구는 생산·건설·개장 **능력**을 연다.
+- 설계도(P6, §11)는 특정 선체·변형을 **만들 권리**다.
+- 무장·모듈에는 설계도가 없다. 연구 + 시설 + 재료면 만든다.
+
+## 18. 연구·시설·레시피·무장의 연결
+
+```
+연구(techs) ──tech──▶ 시설(facilities) ──fac──▶ 레시피/무장 recipe ──in──▶ 재화(items, 기존 재화)
+   │  └─pre─▶ 선행 연구                          │
+   └─needLab─▶ 전문 연구소 시설 (lab: [field])    └─out─▶ 재화 / 무장·모듈 (보관함 → 피팅)
+```
+
+- 연구는 연구소(`lab` 에 그 `field` 가 있는 시설)가 있는 **자사 정거장**에서만 시작된다.
+- 시작할 때 `cost` 재료와 `credits` 가 소모된다.
+- 무장·모듈은 `recipe.fac` 시설에서 `recipe.in` 재료와 `time` 초를 들여 생산된다.
+- 생산하려면 `tech` 연구가 끝나 있어야 한다.
+- 만든 장비는 정거장 보관함에 들어가고, 피팅 화면에서 장착한다.
+- 공영 정거장에서 사려면 역시 연구가 필요하다.
+- 선행 조건은 **의미가 있어야 한다.** 예를 들어 고급 무장은 전문 연구소(`needLab`)를, 실탄 무장은 탄약 공장 재화(`munitions`)를 요구한다.
+- 연구 순환(`pre` 가 돌고 도는 것)은 error.
+
+**P5 기본 시설**
+
+| 시설 | 연구 | 만드는 것 |
+|---|---|---|
+| `ammo_plant` 탄약·미사일 공장 | `missile_fab` | munitions |
+| `energy_fab` 에너지 무장 공장 | `optical_lasers` | optics, 레이저·플라즈마·입자·방공 레이저 |
+| `weapons_factory` (기존) | — | 코일·레일·미사일·어뢰 |
+| `lab_power` 동력·방어 전문 연구소 | `lab_specialization` | 전문 연구 (아래 참고) |
+| `lab_ballistics` 실탄·유도 전문 연구소 | `lab_specialization` | 전문 연구 (아래 참고) |
+| `lab_energy` 에너지 전문 연구소 | `lab_specialization` | 전문 연구 (아래 참고) |
+| `lab_logistics` 물류·정거장 전문 연구소 | `lab_specialization` | 전문 연구 (아래 참고) |
+
+전문 연구소 4종은 `needLab` 으로 지정된 고급 연구를 여는 곳이다.
+
+## 19. 수치 기준 — 기존 콘텐츠와 비교
+
+**전투 지수** `armScore` 는 다음과 같다.
+
+- 식: `(damage × salvo / reload) × √(pen/40) × √(range/1000)`
+- 의미: 지속 피해 × 장갑 관통 × 사거리 도달
+- 비교 대상은 같은 크기의 **기본(c0) 무장 최고치**다.
+  - 현재 기준: S 50, M 150, L 235
+  - pd 계열은 비교하지 않는다.
+- 판정
+  - 기준 × 1.25 초과 → warning. PR 에 근거를 적는다 (높은 전력, 대형 하드포인트, 느린 선회 등).
+  - 기준 × 1.6 초과 → **error**.
+
+현재 P5 무장의 지수 (2026-11, 기준선 c4-b1):
+
+| 크기 | 무장 (계열 티어, 역할, 지수, 전력, 선회) |
+|---|---|
+| S | 적색 레이저 (L1 대소형 22 / 5 / 160) · **쌍열 레이저 예제 (L2 대소형 25 / 8 / 140)** · 코일건 (C1 범용 32 / 3 / 140) |
+| M | 청색 (L2 83 / 12 / 95) · 자외선 (L3 124 / 18 / 70) · 속사 코일 (C2 대소형 71 / 6 / 200) · 레일 (C3 대형함 59 / 18 / 30) · 고속·장거리·정밀 미사일 39·40·66 · 어뢰 89 · 플라즈마 60 · 입자 62 |
+| L | X선 (L4 152 / 34 / 26) · 감마 (L5 113 / 60 / 10) · 중어뢰 212 · 중플라즈마 164 |
+
+**상위 티어가 모든 면에서 하위 티어를 이기면 error 다.**
+
+- "모든 면"은 다음 일곱 가지다: 지수, 관통, 사거리, 선회, 전력, 질량, 크기.
+- 상위 티어는 적어도 하나에서 불리해야 한다. 보통 전력 증가, 선회 저하, 연사 저하, 하드포인트 대형화 중 하나다.
+- 그래서 감마선은 X선보다 지수가 낮다. 대신 관통 120으로 전함 장갑을 뚫는다.
+
+역할별 수치 성향은 다음과 같다.
+
+- **anti-small** (대소형함): 선회 ≥ 120, 연사 빠름, 관통 낮음 (≤ 30)
+- **anti-capital** (대형함): 관통 높음 (≥ 60), 선회 느림 (≤ 40), 연사 느림
+- **general** (범용): 그 사이
+
+계열별 성향은 다음과 같다.
+
+- **에너지**: 실드에 강함 (vsShield ≥ 1.2), 탄약 없음, 전력 큼
+- **실탄·플라즈마**: 실드에 약함 (≤ 0.8). 실탄은 `supply` 로 탄약을 소모한다.
+- **미사일·어뢰**: 방공에 격추된다 (`munitionHp`). 탄약 소모가 크다.
+
+**생산 난이도**
+
+- `recipe.time` 은 30초~24시간이다.
+- 티어가 오를수록 시간과 고급 재화(`optics`, `rare_metal`, `crystal`)를 늘린다.
+- 연구 `time`·`credits` 도 티어마다 대략 2배씩 늘린다. `arsenal.ts` 의 레이저 계열이 기준이다 (2400 → 4800 → 9000 → 18000 → 32400 초).
+
+**경제 기준선**
+
+- 함선 가격, 조선소 비용, NPC 재고는 `econConfig.ts` (c4-b1) 에 있다.
+- 콘텐츠 작업에서는 바꾸지 않는다. 가격이 문제로 보이면 이슈로 남긴다 (P9).
+
+## 20. 자산 — 무장 그래픽
+
+- 무장 그래픽은 데이터로만 정한다. **모델·텍스처 파일은 필요 없다.**
+- 계열(`family`)이 모양을 정한다 (`src/render/shipMesh.ts`, 엔진).
+  - 레이저·플라즈마·입자: 돔 포탑 + 집속 포신
+  - 코일: 쌍레일
+  - 미사일·어뢰: 발사관 상자
+  - pd: 소형 돔
+- `vis` 는 전투 중 모양을 정한다.
+  - 대상: 예광탄·빔의 색 `color` (#rrggbb), 길이 `len` (0~200), 굵기 `wid` (0~4)
+  - `beam: true` 면 즉발 광선으로 그린다.
+  - 같은 계열 안에서는 티어마다 색을 달리한다. 레이저는 적 → 청 → 보라 → 백 → 녹으로 간다.
+  - 수치와 그래픽을 맞춘다. 굵은 빔은 강한 무장에만 쓴다.
+- 실드에 맞으면 청색 파문이 그려지고, 관통하면 기존 피격 효과가 나온다. 둘 다 엔진이 그린다.
+- 선체 모델·초상화 등 파일 자산은 §6 (glb·png, 경로·크기 규칙)을 따른다.
+
+## 21. 검증 실행
+
+```
+npm run -s content:check          # 전체 팩 검증 → "0 error(s)" 가 목표. warning 은 PR 에 사유
+npx tsc --noEmit -p .             # 타입
+npx vitest run tests/example-pack.test.ts tests/p5.test.ts tests/content.test.ts   # 빠른 확인
+npx vitest run                    # 전체 (약 15분)
+```
+
+검증기가 하는 일은 다음과 같다.
+
+- **구조**: id, 형식, 범위, 참조
+- **수치**: 전투 지수, 티어 압도
+- **설계 규칙**
+  - 분야별 효과 독점
+  - 아무 효과 없는 연구
+  - 쓰임 없는 중간재
+  - 무에서 생산하는 레시피
+  - 실드 모듈 전력
+- **c0 보호**: 성장 전용 참조
+
+## 22. 게임에서 확인
+
+1. 로컬 서버: `npm run build && npm start` (클라이언트만 고칠 때는 `npm run dev`). 새 월드는 성장 월드(contentV 4)다.
+2. 정거장 탭의 **연구** 화면에서 확인한다.
+   - 분야별 열(13개)에 새 연구 카드가 보이는지
+   - 선행·전문 연구소 표시가 맞는지
+   - 카드를 누르면 "해금:" 목록에 무장이 나오는지
+3. 연구가 끝나면 이벤트 로그에 "연구 완료: 쌍열 방출기 — 무장: … (생산 가능: 쌍열 펄스 레이저)" 가 나온다.
+4. **생산** 화면에서 확인한다.
+   - 해당 시설 아래에 레시피가 보이는지
+   - 재료가 표시되는지
+   - 진행 막대가 움직이는지
+5. **피팅** 화면에서 확인한다.
+   - 무장 목록에 계열 배지와 역할이 나오는지
+   - 수치 막대(사거리·관통·연사·실드 효율·선회)로 기존 무장과 비교할 수 있는지
+   - 소형함은 "구조 변형"에서 **광학 포탑형**을 골라야 에너지 무장을 단다.
+6. **전투**에서 확인한다.
+   - 예광·빔 색이 `vis` 대로 나오는지
+   - 실드가 있는 적에게 파문이 생기는지
+7. 접속을 끊었다가 다시 들어와 연구·장비·피팅이 그대로인지 확인한다.
+
+자동 확인으로는 `tests/example-pack.test.ts` 가 저장·재로드를 검사한다. 브라우저 확인 스크립트 예시는 `docs/GROWTH_PROGRESS.md` 의 P5 항목에 있다.
+
+## 23. 고쳐도 되는 파일 / 금지 파일
+
+| 고쳐도 됨 (Codex) | 금지 (엔진·요청) |
+|---|---|
+| `src/content/packs/<내팩>/**` (새 팩) | `src/content/packs/core/**` — 기존 세이브가 의존 |
+| `src/content/packs/index.ts` 의 PACKS 끝에 한 줄 | `src/content/registry.ts`, `validate.ts`, `validateArsenal.ts`, `schema.ts` |
+| `tests/<내팩>.test.ts` | `src/world/**`, `src/sim/**`, `server/**` — 규칙·세이브 |
+| `docs/` 의 팩 설명 | `src/world/econConfig.ts` — 경제 기준선 동결 (P9 전용) |
+| `growth/arsenal.ts` 의 **문구**(desc·unlocks) 수정 | 배포된 id 의 이름 변경·삭제, 기존 무장 수치 하향 (보유 장비가 바뀐다) |
+| | `src/render/**` — 새 계열 모양이 필요하면 이슈로 |
+
+기존 무장·연구 수치를 바꾸는 것은 밸런스 변경이다. 이유와 전후 전투 지수를 PR 에 적고 리뷰를 받는다.
+
+## 24. c0(기존 월드) 보호 — 엔진이 보장하는 것
+
+- `minContentV: 3` 팩의 모든 항목(품목·무장·모듈·연구·시설·레시피·변형·프리셋)은 `growthOnly` 로 표시된다.
+- c0 월드에서는 다음이 모두 거부되거나 숨겨진다: 연구, 시설 건설, 생산 주문, 장착, 개장, 건조, UI 목록.
+- 기본 무장에는 계열 메타데이터(`family`, `tier`, `vsShield`)만 붙는다. 그래서 c0 전투 결과는 그대로다.
+  - c0 결정론 해시를 이전 커밋(9a062f9)과 비교해 40분 동일함을 확인했다.
+- 팩은 `minContentV` 를 생략하거나 낮추면 안 된다. 그러면 기존 월드에 콘텐츠가 노출된다.
+
+## 25. 오류 진단
+
+| 메시지 (content:check) | 원인 → 해결 |
+|---|---|
+| `tech "x" 없음` / `선행 연구 "x" 없음` | 오타 또는 의존 팩이 PACKS 에서 뒤에 있음 → id 확인, 팩 순서 확인 |
+| `recipe.fac "x" 시설 없음` | 시설 kind 오타 (`energy_fab`, `ammo_plant`, `weapons_factory` …) |
+| `laser 계열의 combat.kind 는 "shell"` | 미사일만 `missile`, 어뢰만 `torpedo`, 방공만 `pd` |
+| `combat.speed undefined (50–8000)` | 필수 수치 누락 — 예제의 combat 을 통째로 복사해 고친다 |
+| `전투 지수 N 가 기존 S 무장 최고치 50 의 1.6배 초과` | 피해·연사 과다 → 줄이거나 더 큰 크기(M/L)로 |
+| `laser 2티어가 … 모든 면에서 압도` | 전력·선회·크기 중 하나는 불리하게 |
+| `energy 분야는 전투 효과 hpMul 를 쓰지 않음` | 효과를 그 효과의 분야(§17 표)로 옮긴다 |
+| `energy 분야는 coil 계열을 다루지 않음` | 실탄 계열 효과는 kinetic 분야 |
+| `아무것도 해금하거나 바꾸지 않는 연구` | `fx`/`cfx` 를 주거나 무장·시설의 `tech` 로 연결 |
+| `field "x" 를 연구할 수 있는 연구소가 없음` | field 는 power/kinetic/energy/missile/logistics 또는 기존 field |
+| `needLab lab_energy 이 field "kinetic" 를 연구하지 않음` | 전문 연구소와 field 를 맞춘다 (§18 표) |
+| `이 품목을 만드는 레시피가 없음` | 새 재화에는 생산 레시피가 필요 — 가능하면 기존 재화로 대체 |
+| `실드 발생기는 전력을 소모해야 함` | 실드 모듈의 `power` 는 양수 |
+| (게임) 무장이 피팅 목록에 없음 | c0 월드이거나 연구 미완료, 또는 하드포인트 종류 불일치 (소형함 실탄 포탑 → 광학 포탑형 변형) |
+| (게임) "이 월드에서는 아직 사용할 수 없는 …" | c0 월드 — 정상. 성장 월드에서 확인 |
+| (테스트) 결정론 해시 변경 | c0 경로를 건드렸다 — 팩을 PACKS 끝에 두었는지, 기본 무장 수치를 바꾸지 않았는지 확인 |
