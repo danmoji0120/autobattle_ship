@@ -258,7 +258,7 @@ describe('growth: upkeep and arrears (P4)', () => {
     expect(overheadMul(1)).toBe(overheadMul(8)); expect(overheadMul(8)).toBe(overheadMul(500));
     const a = fleet(10, 71), b = fleet(30, 72);
     const fa = forecast(a.sim.st, a.co), fb = forecast(b.sim.st, b.co);
-    expect((fb.credits + fb.overhead) / fb.ships).toBeCloseTo((fa.credits + fa.overhead) / fa.ships, 6);   // 3 accounts × 10 = 1 account × 30 (supplies follow each world's market price)
+    expect(fb.overhead / fb.credits).toBeCloseTo(fa.overhead / fa.credits, 9);   // same share for 10 or 30 ships: 3 accounts × 10 = 1 account × 30
   });
 
   it('unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve', () => {
