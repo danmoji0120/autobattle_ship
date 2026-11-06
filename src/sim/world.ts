@@ -117,7 +117,14 @@ export class World {
     const armorMul = (lo.armorMul ?? 1) * (fx.armorMul ?? 1);
     const hp = cls.hp * (lo.hpMul ?? 1) * (fx.hpMul ?? 1);
     // range / reload changes are baked into per-mount weapon copies (deterministic, replay-safe)
-    const wmod = (id: string) => { const w = WEAPONS[id]; const r = w.kind === 'pd' ? 1 : fx.rangeMul ?? 1, rl = fx.reloadMul ?? 1, mg = fx.magMul ?? 1; return r === 1 && rl === 1 && (mg === 1 || w.magazine === undefined) ? w : { ...w, range: w.range * r, reload: w.reload * rl, magazine: w.magazine !== undefined ? Math.round(w.magazine * mg) : undefined }; };
+    const wmod = (id: string) => {
+      const w = WEAPONS[id]; const fm = w.family ? fx.fam?.[w.family] : undefined;
+      const r = (w.kind === 'pd' ? 1 : fx.rangeMul ?? 1) * (fm?.range ?? 1), rl = (fx.reloadMul ?? 1) * (fm?.reload ?? 1), mg = fx.magMul ?? 1, dm = fm?.dmg ?? 1;
+      if (r === 1 && rl === 1 && dm === 1 && (mg === 1 || w.magazine === undefined)) return w;
+      const out = { ...w, range: w.range * r, reload: w.reload * rl, magazine: w.magazine !== undefined ? Math.round(w.magazine * mg) : undefined };
+      if (dm !== 1) out.damage = w.damage * dm;
+      return out;
+    };
     const s: Ship = {
       id: this.nextId++, team, name, cls, loadout: lo, role: cls.role, groupId: g.id,
       pos: new Vec3(), prevPos: new Vec3(), vel: new Vec3(), yaw: team === 0 ? 0 : Math.PI, pitch: 0, prevYaw: 0, prevPitch: 0, fwd: new Vec3(0, 0, 1),
@@ -134,6 +141,7 @@ export class World {
       evasion: fx.evasion ?? 0,
       value: shipCost(classId, loadoutId), recentDamage: 0, lastAttacker: -1, throttle: 0, killedBy: -1,
     };
+    if (fx.shield) { s.maxShield = s.shield = hp * fx.shield; s.shieldRegen = fx.shieldRegen ?? 0.02; s.shieldHitAt = -99; }
     lo.mounts.forEach((md, i) => {
       const f = md.facing * Math.PI / 180;
       const mount: Mount = {
@@ -488,6 +496,8 @@ export class World {
   private updateStatus(s: Ship) {
     const dt = this.dt;
     s.recentDamage *= Math.exp(-dt / 1.6);
+    // shields recover once the ship has not been hit for 4 s
+    if (s.maxShield && s.shield! < s.maxShield && this.time - (s.shieldHitAt ?? -99) > 4) s.shield = Math.min(s.maxShield, s.shield! + s.maxShield * (s.shieldRegen ?? 0) * dt);
     if (s.crit.engine > 0) s.crit.engine -= dt;
     if (s.crit.bridge > 0) s.crit.bridge -= dt;
     if (s.crit.fire > 0) {
@@ -642,6 +652,10 @@ export class World {
   suitability(w: WeaponDef, t: Ship): number {
     const ratio = w.pen / t.armor.side;
     let s = ratio >= 1 ? 1 : ratio < 0.55 ? 0.08 : Math.pow(ratio, 1.6);
+    // P5 weapons declare what they are for (the built-in ones keep the rules below)
+    if (w.role === 'anti-small') { if (t.role === 'raider' || t.role === 'escort') s *= 1.4; else s *= 0.7; }
+    else if (w.role === 'anti-capital') { if (t.role === 'raider') return s * 0.1; if (t.role === 'line') s *= 1.3; }
+    if (t.shield && t.maxShield && t.shield > t.maxShield * 0.25) s *= w.vsShield ?? 1;
     // heavy/guided weapons are wasted on small agile craft
     if (t.role === 'raider') {
       if (w.kind === 'missile') s *= 0.15;
@@ -800,13 +814,29 @@ export class World {
     const fromDir = tmpD.copy(dir).scale(-1);
     const c = fromDir.dot(t.fwd);
     const facing: 'front' | 'side' | 'rear' = c > 0.72 ? 'front' : c < -0.6 ? 'rear' : 'side';
+    // P5 shields (growth fittings only — c0 ships have none and skip this): the shield takes the hit
+    // first, scaled by the weapon's effect on shields; what it cannot hold goes on to the armour
+    let through = 1;
+    if (t.shield && t.shield > 0) {
+      const vs = w.vsShield ?? 1;
+      const want = w.damage * vs;
+      const took = Math.min(t.shield, want);
+      t.shield -= took; t.shieldHitAt = this.time;
+      through = want > 0 ? 1 - took / want : 0;
+      if (through <= 0.001) {
+        t.lastAttacker = attackerId;
+        const a0 = this.shipById.get(attackerId); if (a0) { a0.stats.hits++; }
+        this.events.push({ t: 'hit', target: t.id, attacker: attackerId, pos: pos.clone(), dir: dir.clone(), dmg: 0, result: 'shield', weapon: w.id, facing });
+        return;
+      }
+    }
     const armor = t.armor[facing];
     const ratio = w.pen / armor;
     let mul: number; let result: 'pen' | 'ricochet' | 'blocked';
     if (ratio >= 1) { mul = 1; result = 'pen'; }
     else if (ratio < 0.55 && this.rng.chance(0.75)) { mul = 0.06; result = 'ricochet'; }
     else { mul = Math.pow(ratio, 1.6); result = mul > 0.35 ? 'pen' : 'blocked'; }
-    const dmg = w.damage * mul * this.rng.range(0.85, 1.15);
+    const dmg = w.damage * mul * this.rng.range(0.85, 1.15) * through;
     t.hp -= dmg;
     t.stats.dmgTaken += dmg;
     t.recentDamage += dmg;

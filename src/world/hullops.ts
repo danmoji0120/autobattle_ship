@@ -8,6 +8,7 @@ import { sizeRank } from '../content/schema';
 import { ECON, type ShipEcon } from './data';
 import { HULLS, FACILITIES } from './industry';
 import { hullPrice } from './valuation';
+import { MK1_STOCK, MK1_RESTOCK, MK1_MIL_REP } from './econConfig';
 import type { Station, WShip, WorldState } from './types';
 
 /** contentV from which hull data, upkeep, market demand and blueprint rules apply */
@@ -50,13 +51,14 @@ export const econOf = (s: { classId: string; hull?: string; variant?: string }):
   s.hull ? hullEcon(hullIdOf(s), s.variant) : hullEcon(`${s.classId}_mk1`);
 
 /** own-yard build requirements of a hull (+ variant extra parts) */
-export function hullBuild(hullId: string, variantId?: string): HullBuild {
+export function hullBuild(hullId: string, variantId?: string, growth = true): HullBuild {
   const h = CONTENT.hulls[hullId];
   const legacy = HULLS[h?.classId ?? hullId.replace(/_mk1$/, '')];
   const b: HullBuild = h?.build ?? { yard: legacy?.yard ?? 1, time: legacy?.time ?? 1800, credits: legacy?.credits ?? 1500, parts: { ...(legacy?.parts ?? {}) }, ...(legacy?.tech ? { tech: [legacy.tech] } : {}) };
   const v = variantId ? CONTENT.variants[variantId] : undefined;
   // the industrial base a yard of this size needs, plus the hull's and the variant's own facilities
-  const facilities = [...new Set([...(TIER_BASE[b.yard] ?? []), ...(b.facilities ?? []), ...(v?.needs?.facilities ?? [])])];
+  // (growth only: a legacy c0 build of a mk1 class keeps its old requirements — growth = false)
+  const facilities = [...new Set([...(growth ? TIER_BASE[b.yard] ?? [] : []), ...(b.facilities ?? []), ...(v?.needs?.facilities ?? [])])];
   const tech = [...new Set([...(b.tech ?? []), ...(v?.needs?.tech ?? [])])];
   const parts = { ...b.parts };
   for (const [k, n] of Object.entries(v?.parts ?? {})) parts[k] = (parts[k] ?? 0) + n;
@@ -109,7 +111,7 @@ export function hullSale(hullId: string): (HullSale & { price: number }) | undef
   // Capital hulls are scarce: one at a time, a day to replace, and only for trusted companies.
   const yard = HULLS[h.classId]?.yard ?? 1;
   if (yard >= 4) return undefined;     // the largest hulls are never sold by NPC yards: build or buy from a producer
-  return { stations: [], price: hullPrice(h.id).price, rep: e.military ? Math.max(e.rep, [0, 0, 5, 25][yard]) : e.rep, stock: [0, 4, 2, 1][yard], restock: [0, 1800, 10800, 86400][yard] };
+  return { stations: [], price: hullPrice(h.id).price, rep: e.military ? Math.max(e.rep, MK1_MIL_REP[yard]) : e.rep, stock: MK1_STOCK[yard], restock: MK1_RESTOCK[yard] };
 }
 
 /** what a ship is worth (repairs, maintenance and refit fees scale with it): growth worlds use the

@@ -66,6 +66,8 @@ export interface Ship {
   yaw: number; pitch: number; prevYaw: number; prevPitch: number;
   fwd: Vec3;
   hp: number; maxHp: number;
+  /** P5 shields (growth fittings; 0 for every c0 ship) */
+  shield?: number; maxShield?: number; shieldRegen?: number; shieldHitAt?: number;
   armor: { front: number; side: number; rear: number };
   maxSpeed: number; accel: number; turnRate: number; lateral: number;
   radius: number; halfLen: number;
@@ -149,7 +151,7 @@ export interface Group {
 export type SimEvent =
   | { t: 'fire'; ship: number; mount: number; kind: string; weapon: string; pos: Vec3; dir: Vec3 }
   | { t: 'pd'; ship: number; mount: number; from: Vec3; to: Vec3; hit: boolean }
-  | { t: 'hit'; target: number; attacker: number; pos: Vec3; dir: Vec3; dmg: number; result: 'pen' | 'ricochet' | 'blocked'; weapon: string; facing: 'front' | 'side' | 'rear' }
+  | { t: 'hit'; target: number; attacker: number; pos: Vec3; dir: Vec3; dmg: number; result: 'pen' | 'ricochet' | 'blocked' | 'shield'; weapon: string; facing: 'front' | 'side' | 'rear' }
   | { t: 'intercept'; pos: Vec3; kind: string; by: number }
   | { t: 'munitionExpire'; pos: Vec3; kind: string }
   | { t: 'crit'; ship: number; crit: 'engine' | 'weapon' | 'fire' | 'bridge'; pos: Vec3 }

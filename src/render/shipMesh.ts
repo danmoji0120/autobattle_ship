@@ -569,6 +569,35 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
       add(cyl(0.45, 0.45, 0.2, 0, 0, 1.25, 'z', 10), m.accent);
       break;
     }
+    default: {
+      // P5 arsenal weapons: a model per family, scaled by calibre, so families read apart at a glance
+      const k = Math.max(0.5, w?.caliber ?? 1), fam = w?.family;
+      if (fam === 'missile' || fam === 'torpedo') {
+        rotates = false; barrels = null;
+        if (fam === 'torpedo') { add(cyl(0.5 * k, 0.5 * k, 2.2 * k, 0, 0, 0, 'z', 10), m.dark); add(cyl(0.38 * k, 0.38 * k, 0.2, 0, 0, 1.15 * k, 'z', 10), m.accent); }
+        else { add(box(1.6 * k, 0.8, 2.6 * k, 0, 0, 0), m.dark); for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) add(box(0.55 * k, 0.12, 0.55 * k, (-0.4 + i * 0.8) * k, 0.45, (-0.6 + j * 1.2) * k), m.accent); }
+      } else if (fam === 'pd') {
+        add(cyl(0.7, 0.8, 0.8, 0, -0.3, 0), m.dark);
+        add(new THREE.SphereGeometry(0.75, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), m.hull);
+        barrels.position.set(0, 0.35, 0.3);
+        add(cyl(0.12, 0.14, 1.6, 0, 0, 0.8, 'z', 6), m.gun, barrels);
+      } else if (fam === 'laser' || fam === 'plasma' || fam === 'particle') {
+        add(cyl(1.1 * k, 1.3 * k, 1.6 * k, 0, -0.7 * k, 0), m.dark);
+        add(new THREE.SphereGeometry(1.2 * k, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), m.hull);
+        barrels.position.set(0, 0.45 * k, 0.6 * k);
+        const len = (fam === 'plasma' ? 2.6 : fam === 'particle' ? 5 : 3.6) * k;
+        add(cyl((fam === 'plasma' ? 0.42 : 0.2) * k, (fam === 'plasma' ? 0.5 : 0.28) * k, len, 0, 0, len / 2, 'z', 8), m.gun, barrels);
+        for (let i = 0; i < (fam === 'particle' ? 3 : 1); i++) add(cyl(0.34 * k, 0.34 * k, 0.25, 0, 0, len * (0.95 - i * 0.28), 'z', 8), m.accent, barrels);
+      } else {
+        // coil / rail: boxy turret with twin rails
+        add(cyl(1.2 * k, 1.4 * k, 1.4 * k, 0, -0.6 * k, 0), m.dark);
+        add(box(2.2 * k, 1.1 * k, 2.6 * k, 0, 0.2 * k, 0), m.hull);
+        barrels.position.set(0, 0.3 * k, 1.2 * k);
+        const len = (w?.tier ?? 1) >= 3 ? 7 * k : 3.5 * k;
+        for (const x of [-0.35, 0.35]) add(box(0.22 * k, 0.3 * k, len, x * k, 0, len / 2), m.gun, barrels);
+      }
+      break;
+    }
   }
   for (const [parent, b] of buckets) for (const [mat, geos] of b) parent.add(new THREE.Mesh(mergeAll(geos), mat));
   if (barrels) root.add(barrels);

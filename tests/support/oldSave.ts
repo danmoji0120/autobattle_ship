@@ -6,7 +6,7 @@ import type { WorldState } from '../../src/world/types';
 export function makeC0World(seed = 11): { st: WorldState; players: string[] } {
   const sim = WorldSim.create(seed);
   const p = sim.addPlayer('이관 테스트');
-  sim.st.companies[p].credits = 3_000_000; sim.st.companies[p].rep = 1000;   // rev 2 prices: a battleship alone is ~700k
+  sim.st.companies[p].credits = 20_000_000; sim.st.companies[p].rep = 1000;   // baseline c4-b1: a battleship alone is ~2.6M
   for (const [classId, loadoutId] of [['battleship', 'fortress'], ['cruiser', 'missile'], ['destroyer', 'gun']] as const)
     { const e = sim.command(p, { c: 'buyShip', station: 'helios', classId, loadoutId }); if (e) throw new Error(`buyShip failed: ${classId} ${e}`); }
   for (let t = 0; t < 120; t += 0.5) sim.update(0.5);

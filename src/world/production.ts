@@ -179,7 +179,7 @@ export function buildWeapons(classId: string, loadoutId: string, preset?: string
   return out;
 }
 /** yard size / research / facilities of a queued build */
-export const buildSpec = (b: ShipBuild) => hullBuild(b.hull ?? `${b.classId}_mk1`, b.variant);
+export const buildSpec = (b: ShipBuild) => hullBuild(b.hull ?? `${b.classId}_mk1`, b.variant, !!b.hull);
 export const fitUnits = (fit: string[]) => fit.reduce((a, k) => a + (EQUIPMENT[k]?.size ?? 1), 0);
 export const hullName = (classId: string) => { const c = SHIP_CLASSES[classId]; return c ? `${c.name} ${c.type}` : classId; };
 

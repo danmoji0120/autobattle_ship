@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────── items
 
 export type ItemCat = 'raw' | 'refined' | 'part' | 'shippart' | 'equip' | 'blueprint';
-export interface ItemDef { id: string; name: string; cat: ItemCat; tier: number; price: number; color: string; desc: string }
+export interface ItemDef { id: string; name: string; cat: ItemCat; tier: number; price: number; color: string; desc: string; /** growth-only content (contentV ≥ 3) */ growth?: boolean }
 
 export const ITEM_CAT_NAME: Record<ItemCat, string> = { raw: '원자재', refined: '정제 소재', part: '산업 부품', shippart: '함선 부품', equip: '장비·무장', blueprint: '설계도' };
 
@@ -51,6 +51,12 @@ export interface EquipDef {
   size: 1 | 2 | 3;
   /** module effects on the hull in battle */
   fx?: Partial<FitFx>;
+  /** growth combat effects (shields, …) — applied only in growth worlds */
+  cfx?: import('../content/schema').CombatFx;
+  /** goods consumed per hour of service (growth upkeep) */
+  supply?: Record<string, number>;
+  /** growth-only content (contentV ≥ 3) */
+  growth?: boolean;
   desc: string;
   tech?: string;
 }
@@ -83,7 +89,7 @@ export const EQUIPMENT: Record<string, EquipDef> = {
 
 export type FacCat = '기반' | '정제' | '부품' | '조선' | '군사' | '연구' | '물류';
 export interface FacilityDef {
-  kind: string; name: string; cat: FacCat; desc: string;
+  kind: string; name: string; cat: FacCat; desc: string; /** growth-only content (contentV ≥ 3) */ growth?: boolean;
   credits: number;
   /** construction materials (taken from the station's storage via the plan queue) */
   mats: Record<string, number>;
@@ -138,11 +144,11 @@ export const FACILITIES: Record<string, FacilityDef> = Object.fromEntries([
   F({ kind: 'defense', name: '방어시설', cat: '군사', desc: '정거장 주변 전투에 중포대로 참전한다.', credits: 9000, mats: { alloy: 300, weapon_parts: 4 }, work: 160, power: -12, requires: 'core', max: 6, unlocks: '방어 포대 1기 · 주변 치안 상승' }),
   F({ kind: 'hangar', name: '격납시설', cat: '군사', desc: '정박 정원을 늘리고 정박 중인 함선의 수리·정비 속도를 높인다.', credits: 7000, mats: { alloy: 260, structure: 20 }, work: 150, power: -8, requires: 'core', max: 2, unlocks: '정박 함선 정비 속도 +50%' }),
   // ── 연구
-  F({ kind: 'lab_basic', name: '기초과학 연구소', cat: '연구', desc: '기초 연구. 산업·자원·정거장 공학 분야.', credits: 10000, mats: { alloy: 240, electronics: 6 }, work: 200, power: -15, lines: 1, lab: ['industry', 'resources', 'station'], requires: 'core', unlocks: '연구 슬롯 1 (산업·자원·정거장)' }),
-  F({ kind: 'lab_materials', name: '재료공학 연구소', cat: '연구', desc: '재료와 방어 기술 연구.', credits: 16000, mats: { alloy: 300, electronics: 10, composite: 10 }, work: 260, power: -20, lines: 1, lab: ['defense', 'industry', 'shipeng'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (방어·산업·함선공학)' }),
+  F({ kind: 'lab_basic', name: '기초과학 연구소', cat: '연구', desc: '기초 연구. 산업·자원·정거장 공학 분야.', credits: 10000, mats: { alloy: 240, electronics: 6 }, work: 200, power: -15, lines: 1, lab: ['industry', 'resources', 'station', 'logistics'], requires: 'core', unlocks: '연구 슬롯 1 (산업·자원·정거장)' }),
+  F({ kind: 'lab_materials', name: '재료공학 연구소', cat: '연구', desc: '재료와 방어 기술 연구.', credits: 16000, mats: { alloy: 300, electronics: 10, composite: 10 }, work: 260, power: -20, lines: 1, lab: ['defense', 'industry', 'shipeng', 'power'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (방어·산업·함선공학)' }),
   F({ kind: 'lab_propulsion', name: '추진기관 연구소', cat: '연구', desc: '추진·항법 연구.', credits: 16000, mats: { alloy: 300, electronics: 10, machinery: 20 }, work: 260, power: -20, lines: 1, lab: ['propulsion', 'shipeng'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (추진·함선공학)' }),
   F({ kind: 'lab_electronics', name: '전자공학 연구소', cat: '연구', desc: '전자공학·센서 연구.', credits: 18000, mats: { alloy: 300, electronics: 20 }, work: 260, power: -22, lines: 1, lab: ['electronics', 'weapons'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (전자·무장)' }),
-  F({ kind: 'lab_weapons', name: '무장 연구소', cat: '연구', desc: '무장 기술 연구.', credits: 20000, mats: { alloy: 360, weapon_parts: 10, electronics: 10 }, work: 300, power: -24, lines: 1, lab: ['weapons'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (무장)' }),
+  F({ kind: 'lab_weapons', name: '무장 연구소', cat: '연구', desc: '무장 기술 연구.', credits: 20000, mats: { alloy: 360, weapon_parts: 10, electronics: 10 }, work: 300, power: -24, lines: 1, lab: ['weapons', 'kinetic', 'energy', 'missile'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (무장)' }),
   F({ kind: 'design_bureau', name: '함선 설계국', cat: '연구', desc: '함선 설계 연구. 새 함급의 설계도를 완성한다.', credits: 24000, mats: { alloy: 400, electronics: 16, precision: 6 }, work: 320, power: -20, lines: 1, lab: ['shipeng'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (함선공학)' }),
   F({ kind: 'lab_industry', name: '산업기술 연구소', cat: '연구', desc: '생산 공정 연구.', credits: 14000, mats: { alloy: 280, machinery: 20 }, work: 240, power: -18, lines: 1, lab: ['industry', 'resources'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (산업·자원)' }),
   F({ kind: 'lab_tactics', name: '군사전술 연구소', cat: '연구', desc: '함대 운용과 전술 연구.', credits: 14000, mats: { alloy: 260, electronics: 8 }, work: 240, power: -12, lines: 1, lab: ['tactics'], requires: 'lab_basic', unlocks: '연구 슬롯 1 (군사 전술)' }),
@@ -156,7 +162,7 @@ export const FAC_CATS: FacCat[] = ['기반', '정제', '부품', '조선', '군�
 
 // ─────────────────────────────────────────────────────────────── recipes
 
-export interface RecipeDef { id: string; name: string; fac: string; time: number; in: Record<string, number>; out: Record<string, number>; tech?: string }
+export interface RecipeDef { id: string; name: string; fac: string; time: number; in: Record<string, number>; out: Record<string, number>; tech?: string; /** growth-only */ growth?: boolean }
 const R = (id: string, name: string, fac: string, time: number, inp: Record<string, number>, out: Record<string, number>, tech?: string): RecipeDef => ({ id, name, fac, time, in: inp, out, tech });
 
 export const RECIPES: Record<string, RecipeDef> = Object.fromEntries([
@@ -243,8 +249,8 @@ export function loadoutEquipment(mounts: { weapon: string }[]): Record<string, n
 
 // ─────────────────────────────────────────────────────────────── research
 
-export type Field = 'shipeng' | 'weapons' | 'defense' | 'propulsion' | 'electronics' | 'industry' | 'resources' | 'station' | 'tactics';
-export const FIELD_NAME: Record<Field, string> = { shipeng: '함선 공학', weapons: '무장 기술', defense: '방어 기술', propulsion: '추진 및 항법', electronics: '전자공학·센서', industry: '산업 및 생산', resources: '자원·채굴', station: '정거장 공학', tactics: '군사 전술' };
+export type Field = 'shipeng' | 'weapons' | 'defense' | 'propulsion' | 'electronics' | 'industry' | 'resources' | 'station' | 'tactics' | 'power' | 'kinetic' | 'energy' | 'missile' | 'logistics';
+export const FIELD_NAME: Record<Field, string> = { shipeng: '함선 공학', weapons: '무장 기술', defense: '방어 기술', propulsion: '추진 및 항법', electronics: '전자공학·센서', industry: '산업 및 생산', resources: '자원·채굴', station: '정거장 공학', tactics: '군사 전술', power: '동력', kinetic: '실탄 무장', energy: '에너지 무장', missile: '유도 무장', logistics: '물류' };
 
 export interface TechDef {
   id: string; name: string; field: Field; desc: string;
@@ -257,9 +263,17 @@ export interface TechDef {
   /** what it actually unlocks / changes */
   unlocks: string;
   /** numeric effects applied while known */
-  fx?: Partial<{ mineMul: number; prodMul: number; buildMul: number; researchMul: number; refineMul: number; cargoMul: number; skillGain: number; repairMul: number; cruiseMul: number; constructMul: number }>;
+  fx?: Partial<{ mineMul: number; prodMul: number; buildMul: number; researchMul: number; refineMul: number; cargoMul: number; skillGain: number; repairMul: number; cruiseMul: number; constructMul: number; supplyMul: number; upkeepMul: number }>;
   /** NPC tech brokers sell this blueprint (credits) */
   bp?: number;
+  /** growth: research area of the 13-area tree (content/schema ResearchArea) */
+  area?: string;
+  /** growth: the station must have this specialised lab */
+  needLab?: string;
+  /** growth: combat effects while known */
+  cfx?: import('../content/schema').CombatFx;
+  /** growth-only content (contentV ≥ 3) */
+  growth?: boolean;
 }
 
 const T = (t: TechDef) => t;
@@ -327,9 +341,39 @@ export function fitFx(fit: string[] | undefined, tech: string[] | undefined, arm
   return fx;
 }
 
+/** growth (P5) combat effects on top of fitFx: shield modules, research combat effects (global and
+ *  per weapon family). Only keys that change anything are returned, so a ship without P5 content
+ *  fights with exactly the fitFx object. Never called below contentV 3. */
+export function growthFx(fit: string[] | undefined, tech: string[] | undefined): { hpMul?: number; armorMul?: number; speedMul?: number; accMul?: number; pdMul?: number; evasion?: number; shield?: number; shieldRegen?: number; fam?: Record<string, { dmg?: number; reload?: number; range?: number }> } {
+  const out: ReturnType<typeof growthFx> = {};
+  const mul = (k: 'hpMul' | 'armorMul' | 'speedMul' | 'accMul' | 'pdMul', v?: number) => { if (v !== undefined && v !== 1) out[k] = (out[k] ?? 1) * v; };
+  let shield = 0, regen = 0, shieldMul = 1, regenMul = 1;
+  const apply = (c: import('../content/schema').CombatFx | undefined) => {
+    if (!c) return;
+    if (c.family) {
+      for (const f of Array.isArray(c.family) ? c.family : [c.family]) {
+        const e = ((out.fam ??= {})[f] ??= {});
+        if (c.dmgMul) e.dmg = (e.dmg ?? 1) * c.dmgMul;
+        if (c.reloadMul) e.reload = (e.reload ?? 1) * c.reloadMul;
+        if (c.rangeMul) e.range = (e.range ?? 1) * c.rangeMul;
+      }
+      return;
+    }
+    mul('hpMul', c.hpMul); mul('armorMul', c.armorMul); mul('speedMul', c.speedMul); mul('accMul', c.accMul); mul('pdMul', c.pdMul);
+    if (c.evasion) out.evasion = (out.evasion ?? 0) + c.evasion;
+    if (c.shield) { shield += c.shield; regen = Math.max(regen, c.shieldRegen ?? 0); }
+    if (c.shieldMul) shieldMul *= c.shieldMul;
+    if (c.shieldRegenMul) regenMul *= c.shieldRegenMul;
+  };
+  for (const id of fit ?? []) apply(EQUIPMENT[id]?.cfx);
+  for (const id of tech ?? []) apply(TECHS[id]?.cfx);
+  if (shield > 0) { out.shield = shield * shieldMul; out.shieldRegen = regen * regenMul; }
+  return out;
+}
+
 /** a company's effective multipliers from known techs */
 export function techFx(known: string[] | undefined) {
-  const out = { mineMul: 1, prodMul: 1, buildMul: 1, researchMul: 1, refineMul: 1, cargoMul: 1, skillGain: 1, repairMul: 1, cruiseMul: 1, constructMul: 1 };
+  const out = { mineMul: 1, prodMul: 1, buildMul: 1, researchMul: 1, refineMul: 1, cargoMul: 1, skillGain: 1, repairMul: 1, cruiseMul: 1, constructMul: 1, supplyMul: 1, upkeepMul: 1 };
   for (const id of known ?? []) { const t = TECHS[id]; if (!t?.fx) continue; for (const [k, v] of Object.entries(t.fx)) (out as any)[k] *= v as number; }
   return out;
 }

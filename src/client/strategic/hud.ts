@@ -1280,7 +1280,7 @@ export class PmcHud {
     }).join('')}</div>` : '<div class="dim small">진행 중인 건설이 없습니다.</div>';
     // ── owned + buildable by category ──
     const planned = (k: string) => s.modules.filter(m => m.kind === k).length;
-    const buildable = (md: ModuleDef) => md.kind !== 'core' && (md.max === undefined || planned(md.kind) < md.max);
+    const buildable = (md: ModuleDef) => md.kind !== 'core' && (!md.growth || growthOn(this.st)) && (md.max === undefined || planned(md.kind) < md.max);
     html += `<div class="bcols"><div class="bcat">${FAC_CATS.map(c => {
       const kinds = [...new Set(built.filter(m => MODULES[m.kind]?.cat === c).map(m => m.kind))];
       const can = Object.values(MODULES).filter(md => md.cat === c && buildable(md));

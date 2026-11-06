@@ -27,8 +27,10 @@ const stock = (own: Station, p: string, c: Record<string, number>, times = 1) =>
 
 describe('research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage', () => {
   it('nine fields, every lab facility covers some, the tree is acyclic and every prerequisite exists', () => {
+    // the nine built-in fields; growth (P5) adds five more lab fields for the 13-area tree
+    expect(new Set(Object.values(TECHS).filter(t => !t.growth).map(t => t.field)).size).toBe(9);
     const fields = new Set(Object.values(TECHS).map(t => t.field));
-    expect(fields.size).toBe(9);
+    expect(fields.size).toBe(14);
     const covered = new Set(Object.values(FACILITIES).flatMap(f => f.lab ?? []));
     for (const f of fields) expect(covered.has(f)).toBe(true);
     const seen = new Set<string>(), stack = new Set<string>();

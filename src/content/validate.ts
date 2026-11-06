@@ -8,8 +8,9 @@ import { COMMANDERS } from '../sim/data/commanders';
 import { EQUIPMENT, ITEMS, FACILITIES, HULLS, TECHS } from '../world/industry';
 import { placeModules } from '../world/fitting';
 import { ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_STYLES, SIZES, type AssetKind, type HardpointDef } from './schema';
-import { presetMounts, variantLayout, type Registry } from './registry';
+import { presetMounts, variantLayout, INSTALLED_EQUIPMENT, type Registry } from './registry';
 import { hpAccepts, fitTotals } from './rules';
+import { validateArsenal } from './validateArsenal';
 
 export interface Issue { level: 'error' | 'warn'; where: string; msg: string }
 
@@ -29,7 +30,7 @@ export { weaponType } from './rules';
 const setCache = new Map<number, string[][]>();
 export function legacyModuleSets(slots: number): string[][] {
   const hit = setCache.get(slots); if (hit) return hit;
-  const mods = Object.values(EQUIPMENT).filter(e => e.kind === 'module');
+  const mods = Object.values(EQUIPMENT).filter(e => e.kind === 'module' && !e.growth);   // the pre-P2 module set
   const go = (n: number, from: number): string[][] => {
     const out: string[][] = [[]];
     for (let i = from; i < mods.length; i++) if (mods[i].size <= n) for (const r of go(n - mods[i].size, i)) out.push([mods[i].id, ...r]);
@@ -63,6 +64,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
   const err = (where: string, msg: string) => out.push({ level: 'error', where, msg });
   const warn = (where: string, msg: string) => out.push({ level: 'warn', where, msg });
   for (const d of reg.dupes) err('registry', `중복 id: ${d}`);
+  validateArsenal(reg, err, warn);
   const packOf = (kind: string, id: string) => reg.origin[`${kind}:${id}`];
 
   // ── hulls
@@ -110,7 +112,8 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
   }
 
   // ── equipment fitting rules: every equipment item needs exactly one spec
-  for (const e of Object.values(EQUIPMENT)) if (!reg.equipment[e.id]) err(`equipment ${e.id}`, '피팅 규격(EquipSpec) 없음');
+  // built-in equipment needs a spec in this registry; pack equipment is checked with its own pack
+  for (const e of Object.values(EQUIPMENT)) if (!reg.equipment[e.id] && !(INSTALLED_EQUIPMENT.has(e.id) && !reg.arms[e.id] && !reg.modules[e.id])) err(`equipment ${e.id}`, '피팅 규격(EquipSpec) 없음');
   for (const e of Object.values(reg.equipment)) {
     const at = `equipment ${e.id}`, item = EQUIPMENT[e.id];
     if (!item) { err(at, 'EQUIPMENT 에 없는 장비'); continue; }

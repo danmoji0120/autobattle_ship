@@ -107,7 +107,7 @@ describe('content save migration (P1)', () => {
   function oldSave(): { st: WorldState; p: string } {
     const sim = WorldSim.create(11);
     const p = sim.addPlayer('이관 테스트');
-    sim.st.companies[p].credits = 3_000_000; sim.st.companies[p].rep = 1000;
+    sim.st.companies[p].credits = 20_000_000; sim.st.companies[p].rep = 1000;
     expect(sim.command(p, { c: 'buyShip', station: 'helios', classId: 'battleship', loadoutId: 'fortress' })).toBeNull();
     expect(sim.command(p, { c: 'buyShip', station: 'helios', classId: 'cruiser', loadoutId: 'missile' })).toBeNull();
     run(sim, 120);
@@ -185,7 +185,7 @@ describe('content save migration (P1)', () => {
   it('refits and new builds keep hull/variant in step with the loadout', () => {
     const sim = WorldSim.create(12);
     const p = sim.addPlayer('개조');
-    sim.st.companies[p].credits = 3_000_000; sim.st.companies[p].rep = 1000;
+    sim.st.companies[p].credits = 20_000_000; sim.st.companies[p].rep = 1000;
     expect(sim.command(p, { c: 'buyShip', station: 'helios', classId: 'battleship', loadoutId: 'std' })).toBeNull();
     const s = Object.values(sim.st.ships).find(x => x.owner === p && x.classId === 'battleship')!;
     expect(s.variant).toBe('battleship_mk1_std');

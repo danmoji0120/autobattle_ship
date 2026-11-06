@@ -16,7 +16,7 @@ import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFit
 import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBlueprints, bpName, SRC_NAME, FRAG_PREFIX, fragmentsNeeded } from '../../world/blueprints';
 import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld } from '../../world/upkeep';
 import { iname, itemList } from './industryUi';
-import { hullPrice, SALE_MUL } from '../../world/valuation';
+import { hullPrice } from '../../world/valuation';
 import { serviceOf, publicCap, storeUsed, leasedAt, LEASE_BLOCK, leaseRate, ownRepairCap, OWN_REPAIR, dockCapacity, SERVICES } from '../../world/storage';
 import { sitesIn, knows, surveyLeft, SCAN_NEED } from '../../world/explore';
 import { storageCap } from '../../world/production';
@@ -221,7 +221,7 @@ export function priceWhy(hull: string, variant?: string): string {
     <tr><td>조립 공임</td><td class="n">${fmt(p.labour)}</td><td></td></tr>
     <tr><td>조선소 가동 (${dur(b.time)})</td><td class="n">${fmt(p.yard)}</td><td class="dim">${YARD_NAME[b.yard]} — 큰 독일수록 시간당 비용이 크다</td></tr>
     <tr><td>표준 무장</td><td class="n">${fmt(p.equipment)}</td><td></td></tr></table>
-    <div class="dim">공영 조선소 가격 = 원가 × 함급 배율(소형 ${SALE_MUL[1]} · 중형 ${SALE_MUL[2]} · 대형 ${SALE_MUL[3]} · 초대형 ${SALE_MUL[4]}) × 설계 등급. 소형 범용선은 대량 생산 보조로 원가보다 싸고, 군함·주력함은 군용 허가·희소성 때문에 원가를 크게 웃돈다. 직접 건조하면 원가 + 시설 투자로 지을 수 있다.</div></details>`;
+    <div class="dim">공영 조선소 가격 = 원가 × 함급 허가 배율 ×${p.mul} × 설계 등급 ×${p.grade}. 초계함·호위함과 민간선은 대량 생산 보조로 원가보다 싸고, 구축함부터는 군용 허가·희소성 때문에 원가를 크게 웃돈다. 직접 건조하면 원가(부품 + 공임 + 조선소 운영비)와 시설 투자로 지을 수 있다.</div></details>`;
 }
 
 /** every condition a build needs here, ticked or not (not just the first one missing) */

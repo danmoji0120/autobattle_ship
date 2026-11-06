@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { WEAPONS } from '../sim/data/weapons';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -218,6 +219,19 @@ export class BattleView {
         this.noteInterest(shipId, 7, 'torpedo', v.ship.mounts[mountIdx]?.targetId);
         break;
       }
+      default: {
+        // P5 arsenal weapons: muzzle flash and (energy) beam in the weapon's own colour, sized by tier
+        const w = WEAPONS[weapon]; if (!w) break;
+        const col = w.vis?.color ?? (w.kind === 'torpedo' ? (team === 0 ? 0xa0c8ff : 0xff90c0) : 0xffd090);
+        const big = (w.tier ?? 1) >= 4 || w.caliber >= 2;
+        const mp = pos.clone().addScaledVector(dir, 2 + w.caliber * 2);
+        this.glow.emit(mp, { life: w.kind === 'shell' ? 0.12 : 0.3, size: 4 + w.caliber * 5, size1: 2 + w.caliber * 4, color: col, alpha: 1.2 });
+        if (w.vis?.beam) this.beams.push({ a: mp, b: mp.clone().addScaledVector(dir, Math.min(w.range, 260 + w.vis.len * 3)), life: big ? 0.2 : 0.09, max: big ? 0.2 : 0.09, w: w.vis.wid, c: C(col) });
+        if (w.kind === 'missile' || w.kind === 'torpedo') this.noteInterest(shipId, w.kind === 'torpedo' ? 7 : 2.5, w.kind, v.ship.mounts[mountIdx]?.targetId);
+        if (big) { this.flashes.flash(mp, 50, 260, 0.2, col); this.shakeNear(mp, 0.5); }
+        if (Math.random() < (big ? 1 : 0.4)) this.audio?.play(w.sound as never, mp, big ? 0.9 : 0.4);
+        break;
+      }
     }
   }
 
@@ -225,6 +239,14 @@ export class BattleView {
     const p = V(e.pos), dir = V(e.dir);
     const v = this.views.get(e.target);
     const heavy = e.weapon === 'heavy_cannon' || e.weapon === 'rail_cannon' || e.weapon === 'torpedo' || e.weapon === 'blast';
+    if (e.result === 'shield') {
+      // the hit splashes on the shield bubble: a blue ripple off the hull, no sparks
+      const out = v ? p.clone().addScaledVector(dir, -Math.max(4, v.ship.radius * 0.6)) : p;
+      this.glow.emit(out, { life: 0.35, size: 10, size1: 26, color: 0x6fc8ff, alpha: 0.9 });
+      this.flashes.flash(out, 30, 120, 0.15, 0x6fc8ff);
+      if (Math.random() < 0.3) this.audio?.play('ricochet', out, 0.25, 1.4);
+      return;
+    }
     if (e.result === 'ricochet') {
       // deflected spark streak
       const refl = dir.clone().reflect(new THREE.Vector3(Math.random() - 0.5, 1, Math.random() - 0.5).normalize()).normalize();
@@ -498,7 +520,11 @@ export class BattleView {
       case 'rail_cannon': len = 140; wid = 1.4; r = 1.2; g = 2.6; b = 3.2; break;
       case 'medium_gun': len = 22; wid = 1.0; r = 2.6; g = 1.9; b = 0.9; break;
       case 'autocannon': len = 14; wid = 0.45; r = 2.4; g = 1.4; b = 0.6; break;
-      default: len = 10; wid = 0.5; r = 2; g = 2; b = 2;
+      default: {
+        const vc = w.vis;
+        if (vc) { len = vc.len; wid = vc.wid; r = ((vc.color >> 16) & 255) / 85; g = ((vc.color >> 8) & 255) / 85; b = (vc.color & 255) / 85; }
+        else { len = 10; wid = 0.5; r = 2; g = 2; b = 2; }
+      }
     }
     if (team === 1 && w.id !== 'rail_cannon') { g *= 0.75; b *= 0.6; }
     const k = len / Math.max(sp, 1);

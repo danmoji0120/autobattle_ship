@@ -229,9 +229,112 @@ export interface AssetDef {
   notes?: string;
 }
 
+// ─────────────────────────────────────────────── P5: weapons, research, facilities (growth content)
+
+/** weapon family: tiers of one family share a technology line and a look in combat */
+export type WeaponFamily = 'cannon' | 'coil' | 'laser' | 'plasma' | 'particle' | 'missile' | 'torpedo' | 'pd';
+export const WEAPON_FAMILIES: WeaponFamily[] = ['cannon', 'coil', 'laser', 'plasma', 'particle', 'missile', 'torpedo', 'pd'];
+/** what a weapon is for: target selection prefers matching targets, the UI explains the trade-off */
+export type WeaponRole = 'anti-small' | 'general' | 'anti-capital' | 'pd';
+/** the 13 research areas (each owns its own kinds of effect — see validate.ts AREA_EFFECTS) */
+export type ResearchArea = 'hull' | 'propulsion' | 'power' | 'kinetic' | 'energy' | 'missile' | 'defense' | 'electronics' | 'industry' | 'resource' | 'logistics' | 'station' | 'tactics';
+export const RESEARCH_AREAS: ResearchArea[] = ['hull', 'propulsion', 'power', 'kinetic', 'energy', 'missile', 'defense', 'electronics', 'industry', 'resource', 'logistics', 'station', 'tactics'];
+
+/** combat statistics of a weapon (the combat engine's WeaponDef without id/name/desc) */
+export interface WeaponStats {
+  kind: 'shell' | 'missile' | 'torpedo' | 'pd';
+  damage: number; pen: number; range: number; speed: number; reload: number;
+  salvo: number; salvoGap: number; spread: number; turnSpeed: number; caliber: number;
+  guidedTurn?: number; munitionHp?: number; pdChance?: number; magazine?: number;
+  /** effectiveness against shields (1 = full damage to the shield) */
+  vsShield?: number;
+  sound?: string;
+}
+/** visual of a weapon in combat (tracer / beam colour and size) */
+export interface WeaponVis { color: string; len: number; wid: number; beam?: boolean }
+
+/** one weapon: equipment item + combat stats + fitting rule + how it is made, in one record */
+export interface ArmContent {
+  /** EQUIPMENT id (`eq_` prefix); the combat weapon id is the same without the prefix */
+  id: string;
+  name: string;
+  desc: string;
+  family: WeaponFamily;
+  /** 1 … 5 within the family */
+  tier: number;
+  role: WeaponRole;
+  size: Size;
+  mass: number;
+  /** power draw on the hull's supply */
+  power: number;
+  mounts?: MountStyle[];
+  /** research that unlocks its production (and fitting it from storage needs nothing) */
+  tech?: string;
+  combat: WeaponStats;
+  vis?: WeaponVis;
+  /** production: facility kind, seconds, inputs (output is one item) */
+  recipe: { fac: string; time: number; in: Record<string, number> };
+  /** goods consumed per hour while the ship is in service (ammunition, propellant); energy weapons
+   *  usually need none and pay in power instead */
+  supply?: Record<string, number>;
+}
+/** combat effects a module or a research applies (multipliers default 1; shield/regen/evasion add) */
+export interface CombatFx {
+  /** only weapons of this family (research in a weapon area) */
+  family?: WeaponFamily | WeaponFamily[];
+  dmgMul?: number; reloadMul?: number; rangeMul?: number;
+  hpMul?: number; armorMul?: number; speedMul?: number; accMul?: number; pdMul?: number; evasion?: number;
+  /** shield capacity as a share of hull HP (modules) or a multiplier on it (research: shieldMul) */
+  shield?: number; shieldMul?: number;
+  /** shield regeneration (share of capacity per second) / multiplier on it */
+  shieldRegen?: number; shieldRegenMul?: number;
+}
+/** an internal module: fitting rule + combat effect + recipe */
+export interface ModuleContent {
+  id: string; name: string; desc: string;
+  slot: InternalKind; size: Size; mass: number; power: number;
+  fx: CombatFx;
+  tech?: string;
+  recipe: { fac: string; time: number; in: Record<string, number> };
+}
+/** a new tradeable good (keep these few: ore / alloy / rare stay the core resources) */
+export interface ItemContent { id: string; name: string; cat: 'refined' | 'part' | 'shippart'; tier: number; price: number; color: string; desc: string }
+/** strategic research effects (company-wide multipliers) */
+export interface TechFxContent { mineMul?: number; prodMul?: number; buildMul?: number; researchMul?: number; cargoMul?: number; skillGain?: number; repairMul?: number; cruiseMul?: number; constructMul?: number; supplyMul?: number; upkeepMul?: number }
+export interface TechContent {
+  id: string; name: string; desc: string;
+  area: ResearchArea;
+  /** lab field that can research it (a lab facility's `lab` list) */
+  field: string;
+  time: number; credits: number; cost: Record<string, number>;
+  pre?: string[];
+  /** a specialised lab this station must have (advanced research) */
+  needLab?: string;
+  /** player-facing summary of what it unlocks/changes (shown in the tree) */
+  unlocks: string;
+  fx?: TechFxContent;
+  cfx?: CombatFx;
+}
+/** a station facility (same fields as the built-in FACILITIES rows) */
+export interface FacilityContent {
+  kind: string; name: string; cat: '기반' | '정제' | '부품' | '조선' | '군사' | '연구' | '물류'; desc: string;
+  credits: number; mats: Record<string, number>; work: number; power: number;
+  lines?: number; storage?: number; requires?: string; tech?: string; max?: number; unlocks: string;
+  lab?: string[]; yard?: number;
+}
+export interface RecipeContent { id: string; name: string; fac: string; time: number; in: Record<string, number>; out: Record<string, number>; tech?: string }
+
 export interface ContentPack {
   id: string;
   name: string;
+  /** content of this pack exists only in worlds at or above this content version (growth = 3) */
+  minContentV?: number;
+  items?: ItemContent[];
+  arms?: ArmContent[];
+  modules?: ModuleContent[];
+  techs?: TechContent[];
+  facilities?: FacilityContent[];
+  recipes?: RecipeContent[];
   hulls?: HullDef[];
   variants?: VariantDef[];
   presets?: PresetDef[];

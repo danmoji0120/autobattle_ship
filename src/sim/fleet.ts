@@ -13,7 +13,13 @@ export interface ShipSpec {
   fit?: { name: string; mounts: import('./data/ships').MountDef[]; hpMul?: number; armorMul?: number; speedMul?: number };
 }
 /** combat effects of fitted modules and research (all default 1, evasion 0) */
-export interface ShipFx { hpMul?: number; armorMul?: number; speedMul?: number; accMul?: number; reloadMul?: number; evasion?: number; pdMul?: number; rangeMul?: number; magMul?: number }
+export interface ShipFx {
+  hpMul?: number; armorMul?: number; speedMul?: number; accMul?: number; reloadMul?: number; evasion?: number; pdMul?: number; rangeMul?: number; magMul?: number;
+  /** P5 (growth): shield capacity as a share of hull HP, regeneration per second (share of capacity) */
+  shield?: number; shieldRegen?: number;
+  /** P5 (growth): per weapon-family research multipliers */
+  fam?: Record<string, { dmg?: number; reload?: number; range?: number }>;
+}
 
 export interface GroupSpec {
   name: string;

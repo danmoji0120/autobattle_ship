@@ -9,6 +9,7 @@ import { CONTENT, type Registry } from './registry';
 export function weaponType(weapon: string): HardpointType {
   const w = WEAPONS[weapon];
   if (!w) return 'universal';
+  if (w.hp) return w.hp;
   if (w.kind === 'pd') return 'pd';
   if (w.kind === 'missile' || w.kind === 'torpedo') return 'missile';
   return weapon === 'pulse_laser' || weapon === 'particle_lance' ? 'energy' : 'ballistic';

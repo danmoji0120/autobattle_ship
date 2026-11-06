@@ -21,7 +21,7 @@ const run = (sim: WorldSim, seconds: number, dt = 0.5) => { for (let t = 0; t < 
 function setup(seed = 41, ...ships: [string, string][]) {
   const sim = WorldSim.create(seed);
   const p = sim.addPlayer('피팅');
-  const co = sim.st.companies[p]; co.credits = 3_000_000; co.rep = 1000;
+  const co = sim.st.companies[p]; co.credits = 20_000_000; co.rep = 1000;
   const out: WShip[] = [];
   for (const [cls, lo] of ships) {
     const k = sim.st.stations.helios.shipStock?.[`${cls}_mk1`]; if (k) k.n = Math.max(k.n, 1);   // capital hulls are stocked one at a time

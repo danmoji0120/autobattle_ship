@@ -72,6 +72,7 @@ export function canQueue(co: Company, st: Station, tech: string, source: Researc
   if (!t) return '알 수 없는 연구';
   if (st.owner !== co.id) return '자사 정거장에서만 연구할 수 있습니다';
   if (!fieldsAt(st).has(t.field)) return `${t.name}: 이 정거장에 해당 분야 연구소가 없습니다`;
+  if (t.needLab && source !== 'copy' && !st.modules.some(m => m.built && m.kind === t.needLab)) return `${t.name}: 전문 연구소 필요 — ${FACILITIES[t.needLab]?.name ?? t.needLab}`;
   if (source === 'copy') {
     if (!known(co, tech)) return '보유한 기술만 설계도로 복제할 수 있습니다';
     if (!t.bp) return '이 기술은 설계도로 만들 수 없습니다';
@@ -161,4 +162,12 @@ export function wreckLoot(rng: () => number, equipment: Record<string, number>):
   if (eq.length && rng() < 0.35) { const [k] = eq[Math.floor(rng() * eq.length)]; out[k] = 1; }
   for (const k of Object.keys(out)) if (!out[k] || !(ITEMS[k] || EQUIPMENT[k])) delete out[k];
   return out;
+}
+
+/** growth: what a finished research now lets the company make or build (event text) */
+export function unlockSummary(tech: string): string {
+  const eq = Object.values(EQUIPMENT).filter(e => e.tech === tech).map(e => e.name);
+  const fac = Object.values(FACILITIES).filter(f => f.tech === tech).map(f => f.name);
+  const parts = [eq.length ? `생산 가능: ${eq.join(', ')}` : '', fac.length ? `건설 가능: ${fac.join(', ')}` : ''].filter(Boolean);
+  return parts.length ? ` (${parts.join(' · ')})` : '';
 }

@@ -20,6 +20,18 @@ export interface WeaponDef {
   magazine?: number;    // salvos available (undefined = unlimited)
   sound: string;
   desc: string;
+  // ── P5 (growth content; absent on the built-in weapons in c0 combat, which never meets shields)
+  /** family / tier in the arsenal tree */
+  family?: string;
+  tier?: number;
+  /** what it is for (target preference) */
+  role?: 'anti-small' | 'general' | 'anti-capital' | 'pd';
+  /** hardpoint category (default: derived from kind / built-in ids) */
+  hp?: 'ballistic' | 'energy' | 'missile' | 'pd';
+  /** effectiveness against shields (default 1) */
+  vsShield?: number;
+  /** combat visual: tracer/beam colour (0xRRGGBB) and size */
+  vis?: { color: number; len: number; wid: number; beam?: boolean };
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {

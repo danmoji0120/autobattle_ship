@@ -19,7 +19,7 @@ import type { Company, Station, WorldState, WShip, Cargo, UpkeepState } from './
 import { qty, addc } from './types';
 import { econOf, hullIdOf, hullUpkeep, berthOf, growthOn, shipWorth } from './hullops';
 import { sizeRank } from '../content/schema';
-import { itemPrice } from './industry';
+import { itemPrice, EQUIPMENT, techFx } from './industry';
 import { priceOf, fundsIn } from './market';
 import { leaseRate, dockCapacity, useDock, repairPoints, serviceOf } from './storage';
 
@@ -38,7 +38,8 @@ export const upkeepOf = (co: Company): UpkeepState => (co.upkeep ??= { debt: 0, 
  *  splitting a fleet over several accounts cheaper than running it as one; a flat share costs the
  *  same however ships are divided. What a big fleet really runs into is maintenance capacity: public
  *  docks are shared and slow (storage.ts dockCapacity), so large fleets need their own repair bases. */
-export const OVERHEAD = 0.1;
+import { OVERHEAD } from './econConfig';
+export { OVERHEAD };
 export const overheadMul = (_ships: number) => 1 + OVERHEAD;
 
 /** per-hour running cost of one ship right now */
@@ -52,7 +53,12 @@ export function shipRate(w: WorldState, s: WShip): { credits: number; supplies: 
     const st = w.stations[s.task.station];
     if (st?.public) dock = (BIG_DOCK_FEE[berth] ?? 0) * (res ? 2 : 1);   // laid-up giants still occupy a big berth
   }
-  return { credits: u.credits * mul, supplies: res ? {} : { ...(u.supplies ?? {}) }, dock };
+  // P5: fitted weapons burn ammunition / propellant; logistics research lowers supplies and pay
+  const tf = techFx(w.companies[s.owner]?.tech);
+  const supplies: Record<string, number> = res ? {} : { ...(u.supplies ?? {}) };
+  if (!res && s.fitting) for (const id of Object.values(s.fitting.hp ?? {})) for (const [k, n] of Object.entries(EQUIPMENT[id]?.supply ?? {})) supplies[k] = (supplies[k] ?? 0) + n;
+  if (tf.supplyMul !== 1) for (const k of Object.keys(supplies)) supplies[k] *= tf.supplyMul;
+  return { credits: u.credits * mul * tf.upkeepMul, supplies, dock };
 }
 
 export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; lease: number; perHour: number }

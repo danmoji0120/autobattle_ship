@@ -4,6 +4,10 @@ import type { Station } from '../src/world/types';
 import { qty } from '../src/world/types';
 import { HULLS, EQUIPMENT } from '../src/world/industry';
 import { buildNeeds } from '../src/world/production';
+import { yardFee } from '../src/world/valuation';
+import { hullBuild } from '../src/world/hullops';
+/** what an own yard charges at registration (growth: labour + yard operating fee, econConfig) */
+const pay = (cls: string) => HULLS[cls].credits + yardFee(hullBuild(`${cls}_mk1`));
 import { World } from '../src/sim/world';
 import { SHIP_CLASSES } from '../src/sim/data/ships';
 
@@ -50,7 +54,7 @@ describe('shipbuilding from parts, yards and fitting', () => {
     const S = own.storage[p]; for (const k of Object.keys(S)) S[k] = 0;
     const cr = sim.st.companies[p].credits;
     expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'corvette', loadoutId: 'gun', fit: ['mod_engine'] })).toBeNull();
-    expect(sim.st.companies[p].credits).toBe(cr - HULLS.corvette.credits);
+    expect(sim.st.companies[p].credits).toBe(cr - pay('corvette'));
     run(sim, 5);
     const b = own.builds![0];
     expect(b.started).toBe(false);
@@ -107,7 +111,7 @@ describe('shipbuilding from parts, yards and fitting', () => {
     run(sim, HULLS.corvette.time / 2);
     const b = own.builds![0];
     expect(sim.command(p, { c: 'buildOp', station: own.id, build: b.id, op: 'cancel' })).toBeNull();
-    expect(sim.st.companies[p].credits).toBeCloseTo(cr0 - HULLS.corvette.credits * 0.5 - (paid() - paid0), -2);
+    expect(sim.st.companies[p].credits).toBeCloseTo(cr0 - pay('corvette') * 0.5 - (paid() - paid0), -2);
     expect(qty(own.storage[p], 'structure')).toBe(0);
   });
 

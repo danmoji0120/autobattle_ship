@@ -12,6 +12,8 @@ import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
 import { FIELD_NAME, techFx, type Field } from '../../world/industry';
 import { growthOn } from '../../world/hullops';
+import { WEAPONS } from '../../sim/data/weapons';
+import { weaponRole } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 
 export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
@@ -100,8 +102,9 @@ export function prodHtml(w: WorldState, s: Station, me: string, ui: IndUi): stri
       ${o.paused ? `<button class="btn mini" data-oop="resume:${o.id}">▶</button>` : `<button class="btn mini" data-oop="pause:${o.id}">⏸</button>`}<button class="btn mini warnb" data-oop="cancel:${o.id}">✕</button></div></div>`;
   }).join('')}</div>` : '<div class="dim small">주문이 없습니다. 아래 레시피에서 생산 주문을 등록하세요.</div>'}`;
   // recipe catalog
-  const facKinds = [...new Set(Object.values(RECIPES).map(r => r.fac))];
-  const recs = Object.values(RECIPES).filter(r => (ui.recFac === 'all' || ui.recFac === r.fac) && (!ui.recQ || r.name.includes(ui.recQ) || Object.keys(r.out).some(k => match(k, ui.recQ)) || Object.keys(r.in).some(k => match(k, ui.recQ))));
+  const allRec = Object.values(RECIPES).filter(r => !r.growth || growthOn(w as any));
+  const facKinds = [...new Set(allRec.map(r => r.fac))];
+  const recs = allRec.filter(r => (ui.recFac === 'all' || ui.recFac === r.fac) && (!ui.recQ || r.name.includes(ui.recQ) || Object.keys(r.out).some(k => match(k, ui.recQ)) || Object.keys(r.in).some(k => match(k, ui.recQ))));
   html += `<h3>레시피</h3><div class="frow">${chips('rfac', ui.recFac, [['all', '전체'], ...facKinds.map(k => [k, FACILITIES[k].name] as [string, string])])}<input class="search" data-rq placeholder="레시피·품목 검색" value="${esc(ui.recQ)}"></div>
     <div class="bcols"><div class="rlist">${recs.map(r => {
       const have = builtCount(s, r.fac) > 0, known = recipeOk(r, co);
@@ -265,11 +268,30 @@ export function researchHtml(w: WorldState, s: Station, me: string, ui: IndUi): 
   // blueprints in this storage
   const bps = cargoKeys(store).filter(k => k.startsWith('bp:') && qty(store, k) >= 1);
   if (bps.length) html += `<h3>보유 설계도 (이 정거장 창고)</h3><div class="chips">${bps.map(k => { const t = k.slice(3); const kn = co.tech?.includes(t); const miss = missingPre(co as any, t); return `<button class="chip" data-tlearn="${t}" ${kn || miss.length ? 'disabled' : ''} title="${kn ? '이미 보유' : miss.length ? '선행 기술 필요' : '설계도를 소모해 기술 습득'}">${esc(TECHS[t]?.name ?? t)} ×${fmt(qty(store, k))} — ${kn ? '보유' : miss.length ? '선행 필요' : '습득'}</button>`; }).join('')}</div>`;
-  // tree
-  html += `<h3>기술 트리</h3>${chips('rfield', ui.rField, [['all', '전체'], ...FIELDS.map(f => [f, FIELD_NAME[f] + (fields.has(f) ? '' : ' ·')] as [string, string])])}`;
-  const show = FIELDS.filter(f => ui.rField === 'all' || ui.rField === f);
+  // tree — growth worlds: the 13 research areas as depth columns; older worlds: the lab fields
+  const g = growthOn(w as any);
+  const vis = Object.values(TECHS).filter(t => g || !t.growth);
+  if (g) {
+    const areas = AREAS.filter(a => vis.some(t => t.area === a));
+    const labHave = (a: string) => vis.some(t => t.area === a && fields.has(t.field));
+    html += `<h3>기술 트리 <span class="dim small">· 13개 분야 · 분야마다 효과가 다릅니다 (무장 해금 · 시설 · 생산 효율 · 장비 효율 · 운용 · 전술)</span></h3>${chips('rfield', ui.rField, [['all', '전체'], ...areas.map(a => [a, AREA_NAME[a] + (labHave(a) ? '' : ' ·')] as [string, string])])}`;
+    const show = areas.filter(a => ui.rField === 'all' || ui.rField === a);
+    html += `<div class="bcols"><div class="rlist">${show.map(a => {
+      const ts = vis.filter(t => t.area === a);
+      const cols: typeof ts[] = [];
+      for (const t of ts) (cols[depthIn(t.id, a)] ??= []).push(t);
+      return `<div class="rarea"><div class="rah"><b>${AREA_NAME[a]}</b> <span class="dim small">${AREA_NOTE[a] ?? ''}</span>${labHave(a) ? '' : ' <span class="warn small">— 이 정거장에 연구소 없음</span>'}</div><div class="rtree">${cols.filter(Boolean).map(col => `<div class="rcol">${col.sort((x, y) => x.time - y.time).map(t => {
+        const [k, label] = techState(co, t.id);
+        const tags = techTags(t.id).map(x => `<span class="rtag rt-${x[0]}">${x[1]}</span>`).join('');
+        return `<div class="rcard tst-${k}${ui.tSel === t.id ? ' sel' : ''}" data-tsel="${t.id}" title="${esc(t.unlocks)}"><b>${esc(t.name)}</b><div class="small dim">${dur(t.time)}${t.needLab ? ` · <span class="${s.modules.some(m => m.built && m.kind === t.needLab) ? 'good' : 'warn'}">${esc(FACILITIES[t.needLab]?.name ?? '')}</span>` : ''}</div><div class="rtags">${tags}</div><div class="small tst-l">${esc(label)}</div></div>`;
+      }).join('')}</div>`).join('<div class="rarrow">›</div>')}</div></div>`;
+    }).join('')}</div><div class="bdet">${ui.tSel && TECHS[ui.tSel] ? techDetail(w, s, me, ui.tSel, fields, store) : '<div class="dim" style="padding:12px">기술을 선택하면 선행 조건·비용·해금 내용을 볼 수 있습니다.</div>'}</div></div>`;
+    return html;
+  }
+  html += `<h3>기술 트리</h3>${chips('rfield', ui.rField, [['all', '전체'], ...FIELDS.filter(f => vis.some(t => t.field === f)).map(f => [f, FIELD_NAME[f] + (fields.has(f) ? '' : ' ·')] as [string, string])])}`;
+  const show = FIELDS.filter(f => (ui.rField === 'all' || ui.rField === f) && vis.some(t => t.field === f));
   html += `<div class="bcols"><div class="rlist">${show.map(f => {
-    const ts = Object.values(TECHS).filter(t => t.field === f).sort((a, b) => depth(a.id) - depth(b.id) || a.time - b.time);
+    const ts = vis.filter(t => t.field === f).sort((a, b) => depth(a.id) - depth(b.id) || a.time - b.time);
     return `<div class="dim small" style="margin:6px 0 2px">${FIELD_NAME[f]}${fields.has(f) ? '' : ' <span class="warn">— 이 정거장에 연구소 없음</span>'}</div>` + ts.map(t => {
       const [k, label] = techState(co, t.id);
       return `<div class="bfac pick tst-${k}${ui.tSel === t.id ? ' sel' : ''}${k === 'locked' ? ' locked' : ''}" data-tsel="${t.id}" style="margin-left:${depth(t.id) * 10}px"><b>${esc(t.name)}</b> <span class="dim small">${dur(t.time)}</span><div class="small ${k === 'known' ? 'good' : k === 'locked' ? 'dim' : ''}">${esc(label)}</div></div>`;
@@ -277,6 +299,46 @@ export function researchHtml(w: WorldState, s: Station, me: string, ui: IndUi): 
   }).join('')}</div><div class="bdet">${ui.tSel && TECHS[ui.tSel] ? techDetail(w, s, me, ui.tSel, fields, store) : '<div class="dim" style="padding:12px">기술을 선택하면 선행 조건·비용·해금 내용을 볼 수 있습니다.</div>'}</div></div>`;
   return html;
 }
+const AREAS = ['hull', 'propulsion', 'power', 'kinetic', 'energy', 'missile', 'defense', 'electronics', 'industry', 'resource', 'logistics', 'station', 'tactics'];
+export const AREA_NAME: Record<string, string> = { hull: '선체', propulsion: '추진', power: '동력', kinetic: '실탄 무장', energy: '에너지 무장', missile: '유도 무장', defense: '방어', electronics: '전자', industry: '산업', resource: '자원', logistics: '물류', station: '정거장', tactics: '전술' };
+const AREA_NOTE: Record<string, string> = {
+  hull: '함선 설계 · 건조 속도 · 내구', propulsion: '엔진 시설 · 순항 · 전투 속도', power: '반응로 · 실드 회복', kinetic: '코일·레일·함포 · 탄도 효율', energy: '레이저·플라즈마·입자 · 빔 효율',
+  missile: '미사일·어뢰 · 탄약 공장 · 탄두', defense: '장갑 · 실드 용량 · 수리', electronics: '사격통제 · 방공 · 명중', industry: '생산 속도 · 고효율 레시피', resource: '채굴 · 희귀 소재',
+  logistics: '적재량 · 보급 소모 · 유지비', station: '연구 속도 · 건설 · 전문 연구소', tactics: '지휘관 성장 · 회피 기동',
+};
+/** depth of a tech among the techs of its own area (prerequisites from other areas do not indent) */
+const depthAreaMemo = new Map<string, number>();
+function depthIn(id: string, area: string): number {
+  const k = `${area}:${id}`; if (depthAreaMemo.has(k)) return depthAreaMemo.get(k)!;
+  const d = Math.min(5, Math.max(0, ...(TECHS[id]?.pre ?? []).filter(p => TECHS[p]?.area === area).map(p => depthIn(p, area) + 1)));
+  depthAreaMemo.set(k, d); return d;
+}
+/** what a tech does, as short tags: weapon / module / facility / recipe / hull / effect */
+export function techTags(id: string): [string, string][] {
+  const t = TECHS[id]; const out: [string, string][] = [];
+  const eq = Object.values(EQUIPMENT).filter(e => e.tech === id);
+  for (const e of eq) out.push([e.kind === 'weapon' ? 'w' : 'm', e.kind === 'weapon' ? '무장' : '장비']);
+  if (Object.values(FACILITIES).some(f => f.tech === id)) out.push(['f', '시설']);
+  if (Object.values(RECIPES).some(r => r.tech === id && !EQUIPMENT[Object.keys(r.out)[0]])) out.push(['r', '레시피']);
+  if (/함선:/.test(t?.unlocks ?? '')) out.push(['h', '함선']);
+  if (t?.fx || t?.cfx) out.push(['x', '효과']);
+  if (t?.needLab) out.push(['l', '전문']);
+  return out.filter((x, i) => out.findIndex(y => y[0] === x[0]) === i);
+}
+/** the content a tech unlocks, with the key numbers (weapons: role, size, power) */
+function unlockedList(id: string): string {
+  const eq = Object.values(EQUIPMENT).filter(e => e.tech === id);
+  const fac = Object.values(FACILITIES).filter(f => f.tech === id);
+  const rec = Object.values(RECIPES).filter(r => r.tech === id && !EQUIPMENT[Object.keys(r.out)[0]]);
+  if (!eq.length && !fac.length && !rec.length) return '';
+  const row = (icon: string, name: string, note: string) => `<div class="uline"><span class="uico">${icon}</span><b>${esc(name)}</b> <span class="dim small">${note}</span></div>`;
+  return `<div class="bdr ulist">${[
+    ...eq.map(e => { const w = e.weapon ? WEAPONS[e.weapon] : undefined; return row(e.kind === 'weapon' ? '⚔' : '⚙', e.name, w ? `${ROLE_NAME[weaponRole(w.id)] ?? ''} · ${['', 'S', 'M', 'L'][e.size]} · 사거리 ${w.range} · 관통 ${w.pen}${w.vsShield !== undefined ? ` · 대실드 ×${w.vsShield}` : ''}` : esc(e.desc)); }),
+    ...fac.map(f => row('🏭', f.name, esc(f.unlocks))),
+    ...rec.map(r => row('⚗', r.name, `${itemList(r.in)} → ${itemList(r.out)}`)),
+  ].join('')}</div>`;
+}
+export const ROLE_NAME: Record<string, string> = { 'anti-small': '대소형함', general: '범용', 'anti-capital': '대함(대형함)', pd: '방공' };
 const depthMemo = new Map<string, number>();
 function depth(id: string): number {
   if (depthMemo.has(id)) return depthMemo.get(id)!;
@@ -295,7 +357,8 @@ function techDetail(w: WorldState, s: Station, me: string, id: string, fields: S
   const canSal = own && fields.has(t.field) && k === 'ok' && sal && qty(store, sal) >= 1;
   const canCopy = own && fields.has(t.field) && k === 'known' && !!t.bp;
   return `<div class="bdh"><b>${esc(t.name)}</b> <span class="dim">· ${FIELD_NAME[t.field]} · ${esc(t.desc)}</span></div>
-    <div class="bdr"><b>해금:</b> ${esc(t.unlocks)}</div>
+    <div class="bdr"><b>해금:</b> ${esc(t.unlocks)}</div>${unlockedList(id)}
+    ${t.needLab ? `<div class="bdr small">전문 연구소: <span class="${s.modules.some(m => m.built && m.kind === t.needLab) ? 'good' : 'warn'}">${esc(FACILITIES[t.needLab]?.name ?? t.needLab)}</span> (이 정거장에 건설되어 있어야 연구 가능)</div>` : ''}
     <div class="bdr small">선행: ${(t.pre ?? []).map(p => `<span class="${co.tech?.includes(p) ? 'good' : 'warn'}">${esc(TECHS[p].name)}</span>`).join(', ') || '없음'}${after.length ? ` · 후속: ${after.map(esc).join(', ')}` : ''}</div>
     <div class="bdr">연구 ${dur(t.time)} (슬롯 1개 기준) · 비용 <b class="money">${fmt(t.credits)} cr</b> (등록 시)${t.bp ? ` · 설계도 시세 ${fmt(t.bp)} cr` : ''}</div>
     <table class="gt bmat"><tr><th>소모 재료 (시작 시)</th><th class="n">필요</th><th class="n">창고</th><th class="n">상태</th></tr>${rows}</table>

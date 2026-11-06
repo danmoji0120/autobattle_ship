@@ -16,14 +16,14 @@ import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules,
 import { CONTENT, legacyOf } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
 import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
-import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
+import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, growthFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
 import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInfluence } from './factions';
-import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot } from './research';
+import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot, unlockSummary } from './research';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
 import { econOf, hullEcon, hullBuild, hullSale, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
-import { yardRestockNeed, valueOf, hullPrice } from './valuation';
+import { yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
 import { priceOf, driftV3, fundsStep, fundsIn, seedFunds } from './market';
@@ -107,7 +107,8 @@ const vlerp = (a: V, b: V, t: number): V => ({ x: a.x + (b.x - a.x) * t, y: a.y 
 
 /** growth (rev 2): hulls cost what they take to make, so a new company starts with enough for one
  *  small hull on top of its starter fleet */
-export const START_CREDITS_GROWTH = 12000;
+export { START_CREDITS_GROWTH } from './econConfig';
+import { START_CREDITS_GROWTH } from './econConfig';
 
 export class WorldSim {
   st: WorldState;
@@ -247,7 +248,16 @@ export class WorldSim {
   shipFxOf(s: WShip) {
     const co = this.st.companies[s.owner];
     const armory = Object.values(this.st.stations).some(x => x.owner === s.owner && this.hasModule(x, 'armory'));
-    return fitFx(s.fit, co?.tech, armory);
+    const fx = fitFx(s.fit, co?.tech, armory);
+    if (!growthOn(this.st)) return fx;
+    // P5: shield modules and research combat effects
+    const g = growthFx(s.fit, co?.tech);
+    const o: ReturnType<typeof fitFx> & import('../sim/fleet').ShipFx = fx;
+    for (const k of ['hpMul', 'armorMul', 'speedMul', 'accMul', 'pdMul'] as const) if (g[k] !== undefined) o[k] *= g[k]!;
+    if (g.evasion) o.evasion += g.evasion;
+    if (g.shield) { o.shield = g.shield; o.shieldRegen = g.shieldRegen; }
+    if (g.fam) o.fam = g.fam;
+    return o;
   }
 
   // ------------------------------------------------------------------ fitting V2 (growth P2)
@@ -624,7 +634,7 @@ export class WorldSim {
       }
       case 'queueModule': {
         const st = S(cmd.station); const md = MODULES[cmd.kind];
-        if (!st || st.owner !== company || !md) return '건설 불가';
+        if (!st || st.owner !== company || !md || (md.growth && !growthOn(this.st))) return '건설 불가';
         if (md.kind === 'core') return '도킹 허브는 정거장 설립 시 함께 건설됨';
         if (st.modules.length >= MAX_MODULES) return `시설 슬롯 부족 (${st.modules.length}/${MAX_MODULES})`;
         if (md.requires && !st.modules.some(m => m.kind === md.requires)) return `${MODULES[md.requires].name} 필요`;
@@ -677,7 +687,7 @@ export class WorldSim {
       case 'prodOrder': {
         const st = S(cmd.station); const r = RECIPES[cmd.recipe];
         if (!st || st.owner !== company) return '자사 정거장이 아님';
-        if (!r) return '알 수 없는 레시피';
+        if (!r || (r.growth && !growthOn(this.st))) return '알 수 없는 레시피';
         if (r.tech && !co.tech?.includes(r.tech)) return `연구 필요: ${techName(r.tech)}`;
         if (!st.modules.some(m => m.kind === r.fac)) return `${MODULES[r.fac].name}이(가) 없습니다 — 먼저 건설하세요`;
         const n = Math.floor(cmd.n);
@@ -759,7 +769,7 @@ export class WorldSim {
         if (h.tech && !co.tech?.includes(h.tech)) return `설계 연구 필요: ${techName(h.tech)}`;
         if (!yardSlots(st).some(y => y.size >= h.yard)) return `${YARD_NAME[h.yard]} 이상 조선소가 필요합니다`;
         const lo = getLoadout(cmd.classId, cmd.loadoutId);
-        const fit = (cmd.fit ?? []).filter(k => EQUIPMENT[k]?.kind === 'module');
+        const fit = (cmd.fit ?? []).filter(k => EQUIPMENT[k]?.kind === 'module' && !EQUIPMENT[k].growth);
         if (fitUnits(fit) > h.slots) return `피팅 슬롯 초과 (${fitUnits(fit)}/${h.slots})`;
         if ((st.builds ?? []).length >= 20) return '건조 대기열은 20척까지';
         if (co.credits < h.credits) return `자금 부족 — ${Math.ceil(h.credits - co.credits).toLocaleString()} cr 더 필요`;
@@ -802,6 +812,7 @@ export class WorldSim {
         const st = S(cmd.station);
         if (!st) return '정거장 없음';
         const src = cmd.source ?? 'lab';
+        if (TECHS[cmd.tech]?.growth && !growthOn(this.st)) return '알 수 없는 연구';
         const err = canQueue(co, st, cmd.tech, src);
         if (err) return err;
         if ((co.research ?? []).length >= 30) return '연구 대기열은 30개까지';
@@ -857,7 +868,7 @@ export class WorldSim {
         const st = S(s.task.station);
         const ownFit = st.owner === company && (this.hasModule(st, 'fitting') || yardSlots(st).length > 0);
         if (!ownFit && !(st.public && st.services.refit)) return '피팅 시설이 없는 정거장';
-        const fit = cmd.fit.filter(k => EQUIPMENT[k]?.kind === 'module');
+        const fit = cmd.fit.filter(k => EQUIPMENT[k]?.kind === 'module' && (growthOn(this.st) || !EQUIPMENT[k].growth));
         const slots = HULLS[s.classId]?.slots ?? 1;
         if (fitUnits(fit) > slots) return `피팅 슬롯 초과 (${fitUnits(fit)}/${slots})`;
         // the difference moves between the ship and this station's storage, all or nothing
@@ -882,6 +893,7 @@ export class WorldSim {
         if (!obj(cmd.hp) || !obj(cmd.bay)) return '잘못된 피팅 데이터';
         const variant = typeof cmd.variant === 'string' ? cmd.variant : s.variant!;
         const preset = typeof cmd.preset === 'string' && (Object.hasOwn(CONTENT.presets, cmd.preset) || co.fitPresets?.some(x => x.id === cmd.preset)) ? cmd.preset : undefined;
+        if (!growthOn(this.st)) { const gx = [...Object.values(cmd.hp), ...Object.values(cmd.bay)].find(k => EQUIPMENT[k as string]?.growth); if (gx) return `${EQUIPMENT[gx as string].name}: 이 월드에서는 아직 사용할 수 없는 장비`; }
         return this.applyFitting(company, s, variant, normFitting(cmd), { buy: !!cmd.buy, preset, what: '피팅 변경' });
       }
       case 'savePreset': {
@@ -1106,13 +1118,15 @@ export class WorldSim {
     const rep = checkFitting(ch.variant, { hp: { ...(p?.weapons ?? {}) }, bay: pl.bay });
     if (rep.errors.length) return rep.errors[0];
     if ((st.builds ?? []).length >= 20) return '건조 대기열은 20척까지';
-    if (co.credits < b.credits) return `자금 부족 — ${Math.ceil(b.credits - co.credits).toLocaleString()} cr 더 필요`;
+    // own yards pay their own dock time (econConfig YARD_FEE): the real cost of a large hull
+    const pay = b.credits + yardFee(b);
+    if (co.credits < pay) return `자금 부족 — ${Math.ceil(pay - co.credits).toLocaleString()} cr 더 필요 (인건비 ${b.credits.toLocaleString()} + 조선소 운영비 ${yardFee(b).toLocaleString()})`;
     const g = cmd.group ? G(cmd.group) : null;
-    co.credits -= b.credits;
+    co.credits -= pay;
     useRun(co, hullBlueprint(ch.hull));
     st.seq = (st.seq ?? 0) + 1;
     const label = p ? loadoutLabel(h.classId, ch.variant, { hp: p.weapons, bay: {} }) : getLoadout(h.classId, '').id;
-    const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: h.classId, loadoutId: label, hull: ch.hull, variant: ch.variant, preset: p?.id, fit, group: g?.id, left: b.time, total: b.time, started: false, paid: b.credits };
+    const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: h.classId, loadoutId: label, hull: ch.hull, variant: ch.variant, preset: p?.id, fit, group: g?.id, left: b.time, total: b.time, started: false, paid: pay };
     (st.builds ??= []).push(nb);
     stepBuilds(st, co, 0);
     this.ev('info', `${st.name}: ${h.name} 건조 등록 (${CONTENT.variants[ch.variant]?.name ?? ''}${p ? ` · ${p.name}` : ''})`, { company: co.id, pos: st.pos, tag: 'build_plan' });
@@ -1479,7 +1493,7 @@ export class WorldSim {
       for (const p of stepResearch(st, co, dt)) {
         const t = TECHS[p.tech];
         if (p.source === 'copy') this.ev('info', `설계도 복제 완료: ${t.name} — ${st.stations[p.station]?.name ?? ''} 창고`, { company: co.id, tag: 'research_done' });
-        else this.ev('milestone', `연구 완료: ${t.name} — ${t.unlocks}`, { company: co.id, tag: 'research_done' });
+        else this.ev('milestone', `연구 완료: ${t.name} — ${t.unlocks}${growthOn(this.st) ? unlockSummary(p.tech) : ''}`, { company: co.id, tag: 'research_done' });
       }
     }
     for (const f of Object.values(st.fields)) {

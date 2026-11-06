@@ -23,7 +23,8 @@ import { seedSites } from './explore';
 
 export const CONTENT_VERSION = 4;
 /** c4: raw goods trade at this share of their old base price */
-export const RAW_PRICE_V4 = 0.25;
+import { RAW_PRICE_V4 } from './econConfig';
+export { RAW_PRICE_V4 };
 /** contentV from which player ships carry a real fitting (P2) */
 export const FITTING_V = 2;
 

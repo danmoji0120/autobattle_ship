@@ -5,13 +5,13 @@
 //
 // Rendered with morph() so typing in the search box or an open dropdown survives live updates; all
 // clicks go through one delegated listener.
-import { econOf } from '../../world/hullops';
+import { econOf, growthOn } from '../../world/hullops';
 import * as THREE from 'three';
 import type { WorldView } from '../../server/protocol';
 import type { WShip, Station } from '../../world/types';
 import type { Cmd } from '../../world/sim';
 import { qty } from '../../world/types';
-import { CONTENT, variantLayout, presetsOfHull, variantsOfHull } from '../../content/registry';
+import { CONTENT, variantLayout, presetsOfHull, variantsOfHull, weaponRole } from '../../content/registry';
 import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arcOf } from '../../content/rules';
 import type { HardpointDef, InternalSlotDef } from '../../content/schema';
 import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bayModules, type ShipFitting } from '../../world/fitting';
@@ -254,7 +254,8 @@ export class FittingScreen {
     const cur = hp ? this.draft.hp[hp.id] : bay ? this.draft.bay[bay.id] : undefined;
     const co = this.st!.companies[this.me];
     const q = this.q.trim().toLowerCase();
-    let list = Object.values(EQUIPMENT).filter(e => CONTENT.equipment[e.id]);
+    const g = growthOn(this.st!);
+    let list = Object.values(EQUIPMENT).filter(e => CONTENT.equipment[e.id] && (g || !e.growth));
     if (this.filter === 'fit') list = list.filter(e => hp ? !hpAccepts(hp, e.id) : bay ? !bayAccepts(bay, e.id) : true);
     else if (this.filter === 'weapon') list = list.filter(e => e.kind === 'weapon');
     else if (this.filter === 'module') list = list.filter(e => e.kind === 'module');
@@ -271,9 +272,10 @@ export class FittingScreen {
       const why = hp ? hpAccepts(hp, id) : bay ? bayAccepts(bay, id) : null;
       const have = Math.floor(qty(store, id));
       const lock = e.tech && !co.tech?.includes(e.tech);
+      const cw = cur && EQUIPMENT[cur]?.weapon ? WEAPONS[EQUIPMENT[cur].weapon!] : undefined;
       const stats = w
-        ? `화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w), cur ? dps(cur) : undefined, 1)} · 사거리 ${fmt(w.range)}${d(w.range, cur ? rng(cur) : undefined)} · 관통 ${w.pen} · ${TYPE_NAME[weaponType(w.id)]}`
-        : esc(e.desc);
+        ? `${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w), cur ? dps(cur) : undefined, 1)} · 사거리 ${fmt(w.range)}${d(w.range, cur ? rng(cur) : undefined)} · 관통 ${w.pen}${d(w.pen, cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${g ? statBars(w) : ''}`
+        : g && e.cfx ? `${esc(cfxText(e.cfx))}` : esc(e.desc);
       return `<div class="fitem${why ? ' no' : ''}${id === cur ? ' cur' : ''}" data-fpick="${id}" title="${esc(why ?? e.desc)}">
         <div class="fin"><b>${esc(e.name)}</b><span class="fsz sm">${s.size}</span>${id === cur ? '<span class="tag">장착 중</span>' : ''}${lock && !have ? '<span class="tag warn" title="보유하지 않은 이 장비를 구매·생산하려면 연구가 필요합니다">연구 필요</span>' : ''}<span class="fhave${have ? '' : ' none'}">보유 ${have}</span></div>
         <div class="fis">${stats}</div>
@@ -397,4 +399,26 @@ export class FittingScreen {
     this.cam.lookAt(0, 0, 0);
     r.render(this.scene, this.cam);
   }
+}
+
+// ── P5 weapon comparison helpers (growth worlds)
+const FAMILY_NAME: Record<string, string> = { cannon: '함포', coil: '코일·레일', laser: '레이저', plasma: '플라즈마', particle: '입자', missile: '미사일', torpedo: '어뢰', pd: '방공' };
+const ROLE_SHORT: Record<string, string> = { 'anti-small': '대소형', general: '범용', 'anti-capital': '대함', pd: '방공' };
+const hexc = (n: number | undefined) => n === undefined ? '#9ab' : `#${n.toString(16).padStart(6, '0')}`;
+function famBadge(w: import('../../sim/data/weapons').WeaponDef): string {
+  if (!w.family) return '';
+  const role = weaponRole(w.id);
+  return `<span class="wfam" style="--wc:${hexc(w.vis?.color)}">${FAMILY_NAME[w.family] ?? w.family} ${w.tier ? 'T' + w.tier : ''}</span><span class="wrole wr-${role}">${ROLE_SHORT[role] ?? role}</span> `;
+}
+/** four bars on a common scale: reach, armour penetration, sustained fire, effect on shields */
+function statBars(w: import('../../sim/data/weapons').WeaponDef): string {
+  const bar = (label: string, v: number, max: number, cls = '') => `<span class="sb${cls}"><i>${label}</i><b style="width:${Math.max(4, Math.min(100, v / max * 100)).toFixed(0)}%"></b></span>`;
+  return `<div class="sbars">${bar('사거리', w.range, 2400)}${bar('관통', w.pen, 125)}${bar('연사', 1 / Math.max(0.1, w.reload), 6)}${bar('대실드', (w.vsShield ?? 1), 1.6, (w.vsShield ?? 1) >= 1 ? ' good' : ' weak')}${bar('선회', w.turnSpeed, 400)}</div>`;
+}
+function cfxText(c: import('../../content/schema').CombatFx): string {
+  const out: string[] = [];
+  if (c.shield) out.push(`실드 내구의 ${Math.round(c.shield * 100)}% · 초당 ${((c.shieldRegen ?? 0) * 100).toFixed(1)}% 회복`);
+  for (const [k, n] of [['hpMul', '내구'], ['armorMul', '장갑'], ['speedMul', '속도'], ['accMul', '명중'], ['pdMul', '요격']] as const) if (c[k]) out.push(`${n} ${c[k]! >= 1 ? '+' : ''}${Math.round((c[k]! - 1) * 100)}%`);
+  if (c.evasion) out.push(`회피 +${Math.round(c.evasion * 100)}%`);
+  return out.join(' · ') || '전력 공급';
 }
