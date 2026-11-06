@@ -92,6 +92,9 @@
 - mptest 61 PASS / 0 FAIL (61/61 실행), vitest 126 통과, tsc·content:check 0/0
 - 운영 사본 dry-run (04df46d 배포 부팅, 메모리 상 사본, 쓰기 없음): `c0→c2: ships 148 · builds 0 · fitted 19 ·
   converted 71 items · returned 0 · unmapped 0 · granted 0 · census OK · round-trip OK` — 운영 contentV 0 유지
+- 운영 DB 읽기 전용 확인 (2026-11-06 02:00 UTC, Supabase `main` 행, eb512f2 가동 중): gen 1 유지, `contentV` 없음(=0),
+  `fitting`이 붙은 함선 0척, `conversions` 없음 → 마이그레이션 미적용. 플레이어 회사 3곳·플레이어 함선 19척(6·5·8)으로
+  dry-run 집계와 일치, 정상 저장 계속(updated 01:59). 백업 행 `backup-pre-v4.0`·`backup-reset-reset-20261105` 보존.
 
 **55 → 56 표기 확인:** mptest의 `ok()` 호출은 1adbc5e 이후 55개였고 P1 실행도 55 PASS였다. 이전 보고의 56은 집계
 오기이며 누락된 검사는 없다. 재발 방지로 실행 수 가드를 넣었다.
