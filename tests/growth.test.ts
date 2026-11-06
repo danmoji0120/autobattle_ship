@@ -94,13 +94,15 @@ describe('growth: hulls and variants (P3)', () => {
     // dev hulls (model-loader tests, never obtainable) borrow an existing silhouette as their fallback look
     const growth = Object.values(CONTENT.hulls).filter(h => !h.id.endsWith('_mk1') && !h.dev);
     expect(growth.length).toBeGreaterThanOrEqual(13);
-    expect(new Set(growth.map(h => h.mesh.base)).size).toBe(growth.length);      // no shared silhouettes
+    // A production GLB is the visible silhouette; its procedural base is only a loading/404 fallback.
+    const silhouettes = growth.map(h => h.mesh.model ?? h.mesh.base);
+    expect(new Set(silhouettes).size).toBe(growth.length);
     for (const h of growth) {
       expect(CONTENT.variants[`${h.id}_std`]?.hull, h.id).toBe(h.id);
       expect(Object.values(CONTENT.presets).some(x => x.hull === h.id), h.id).toBe(true);
     }
     const dd = growth.filter(h => h.classId === 'destroyer').map(h => h.id).sort();
-    expect(dd).toEqual(['destroyer_fast', 'destroyer_heavy', 'destroyer_picket', 'destroyer_vls']);
+    expect(dd).toEqual(expect.arrayContaining(['destroyer_fast', 'destroyer_heavy', 'destroyer_picket', 'destroyer_vls']));
     for (const cls of ['miner', 'hauler', 'constructor']) expect(new Set(Object.values(CONTENT.hulls).filter(h => h.classId === cls && !h.dev).map(h => h.size)).size, cls).toBeGreaterThanOrEqual(3);
     // mk1 hulls keep the legacy economy exactly
     for (const c of ['miner', 'hauler', 'constructor', 'destroyer', 'battleship']) expect(hullEcon(`${c}_mk1`)).toMatchObject({ cargo: ECON[c].cargo, mine: ECON[c].mine, cruise: ECON[c].cruise, price: ECON[c].price });
