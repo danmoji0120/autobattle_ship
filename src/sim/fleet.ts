@@ -10,7 +10,7 @@ export interface ShipSpec {
   /** fitted equipment / research effects */ fx?: ShipFx;
   /** actual fitted weapons (Fitting V2) — replaces the loadout's mounts; the hull variant's structural
    *  modifiers come with them. Absent = the class loadout as before. */
-  fit?: { name: string; mounts: import('./data/ships').MountDef[]; hpMul?: number; armorMul?: number; speedMul?: number };
+  fit?: { name: string; mounts: import('./data/ships').MountDef[]; hpMul?: number; armorMul?: number; speedMul?: number; /** render only — the battle sim never reads it */ mesh?: import('./data/ships').LoadoutDef['mesh'] };
 }
 /** combat effects of fitted modules and research (all default 1, evasion 0) */
 export interface ShipFx {

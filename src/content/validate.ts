@@ -11,6 +11,7 @@ import { ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_S
 import { presetMounts, variantLayout, INSTALLED_EQUIPMENT, type Registry } from './registry';
 import { hpAccepts, fitTotals } from './rules';
 import { validateArsenal } from './validateArsenal';
+import { validateModels } from './validateModels';
 
 export interface Issue { level: 'error' | 'warn'; where: string; msg: string }
 
@@ -19,6 +20,10 @@ export interface AssetFs {
   size(file: string): number | null;
   /** every file under public/assets/content/ (relative, forward slashes) */
   list(): string[];
+  /** file bytes (models are inspected), or null if missing */
+  read?(file: string): Uint8Array | null;
+  /** SHA-256 hex of the file, or null if missing */
+  sha256?(file: string): string | null;
 }
 
 const ID = /^[a-z][a-z0-9_]{1,47}$/;
@@ -48,6 +53,7 @@ export function weaponFits(weapon: string, hp: HardpointDef): string | null {
 export const ASSET_RULES: Record<AssetKind, { dir: string; ext: string[]; maxBytes: number; target: string }> = {
   'ship-model': { dir: 'models/', ext: ['.glb'], maxBytes: 2 * 1024 * 1024, target: 'hull' },
   'variant-model': { dir: 'models/', ext: ['.glb'], maxBytes: 2 * 1024 * 1024, target: 'variant' },
+  'model-lod': { dir: 'models/', ext: ['.glb'], maxBytes: 768 * 1024, target: 'asset' },
   portrait: { dir: 'portraits/', ext: ['.webp', '.png'], maxBytes: 300 * 1024, target: 'commander' },
   'equipment-icon': { dir: 'icons/', ext: ['.svg', '.webp', '.png'], maxBytes: 64 * 1024, target: 'equipment' },
   'item-icon': { dir: 'icons/', ext: ['.svg', '.webp', '.png'], maxBytes: 64 * 1024, target: 'item' },
@@ -156,7 +162,11 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       const berth = h.ops?.berth;
       if (berth) for (const sid of h.sale.stations) if (PUBLIC_BERTH[sid] && SIZES.indexOf(PUBLIC_BERTH[sid]) < SIZES.indexOf(berth)) err(at, `sale.stations "${sid}" 의 정박 등급(${PUBLIC_BERTH[sid]})이 선체(${berth})보다 작음`);
     }
-    if (h.classId !== 'platform' && !Object.values(reg.blueprints).some(b => b.target.kind === 'hull' && b.target.id === h.id)) (h.id.endsWith('_mk1') ? warn : err)(at, '이 선체의 설계도(BlueprintDef target hull)가 없음 — 건조 불가');
+    if (h.dev) {
+      if (h.sale) err(at, 'dev 선체는 판매(sale)할 수 없음');
+      if (Object.values(reg.blueprints).some(b => b.target.kind === 'hull' && b.target.id === h.id)) err(at, 'dev 선체에는 설계도를 두지 않음 (획득 불가여야 함)');
+      if ((reg.packs.find(p => p.id === packOf('hull', h.id))?.minContentV ?? 0) < 3) err(at, 'dev 선체는 minContentV 3 팩에만');
+    } else if (h.classId !== 'platform' && !Object.values(reg.blueprints).some(b => b.target.kind === 'hull' && b.target.id === h.id)) (h.id.endsWith('_mk1') ? warn : err)(at, '이 선체의 설계도(BlueprintDef target hull)가 없음 — 건조 불가');
   }
   // ── blueprints
   for (const b of Object.values(reg.blueprints)) {
@@ -254,6 +264,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     hull: id => !!reg.hulls[id], variant: id => !!reg.variants[id],
     commander: id => COMMANDERS.some(c => c.id === id) || /^pool:[a-z0-9_]+$/.test(id),
     equipment: id => !!EQUIPMENT[id], item: id => !!ITEMS[id], facility: id => !!FACILITIES[id],
+    asset: id => !!reg.assets[id],
   };
   const files = new Set<string>();
   for (const a of Object.values(reg.assets)) {
@@ -273,6 +284,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       else if (n > rule.maxBytes) err(at, `파일 크기 ${(n / 1024).toFixed(0)} KB > 한도 ${(rule.maxBytes / 1024).toFixed(0)} KB`);
     }
   }
+  validateModels(reg, fs, err, warn);
   if (fs) for (const f of fs.list()) if (!files.has(f) && !/(^|\/)(\.gitkeep|README\.md)$/.test(f)) err(`asset-file ${f}`, '등록되지 않은 파일 (packs/*/assets.ts 에 등록하거나 삭제)');
   return out;
 }

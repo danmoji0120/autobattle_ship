@@ -4,3 +4,4 @@ playtest-out
 *.log
 dist-server
 data
+shots

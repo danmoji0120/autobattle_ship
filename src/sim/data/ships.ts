@@ -18,7 +18,7 @@ export interface LoadoutDef {
   hpMul?: number;
   costDelta?: number;
   /** renderer silhouette override (content hulls with their own mesh base) */
-  mesh?: { base: string; scale: number };
+  mesh?: { base: string; scale: number; /** content asset id of an external model (render only) */ model?: string };
 }
 
 export interface ShipClassDef {

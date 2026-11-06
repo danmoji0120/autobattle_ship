@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ShipClassDef, LoadoutDef, MountDef } from '../sim/data/ships';
 import { WEAPONS } from '../sim/data/weapons';
+import { loadModel, modelReady, modelsEnabled, type ModelTemplate } from './modelLoader';
 
 // Ship-local frame: +x port, +y up, +z bow (matches the simulation).
 
@@ -16,6 +17,9 @@ export interface ShipModel {
   lights: THREE.Mesh[];
   hullMats: THREE.MeshStandardMaterial[];
   length: number;
+  /** external model state: none (procedural design), loading (procedural placeholder), model, fallback
+   *  (the file was missing or broken — procedural hull kept) */
+  model: { id: string; state: 'loading' | 'model' | 'fallback' } | null;
 }
 
 // -------------------------------------------------------------------------- textures / materials
@@ -619,6 +623,11 @@ function mergeAll(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
   return mergeGeometries(geos.map(normalizeGeo)) ?? geos[0];
 }
 const turretCache = new Map<string, TurretView>();
+// shared by every ship (they used to be created per ship and never freed)
+const glowGeo = new THREE.CircleGeometry(1, 20);
+const plumeGeo = new THREE.ConeGeometry(1, 1, 16, 1, true);
+plumeGeo.rotateX(-Math.PI / 2); plumeGeo.translate(0, 0, -0.5);
+const lightGeo = new THREE.SphereGeometry(0.3, 6, 4);
 
 const geoCache = new Map<string, { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; parts: Parts }>();
 
@@ -670,8 +679,8 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
   const hullMats: THREE.MeshStandardMaterial[] = [];
   const addMerged = (geos: THREE.BufferGeometry[], mat: THREE.Material) => {
     const [f, r] = (cached as any)[`split_${geos === cached!.hull ? 'h' : geos === cached!.dark ? 'd' : geos === cached!.trim ? 't' : 'a'}`] ??= splitByZ(geos);
-    if (f) { const mesh = new THREE.Mesh(f, mat); mesh.castShadow = false; front.add(mesh); }
-    if (r) { const mesh = new THREE.Mesh(r, mat); rear.add(mesh); }
+    if (f) { const mesh = new THREE.Mesh(f, mat); mesh.castShadow = false; mesh.userData.proc = 'hull'; front.add(mesh); }
+    if (r) { const mesh = new THREE.Mesh(r, mat); mesh.userData.proc = 'hull'; rear.add(mesh); }
   };
   addMerged(cached.hull, m.hull); addMerged(cached.dark, m.dark); addMerged(cached.trim, m.trim); addMerged(cached.accent, m.accent);
   hullMats.push(m.hull);
@@ -692,28 +701,75 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
     (md.pos[2] >= 0 ? front : rear).add(t.root);
     turrets.push(t);
   }
-  if (peds[0].length) front.add(new THREE.Mesh(mergeAll(peds[0]), m.dark));
-  if (peds[1].length) rear.add(new THREE.Mesh(mergeAll(peds[1]), m.dark));
+  for (const [i, half] of [front, rear].entries()) if (peds[i].length) { const p = new THREE.Mesh(mergeAll(peds[i]), m.dark); p.userData.proc = 'ped'; p.userData.own = true; half.add(p); }
 
   const engines: ShipModel['engines'] = [];
-  const glowGeo = new THREE.CircleGeometry(1, 20);
-  const plumeGeo = new THREE.ConeGeometry(1, 1, 16, 1, true);
-  plumeGeo.rotateX(-Math.PI / 2); plumeGeo.translate(0, 0, -0.5);
-  if (parts.engines.length) rear.add(new THREE.Mesh(mergeAll(parts.engines.map(e => cyl(e.r * 1.1, e.r * 1.35, e.r * 1.6, e.x, e.y, e.z + e.r * 0.6, 'z', 14))), m.trim));
-  for (const e of parts.engines) {
+  if (parts.engines.length) { const n = new THREE.Mesh(mergeAll(parts.engines.map(e => cyl(e.r * 1.1, e.r * 1.35, e.r * 1.6, e.x, e.y, e.z + e.r * 0.6, 'z', 14))), m.trim); n.userData.proc = 'engine'; n.userData.own = true; rear.add(n); }
+  addEngines(rear, parts.engines, m, engines);
+  const lights: THREE.Mesh[] = [];
+  addLights(front, rear, parts.light, m, lights);
+  const sm: ShipModel = { root, bank, front, rear, turrets, engines, lights, hullMats, length: cls.length * (xd ? mb!.scale : 1), model: null };
+  // external model: drawn from data alone (HullDef.mesh.model / VariantDef.model); until it is loaded —
+  // or if it never loads — the procedural hull above stands in, so the ship is always visible
+  const mid = mb?.model;
+  if (mid && modelsEnabled()) {
+    const L = cls.length * (mb!.scale ?? 1);
+    const t = modelReady(mid, L);
+    if (t) applyModel(sm, t, m);
+    else if (t === null) sm.model = { id: mid, state: 'fallback' };
+    else {
+      sm.model = { id: mid, state: 'loading' };
+      loadModel(mid, L).then(tp => {
+        if (!tp) { sm.model = { id: mid, state: 'fallback' }; return; }
+        // a ship that already broke apart keeps the look it died with
+        if (sm.front.parent === sm.bank && sm.rear.parent === sm.bank) applyModel(sm, tp, m);
+      }, () => { sm.model = { id: mid, state: 'fallback' }; });
+    }
+  }
+  return sm;
+}
+
+/** free what a ship model owns (its pedestal / nozzle geometry); hull, turret and model geometry is
+ *  shared between ships and stays cached */
+export function disposeShip(sm: ShipModel) {
+  sm.root.removeFromParent();
+  for (const half of [sm.front, sm.rear]) half.traverse(o => { if (o.userData.own) (o as THREE.Mesh).geometry.dispose(); });
+}
+
+function addEngines(rear: THREE.Group, list: { x: number; y: number; z: number; r: number }[], m: Mats, out: ShipModel['engines']) {
+  for (const e of list) {
     const glow = new THREE.Mesh(glowGeo, m.engine);
-    glow.position.set(e.x, e.y, e.z - 0.25); glow.rotation.y = Math.PI; glow.scale.setScalar(e.r);
+    glow.position.set(e.x, e.y, e.z - 0.25); glow.rotation.y = Math.PI; glow.scale.setScalar(e.r); glow.userData.proc = 'engine';
     rear.add(glow);
     const plume = new THREE.Mesh(plumeGeo, m.plume);
     plume.position.set(e.x, e.y, e.z - 0.3);
-    plume.scale.set(e.r * 0.9, e.r * 0.9, e.r * 6);
+    plume.scale.set(e.r * 0.9, e.r * 0.9, e.r * 6); plume.userData.proc = 'engine';
     rear.add(plume);
-    engines.push({ glow, plume, base: e.r });
+    out.push({ glow, plume, base: e.r });
   }
-  const lights: THREE.Mesh[] = [];
-  const lg = new THREE.SphereGeometry(0.3, 6, 4);
-  for (const p of parts.light) { const l = new THREE.Mesh(lg, m.light); l.position.copy(p); (p.z >= 0 ? front : rear).add(l); lights.push(l); }
-  return { root, bank, front, rear, turrets, engines, lights, hullMats, length: cls.length * (xd ? mb!.scale : 1) };
+}
+function addLights(front: THREE.Group, rear: THREE.Group, list: THREE.Vector3[], m: Mats, out: THREE.Mesh[]) {
+  for (const p of list) { const l = new THREE.Mesh(lightGeo, m.light); l.position.copy(p); l.userData.proc = 'light'; (p.z >= 0 ? front : rear).add(l); out.push(l); }
+}
+
+/** replace the procedural hull with a loaded model template (turrets stay: they sit on the data
+ *  hardpoints, which the validator matched to the model's hp_ markers) */
+function applyModel(sm: ShipModel, t: ModelTemplate, m: Mats) {
+  const replaceEngines = t.engines.length > 0, replaceLights = t.lights.length > 0;
+  for (const half of [sm.front, sm.rear]) for (const o of [...half.children]) {
+    const k = o.userData.proc;
+    if (k === 'hull' || k === 'ped' || (k === 'engine' && replaceEngines) || (k === 'light' && replaceLights)) { half.remove(o); if (o.userData.own) (o as THREE.Mesh).geometry.dispose(); }
+  }
+  const mat = (p: ModelTemplate['hi']['front'][number]) => p.slot ? m[p.slot] : p.mat!;
+  const meshes = (parts: ModelTemplate['hi']['front']) => { const g = new THREE.Group(); for (const p of parts) g.add(new THREE.Mesh(p.geo, mat(p))); return g; };
+  for (const [half, hi, lo] of [[sm.front, t.hi.front, t.lo?.front], [sm.rear, t.hi.rear, t.lo?.rear]] as const) {
+    if (lo) { const lod = new THREE.LOD(); lod.addLevel(meshes(hi), 0); lod.addLevel(meshes(lo), t.lodDistance); lod.userData.proc = 'model'; half.add(lod); }
+    else { const g = meshes(hi); g.userData.proc = 'model'; half.add(g); }
+  }
+  if (replaceEngines) { sm.engines.length = 0; addEngines(sm.rear, t.engines, m, sm.engines); }
+  if (replaceLights) { sm.lights.length = 0; addLights(sm.front, sm.rear, t.lights, m, sm.lights); }
+  sm.length = t.length;
+  sm.model = { id: t.id, state: 'model' };
 }
 
 export function factionColor(team: 0 | 1): number { return STYLE[team].accent; }

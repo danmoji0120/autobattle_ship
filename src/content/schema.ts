@@ -77,6 +77,9 @@ export interface HullDef {
   mesh: { base: string; scale: number; model?: string };
   blueprint: BlueprintGrade;
   desc: string;
+  /** development hull (model/loader tests): never sold, built or granted; needs no blueprint. Only
+   *  tests and the model preview spawn it. Fixture models may only be used by dev hulls. */
+  dev?: boolean;
   // ── growth P3/P4/P6 (contentV ≥ 3). All optional: absent = the class defaults (ECON / HULLS), so the
   //    12 mk1 hulls behave exactly as before. Data-only links for P5 (tech, facilities, parts).
   /** combat structure relative to the class (multiplies hp / armour / tactical speed; variant mods stack) */
@@ -212,8 +215,8 @@ export interface LegacyLoadoutMap { classId: string; loadoutId: string; hull: st
 
 // ─────────────────────────────────────────────── graphic assets (Codex-authored)
 
-export type AssetKind = 'ship-model' | 'variant-model' | 'portrait' | 'equipment-icon' | 'item-icon' | 'facility-icon';
-export const ASSET_KINDS: AssetKind[] = ['ship-model', 'variant-model', 'portrait', 'equipment-icon', 'item-icon', 'facility-icon'];
+export type AssetKind = 'ship-model' | 'variant-model' | 'model-lod' | 'portrait' | 'equipment-icon' | 'item-icon' | 'facility-icon';
+export const ASSET_KINDS: AssetKind[] = ['ship-model', 'variant-model', 'model-lod', 'portrait', 'equipment-icon', 'item-icon', 'facility-icon'];
 
 export interface AssetDef {
   /** unique id, `<kind-prefix>.<name>` e.g. `model.dd_aegis`, `portrait.cmd_vega`, `icon.eq_laser` */
@@ -227,6 +230,16 @@ export interface AssetDef {
   license?: string;
   /** models: forward axis must be +z, origin at the hull centre, 1 unit = 1 game unit */
   notes?: string;
+  /** models: SHA-256 (hex) of the file. Required for models: the validator compares it with the file
+   *  (a stale or partial copy is an error) and the client uses it to version the URL (cache busting). */
+  sha256?: string;
+  /** models: a loader-test fixture, not final art. Only `dev` hulls (and their variants) may use one. */
+  fixture?: boolean;
+  /** ship/variant models: asset id of a lower-detail model (kind `model-lod`) drawn from far away */
+  lod?: string;
+  /** models: move the bounding-box centre to the origin (for files authored with another origin).
+   *  Off by default — the standard origin is the hull centre and hardpoints are relative to it. */
+  recenter?: boolean;
 }
 
 // ─────────────────────────────────────────────── P5: weapons, research, facilities (growth content)

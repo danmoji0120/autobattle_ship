@@ -93,7 +93,11 @@ describe('content registry (P1)', () => {
     const e = errors([p], fs).map(i => i.where + ': ' + i.msg);
     expect(e.some(m => m.includes('icons/stray.png') && /등록되지 않은/.test(m))).toBe(true);
     expect(e.some(m => m.startsWith('asset portrait.huge') && /크기/.test(m))).toBe(true);
-    expect(e.filter(m => m.startsWith('asset model.') || m.startsWith('asset icon.') || m.startsWith('hull '))).toEqual([]);
+    expect(e.filter(m => m.startsWith('asset icon.') || m.startsWith('hull '))).toEqual([]);
+    // P8: a model on a core (mk1) hull is refused (legacy worlds keep their look), and models pin a sha256
+    const me = e.filter(m => m.startsWith('asset model.'));
+    expect(me.length).toBeGreaterThan(0);
+    expect(me.every(m => /기본\(core\) 선체 destroyer_mk1|sha256 필수/.test(m))).toBe(true);
     // wrong directory / extension / target / missing file
     const q = core();
     q.assets = [{ id: 'model.bad', kind: 'ship-model', file: 'icons/bad.png', for: 'not_a_hull', license: 'CC0' }];

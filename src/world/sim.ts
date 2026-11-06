@@ -282,7 +282,7 @@ export class WorldSim {
     if (!s.fitting || !s.variant) return undefined;
     // same synthesis the renderers use (shipLoadout), so what is drawn is what fights
     const l = shipLoadout(s);
-    return { name: l.name, mounts: l.mounts, hpMul: l.hpMul, armorMul: l.armorMul, speedMul: l.speedMul };
+    return { name: l.name, mounts: l.mounts, hpMul: l.hpMul, armorMul: l.armorMul, speedMul: l.speedMul, ...(l.mesh ? { mesh: l.mesh } : {}) };
   }
 
   /** move a docked V2 ship to a new fitting: rules → inventory (all or nothing) → fees → apply.
@@ -1050,6 +1050,7 @@ export class WorldSim {
   /** the content (hull, variant, preset) a buy/build command asks for */
   private hullChoice(cmd: { classId: string; loadoutId: string; hull?: string; variant?: string; preset?: string }): { hull: string; variant: string; preset?: string } | string {
     if (cmd.hull !== undefined && (typeof cmd.hull !== 'string' || !Object.hasOwn(CONTENT.hulls, cmd.hull))) return '알 수 없는 선체';
+    if (cmd.hull && CONTENT.hulls[cmd.hull].dev) return '개발용 선체 — 구매·건조할 수 없음';
     if (cmd.preset !== undefined && (typeof cmd.preset !== 'string' || !Object.hasOwn(CONTENT.presets, cmd.preset))) return '알 수 없는 무장 프리셋';
     if (cmd.variant !== undefined && (typeof cmd.variant !== 'string' || !Object.hasOwn(CONTENT.variants, cmd.variant))) return '알 수 없는 선체 변형';
     if (!cmd.hull) {

@@ -128,7 +128,10 @@ export function shipLoadout(s: { classId: string; loadoutId: string; variant?: s
   const h = v ? reg.hulls[v.hull] : undefined;
   // hull stats × variant mods; mk1 hulls have no stats, so their values stay exactly the variant's
   const mul = (a?: number, b?: number) => a == null ? b : b == null ? a : a * b;
-  const mesh = h && h.mesh.base !== s.classId ? { base: h.mesh.base, scale: h.mesh.scale } : undefined;
+  // render-only: silhouette override and the external model (variant model, else the hull's); combat
+  // never reads it. mk1 hulls of legacy worlds have neither, so their loadouts stay exactly as before.
+  const model = (v?.model ?? h?.mesh.model) || undefined;
+  const mesh = h && (h.mesh.base !== s.classId || model) ? { base: h.mesh.base, scale: h.mesh.scale, ...(model ? { model } : {}) } : undefined;
   return { id: base.id, name: v?.name ?? base.name, desc: '', mounts, hpMul: mul(h?.stats?.hpMul, v?.mods?.hpMul), armorMul: mul(h?.stats?.armorMul, v?.mods?.armorMul), speedMul: mul(h?.stats?.speedMul, v?.mods?.speedMul), costDelta: base.costDelta, ...(mesh ? { mesh } : {}) };
 }
 /** cache key for a ship's model (changes when its weapons move) */

@@ -171,7 +171,7 @@ async function pgStorage({ pool, host }: Awaited<ReturnType<typeof pgPool>>): Pr
   return st;
 }
 
-const MIME: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.ico': 'image/x-icon' };
+const MIME: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.ico': 'image/x-icon', '.glb': 'model/gltf-binary', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ktx2': 'image/ktx2' };
 
 async function main() {
   let storage: Storage = fileStorage();
@@ -371,7 +371,11 @@ async function main() {
     if (url.startsWith('/api/')) { void api(req, res, url); return; }
     let file = path.join(ROOT, decodeURIComponent(url));
     if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
-    if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(ROOT, 'index.html');
+    if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+      // a missing asset is a 404 (the model loader then keeps the procedural hull), not the app page
+      if (url.startsWith('/assets/')) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found'); return; }
+      file = path.join(ROOT, 'index.html');
+    }
     fs.readFile(file, (err, data) => {
       if (err) { res.writeHead(404); res.end('not found'); return; }
       const ext = path.extname(file);

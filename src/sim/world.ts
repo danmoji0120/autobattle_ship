@@ -110,7 +110,7 @@ export class World {
     const cls = SHIP_CLASSES[classId];
     const base = getLoadout(classId, loadoutId);
     // a fitted ship fights with exactly what is mounted on it (renderer turrets follow the same mounts)
-    const lo: LoadoutDef = fit ? { id: base.id, name: fit.name, desc: '', mounts: fit.mounts, hpMul: fit.hpMul, armorMul: fit.armorMul, speedMul: fit.speedMul, costDelta: base.costDelta } : base;
+    const lo: LoadoutDef = fit ? { id: base.id, name: fit.name, desc: '', mounts: fit.mounts, hpMul: fit.hpMul, armorMul: fit.armorMul, speedMul: fit.speedMul, costDelta: base.costDelta, ...(fit.mesh ? { mesh: fit.mesh } : {}) } : base;
     const cmd = g.commander;
     const spec = cmd.specialty;
     const speedMul = (lo.speedMul ?? 1) * (spec === 'maneuver' ? 1.08 : 1) * (fx.speedMul ?? 1);

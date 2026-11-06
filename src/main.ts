@@ -90,7 +90,8 @@ function startBattle(bs: BattleSetup, replay: OrderRecord[] | null = null) {
 (window as any).fleetcmd = { startBattle, showSetup, showMainMenu, get session() { return session; }, get lastOrders() { return lastOrders; } };
 
 
-if (params.has('auto')) {
+if (params.has('modelview')) void import('./render/modelPreview').then(m => m.startModelPreview(app, getCanvas(), params));
+else if (params.has('auto')) {
   const scen = params.get('scenario') ?? loadScenarioId();
   startBattle({ seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [loadFleet(), getScenario(scen).enemy] });
 } else if (params.has('skirmish')) showSetup();

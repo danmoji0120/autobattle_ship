@@ -88,6 +88,7 @@ export class BattleLink {
     });
     s.world.scheduleReplay(this.orders.map(o => ({ ...o })));
     this.session = s;
+    (window as any).__battle = s; (window as any).__battleLink = this;   // test / visual-check hooks
     const spectating = this.isSpectator();
     this.hud = new BattleHUD(app, s, {
       replay: this.replay, canCommand: g => this.canCommand(g), campaign: { onReturn: () => this.close() }, overlayParent: this.layer,

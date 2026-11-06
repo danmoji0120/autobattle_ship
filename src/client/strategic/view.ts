@@ -9,7 +9,7 @@ import type { GameClient } from '../net';
 import type { WShip, V, Station } from '../../world/types';
 import { SHIP_CLASSES } from '../../sim/data/ships';
 import { shipLoadout, shipLoadoutKey } from '../../world/fitting';
-import { buildShip, type ShipModel } from '../../render/shipMesh';
+import { buildShip, disposeShip, type ShipModel } from '../../render/shipMesh';
 import { Environment } from '../../render/environment';
 import { CameraRig } from '../../render/camera';
 import { ParticleSystem, TrailBatch, Shockwaves } from '../../render/effects';
@@ -207,7 +207,7 @@ export class StrategicView {
       let v = this.ships.get(s.id);
       const key = shipLoadoutKey(s);
       if (!v || v.key !== key) {
-        if (v) this.scene.remove(v.model.root);
+        if (v) disposeShip(v.model);
         const model = buildShip(SHIP_CLASSES[s.classId], shipLoadout(s), s.owner === 'pirates' ? 1 : 0);
         this.world.add(model.root);
         model.root.rotation.order = 'YXZ';
@@ -264,7 +264,7 @@ export class StrategicView {
     for (const [id, v] of this.ships) if (!seen.has(id)) {
       // a ship disappearing outside battle cleanup = destroyed or sold: brief flash if it was in space
       if (v.model.root.visible && st.engagements && Object.values(st.engagements).some(e => e.done && Math.hypot(e.pos.x - v.pos.x, e.pos.z - v.pos.z) < 2000)) this.blast(v.pos.clone(), 0.25);
-      this.scene.remove(v.model.root); this.ships.delete(id);
+      disposeShip(v.model); this.ships.delete(id);
     }
 
     this.trails.begin(cam(this));

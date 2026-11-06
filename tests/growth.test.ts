@@ -91,7 +91,8 @@ describe('growth: c2 → c3 save migration', () => {
 
 describe('growth: hulls and variants (P3)', () => {
   it('every growth hull is its own hull: own silhouette, a standard variant, presets that fit; mk1 hulls are unchanged', () => {
-    const growth = Object.values(CONTENT.hulls).filter(h => !h.id.endsWith('_mk1'));
+    // dev hulls (model-loader tests, never obtainable) borrow an existing silhouette as their fallback look
+    const growth = Object.values(CONTENT.hulls).filter(h => !h.id.endsWith('_mk1') && !h.dev);
     expect(growth.length).toBeGreaterThanOrEqual(13);
     expect(new Set(growth.map(h => h.mesh.base)).size).toBe(growth.length);      // no shared silhouettes
     for (const h of growth) {
@@ -100,7 +101,7 @@ describe('growth: hulls and variants (P3)', () => {
     }
     const dd = growth.filter(h => h.classId === 'destroyer').map(h => h.id).sort();
     expect(dd).toEqual(['destroyer_fast', 'destroyer_heavy', 'destroyer_picket', 'destroyer_vls']);
-    for (const cls of ['miner', 'hauler', 'constructor']) expect(new Set(Object.values(CONTENT.hulls).filter(h => h.classId === cls).map(h => h.size)).size, cls).toBeGreaterThanOrEqual(3);
+    for (const cls of ['miner', 'hauler', 'constructor']) expect(new Set(Object.values(CONTENT.hulls).filter(h => h.classId === cls && !h.dev).map(h => h.size)).size, cls).toBeGreaterThanOrEqual(3);
     // mk1 hulls keep the legacy economy exactly
     for (const c of ['miner', 'hauler', 'constructor', 'destroyer', 'battleship']) expect(hullEcon(`${c}_mk1`)).toMatchObject({ cargo: ECON[c].cargo, mine: ECON[c].mine, cruise: ECON[c].cruise, price: ECON[c].price });
   });
