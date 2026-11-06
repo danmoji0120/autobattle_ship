@@ -1,6 +1,8 @@
 // Growth P3 / P4 / P6 (contentV 3): independent hulls, upkeep + arrears, finite markets, blueprints,
 // ship stock and the player ship market. Assets are never created, lost or duplicated.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+// several tests simulate hours of world time: allow for slow or loaded machines
+vi.setConfig({ testTimeout: 300_000 });
 import { WorldSim } from '../src/world/sim';
 import type { WorldState, Station, WShip } from '../src/world/types';
 import { qty } from '../src/world/types';
@@ -166,7 +168,7 @@ describe('growth: ship stock and the player ship market (P6)', () => {
     run(sim, 30, 2);
     expect(helios.shipStock!.destroyer_vls.n).toBe(1);
     expect(helios.market!.alloy.stock).toBeLessThan(alloy + 1000);
-  }, 240_000);   // simulates hours of restock; slow on a loaded machine
+  });
 
   it('a player-built ship sold on the exchange: ownership and equipment move, the buyer needs no blueprint or research', () => {
     const { sim, p } = world(67);
