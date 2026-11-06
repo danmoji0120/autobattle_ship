@@ -84,6 +84,10 @@ export function upgradeIndustry(st: WorldState) {
   st.industryV = INDUSTRY_VERSION;
 }
 
+/** contentV ≥ 3: share of a region's raw-ore appetite that is left once refined goods carry the economy */
+export const RAW_USE_V3 = 0.35;
+export const rawUseMul = (k: string) => ITEMS[k]?.cat === 'raw' ? RAW_USE_V3 : 1;
+
 /** one public market, dt seconds: local production, consumption, industry and drift */
 export function npcMarketStep(s: Station, m: Market, dt: number, heat: number, regional = 1, drift = true) {
   const p = PROFILES[s.id];
@@ -91,7 +95,8 @@ export function npcMarketStep(s: Station, m: Market, dt: number, heat: number, r
   // merchant influence and post-liberation reconstruction raise it (factions.ts)
   const supply = Math.max(0.15, 1 - heat / 120) * regional;
   if (p) {
-    for (const [k, r] of Object.entries(p.use)) if (m[k]) m[k].stock = Math.max(0, m[k].stock - r * dt);
+    // growth worlds (drift off): the region burns much less raw ore than it buys refined goods
+    for (const [k, r] of Object.entries(p.use)) if (m[k]) m[k].stock = Math.max(0, m[k].stock - r * dt * (drift ? 1 : rawUseMul(k)));
     for (const k of p.make) if (m[k] && m[k].stock < m[k].target) m[k].stock += Math.max(0.0004 * m[k].target, 0.002) * dt * supply;
     for (const c of p.conv ?? []) {
       let k = c.rate * dt * supply;

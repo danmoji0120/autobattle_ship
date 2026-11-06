@@ -9,7 +9,7 @@
 //    regional income (bounded by fundsMax) and from what players pay the station, so trade never
 //    freezes for good and money is never created beyond that bounded income.
 import type { Market, Station, WorldState } from './types';
-import { PROFILES } from './economy';
+import { PROFILES, rawUseMul } from './economy';
 import { EQUIPMENT, ITEMS } from './industry';
 import { growthOn } from './hullops';
 
@@ -31,7 +31,7 @@ export function priceOf(m: Market[string] | undefined, side: 'sell' | 'buy', v3:
 export function absorbRate(s: Station, k: string, target: number): number {
   const use = PROFILES[s.id]?.use?.[k] ?? 0;
   const slow = EQUIPMENT[k] || (ITEMS[k]?.tier ?? 1) >= 4 ? 0.3 : 1;
-  return Math.max(use, target * 0.00022 * slow);
+  return Math.max(use, target * 0.00022 * slow) * rawUseMul(k);
 }
 
 /** v3 drift: shortages refill as before (pirates choke supply); gluts shrink at the finite absorption rate */

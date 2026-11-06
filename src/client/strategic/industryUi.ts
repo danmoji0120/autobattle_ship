@@ -11,6 +11,7 @@ import { HULLS } from '../../world/industry';
 import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
 import { FIELD_NAME, techFx, type Field } from '../../world/industry';
+import { growthOn } from '../../world/hullops';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 
 export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
@@ -47,7 +48,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   // logistics: own haul operations touching this station
   const hauls = Object.values(w.groups).filter(g => g.owner === me && g.op.k === 'haul' && ((g.op as any).to === s.id || (g.op as any).from === s.id));
   const label = (r: string) => r === '*auto' ? '자동 보급' : r === '*all' ? '전 품목' : itemName(r);
-  let html = `<div class="bstore"><div><b>${own ? '정거장 창고' : '자사 보관함'}</b> · ${ids.length}종 · 총 ${fmt(used)}${cap ? ` / 용량 ${fmt(cap)} <span class="${used > cap * 0.9 ? 'warn' : 'dim'}">(${Math.round(used / cap * 100)}%)</span>` : own ? ' <span class="warn">도킹 허브 완공 전 — 창고 없음</span>' : ' <span class="dim">(공용 정거장: 용량 제한 없음)</span>'}</div>
+  let html = `<div class="bstore"><div><b>${own ? '정거장 창고' : '자사 보관함'}</b> · ${ids.length}종 · 총 ${fmt(used)}${cap ? ` / 용량 ${fmt(cap)} <span class="${used > cap * 0.9 ? 'warn' : 'dim'}">(${Math.round(used / cap * 100)}%)</span>` : own ? ' <span class="warn">도킹 허브 완공 전 — 창고 없음</span>' : (growthOn(w as any) ? '' : ' <span class="dim">(공용 정거장: 용량 제한 없음)</span>')}</div>
     ${cap ? `<div class="bar"><i style="width:${Math.min(100, used / cap * 100)}%;${used > cap * 0.9 ? 'background:var(--warn)' : ''}"></i></div>` : ''}
     ${Object.keys(reserved).length ? `<div class="dim small">건설 예약(창고에서 빠짐): ${itemList(reserved)}</div>` : ''}
     ${Object.keys(inJobs).length ? `<div class="dim small">생산 중 (완료 시 입고): ${itemList(inJobs)}</div>` : ''}

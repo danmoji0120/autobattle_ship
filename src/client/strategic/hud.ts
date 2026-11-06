@@ -21,7 +21,7 @@ import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
 import { growthOn, econOf } from '../../world/hullops';
 import { priceOf } from '../../world/market';
-import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml } from './growthUi';
+import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml, storageGrowthHtml, sitesHtml } from './growthUi';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
@@ -33,7 +33,7 @@ const fmt = (n: number) => Math.round(n).toLocaleString();
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
 
-const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', raid: '약탈', trade: '교역', guard: '경비' };
+const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', raid: '약탈', trade: '교역', guard: '경비' };
 
 export interface PmcHudOpts { onOpenBattle: (eng: string) => void; onExit: () => void; onAccount?: () => void }
 
@@ -734,6 +734,7 @@ export class PmcHud {
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
     el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
     el.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(b => b.onclick = () => this.setOp(JSON.parse(b.dataset.quick!)));
+    el.querySelectorAll<HTMLButtonElement>('[data-salvage]').forEach(b => b.onclick = () => this.setOp({ k: 'salvage', site: b.dataset.salvage! }));
     el.querySelectorAll<HTMLButtonElement>('[data-minehere]').forEach(b => b.onclick = () => { if (!this.group) return; this.mineForm = { group: this.group, field: b.dataset.minehere!, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.refresh(true); });
     const nm = el.querySelector<HTMLInputElement>('[data-rename]'); if (nm) nm.onchange = () => this.cmd({ c: 'renameGroup', group: nm.dataset.rename!, name: nm.value });
     const cs = el.querySelector<HTMLSelectElement>('[data-cmdsel]'); if (cs) cs.onchange = () => this.cmd({ c: 'assignCmd', group: cs.dataset.cmdsel!, commander: cs.value || null });
@@ -839,9 +840,19 @@ export class PmcHud {
         </div>
         ${g.parentId ? `<div class="row small"><label class="chk" title="체크하면 이 편대는 본대 진형에서 빠져 자기 속도로 앞서 움직입니다 (정찰·선봉). 해제하면 본대와 함께 가장 느린 함선 속도로 이동합니다."><input type="checkbox" data-detach="${g.id}" ${g.detached ? 'checked' : ''}> 독립 기동 (정찰·선봉 — 본대보다 먼저 움직임)</label></div>` : ''}
         ${hasMiner ? this.mineFormHtml(g) : ''}
+        ${this.exploreHtml(g, hasCargo)}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}
       </div></div>`;
+  }
+
+  /** growth: survey the group's current system / salvage a site it knows */
+  private exploreHtml(g: WGroup, hasCargo: boolean): string {
+    if (!growthOn(this.st) || !(this.st as any).sites) return '';
+    const sys = this.groupSys(g); if (!sys) return '';
+    const sy = this.st.systems[sys];
+    const can = sy && sy.kind !== 'core' && sy.security < 90;
+    return `<div class="bdr small">${can ? `<button class="btn mini${g.op.k === 'survey' ? ' on' : ''}" data-quick='${JSON.stringify({ k: 'survey', system: sys })}'>이 성계 탐사</button> ` : ''}${sitesHtml(this.st, this.me, sys, hasCargo)}</div>`;
   }
 
   // ------------------------------------------------------------ mining job form
@@ -997,7 +1008,7 @@ export class PmcHud {
     this.modalKey = key;
     const own = s.owner === this.me;
     const tabs: [string, string, boolean][] = [
-      ['market', '시장', !!s.market || s.modules.some(m => m.kind === 'trade_hub' && m.built)], ['store', '창고·물류', own || cargoSum(s.storage[this.me] ?? {}) > 0.5],
+      ['market', '시장', !!s.market || s.modules.some(m => m.kind === 'trade_hub' && m.built)], ['store', '창고·물류', own || cargoSum(s.storage[this.me] ?? {}) > 0.5 || (growthOn(this.st) && !!s.public)],
       ['build', '건설', own], ['prod', '생산', own],
       ['yard', '조선소', s.services.shipyard.length > 0 || (own && s.modules.some(m => m.kind.startsWith('yard_') && m.built))],
       ['ships', '함선 거래', growthOn(this.st) && ((!!s.public && !!s.market) || s.modules.some(m => m.kind === 'trade_hub' && m.built))],
@@ -1017,7 +1028,7 @@ export class PmcHud {
       case 'recruit': body = this.recruitHtml(s); break;
       case 'contracts': body = this.contractsHtml(s); break;
       case 'build': body = this.buildHtml(s); break;
-      case 'store': body = storeHtml(this.st, s, this.me, this.ind); break;
+      case 'store': body = (growthOn(this.st) ? storageGrowthHtml(this.st, s, this.me) : '') + storeHtml(this.st, s, this.me, this.ind); break;
       case 'prod': body = prodHtml(this.st, s, this.me, this.ind); break;
       case 'research': body = researchHtml(this.st, s, this.me, this.ind); break;
     }
@@ -1033,7 +1044,12 @@ export class PmcHud {
       this.modalTab = b.dataset.tab!; this.renderModal(true);
       const nb = m.querySelector<HTMLElement>('.sbody2'); if (nb) nb.scrollTop = this.tabScroll.get(this.modalTab) ?? 0;
     });
-    m.querySelectorAll<HTMLButtonElement>('[data-trade]').forEach(b => b.onclick = () => { const [kind, res, amt] = b.dataset.trade!.split(':'); this.cmd({ c: kind as 'sell' | 'buy', station: s.id, res: res as Res, amount: Number(amt) }); });
+    m.querySelectorAll<HTMLButtonElement>('[data-trade]').forEach(b => b.onclick = () => {
+      const [kind, res, amt] = b.dataset.trade!.split(':');
+      const into = m.querySelector<HTMLSelectElement>('[data-buyinto]')?.value || undefined;
+      this.cmd(kind === 'buy' && into ? { c: 'buy', station: s.id, res: res as Res, amount: Number(amt), ship: into } : { c: kind as 'sell' | 'buy', station: s.id, res: res as Res, amount: Number(amt) });
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-lease]').forEach(b => b.onclick = () => this.cmd({ c: 'lease', station: s.id, blocks: Number(b.dataset.lease) }));
     m.querySelectorAll<HTMLButtonElement>('[data-buyship]').forEach(b => b.onclick = () => {
       const cls = b.dataset.buyship!;
       const loSel = m.querySelector<HTMLSelectElement>(`[data-lo="${cls}"]`), grpSel = m.querySelector<HTMLSelectElement>(`[data-grp="${cls}"]`);
@@ -1152,7 +1168,12 @@ export class PmcHud {
     const v3 = growthOn(this.st);
     const price = (r: Res, side: 'sell' | 'buy') => priceOf(s.market?.[r], side, v3);
     const funds = v3 && s.public && s.fundsMax ? `<div class="bdr small">정거장 구매 예산 <b class="money">${fmt(s.funds ?? 0)}</b> / ${fmt(s.fundsMax)} cr <span class="dim">— 플레이어에게 물건을 사는 데 쓰는 돈입니다. 시간당 15%씩 회복되고, 플레이어가 이곳에서 산 금액의 일부가 돌아옵니다. 예산이 떨어지면 남은 화물은 창고에 보관됩니다.</span></div>` : '';
-    return funds + marketPanel(this.st, s, this.me, this.ind, price);
+    let into = '';
+    if (v3 && s.public) {
+      const docked = Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id && econOf(x).cargo > 0);
+      into = storageGrowthHtml(this.st, s, this.me).split('<details')[0] + (docked.length ? `<div class="yrow small">구매품 받을 곳 <select data-buyinto data-keep><option value="">공용 창고 (이 정거장)</option>${docked.map(x => `<option value="${x.id}">${esc(x.name)} 화물칸 (여유 ${fmt(econOf(x).cargo - cargoSum(x.cargo))})</option>`).join('')}</select> <span class="dim">— 화물칸으로 사면 창고 한도와 상관없이 바로 싣고 떠날 수 있습니다</span></div>` : '');
+    }
+    return funds + into + marketPanel(this.st, s, this.me, this.ind, price);
   }
 
   private yardHtml(s: Station): string {

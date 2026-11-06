@@ -131,8 +131,8 @@ export interface HullUpkeep {
 export interface HullSale {
   /** public stations whose yards stock it */
   stations: string[];
-  /** credits (NPC price, before the station's markup) */
-  price: number;
+  /** credits (NPC list price). Omit to use the production-cost price (src/world/valuation.ts) */
+  price?: number;
   /** Union standing needed */
   rep?: number;
   /** ships in stock at most / seconds to build one more (the yard consumes market goods to do it) */
@@ -154,6 +154,8 @@ export interface VariantDef {
   model?: string;
   /** extra parts the variant needs on top of its hull's (own-yard builds) */
   parts?: Record<string, number>;
+  /** extra facilities / research the variant's structure needs at the building yard (growth worlds) */
+  needs?: { facilities?: string[]; tech?: string[] };
 }
 
 // ─────────────────────────────────────────────── blueprints (P6)
@@ -166,14 +168,16 @@ export type BlueprintTarget = { kind: 'hull'; id: string } | { kind: 'variant'; 
 export type BlueprintSource =
   /** general sale at these stations (credits) */
   | { kind: 'shop'; stations: string[]; price: number }
-  /** high-price commercial licence: credits + Union standing */
-  | { kind: 'commercial'; stations: string[]; price: number; rep: number }
+  /** high-price commercial licence: credits + Union standing (+ a record of completed contracts) */
+  | { kind: 'commercial'; stations: string[]; price: number; rep: number; contracts?: number }
   /** a faction/company sells it only where its influence is strong, to companies in good standing */
   | { kind: 'faction'; faction: 'union' | 'guild' | 'pirates'; stations: string[]; price: number; influence: number; rep?: number }
   /** awarded for completing contracts (lair assaults of at least this tier) */
   | { kind: 'contract'; minTier: number; chance: number }
   /** salvaged as fragments (`bpf:<blueprint id>` items) from wrecks; `fragments` of them assemble it */
   | { kind: 'salvage'; fragments: number; chance: number }
+  /** found whole in derelict archives at exploration sites of at least this tier (growth worlds) */
+  | { kind: 'explore'; tier: number; chance: number }
   /** unique: at most `limit` holders in the world; awarded like a contract (first come) */
   | { kind: 'unique'; limit: number; minTier: number };
 

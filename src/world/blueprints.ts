@@ -19,7 +19,7 @@ export const fragId = (bp: string) => `${FRAG_PREFIX}${bp}`;
 export const isFrag = (id: string) => id.startsWith(FRAG_PREFIX);
 export const bpName = (id: string) => CONTENT.blueprints[id]?.name ?? id;
 ITEM_NAME_HOOKS.push(id => id.startsWith(FRAG_PREFIX) ? `설계 조각: ${bpName(id.slice(FRAG_PREFIX.length))}` : undefined);
-export const SRC_NAME: Record<BlueprintSource['kind'], string> = { shop: '일반 판매', commercial: '고가 상업 라이선스', faction: '세력 전용', contract: '계약 보상', salvage: '잔해 조각 복원', unique: '유일 설계' };
+export const SRC_NAME: Record<BlueprintSource['kind'], string> = { shop: '일반 판매', commercial: '고가 상업 라이선스', faction: '세력 전용', contract: '계약 보상', salvage: '잔해 조각 복원', explore: '탐사 발굴', unique: '유일 설계' };
 
 export const holds = (co: Company | undefined, bp: string) => !!co?.blueprints?.[bp];
 /** the blueprint that lets a company build this hull (its own row, if any) */
@@ -87,6 +87,7 @@ export function offersAt(w: WorldState, st: Station, co: Company): Offer[] {
       let why: string | null = null;
       if (holds(co, bp.id) && !bp.runs) why = '보유 중';
       else if (src.kind === 'commercial' && co.rep < src.rep) why = `연합 평판 ${src.rep} 필요 (현재 ${Math.floor(co.rep)})`;
+      else if (src.kind === 'commercial' && src.contracts && (co.stats.contracts ?? 0) < src.contracts) why = `계약 이행 실적 ${src.contracts}건 필요 (현재 ${co.stats.contracts ?? 0}건) — 정거장 계약을 수행해 신용을 쌓으세요`;
       else if (src.kind === 'faction') {
         const inf = sys?.inf?.[src.faction] ?? 0;
         if (inf < src.influence) why = `${FACTION_NAME[src.faction]} 영향력 ${src.influence} 이상인 성계에서만 판매 (현재 ${Math.round(inf)})`;

@@ -82,7 +82,7 @@ describe('shipbuilding from parts, yards and fitting', () => {
     run(sim, 1);
     expect(own.builds!.filter(b => b.started).length).toBe(2);
     expect(own.builds![2].why).toMatch(/슬롯 사용 중/);
-    give(own, 'yard_m');
+    give(own, 'yard_m', 'hull_works', 'machine_shop');   // growth rev 2: the medium tier's base factories
     run(sim, 1);
     expect(own.builds!.filter(b => b.started).length).toBe(3);      // the medium yard took a corvette
     stock(own, p, buildNeeds('destroyer', 'aa', []));

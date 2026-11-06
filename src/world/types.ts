@@ -38,6 +38,8 @@ export interface Company {
   blueprints?: Record<string, BlueprintHolding>;
   /** running costs and arrears (P4, contentV ≥ 3) — see world/upkeep.ts */
   upkeep?: UpkeepState;
+  /** growth: leased storage blocks at public stations (station id → blocks) */
+  leases?: Record<string, number>;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -77,6 +79,9 @@ export type Op =
   | { k: 'attack'; group?: string; lair?: string }
   | { k: 'build'; station: string }
   | { k: 'found'; at: V; name: string }
+  /** growth: sweep a star system for hidden derelicts; salvage one the company has found */
+  | { k: 'survey'; system: string }
+  | { k: 'salvage'; site: string }
   // NPC-only
   | { k: 'raid'; target?: string; home: string }
   | { k: 'trade'; route: string[]; leg: number }
@@ -124,6 +129,8 @@ export interface WShip {
   jumpT?: number;
   /** operating wear 0..1 (P4): slows mining and cruise, removed by maintenance at a capable station */
   wear?: number;
+  /** growth: last time a crowded dock could not finish this ship's maintenance */
+  dockWait?: number;
   /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
@@ -241,10 +248,29 @@ export interface Station {
   /** NPC buying budget (P4): credits the station can pay players for goods; regenerates */
   funds?: number;
   fundsMax?: number;
+  /** growth: maintenance capacity left (hull-points) and when it was last refilled */
+  dockCap?: { left: number; t: number };
   /** finished ships in the public yard (P6): hull id → stock and restock progress (seconds) */
   shipStock?: Record<string, { n: number; t: number; why?: string }>;
   /** player ship sale listings (ship stays docked, locked) */
   shipListings?: ShipListing[];
+}
+
+export interface Site {
+  id: string;
+  system: string;
+  pos: V;
+  /** 1 quiet frontier … 3 lawless deep space: bigger finds, longer work, more danger */
+  tier: number;
+  name: string;
+  /** survey seconds each company has put into the system while the site was hidden from it */
+  scan: Record<string, number>;
+  /** companies that know where it is */
+  seen: string[];
+  /** salvage work done / needed (ship-seconds) */
+  work: number;
+  need: number;
+  born: number;
 }
 
 export interface ShipListing { id: string; seller: string; ship: string; price: number; t: number }
@@ -425,6 +451,8 @@ export interface WorldState {
   conversions?: import('./migrate').ConversionRecord[];
   /** unique blueprints: id → holders (P6) */
   uniques?: Record<string, string[]>;
+  /** exploration sites (growth): derelicts and wreck fields, hidden until a company surveys them */
+  sites?: Record<string, Site>;
 }
 
 export const emptyCargo = (): Cargo => ({ ore: 0, alloy: 0, crystal: 0 });

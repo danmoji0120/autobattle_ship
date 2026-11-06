@@ -16,8 +16,14 @@ import { STARTER_BLUEPRINTS, hullBlueprint } from './blueprints';
 import { seedFunds } from './market';
 import { buildWeapons } from './production';
 import { yardHulls, hullSale } from './hullops';
+import { PROFILES } from './economy';
+import { ITEMS } from './industry';
+import { valueOf } from './valuation';
+import { seedSites } from './explore';
 
-export const CONTENT_VERSION = 3;
+export const CONTENT_VERSION = 4;
+/** c4: raw goods trade at this share of their old base price */
+export const RAW_PRICE_V4 = 0.25;
 /** contentV from which player ships carry a real fitting (P2) */
 export const FITTING_V = 2;
 
@@ -49,6 +55,8 @@ export interface MigrationReport {
   returned: { company: string; ship: string; station: string; item: string }[];
   /** v3: production rights granted (not items) per company */
   blueprints?: Record<string, string[]>;
+  /** v4: public market goods whose NPC base price was recomputed from production cost */
+  repriced?: number;
 }
 
 /** hull + variant of a ship from its legacy class/loadout */
@@ -136,6 +144,26 @@ export function migrateContent(st: WorldState, target = CONTENT_VERSION): Migrat
       if (!x.public) continue;
       for (const h of yardHulls(x)) { const sale = hullSale(h); if (sale) (x.shipStock ??= {})[h] ??= { n: sale.stock, t: 0 }; }
     }
+  }
+  // v4 (growth economy rev 2): NPC markets price manufactured goods by what they cost to make
+  // (valuation.ts), so refining and manufacturing add value instead of destroying it. Prices are not
+  // assets: nothing anyone owns changes. Public storage limits and leases start empty (computed live —
+  // goods already over a new limit stay where they are; only new intake is refused).
+  if (from < 4 && rep.to >= 4) {
+    rep.repriced = 0;
+    for (const x of Object.values(st.stations)) {
+      if (!x.public || !x.market) continue;
+      const mult = PROFILES[x.id]?.mult ?? 1;
+      for (const [k, e] of Object.entries(x.market)) {
+        if (k.startsWith('bp:')) continue;
+        // raw ore is cheap: the value is added by refining and manufacturing (an own station's work)
+        if (ITEMS[k]?.cat === 'raw') { const base = Math.round(e.base * RAW_PRICE_V4 * 10) / 10; if (base !== e.base) { e.base = base; rep.repriced++; } continue; }
+        if (!ITEMS[k] && !EQUIPMENT[k]) continue;
+        const base = Math.round(valueOf(k) * mult * 10) / 10;
+        if (base !== e.base) { e.base = base; rep.repriced++; }
+      }
+    }
+    seedSites(st);
   }
   st.contentV = rep.to;
   st.grants.push(...rep.granted);

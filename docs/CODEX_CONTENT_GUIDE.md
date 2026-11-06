@@ -197,7 +197,7 @@ export const FRONTIER_ASSETS: AssetDef[] = [
   ops: { cruise: 120, berth: 'M' },                           // 없으면 함급 기본
   build: { yard: 2, time: 6000, credits: 5000, tech: ['guided_missiles'], parts: { structure: 40, armor_plate: 12, engine: 2, reactor: 2, sensor: 2, electronics: 10 } },
   upkeep: { credits: 900, supplies: { chemicals: 3 }, wear: 0.05 },
-  sale: { stations: ['helios'], price: 11000, rep: 15, stock: 2, restock: 5400 },   // 공영 판매하지 않으려면 생략
+  sale: { stations: ['helios'], rep: 15, stock: 2, restock: 5400 },   // 공영 판매하지 않으려면 생략. price는 생략 — 생산원가로 자동 산정 (CONTENT_SCHEMA §3.5)
   internals: [...], hardpoints: [...],
 }
 ```
@@ -216,12 +216,14 @@ export const FRONTIER_ASSETS: AssetDef[] = [
 { id: 'bp_destroyer_example', name: '예시급 구축함 설계도', desc: '…', grade: 'advanced',
   target: { kind: 'hull', id: 'destroyer_example' },
   sources: [
-    { kind: 'commercial', stations: ['helios'], price: 70000, rep: 20 },
+    { kind: 'commercial', stations: ['helios'], price: 70000, rep: 20, contracts: 3 },   // contracts: 완료 계약 실적 조건
+    { kind: 'explore', tier: 2, chance: 0.06 },                                         // 탐사 유적 인양 보상
     { kind: 'salvage', fragments: 6, chance: 0.08 },
   ] }
 ```
 - 등급이 높을수록 경로를 좁고 비싸게: common = `shop`, advanced = `commercial`/`salvage`, faction = `faction`(영향력 조건),
-  rare = `contract`/`salvage`, unique = `unique`(월드 전체 보유 한도).
+  rare = `contract`/`salvage`/`explore`, unique = `unique`(월드 전체 보유 한도). 상점(`shop`)만으로 고급 설계도를 풀지 말 것 —
+  계약 실적·탐사·인양·세력 관계 중 최소 하나를 함께 둔다. 특수 변형은 `needs`로 시설·연구를 추가해 실제 산업 기반 차이를 만든다.
 - 비 common 변형은 변형 설계도(`target: { kind: 'variant', id }`)가 있어야 얻을 수 있다(없으면 경고).
 - 설계도 id는 세이브에 저장된다. 공개 후 이름 변경·삭제 금지.
 

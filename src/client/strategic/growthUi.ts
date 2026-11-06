@@ -16,6 +16,10 @@ import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFit
 import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBlueprints, bpName, SRC_NAME, FRAG_PREFIX, fragmentsNeeded } from '../../world/blueprints';
 import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld } from '../../world/upkeep';
 import { iname, itemList } from './industryUi';
+import { hullPrice, SALE_MUL } from '../../world/valuation';
+import { serviceOf, publicCap, storeUsed, leasedAt, LEASE_BLOCK, leaseRate, ownRepairCap, OWN_REPAIR, dockCapacity, SERVICES } from '../../world/storage';
+import { sitesIn, knows, surveyLeft, SCAN_NEED } from '../../world/explore';
+import { storageCap } from '../../world/production';
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => Math.round(n).toLocaleString();
@@ -56,6 +60,7 @@ export function pubYardHtml(w: WorldState, s: Station, me: string, groups: { id:
     return `<div class="ycard${locked ? ' locked' : ''}"><div class="yn"><b>${esc(hullTitle(id))}</b> <span class="dim small">${h.size} · ${GRADE[h.blueprint]}</span><span class="money">${fmt(price)} cr</span></div>
       <div class="dim">${esc(h.desc)}</div>
       <div class="ys small">${hullStats(id)}</div>
+      ${priceWhy(id)}
       <div class="small">재고 <b>${n}</b>/${sale.stock} · 보충 주기 ${dur(sale.restock)}${berthOk ? '' : ` · <span class="warn">이 정거장 정박 ${berthOf(s)}급</span>`}</div>
       <div class="yrow"><select data-hpre="${id}" data-keep>${ps.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>
       <select data-hgrp2="${id}" data-keep><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>
@@ -120,6 +125,8 @@ function ownHullDetail(w: WorldState, s: Station, me: string, ui: GrowthYardUi, 
   return `<div class="bdh"><b>${esc(hullTitle(id))}</b> <span class="dim">· ${esc(h.maker ?? '')} · ${GRADE[h.blueprint]} 설계</span></div>
     <div class="dim small">${esc(h.desc)}</div>
     <div class="bdr small">${hullStats(id, variant)}</div>
+    ${baseChecklist(w, s, me, id, variant)}
+    ${priceWhy(id, variant)}
     <div class="bdr">조선소 <b>${YARD_NAME[b.yard]}</b> 이상 · 건조 ${dur(b.time)} · 공임 <b class="money">${fmt(b.credits)} cr</b>${b.facilities?.length ? ` · 시설 ${b.facilities.map(f => esc(MODULES[f]?.name ?? f)).join(', ')}` : ''}${b.tech?.length ? ` · 연구 ${b.tech.map(t => esc(TECHS[t]?.name ?? t)).join(', ')}` : ''}</div>
     <div class="yrow"><select data-gpre data-keep>${ps.map(x => `<option value="${x.id}"${x.id === p?.id ? ' selected' : ''}>${esc(x.name)} — ${esc(CONTENT.variants[x.variant]?.name ?? '')}${CONTENT.variants[x.variant]?.blueprint !== 'common' ? ' (변형 설계도)' : ''}</option>`).join('')}</select>
     <select data-ggrp data-keep><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select></div>
@@ -189,8 +196,8 @@ export function upkeepHtml(w: WorldState, me: string): string {
   const next = stage >= 1 && stage < 4 && u?.since ? STAGE_AT[stage + 1] - (w.time - u.since) : 0;
   const b = u?.bill;
   return `<div class="panel upk"><div class="shdr"><div class="stitle">운영비</div><button class="btn" data-upclose>✕</button></div>
-    <div class="bdr">시간당 약 <b class="money">${fmt(f.perHour)} cr</b> — 선체 유지 ${fmt(f.credits)} · 규모 간접비 ${fmt(f.overhead)} · 대형선 정박료 ${fmt(f.dock)} · 소모품 ${fmt(f.suppliesCr)}${Object.keys(f.supplies).length ? ` (${itemList(f.supplies)})` : ''}</div>
-    <div class="dim small">소모품은 자사 창고(자사 정거장 → 본거지)에서 먼저 쓰고, 없으면 본거지 시장에서 실제 재고·가격으로 삽니다. 함선은 우주에서 일하며 마모되고, 수리 시설이 있는 곳에 정박할 때마다 자동 정비됩니다. 함선이 8척을 넘으면 척당 3%씩 간접비가 붙습니다.</div>
+    <div class="bdr">시간당 약 <b class="money">${fmt(f.perHour)} cr</b> — 선체 유지 ${fmt(f.credits)} · 관리비 ${fmt(f.overhead)} · 대형선 정박료 ${fmt(f.dock)} · 창고 임대 ${fmt(f.lease)} · 소모품 ${fmt(f.suppliesCr)}${Object.keys(f.supplies).length ? ` (${itemList(f.supplies)})` : ''}</div>
+    <div class="dim small">소모품은 자사 창고(자사 정거장 → 본거지)에서 먼저 쓰고, 없으면 본거지 시장에서 실제 재고·가격으로 삽니다. 함선은 우주에서 일하며 마모되고, 수리 시설이 있는 곳에 정박할 때마다 자동 정비됩니다. 관리비는 함선마다 똑같이 유지비의 10%입니다 (함대를 나눠도 줄지 않음). 대형 함대의 진짜 부담은 정비 능력입니다 — 공용 정비소는 모든 회사가 나눠 쓰므로 붐비면 마모가 다 지워지지 않고, 자사 정비소·격납고가 있어야 대함대를 유지할 수 있습니다.</div>
     <div class="bdr">상태: <b class="${stage >= 2 ? 'warn' : stage ? 'warnish' : 'good'}">${STAGE_NAME[stage]}</b>${u?.debt ? ` · 체납 <b class="warn">${fmt(u.debt)} cr</b>` : ''}${next > 0 ? ` · 다음 단계까지 ${dur(next)}` : ''}</div>
     ${stage ? '<div class="small">체납 단계: 1 경고 → 2 보급·정비 지연(30분) → 3 정박 함선 신규 출항 보류(60분) → 4 예비역 전환 권고(120분). 운항·전투 중인 함선은 건드리지 않으며, 함선·장비는 삭제되지 않습니다. 자금이 들어오면 자동으로 갚습니다.</div>' : ''}
     ${b ? `<div class="dim small">최근 정산: 청구 ${fmt(b.credits + b.supplies)} cr · 지불 ${fmt(b.paid)} cr${b.short ? ` · 미납 ${fmt(b.short)}` : ''}${Object.keys(b.fromStore).length ? ` · 창고 사용 ${itemList(b.fromStore)}` : ''}${Object.keys(b.bought).length ? ` · 시장 구매 ${itemList(b.bought)}` : ''}</div>` : ''}
@@ -200,4 +207,90 @@ export function upkeepHtml(w: WorldState, me: string): string {
       return `<tr><td>${esc(s.name)} <span class="dim small">${esc(hullTitle(s.hull ?? `${s.classId}_mk1`))}</span></td><td class="small">${s.state === 'docked' ? '정박' : s.state === 'space' ? '운항' : esc(s.state)}${held ? ` · <span class="warn">${esc(held)}</span>` : ''}</td><td class="n">${fmt(r.credits + r.dock)}</td><td class="n">${Math.round((s.wear ?? 0) * 100)}%</td>
         <td>${s.reserve ? (s.reserve.until ? `<span class="dim small">재취역 ${dur(Math.max(0, s.reserve.until - w.time))}</span>` : `<button class="btn mini" data-reserve="${s.id}:0" title="재취역 ${REACTIVATE_S / 60}분, 2시간분 운영비">재취역</button>`) : s.state === 'docked' && !s.listed ? `<button class="btn mini" data-reserve="${s.id}:1" title="운영비 85% 절감, 출항 불가">예비역</button>` : ''}</td></tr>`;
     }).join('')}</table></div>`;
+}
+
+// ───────────────────────────────────────────────────────── rev 2: why things cost what they cost
+
+/** why a hull costs what it does: parts, labour, yard time, weapons, then tier and grade multipliers */
+export function priceWhy(hull: string, variant?: string): string {
+  const p = hullPrice(hull, variant);
+  const b = hullBuild(hull, variant);
+  const tier = ['', '소형 양산', '중형 군용', '대형 주력', '초대형'][b.yard] ?? '';
+  return `<details class="small pwhy"><summary>가격 구성 — 생산원가 <b>${fmt(p.total)}</b> cr × ${tier} 배율 ${p.mul} × 등급 ${p.grade}</summary>
+    <table class="gt"><tr><td>부품 (${Object.keys(b.parts).length}종)</td><td class="n">${fmt(p.parts)}</td><td class="dim">${itemList(b.parts)}</td></tr>
+    <tr><td>조립 공임</td><td class="n">${fmt(p.labour)}</td><td></td></tr>
+    <tr><td>조선소 가동 (${dur(b.time)})</td><td class="n">${fmt(p.yard)}</td><td class="dim">${YARD_NAME[b.yard]} — 큰 독일수록 시간당 비용이 크다</td></tr>
+    <tr><td>표준 무장</td><td class="n">${fmt(p.equipment)}</td><td></td></tr></table>
+    <div class="dim">공영 조선소 가격 = 원가 × 함급 배율(소형 ${SALE_MUL[1]} · 중형 ${SALE_MUL[2]} · 대형 ${SALE_MUL[3]} · 초대형 ${SALE_MUL[4]}) × 설계 등급. 소형 범용선은 대량 생산 보조로 원가보다 싸고, 군함·주력함은 군용 허가·희소성 때문에 원가를 크게 웃돈다. 직접 건조하면 원가 + 시설 투자로 지을 수 있다.</div></details>`;
+}
+
+/** every condition a build needs here, ticked or not (not just the first one missing) */
+function baseChecklist(w: WorldState, s: Station, me: string, hull: string, variant: string): string {
+  const co = w.companies[me];
+  const b = hullBuild(hull, variant);
+  const has = (f: string) => s.modules.some(m => m.kind === f && m.built);
+  const items: [boolean, string][] = [];
+  const hb = hullBlueprint(hull); if (hb) items.push([holds(co, hb), `설계도: ${esc(bpName(hb))}`]);
+  const vb = variantBlueprint(variant); if (vb) items.push([holds(co, vb), `변형 설계도: ${esc(bpName(vb))}`]);
+  for (const t of buildTech(hull, variant)) items.push([!!co.tech?.includes(t), `연구: ${esc(TECHS[t]?.name ?? t)}`]);
+  items.push([yardSlots(s).some(y => y.size >= b.yard), `${YARD_NAME[b.yard]} 이상 조선소`]);
+  for (const f of b.facilities ?? []) items.push([has(f), `시설: ${esc(MODULES[f]?.name ?? FACILITIES[f]?.name ?? f)}`]);
+  items.push([berthFits(s, hullEcon(hull).berth), `${hullEcon(hull).berth}급 정박 시설`]);
+  const ok = items.filter(x => x[0]).length;
+  return `<div class="bdr small"><b>산업 기반 ${ok}/${items.length}</b> <span class="dim">— 함급이 오를수록 조선소 크기와 함께 선체·장갑·전자·동력·무기 공장이 단계적으로 필요합니다</span><div class="chk">${items.map(([o, t]) => `<span class="${o ? 'good' : 'warn'}">${o ? '✓' : '✗'} ${t}</span>`).join(' ')}</div></div>`;
+}
+
+// ───────────────────────────────────────────────────────── rev 2: public storage & services
+
+export function storageGrowthHtml(w: WorldState, s: Station, me: string): string {
+  const co = w.companies[me];
+  if (!s.public) {
+    if (s.owner !== me) return '';
+    const cap = storageCap(s); const used = storeUsed(s.storage[me]);
+    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '무제한 (코어 건설 전)'} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
+  }
+  const sv = serviceOf(s);
+  const cap = publicCap(co, s), used = storeUsed(s.storage[me]);
+  const n = leasedAt(co, s.id);
+  const pct = Math.min(100, used / Math.max(1, cap) * 100);
+  const over = used > cap;
+  const cls = over ? 'warn' : pct > 85 ? 'warnish' : 'good';
+  return `<div class="bdr stor"><b>공용 창고</b> <span class="${cls}">${fmt(used)} / ${fmt(cap)}</span>
+      <div class="sbar"><i style="width:${pct.toFixed(0)}%" class="${cls}"></i></div>
+      <div class="small">기본 ${fmt(sv.store)} + 임대 ${n}/${sv.blocks}구획 × ${fmt(LEASE_BLOCK)} · 구획당 <b class="money">${fmt(sv.lease)} cr/h</b> (현재 임대료 합계 ${fmt(leaseRate(full(w), co))} cr/h)
+        <button class="btn mini" data-lease="${n + 1}" ${n >= sv.blocks ? 'disabled title="이 정거장의 임대 한도"' : ''}>+1 구획 임대</button>
+        <button class="btn mini" data-lease="${n - 1}" ${n <= 0 ? 'disabled' : ''}>1 구획 반납</button></div>
+      ${over ? `<div class="warn small">한도를 넘었습니다 — 보관 중인 물품은 그대로지만 새로 들여올 수 없습니다 (하역분은 함선에 남고, 구매는 거부). 팔거나 옮기거나 구획을 임대하세요.</div>` : pct > 85 ? '<div class="warnish small">창고가 거의 찼습니다. 하역하지 못한 화물은 함선에 남아 채굴·운송이 멈춥니다.</div>' : ''}
+      <div class="dim small">${esc(sv.note)} 공용 정비 능력 ${fmt(sv.repair)} 정비점/h (모든 회사 공유, 남은 ${fmt(dockCapacity(full(w), s))}) · 정비료 ×${sv.fee}</div>
+    </div>
+    <details class="small"><summary>공용 정거장 vs 자체 정거장</summary><table class="gt">
+      <tr><th></th><th>공용 (${esc(s.name)})</th><th>자체 정거장</th></tr>
+      <tr><td>창고</td><td>${fmt(sv.store)} + 임대 최대 ${fmt(sv.blocks * LEASE_BLOCK)} (${fmt(sv.lease * sv.blocks)} cr/h)</td><td>코어 20,000 + 창고 모듈마다 30,000 · 임대료 없음</td></tr>
+      <tr><td>정비</td><td>${fmt(sv.repair)}/h를 모든 회사가 나눠 씀 · 정비료 ×${sv.fee}</td><td>정비소 ${OWN_REPAIR.repair}/h · 격납고 ${OWN_REPAIR.hangar}/h (자사 전용) · 정비료 50%</td></tr>
+      <tr><td>가공·생산</td><td>없음 (시장에서 사고팔기만)</td><td>제련·정제·부품 공장 — 광석을 합금·부품으로 가공해 가치를 더함</td></tr>
+      <tr><td>조선</td><td>표준 선체 재고만 (값이 원가보다 비쌈)</td><td>조선소 + 공장 단계에 따라 고급 선체·변형 직접 건조</td></tr>
+      <tr><td>물류·방어</td><td>—</td><td>물류센터(자동 보급) · 거래소 · 통신 · 방어 시설</td></tr>
+    </table><div class="dim">공용 창고가 가득 차도 진행은 막히지 않습니다: 정박한 함선 화물칸으로 바로 구매할 수 있고, 정거장 설립용 합금은 공작선이 직접 싣고 가며, 건설 중인 자체 정거장(코어 완공 전)은 용량 제한이 없습니다.</div></details>`;
+}
+
+/** compact station-services comparison (all public stations) */
+export function servicesTable(w: WorldState): string {
+  return `<table class="gt small"><tr><th>정거장</th><th class="n">기본 창고</th><th class="n">임대 cr/h</th><th class="n">최대 구획</th><th class="n">정비/h</th><th class="n">정비료</th></tr>${Object.entries(SERVICES).filter(([id]) => w.stations[id]).map(([id, v]) => `<tr><td>${esc(w.stations[id].name)}</td><td class="n">${fmt(v.store)}</td><td class="n">${v.lease}</td><td class="n">${v.blocks}</td><td class="n">${v.repair}</td><td class="n">×${v.fee}</td></tr>`).join('')}</table>`;
+}
+
+// ───────────────────────────────────────────────────────── rev 2: exploration
+
+/** sites this company knows in a system + survey state (for the fleet panel) */
+export function sitesHtml(w: WorldState, me: string, sysId: string, canSalvage: boolean): string {
+  const sys = w.systems[sysId];
+  if (!sys || !full(w).sites) return '';
+  if (sys.kind === 'core' || sys.security >= 90) return '<div class="dim small">핵심 성계에는 숨은 잔해가 없습니다. 변경·위험·무법 성계를 탐사하세요.</div>';
+  const all = sitesIn(full(w), sysId, w.time);
+  const mine = all.filter(x => knows(x, me));
+  const hidden = all.length - mine.length;
+  const left = surveyLeft(full(w), me, sysId);
+  const T = ['', '얕은', '깊은', '심층'];
+  return `<div class="small"><b>${esc(sys.name)} 탐사</b> · 발견 ${mine.length}곳${hidden ? ` · 미발견 신호 ${hidden}곳 (함선 1척 기준 약 ${Math.ceil(left / 60)}분 탐사)` : ' · 숨은 지점 없음'}</div>
+    ${mine.map(x => `<div class="small">◆ ${esc(x.name)} <span class="dim">${T[x.tier]} 유적 · 인양 ${Math.floor(x.work / x.need * 100)}% · 필요 작업 ${dur(x.need)} (채굴선·공작선 2배)</span>${canSalvage ? ` <button class="btn mini" data-salvage="${x.id}">인양</button>` : ''}</div>`).join('')}
+    <div class="dim small">탐사는 성계를 크게 돌며 신호를 찾습니다 (등급 1/2/3: ${SCAN_NEED[1] / 60}/${SCAN_NEED[2] / 60}/${SCAN_NEED[3] / 60}분·척). 인양물(합금·희토류·전자부품·설계 조각, 깊은 유적은 판매되지 않는 설계도)은 화물칸에 실리고, 인양 소문이 나면 그 성계의 해적 활동이 늘어납니다.</div>`;
 }

@@ -149,7 +149,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     if (h.upkeep) for (const k of Object.keys(h.upkeep.supplies ?? {})) if (!known(k)) err(at, `upkeep.supplies "${k}" 없음`);
     if (h.sale) {
       for (const sid of h.sale.stations) if (!STATIONS.includes(sid)) err(at, `sale.stations "${sid}" 는 공영 정거장 id 가 아님`);
-      if (!(h.sale.price > 0 && h.sale.stock >= 1 && h.sale.restock > 0)) err(at, 'sale.price > 0, stock ≥ 1, restock > 0');
+      if (!((h.sale.price === undefined || h.sale.price > 0) && h.sale.stock >= 1 && h.sale.restock > 0)) err(at, 'sale.price(선택) > 0, stock ≥ 1, restock > 0');
       const berth = h.ops?.berth;
       if (berth) for (const sid of h.sale.stations) if (PUBLIC_BERTH[sid] && SIZES.indexOf(PUBLIC_BERTH[sid]) < SIZES.indexOf(berth)) err(at, `sale.stations "${sid}" 의 정박 등급(${PUBLIC_BERTH[sid]})이 선체(${berth})보다 작음`);
     }
@@ -172,7 +172,13 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       if ('chance' in s && !(s.chance > 0 && s.chance <= 1)) err(at, `sources.${s.kind}.chance ${s.chance} (0~1)`);
       if (s.kind === 'salvage' && !(Number.isInteger(s.fragments) && s.fragments >= 2)) err(at, `salvage.fragments ${s.fragments} (정수 ≥ 2)`);
       if (s.kind === 'unique' && !(Number.isInteger(s.limit) && s.limit >= 1)) err(at, `unique.limit ${s.limit}`);
+      if (s.kind === 'explore' && !(Number.isInteger(s.tier) && s.tier >= 1 && s.tier <= 3)) err(at, `explore.tier ${s.tier} (1~3)`);
+      if (s.kind === 'commercial' && s.contracts !== undefined && !(Number.isInteger(s.contracts) && s.contracts >= 1)) err(at, `commercial.contracts ${s.contracts}`);
     }
+  }
+  for (const v of Object.values(reg.variants)) {
+    for (const f of v.needs?.facilities ?? []) if (!FACILITIES[f]) err(`variant ${v.id}`, `needs.facilities "${f}" 없음`);
+    for (const t of v.needs?.tech ?? []) if (!TECHS[t]) err(`variant ${v.id}`, `needs.tech "${t}" 없음`);
   }
   for (const v of Object.values(reg.variants)) if (v.blueprint !== 'common' && !Object.values(reg.blueprints).some(b => b.target.kind === 'variant' && b.target.id === v.id)) warn(`variant ${v.id}`, `${v.blueprint} 변형인데 변형 설계도가 없음 — 아직 얻을 수 없음`);
 

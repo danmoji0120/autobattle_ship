@@ -7,6 +7,7 @@ import type { HullBuild, HullDef, HullSale, HullUpkeep, Size } from '../content/
 import { sizeRank } from '../content/schema';
 import { ECON, type ShipEcon } from './data';
 import { HULLS, FACILITIES } from './industry';
+import { hullPrice } from './valuation';
 import type { Station, WShip, WorldState } from './types';
 
 /** contentV from which hull data, upkeep, market demand and blueprint rules apply */
@@ -34,7 +35,7 @@ export function hullEcon(hullId: string, variantId?: string): HullEcon {
     cruise: (o.cruise ?? base.cruise) * (m.cruiseMul ?? 1),
     cargo: Math.round((o.cargo ?? base.cargo) * (m.cargoMul ?? 1)),
     mine: (o.mine ?? base.mine) * (m.mineMul ?? 1),
-    price: h?.sale?.price ?? base.price,
+    price: h?.sale?.price ?? (h && !h.id.endsWith('_mk1') ? hullPrice(h.id).price : base.price),
     rep: h?.sale?.rep ?? base.rep,
     build: (o.build ?? (h?.classId === 'constructor' ? 1 : 0)) * (m.buildMul ?? 1),
     berth: o.berth ?? (h ? (h.size === 'XL' || h.size === 'L') && (h.classId === 'miner' || h.classId === 'hauler' || h.classId === 'constructor') ? h.size : 'S' : 'S'),
@@ -53,12 +54,25 @@ export function hullBuild(hullId: string, variantId?: string): HullBuild {
   const h = CONTENT.hulls[hullId];
   const legacy = HULLS[h?.classId ?? hullId.replace(/_mk1$/, '')];
   const b: HullBuild = h?.build ?? { yard: legacy?.yard ?? 1, time: legacy?.time ?? 1800, credits: legacy?.credits ?? 1500, parts: { ...(legacy?.parts ?? {}) }, ...(legacy?.tech ? { tech: [legacy.tech] } : {}) };
-  const extra = variantId ? CONTENT.variants[variantId]?.parts : undefined;
-  if (!extra) return b;
+  const v = variantId ? CONTENT.variants[variantId] : undefined;
+  // the industrial base a yard of this size needs, plus the hull's and the variant's own facilities
+  const facilities = [...new Set([...(TIER_BASE[b.yard] ?? []), ...(b.facilities ?? []), ...(v?.needs?.facilities ?? [])])];
+  const tech = [...new Set([...(b.tech ?? []), ...(v?.needs?.tech ?? [])])];
   const parts = { ...b.parts };
-  for (const [k, n] of Object.entries(extra)) parts[k] = (parts[k] ?? 0) + n;
-  return { ...b, parts };
+  for (const [k, n] of Object.entries(v?.parts ?? {})) parts[k] = (parts[k] ?? 0) + n;
+  return { ...b, parts, ...(facilities.length ? { facilities } : {}), ...(tech.length ? { tech } : {}) };
 }
+
+/** industrial base an own yard of each size needs before it can lay down a hull (growth worlds):
+ *  small hulls need only the slip; warships need hull and machine works; capital hulls a full
+ *  shipbuilding complex — armour, electronics, power and a hangar to fit them out; the largest add
+ *  engines, reactors, weapons and crew support. */
+export const TIER_BASE: Record<number, string[]> = {
+  1: [],
+  2: ['hull_works', 'machine_shop'],
+  3: ['hull_works', 'machine_shop', 'armor_plant', 'electronics_fab', 'power', 'hangar'],
+  4: ['hull_works', 'machine_shop', 'armor_plant', 'electronics_fab', 'power', 'hangar', 'engine_plant', 'reactor_plant', 'weapons_factory', 'habitat'],
+};
 
 /** default running cost per class (mk1 hulls; growth hulls declare their own) */
 const CLASS_UPKEEP: Record<string, HullUpkeep> = {
@@ -84,23 +98,31 @@ export function hullUpkeep(hullId: string, variantId?: string): HullUpkeep {
 }
 
 /** NPC supply of a hull (growth hulls declare it; mk1 hulls are stocked by every yard that lists the class) */
-export function hullSale(hullId: string): HullSale | undefined {
+export function hullSale(hullId: string): (HullSale & { price: number }) | undefined {
   const h = CONTENT.hulls[hullId];
   if (!h) return undefined;
-  if (h.sale) return h.sale;
+  // list price = production cost × tier multiple (valuation.ts) unless the content sets one
+  if (h.sale) return { ...h.sale, price: h.sale.price ?? hullPrice(h.id).price };
   const e = ECON[h.classId];
   if (!e || h.classId === 'platform') return undefined;
-  // mk1: stock and restock scale with hull size; stations come from the station's shipyard list
+  // mk1: stock and restock scale with hull size; stations come from the station's shipyard list.
+  // Capital hulls are scarce: one at a time, a day to replace, and only for trusted companies.
   const yard = HULLS[h.classId]?.yard ?? 1;
-  return { stations: [], price: e.price, rep: e.rep, stock: [0, 4, 3, 2, 1][yard], restock: [0, 1800, 3600, 7200, 21600][yard] };
+  if (yard >= 4) return undefined;     // the largest hulls are never sold by NPC yards: build or buy from a producer
+  return { stations: [], price: hullPrice(h.id).price, rep: e.military ? Math.max(e.rep, [0, 0, 5, 25][yard]) : e.rep, stock: [0, 4, 2, 1][yard], restock: [0, 1800, 10800, 86400][yard] };
 }
+
+/** what a ship is worth (repairs, maintenance and refit fees scale with it): growth worlds use the
+ *  production-cost list price, older worlds the old class price */
+export const shipWorth = (w: Pick<WorldState, 'contentV'>, s: { classId: string; hull?: string; variant?: string }): number =>
+  growthOn(w) ? (hullSale(hullIdOf(s))?.price ?? hullPrice(hullIdOf(s)).price) : econOf(s).price;
 /** hulls a public yard stocks at contentV ≥ 3 */
 export function yardHulls(st: Station): string[] {
   if (!st.public) return [];
   const out: string[] = [];
   for (const h of Object.values(CONTENT.hulls)) {
     if (h.classId === 'platform') continue;
-    if (h.sale ? h.sale.stations.includes(st.id) : h.id.endsWith('_mk1') && st.services.shipyard.includes(h.classId)) out.push(h.id);
+    if (h.sale ? h.sale.stations.includes(st.id) : h.id.endsWith('_mk1') && st.services.shipyard.includes(h.classId) && hullSale(h.id)) out.push(h.id);
   }
   return out;
 }

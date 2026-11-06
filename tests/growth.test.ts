@@ -45,7 +45,7 @@ function c2Save() {
   for (const [classId, loadoutId] of [['destroyer', 'gun'], ['miner', 'std'], ['cruiser', 'missile']] as const) expect(sim.command(p, { c: 'buyShip', station: 'helios', classId, loadoutId })).toBeNull();
   run(sim, 120);
   const st: WorldState = JSON.parse(sim.serialize());
-  st.contentV = 2; st.grants = (st.grants ?? []).filter(g => g.v < 3); delete st.uniques;
+  st.contentV = 2; st.grants = (st.grants ?? []).filter(g => g.v < 3); delete st.uniques; delete st.sites;
   for (const co of Object.values(st.companies)) { delete co.blueprints; delete co.upkeep; }
   for (const x of Object.values(st.stations)) { delete x.funds; delete x.fundsMax; delete x.shipStock; delete x.shipListings; }
   for (const s of Object.values(st.ships)) { delete s.wear; delete s.reserve; delete s.listed; }
@@ -58,7 +58,7 @@ describe('growth: c2 → c3 save migration', () => {
     const before = census(st);
     const sim = new WorldSim(clone(st), { migrateContent: true });
     const rep = sim.contentReport!;
-    expect(rep.from).toBe(2); expect(rep.to).toBe(CONTENT_VERSION); expect(CONTENT_VERSION).toBe(GROWTH_V);
+    expect(rep.from).toBe(2); expect(rep.to).toBe(CONTENT_VERSION); expect(CONTENT_VERSION).toBeGreaterThanOrEqual(GROWTH_V);
     expect(compareCensus(before, census(sim.st))).toEqual([]);                     // nothing lost or duplicated
     expect(Object.keys(sim.st.ships).sort()).toEqual(Object.keys(st.ships).sort()); // every ship kept
     for (const s of Object.values(sim.st.ships)) { expect(s.hull).toBe(st.ships[s.id].hull); expect(s.fitting).toEqual(st.ships[s.id].fitting); }
@@ -205,6 +205,11 @@ describe('growth: blueprints and own builds (P6)', () => {
     const { sim, p, co, own } = withStation(68);
     give(own, 'power', 'yard_s', 'yard_m');
     const cmd = { c: 'buildShip', station: own.id, classId: 'destroyer', loadoutId: 'gun', hull: 'destroyer_vls', preset: 'dd_vls_salvo' } as const;
+    // rev 2: a medium yard alone is not enough — hull works and a machine shop are the medium tier's base
+    co.blueprints!.bp_destroyer_vls = { src: 'test', t: 0 }; co.tech!.push('guided_missiles');
+    expect(sim.command(p, cmd)).toMatch(/필요 시설: .*함체 가공공장/);
+    give(own, 'hull_works', 'machine_shop');
+    delete co.blueprints!.bp_destroyer_vls; co.tech = co.tech!.filter(t => t !== 'guided_missiles');
     expect(sim.command(p, cmd)).toMatch(/설계도 필요/);
     co.blueprints!.bp_destroyer_vls = { src: 'test', t: 0 };
     expect(sim.command(p, cmd)).toMatch(/연구 필요/);
@@ -249,11 +254,11 @@ describe('growth: upkeep and arrears (P4)', () => {
     return { sim, p, co, g };
   }
 
-  it('overhead grows with fleet size: 2× ships cost more than 2× upkeep, so scale is not free', () => {
-    expect(overheadMul(8)).toBe(1); expect(overheadMul(20)).toBeGreaterThan(1); expect(overheadMul(500)).toBeLessThanOrEqual(1.6 + 1e-9);
+  it('overhead is flat per ship: splitting a fleet over accounts saves nothing (rev 2)', () => {
+    expect(overheadMul(1)).toBe(overheadMul(8)); expect(overheadMul(8)).toBe(overheadMul(500));
     const a = fleet(10, 71), b = fleet(30, 72);
     const fa = forecast(a.sim.st, a.co), fb = forecast(b.sim.st, b.co);
-    expect(fb.perHour / fb.ships).toBeGreaterThan(fa.perHour / fa.ships);
+    expect((fb.credits + fb.overhead) / fb.ships).toBeCloseTo((fa.credits + fa.overhead) / fa.ships, 6);   // 3 accounts × 10 = 1 account × 30 (supplies follow each world's market price)
   });
 
   it('unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve', () => {

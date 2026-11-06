@@ -17,10 +17,11 @@
 // Nothing is ever deleted or confiscated, no interest is charged, and paying the debt clears it.
 import type { Company, Station, WorldState, WShip, Cargo, UpkeepState } from './types';
 import { qty, addc } from './types';
-import { econOf, hullIdOf, hullUpkeep, berthOf, growthOn } from './hullops';
+import { econOf, hullIdOf, hullUpkeep, berthOf, growthOn, shipWorth } from './hullops';
 import { sizeRank } from '../content/schema';
 import { itemPrice } from './industry';
 import { priceOf, fundsIn } from './market';
+import { leaseRate, dockCapacity, useDock, repairPoints, serviceOf } from './storage';
 
 export const SETTLE_DT = 60;
 export const RESERVE_MUL = 0.15;
@@ -33,8 +34,12 @@ export const BIG_DOCK_FEE: Record<string, number> = { L: 250, XL: 700 };
 
 export const upkeepOf = (co: Company): UpkeepState => (co.upkeep ??= { debt: 0, stage: 0, since: 0, acc: 0, supplies: {}, last: 0, total: { credits: 0, supplies: 0, paid: 0 } });
 
-/** administrative overhead of a large fleet: +3% per ship beyond 8, at most +60% */
-export const overheadMul = (ships: number) => 1 + Math.min(0.6, 0.03 * Math.max(0, ships - 8));
+/** administrative overhead per ship (rev 2: flat). The old curve (+3% per ship beyond 8) made
+ *  splitting a fleet over several accounts cheaper than running it as one; a flat share costs the
+ *  same however ships are divided. What a big fleet really runs into is maintenance capacity: public
+ *  docks are shared and slow (storage.ts dockCapacity), so large fleets need their own repair bases. */
+export const OVERHEAD = 0.1;
+export const overheadMul = (_ships: number) => 1 + OVERHEAD;
 
 /** per-hour running cost of one ship right now */
 export function shipRate(w: WorldState, s: WShip): { credits: number; supplies: Record<string, number>; dock: number } {
@@ -50,7 +55,7 @@ export function shipRate(w: WorldState, s: WShip): { credits: number; supplies: 
   return { credits: u.credits * mul, supplies: res ? {} : { ...(u.supplies ?? {}) }, dock };
 }
 
-export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; perHour: number }
+export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; lease: number; perHour: number }
 /** what the company's fleet costs per hour at current prices */
 export function forecast(w: WorldState, co: Company): Forecast {
   const ships = Object.values(w.ships).filter(s => s.owner === co.id && s.classId !== 'platform');
@@ -62,7 +67,8 @@ export function forecast(w: WorldState, co: Company): Forecast {
   let suppliesCr = 0;
   for (const [k, n] of Object.entries(supplies)) suppliesCr += n * (market?.market?.[k] ? priceOf(market.market[k], 'buy', true) : itemPrice(k) * 2);
   const overhead = credits * (om - 1);
-  return { ships: ships.length, credits, supplies, suppliesCr, dock, overhead, perHour: credits + overhead + dock + suppliesCr };
+  const lease = leaseRate(w, co);
+  return { ships: ships.length, credits, supplies, suppliesCr, dock, overhead, lease, perHour: credits + overhead + dock + suppliesCr + lease };
 }
 
 /** the market a company buys its consumables at: its home station's, else the nearest public market */
@@ -92,6 +98,7 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     const wr = hullUpkeep(hullIdOf(s), s.variant).wear ?? 0;
     if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : 1));
   }
+  u.acc += leaseRate(w, co) * h;
   if (w.time - u.last < SETTLE_DT) return out;
   u.last = w.time;
   out.push(...settle(w, co, u));
@@ -175,8 +182,15 @@ export function maintainOnDock(w: WorldState, s: WShip, st: Station, repairCapab
   if (!growthOn(w) || !repairCapable || !(s.wear ?? 0)) return 0;
   const co = w.companies[s.owner];
   if (!co || co.kind !== 'player' || (co.upkeep?.stage ?? 0) >= 2) return 0;
-  const fix = Math.min(s.wear!, 0.5);
-  const cost = Math.round(fix * econOf(s).price * 0.12 * (st.owner === co.id ? 0.5 : 1));
+  let fix = Math.min(s.wear!, 0.5);
+  // rev 2: a dock maintains only so many hull-points an hour (shared at public stations); a crowded
+  // dock does part of the job and the rest waits for the next visit
+  const cap = dockCapacity(w, st);
+  const pts = repairPoints(s, fix);
+  if (pts > cap) { fix *= cap / pts; s.dockWait = w.time; }
+  if (fix < 1e-4) return 0;
+  useDock(st, repairPoints(s, fix));
+  const cost = Math.round(fix * shipWorth(w, s) * 0.12 * (st.owner === co.id ? 0.5 : serviceOf(st).fee));
   s.wear = s.wear! - fix;
   upkeepOf(co).acc += cost;
   if (st.public) fundsIn(st, cost);

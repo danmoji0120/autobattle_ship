@@ -24,6 +24,7 @@ function setup(seed = 41, ...ships: [string, string][]) {
   const co = sim.st.companies[p]; co.credits = 3_000_000; co.rep = 1000;
   const out: WShip[] = [];
   for (const [cls, lo] of ships) {
+    const k = sim.st.stations.helios.shipStock?.[`${cls}_mk1`]; if (k) k.n = Math.max(k.n, 1);   // capital hulls are stocked one at a time
     expect(sim.command(p, { c: 'buyShip', station: 'helios', classId: cls, loadoutId: lo })).toBeNull();
     const s = Object.values(sim.st.ships).filter(x => x.owner === p && x.classId === cls).pop()!;
     s.task = { k: 'docked', station: 'helios' } as any; s.state = 'docked';

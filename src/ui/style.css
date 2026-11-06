@@ -506,3 +506,11 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .upkwrap .upk { padding: 12px 14px; }
 .upkwrap .gt td, .upkwrap .gt th { padding: 3px 6px; }
 .warnish { color: #ffd27a; }
+/* growth rev 2: public storage bar, industrial-base checklist, price breakdown */
+.stor .sbar { height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; margin: 4px 0; overflow: hidden; }
+.stor .sbar i { display: block; height: 100%; background: var(--good); }
+.stor .sbar i.warnish { background: var(--warn); }
+.stor .sbar i.warn { background: var(--enemy); }
+.chk span { display: inline-block; margin: 2px 8px 2px 0; }
+.pwhy summary { cursor: pointer; }
+.pwhy table td { padding: 1px 6px; }

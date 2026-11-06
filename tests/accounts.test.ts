@@ -1,3 +1,5 @@
+import { growthOn } from '../src/world/hullops';
+import { START_CREDITS_GROWTH } from '../src/world/sim';
 import { describe, it, expect } from 'vitest';
 import { AuthService, AuthError, memoryStore, hashPassword, verifyPassword } from '../src/server/accounts';
 import { GameServer, type Conn } from '../src/server/core';
@@ -135,7 +137,7 @@ describe('server: accounts own PMCs', () => {
     expect(welcome(a1.inbox)!.company).toBe(players[0].id);
     expect(welcome(a2.inbox)!.company).toBe(players[0].id); // the other tab entered with the same PMC
     expect(Object.values(srv.sim.st.ships).filter(s => s.owner === players[0].id)).toHaveLength(5); // starting fleet once
-    expect(srv.sim.st.companies[players[0].id].credits).toBe(7000);
+    expect(srv.sim.st.companies[players[0].id].credits).toBe(growthOn(srv.sim.st) ? START_CREDITS_GROWTH : 7000);
     // a second account cannot take an existing company name
     const b = join(srv, 'b', ACC_B);
     srv.handle('b', { t: 'createPmc', name: 'AB' });

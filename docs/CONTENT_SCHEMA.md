@@ -98,10 +98,10 @@ ContentPack (src/content/packs/<id>/index.ts)
 | 필드 | 설명 |
 |---|---|
 | `stations` | 판매 공영 정거장 id. 정거장 정박 등급 ≥ 선체 `berth` (검증기 확인) |
-| `price` | 기준가. 실제가 = 기준가 × (1.25 − 0.25 × 재고/최대재고) |
+| `price?` | 기준가(생략 권장). 생략하면 **생산원가 기반 자동 산정**(`world/valuation.ts hullPrice`): (부품 가치 + 공임 + 조선소 가동비 + 표준 무장) × 함급 배율(소형 0.42 · 중형 0.85 · 대형 1.25 · 초대형 2) × 설계 등급(일반 1 · 고급 1.12 · 세력 1.25 · 희귀 1.45 · 유일 2). 실제가 = 기준가 × (1.25 − 0.25 × 재고/최대재고) |
 | `rep?` | 필요 연합 평판 |
 | `stock` | 최대 재고 |
-| `restock` | 한 척 보충 시간(초, 성계 보급 상태로 늦어짐). 보충할 때 그 정거장 시장의 합금(가격/60)·전자부품(가격/4000)을 소모, 없으면 멈춤 |
+| `restock` | 한 척 보충 시간(초, 성계 보급 상태로 늦어짐). 보충할 때 그 정거장 시장의 벌크 자재를 생산원가 비율로 소모(합금 30% · 전자부품 6%, 중형 이상은 구조재 10% · 장갑판 6%; 시장에 없는 품목은 합금으로), 없으면 멈춤 |
 
 공영 조선소는 **common 변형만** 판다. 특수 변형은 설계도를 얻어 직접 건조한다.
 
@@ -135,6 +135,7 @@ universal은 모든 무기. 그 외에는 계열이 같아야 한다(실탄 = �
 | `internals?` | `{ add?: InternalSlotDef[], remove?: string[] }` |
 | `mods?` | `{ hpMul?, armorMul?, speedMul?, cargoMul?, mineMul?, cruiseMul?, buildMul?, upkeepMul? }`, 각 0.5~1.5 |
 | `parts?` | 이 변형을 건조할 때 선체 부품에 더해지는 부품 |
+| `needs?` | `{ facilities?: string[]; tech?: string[] }` — 이 변형을 건조할 때 선체 조건에 **추가로** 필요한 정거장 시설·연구 (검증기가 존재 확인) |
 | `model?` | 등록된 `variant-model` 에셋 id |
 
 변형은 **구조만** 바꾼다. 무장 배치는 프리셋으로 표현한다. 모든 선체는 변형이 최소 1개(기본형) 있어야 한다.
@@ -157,13 +158,19 @@ universal은 모든 무기. 그 외에는 계열이 같아야 한다(실탄 = �
 | source `kind` | 필드 | 의미 |
 |---|---|---|
 | `shop` | `stations`, `price` | 일반 판매 |
-| `commercial` | `stations`, `price`, `rep` | 고가 상업 라이선스, 연합 평판 필요 |
+| `commercial` | `stations`, `price`, `rep`, `contracts?` | 고가 상업 라이선스, 연합 평판 필요. `contracts`: 완료한 계약 수(회사 실적) 이상이어야 판매 |
 | `faction` | `faction`, `stations`, `price`, `influence`, `rep?` | 세력 영향력이 `influence` 이상인 성계에서만 판매 |
 | `contract` | `minTier`, `chance` | 해당 등급 이상 소굴 토벌 계약 보상(확률) |
 | `salvage` | `fragments`, `chance` | 같은 함급 해적 잔해 회수 시 조각(확률), `fragments`개로 복원 |
+| `explore` | `tier` (1~3), `chance` | 탐사 지점(유적) 인양 시 통째로 발견(확률, 지점 등급이 높을수록 ↑). 판매되지 않는다 |
 | `unique` | `limit`, `minTier` | 월드 전체에서 `limit`개 회사까지만 (선착순 계약 보상) |
 
 설계도 구매 대금의 50%는 그 정거장 구매 예산으로 들어간다. 시작 설계도(`STARTER_BLUEPRINTS`): 기본 초계함·채굴선·수송선·공작선·구축함.
+
+### 4.8 산업 기반 (건조 시설 단계, rev 2)
+
+조선소 크기마다 기본 시설이 누적으로 필요하다 (`hullops.ts TIER_BASE`): 소형 없음 · 중형 함체 가공공장·기계 공장 ·
+대형 + 장갑 공장·전자 공장·발전소·격납고 · 초대형 + 엔진·반응로·무기 공장·지원시설. 선체 `build.facilities`와 변형 `needs`가 그 위에 더해진다.
 
 ## 4.5 EquipSpec (장비 규격)
 
