@@ -1911,7 +1911,14 @@ export class WorldSim {
     s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
     s.heading = Math.atan2(st.pos.x - s.pos.x, st.pos.z - s.pos.z) + Math.PI / 2;
     // growth P4: automatic maintenance wherever the station can do it (no order needed)
-    if (s.wear && growthOn(this.st)) maintainOnDock(this.st, s, st, st.services.repair || (st.owner === s.owner && (this.hasModule(st, 'repair') || this.hasModule(st, 'hangar'))));
+    if (!growthOn(this.st)) return;
+    const capable = st.services.repair || (st.owner === s.owner && (this.hasModule(st, 'repair') || this.hasModule(st, 'hangar')));
+    if (s.wear) maintainOnDock(this.st, s, st, capable);
+    // a mining group's miners hand their ore to the hauler at the field and never dock themselves: the
+    // hauler brings their service parts back on each run, so automated mining is maintained too
+    const g = this.st.groups[s.groupId];
+    if (capable && s.classId === 'hauler' && g?.op?.k === 'mine')
+      for (const m of this.shipsOf(g)) if (m !== s && m.state === 'space' && m.wear) maintainOnDock(this.st, m, st, true);
   }
 
   /** returns true once docked */

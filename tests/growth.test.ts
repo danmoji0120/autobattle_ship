@@ -360,4 +360,19 @@ describe('growth: persistence and long automation', () => {
     for (const s of ownedShips(sim, p)) expect(s.wear ?? 0).toBeLessThan(1);
     expect(co.upkeep!.total.paid).toBeGreaterThan(0);
   });
+
+  it('miners that never dock (a hauler carries their ore) are still maintained: automation is not penalised', () => {
+    const { sim, p, co } = world(78);
+    co.credits = 20000;
+    const home = sim.st.stations[co.homeStation];
+    const g = sim.newGroup(p, '채굴반 H');
+    const ms = [0, 1, 2].map(() => { const s = sim.spawnHull(p, 'miner_mk1', 'miner_mk1_std', undefined, g.id, home.pos); (sim as any).dockShip(s, home); return s; });
+    const h = sim.spawnHull(p, 'hauler_mk1', 'hauler_mk1_std', undefined, g.id, home.pos); (sim as any).dockShip(h, home);
+    expect(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'mine', field: 'kestrel', deliver: '', sell: true, auto: true } })).toBeNull();
+    run(sim, 3 * 3600, 2);
+    // wear builds ~0.05/h at the field: unmaintained miners sit near 0.15 here (and reach 1.0 in a day)
+    expect(h.wear ?? 0).toBeLessThan(0.05);
+    for (const m of ms) expect(m.wear ?? 0, m.id).toBeLessThan(0.05);
+    expect(co.upkeep!.total.paid).toBeGreaterThan(0);
+  });
 });
