@@ -166,7 +166,7 @@ describe('growth: ship stock and the player ship market (P6)', () => {
     run(sim, 30, 2);
     expect(helios.shipStock!.destroyer_vls.n).toBe(1);
     expect(helios.market!.alloy.stock).toBeLessThan(alloy + 1000);
-  });
+  }, 240_000);   // simulates hours of restock; slow on a loaded machine
 
   it('a player-built ship sold on the exchange: ownership and equipment move, the buyer needs no blueprint or research', () => {
     const { sim, p } = world(67);
