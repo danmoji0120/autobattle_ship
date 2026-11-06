@@ -6,6 +6,7 @@
 //   WORLD_RESET   token: replace the world with a fresh one once per token (accounts are kept)
 //   CONTENT_MIGRATE  'apply' moves an older save onto the content model (growth project); anything else
 //                 (default) only dry-runs the migration on an in-memory copy and logs the result
+//   SAVE_INTERVAL_S  seconds between autosaves (default 30)
 //   SESSION_TTL_HOURS  idle lifetime of a sign-in session (default 336 = 14 days, renewed while used)
 // Accounts (login ID + password, see accounts.ts) live in siderarium_accounts / siderarium_sessions
 // (or data/accounts.json without a database). The WebSocket only opens for a valid session cookie.
@@ -26,13 +27,21 @@ const ROOT = path.resolve(process.env.STATIC_DIR ?? 'dist');
 const SAVE_FILE = path.resolve(process.env.SAVE_FILE ?? 'data/world.json');
 
 interface Storage { load(): Promise<SaveFile | null>; save(d: SaveFile): Promise<void>; name: string;
-  /** keep a copy of a save under its own key (never overwritten); returns the stored copy read back */
-  backup(key: string, d: SaveFile): Promise<SaveFile | null>;
   /** world reset requested by token (WORLD_RESET): back up the current world, replace it with `fresh`,
    *  fence off every instance still holding the old one. Idempotent per token. */
   reset(token: string, fresh: () => SaveFile): Promise<{ done: boolean; backup?: string; why?: string }>;
+  /** save migration as one step: lock the stored world, copy exactly that data to a backup key (never
+   *  overwritten; an identical existing copy is reused), transform it, write the result under a new world
+   *  generation so every instance still holding the old one can no longer save. `transform` returns null
+   *  when the locked data needs nothing (another instance migrated it first); then nothing is written.
+   *  Any error leaves the stored world untouched. */
+  migrate(keyFor: (d: SaveFile) => string, transform: (d: SaveFile) => SaveFile | null): Promise<MigrateResult>;
   /** set once a save was refused because a newer world generation exists (this instance is stale) */
   fenced?: boolean }
+type MigrateResult = { data: SaveFile; applied: boolean; backup?: string; reused?: boolean; gen?: number };
+/** test hook: hold the migration transaction open this long (ms) so a concurrent save provably waits on it */
+const holdMs = () => Number(process.env.SIDERARIUM_TEST_MIGRATE_HOLD_MS ?? 0);
+const backupKeys = (base: string) => Array.from({ length: 9 }, (_, i) => i ? `${base}-${i + 1}` : base);
 
 function fileStorage(): Storage {
   return {
@@ -50,11 +59,21 @@ function fileStorage(): Storage {
       fs.writeFileSync(mark, tokenId);
       return { done: true, backup: key };
     },
-    async backup(key, d) {
-      const f = SAVE_FILE.replace(/\.json$/, '') + `.${key}.json`;
-      fs.mkdirSync(path.dirname(f), { recursive: true });
-      if (!fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify(d));
-      return JSON.parse(fs.readFileSync(f, 'utf8'));
+    async migrate(keyFor, transform) {
+      const raw = fs.readFileSync(SAVE_FILE, 'utf8'); const cur: SaveFile = JSON.parse(raw);
+      const out = transform(structuredClone(cur));
+      if (!out) return { data: cur, applied: false };
+      let backup = '', reused = false;
+      for (const k of backupKeys(`backup-pre-v${keyFor(cur)}`)) {
+        const f = SAVE_FILE.replace(/\.json$/, '') + `.${k}.json`;
+        const existed = fs.existsSync(f);
+        if (!existed) fs.writeFileSync(f, raw);
+        if (fs.readFileSync(f, 'utf8') === raw) { backup = k; reused = existed; break; }
+      }
+      if (!backup) throw new Error('백업 키를 확보하지 못함 (9개 모두 다른 내용)');
+      const tmp = SAVE_FILE + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(out)); fs.renameSync(tmp, SAVE_FILE);
+      return { data: out, applied: true, backup, reused };
     },
     async save(d) {
       fs.mkdirSync(path.dirname(SAVE_FILE), { recursive: true });
@@ -107,9 +126,37 @@ async function pgStorage({ pool, host }: Awaited<ReturnType<typeof pgPool>>): Pr
         return { done: true, backup: cur.rows.length ? key : undefined };
       } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
     },
-    async backup(key, d) {
-      await pool.query('INSERT INTO siderarium_world (id, data, updated) VALUES ($1, $2, now()) ON CONFLICT (id) DO NOTHING', [key, JSON.stringify(d)]);
-      const r = await pool.query('SELECT data FROM siderarium_world WHERE id = $1', [key]); return r.rows[0]?.data ?? null;
+    async migrate(keyFor, transform) {
+      const c = await pool.connect();
+      try {
+        await c.query('BEGIN');
+        // lock the row: a save from any other instance now waits, and after COMMIT finds a newer
+        // generation and is refused (UPDATE … WHERE gen = old re-checks the committed row)
+        const cur = await c.query('SELECT data, gen, md5(data::text) AS h FROM siderarium_world WHERE id = $1 FOR UPDATE', ['main']);
+        if (!cur.rows.length) throw new Error('월드 행이 없음');
+        const curGen = Number(cur.rows[0].gen), data: SaveFile = cur.rows[0].data;
+        const hold = holdMs(); if (hold) await new Promise(r => setTimeout(r, hold));
+        const out = transform(structuredClone(data));
+        if (!out) { await c.query('ROLLBACK'); gen = curGen; return { data, applied: false, gen: curGen }; }
+        // backup = server-side copy of exactly the locked data, verified by hash
+        let backup = '', reused = false;
+        for (const k of backupKeys(`backup-pre-v${keyFor(data)}`)) {
+          const ins = await c.query('INSERT INTO siderarium_world (id, data, updated, gen) SELECT $1, data, now(), gen FROM siderarium_world WHERE id = $2 ON CONFLICT (id) DO NOTHING', [k, 'main']);
+          const b = await c.query('SELECT md5(data::text) AS h FROM siderarium_world WHERE id = $1', [k]);
+          if (b.rows[0]?.h === cur.rows[0].h) { backup = k; reused = !ins.rowCount; break; }
+        }
+        if (!backup) throw new Error('백업 키를 확보하지 못함 (9개 모두 다른 내용)');
+        const next = curGen + 1;
+        const w = await c.query('UPDATE siderarium_world SET data = $2, updated = now(), gen = $3 WHERE id = $1 AND gen = $4', ['main', JSON.stringify(out), next, curGen]);
+        if (w.rowCount !== 1) throw new Error('마이그레이션 결과 저장 실패');
+        const rb = await c.query('SELECT data = $2::jsonb AS same FROM siderarium_world WHERE id = $1', ['main', JSON.stringify(out)]);
+        if (!rb.rows[0]?.same) throw new Error('마이그레이션 결과 읽기 검증 실패');
+        await c.query("INSERT INTO siderarium_world (id, data, updated) VALUES ('meta:migrate', $1, now()) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated = now()",
+          [JSON.stringify({ backup, reused, fromGen: curGen, gen: next, at: new Date().toISOString() })]);
+        await c.query('COMMIT');
+        gen = next;
+        return { data: out, applied: true, backup, reused, gen: next };
+      } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
     },
     async save(d) {
       if (st.fenced) return;
@@ -155,25 +202,41 @@ async function main() {
       saved = await storage.load();
     } else console.log(`[siderarium] WORLD_RESET ${resetTok}: ${r.why} — 초기화하지 않음`);
   }
-  // safe migration: an older save is copied to its own backup key (read back and compared) before the
-  // new code touches it; the migrated world must keep every player, credit, ship, station, stored good
-  // and piece of equipment (plus exactly what the migration recorded as granted)
+  // safe migration: the stored world is backed up, migrated and written back atomically (see
+  // Storage.migrate); the migrated world must keep every player, credit, ship, station, stored good and
+  // piece of equipment (plus exactly what the migration recorded as granted), and load back identically
   const applyContent = process.env.CONTENT_MIGRATE === 'apply';
+  const due = (w: SaveFile['world']) => (w.version ?? 0) < WORLD_VERSION || (w.industryV ?? 0) < INDUSTRY_VERSION || (applyContent && (w.contentV ?? 0) < CONTENT_VERSION);
+  if (saved && due(saved.world)) {
+    // backup → transform → verify → write is one transaction on the row as it is *now* (an old instance
+    // may have saved since this one loaded), and bumps the world generation: the old instance's autosave
+    // and shutdown save are refused from then on, so it can never write the old data over the new
+    let rep = null as WorldSim['contentReport'];
+    try {
+      const r = await storage.migrate(
+        d => `${d.world.version ?? 0}.${d.world.industryV ?? 0}${(d.world.contentV ?? 0) || applyContent ? `.c${d.world.contentV ?? 0}` : ''}`,
+        d => {
+          if (!due(d.world)) return null;
+          const b = census(d.world);
+          const sim = new WorldSim(structuredClone(d.world), { migrateContent: applyContent });
+          const bad = compareCensus(b, census(sim.st));
+          if (bad.length) throw new Error(`센서스 불일치 ${bad.join('; ')}`);
+          const s1 = sim.serialize();
+          if (new WorldSim(JSON.parse(s1), { migrateContent: applyContent }).serialize() !== s1) throw new Error('복원 왕복 불일치');
+          rep = sim.contentReport;
+          return { ...d, world: JSON.parse(s1) };
+        });
+      saved = r.data;
+      if (r.applied) console.log(`[siderarium] save migration committed: backup ${r.backup}${r.reused ? ' (기존 동일 사본 재사용)' : ''} verified · world gen ${r.gen ?? '-'}${rep && rep.from < rep.to ? ` · content c${rep.from}→c${rep.to} · ships ${rep.ships} · fitted ${rep.fitted} · returned ${rep.returned.length} · granted ${rep.granted.length}` : ''} (${JSON.stringify(census(saved.world))})`);
+      else console.log('[siderarium] save migration: 다른 인스턴스가 이미 적용함 — 저장된 월드를 그대로 사용');
+    } catch (e) {
+      console.error('[siderarium] !!! 마이그레이션 실패 — 저장된 월드는 변경되지 않았습니다:', (e as Error).message); process.exit(1);
+    }
+  }
   let before: ReturnType<typeof census> | null = null;
   if (saved) {
     before = census(saved.world);
     const cv = saved.world.contentV ?? 0;
-    const old = `${saved.world.version ?? 0}.${saved.world.industryV ?? 0}${cv || applyContent ? `.c${cv}` : ''}`;
-    const contentDue = applyContent && cv < CONTENT_VERSION;
-    if ((saved.world.version ?? 0) < WORLD_VERSION || (saved.world.industryV ?? 0) < INDUSTRY_VERSION || contentDue) {
-      // backup keys are never overwritten: if this key already holds an older copy (the migration was
-      // rolled back and is being applied again), the new copy goes to the next free suffix
-      const same = (c: SaveFile | null) => !!c && JSON.stringify(c.world.companies) === JSON.stringify(saved!.world.companies) && census(c.world).stored === before!.stored;
-      let key = `backup-pre-v${old}`, copy: SaveFile | null = null;
-      for (let i = 1; i <= 9 && !same(copy); i++) { key = i === 1 ? `backup-pre-v${old}` : `backup-pre-v${old}-${i}`; copy = await storage.backup(key, saved); }
-      if (!same(copy)) { console.error(`[siderarium] !!! 세이브 백업(${key}) 검증 실패 — 마이그레이션을 중단합니다`); process.exit(1); }
-      console.log(`[siderarium] save backup ${key} written and verified (${JSON.stringify(census(copy!.world))})`);
-    }
     if (cv < CONTENT_VERSION && !applyContent) {
       // dry run on a copy of the real save: nothing is written, the result is only logged
       try {
@@ -197,7 +260,7 @@ async function main() {
   console.log(`[siderarium] accounts: ${accountStore.name} · ${Object.keys(saved?.accounts ?? {}).length} linked PMCs · ${Object.keys(saved?.auth ?? {}).length} legacy tokens`);
   let saving = false;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent, snapInterval: 1.0, movInterval: 0.2, saveInterval: 30,
+    singleplayer: false, accounts: true, migrateContent: applyContent, snapInterval: 1.0, movInterval: 0.2, saveInterval: Number(process.env.SAVE_INTERVAL_S ?? 30),
     save: d => { if (saving) return; saving = true; storage.save(d).catch(e => console.error('save failed', e)).finally(() => { saving = false; }); },
   }, Number(process.env.WORLD_SEED ?? 1));
   console.log(`[siderarium] world ${saved ? 'restored' : 'created'} (t=${game.sim.time.toFixed(0)}s) storage=${storage.name}`);

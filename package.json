@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && vite build && npm run build:server",
     "preview": "vite preview --port 4173",
     "test": "vitest run",
+    "test:pg": "npm run -s build:server && vitest run tests/pg-migrate.test.ts",
     "typecheck": "tsc --noEmit",
     "balance": "vite-node scripts/balance.ts",
     "playtest": "node scripts/uitest.mjs",
