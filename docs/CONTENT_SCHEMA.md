@@ -207,6 +207,7 @@ P1의 `{ weapon, arc }` 표기는 P2에서 없어졌다. 사계 축소는 하드
 |---|---|---|---|---|
 | `ship-model` | `models/` | `.glb` | 2 MB | 선체 id (`HullDef.mesh.model`에서 참조) |
 | `variant-model` | `models/` | `.glb` | 2 MB | 변형 id (`VariantDef.model`에서 참조) |
+| `model-lod` | `models/` | `.glb` | 768 KB | 본 모델 에셋 id (본 모델의 `lod`에서 참조) |
 | `portrait` | `portraits/` | `.webp` `.png` | 300 KB | 지휘관 id 또는 `pool:<태그>` (생성 지휘관 풀) |
 | `equipment-icon` | `icons/` | `.svg` `.webp` `.png` | 64 KB | `EQUIPMENT` id |
 | `item-icon` | `icons/` | `.svg` `.webp` `.png` | 64 KB | `ITEMS` id |
@@ -217,9 +218,19 @@ P1의 `{ weapon, arc }` 표기는 P2에서 없어졌다. 사계 축소는 하드
 | `id` | `<접두사>.<이름>`, 예: `model.destroyer_mk2`, `portrait.pool_veteran_03`, `icon.eq_laser` |
 | `file` | 소문자 상대 경로, `..`·절대 경로 금지, 한 파일은 한 번만 등록 |
 | `author?`, `license?` | 라이선스 미기재 시 경고 |
+| `sha256?` | 모델(`ship-model`·`variant-model`·`model-lod`)은 필수: 파일 내용의 SHA-256 (소문자 hex 64자). `npm run models:hash -- --write`. 클라이언트 URL 의 버전(`?v=`)이 된다 |
+| `fixture?` | `true` = 로더 테스트용 모델. `models/fixtures/` 아래에만 두고 `dev` 선체에만 연결 |
+| `lod?` | 원거리용 `model-lod` 에셋 id (선택) |
+| `recenter?` | `true` = 로더가 경계 상자 중심을 원점으로 옮긴다 (기본: 파일의 원점을 그대로 씀) |
+
+HullDef 의 `dev?: true` = 개발용 선체 (모델 로더 테스트). 판매(`sale`)·설계도 없이, `minContentV ≥ 3` 팩에 둔다.
+구매·건조 명령과 UI 목록에서 제외되고 테스트·미리보기(`?modelview=`)에서만 생성된다.
+
+모델은 기본(core) 팩의 선체에 연결할 수 없다 (기존 월드 외형 보호). 성장 팩 선체·`minContentV ≥ 3` 팩 변형만 쓴다.
 
 모델 규격: +z가 함수(전방), 원점 = 선체 중심, 1단위 = 게임 1단위(선체 길이 = `SHIP_CLASSES[classId].length × mesh.scale`),
-하드포인트 좌표와 포탑 위치가 일치해야 한다. 초상화 512×512, 아이콘 128×128 권장(SVG 우선).
+하드포인트 좌표와 포탑 위치가 일치해야 한다 (`hp_<id>` 마커로 검증). 전체 규격·예산·마커·검증 항목은
+`src/content/modelSpec.ts` 와 `CODEX_CONTENT_GUIDE.md` §26~§33. 초상화 512×512, 아이콘 128×128 권장(SVG 우선).
 
 ## 7. 기존 데이터 매핑 (core 팩)
 
