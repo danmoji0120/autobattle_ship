@@ -99,7 +99,7 @@ describe('research: labs, prerequisites, consumption, parallel projects, unlocks
     const { sim, p, own, co } = base();
     give(own, 'power', 'lab_basic');
     for (const k of Object.keys(own.storage[p])) own.storage[p][k] = 0;
-    const cr0 = co.credits;
+    const cr0 = co.credits, paid0 = co.upkeep?.total.paid ?? 0;
     sim.command(p, { c: 'research', station: own.id, tech: 'process_control' });
     sim.command(p, { c: 'research', station: own.id, tech: 'mining_lasers' });
     const [a, b] = co.research!;
@@ -113,14 +113,17 @@ describe('research: labs, prerequisites, consumption, parallel projects, unlocks
     expect(sim.command(p, { c: 'researchOp', project: b.id, op: 'pause' })).toBeNull();
     const left = b.left; run(sim, 50); expect(b.left).toBe(left);
     expect(sim.command(p, { c: 'researchOp', project: b.id, op: 'cancel' })).toBeNull();
-    expect(co.credits).toBeCloseTo(cr0 - TECHS.mining_lasers.credits * 0.5, -2);
+    expect(co.credits).toBeCloseTo(cr0 - TECHS.mining_lasers.credits * 0.5 - ((co.upkeep?.total.paid ?? 0) - paid0), -2);
   });
 
   it('unlocks are enforced: facility, recipe and hull design need the tech', () => {
     const { sim, p, own, co } = base();
     give(own, 'power', 'yard_s');
     expect(sim.command(p, { c: 'queueModule', station: own.id, kind: 'engine_plant' })).toMatch(/연구 필요: 함선 추진기관/);
-    expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'frigate', loadoutId: 'patrol' })).toMatch(/설계 연구 필요/);
+    // c3: the blueprint (right) and the research (know-how) are separate requirements
+    expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'frigate', loadoutId: 'patrol' })).toMatch(/설계도 필요/);
+    co.blueprints!.bp_frigate_mk1 = { src: 'test', t: 0 };
+    expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'frigate', loadoutId: 'patrol' })).toMatch(/연구 필요/);
     co.tech!.push('ship_propulsion', 'frigate_design');
     expect(sim.command(p, { c: 'queueModule', station: own.id, kind: 'engine_plant' }) ?? '').not.toMatch(/연구 필요/);
     expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'frigate', loadoutId: 'patrol' })).toBeNull();

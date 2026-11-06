@@ -19,6 +19,9 @@ import { TECHS, ITEMS, EQUIPMENT } from '../../world/industry';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
+import { growthOn, econOf } from '../../world/hullops';
+import { priceOf } from '../../world/market';
+import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml } from './growthUi';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
@@ -55,6 +58,9 @@ export class PmcHud {
   private modalStation: string | null = null;
   private modalTab = 'market';
   private ind = newIndUi();
+  private gy = newGrowthYardUi();
+  private upkOpen = false;
+  private upkEl: HTMLElement | null = null;
   private tabScroll = new Map<string, number>();
   private pointer = { x: 0, y: 0, down: -1, sx: 0, sy: 0, moved: false, over: false };
   private keys = new Set<string>();
@@ -206,7 +212,7 @@ export class PmcHud {
     if (!this.group) return;
     const g = this.st.groups[this.group]; if (!g) return;
     const p = this.v.pick(x, y);
-    const hasMiner = this.subtree(g).some(s => ECON[s.classId].mine > 0);
+    const hasMiner = this.subtree(g).some(s => econOf(s).mine > 0);
     const pirate = this.pirateGroupAt(p);
     if (pirate) return void this.setOp({ k: 'attack', group: pirate });
     if (p?.kind === 'field') {
@@ -609,6 +615,7 @@ export class PmcHud {
     this.renderSel(force);
     this.renderGoals();
     if (this.modal && this.modalStation) this.renderModal(force);
+    this.renderUpkeep(force);
     this.fitScreen?.update();
   }
 
@@ -625,6 +632,7 @@ export class PmcHud {
       <div class="kv"><span>자금</span><b class="money">${fmt(co.credits)} <small>cr</small></b></div>
       <div class="kv"><span>함선</span><b>${ships.length}</b></div>
       <div class="kv"><span>연합 평판</span><b>${co.rep}</b></div>
+      ${growthOn(this.st) ? upkeepTop(this.st, this.me) : ''}
       ${RES.map(r => `<div class="kv"><span style="color:${RES_COLOR[r]}">${RES_NAME[r]}</span><b>${fmt(stores[r])}</b></div>`).join('')}
       <div class="kv"><span>성계 시각</span><b>${fmtT(this.st.time)}</b></div>
       ${this.c.sp ? `<div class="speedgrp">${[[0, '❚❚'], [1, '1×'], [2, '2×'], [4, '4×'], [8, '8×']].map(([v, l]) => `<button class="btn${spd === v ? ' on' : ''}" data-spd="${v}">${l}</button>`).join('')}</div>`
@@ -632,8 +640,26 @@ export class PmcHud {
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
     el.querySelectorAll<HTMLButtonElement>('[data-spd]').forEach(b => b.onclick = () => this.c.setSpeed(Number(b.dataset.spd)));
+    const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
     const ab = document.getElementById('acctBtn') as HTMLButtonElement | null; if (ab) ab.onclick = () => this.opts.onAccount?.();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
+  }
+
+  private upkKey = '';
+  /** running-cost panel (growth P4): forecast, arrears stage, per-ship reserve */
+  private renderUpkeep(force: boolean) {
+    if (!this.upkOpen || !growthOn(this.st)) { this.upkEl?.remove(); this.upkEl = null; return; }
+    const co = this.st.companies[this.me]; if (!co) return;
+    const key = JSON.stringify([co.upkeep?.stage, Math.round(co.upkeep?.debt ?? 0), co.upkeep?.bill?.t, co.upkeep?.autoReserve, Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [s.id, s.state, s.reserve, s.listed, Math.round((s.wear ?? 0) * 100)])]);
+    if (!force && key === this.upkKey && this.upkEl) return;
+    this.upkKey = key;
+    if (!this.upkEl) { this.upkEl = h('div', 'upkwrap'); this.root.appendChild(this.upkEl); }
+    morph(this.upkEl, upkeepHtml(this.st, this.me));
+    const e = this.upkEl;
+    e.querySelector<HTMLButtonElement>('[data-upclose]')!.onclick = () => { this.upkOpen = false; this.renderUpkeep(true); };
+    const ar = e.querySelector<HTMLInputElement>('[data-autores]');
+    if (ar) ar.onchange = () => { if (ar.checked && !confirm('체납 4단계가 되면 정박 중인 유휴 함선을 자동으로 예비역으로 돌립니다. 함선·장비는 그대로이며 재취역할 수 있습니다. 동의할까요?')) { ar.checked = false; return; } this.cmd({ c: 'autoReserve', on: ar.checked }); };
+    e.querySelectorAll<HTMLButtonElement>('[data-reserve]').forEach(b => b.onclick = async () => { const [ship, on] = b.dataset.reserve!.split(':'); if (await this.cmd({ c: 'reserve', ship, on: on === '1' })) this.renderUpkeep(true); });
   }
 
   private orgKey = '';
@@ -669,7 +695,7 @@ export class PmcHud {
         const r = h('div', `shiprow${this.sel?.kind === 'ship' && this.sel.id === s.id ? ' selS' : ''}`);
         r.style.paddingLeft = `${26 + depth * 14}px`;
         const cs = cargoSum(s.cargo);
-        const cap = ECON[s.classId].cargo;
+        const cap = econOf(s).cargo;
         r.innerHTML = `<span>${esc(s.name)} <span style="opacity:.6">${SHIP_CLASSES[s.classId].type}</span>${s.state === 'docked' ? ' ⚓' : s.state === 'battle' ? ' ⚔' : ''}${cap ? ` <span style="color:var(--warn)">${Math.round(cs)}/${cap}</span>` : ''}</span><span class="hp"><i style="width:${s.hp * 100}%;background:${hpCol(s.hp)}"></i></span>`;
         r.onclick = () => { this.group = g.id; this.select({ kind: 'ship', id: s.id }); };
         r.ondblclick = () => { const v = this.v.ships.get(s.id); if (v) this.v.focusOn(v.pos, 500); };
@@ -789,7 +815,7 @@ export class PmcHud {
     const groups = this.myGroups();
     const descend = (x: WGroup): string[] => [x.id, ...x.childIds.flatMap(id => st.groups[id] ? descend(st.groups[id]) : [])];
     const banned = new Set(descend(g));
-    const hasMiner = sub.some(s => ECON[s.classId].mine > 0), hasCargo = sub.some(s => ECON[s.classId].cargo > 0), hasCon = sub.some(s => s.classId === 'constructor'), hasMil = sub.some(s => ECON[s.classId].military);
+    const hasMiner = sub.some(s => econOf(s).mine > 0), hasCargo = sub.some(s => econOf(s).cargo > 0), hasCon = sub.some(s => s.classId === 'constructor'), hasMil = sub.some(s => econOf(s).military);
     const opb = (k: string, label: string, key: string, show = true, cls = '') => show ? `<button class="btn${this.mode === k || (g.op.k === k && g.override) ? ' on' : ''} ${cls}" data-op="${k}">${label}<span class="key">${key}</span></button>` : '';
     const selShip = this.sel?.kind === 'ship' ? st.ships[this.sel.id] : null;
     return `<div class="gpanel">
@@ -899,7 +925,7 @@ export class PmcHud {
 
   private shipDetail(s: WShip): string {
     const groups = this.myGroups();
-    const cap = ECON[s.classId].cargo;
+    const cap = econOf(s).cargo;
     const docked = s.task.k === 'docked' ? this.st.stations[(s.task as any).station] : null;
     return `<div class="shipd"><b>${esc(s.name)}</b> <span class="dim">${SHIP_CLASSES[s.classId].name} ${SHIP_CLASSES[s.classId].type} · ${esc(getLoadout(s.classId, s.loadoutId).name)}</span>
       · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${cargoKeys(s.cargo).filter(r => s.cargo[r] > 0.5).map(r => `${RES_NAME[r]} ${Math.round(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}` : ''}
@@ -966,7 +992,7 @@ export class PmcHud {
     const s = this.st.stations[this.modalStation!];
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
-    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit, x.variant, x.fitting]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length]);
+    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit, x.variant, x.fitting]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length, this.gy, s.shipStock, s.shipListings, co.blueprints, Math.round((s.funds ?? 0) / 500)]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
@@ -974,6 +1000,8 @@ export class PmcHud {
       ['market', '시장', !!s.market || s.modules.some(m => m.kind === 'trade_hub' && m.built)], ['store', '창고·물류', own || cargoSum(s.storage[this.me] ?? {}) > 0.5],
       ['build', '건설', own], ['prod', '생산', own],
       ['yard', '조선소', s.services.shipyard.length > 0 || (own && s.modules.some(m => m.kind.startsWith('yard_') && m.built))],
+      ['ships', '함선 거래', growthOn(this.st) && ((!!s.public && !!s.market) || s.modules.some(m => m.kind === 'trade_hub' && m.built))],
+      ['bp', '설계도', growthOn(this.st) && (!!s.public || Object.keys(s.storage[this.me] ?? {}).some(k => k.startsWith('bpf:')))],
       ['research', '연구', own || Object.keys(s.storage[this.me] ?? {}).some(k => k.startsWith('bp:') && (s.storage[this.me][k] ?? 0) >= 1)],
       ['dock', '수리·개조', true], ['recruit', '인재', s.services.recruit], ['contracts', '계약', s.services.contracts || Object.values(this.st.contracts).some(k => k.stationId === s.id)],
     ];
@@ -982,7 +1010,9 @@ export class PmcHud {
     let body = '';
     switch (this.modalTab) {
       case 'market': body = this.marketHtml(s); break;
-      case 'yard': body = own ? yardOwnHtml(this.st, s, this.me, this.ind, this.myGroups()) : this.yardHtml(s); break;
+      case 'yard': body = growthOn(this.st) ? (own ? `${yardOwnHtml(this.st, s, this.me, this.ind, this.myGroups()).split('<h3>함선 설계</h3>')[0]}${ownYardGrowthHtml(this.st, s, this.me, this.gy, this.myGroups())}` : pubYardHtml(this.st, s, this.me, this.myGroups())) : own ? yardOwnHtml(this.st, s, this.me, this.ind, this.myGroups()) : this.yardHtml(s); break;
+      case 'ships': body = exchangeHtml(this.st, s, this.me, this.myGroups()); break;
+      case 'bp': body = blueprintsHtml(this.st, s, this.me); break;
       case 'dock': body = this.dockHtml(s); break;
       case 'recruit': body = this.recruitHtml(s); break;
       case 'contracts': body = this.contractsHtml(s); break;
@@ -1031,6 +1061,35 @@ export class PmcHud {
       const grp = m.querySelector<HTMLSelectElement>('[data-hgrp]')?.value || undefined;
       if (await this.cmd({ c: 'buildShip', station: s.id, classId: b.dataset.hbuild!, loadoutId: (ui as any).lo ?? SHIP_CLASSES[b.dataset.hbuild!].loadouts[0].id, fit: [...ui.fit], group: grp })) { sfx.play('confirm', null, 0.3); this.toast('건조 등록', 'good'); }
     });
+    // growth: public stock, own builds by hull, ship exchange, blueprints
+    m.querySelectorAll<HTMLButtonElement>('[data-buyhull]').forEach(b => b.onclick = () => {
+      const id = b.dataset.buyhull!; const hh = CONTENT.hulls[id];
+      const pre = m.querySelector<HTMLSelectElement>(`[data-hpre="${id}"]`)?.value || undefined;
+      const grp = m.querySelector<HTMLSelectElement>(`[data-hgrp2="${id}"]`)?.value || undefined;
+      this.cmd({ c: 'buyShip', station: s.id, classId: hh.classId, loadoutId: '', hull: id, preset: pre, group: grp });
+    });
+    m.querySelectorAll<HTMLElement>('[data-ghull]').forEach(b => b.onclick = () => { this.gy.hull = b.dataset.ghull!; this.gy.preset = null; this.gy.fit = []; this.renderModal(true); });
+    const gpre = m.querySelector<HTMLSelectElement>('[data-gpre]'); if (gpre) gpre.onchange = () => { this.gy.preset = gpre.value; this.renderModal(true); };
+    m.querySelectorAll<HTMLButtonElement>('[data-gfit]').forEach(b => b.onclick = () => { const k = b.dataset.gfit!; const i = this.gy.fit.indexOf(k); if (i >= 0) this.gy.fit.splice(i, 1); else this.gy.fit.push(k); this.renderModal(true); });
+    m.querySelectorAll<HTMLButtonElement>('[data-gbuild]').forEach(b => b.onclick = async () => {
+      const id = b.dataset.gbuild!; const hh = CONTENT.hulls[id];
+      const pre = m.querySelector<HTMLSelectElement>('[data-gpre]')?.value || undefined;
+      const grp = m.querySelector<HTMLSelectElement>('[data-ggrp]')?.value || undefined;
+      const variant = pre ? CONTENT.presets[pre]?.variant : undefined;
+      if (await this.cmd({ c: 'buildShip', station: s.id, classId: hh.classId, loadoutId: '', hull: id, variant, preset: pre, fit: [...this.gy.fit], group: grp })) { sfx.play('confirm', null, 0.3); this.toast('건조 등록', 'good'); }
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-buylist]').forEach(b => b.onclick = async () => {
+      const l = b.dataset.buylist!; const grp = m.querySelector<HTMLSelectElement>(`[data-lgrp="${l}"]`)?.value || undefined;
+      if (await this.cmd({ c: 'buyShipListing', station: s.id, listing: l, group: grp })) this.toast('함선 인수 완료', 'good');
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-delist]').forEach(b => b.onclick = () => this.cmd({ c: 'delistShip', station: s.id, listing: b.dataset.delist! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-listship]').forEach(b => b.onclick = async () => {
+      const id = b.dataset.listship!; const price = Number(m.querySelector<HTMLInputElement>(`[data-lprice="${id}"]`)?.value ?? 0);
+      if (!confirm(`${this.st.ships[id]?.name ?? ''}을(를) ${fmt(price)} cr에 매물로 내놓을까요? 팔리기 전까지 출항할 수 없습니다.`)) return;
+      if (await this.cmd({ c: 'listShip', ship: id, price })) this.toast('매물 등록', 'info');
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-buybp]').forEach(b => b.onclick = async () => { if (await this.cmd({ c: 'buyBlueprint', station: s.id, blueprint: b.dataset.buybp! })) sfx.play('confirm', null, 0.3); });
+    m.querySelectorAll<HTMLButtonElement>('[data-asmbp]').forEach(b => b.onclick = () => this.cmd({ c: 'assembleBlueprint', station: s.id, blueprint: b.dataset.asmbp! }));
     m.querySelectorAll<HTMLButtonElement>('[data-bop]').forEach(b => b.onclick = async () => {
       const [op, build] = b.dataset.bop!.split(':');
       if (op === 'cancel' && !confirm('건조를 취소할까요? 기공 전이면 공임 전액 환불, 기공 후에는 남은 공정만큼만 환불되고 투입된 부품은 회수할 수 없습니다.')) return;
@@ -1090,8 +1149,10 @@ export class PmcHud {
   }
 
   private marketHtml(s: Station): string {
-    const price = (r: Res, side: 'sell' | 'buy') => { const m = s.market?.[r]; if (!m) return 0; const p = m.base * Math.max(0.45, Math.min(1.7, 1.45 - 0.55 * m.stock / m.target)); return side === 'sell' ? p : p * 1.18; };
-    return marketPanel(this.st, s, this.me, this.ind, price);
+    const v3 = growthOn(this.st);
+    const price = (r: Res, side: 'sell' | 'buy') => priceOf(s.market?.[r], side, v3);
+    const funds = v3 && s.public && s.fundsMax ? `<div class="bdr small">정거장 구매 예산 <b class="money">${fmt(s.funds ?? 0)}</b> / ${fmt(s.fundsMax)} cr <span class="dim">— 플레이어에게 물건을 사는 데 쓰는 돈입니다. 시간당 15%씩 회복되고, 플레이어가 이곳에서 산 금액의 일부가 돌아옵니다. 예산이 떨어지면 남은 화물은 창고에 보관됩니다.</span></div>` : '';
+    return funds + marketPanel(this.st, s, this.me, this.ind, price);
   }
 
   private yardHtml(s: Station): string {
@@ -1135,9 +1196,9 @@ export class PmcHud {
     if (!ships.length) return `<div class="dim">이 정거장에 정박한 자사 함선이 없습니다. 편대를 선택하고 정거장을 우클릭하면 정박합니다.</div>`;
     return `<table class="gt"><tr><th>함선</th><th>선체</th><th>무장</th><th></th></tr>${ships.map(x => {
       const c = SHIP_CLASSES[x.classId];
-      const cost = Math.round((1 - x.hp) * ECON[x.classId].price * 0.3);
+      const cost = Math.round((1 - x.hp) * econOf(x).price * 0.3);
       return `<tr><td><b>${esc(x.name)}</b> <span class="dim">${c.type}</span></td><td><span style="color:${hpCol(x.hp)}">${Math.round(x.hp * 100)}%</span></td>
-        <td>${x.fitting ? `${this.fitSummary(x)} ${canRefit ? `<button class="btn go" data-openfit="${x.id}">피팅</button>` : '<span class="dim small">(피팅 시설 없음)</span>'}` : canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (${own ? '창고의 무장 장비로 교체' : `개조 ${fmt(ECON[x.classId].price * 0.15)} cr`})</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
+        <td>${x.fitting ? `${this.fitSummary(x)} ${canRefit ? `<button class="btn go" data-openfit="${x.id}">피팅</button>` : '<span class="dim small">(피팅 시설 없음)</span>'}` : canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (${own ? '창고의 무장 장비로 교체' : `개조 ${fmt(econOf(x).price * 0.15)} cr`})</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
         <td>${x.hp < 0.999 && canRepair ? `<button class="btn" data-repair="${x.id}">수리 ${fmt(cost)} cr</button>` : ''}</td></tr>
         ${canRefit && !x.fitting ? `<tr class="fitrow"><td colspan="4">${fitHtml(this.st, x, store)}</td></tr>` : ''}`;
     }).join('')}</table>${own && s.modules.some(m => m.kind === 'repair' && m.built) ? '<div class="dim small">정비소: 이곳에 정박한 자사 함선은 무료로 천천히 수리됩니다.</div>' : ''}`;
@@ -1333,7 +1394,7 @@ export class PmcHud {
       const sv = v.ships.get(s.id); if (!sv || !v.project(sv.pos, p)) continue;
       const co = st.companies[s.owner];
       const selected = this.group && s.groupId === this.group;
-      const mil = ECON[s.classId].military;
+      const mil = econOf(s).military;
       if (far || selected || s.owner === 'pirates') {
         ctx.fillStyle = co?.color ?? '#fff';
         ctx.strokeStyle = selected ? '#fff' : co?.color ?? '#fff';

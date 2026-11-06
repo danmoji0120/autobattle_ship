@@ -289,6 +289,202 @@ function design(cls: ShipClassDef, team: 0 | 1): { profile: Profile; W: number; 
   }
 }
 
+
+// ---------------------------------------------------------------- content hull silhouettes (P3)
+// Each base is its own shape (not a recolor or a scaled copy). Built at the class length; buildShip
+// then scales the whole model uniformly by HullDef.mesh.scale so hardpoints line up.
+type Design = { profile: Profile; W: number; build: (p: Parts, L: number) => void };
+function designExtra(base: string, L: number, team: 0 | 1): Design | undefined {
+  const enemy = team === 1;
+  const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+  switch (base) {
+    case 'dd_vls': {            // flat broad deck, missile cell grid amidships, low aft bridge
+      const profile: Profile = [[-0.5, 0.85], [-0.2, 1], [0.25, 0.9], [0.5, 0.25]];
+      const W = 3.8;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -1.0, 1.8), slab(profile, L, W, 0, 0.5, -1.0, 1.8));
+        p.dark.push(box(4.2, 0.9, 8, 0, 1.3, 1.5));
+        for (let i = 0; i < 4; i++) for (const x of [-1.2, 1.2]) p.trim.push(box(1.6, 0.35, 1.6, x, 1.9, -1 + i * 1.9));
+        p.hull.push(box(2.6, 1.6, 3, 0, 2.1, -7.4), box(1.6, 0.9, 1.6, 0, 3.3, -7.6));
+        p.accent.push(box(4.4, 0.2, 0.25, 0, 1.85, 5.6));
+        p.light.push(V(0, 4, -7.6), V(W, 0.4, -9), V(-W, 0.4, -9));
+        p.engines.push({ x: 1.4, y: 0, z: -L * 0.5 - 1, r: 0.8 }, { x: -1.4, y: 0, z: -L * 0.5 - 1, r: 0.8 }, { x: 0, y: 0.2, z: -L * 0.5 - 1, r: 0.6 });
+      } };
+    }
+    case 'dd_picket': {         // narrow hull, tall lattice mast with radar dish, PD sponsons along the sides
+      const profile: Profile = [[-0.5, 0.55], [-0.25, 0.8], [0.15, 0.75], [0.5, 0.15]];
+      const W = 2.8;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -1.1, 2.0), slab(profile, L, W, 0, 0.5, -1.1, 2.0));
+        p.hull.push(box(1.8, 1.4, 4, 0, 1.6, 0.5));
+        p.dark.push(cyl(0.18, 0.28, 7, 0, 5.4, 0), box(0.12, 6, 0.12, 0.5, 4.8, 0.4), box(0.12, 6, 0.12, -0.5, 4.8, 0.4));
+        p.trim.push(cyl(1.7, 1.7, 0.25, 0, 8.8, 0, 'y', 16), box(3.6, 0.15, 0.15, 0, 7.4, 0));
+        for (const z of [-6, -2, 3, 7]) for (const x of [-W * 0.95, W * 0.95]) p.dark.push(cyl(0.55, 0.6, 0.7, x, 0.4, z));
+        p.accent.push(box(0.1, 0.2, L * 0.6, W * 0.9, -0.2, 0), box(0.1, 0.2, L * 0.6, -W * 0.9, -0.2, 0));
+        p.light.push(V(0, 9.2, 0), V(1.8, 8.8, 0), V(-1.8, 8.8, 0));
+        p.engines.push({ x: 0, y: 0, z: -L * 0.5 - 1.1, r: 1.0 });
+      } };
+    }
+    case 'dd_heavy': {          // wide armored brick with a ram prow, belt armor and two big barbettes
+      const profile: Profile = [[-0.5, 0.95], [-0.1, 1], [0.32, 0.92], [0.44, 0.55], [0.5, 0.42]];
+      const W = 4.4;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -1.6, 2.8), slab(profile, L, W, 0, 0.5, -1.6, 2.8));
+        p.dark.push(slab(profile.map(([t, w]) => [t, w * 1.06]) as Profile, L, W, -0.46, 0.4, -1.2, 1.4));
+        p.trim.push(box(2.2, 1.2, 4.5, 0, -0.6, L * 0.5 + 1.2), box(1.2, 0.8, 2, 0, -0.6, L * 0.5 + 3.6));
+        for (const z of [5, -4]) p.dark.push(cyl(2.0, 2.3, 1.4, 0, 1.6, z, 'y', 14));
+        p.hull.push(box(3.2, 2.2, 3, 0, 2.6, 0.5), box(2, 1, 2, 0, 4.2, 0.2));
+        if (enemy) p.trim.push(box(9, 0.35, 2, 0, 0.4, -7));
+        p.light.push(V(0, 4.9, 0.2), V(W, 0.6, -10), V(-W, 0.6, -10));
+        p.dark.push(box(W * 1.5, 2.6, 2.4, 0, 0, -L * 0.5 - 0.6));
+        p.engines.push({ x: 2.2, y: 0, z: -L * 0.5 - 2, r: 1.0 }, { x: -2.2, y: 0, z: -L * 0.5 - 2, r: 1.0 }, { x: 0, y: 0, z: -L * 0.5 - 2, r: 1.0 });
+      } };
+    }
+    case 'dd_fast': {           // dart hull, swept wings with fins, oversized engine pods
+      const profile: Profile = [[-0.5, 0.5], [-0.35, 1], [-0.05, 0.6], [0.5, 0.06]];
+      const W = 2.6;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -0.7, 1.4), slab(profile, L, W, 0, 0.5, -0.7, 1.4));
+        p.hull.push(box(1.3, 0.8, 4, 0, 1.0, 1.5));
+        p.trim.push(box(9, 0.18, 3.5, 0, 0, -6.5), box(5, 0.18, 2, 0, 0, -3.4));
+        for (const x of [-4.4, 4.4]) p.dark.push(box(0.18, 2, 2.6, x, 0.9, -7), cyl(0.9, 1.0, 6, x * 0.62, 0, -8.5, 'z', 12));
+        p.accent.push(box(0.9, 0.2, 1.2, 0, 1.45, 3.2), box(8.6, 0.12, 0.3, 0, 0.12, -4.8));
+        p.light.push(V(4.5, 0, -6.5), V(-4.5, 0, -6.5));
+        p.engines.push({ x: 2.73, y: 0, z: -L * 0.5 - 0.6, r: 1.0 }, { x: -2.73, y: 0, z: -L * 0.5 - 0.6, r: 1.0 }, { x: 0, y: 0, z: -L * 0.5 - 0.4, r: 0.7 });
+      } };
+    }
+    case 'miner_m': {           // compact hull, one central drill boom, single belly hopper
+      const profile: Profile = [[-0.5, 0.8], [-0.2, 1], [0.3, 0.85], [0.5, 0.5]];
+      const W = 4.6;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -2.0, 3.6), slab(profile, L, W, 0, 0.5, -2.0, 3.6));
+        p.hull.push(box(3.4, 2.2, 5, 0, 2.8, -6));
+        p.trim.push(box(1.4, 1.4, 12, 0, 0.4, L * 0.5 + 4));
+        p.dark.push(cyl(1.1, 0.2, 3, 0, 0.4, L * 0.5 + 11, 'z', 10), cyl(3.4, 3.4, 16, 0, -3.4, -2, 'z', 12));
+        p.accent.push(box(0.8, 0.8, 0.5, 0, 0.4, L * 0.5 + 12.6));
+        p.light.push(V(0, 4.5, -6), V(0, -6.5, -2));
+        p.dark.push(box(W * 1.3, 3, 2.6, 0, -0.4, -L * 0.5 - 0.8));
+        p.engines.push({ x: 1.8, y: 0, z: -L * 0.5 - 2.6, r: 1.2 }, { x: -1.8, y: 0, z: -L * 0.5 - 2.6, r: 1.2 });
+      } };
+    }
+    case 'miner_l': {           // catamaran: two hoppers joined by a processing bridge, four arms forward
+      const profile: Profile = [[-0.5, 1], [0.4, 1], [0.5, 0.6]];
+      const W = 2.4;
+      return { profile, W, build: (p) => {
+        for (const x of [-5.5, 5.5]) { p.hull.push(box(4.6, 4.2, L * 0.9, x, 0, -1)); p.dark.push(cyl(1.9, 1.9, L * 0.7, x, 2.6, -2, 'z', 10)); }
+        p.hull.push(box(7, 3.4, 12, 0, 1.4, -3), box(4, 2.4, 5, 0, 4.2, -6));
+        for (const x of [-7, -3.6, 3.6, 7]) { p.trim.push(box(0.9, 1.1, 9, x, -0.6, L * 0.5 + 3)); p.dark.push(box(1.6, 1.6, 1.6, x, -0.6, L * 0.5 + 8)); }
+        p.accent.push(box(14, 0.4, 0.4, 0, 3.2, L * 0.4));
+        p.light.push(V(0, 6, -6), V(7.8, 2, -12), V(-7.8, 2, -12));
+        for (const x of [-5.5, 5.5]) p.engines.push({ x, y: 0, z: -L * 0.5 - 2, r: 1.5 });
+      } };
+    }
+    case 'miner_xl': {          // refinery: ringed cylinder core, drill array on a forward frame, drone hangars
+      const profile: Profile = [[-0.5, 1], [0.5, 1]];
+      const W = 6;
+      return { profile, W, build: (p) => {
+        p.hull.push(cyl(5.5, 5.5, L * 0.62, 0, 0, -2, 'z', 14));
+        for (const z of [-12, -4, 4]) p.trim.push(cyl(7.4, 7.4, 1.4, 0, 0, z, 'z', 14));
+        p.dark.push(box(16, 1, 1, 0, 0, L * 0.38), box(1, 12, 1, 0, 0, L * 0.38));
+        for (const [x, y] of [[-7, 0], [7, 0], [0, 5.5], [0, -5.5]]) { p.trim.push(box(1, 1, 8, x, y, L * 0.38 + 4)); p.dark.push(cyl(1.0, 0.15, 2.6, x, y, L * 0.38 + 9, 'z', 8)); }
+        for (const x of [-8.5, 8.5]) p.hull.push(box(3.6, 4, 9, x, -1, -9));
+        p.hull.push(box(4, 3, 5, 0, 7, -10));
+        p.accent.push(box(0.5, 0.5, L * 0.5, 5.8, 0, -2), box(0.5, 0.5, L * 0.5, -5.8, 0, -2));
+        p.light.push(V(0, 8.8, -10), V(8.5, 1.5, -13.5), V(-8.5, 1.5, -13.5), V(0, 0, L * 0.38 + 11));
+        p.dark.push(box(12, 8, 4, 0, 0, -L * 0.5 + 1));
+        for (const [x, y] of [[3, 2.4], [-3, 2.4], [3, -2.4], [-3, -2.4]]) p.engines.push({ x, y, z: -L * 0.5 - 1.5, r: 1.6 });
+      } };
+    }
+    case 'hauler_m': {          // short spine, 2×2 container stack, tall cab
+      const profile: Profile = [[-0.5, 1], [0.5, 1]];
+      const W = 1.6;
+      return { profile, W, build: (p) => {
+        p.dark.push(box(2.6, 2, L * 0.88, 0, 0, -1));
+        p.hull.push(box(5, 6, 6, 0, 1.5, L * 0.5 - 2.5));
+        p.accent.push(box(4, 0.5, 0.3, 0, 3.8, L * 0.5 + 0.6));
+        for (const z of [-6, 3]) for (const x of [-2.8, 2.8]) (z > 0) === (x > 0) ? p.hull.push(box(3, 4.4, 8, x, 0.6, z)) : p.trim.push(box(3, 4.4, 8, x, 0.6, z));
+        p.light.push(V(0, 5, L * 0.5 - 2.5), V(4.4, 3, -10));
+        p.dark.push(box(5, 4, 2.4, 0, 0, -L * 0.5 - 0.2));
+        p.engines.push({ x: 0, y: 0, z: -L * 0.5 - 2, r: 1.8 });
+      } };
+    }
+    case 'hauler_l': {          // enclosed bulk hull: one long box hold with clamshell seams, bridge on top
+      const profile: Profile = [[-0.5, 0.9], [-0.35, 1], [0.38, 1], [0.5, 0.7]];
+      const W = 5;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -3.2, 6.2), slab(profile, L, W, 0, 0.5, -3.2, 6.2));
+        for (const z of [-10, -2, 6, 14]) p.dark.push(box(W * 2.04, 0.3, 0.5, 0, 3.05, z));
+        p.trim.push(box(1.0, 0.4, L * 0.7, 0, 3.15, 0));
+        p.hull.push(box(4.4, 2.6, 5, 0, 4.4, -L * 0.5 + 5), box(2.4, 1.2, 2.4, 0, 6.3, -L * 0.5 + 5));
+        p.accent.push(box(0.3, 0.6, L * 0.8, W, 0, 0), box(0.3, 0.6, L * 0.8, -W, 0, 0));
+        p.light.push(V(0, 7, -L * 0.5 + 5), V(W, 3, L * 0.45), V(-W, 3, L * 0.45));
+        p.dark.push(box(W * 1.8, 5, 3, 0, 0, -L * 0.5 - 1));
+        for (const x of [-3, 0, 3]) p.engines.push({ x, y: 0, z: -L * 0.5 - 3, r: 1.5 });
+      } };
+    }
+    case 'hauler_xl': {         // open truss freighter: long lattice keel with three tiers of container racks
+      const profile: Profile = [[-0.5, 1], [0.5, 1]];
+      const W = 2;
+      return { profile, W, build: (p) => {
+        for (const [x, y] of [[-1.2, -1.2], [1.2, -1.2], [-1.2, 1.2], [1.2, 1.2]]) p.dark.push(box(0.5, 0.5, L * 0.95, x, y, -1));
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          const z = -L * 0.42 + i * (L * 0.8 / (n - 1));
+          p.dark.push(box(10, 0.4, 0.6, 0, 0, z), box(0.4, 9, 0.6, 0, 0, z));
+          for (const x of [-3.2, 3.2]) for (const y of [-2.6, 0.9, 4.4]) ((i + (x > 0 ? 1 : 0) + Math.round(y)) % 3 === 0 ? p.trim : p.hull).push(box(2.9, 3.1, L * 0.11, x, y, z));
+        }
+        p.hull.push(box(6, 5, 7, 0, 1.5, L * 0.5 + 1), box(3, 1.6, 3, 0, 4.6, L * 0.5));
+        p.accent.push(box(5, 0.4, 0.3, 0, 3.4, L * 0.5 + 4.6));
+        p.light.push(V(0, 5.6, L * 0.5), V(5, 6.2, -L * 0.42), V(-5, 6.2, -L * 0.42));
+        p.dark.push(box(10, 6, 3, 0, 0, -L * 0.5 - 1));
+        for (const [x, y] of [[-3, 1.6], [3, 1.6], [-3, -1.6], [3, -1.6]]) p.engines.push({ x, y, z: -L * 0.5 - 3, r: 1.4 });
+      } };
+    }
+    case 'con_s': {             // tug: stubby hull, single manipulator arm, nose clamp
+      const profile: Profile = [[-0.5, 0.9], [0, 1], [0.5, 0.7]];
+      const W = 4.2;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -2.2, 4.4), slab(profile, L, W, 0, 0.5, -2.2, 4.4));
+        p.hull.push(box(3.4, 2, 4, 0, 3.1, -3));
+        p.trim.push(box(0.9, 0.9, 10, 2.6, 2.6, 6), box(0.9, 4, 0.9, 2.6, 0.8, 11));
+        p.dark.push(box(4, 1.4, 2, 0, -0.4, L * 0.5 + 0.8), box(0.8, 2.6, 2, 1.8, -0.4, L * 0.5 + 2.2), box(0.8, 2.6, 2, -1.8, -0.4, L * 0.5 + 2.2));
+        p.accent.push(box(1.2, 1.2, 1.2, 2.6, -1.2, 11));
+        p.light.push(V(0, 4.4, -3), V(2.6, -1.4, 11.8));
+        p.engines.push({ x: 1.6, y: 0, z: -L * 0.5 - 1.6, r: 1.3 }, { x: -1.6, y: 0, z: -L * 0.5 - 1.6, r: 1.3 });
+      } };
+    }
+    case 'con_l': {             // broad platform with twin gantries and a fabricator drum
+      const profile: Profile = [[-0.5, 1], [0.35, 1], [0.5, 0.75]];
+      const W = 6.5;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -1.6, 3.0), slab(profile, L, W, 0, 0.5, -1.6, 3.0));
+        for (const z of [-7, 7]) p.trim.push(box(0.7, 8, 0.7, 5.6, 5, z), box(0.7, 8, 0.7, -5.6, 5, z), box(12, 0.7, 0.7, 0, 9, z));
+        p.trim.push(box(0.7, 0.7, 15, 5.6, 9, 0), box(0.7, 0.7, 15, -5.6, 9, 0));
+        p.dark.push(cyl(2.4, 2.4, 9, 0, 3.6, 0, 'z', 14), box(2.6, 2, 2.6, 0, 7.4, 3));
+        p.hull.push(box(4.4, 2.6, 4, 0, 2.6, -L * 0.5 + 3));
+        p.accent.push(box(1.2, 1.2, 1.2, 0, 8.2, 3), box(12.8, 0.3, 0.3, 0, 1.6, L * 0.48));
+        p.light.push(V(5.6, 9.6, -7), V(-5.6, 9.6, 7), V(0, 4.2, -L * 0.5 + 3));
+        p.dark.push(box(W * 1.5, 3, 3, 0, -0.3, -L * 0.5 - 1));
+        for (const x of [-4, 0, 4]) p.engines.push({ x, y: 0, z: -L * 0.5 - 3, r: 1.2 });
+      } };
+    }
+    case 'con_xl': {            // mobile slipway: open rectangular frame dock with cranes riding the rails
+      const profile: Profile = [[-0.5, 1], [0.5, 1]];
+      const W = 8;
+      return { profile, W, build: (p) => {
+        for (const x of [-W, W]) for (const y of [-4, 4]) p.dark.push(box(1.2, 1.2, L * 0.95, x, y, 0));
+        for (const z of [-L * 0.45, -L * 0.15, L * 0.15, L * 0.45]) p.hull.push(box(W * 2 + 1.2, 1.2, 1.4, 0, 4, z), box(W * 2 + 1.2, 1.2, 1.4, 0, -4, z), box(1.2, 9.2, 1.4, W, 0, z), box(1.2, 9.2, 1.4, -W, 0, z));
+        for (const z of [-L * 0.25, L * 0.2]) { p.trim.push(box(W * 2, 1, 1.6, 0, 5.4, z), box(1.4, 3, 1.4, z > 0 ? 2 : -3, 3.4, z)); p.accent.push(box(1.6, 0.8, 1.6, z > 0 ? 2 : -3, 1.6, z)); }
+        p.hull.push(box(5, 4, 6, W + 3, 2, -L * 0.42), box(2.6, 1.4, 2.6, W + 3, 4.7, -L * 0.42));
+        p.light.push(V(W, 4.8, L * 0.45), V(-W, 4.8, L * 0.45), V(W, -4.8, -L * 0.45), V(-W, -4.8, -L * 0.45), V(W + 3, 5.6, -L * 0.42));
+        for (const [x, y] of [[W, 4], [-W, 4], [W, -4], [-W, -4]]) p.engines.push({ x, y, z: -L * 0.48 - 1, r: 1.3 });
+      } };
+    }
+  }
+  void enemy;
+  return undefined;
+}
+
 // -------------------------------------------------------------------------- turrets
 
 function buildTurret(md: MountDef, team: 0 | 1): TurretView {
@@ -412,14 +608,22 @@ function splitByZ(geos: THREE.BufferGeometry[]): [THREE.BufferGeometry | null, T
 
 export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): ShipModel {
   const m = mats(team);
-  const key = `${cls.id}:${team}`;
+  const mb = loadout.mesh;
+  const xd = mb ? designExtra(mb.base, cls.length, team) : undefined;
+  const key = xd ? `${mb!.base}@${mb!.scale}:${team}` : `${cls.id}:${team}`;
   let cached = geoCache.get(key);
   if (!cached) {
     // new hull classes reuse a base silhouette at their own length, widened/narrowed
-    const al = Object.hasOwn(MESH_ALIAS, cls.id) ? MESH_ALIAS[cls.id] : undefined;
-    const d = design(al ? { ...cls, id: al[0] } : cls, team);
+    const al = !xd && Object.hasOwn(MESH_ALIAS, cls.id) ? MESH_ALIAS[cls.id] : undefined;
+    const d = xd ?? design(al ? { ...cls, id: al[0] } : cls, team);
     const parts: Parts = { hull: [], dark: [], trim: [], accent: [], light: [], engines: [] };
     d.build(parts, cls.length);
+    if (xd && mb!.scale !== 1) {
+      const k = mb!.scale;
+      for (const g of [...parts.hull, ...parts.dark, ...parts.trim, ...parts.accent]) g.scale(k, k, k);
+      for (const e of parts.engines) { e.x *= k; e.y *= k; e.z *= k; e.r *= k; }
+      for (const l of parts.light) l.multiplyScalar(k);
+    }
     if (al) {
       const k = al[1];
       for (const g of [...parts.hull, ...parts.dark, ...parts.trim, ...parts.accent]) g.scale(k, k, 1);
@@ -480,7 +684,7 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
   const lights: THREE.Mesh[] = [];
   const lg = new THREE.SphereGeometry(0.3, 6, 4);
   for (const p of parts.light) { const l = new THREE.Mesh(lg, m.light); l.position.copy(p); (p.z >= 0 ? front : rear).add(l); lights.push(l); }
-  return { root, bank, front, rear, turrets, engines, lights, hullMats, length: cls.length };
+  return { root, bank, front, rear, turrets, engines, lights, hullMats, length: cls.length * (xd ? mb!.scale : 1) };
 }
 
 export function factionColor(team: 0 | 1): number { return STYLE[team].accent; }

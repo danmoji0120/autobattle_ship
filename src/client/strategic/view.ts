@@ -1,3 +1,4 @@
+import { econOf } from '../../world/hullops';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -240,7 +241,7 @@ export class StrategicView {
       v.model.root.rotation.set(0, v.heading, 0);
       v.model.bank.rotation.z = v.roll;
       v.speed = Math.hypot(s.vel.x, s.vel.z);
-      const thr = s.state === 'docked' ? 0.05 : v.warp === 1 ? 0.6 + 0.4 * Math.sin(this.time * 20) : Math.min(1, v.speed / Math.max(30, ECON[s.classId].cruise));
+      const thr = s.state === 'docked' ? 0.05 : v.warp === 1 ? 0.6 + 0.4 * Math.sin(this.time * 20) : Math.min(1, v.speed / Math.max(30, econOf(s).cruise));
       if (v.warp === 2) {
         // warp streak: a long blue-white tail along the direction of travel
         const back = new THREE.Vector3(-Math.sin(v.heading), 0, -Math.cos(v.heading));

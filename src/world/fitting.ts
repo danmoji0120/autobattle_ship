@@ -125,7 +125,11 @@ export function shipLoadout(s: { classId: string; loadoutId: string; variant?: s
   const pid = matchingPreset(s.variant, s.fitting, reg);
   const leg = pid && Object.values(reg.legacy).find(l => l.preset === pid && l.classId === s.classId);
   const mounts = leg ? getLoadout(s.classId, leg.loadoutId).mounts : fittingMounts(s.variant, s.fitting, reg);
-  return { id: base.id, name: v?.name ?? base.name, desc: '', mounts, hpMul: v?.mods?.hpMul, armorMul: v?.mods?.armorMul, speedMul: v?.mods?.speedMul, costDelta: base.costDelta };
+  const h = v ? reg.hulls[v.hull] : undefined;
+  // hull stats × variant mods; mk1 hulls have no stats, so their values stay exactly the variant's
+  const mul = (a?: number, b?: number) => a == null ? b : b == null ? a : a * b;
+  const mesh = h && h.mesh.base !== s.classId ? { base: h.mesh.base, scale: h.mesh.scale } : undefined;
+  return { id: base.id, name: v?.name ?? base.name, desc: '', mounts, hpMul: mul(h?.stats?.hpMul, v?.mods?.hpMul), armorMul: mul(h?.stats?.armorMul, v?.mods?.armorMul), speedMul: mul(h?.stats?.speedMul, v?.mods?.speedMul), costDelta: base.costDelta, ...(mesh ? { mesh } : {}) };
 }
 /** cache key for a ship's model (changes when its weapons move) */
 export const shipLoadoutKey = (s: { classId: string; loadoutId: string; variant?: string; fitting?: ShipFitting }) =>

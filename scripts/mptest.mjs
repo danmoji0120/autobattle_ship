@@ -10,7 +10,7 @@ fs.rmSync(SAVE, { force: true }); fs.rmSync(ACCTS, { force: true });
 let passed = 0, failed = 0;
 const ok = (c, m) => { console.log(`${c ? 'PASS' : 'FAIL'} ${m}`); if (c) passed++; else { failed++; process.exitCode = 1; } };
 // every check must run: a skipped branch (e.g. no NPC battle found) must not look like a clean pass
-const EXPECTED = 61;
+const EXPECTED = 67;
 process.on('exit', () => { const n = passed + failed; console.log(`mptest: ${passed} PASS / ${failed} FAIL (${n}/${EXPECTED} checks ran)`); if (n !== EXPECTED) { console.log(`FAIL expected ${EXPECTED} checks, ran ${n}`); process.exitCode = 1; } });
 const startServer = () => new Promise(res => {
   const p = spawn('node', ['dist-server/server.mjs'], { env: { ...process.env, PORT: String(PORT), SAVE_FILE: SAVE, WORLD_SEED: '5', DATABASE_URL: process.env.MPTEST_DATABASE_URL ?? '' } });
@@ -117,6 +117,31 @@ ok(Object.values(a.snap.companies).some(c => c.id === b.company), 'A sees B in t
   const r2 = await a.cmd({ c: 'fit', ship: sh.id, hp: { ...less, [hpIds[0]]: item }, bay: sh.fitting.bay });
   await wait(1400);
   ok(r2 === null && a.snap.ships[sh.id].fitting.hp[hpIds[0]] === item && Math.floor(a.snap.stations[st].storage[a.company][item] ?? 0) === had, `refitting takes it back — nothing duplicated (${r2 ?? 'ok'})`);
+}
+// ── growth (c3) over the wire: public yard stock is real, a ship listing changes hands exactly once ──
+{
+  const st0 = a.snap.stations.astra, n0 = st0.shipStock?.corvette_mk1?.n;
+  const owned = c => Object.values(a.snap.ships).filter(s => s.owner === c && s.classId === 'corvette').length;
+  const oa = owned(a.company), ob = owned(b.company);
+  const buy = cl => cl.cmd({ c: 'buyShip', station: 'astra', classId: 'corvette', loadoutId: 'std', hull: 'corvette_mk1' });
+  const rs = await Promise.all([buy(a), buy(b), buy(a), buy(b), buy(a), buy(b)]);
+  await wait(1600);
+  const okN = rs.filter(r => r === null).length, n1 = a.snap.stations.astra.shipStock?.corvette_mk1?.n;
+  const got = owned(a.company) - oa + owned(b.company) - ob;
+  ok(typeof n0 === 'number' && okN >= 1 && okN <= n0 && n1 === n0 - okN && got === okN && a.snap.companies[a.company].credits >= 0 && a.snap.companies[b.company].credits >= 0,
+    `6 concurrent yard buys from two players: ${okN} sold, stock ${n0}→${n1}, ships +${got} — no duplication (${rs.map(r => r ?? 'ok').join(' | ').slice(0, 120)})`);
+  const mine = Object.values(a.snap.ships).find(s => s.owner === a.company && s.classId === 'corvette' && s.task.k === 'docked' && s.task.station === 'astra');
+  const lr = await a.cmd({ c: 'listShip', ship: mine?.id, price: 200 });
+  await wait(1400);
+  const l = (a.snap.stations.astra.shipListings ?? []).find(x => x.ship === mine?.id);
+  ok(lr === null && !!l, `A lists a docked corvette on the Astra exchange (${lr ?? 'ok'})`);
+  ok(/매물 없음/.test(await b.cmd({ c: 'delistShip', station: 'astra', listing: l?.id }) ?? ''), "B cannot take down A's listing");
+  ok(/자기 매물/.test(await a.cmd({ c: 'buyShipListing', station: 'astra', listing: l?.id }) ?? ''), 'A cannot buy its own listing');
+  const [x1, x2] = await Promise.all([b.cmd({ c: 'buyShipListing', station: 'astra', listing: l?.id }), b.cmd({ c: 'buyShipListing', station: 'astra', listing: l?.id })]);
+  await wait(1400);
+  ok([x1, x2].filter(r => r === null).length === 1 && a.snap.ships[mine?.id]?.owner === b.company && !(a.snap.stations.astra.shipListings ?? []).some(x => x.id === l?.id),
+    `two simultaneous purchases of one listing → exactly one succeeds, the ship now belongs to B (${x1 ?? 'ok'} / ${x2 ?? 'ok'})`);
+  ok(/자사 함선이 아님/.test(await a.cmd({ c: 'listShip', ship: mine?.id, price: 300 }) ?? ''), 'the seller cannot list the sold ship again');
 }
 const mining = a.group('제1 채굴반');
 const err = await a.cmd({ c: 'setOp', group: mining.id, op: { k: 'mine', field: 'kestrel', deliver: 'astra', sell: true } });

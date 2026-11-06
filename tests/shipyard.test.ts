@@ -94,8 +94,11 @@ describe('shipbuilding from parts, yards and fitting', () => {
   it('designs need research; cancel refunds in full before the keel, partially after (parts are not returned)', () => {
     const { sim, p, own } = base();
     give(own, 'power', 'yard_s');
-    expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'frigate', loadoutId: 'patrol' })).toMatch(/설계 연구 필요/);
-    const cr0 = sim.st.companies[p].credits;
+    // c3: a design needs its blueprint (production right) and, separately, the research
+    expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'frigate', loadoutId: 'patrol' })).toMatch(/설계도 필요/);
+    sim.st.companies[p].blueprints!.bp_frigate_mk1 = { src: 'test', t: 0 };
+    expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'frigate', loadoutId: 'patrol' })).toMatch(/연구 필요/);
+    const cr0 = sim.st.companies[p].credits, paid = () => sim.st.companies[p].upkeep?.total.paid ?? 0, paid0 = paid();
     sim.command(p, { c: 'buildShip', station: own.id, classId: 'corvette', loadoutId: 'gun' });
     expect(sim.command(p, { c: 'buildOp', station: own.id, build: own.builds![0].id, op: 'cancel' })).toBeNull();
     expect(sim.st.companies[p].credits).toBe(cr0);
@@ -104,7 +107,7 @@ describe('shipbuilding from parts, yards and fitting', () => {
     run(sim, HULLS.corvette.time / 2);
     const b = own.builds![0];
     expect(sim.command(p, { c: 'buildOp', station: own.id, build: b.id, op: 'cancel' })).toBeNull();
-    expect(sim.st.companies[p].credits).toBeCloseTo(cr0 - HULLS.corvette.credits * 0.5, -2);
+    expect(sim.st.companies[p].credits).toBeCloseTo(cr0 - HULLS.corvette.credits * 0.5 - (paid() - paid0), -2);
     expect(qty(own.storage[p], 'structure')).toBe(0);
   });
 

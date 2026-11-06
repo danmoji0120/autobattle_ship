@@ -1,0 +1,122 @@
+// Per-hull operation data (growth P3/P4/P6). One place that answers "what does this hull do":
+// strategic econ (cruise/cargo/mining/construction), own-yard build requirements, upkeep and NPC
+// supply. mk1 hulls carry no overrides and fall back to the class tables (ECON / HULLS), so worlds
+// below contentV 3 behave exactly as before. Pure — safe on server and client.
+import { CONTENT } from '../content/registry';
+import type { HullBuild, HullDef, HullSale, HullUpkeep, Size } from '../content/schema';
+import { sizeRank } from '../content/schema';
+import { ECON, type ShipEcon } from './data';
+import { HULLS, FACILITIES } from './industry';
+import type { Station, WShip, WorldState } from './types';
+
+/** contentV from which hull data, upkeep, market demand and blueprint rules apply */
+export const GROWTH_V = 3;
+export const growthOn = (st: Pick<WorldState, 'contentV'> | undefined) => (st?.contentV ?? 0) >= GROWTH_V;
+
+export interface HullEcon extends ShipEcon { build: number; berth: Size; minField: number }
+
+/** hull id of a ship (legacy ships without content ids map to their class's mk1 hull) */
+export const hullIdOf = (s: { classId: string; hull?: string }) => s.hull && CONTENT.hulls[s.hull] ? s.hull : `${s.classId}_mk1`;
+export const hullDefOf = (s: { classId: string; hull?: string }): HullDef | undefined => CONTENT.hulls[hullIdOf(s)];
+
+const econCache = new Map<string, HullEcon>();
+/** strategic econ of a hull + variant (variant mods applied) */
+export function hullEcon(hullId: string, variantId?: string): HullEcon {
+  const key = `${hullId}|${variantId ?? ''}`;
+  const hit = econCache.get(key); if (hit) return hit;
+  const h = CONTENT.hulls[hullId];
+  const base = ECON[h?.classId ?? hullId.replace(/_mk1$/, '')] ?? ECON.corvette;
+  const v = variantId ? CONTENT.variants[variantId] : undefined;
+  const m = v?.mods ?? {};
+  const o = h?.ops ?? {};
+  const e: HullEcon = {
+    ...base,
+    cruise: (o.cruise ?? base.cruise) * (m.cruiseMul ?? 1),
+    cargo: Math.round((o.cargo ?? base.cargo) * (m.cargoMul ?? 1)),
+    mine: (o.mine ?? base.mine) * (m.mineMul ?? 1),
+    price: h?.sale?.price ?? base.price,
+    rep: h?.sale?.rep ?? base.rep,
+    build: (o.build ?? (h?.classId === 'constructor' ? 1 : 0)) * (m.buildMul ?? 1),
+    berth: o.berth ?? (h ? (h.size === 'XL' || h.size === 'L') && (h.classId === 'miner' || h.classId === 'hauler' || h.classId === 'constructor') ? h.size : 'S' : 'S'),
+    minField: o.minField ?? 0,
+  };
+  econCache.set(key, e);
+  return e;
+}
+
+/** strategic econ of a ship (its hull + variant). Wear is applied by the callers that move or mine. */
+export const econOf = (s: { classId: string; hull?: string; variant?: string }): HullEcon =>
+  s.hull ? hullEcon(hullIdOf(s), s.variant) : hullEcon(`${s.classId}_mk1`);
+
+/** own-yard build requirements of a hull (+ variant extra parts) */
+export function hullBuild(hullId: string, variantId?: string): HullBuild {
+  const h = CONTENT.hulls[hullId];
+  const legacy = HULLS[h?.classId ?? hullId.replace(/_mk1$/, '')];
+  const b: HullBuild = h?.build ?? { yard: legacy?.yard ?? 1, time: legacy?.time ?? 1800, credits: legacy?.credits ?? 1500, parts: { ...(legacy?.parts ?? {}) }, ...(legacy?.tech ? { tech: [legacy.tech] } : {}) };
+  const extra = variantId ? CONTENT.variants[variantId]?.parts : undefined;
+  if (!extra) return b;
+  const parts = { ...b.parts };
+  for (const [k, n] of Object.entries(extra)) parts[k] = (parts[k] ?? 0) + n;
+  return { ...b, parts };
+}
+
+/** default running cost per class (mk1 hulls; growth hulls declare their own) */
+const CLASS_UPKEEP: Record<string, HullUpkeep> = {
+  corvette: { credits: 300, supplies: { chemicals: 0.5 }, wear: 0.05 },
+  frigate: { credits: 450, supplies: { chemicals: 0.8 }, wear: 0.05 },
+  destroyer: { credits: 750, supplies: { chemicals: 1 }, wear: 0.05 },
+  light_cruiser: { credits: 1300, supplies: { chemicals: 1.5, machinery: 0.1 }, wear: 0.05 },
+  cruiser: { credits: 2200, supplies: { chemicals: 2, machinery: 0.2 }, wear: 0.05 },
+  battlecruiser: { credits: 4000, supplies: { chemicals: 3, machinery: 0.4, electronics: 0.1 }, wear: 0.05 },
+  battleship: { credits: 6000, supplies: { chemicals: 4, machinery: 0.6, electronics: 0.15 }, wear: 0.05 },
+  dreadnought: { credits: 20000, supplies: { chemicals: 10, machinery: 2, electronics: 0.5 }, wear: 0.05 },
+  miner: { credits: 350, supplies: { machinery: 0.05 }, wear: 0.06 },
+  hauler: { credits: 300, supplies: { chemicals: 0.2 }, wear: 0.04 },
+  constructor: { credits: 600, supplies: { machinery: 0.1 }, wear: 0.03 },
+  platform: { credits: 0, wear: 0 },
+};
+export function hullUpkeep(hullId: string, variantId?: string): HullUpkeep {
+  const h = CONTENT.hulls[hullId];
+  const u = h?.upkeep ?? CLASS_UPKEEP[h?.classId ?? hullId.replace(/_mk1$/, '')] ?? { credits: 0 };
+  const mul = (variantId ? CONTENT.variants[variantId]?.mods?.upkeepMul : undefined) ?? 1;
+  if (mul === 1) return u;
+  return { credits: u.credits * mul, supplies: Object.fromEntries(Object.entries(u.supplies ?? {}).map(([k, n]) => [k, n * mul])), wear: u.wear };
+}
+
+/** NPC supply of a hull (growth hulls declare it; mk1 hulls are stocked by every yard that lists the class) */
+export function hullSale(hullId: string): HullSale | undefined {
+  const h = CONTENT.hulls[hullId];
+  if (!h) return undefined;
+  if (h.sale) return h.sale;
+  const e = ECON[h.classId];
+  if (!e || h.classId === 'platform') return undefined;
+  // mk1: stock and restock scale with hull size; stations come from the station's shipyard list
+  const yard = HULLS[h.classId]?.yard ?? 1;
+  return { stations: [], price: e.price, rep: e.rep, stock: [0, 4, 3, 2, 1][yard], restock: [0, 1800, 3600, 7200, 21600][yard] };
+}
+/** hulls a public yard stocks at contentV ≥ 3 */
+export function yardHulls(st: Station): string[] {
+  if (!st.public) return [];
+  const out: string[] = [];
+  for (const h of Object.values(CONTENT.hulls)) {
+    if (h.classId === 'platform') continue;
+    if (h.sale ? h.sale.stations.includes(st.id) : h.id.endsWith('_mk1') && st.services.shipyard.includes(h.classId)) out.push(h.id);
+  }
+  return out;
+}
+
+/** berth size of a station: public hubs by size, own stations grow with dock modules */
+export const PUBLIC_BERTH: Record<string, Size> = { helios: 'XL', exchange: 'XL', bastion: 'XL', astra: 'L', nova: 'L', barcaco: 'L', drakeout: 'M', cinderco: 'M', rustport: 'M' };
+export function berthOf(st: Station): Size {
+  if (st.public) return PUBLIC_BERTH[st.id] ?? 'M';
+  const docks = st.modules.filter(m => m.built && m.kind === 'dock').length;
+  const big = st.modules.some(m => m.built && (FACILITIES[m.kind]?.yard ?? 0) >= 3);
+  return docks >= 2 || (docks >= 1 && big) ? 'XL' : docks >= 1 ? 'L' : 'M';
+}
+export const berthFits = (st: Station, size: Size) => sizeRank(size) <= sizeRank(berthOf(st));
+/** the largest berth the ships need */
+export const berthNeed = (ships: { classId: string; hull?: string; variant?: string }[]): Size =>
+  ships.reduce<Size>((a, s) => sizeRank(econOf(s).berth) > sizeRank(a) ? econOf(s).berth : a, 'S');
+
+/** wear slows mining and cruising (up to −25% at full wear) */
+export const wearMul = (s: Pick<WShip, 'wear'>) => 1 - 0.25 * Math.min(1, Math.max(0, s.wear ?? 0));

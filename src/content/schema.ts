@@ -77,6 +77,67 @@ export interface HullDef {
   mesh: { base: string; scale: number; model?: string };
   blueprint: BlueprintGrade;
   desc: string;
+  // ── growth P3/P4/P6 (contentV ≥ 3). All optional: absent = the class defaults (ECON / HULLS), so the
+  //    12 mk1 hulls behave exactly as before. Data-only links for P5 (tech, facilities, parts).
+  /** combat structure relative to the class (multiplies hp / armour / tactical speed; variant mods stack) */
+  stats?: { hpMul?: number; armorMul?: number; speedMul?: number };
+  /** strategic operation: replaces the class's ECON values for this hull */
+  ops?: HullOps;
+  /** own-yard construction: replaces HULLS[classId] for this hull */
+  build?: HullBuild;
+  /** running cost (P4) */
+  upkeep?: HullUpkeep;
+  /** NPC supply: which public yards stock it and how fast they rebuild their stock */
+  sale?: HullSale;
+}
+
+/** strategic operation of a hull (units as ECON) */
+export interface HullOps {
+  cruise?: number;
+  /** cargo capacity (units) */
+  cargo?: number;
+  /** mining rate (units/s) */
+  mine?: number;
+  /** construction work rate (constructor = 1) */
+  build?: number;
+  /** the smallest berth it fits: S/M dock anywhere, L/XL need a large berth (public hubs or own docks) */
+  berth?: Size;
+  /** mining: fields smaller than this (max amount) cannot hold the hull efficiently (yield ×0.5) */
+  minField?: number;
+}
+
+export interface HullBuild {
+  /** shipyard size class 1..4 */
+  yard: number;
+  /** seconds in one build slot */
+  time: number;
+  credits: number;
+  parts: Record<string, number>;
+  /** research needed (all). P5 links production tech here. */
+  tech?: string[];
+  /** other facilities the building station must have (FACILITIES kinds) */
+  facilities?: string[];
+}
+
+export interface HullUpkeep {
+  /** credits per hour of service (crew, maintenance contracts) */
+  credits: number;
+  /** consumables per hour, taken from storage or bought at the market (P4 demand) */
+  supplies?: Record<string, number>;
+  /** wear gained per hour of operation (0..1 scale; wear slows mining/cruise up to −25%) */
+  wear?: number;
+}
+
+export interface HullSale {
+  /** public stations whose yards stock it */
+  stations: string[];
+  /** credits (NPC price, before the station's markup) */
+  price: number;
+  /** Union standing needed */
+  rep?: number;
+  /** ships in stock at most / seconds to build one more (the yard consumes market goods to do it) */
+  stock: number;
+  restock: number;
 }
 
 /** structural variant of a hull: changes hardpoints / bays / structure, never carries equipment */
@@ -87,10 +148,46 @@ export interface VariantDef {
   desc: string;
   hardpoints?: { add?: HardpointDef[]; remove?: string[] };
   internals?: { add?: InternalSlotDef[]; remove?: string[] };
-  mods?: { hpMul?: number; armorMul?: number; speedMul?: number };
+  mods?: { hpMul?: number; armorMul?: number; speedMul?: number; cargoMul?: number; mineMul?: number; buildMul?: number; cruiseMul?: number; upkeepMul?: number };
   blueprint: BlueprintGrade;
   /** registered asset id of a variant-specific model/skin (optional) */
   model?: string;
+  /** extra parts the variant needs on top of its hull's (own-yard builds) */
+  parts?: Record<string, number>;
+}
+
+// ─────────────────────────────────────────────── blueprints (P6)
+
+/** what owning a blueprint lets the holder produce. Research (tech) is separate: building usually
+ *  needs both. Buying a finished ship needs neither. */
+export type BlueprintTarget = { kind: 'hull'; id: string } | { kind: 'variant'; id: string } | { kind: 'equipment'; id: string } | { kind: 'recipe'; id: string };
+
+/** how a blueprint can be acquired (one blueprint may list several) */
+export type BlueprintSource =
+  /** general sale at these stations (credits) */
+  | { kind: 'shop'; stations: string[]; price: number }
+  /** high-price commercial licence: credits + Union standing */
+  | { kind: 'commercial'; stations: string[]; price: number; rep: number }
+  /** a faction/company sells it only where its influence is strong, to companies in good standing */
+  | { kind: 'faction'; faction: 'union' | 'guild' | 'pirates'; stations: string[]; price: number; influence: number; rep?: number }
+  /** awarded for completing contracts (lair assaults of at least this tier) */
+  | { kind: 'contract'; minTier: number; chance: number }
+  /** salvaged as fragments (`bpf:<blueprint id>` items) from wrecks; `fragments` of them assemble it */
+  | { kind: 'salvage'; fragments: number; chance: number }
+  /** unique: at most `limit` holders in the world; awarded like a contract (first come) */
+  | { kind: 'unique'; limit: number; minTier: number };
+
+export interface BlueprintDef {
+  id: string;
+  name: string;
+  desc: string;
+  grade: BlueprintGrade;
+  target: BlueprintTarget;
+  sources: BlueprintSource[];
+  /** research the holder must know to *use* it (production), P5 links here */
+  requires?: string[];
+  /** limited-run licence: builds per copy (absent = perpetual) */
+  runs?: number;
 }
 
 /** a named weapon layout for a hull variant (hardpoint id → weapon equipment item) */
@@ -137,4 +234,5 @@ export interface ContentPack {
   equipment?: EquipSpec[];
   legacy?: LegacyLoadoutMap[];
   assets?: AssetDef[];
+  blueprints?: BlueprintDef[];
 }

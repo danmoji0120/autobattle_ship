@@ -5,6 +5,7 @@
 //
 // Rendered with morph() so typing in the search box or an open dropdown survives live updates; all
 // clicks go through one delegated listener.
+import { econOf } from '../../world/hullops';
 import * as THREE from 'three';
 import type { WorldView } from '../../server/protocol';
 import type { WShip, Station } from '../../world/types';
@@ -119,7 +120,7 @@ export class FittingScreen {
     const locked = short.filter(([k]) => EQUIPMENT[k]?.tech && !co.tech?.includes(EQUIPMENT[k].tech!));
     const buyCost = Math.round(short.reduce((a, [k, n]) => a + n * itemPrice(k) * 1.2, 0));
     const changed = Object.keys(delta).length;
-    const varFee = this.draft.variant !== s.variant && !ownFit ? Math.round(ECON[s.classId].price * 0.15) : 0;
+    const varFee = this.draft.variant !== s.variant && !ownFit ? Math.round(econOf(s).price * 0.15) : 0;
     const fee = ownFit ? 0 : (changed ? 400 + changed * 300 : 0) + varFee;
     const block = !st ? '정박 중이 아님' : !ownFit && !pub ? '이 정거장에는 피팅 시설이 없음'
       : rep.errors.length ? rep.errors[0]

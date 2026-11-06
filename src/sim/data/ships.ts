@@ -17,6 +17,8 @@ export interface LoadoutDef {
   armorMul?: number;
   hpMul?: number;
   costDelta?: number;
+  /** renderer silhouette override (content hulls with their own mesh base) */
+  mesh?: { base: string; scale: number };
 }
 
 export interface ShipClassDef {

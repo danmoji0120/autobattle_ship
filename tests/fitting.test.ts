@@ -127,7 +127,7 @@ describe('fitting V2: rules enforced by the server', () => {
       }
       // the heaviest legacy-illegal set (one size-2 module more than allowed) is over the mass limit on the heaviest preset
       if (n >= 1) {
-        const heavy = Object.values(CONTENT.presets).filter(x => CONTENT.hulls[x.hull].classId === c.id)
+        const heavy = Object.values(CONTENT.presets).filter(x => x.hull === `${c.id}_mk1`)
           .sort((a, b) => Object.values(b.weapons).reduce((s, k) => s + CONTENT.equipment[k].mass, 0) - Object.values(a.weapons).reduce((s, k) => s + CONTENT.equipment[k].mass, 0))[0];
         const armour = Array.from({ length: n }, (_, i) => [`bay${i + 1}`, 'mod_armor']);
         if (2 * n > n) expect(checkFitting(heavy.variant, { hp: heavy.weapons, bay: Object.fromEntries(armour) }).errors.join()).toMatch(/적재 초과/);
@@ -326,7 +326,7 @@ describe('fitting V2: save migration (contentV 1 → 2) and rollback', () => {
     const rep = sim.contentReport!;
     expect(rep.from).toBe(1);
     expect(rep.fitted).toBe(Object.values(st.ships).filter(s => s.owner === p).length);
-    expect(rep.granted).toEqual([]);
+    expect(rep.granted.filter(g => !g.item.startsWith('blueprint:'))).toEqual([]);
     expect(rep.returned).toEqual([]);
     expect(rep.converted.find(c => c.item === 'eq_heavy_cannon')!.n).toBe(before.equipment.eq_heavy_cannon);
     expect(compareCensus(before, census(sim.st))).toEqual([]);

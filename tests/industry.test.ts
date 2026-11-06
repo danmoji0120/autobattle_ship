@@ -128,9 +128,12 @@ describe('industry: multi-tier production', () => {
     for (const r of ['metal', 'titanium', 'silicon', 'alloy', 'machinery', 'structure', 'chemicals', 'precision']) sim.command(p, { c: 'prodOrder', station: own.id, recipe: r, mode: 'stock', n: 60 });
     // count every recipe batch started; replay the ledger
     const ledger: Record<string, number> = { ore: 3000, titanium_ore: 600, silicate: 400, gas: 400 };
-    const seen = new Set<string>();
+    const seen = new Set<string>(); let lastBill = -1;
     for (let t = 0; t < 3000; t += 0.25) {
       sim.update(0.25);
+      // c3 running costs draw consumables from own storage first; the settlement records what it took
+      const bill = sim.st.companies[p].upkeep?.bill;
+      if (bill && bill.t !== lastBill) { lastBill = bill.t; for (const [k, n] of Object.entries(bill.fromStore)) ledger[k] = (ledger[k] ?? 0) - n; }
       for (const j of own.jobs!) if (!seen.has(j.id)) { seen.add(j.id); for (const [k, n] of Object.entries(RECIPES[j.recipe].in)) ledger[k] = (ledger[k] ?? 0) - n; for (const [k, n] of Object.entries(RECIPES[j.recipe].out)) ledger[k] = (ledger[k] ?? 0) + n; }
     }
     for (const j of own.jobs!) for (const [k, n] of Object.entries(RECIPES[j.recipe].out)) ledger[k] -= n; // still running

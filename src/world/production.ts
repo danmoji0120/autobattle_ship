@@ -152,21 +152,34 @@ export { hasAll, ITEMS };
 // ───────────────────────────────────────────────────────── shipyards
 
 import type { ShipBuild } from './types';
-import { HULLS, loadoutEquipment, EQUIPMENT } from './industry';
+import { HULLS, loadoutEquipment, EQUIPMENT, TECHS } from './industry';
 import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
+import { hullBuild } from './hullops';
+import { CONTENT } from '../content/registry';
 
 export const YARD_NAME = ['', '소형', '중형', '대형', '초대형'];
 /** build slots at a station: one per built yard, with its size class */
 export function yardSlots(st: Station): { kind: string; size: number }[] {
   return st.modules.filter(m => m.built && FACILITIES[m.kind]?.yard).map(m => ({ kind: m.kind, size: FACILITIES[m.kind].yard! })).sort((a, b) => a.size - b.size);
 }
-/** everything a hull build consumes when it starts: hull parts + the loadout's weapons + fitted modules */
-export function buildNeeds(classId: string, loadoutId: string, fit: string[]): Record<string, number> {
-  const need: Record<string, number> = { ...(HULLS[classId]?.parts ?? {}) };
-  for (const [k, n] of Object.entries(loadoutEquipment(getLoadout(classId, loadoutId).mounts))) need[k] = (need[k] ?? 0) + n;
+/** everything a hull build consumes when it starts: hull parts (+ variant parts) + the preset's or
+ *  loadout's weapons + fitted modules */
+export function buildNeeds(classId: string, loadoutId: string, fit: string[], b?: { hull?: string; variant?: string; preset?: string }): Record<string, number> {
+  const need: Record<string, number> = { ...(b?.hull ? hullBuild(b.hull, b.variant).parts : HULLS[classId]?.parts ?? {}) };
+  for (const [k, n] of Object.entries(buildWeapons(classId, loadoutId, b?.preset))) need[k] = (need[k] ?? 0) + n;
   for (const k of fit) need[k] = (need[k] ?? 0) + 1;
   return need;
 }
+/** weapon items a build mounts: its hull preset (growth builds) or its legacy loadout */
+export function buildWeapons(classId: string, loadoutId: string, preset?: string): Record<string, number> {
+  const p = preset ? CONTENT.presets[preset] : undefined;
+  if (!p) return loadoutEquipment(getLoadout(classId, loadoutId).mounts);
+  const out: Record<string, number> = {};
+  for (const k of Object.values(p.weapons)) out[k] = (out[k] ?? 0) + 1;
+  return out;
+}
+/** yard size / research / facilities of a queued build */
+export const buildSpec = (b: ShipBuild) => hullBuild(b.hull ?? `${b.classId}_mk1`, b.variant);
 export const fitUnits = (fit: string[]) => fit.reduce((a, k) => a + (EQUIPMENT[k]?.size ?? 1), 0);
 export const hullName = (classId: string) => { const c = SHIP_CLASSES[classId]; return c ? `${c.name} ${c.type}` : classId; };
 
@@ -177,7 +190,7 @@ function assignSlots(st: Station): Map<string, number> {
   const out = new Map<string, number>();
   for (const b of st.builds ?? []) {
     if (!b.started) continue;
-    const need = HULLS[b.classId]?.yard ?? 1;
+    const need = buildSpec(b).yard;
     const i = slots.findIndex((s, j) => !used.has(j) && s.size >= need);
     if (i >= 0) { used.add(i); out.set(b.id, i); }
   }
@@ -197,7 +210,7 @@ export function stepBuilds(st: Station, co: Company | undefined, dt: number): Sh
   const speed = buildSpeed(st, co);
   const done: ShipBuild[] = [];
   for (const b of [...q]) {
-    const h = HULLS[b.classId];
+    const h = buildSpec(b);
     if (b.started) {
       if (b.paused) { b.why = '일시 정지 (슬롯 유지)'; continue; }
       if (!taken.has(b.id)) { b.why = '조선소 슬롯 없음'; continue; }
@@ -207,11 +220,14 @@ export function stepBuilds(st: Station, co: Company | undefined, dt: number): Sh
       continue;
     }
     if (b.paused) { b.why = '일시 정지'; continue; }
-    if (h.tech && !co?.tech?.includes(h.tech)) { b.why = '설계 연구 필요'; continue; }
+    const noTech = (h.tech ?? []).filter(t => !co?.tech?.includes(t));
+    if (noTech.length) { b.why = `설계 연구 필요: ${noTech.map(t => TECHS[t]?.name ?? t).join(', ')}`; continue; }
+    const noFac = (h.facilities ?? []).filter(f => !st.modules.some(m => m.built && m.kind === f));
+    if (noFac.length) { b.why = `필요 시설 없음: ${noFac.map(f => FACILITIES[f]?.name ?? f).join(', ')}`; continue; }
     if (!slots.some(s => s.size >= h.yard)) { b.why = `${YARD_NAME[h.yard]} 이상 조선소 필요`; continue; }
     const i = slots.findIndex((s, j) => !used.has(j) && s.size >= h.yard);
     if (i < 0) { b.why = '조선소 슬롯 사용 중 — 순서 대기'; continue; }
-    const need = buildNeeds(b.classId, b.loadoutId, b.fit);
+    const need = buildNeeds(b.classId, b.loadoutId, b.fit, b);
     const sh = shortText(store, need);
     if (sh) {
       // say so when construction plans are taking the same goods first (they reserve as materials arrive)

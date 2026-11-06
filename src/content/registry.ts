@@ -1,6 +1,6 @@
 // Content registry: merges every pack into id-indexed tables. Game code reads hulls, variants,
 // presets and assets only through here. Pure data — safe on server and client.
-import type { AssetDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef } from './schema';
+import type { AssetDef, BlueprintDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef } from './schema';
 import { PACKS } from './packs';
 import { EQUIPMENT } from '../world/industry';
 
@@ -12,6 +12,7 @@ export interface Registry {
   /** fitting rules per EQUIPMENT id */
   equipment: Record<string, EquipSpec>;
   assets: Record<string, AssetDef>;
+  blueprints: Record<string, BlueprintDef>;
   /** `${classId}/${loadoutId}` → mapping */
   legacy: Record<string, LegacyLoadoutMap>;
   /** which pack defined each id (validator messages) */
@@ -21,7 +22,7 @@ export interface Registry {
 }
 
 export function buildRegistry(packs: ContentPack[]): Registry {
-  const r: Registry = { packs, hulls: {}, variants: {}, presets: {}, equipment: {}, assets: {}, legacy: {}, origin: {}, dupes: [] };
+  const r: Registry = { packs, hulls: {}, variants: {}, presets: {}, equipment: {}, assets: {}, blueprints: {}, legacy: {}, origin: {}, dupes: [] };
   const put = <T extends { id: string }>(tab: Record<string, T>, kind: string, x: T, pack: string) => {
     const k = `${kind}:${x.id}`;
     if (r.origin[k]) r.dupes.push(`${kind} "${x.id}" (${r.origin[k]} · ${pack})`); else { tab[x.id] = x; r.origin[k] = pack; }
@@ -32,6 +33,7 @@ export function buildRegistry(packs: ContentPack[]): Registry {
     for (const x of p.presets ?? []) put(r.presets, 'preset', x, p.id);
     for (const e of p.equipment ?? []) put(r.equipment, 'equipment', e, p.id);
     for (const a of p.assets ?? []) put(r.assets, 'asset', a, p.id);
+    for (const b of p.blueprints ?? []) put(r.blueprints, 'blueprint', b, p.id);
     for (const l of p.legacy ?? []) { const k = `${l.classId}/${l.loadoutId}`; if (r.legacy[k]) r.dupes.push(`legacy "${k}"`); else r.legacy[k] = l; }
   }
   return r;
@@ -81,3 +83,6 @@ export const variantsOfHull = (hullId: string, reg: Registry = CONTENT) => Objec
 export const assetsFor = (contentId: string, reg: Registry = CONTENT) => Object.values(reg.assets).filter(a => a.for === contentId);
 /** URL of a registered asset, relative to the page (vite serves public/ at the root) */
 export const assetUrl = (a: AssetDef) => `./assets/content/${a.file}`;
+
+/** blueprints that let their holder build this hull / variant / item */
+export const blueprintsFor = (kind: BlueprintDef['target']['kind'], id: string, reg: Registry = CONTENT) => Object.values(reg.blueprints).filter(b => b.target.kind === kind && b.target.id === id);

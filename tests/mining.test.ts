@@ -23,17 +23,20 @@ function withStation(seed: number) {
   return { sim, p, own, miners: groupNamed(sim, p, '제1 채굴반') };
 }
 
+/** running costs paid so far (c3 upkeep) — the only credit outflow when nothing is sold */
+const paid = (sim: WorldSim, p: string) => sim.st.companies[p].upkeep?.total.paid ?? 0;
+
 describe('mining unloading destination', () => {
   it('own station + store: ore goes into the PMC storage there, then the miners go back and repeat', () => {
     const { sim, p, own, miners } = withStation(11);
-    const cr = sim.st.companies[p].credits;
+    const cr = sim.st.companies[p].credits, paid0 = paid(sim, p);
     expect(sim.command(p, { c: 'setOp', group: miners.id, op: { k: 'mine', field: 'kestrel', deliver: own.id, sell: false } })).toBeNull();
     let deliveries = 0, last = 0;
     run(sim, 1500, 0.25, () => { const v = own.storage[p]?.ore ?? 0; if (v > last + 1) deliveries++; last = v; });
     const cap = ECON.miner.cargo;
     expect(own.storage[p].ore).toBeGreaterThan(cap * 3);           // several full loads
     expect(deliveries).toBeGreaterThanOrEqual(4);                   // repeated round trips, not one
-    expect(sim.st.companies[p].credits).toBe(cr);                   // nothing was sold
+    expect(sim.st.companies[p].credits).toBeCloseTo(cr - (paid(sim, p) - paid0), 6); // nothing was sold (c3: running costs only)
     expect(sim.st.stations.astra.storage[p]?.ore ?? 0).toBe(0);     // and nothing went elsewhere
   });
 
@@ -60,10 +63,10 @@ describe('mining unloading destination', () => {
     expect(sim.command(p, { c: 'setOp', group: miners.id, op: { k: 'mine', field: 'kestrel', deliver: own.id, sell: false } })).toBeNull();
     run(sim, 60);
     delete sim.st.stations[own.id];
-    const cr = sim.st.companies[p].credits;
+    const cr = sim.st.companies[p].credits, paid0 = paid(sim, p);
     const astraOre = sim.st.stations.astra.storage[p]?.ore ?? 0;
     run(sim, 500);
-    expect(sim.st.companies[p].credits).toBe(cr);
+    expect(sim.st.companies[p].credits).toBeCloseTo(cr - (paid(sim, p) - paid0), 6);
     expect(sim.st.stations.astra.storage[p]?.ore ?? 0).toBe(astraOre);
     expect(miners.status).toMatch(/하역지 사용 불가/);
     expect(sim.st.events.filter(e => e.company === p && e.kind === 'warn' && e.text.includes('하역')).length).toBe(1); // one warning, not spam

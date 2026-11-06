@@ -334,7 +334,9 @@ export function techFx(known: string[] | undefined) {
   return out;
 }
 
-export const itemName = (id: string) => ITEMS[id]?.name ?? EQUIPMENT[id]?.name ?? (id.startsWith('bp:') ? `설계도: ${TECHS[id.slice(3)]?.name ?? id}` : id);
+/** extra item names registered by modules that cannot be imported here (e.g. blueprint fragments) */
+export const ITEM_NAME_HOOKS: ((id: string) => string | undefined)[] = [];
+export const itemName = (id: string) => ITEMS[id]?.name ?? EQUIPMENT[id]?.name ?? (id.startsWith('bp:') ? `설계도: ${TECHS[id.slice(3)]?.name ?? id}` : ITEM_NAME_HOOKS.map(f => f(id)).find(Boolean) ?? id);
 export const itemPrice = (id: string): number => ITEMS[id]?.price ?? (EQUIPMENT[id] ? equipPrice(id) : id.startsWith('bp:') ? TECHS[id.slice(3)]?.bp ?? 10000 : 50);
 function equipPrice(id: string): number {
   const r = RECIPES[id]; if (!r) return 2000;

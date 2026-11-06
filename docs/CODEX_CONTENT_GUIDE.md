@@ -1,4 +1,4 @@
-# Codex 콘텐츠 제작 가이드 (P2 초안)
+# Codex 콘텐츠 제작 가이드 (P2 초안 + P3/P4/P6 보강)
 
 > 대상: 함선·변형·프리셋·그래픽 자산을 추가하는 Codex(및 사람) 작업자.
 > 필드 정의는 `docs/CONTENT_SCHEMA.md`, 규칙 구현은 `src/content/rules.ts`·`src/content/validate.ts`.
@@ -13,7 +13,10 @@
 | 기존 선체의 **변형** 추가 (하드포인트 추가·제거, 구조 보정) | Codex | 지금 바로 게임에 반영됨 (피팅 화면의 "구조 변형") |
 | **프리셋** 추가 (무장 배치안) | Codex | 피팅 화면의 프리셋 버튼으로 바로 사용 |
 | 그래픽 자산 등록 (모델·초상화·아이콘) | Codex | 등록·검증은 지금, 게임 내 표시(모델 로더)는 P3 |
-| 새 **선체**(hull) 추가 | Codex (데이터) | 검증은 지금 통과 가능, 구매·건조 경로는 P3에서 엔진이 연결 |
+| 새 **선체**(hull) 추가 | Codex (데이터) | P3부터 구매(`sale`)·건조(`build`)·운용(`ops`)·운영비(`upkeep`)까지 데이터만으로 동작 (§10) |
+| **설계도**(BlueprintDef)와 획득 경로 | Codex (데이터) | 선체마다 선체 설계도 1개 필수, 특수 변형마다 변형 설계도 (§11) |
+| 새 **절차적 실루엣**(`mesh.base`) | **엔진(Claude)** | `src/render/shipMesh.ts` + `src/content/meshBases.ts` — 이슈로 요청. 기존 13종 + 함급 실루엣은 자유롭게 사용 |
+| 운영비·시장·예산 **규칙**(간접비, 체납 단계, 예산 회복률) | **엔진(Claude)** | 선체별 수치(`upkeep`)만 Codex |
 | 기존 장비의 피팅 규격(`equipment.ts`) 조정 | Codex 제안 → 검토 | 밸런스 변경이므로 PR 설명에 근거 필수 |
 | 새 무기·모듈 **종류**, 새 아이템·레시피·연구 | **엔진(Claude)** | `EQUIPMENT`/`WEAPONS`/`RECIPES` 수정이 필요 — 이슈로 요청 |
 | 전투 엔진, 서버 명령, 세이브 마이그레이션 | **엔진(Claude)** | Codex는 손대지 않는다 |
@@ -27,7 +30,7 @@
 4. 검사: `npm run content:check` → **0 error** 가 될 때까지 고친다. warning은 PR 설명에 이유를 적는다.
 5. 전체 확인: `npx tsc --noEmit && npm test`
 6. 눈으로 확인 (§8): 피팅 화면에서 변형·프리셋이 보이고, 하드포인트 점이 선체 위에 있는지.
-7. PR: 무엇을 왜 추가했는지 + §9 체크리스트 + 스크린샷.
+7. PR: 무엇을 왜 추가했는지 + §12 체크리스트 + 스크린샷.
 
 ## 2. 팩 만들기
 
@@ -148,7 +151,7 @@ export const FRONTIER_ASSETS: AssetDef[] = [
    그리고 `index.ts`에 `assets: FRONTIER_ASSETS`, 모델이면 변형의 `model: 'model.cruiser_mk1_picket'`(선체는 `mesh.model`).
 3. 등록되지 않은 파일, 등록됐지만 없는 파일, 디렉터리·확장자·용량 위반, 없는 대상(`for`)은 모두 오류. 라이선스 미기재는 경고.
 4. **모델의 포좌 위치 = 하드포인트 `pos`.** 게임은 포탑을 하드포인트 좌표에 그린다(서버 전투와 같은 좌표). 모델 쪽 포좌가 어긋나면 포탑이 허공에 뜬다.
-5. 현재(P2)는 모델·아이콘이 등록·검증만 되고 화면에는 절차적 메시가 쓰인다. 로더는 P3에서 연결된다.
+5. 현재는 모델·아이콘이 등록·검증만 되고 화면에는 절차적 메시(`mesh.base` 실루엣)가 쓰인다. glTF 로더는 아직 연결되지 않았다(Partial).
 
 ## 7. 검증기가 막는 것 (자주 보는 오류)
 
@@ -180,7 +183,49 @@ export const FRONTIER_ASSETS: AssetDef[] = [
 3. 확인: 구조 변형 목록에 새 변형, 프리셋 버튼, 3D 미리보기의 하드포인트 점이 선체 위, 전력·질량 막대, 적용 후 보관함 이동.
 4. 스크린샷(1920×1080) 1장을 PR에 첨부.
 
-## 9. PR 체크리스트
+## 10. 새 선체 추가 (P3) — 데이터만으로 판매·건조·운용
+
+`src/content/packs/growth/hulls.ts`의 `destroyer_vls`(창살급)·`miner_m`(굴착기급)을 복사해서 시작한다. 같은 함급(`classId`) 안에서
+**역할이 다른** 선체를 만든다(색만 바꾸거나 크기만 키우지 않는다 — 하드포인트 배치·전력·질량·`stats`·`ops`가 달라야 한다).
+
+```ts
+{
+  id: 'destroyer_example', classId: 'destroyer', name: '예시급', tier: 2, size: 'M', moduleSlots: 3, power: 40, mass: 70, blueprint: 'advanced',
+  mesh: { base: 'dd_vls', scale: 1.0 },                      // 함급 id 또는 meshBases.ts 의 실루엣
+  desc: '무엇을 잘하고 무엇을 포기했는지 한 문장씩.',
+  stats: { hpMul: 0.9, armorMul: 0.9, speedMul: 1.1 },       // 0.5~1.6
+  ops: { cruise: 120, berth: 'M' },                           // 없으면 함급 기본
+  build: { yard: 2, time: 6000, credits: 5000, tech: ['guided_missiles'], parts: { structure: 40, armor_plate: 12, engine: 2, reactor: 2, sensor: 2, electronics: 10 } },
+  upkeep: { credits: 900, supplies: { chemicals: 3 }, wear: 0.05 },
+  sale: { stations: ['helios'], price: 11000, rep: 15, stock: 2, restock: 5400 },   // 공영 판매하지 않으려면 생략
+  internals: [...], hardpoints: [...],
+}
+```
+그리고 같은 팩에 변형 `<hull>_std`(필수)와 프리셋 1개 이상, 설계도 `bp_<hull>`(§11)를 넣는다.
+
+**밸런스 규칙 (검증기가 일부를 막고, 나머지는 리뷰에서 본다):**
+- 산업선 크기 S/M/L/XL: 큰 선체일수록 척당 처리량은 크지만 **처리량당 가격·운영비는 더 비싸고**, `berth`가 커서 갈 수 있는 정거장이
+  줄고, 채굴선은 `minField`로 작은 광맥에서 효율이 절반이다. 큰 선체가 작은 선체를 완전히 대체하면 안 된다.
+- 판매 정거장의 정박 등급이 선체 `berth`보다 작으면 검증 오류.
+- 전투함 선체는 같은 함급의 mk1과 총 전력(화력×내구)이 비슷한 범위에서 **역할**이 달라야 한다(미사일·방공·중장갑·고속 등).
+
+## 11. 설계도 추가 (P6)
+
+`src/content/packs/growth/blueprints.ts` 참고. 설계도 = 건조 권리(연구와 별개). 완성 함선을 사고파는 데는 필요 없다.
+```ts
+{ id: 'bp_destroyer_example', name: '예시급 구축함 설계도', desc: '…', grade: 'advanced',
+  target: { kind: 'hull', id: 'destroyer_example' },
+  sources: [
+    { kind: 'commercial', stations: ['helios'], price: 70000, rep: 20 },
+    { kind: 'salvage', fragments: 6, chance: 0.08 },
+  ] }
+```
+- 등급이 높을수록 경로를 좁고 비싸게: common = `shop`, advanced = `commercial`/`salvage`, faction = `faction`(영향력 조건),
+  rare = `contract`/`salvage`, unique = `unique`(월드 전체 보유 한도).
+- 비 common 변형은 변형 설계도(`target: { kind: 'variant', id }`)가 있어야 얻을 수 있다(없으면 경고).
+- 설계도 id는 세이브에 저장된다. 공개 후 이름 변경·삭제 금지.
+
+## 12. PR 체크리스트
 
 - [ ] `npm run content:check` 0 error (warning이 있으면 이유를 PR에 적음)
 - [ ] `npx tsc --noEmit && npm test` 통과
@@ -189,4 +234,5 @@ export const FRONTIER_ASSETS: AssetDef[] = [
 - [ ] 변형·프리셋마다 트레이드오프가 설명(`desc`)에 드러난다
 - [ ] 자산: 등록 + 라이선스 + 용량 + 하드포인트 위치 일치
 - [ ] 게임 화면 스크린샷 첨부
+- [ ] 새 선체: `_std` 변형 + 프리셋 + 선체 설계도 + `build`가 있고, 산업선이면 크기별 트레이드오프가 `desc`·수치에 드러난다
 - [ ] 세이브·서버·전투 엔진 파일(`src/world/*`, `src/sim/*`, `src/server/*`)을 건드리지 않았다

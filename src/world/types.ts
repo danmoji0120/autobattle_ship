@@ -34,6 +34,31 @@ export interface Company {
   /** saved fitting presets (fitting screen) */
   fitPresets?: FitPreset[];
   rseq?: number;
+  /** production rights (P6, contentV ≥ 3): blueprint id → holding */
+  blueprints?: Record<string, BlueprintHolding>;
+  /** running costs and arrears (P4, contentV ≥ 3) — see world/upkeep.ts */
+  upkeep?: UpkeepState;
+}
+
+export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
+
+export interface UpkeepState {
+  /** credits owed but not yet paid (arrears) */
+  debt: number;
+  /** arrears stage 0..4 (1 warning, 2 resupply/maintenance delayed, 3 new departures held, 4 reserve proposed) */
+  stage: number;
+  /** world time arrears began (0 = none) */
+  since: number;
+  /** accrued but unsettled credits / supplies since the last settlement */
+  acc: number;
+  supplies: Record<string, number>;
+  last: number;
+  /** last settlement: what it cost and how it was covered (for the client) */
+  bill?: { t: number; credits: number; supplies: number; dock: number; overhead: number; fromStore: Record<string, number>; bought: Record<string, number>; paid: number; short: number; perHour: number };
+  /** running totals (econsim / UI) */
+  total: { credits: number; supplies: number; paid: number };
+  /** let the server move idle docked ships to reserve at stage 4 (off unless the player opts in) */
+  autoReserve?: boolean;
 }
 
 export interface FitPreset { id: string; name: string; hull: string; variant: string; hp: Record<string, string>; bay: Record<string, string> }
@@ -97,6 +122,12 @@ export interface WShip {
   warp?: { to: V; phase: 'align' | 'warp'; t: number };
   /** world time of the last gate jump (client flash) */
   jumpT?: number;
+  /** operating wear 0..1 (P4): slows mining and cruise, removed by maintenance at a capable station */
+  wear?: number;
+  /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
+  reserve?: { since: number; until?: number };
+  /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
+  listed?: string;
 }
 
 export interface WGroup {
@@ -207,11 +238,22 @@ export interface Station {
   seq?: number;
   /** player sell orders listed at this station (goods held in escrow) */
   listings?: Listing[];
+  /** NPC buying budget (P4): credits the station can pay players for goods; regenerates */
+  funds?: number;
+  fundsMax?: number;
+  /** finished ships in the public yard (P6): hull id → stock and restock progress (seconds) */
+  shipStock?: Record<string, { n: number; t: number; why?: string }>;
+  /** player ship sale listings (ship stays docked, locked) */
+  shipListings?: ShipListing[];
 }
+
+export interface ShipListing { id: string; seller: string; ship: string; price: number; t: number }
 
 export interface ShipBuild {
   id: string; classId: string; loadoutId: string;
   hull?: string; variant?: string;
+  /** growth builds (contentV ≥ 3): hull preset whose weapons it mounts (else the legacy loadout's) */
+  preset?: string;
   /** fitting modules installed at launch */
   fit: string[];
   group?: string;
@@ -381,6 +423,8 @@ export interface WorldState {
   grants?: import('./migrate').GrantRecord[];
   /** existing items that changed form during migrations (not new) */
   conversions?: import('./migrate').ConversionRecord[];
+  /** unique blueprints: id → holders (P6) */
+  uniques?: Record<string, string[]>;
 }
 
 export const emptyCargo = (): Cargo => ({ ore: 0, alloy: 0, crystal: 0 });

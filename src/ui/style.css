@@ -500,3 +500,9 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
   .fsm small, .fis { font-size: 13px; }
 }
 .gt [data-openfit] { padding: 3px 14px !important; font-size: 12.5px !important; letter-spacing: .05em; margin-left: 6px; vertical-align: middle; }
+
+/* growth: running-cost panel */
+.upkwrap { position: absolute; top: 56px; right: 16px; z-index: 40; width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 120px); overflow: auto; }
+.upkwrap .upk { padding: 12px 14px; }
+.upkwrap .gt td, .upkwrap .gt th { padding: 3px 6px; }
+.warnish { color: #ffd27a; }

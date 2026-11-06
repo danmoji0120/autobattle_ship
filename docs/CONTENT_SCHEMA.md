@@ -1,7 +1,8 @@
-# SIDERARIUM 콘텐츠 스키마 (P2)
+# SIDERARIUM 콘텐츠 스키마 (P2 + P3/P4/P6)
 
 > 기준 코드: `src/content/schema.ts`. 이 문서와 코드가 다르면 코드가 맞고 문서를 고친다.
 > P2: 장비 규격(EquipSpec), 내부 베이, 전력·질량, 하드포인트별 무기 사계(`arcBy`), 장비 id 프리셋, 함선 피팅 저장 형식 추가.
+> P3/P4/P6 (contentV 3): 선체 운용·건조·유지비·판매 데이터(`ops`·`build`·`upkeep`·`sale`·`stats`), 변형 운용 보정, 설계도(`BlueprintDef`).
 > 실제 작업 절차는 `docs/CODEX_CONTENT_GUIDE.md`. P7에서 최종본.
 
 ## 1. 구조
@@ -14,6 +15,7 @@ ContentPack (src/content/packs/<id>/index.ts)
   equipment[] EquipSpec    장비의 피팅 규격 (크기·질량·전력·마운트)
   legacy[]    LegacyLoadoutMap  기존 (classId, loadoutId) → 새 콘텐츠 (core 팩 전용)
   assets[]    AssetDef     그래픽 자산 등록
+  blueprints[] BlueprintDef 설계도 = 건조 권리와 획득 경로 (growth 팩, §4.7)
 ```
 
 - 팩은 `src/content/packs/index.ts`의 `PACKS` 배열 순서로 병합된다. 같은 종류 안에서 id가 겹치면 검증 오류.
@@ -45,8 +47,63 @@ ContentPack (src/content/packs/<id>/index.ts)
 | `moduleSlots` | 0~12 | 기존 모듈 슬롯 수 (참고용, mk1 선체의 기존 호환 기준) |
 | `power` | 0~1000 | 기본 전력 공급량. 반응로 모듈이 공급을 더한다 |
 | `mass` | 0~3000 | 장비 적재 질량 한도 (무장 + 모듈) |
-| `mesh` | `{ base, scale, model? }` | `base` = 절차적 실루엣 계열(함급 id), `scale` 0.2~5, `model` = 등록된 `ship-model` 에셋 id |
+| `mesh` | `{ base, scale, model? }` | `base` = 절차적 실루엣: 함급 id 또는 `src/content/meshBases.ts`의 전용 실루엣(`dd_vls` 등 13종), `scale` 0.2~5, `model` = 등록된 `ship-model` 에셋 id |
 | `blueprint` | BlueprintGrade | |
+| `stats?` | `{ hpMul?, armorMul?, speedMul? }` | 함급 기본 전투 수치에 곱함 (0.5~1.6). 변형 `mods`와 곱해진다 |
+| `ops?` | HullOps | 운용 수치. 없으면 함급 ECON 그대로 (mk1) — §3.2 |
+| `build?` | HullBuild | 건조 조건. mk1이 아닌 선체는 **필수** — §3.3 |
+| `upkeep?` | HullUpkeep | 운영비. 없으면 함급 기본값 — §3.4 |
+| `sale?` | HullSale | 공영 조선소 판매. 없으면 mk1은 정거장 조선소 목록 기준, 그 외는 판매 안 함 — §3.5 |
+
+### 3.2 HullOps (운용)
+
+| 필드 | 설명 |
+|---|---|
+| `cruise` | 순항 속도 |
+| `cargo` | 화물 용량 |
+| `mine` | 채굴 속도 (단위/초) |
+| `build` | 건설 속도 배율 (공작선 = 1) |
+| `berth` | 필요한 정박 등급 S/M/L/XL. 공영 정거장 등급: 헬리오스·거래소·바스티온 XL, 아스트라·노바·바르카 L, 드레이크·신더·러스트 M. 자사 정거장: 코어 M, 하역시설 1 = L, 2(또는 1 + 대형 조선소) = XL. 등급이 모자란 곳에는 하역·판매·건조 불가 |
+| `minField` | 채굴: 최대 매장량이 이보다 작은 광맥에서는 채굴 효율 ×0.5 (대형 채굴선이 작은 광맥을 독점하지 못하게) |
+
+변형 `mods`의 `cargoMul`·`mineMul`·`cruiseMul`·`buildMul`·`upkeepMul`(0.5~1.5)이 곱해진다.
+
+### 3.3 HullBuild (건조)
+
+| 필드 | 설명 |
+|---|---|
+| `yard` | 조선소 크기 1~4 (소·중·대·초대형) |
+| `time` | 건조 시간(초, 조선소 슬롯 하나 점유) |
+| `credits` | 공임 (등록 시 지불) |
+| `parts` | 부품 `{ ITEMS/EQUIPMENT id: 수량 }`. 프리셋 무장·선택 모듈이 더해진다. 변형의 `parts`도 더해짐 |
+| `tech?` | 필요한 연구 (전부) |
+| `facilities?` | 건조 정거장에 있어야 하는 시설(FACILITIES kind) |
+
+건조 = 선체 설계도 + (특수 변형이면) 변형 설계도 + 연구 + 조선소 + 시설 + 정박 등급 + 부품 + 시간. **완성된 함선을 사고팔거나
+운용하는 데는 설계도·연구가 필요 없다.**
+
+### 3.4 HullUpkeep (운영비, P4)
+
+| 필드 | 설명 |
+|---|---|
+| `credits` | 시간당 운영비 |
+| `supplies?` | 시간당 소모품 `{ 아이템: 수량 }`. 자사 창고 → 본거지 시장(실재고·실가격) 순으로 조달, 재고가 없으면 2배 가격 긴급 조달 |
+| `wear?` | 우주에서 이동·채굴하는 시간당 마모(0~1). 마모는 순항·채굴·건설을 최대 −25%까지 늦추고, 수리 시설이 있는 곳에 정박하면 자동 정비된다(비용 = 마모 × 가격 × 12%, 자사 시설 절반) |
+
+규모 간접비(8척 초과 시 척당 +3%, 최대 +60%), L/XL 선체의 공영 정거장 정박료(시간당 250/700), 예비역(운영비 15%, 출항 불가,
+재취역 10분·2시간분 비용)은 코드 규칙이다(`src/world/upkeep.ts`).
+
+### 3.5 HullSale (공영 조선소 재고, P6)
+
+| 필드 | 설명 |
+|---|---|
+| `stations` | 판매 공영 정거장 id. 정거장 정박 등급 ≥ 선체 `berth` (검증기 확인) |
+| `price` | 기준가. 실제가 = 기준가 × (1.25 − 0.25 × 재고/최대재고) |
+| `rep?` | 필요 연합 평판 |
+| `stock` | 최대 재고 |
+| `restock` | 한 척 보충 시간(초, 성계 보급 상태로 늦어짐). 보충할 때 그 정거장 시장의 합금(가격/60)·전자부품(가격/4000)을 소모, 없으면 멈춤 |
+
+공영 조선소는 **common 변형만** 판다. 특수 변형은 설계도를 얻어 직접 건조한다.
 
 ### 3.1 HardpointDef
 
@@ -76,10 +133,37 @@ universal은 모든 무기. 그 외에는 계열이 같아야 한다(실탄 = �
 | `id`, `hull`, `name`, `desc`, `blueprint` | |
 | `hardpoints?` | `{ add?: HardpointDef[], remove?: string[] }` |
 | `internals?` | `{ add?: InternalSlotDef[], remove?: string[] }` |
-| `mods?` | `{ hpMul?, armorMul?, speedMul? }`, 각 0.5~1.5 |
+| `mods?` | `{ hpMul?, armorMul?, speedMul?, cargoMul?, mineMul?, cruiseMul?, buildMul?, upkeepMul? }`, 각 0.5~1.5 |
+| `parts?` | 이 변형을 건조할 때 선체 부품에 더해지는 부품 |
 | `model?` | 등록된 `variant-model` 에셋 id |
 
 변형은 **구조만** 바꾼다. 무장 배치는 프리셋으로 표현한다. 모든 선체는 변형이 최소 1개(기본형) 있어야 한다.
+
+## 4.7 BlueprintDef (설계도, P6)
+
+설계도는 **건조 권리**다. 연구(기술 지식)와 별개이고, 회사가 보유한다(`Company.blueprints`). 설계도 아이템을 거래하는 것이
+아니라 권리를 얻는다. 잔해에서 나오는 **설계 조각**(`bpf:<설계도 id>` 아이템)만 창고에 쌓이고, `fragments`개를 모으면 복원한다.
+
+| 필드 | 설명 |
+|---|---|
+| `id` | `bp_<대상 id>` 권장 |
+| `name`, `desc` | |
+| `grade` | BlueprintGrade |
+| `target` | `{ kind: 'hull' \| 'variant' \| 'item', id }` — 선체 하나에 선체 설계도 1개(필수), 비 common 변형마다 변형 설계도 |
+| `sources` | 획득 경로 배열 (아래) |
+| `requires?` | 이 설계도로 건조할 때 추가로 필요한 연구 |
+| `runs?` | 제한 횟수 라이선스 (없으면 영구). 다시 사면 횟수 추가 |
+
+| source `kind` | 필드 | 의미 |
+|---|---|---|
+| `shop` | `stations`, `price` | 일반 판매 |
+| `commercial` | `stations`, `price`, `rep` | 고가 상업 라이선스, 연합 평판 필요 |
+| `faction` | `faction`, `stations`, `price`, `influence`, `rep?` | 세력 영향력이 `influence` 이상인 성계에서만 판매 |
+| `contract` | `minTier`, `chance` | 해당 등급 이상 소굴 토벌 계약 보상(확률) |
+| `salvage` | `fragments`, `chance` | 같은 함급 해적 잔해 회수 시 조각(확률), `fragments`개로 복원 |
+| `unique` | `limit`, `minTier` | 월드 전체에서 `limit`개 회사까지만 (선착순 계약 보상) |
+
+설계도 구매 대금의 50%는 그 정거장 구매 예산으로 들어간다. 시작 설계도(`STARTER_BLUEPRINTS`): 기본 초계함·채굴선·수송선·공작선·구축함.
 
 ## 4.5 EquipSpec (장비 규격)
 
@@ -146,10 +230,22 @@ P1의 `{ weapon, arc }` 표기는 P2에서 없어졌다. 사계 축소는 하드
 | `WShip` | `fitting` | `contentV ≥ 2`, 플레이어 함선만. `{ hp: {하드포인트→장비}, bay: {베이→모듈}, preset?, sig }` — 무장·모듈의 **원본**. `loadoutId`는 표시용 라벨, `fit`은 베이 모듈 사본 |
 | `Company` | `fitPresets[]` | 회사 피팅 프리셋 (최대 20) `{ id, name, hull, variant, hp, bay }` |
 | `WorldState` | `contentV`, `grants[]`, `conversions[]` | 마이그레이션 버전, 지급 원장, 형태 변환 원장(기존 아이템이 모양만 바뀐 기록, 지급 아님) |
+| `Company` | `blueprints` | `contentV ≥ 3`. `{ 설계도 id: { src, t, runs? } }` |
+| `Company` | `upkeep` | `contentV ≥ 3`. 체납·단계·누적 비용·최근 정산 |
+| `WShip` | `wear`, `reserve`, `listed` | 마모(0~1), 예비역, 거래소 매물 id |
+| `Station` | `funds`, `fundsMax`, `shipStock`, `shipListings` | 공영 정거장 구매 예산, 선체별 재고 `{ n, t, why? }`, 플레이어 함선 매물 |
+| `ShipBuild` | `preset` | growth 선체 건조의 무장 프리셋 |
+| `WorldState` | `uniques` | 유일 설계도 보유자 |
+
+**설계도 id·선체 id·변형 id는 세이브에 저장된다.** 이름 변경·삭제 금지.
 
 **하드포인트·베이 id는 세이브에 저장된다.** 공개된 선체의 id를 바꾸거나 지우면 기존 함선 피팅이 깨진다. 대신 새 변형/선체를 추가한다.
 
 ## 9. mk1 선체 호환 보장
+
+`ops`·`build`·`upkeep`·`sale`·`stats`가 없는 mk1 선체는 기존 함급 수치(ECON·HULLS)를 그대로 쓴다. contentV 3 미만 월드는
+설계도·운영비·예산·재고 규칙이 모두 꺼져 있어 기존과 똑같이 동작한다.
+
 
 기존 12개 선체(`*_mk1`)는 내부 베이가 모두 `special` M, 개수 = `moduleSlots`. `power`/`mass`는 "기존 프리셋 + 기존에 허용되던 모든 모듈 조합(Σ크기 ≤ 슬롯)" 중 최댓값과 **정확히** 같다.
 그래서 기존 함선은 전부 그대로 들어가고, 베이만으로 예전보다 많이 싣지는 못한다(예: 2슬롯 코르벳에 증가 장갑 2개 → 질량 초과).

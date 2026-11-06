@@ -1,9 +1,11 @@
 // Content validator: referential integrity, fitting compatibility, value ranges, legacy fidelity and
 // asset registration. Pure — file access is injected so it runs in tests and in the CLI
 // (scripts/content-check.ts, `npm run content:check`). Errors block a merge; warnings are review notes.
+import { isExtraMeshBase } from './meshBases';
+import { PUBLIC_BERTH } from '../world/hullops';
 import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
 import { COMMANDERS } from '../sim/data/commanders';
-import { EQUIPMENT, ITEMS, FACILITIES, HULLS } from '../world/industry';
+import { EQUIPMENT, ITEMS, FACILITIES, HULLS, TECHS } from '../world/industry';
 import { placeModules } from '../world/fitting';
 import { ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_STYLES, SIZES, type AssetKind, type HardpointDef } from './schema';
 import { presetMounts, variantLayout, type Registry } from './registry';
@@ -73,7 +75,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     if (!SIZES.includes(h.size)) err(at, `size "${h.size}"`);
     if (!BLUEPRINT_GRADES.includes(h.blueprint)) err(at, `blueprint "${h.blueprint}"`);
     if (!Number.isInteger(h.moduleSlots) || h.moduleSlots < 0 || h.moduleSlots > 12) err(at, `moduleSlots ${h.moduleSlots} (0~12 정수)`);
-    if (!SHIP_CLASSES[h.mesh?.base]) err(at, `mesh.base "${h.mesh?.base}" 는 렌더러 실루엣(함급 id)이어야 함`);
+    if (!SHIP_CLASSES[h.mesh?.base] && !isExtraMeshBase(h.mesh?.base)) err(at, `mesh.base "${h.mesh?.base}" 는 렌더러 실루엣(함급 id 또는 EXTRA_MESH_BASES)이어야 함`);
     if (!(h.mesh?.scale > 0.2 && h.mesh.scale < 5)) err(at, `mesh.scale ${h.mesh?.scale} (0.2~5)`);
     if (h.mesh?.model) { const a = reg.assets[h.mesh.model]; if (!a) err(at, `mesh.model 에셋 "${h.mesh.model}" 미등록`); else if (a.kind !== 'ship-model' || a.for !== h.id) err(at, `mesh.model "${a.id}" 는 이 선체용 ship-model 이어야 함`); }
     if (!h.name?.trim() || !h.desc?.trim()) err(at, '이름·설명 필수');
@@ -124,6 +126,55 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     if (!(h.power >= 0 && h.power <= 1000)) err(`hull ${h.id}`, `power ${h.power} (0~1000)`);
     if (!(h.mass > 0 && h.mass <= 3000)) err(`hull ${h.id}`, `mass ${h.mass} (0 초과 3000 이하)`);
   }
+
+  // ── growth data (P3/P4/P6): build, upkeep, sale, ops, stats
+  const STATIONS = Object.keys(PUBLIC_BERTH);
+  const known = (k: string) => !!(ITEMS[k] || EQUIPMENT[k]);
+  for (const h of Object.values(reg.hulls)) {
+    const at = `hull ${h.id}`;
+    for (const [k, v] of Object.entries(h.stats ?? {})) if (!(v! >= 0.5 && v! <= 1.6)) err(at, `stats.${k} ${v} (0.5~1.6)`);
+    if (h.ops) {
+      const o = h.ops;
+      if (o.berth && !SIZES.includes(o.berth)) err(at, `ops.berth "${o.berth}"`);
+      for (const k of ['cruise', 'cargo', 'mine', 'build', 'minField'] as const) if (o[k] !== undefined && !(o[k]! >= 0)) err(at, `ops.${k} ${o[k]}`);
+    }
+    if (h.build) {
+      const b = h.build;
+      if (![1, 2, 3, 4].includes(b.yard)) err(at, `build.yard ${b.yard} (1~4)`);
+      if (!(b.time > 0 && b.credits >= 0)) err(at, 'build.time > 0, build.credits ≥ 0');
+      for (const k of Object.keys(b.parts)) if (!known(k)) err(at, `build.parts "${k}" 는 ITEMS/EQUIPMENT 에 없음`);
+      for (const t of b.tech ?? []) if (!TECHS[t]) err(at, `build.tech "${t}" 없음`);
+      for (const f of b.facilities ?? []) if (!FACILITIES[f]) err(at, `build.facilities "${f}" 없음`);
+    } else if (!h.id.endsWith('_mk1')) err(at, 'mk1 이 아닌 선체는 build 필수');
+    if (h.upkeep) for (const k of Object.keys(h.upkeep.supplies ?? {})) if (!known(k)) err(at, `upkeep.supplies "${k}" 없음`);
+    if (h.sale) {
+      for (const sid of h.sale.stations) if (!STATIONS.includes(sid)) err(at, `sale.stations "${sid}" 는 공영 정거장 id 가 아님`);
+      if (!(h.sale.price > 0 && h.sale.stock >= 1 && h.sale.restock > 0)) err(at, 'sale.price > 0, stock ≥ 1, restock > 0');
+      const berth = h.ops?.berth;
+      if (berth) for (const sid of h.sale.stations) if (PUBLIC_BERTH[sid] && SIZES.indexOf(PUBLIC_BERTH[sid]) < SIZES.indexOf(berth)) err(at, `sale.stations "${sid}" 의 정박 등급(${PUBLIC_BERTH[sid]})이 선체(${berth})보다 작음`);
+    }
+    if (h.classId !== 'platform' && !Object.values(reg.blueprints).some(b => b.target.kind === 'hull' && b.target.id === h.id)) (h.id.endsWith('_mk1') ? warn : err)(at, '이 선체의 설계도(BlueprintDef target hull)가 없음 — 건조 불가');
+  }
+  // ── blueprints
+  for (const b of Object.values(reg.blueprints)) {
+    const at = `blueprint ${b.id}`;
+    if (!ID.test(b.id)) err(at, 'id 형식');
+    if (!b.name?.trim() || !b.desc?.trim()) err(at, '이름·설명 필수');
+    if (!BLUEPRINT_GRADES.includes(b.grade)) err(at, `grade "${b.grade}"`);
+    const t = b.target;
+    if (t.kind === 'hull' ? !reg.hulls[t.id] : t.kind === 'variant' ? !reg.variants[t.id] : !known(t.id)) err(at, `target ${t.kind} "${t.id}" 없음`);
+    for (const r of b.requires ?? []) if (!TECHS[r]) err(at, `requires "${r}" 없음`);
+    if (b.runs !== undefined && !(Number.isInteger(b.runs) && b.runs > 0)) err(at, `runs ${b.runs}`);
+    if (!b.sources.length) warn(at, '획득 경로(sources) 없음');
+    for (const s of b.sources) {
+      if ('stations' in s) for (const sid of s.stations) if (!STATIONS.includes(sid)) err(at, `sources.${s.kind}.stations "${sid}" 없음`);
+      if ('price' in s && !(s.price > 0)) err(at, `sources.${s.kind}.price ${s.price}`);
+      if ('chance' in s && !(s.chance > 0 && s.chance <= 1)) err(at, `sources.${s.kind}.chance ${s.chance} (0~1)`);
+      if (s.kind === 'salvage' && !(Number.isInteger(s.fragments) && s.fragments >= 2)) err(at, `salvage.fragments ${s.fragments} (정수 ≥ 2)`);
+      if (s.kind === 'unique' && !(Number.isInteger(s.limit) && s.limit >= 1)) err(at, `unique.limit ${s.limit}`);
+    }
+  }
+  for (const v of Object.values(reg.variants)) if (v.blueprint !== 'common' && !Object.values(reg.blueprints).some(b => b.target.kind === 'variant' && b.target.id === v.id)) warn(`variant ${v.id}`, `${v.blueprint} 변형인데 변형 설계도가 없음 — 아직 얻을 수 없음`);
 
   // ── variants
   for (const v of Object.values(reg.variants)) {

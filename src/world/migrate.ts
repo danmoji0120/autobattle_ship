@@ -5,14 +5,19 @@
 //     after = before + granted   (per item, per company)
 // Rules and the operating procedure: docs/GROWTH_PLAN.md §6.
 import type { WShip, WorldState, ShipBuild } from './types';
-import { legacyOf } from '../content/registry';
+import { legacyOf, CONTENT } from '../content/registry';
 import { EQUIPMENT } from './industry';
 import { getLoadout } from '../sim/data/ships';
 import { loadoutEquipment } from './industry';
 import { fittingFromLegacy, fittingItems, legacySig, bayModules } from './fitting';
 import { addc } from './types';
+import { HULLS } from './industry';
+import { STARTER_BLUEPRINTS, hullBlueprint } from './blueprints';
+import { seedFunds } from './market';
+import { buildWeapons } from './production';
+import { yardHulls, hullSale } from './hullops';
 
-export const CONTENT_VERSION = 2;
+export const CONTENT_VERSION = 3;
 /** contentV from which player ships carry a real fitting (P2) */
 export const FITTING_V = 2;
 
@@ -42,6 +47,8 @@ export interface MigrationReport {
   converted: ConversionRecord[];
   /** modules that had no bay and went to the company's storage (nothing is dropped) */
   returned: { company: string; ship: string; station: string; item: string }[];
+  /** v3: production rights granted (not items) per company */
+  blueprints?: Record<string, string[]>;
 }
 
 /** hull + variant of a ship from its legacy class/loadout */
@@ -61,9 +68,9 @@ export function syncShipContent(st: WorldState, s: WShip | ShipBuild): void {
 
 /** move a save to CONTENT_VERSION. Idempotent; also repairs ships created by an older build of the
  *  code after the save was migrated (rollback then roll forward). */
-export function migrateContent(st: WorldState): MigrationReport {
+export function migrateContent(st: WorldState, target = CONTENT_VERSION): MigrationReport {
   const from = st.contentV ?? 0;
-  const rep: MigrationReport = { from, to: Math.max(from, CONTENT_VERSION), ships: 0, builds: 0, unmapped: [], granted: [], fitted: 0, converted: [], returned: [] };
+  const rep: MigrationReport = { from, to: Math.max(from, target), ships: 0, builds: 0, unmapped: [], granted: [], fitted: 0, converted: [], returned: [] };
   st.grants ??= [];
   // v1: every ship and queued build gets its hull and structural variant (no items change hands)
   const fill = (x: WShip | ShipBuild, kind: 'ship' | 'build') => {
@@ -78,9 +85,13 @@ export function migrateContent(st: WorldState): MigrationReport {
   // become fitted items (same items, new form: recorded as conversions, not grants). Also repairs ships
   // made or refitted by an older build after the save was migrated (their loadout/fit changed).
   const conv = new Map<string, ConversionRecord>();
+  if (rep.to < 2) { st.contentV = rep.to; return rep; }
+  const legacyHull = new Set(Object.values(CONTENT.legacy).map(l => l.hull));
   for (const s of Object.values(st.ships)) {
     if (st.companies[s.owner]?.kind !== 'player') continue;
     if (s.fitting && s.fitting.sig === legacySig(s.loadoutId, s.fit)) continue;
+    // growth hulls have no legacy loadout to rebuild from: their fitting is already the source of truth
+    if (s.fitting && s.hull && !legacyHull.has(s.hull)) continue;
     const r = fittingFromLegacy(s.classId, s.loadoutId, s.fit);
     if (!r) { rep.unmapped.push(`fitting ${s.id} (${s.classId}/${s.loadoutId})`); continue; }
     s.hull = r.hull; s.variant = r.variant; s.fitting = r.fitting;
@@ -102,6 +113,30 @@ export function migrateContent(st: WorldState): MigrationReport {
   }
   rep.converted = [...conv.values()];
   if (rep.converted.length) (st.conversions ??= []).push(...rep.converted);
+  // v3 (P3/P4/P6): production rights become blueprints. Every company keeps the right to build what it
+  // could build before (mk1 hulls with no design tech, or whose design tech it knows); public stations
+  // get NPC buying budgets and finished-ship stock. No item, credit or ship changes hands.
+  if (from < 3 && rep.to >= 3) {
+    rep.blueprints = {};
+    for (const co of Object.values(st.companies)) {
+      if (co.kind !== 'player') continue;
+      const want = new Set(STARTER_BLUEPRINTS);
+      for (const h of Object.values(HULLS)) if (!h.tech || co.tech?.includes(h.tech)) { const b = hullBlueprint(`${h.classId}_mk1`); if (b) want.add(b); }
+      const got: string[] = [];
+      for (const b of want) {
+        if (co.blueprints?.[b]) continue;
+        (co.blueprints ??= {})[b] = { src: 'migration', t: st.time };
+        got.push(b);
+        rep.granted.push({ v: 3, at: st.time, company: co.id, ref: co.homeStation, item: `blueprint:${b}`, n: 1, why: '기존 건조 권한 → 설계도 (c3)' });
+      }
+      rep.blueprints[co.id] = got;
+    }
+    seedFunds(st);
+    for (const x of Object.values(st.stations)) {
+      if (!x.public) continue;
+      for (const h of yardHulls(x)) { const sale = hullSale(h); if (sale) (x.shipStock ??= {})[h] ??= { n: sale.stock, t: 0 }; }
+    }
+  }
   st.contentV = rep.to;
   st.grants.push(...rep.granted);
   return rep;
@@ -132,7 +167,7 @@ export function census(w: WorldState) {
   // a started build has already taken its modules and weapons out of storage
   for (const s of own) for (const b of s.builds ?? []) if (b.started) {
     for (const k of b.fit ?? []) add(k, 1);
-    for (const [k, n] of Object.entries(loadoutEquipment(getLoadout(b.classId, b.loadoutId)?.mounts ?? []))) add(k, n);
+    for (const [k, n] of Object.entries(buildWeapons(b.classId, b.loadoutId, b.preset))) add(k, n);
   }
   const granted: Record<string, number> = {};
   for (const g of w.grants ?? []) if (ids.has(g.company)) granted[g.item] = (granted[g.item] ?? 0) + g.n;

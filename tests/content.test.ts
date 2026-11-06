@@ -125,7 +125,10 @@ describe('content save migration (P1)', () => {
     const sim = new WorldSim(st);
     const rep = sim.contentReport!;
     expect(rep.from).toBe(0); expect(rep.to).toBe(CONTENT_VERSION);
-    expect(rep.unmapped).toEqual([]); expect(rep.granted).toEqual([]);
+    expect(rep.unmapped).toEqual([]);
+    // the only grants are the v3 blueprint ledger (rights, not items); no equipment or ship is granted
+    expect(rep.granted.filter(g => g.v < 3)).toEqual([]);
+    for (const g of rep.granted) expect(g.item).toMatch(/^blueprint:/);
     expect(rep.ships).toBe(Object.keys(sim.st.ships).length);
     for (const s of Object.values(sim.st.ships)) {
       expect(sim.st.ships[s.id].hull).toBe(legacyOf(s.classId, s.loadoutId)!.hull);
