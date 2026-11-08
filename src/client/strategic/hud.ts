@@ -14,6 +14,7 @@ import { secAt, effSec } from '../../world/security';
 import { FACTION_NAME, LAIR_FOOTHOLD } from '../../world/factions';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
+import { CHART_HEIGHT, CHART_STARS, CHART_WIDTH, chartPoint, chartRoute, edgeKey } from './galaxyMap';
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, matsOf, type Mat } from '../../world/construction';
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
@@ -172,8 +173,10 @@ export class PmcHud {
     on(window, 'keydown', (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'SELECT') return;
+      if (e.code === 'Escape') { if (this.fitScreen) this.fitScreen.close(); else if (this.modal) this.closeModal(); else if (this.galaxy) this.toggleGalaxy(); else if (this.mode) this.setMode(null); else this.select(null); }
+      if (this.galaxy && e.code === 'Tab' && this.galaxy.contains(e.target as Node)) return;
+      if (this.galaxy && e.code !== 'Tab' && e.code !== 'Escape') return;
       this.keys.add(e.code);
-      if (e.code === 'Escape') { if (this.fitScreen) this.fitScreen.close(); else if (this.modal) this.closeModal(); else if (this.mode) this.setMode(null); else this.select(null); }
       if (e.code === 'Space' && this.c.sp) { e.preventDefault(); this.c.setSpeed(this.c.speed > 0 ? 0 : 1); }
       if (this.c.sp && /^Digit[1-4]$/.test(e.code)) this.c.setSpeed([1, 2, 4, 8][Number(e.code.slice(5)) - 1]);
       const keyOps: Record<string, string> = { KeyM: 'move', KeyD: 'dock', KeyN: 'mine', KeyP: 'patrol', KeyG: 'escort', KeyA: 'attack', KeyI: 'idle', KeyT: 'release' };
@@ -350,21 +353,30 @@ export class PmcHud {
 
   private galaxy: HTMLElement | null = null;
   private galRenderKey = '';
+  private galCentered = false;
+  private galSel: string | null = null;
+  private galZoom: number | null = null;
+
   toggleGalaxy() {
-    if (this.galaxy) { this.galaxy.remove(); this.galaxy = null; this.galRenderKey = ''; return; }
+    if (this.galaxy) { this.galaxy.remove(); this.galaxy = null; this.galRenderKey = ''; this.galCentered = false; return; }
+    this.keys.clear();
     this.galaxy = h('div', 'modal galaxy');
     this.root.appendChild(this.galaxy);
     this.galaxy.onclick = e => { if (e.target === this.galaxy) this.toggleGalaxy(); };
     this.renderGalaxy();
+    const active = this.galSel ?? this.v.sys?.id;
+    [...this.galaxy.querySelectorAll<SVGGElement>('[data-sys]')].find(n => n.dataset.sys === active)?.focus({ preventScroll: true });
   }
 
   private renderGalaxy(force = false) {
     const el = this.galaxy; if (!el) return;
-    const st = this.st;
-    const W = 1200, H = 600;
-    const fit = Math.min(1, Math.max(.25, (innerWidth - 70) / W));
-    const zoom = this.galZoom ?? Math.max(.72, fit);
-    const P = (s: { map: { x: number; y: number } }) => ({ x: 90 + s.map.x * 1020, y: 75 + s.map.y * 450 });
+    const st = this.st, W = CHART_WIDTH, H = CHART_HEIGHT;
+    const oldViewport = el.querySelector<HTMLElement>('.galviewport');
+    const estimatedWidth = Math.min(innerWidth - 24, 1640) - (innerWidth > 900 ? 340 : 0);
+    const estimatedHeight = innerWidth > 900 ? Math.min(innerHeight - 160, 780) : innerHeight * .43;
+    const fit = Math.min(1, Math.max(.12, Math.min((oldViewport?.clientWidth || estimatedWidth) / W, (oldViewport?.clientHeight || estimatedHeight) / H)));
+    const zoom = this.galZoom ?? Math.max(.68, fit);
+    const P = (s: typeof st.systems[string]) => chartPoint(s, st.worldLayout);
     const g = this.group ? st.groups[this.group] : null;
     const gSys = g ? this.groupSys(g) : undefined;
     const ownedShips: Record<string, number> = {}, ownedStations: Record<string, number> = {};
@@ -374,64 +386,107 @@ export class PmcHud {
     const stations = sel ? Object.values(st.stations).filter(x => sysAt(st.systems, x.pos)?.id === sel.id) : [];
     const fields = sel ? Object.values(st.fields).filter(x => !x.salvage && sysAt(st.systems, x.pos)?.id === sel.id) : [];
     const lairs = sel ? Object.values(st.lairs).filter(x => sysAt(st.systems, x.pos)?.id === sel.id) : [];
-    // Most snapshots do not change this panel. Avoid parsing and morphing the whole SVG every 0.4 s.
-    const key = JSON.stringify({ zoom, selected: sel?.id, here: this.v.sys?.id, group: g && [g.id, g.name, g.owner, gSys], ownedShips, ownedStations,
+    const key = JSON.stringify({ zoom, layout: st.worldLayout, selected: sel?.id, here: this.v.sys?.id, group: g && [g.id, g.name, g.owner, gSys], ownedShips, ownedStations,
       systems: Object.values(st.systems).map(s => [s.id, s.name, s.map.x, s.map.y, s.star.color, Math.round(effSec(s)), secBand(effSec(s)).min, s.gates.map(gt => gt.to)]),
       detail: sel && [sel.desc, sel.security, Math.round(sel.heat), sel.heat > 1, sel.stats, sel.inf && [Math.round(sel.inf.union), Math.round(sel.inf.pirates), Math.round(sel.inf.guild), sel.inf.pirates < LAIR_FOOTHOLD], (sel.recoverUntil ?? 0) > st.time,
-        stations.map(s => [s.id, s.name, s.tax]), fields.map(f => [f.id, f.name, f.res, f.mix, f.rich]), lairs.map(l => [l.id, l.name, l.alive])] });
+        stations.map(s => [s.id, s.name, s.tax, s.owner, !!s.market, s.services.shipyard.length]), fields.map(f => [f.id, f.name, f.res, f.mix, f.rich]), lairs.map(l => [l.id, l.name, l.alive])] });
     if (!force && key === this.galRenderKey) return;
     this.galRenderKey = key;
-    let svg = `<svg width="${Math.round(W * zoom)}" height="${Math.round(H * zoom)}" viewBox="0 0 ${W} ${H}" class="galsvg" role="group" aria-label="점프게이트로 연결된 성계 지도">`;
+    const route = g?.owner === this.me ? chartRoute(st.systems, gSys, sel?.id) : new Set<string>();
+    let svg = `<svg width="${Math.round(W * zoom)}" height="${Math.round(H * zoom)}" viewBox="0 0 ${W} ${H}" class="galsvg" role="group" aria-label="점프게이트로 연결된 성계 지도">
+      <defs><radialGradient id="gal-core"><stop stop-color="#315a79" stop-opacity=".48"/><stop offset="1" stop-color="#142b44" stop-opacity="0"/></radialGradient>
+      <radialGradient id="gal-rim"><stop stop-color="#704633" stop-opacity=".38"/><stop offset="1" stop-color="#291a27" stop-opacity="0"/></radialGradient>
+      <radialGradient id="gal-deep"><stop stop-color="#44416e" stop-opacity=".38"/><stop offset="1" stop-color="#121b35" stop-opacity="0"/></radialGradient></defs>
+      <rect width="${W}" height="${H}" fill="#07111e"/><ellipse cx="540" cy="440" rx="590" ry="430" fill="url(#gal-core)"/>
+      <ellipse cx="1230" cy="225" rx="450" ry="300" fill="url(#gal-rim)"/><ellipse cx="1030" cy="790" rx="580" ry="300" fill="url(#gal-deep)"/>
+      <ellipse cx="230" cy="720" rx="290" ry="170" fill="url(#gal-core)" opacity=".32"/><ellipse cx="1430" cy="670" rx="310" ry="210" fill="url(#gal-deep)" opacity=".45"/>
+      <g class="gal-stars">${CHART_STARS}</g>
+      ${st.worldLayout === 'p9' ? `<g class="gal-regions" aria-hidden="true" style="font-size:${zoom < .45 ? Math.round(11 / zoom) : 14}px"><text x="210" y="135">수도권 · 산업 회랑</text><text x="1170" y="55">북방 외곽</text><text x="255" y="945">남부 변경</text><text x="1260" y="550">무법 외곽</text></g>` : ''}`;
     const done = new Set<string>();
     for (const s of Object.values(st.systems)) for (const gt of s.gates) {
-      const k = [s.id, gt.to].sort().join(); if (done.has(k)) continue; done.add(k);
-      if (!st.systems[gt.to]) continue;
+      const k = edgeKey(s.id, gt.to); if (done.has(k) || !st.systems[gt.to]) continue; done.add(k);
       const a = P(s), b = P(st.systems[gt.to]);
-      svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#4a7aa0" stroke-width="2" stroke-dasharray="6 5" opacity=".7"/>`;
+      const choke = st.worldLayout === 'p9' && k === edgeKey('junction', 'shard');
+      svg += `<line class="gal-link${choke ? ' is-choke' : ''}${route.has(k) ? ' is-route' : ''}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
     }
     for (const s of Object.values(st.systems)) {
-      const p = P(s), eff = effSec(s), band = secBand(eff);
-      const here = this.v.sys?.id === s.id;
-      const selected = (this.galSel ?? this.v.sys?.id) === s.id;
-      svg += `<g class="gnode" data-sys="${s.id}" role="button" tabindex="0" aria-label="${esc(s.name)} · 치안 ${Math.round(eff)}" style="cursor:pointer">
+      const p = P(s), eff = effSec(s), band = secBand(eff), here = this.v.sys?.id === s.id;
+      const selected = sel?.id === s.id, showLabel = zoom >= .45;
+      const anchor = p.label === 'left' ? 'end' : 'start', lx = p.x + (p.label === 'left' ? -24 : 24);
+      const labelSize = 19;
+      const labelWidth = [...s.name].reduce((n, ch) => n + (ch === ' ' ? 7 : 19), 0);
+      const hitLeft = p.label === 'left' ? p.x - 30 - labelWidth : p.x - 20;
+      const hitWidth = labelWidth + 50;
+      svg += `<g class="gnode${selected ? ' is-selected' : ''}${here ? ' is-here' : ''}" data-sys="${esc(s.id)}" role="button" tabindex="0" aria-pressed="${selected}" aria-label="${esc(s.name)} · 치안 ${Math.round(eff)}">
         <title>${esc(s.name)} · ${band.name} · 치안 ${Math.round(eff)}</title>
-        <circle cx="${p.x}" cy="${p.y}" r="${here || selected ? 25 : 21}" fill="${band.color}" opacity=".16"/>
-        <circle cx="${p.x}" cy="${p.y}" r="11" fill="${s.star.color}" stroke="${band.color}" stroke-width="3"/>
-        ${here || selected ? `<circle cx="${p.x}" cy="${p.y}" r="29" fill="none" stroke="${selected ? '#fff' : '#8fdcff'}" stroke-width="${selected ? 2 : 1}" opacity=".8"/>` : ''}
-        <text class="galname" x="${p.x}" y="${p.y - 33}" text-anchor="middle" fill="#e8f4ff" font-size="15" font-weight="700">${esc(s.name)}</text>
-        <text x="${p.x}" y="${p.y + 43}" text-anchor="middle" fill="${band.color}" font-size="13">치안 ${Math.round(eff)}${here ? ' · 현재' : ''}</text>
-        ${ownedShips[s.id] || ownedStations[s.id] ? `<text x="${p.x}" y="${p.y + 59}" text-anchor="middle" fill="#5fd4ff" font-size="12">함선 ${ownedShips[s.id] ?? 0}${ownedStations[s.id] ? ` · 기지 ${ownedStations[s.id]}` : ''}</text>` : ''}
+        ${showLabel ? `<rect class="gal-node-hit" x="${hitLeft}" y="${p.y - 23}" width="${hitWidth}" height="${ownedShips[s.id] || ownedStations[s.id] ? 65 : 50}"/>` : `<circle class="gal-node-hit" cx="${p.x}" cy="${p.y}" r="${Math.min(65, Math.max(22, 17 / zoom))}"/>`}
+        <circle class="gal-node-halo" cx="${p.x}" cy="${p.y}" r="23" fill="${band.color}"/>
+        ${here || selected ? `<circle class="gal-node-ring" cx="${p.x}" cy="${p.y}" r="${selected ? 19 : 17}"/>` : ''}
+        <circle class="gal-node-star" cx="${p.x}" cy="${p.y}" r="9" fill="${s.star.color}" stroke="${band.color}"/>
+        <circle cx="${p.x}" cy="${p.y}" r="2.5" fill="#fff"/>
+        ${showLabel ? `<text class="galname" x="${lx}" y="${p.y - 4}" text-anchor="${anchor}" font-size="${labelSize}">${esc(s.name)}</text>
+        <text class="gal-node-sec" x="${lx}" y="${p.y + 17}" text-anchor="${anchor}" fill="${band.color}">치안 ${Math.round(eff)}${here ? ' · 현재' : ''}</text>
+        ${ownedShips[s.id] || ownedStations[s.id] ? `<text class="gal-node-owned" x="${lx}" y="${p.y + 34}" text-anchor="${anchor}">함선 ${ownedShips[s.id] ?? 0}${ownedStations[s.id] ? ` · 기지 ${ownedStations[s.id]}` : ''}</text>` : ''}` : ''}
       </g>`;
     }
     svg += '</svg>';
-    let info = '';
+    let info = '<div class="galinfo-main"><p class="gal-empty">성계를 선택하면 항로와 시설을 볼 수 있습니다.</p></div>';
     if (sel) {
-      const eff = effSec(sel);
-      const hops = gSys ? jumps(st.systems, gSys, sel.id) : 0;
-      info = `<div class="galinfo"><div class="stitle">${esc(sel.name)} <span class="secb" style="background:${secBand(eff).color}">${secBand(eff).name} · 치안 ${Math.round(eff)} (기본 ${sel.security})</span></div>
-        <div class="dim">${esc(sel.desc)}</div>
-        <div class="svc">정거장: ${stations.map(x => esc(x.name) + (x.tax ? ` <span class="dim">(세금 ${Math.round(x.tax * 100)}%)</span>` : '')).join(', ') || '없음'}</div>
-        <div class="svc">자원: ${fields.map(f => `${esc(f.name)} <span style="color:${RES_COLOR[f.res]}">${Object.keys(f.mix ?? { [f.res]: 1 }).map(r => esc(RES_NAME[r])).join(' / ')}</span>${(f.rich ?? 1) > 1 ? ` <span class="good">×${(f.rich ?? 1).toFixed(2)}</span>` : (f.rich ?? 1) < 1 ? ` <span class="dim">×${(f.rich ?? 1).toFixed(2)}</span>` : ''}`).join(' · ') || '없음'}</div>
-        ${lairs.length ? `<div class="svc warn">해적 거점: ${lairs.map(l => `${esc(l.name)}${l.alive ? '' : ` (파괴됨${(sel.inf?.pirates ?? 0) < LAIR_FOOTHOLD ? ' — 해적 세력이 약해 재건 불가' : ''})`}`).join(', ')}</div>` : ''}
-        ${sel.inf ? `<div class="svc">세력 판도 ${(['union', 'pirates', 'guild'] as const).map(k => `<span class="infb" title="${FACTION_NAME[k]}"><b style="color:${k === 'union' ? '#7fb0ff' : k === 'pirates' ? '#ff4a3a' : '#e8c070'}">${FACTION_NAME[k]}</b> <i><u style="width:${Math.round(sel.inf![k])}%;background:${k === 'union' ? '#7fb0ff' : k === 'pirates' ? '#ff4a3a' : '#e8c070'}"></u></i> ${Math.round(sel.inf![k])}</span>`).join(' ')}${(sel.recoverUntil ?? 0) > st.time ? ' <span class="good">· 재건 호황 (시장 공급 증가)</span>' : ''}</div>` : ''}
-        <div class="svc dim">최근 기록 — 해적 격침 ${sel.stats.pirateKills} · 연합 손실 ${sel.stats.unionLosses} · 민간 피해 ${sel.stats.civLosses}${sel.heat > 1 ? ` · 해적 활동도 ${Math.round(sel.heat)}` : ''}</div>
-        <div class="mrow"><button class="btn go" data-view="${sel.id}">이 성계 보기</button>
-        ${g && g.owner === this.me ? `<button class="btn" data-goto="${sel.id}" ${gSys === sel.id ? 'disabled' : ''}>${esc(g.name)} 이동 (${hops}회 점프)</button>` : '<span class="dim small">편대를 선택하면 이 성계로 이동을 명령할 수 있습니다.</span>'}</div></div>`;
+      const eff = effSec(sel), band = secBand(eff), hops = gSys ? jumps(st.systems, gSys, sel.id) : null;
+      const stationRows = stations.map(s => {
+        const kind = s.owner === this.me ? '자사 정거장' : [s.market ? '시장' : '', s.services.shipyard.length ? '조선소' : ''].filter(Boolean).join(' · ') || '정거장';
+        return `<button class="gal-object" data-gal-station="${esc(s.id)}"><span class="gal-object-icon">◈</span><span><b>${esc(s.name)}</b><small>${kind}${s.tax ? ` · 세금 ${Math.round(s.tax * 100)}%` : ''}</small></span><span class="gal-object-arrow">↗</span></button>`;
+      }).join('') || '<p class="gal-empty">등록된 정거장이 없습니다.</p>';
+      const fieldRows = fields.map(f => `<button class="gal-object" data-gal-field="${esc(f.id)}"><span class="gal-object-icon resource">◇</span><span><b>${esc(f.name)}</b><small>${Object.keys(f.mix ?? { [f.res]: 1 }).map(r => esc(RES_NAME[r])).join(' · ')}${(f.rich ?? 1) !== 1 ? ` · 효율 ×${(f.rich ?? 1).toFixed(2)}` : ''}</small></span><span class="gal-object-arrow">↗</span></button>`).join('') || '<p class="gal-empty">확인된 자원 지대가 없습니다.</p>';
+      info = `<div class="galinfo-main"><div class="gal-detail-kicker">선택한 성계</div>
+        <div class="gal-detail-title"><h2>${esc(sel.name)}</h2><span class="gal-detail-dot" style="background:${band.color}"></span></div>
+        <div class="gal-security"><span style="color:${band.color}">${band.name}</span><b>치안 ${Math.round(eff)}</b><div class="gal-security-bar"><i style="width:${Math.max(0, Math.min(100, eff))}%;background:${band.color}"></i></div></div>
+        <p class="gal-description">${esc(sel.desc)}</p>
+        <div class="gal-metrics"><div><b>${stations.length}</b><span>정거장</span></div><div><b>${fields.length}</b><span>자원 지대</span></div><div><b>${ownedShips[sel.id] ?? 0}</b><span>자사 함선</span></div></div>
+        <section class="gal-section"><div class="gal-section-head"><h3>항로</h3><span>${hops === null ? '편대 미선택' : hops >= 99 ? '연결 없음' : `${hops}회 점프`}</span></div>
+          <p class="gal-route-copy">${g && gSys ? `${esc(g.name)} · ${esc(st.systems[gSys]?.name ?? gSys)}에서 출발` : '편대를 선택하면 이 성계까지의 항로가 표시됩니다.'}</p></section>
+        <section class="gal-section"><div class="gal-section-head"><h3>주요 정거장</h3><span>${stations.length}</span></div><div class="gal-objects">${stationRows}</div></section>
+        <section class="gal-section"><div class="gal-section-head"><h3>자원 지대</h3><span>${fields.length}</span></div><div class="gal-objects">${fieldRows}</div></section>
+        ${lairs.length ? `<section class="gal-section"><div class="gal-section-head"><h3>해적 거점</h3><span>${lairs.length}</span></div>${lairs.map(l => `<p class="gal-threat">${esc(l.name)}${l.alive ? ' · 활동 중' : ` · 파괴됨${(sel.inf?.pirates ?? 0) < LAIR_FOOTHOLD ? ' · 재건 불가' : ''}`}</p>`).join('')}</section>` : ''}
+        ${sel.inf ? `<section class="gal-section"><div class="gal-section-head"><h3>세력 판도</h3></div><div class="gal-influence">${(['union', 'pirates', 'guild'] as const).map(k => `<span><b>${FACTION_NAME[k]}</b> ${Math.round(sel.inf![k])}</span>`).join('')}</div>${(sel.recoverUntil ?? 0) > st.time ? '<p class="good small">재건 호황 · 시장 공급 증가</p>' : ''}</section>` : ''}
+        <p class="gal-history">최근 기록 · 해적 격침 ${sel.stats.pirateKills} · 연합 손실 ${sel.stats.unionLosses} · 민간 피해 ${sel.stats.civLosses}${sel.heat > 1 ? ` · 해적 활동 ${Math.round(sel.heat)}` : ''}</p></div>
+        <div class="galinfo-actions"><button class="btn go" data-view="${esc(sel.id)}">이 성계 보기</button>
+        ${g && g.owner === this.me ? `<button class="btn" data-goto="${esc(sel.id)}" aria-label="${esc(g.name)} 이동" ${gSys === sel.id || hops === null || hops >= 99 ? 'disabled' : ''}>${gSys === sel.id ? '현재 성계' : hops === null || hops >= 99 ? '경로 없음' : `편대 이동 · ${hops}회 점프`}</button>` : '<span class="gal-action-hint">편대를 선택하면 이동을 명령할 수 있습니다.</span>'}</div>`;
     }
-    morph(el, `<div class="panel sbox gbox"><div class="shdr"><div><div class="stitle">성계 지도 <span class="dim small">${Object.keys(st.systems).length}개 성계</span></div><div class="dim">선은 점프게이트 연결 · 색은 치안 · 클릭: 정보 · 더블클릭: 성계 보기</div></div><button class="btn" data-close aria-label="지도 닫기">✕</button></div><div class="galcontrols"><span class="dim small">지도를 스크롤해 이동</span><button class="btn mini" data-zoom="out" aria-label="지도 축소">−</button><span class="dim small">${Math.round(zoom * 100)}%</span><button class="btn mini" data-zoom="in" aria-label="지도 확대">＋</button><button class="btn mini" data-zoom="fit">전체 보기</button></div><div class="galviewport">${svg}</div>${info}</div>`);
+    morph(el, `<div class="panel gbox"><header class="galhead"><div><span class="gal-eyebrow">SIDERARIUM / 항행 정보</span><h1>성계 지도</h1></div><p>성계를 선택해 항로와 기회를 살펴보세요.</p><button class="btn gal-close" data-close aria-label="지도 닫기">✕</button></header>
+      <div class="gal-layout"><div class="gal-main"><div class="gal-mapbar"><div><span class="gal-eyebrow">항로망</span><b>${Object.keys(st.systems).length}개 성계</b></div><div class="galcontrols"><button class="btn mini" data-zoom="out" aria-label="지도 축소">−</button><span>${Math.round(zoom * 100)}%</span><button class="btn mini" data-zoom="in" aria-label="지도 확대">＋</button><button class="btn mini gal-fit" data-zoom="fit">전체 보기</button></div></div>
+      <div class="galviewport">${svg}</div><div class="gal-map-foot"><div class="gal-legend"><span><i class="gal-legend-line"></i>점프 항로</span>${st.worldLayout === 'p9' ? '<span><i class="gal-legend-line choke"></i>북방 병목</span>' : ''}<span><i class="gal-legend-line route"></i>선택 항로</span></div><span class="gal-map-help">${zoom < .45 ? '확대하면 성계 이름이 표시됩니다' : '드래그 이동 · Ctrl + 휠 확대'}</span><span class="gal-touch-help">${zoom < .45 ? '확대해 이름 보기' : '밀어서 이동'}</span></div></div><aside class="galinfo" aria-label="선택 성계 상세">${info}</aside></div></div>`);
+    const viewport = el.querySelector<HTMLElement>('.galviewport')!;
+    if (!this.galCentered && sel) { const p = P(sel); viewport.scrollLeft = p.x * zoom - viewport.clientWidth / 2; viewport.scrollTop = p.y * zoom - viewport.clientHeight / 2; this.galCentered = true; }
+    const applyZoom = (value: number) => {
+      const cx = (viewport.scrollLeft + viewport.clientWidth / 2 - Math.max(0, (viewport.clientWidth - W * zoom) / 2)) / zoom;
+      const cy = (viewport.scrollTop + viewport.clientHeight / 2 - Math.max(0, (viewport.clientHeight - H * zoom) / 2)) / zoom;
+      this.galZoom = Math.max(.12, Math.min(1.6, value)); this.renderGalaxy();
+      const v = el.querySelector<HTMLElement>('.galviewport')!;
+      v.scrollLeft = cx * this.galZoom - v.clientWidth / 2 + Math.max(0, (v.clientWidth - W * this.galZoom) / 2);
+      v.scrollTop = cy * this.galZoom - v.clientHeight / 2 + Math.max(0, (v.clientHeight - H * this.galZoom) / 2);
+    };
+    viewport.onwheel = e => { if (e.ctrlKey) { e.preventDefault(); applyZoom(zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2)); } };
+    viewport.onpointerdown = e => {
+      if (e.pointerType !== 'mouse' || e.button !== 0 || (e.target as Element).closest('[data-sys]')) return;
+      const x = e.clientX, y = e.clientY, left = viewport.scrollLeft, top = viewport.scrollTop;
+      viewport.setPointerCapture(e.pointerId); viewport.classList.add('is-dragging');
+      viewport.onpointermove = m => { viewport.scrollLeft = left - (m.clientX - x); viewport.scrollTop = top - (m.clientY - y); };
+      viewport.onpointerup = () => { viewport.classList.remove('is-dragging'); viewport.onpointermove = null; viewport.onpointerup = null; };
+      viewport.onpointercancel = viewport.onpointerup;
+    };
     el.querySelector<HTMLButtonElement>('[data-close]')!.onclick = () => this.toggleGalaxy();
     el.querySelectorAll<SVGGElement>('[data-sys]').forEach(n => {
-      // property handlers: the map is morphed in place, so listeners must not pile up
       n.onclick = () => { this.galSel = n.dataset.sys!; this.renderGalaxy(); };
       n.ondblclick = () => { this.v.setSystem(n.dataset.sys!); this.toggleGalaxy(); };
-      n.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.galSel = n.dataset.sys!; this.renderGalaxy(); } };
+      n.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); this.galSel = n.dataset.sys!; this.renderGalaxy(); } };
     });
-    el.querySelectorAll<HTMLButtonElement>('[data-zoom]').forEach(b => b.onclick = () => { this.galZoom = b.dataset.zoom === 'fit' ? fit : Math.max(.25, Math.min(1.6, zoom + (b.dataset.zoom === 'in' ? .2 : -.2))); this.renderGalaxy(); });
-    const vb = el.querySelector<HTMLButtonElement>('[data-view]'); if (vb) vb.onclick = e => { this.v.setSystem((e.target as HTMLElement).dataset.view!); this.toggleGalaxy(); };
-    const gb = el.querySelector<HTMLButtonElement>('[data-goto]'); if (gb) gb.onclick = e => { const id = (e.target as HTMLElement).dataset.goto!; this.setOp({ k: 'move', to: this.systemDestination(id) }); this.toggleGalaxy(); };
+    el.querySelectorAll<HTMLButtonElement>('[data-zoom]').forEach(b => b.onclick = () => applyZoom(b.dataset.zoom === 'fit' ? fit : zoom + (b.dataset.zoom === 'in' ? .2 : -.2)));
+    el.querySelectorAll<HTMLButtonElement>('[data-gal-station]').forEach(b => b.onclick = () => { const id = b.dataset.galStation!; if (!this.st.stations[id]) return; this.toggleGalaxy(); this.openStation(id); });
+    el.querySelectorAll<HTMLButtonElement>('[data-gal-field]').forEach(b => b.onclick = () => { const f = this.st.fields[b.dataset.galField!]; if (!f) return; this.toggleGalaxy(); this.v.focusOn(f.pos, 3000); this.select({ kind: 'field', id: f.id }); });
+    const vb = el.querySelector<HTMLButtonElement>('[data-view]'); if (vb) vb.onclick = () => { this.v.setSystem(vb.dataset.view!); this.toggleGalaxy(); };
+    const gb = el.querySelector<HTMLButtonElement>('[data-goto]'); if (gb) gb.onclick = () => { this.setOp({ k: 'move', to: this.systemDestination(gb.dataset.goto!) }); this.toggleGalaxy(); };
   }
-  private galSel: string | null = null;
-  private galZoom: number | null = null;
 
   private diagT = 0;
   private renderDiag(dt: number) {
@@ -615,10 +670,12 @@ export class PmcHud {
     if (!this.c.state || this.parked) return;
     const rig = this.v.rig;
     const sp = rig.dist * 0.9 * dt;
-    if (this.keys.has('ArrowUp') || this.keys.has('KeyW')) rig.pan(0, sp);
-    if (this.keys.has('ArrowDown') || this.keys.has('KeyS')) rig.pan(0, -sp);
-    if (this.keys.has('ArrowLeft')) rig.pan(sp, 0);
-    if (this.keys.has('ArrowRight')) rig.pan(-sp, 0);
+    if (!this.galaxy) {
+      if (this.keys.has('ArrowUp') || this.keys.has('KeyW')) rig.pan(0, sp);
+      if (this.keys.has('ArrowDown') || this.keys.has('KeyS')) rig.pan(0, -sp);
+      if (this.keys.has('ArrowLeft')) rig.pan(sp, 0);
+      if (this.keys.has('ArrowRight')) rig.pan(-sp, 0);
+    }
     this.refreshT -= dt;
     if (this.refreshT <= 0) { this.refreshT = 0.4; this.refresh(false); if (this.galaxy) this.renderGalaxy(); if (this.battles) this.renderBattles(); }
     const now = performance.now(); if (this.lastFrameAt) this.frameGap += (now - this.lastFrameAt - this.frameGap) * 0.1; this.lastFrameAt = now;

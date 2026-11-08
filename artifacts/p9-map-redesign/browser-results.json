@@ -1,0 +1,235 @@
+{
+  "checks": [
+    "1920: 22 readable systems, 28 real links, no label overlap",
+    "1920: region labels do not obscure system information []",
+    "1920: visible stars and names have the correct click targets []",
+    "1920: details occupy a separate responsive panel",
+    "1920: primary system action remains visible",
+    "1920: zoom enlarges the chart",
+    "1920: pan position survives live refresh",
+    "1920: selected destination shows its actual five-gate route",
+    "1920: overview fits the chart into the viewport",
+    "1440: 22 readable systems, 28 real links, no label overlap",
+    "1440: region labels do not obscure system information []",
+    "1440: visible stars and names have the correct click targets []",
+    "1440: details occupy a separate responsive panel",
+    "1440: primary system action remains visible",
+    "1440: zoom enlarges the chart",
+    "1440: pan position survives live refresh",
+    "dragging the map pans it",
+    "Ctrl + wheel zooms the map",
+    "1440: selected destination shows its actual five-gate route",
+    "a system name is clickable and updates the selected route",
+    "1440: overview fits the chart into the viewport",
+    "1024: 22 readable systems, 28 real links, no label overlap",
+    "1024: region labels do not obscure system information []",
+    "1024: visible stars and names have the correct click targets []",
+    "1024: details occupy a separate responsive panel",
+    "1024: primary system action remains visible",
+    "1024: zoom enlarges the chart",
+    "1024: pan position survives live refresh",
+    "1024: selected destination shows its actual five-gate route",
+    "1024: overview fits the chart into the viewport",
+    "390: 22 readable systems, 28 real links, no label overlap",
+    "390: region labels do not obscure system information []",
+    "390: visible stars and names have the correct click targets []",
+    "390: details occupy a separate responsive panel",
+    "390: primary system action remains visible",
+    "390: zoom enlarges the chart",
+    "390: pan position survives live refresh",
+    "390: selected destination shows its actual five-gate route",
+    "390: overview fits the chart into the viewport",
+    "mobile overview uses readable region labels and explains how to reveal system names",
+    "mobile overview can select a system and reveal its route",
+    "320: 22 readable systems, 28 real links, no label overlap",
+    "320: region labels do not obscure system information []",
+    "320: visible stars and names have the correct click targets []",
+    "320: details occupy a separate responsive panel",
+    "320: primary system action remains visible",
+    "320: zoom enlarges the chart",
+    "320: pan position survives live refresh",
+    "320: selected destination shows its actual five-gate route",
+    "320: overview fits the chart into the viewport",
+    "legacy five-system saves use their own positions and no P9 region labels",
+    "a disconnected gate route is not highlighted or offered as a valid move",
+    "security and fleet indicators update from live state",
+    "keyboard system selection does not change simulation speed",
+    "keyboard input in the map does not pan the game camera",
+    "Tab navigates controls inside the map",
+    "Escape closes the map",
+    "camera keyboard controls work again after closing the map",
+    "station detail opens its actual station screen",
+    "resource detail focuses and selects the actual field",
+    "the map issues a real move command to the selected system",
+    "opening and operating the chart does not alter saved systems or gates",
+    "no browser runtime errors"
+  ],
+  "layouts": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "nodes": 22,
+      "names": 22,
+      "edges": 28,
+      "overlaps": [],
+      "regionOverlaps": [],
+      "badHits": [],
+      "viewport": {
+        "x": 141,
+        "y": 201.5,
+        "width": 1298,
+        "height": 772.5
+      },
+      "panel": {
+        "x": 1439,
+        "y": 146.5,
+        "width": 340,
+        "height": 862.5
+      },
+      "actionsVisible": true,
+      "zoom": "77%",
+      "zoomBefore": 1237,
+      "zoomAfter": 1557,
+      "fit": {
+        "vw": 1298,
+        "vh": 773,
+        "sw": 1237,
+        "sh": 773
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "nodes": 22,
+      "names": 22,
+      "edges": 28,
+      "overlaps": [],
+      "regionOverlaps": [],
+      "badHits": [],
+      "viewport": {
+        "x": 13,
+        "y": 143.5,
+        "width": 1074,
+        "height": 708.5
+      },
+      "panel": {
+        "x": 1087,
+        "y": 88.5,
+        "width": 340,
+        "height": 798.5
+      },
+      "actionsVisible": true,
+      "zoom": "68%",
+      "renderMs": {
+        "changed": 19.210000000149012,
+        "unchanged": 0.055000000074505805,
+        "iterations": 20
+      },
+      "zoomBefore": 1088,
+      "zoomAfter": 1408,
+      "fit": {
+        "vw": 1074,
+        "vh": 709,
+        "sw": 1074,
+        "sh": 671
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "nodes": 22,
+      "names": 22,
+      "edges": 28,
+      "overlaps": [],
+      "regionOverlaps": [],
+      "badHits": [],
+      "viewport": {
+        "x": 13,
+        "y": 143.5,
+        "width": 658,
+        "height": 576.5
+      },
+      "panel": {
+        "x": 671,
+        "y": 88.5,
+        "width": 340,
+        "height": 666.5
+      },
+      "actionsVisible": true,
+      "zoom": "68%",
+      "zoomBefore": 1088,
+      "zoomAfter": 1408,
+      "fit": {
+        "vw": 658,
+        "vh": 577,
+        "sw": 658,
+        "sh": 411
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "nodes": 22,
+      "names": 22,
+      "edges": 28,
+      "overlaps": [],
+      "regionOverlaps": [],
+      "badHits": [],
+      "viewport": {
+        "x": 7,
+        "y": 118.75,
+        "width": 376,
+        "height": 334.3125
+      },
+      "panel": {
+        "x": 7,
+        "y": 484.0625,
+        "width": 376,
+        "height": 352.9375
+      },
+      "actionsVisible": true,
+      "zoom": "68%",
+      "zoomBefore": 1088,
+      "zoomAfter": 1408,
+      "fit": {
+        "vw": 376,
+        "vh": 334,
+        "sw": 376,
+        "sh": 235
+      }
+    },
+    {
+      "width": 320,
+      "height": 640,
+      "nodes": 22,
+      "names": 22,
+      "edges": 28,
+      "overlaps": [],
+      "regionOverlaps": [],
+      "badHits": [],
+      "viewport": {
+        "x": 7,
+        "y": 118.75,
+        "width": 306,
+        "height": 200.140625
+      },
+      "panel": {
+        "x": 7,
+        "y": 373.890625,
+        "width": 306,
+        "height": 259.109375
+      },
+      "actionsVisible": true,
+      "zoom": "68%",
+      "zoomBefore": 1088,
+      "zoomAfter": 1408,
+      "fit": {
+        "vw": 306,
+        "vh": 200,
+        "sw": 306,
+        "sh": 191
+      }
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,32 @@
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/world.test.ts > persistent world > a new PMC starts docked at the free port with a small fleet 34ms
+ ✓ tests/world.test.ts > persistent world > mining orders move ships into the field and turn ore into credits 5311ms
+ ✓ tests/world.test.ts > persistent world > rejects commands on other companies’ assets and invalid orders 6ms
+ ✓ tests/world.test.ts > persistent world > a constructor founds a station and builds its docking hub 2542ms
+ ✓ tests/world.test.ts > persistent world > pirate encounters become battles whose results persist on the PMC 1859ms
+ ✓ tests/world.test.ts > persistent world > save/load round-trips the world, including a battle in progress 1449ms
+ ✓ tests/world.test.ts > authoritative server > two clients share one world, own separate PMCs and reconnect by token 64ms
+ ✓ tests/world.test.ts > authoritative server > battle orders are stamped ahead and replay deterministically on clients 1796ms
+ ✓ tests/p9-world.test.ts > P9 authored world > creates a unique connected 22-system graph with matching reciprocal gates and spatial ownership 70ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps system lookup correct after records are added, removed, replaced or reindexed 4ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps the five original systems and assets, and never expands an existing c0 or growth save 21ms
+ ✓ tests/p9-world.test.ts > P9 authored world > is deterministic and persists surveyed sites and player assets without recreating or moving them 18ms
+ ✓ tests/p9-world.test.ts > P9 authored world > continues the same seeded P9 simulation after saving and restoring 5409ms
+ ✓ tests/p9-world.test.ts > P9 authored world > creates regional demand, finite mining budgets and real industrial conversion without changing legacy prices 7ms
+ ✓ tests/p9-world.test.ts > P9 authored world > chooses actual nearby jump routes and a market that buys the mined goods 11ms
+ ✓ tests/p9-world.test.ts > P9 authored world > replicates the same expanded world to two independent multiplayer clients and restores it 256ms
+ ✓ tests/p9-world.test.ts > P9 authored world > permits a real station foundation in an initially empty frontier system 41ms
+ ✓ tests/p9-world.test.ts > P9 authored world > runs the existing bounded pirate and trader AI in the new regions 128ms
+ ✓ tests/p9-world.test.ts > P9 authored world > does not populate empty and frontier systems with settled-lane rogues when security is raised 5ms
+ ✓ tests/p9-world.test.ts > P9 authored world > moves an actual fleet to the distant lawless endpoint and back through eight gates 6431ms
+ ✓ tests/p9-world.test.ts > P9 authored world > repeats a four-jump freight route, recovers after a gate outage and reloads the in-flight manifest 6193ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > gives each P9 system a stable distinct point without changing saved maps or gates 19ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > uses saved coordinates for legacy and unknown systems rather than forcing the P9 projection 5ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > highlights only a real shortest gate path and clears it when a choke is disconnected 5ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > keeps unrelated gate lines from crossing like an unmarked interchange 9ms
+
+ Test Files  3 passed (3)
+      Tests  25 passed (25)
+   Start at  13:26:08
+   Duration  34.41s (transform 1.56s, setup 0ms, import 2.06s, tests 31.71s, environment 0ms)
