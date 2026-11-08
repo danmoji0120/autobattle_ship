@@ -1,0 +1,91 @@
+{
+  "sourceCommit": "dd56de9bcf8da94a666a0ff16ca662a62fb2a449",
+  "branch": "codex/storage-world-analytics",
+  "stages": {
+    "1": "Complete (local validation)",
+    "2": "Complete (local validation)",
+    "3": "Complete (local validation)",
+    "4": "Complete (local validation)",
+    "5": "Partial (production scale and actual production save not tested)"
+  },
+  "fullTests": {
+    "passed": 203,
+    "skippedForSeparatePostgres": 3,
+    "total": 206,
+    "files": 25,
+    "seconds": 1090.68
+  },
+  "postgresTests": {
+    "passed": 3,
+    "productionDatabaseUsed": false,
+    "testContainerRemoved": true
+  },
+  "multiplayer": {
+    "existingChecks": 67,
+    "analyticsChecks": 14
+  },
+  "c0": {
+    "baseline": "4a19e19bc47ca7ae27d9c97e7f57533232686fe1",
+    "companies": 2,
+    "seconds": 1800,
+    "minuteHashesMatched": 30,
+    "hash": "baf2897aa5701df971d05d19ba12c85e1c953fa4d774ac074a9273afda6404a4",
+    "analyticsActive": true,
+    "reconciliation": 0
+  },
+  "performance": {
+    "medianCpuIncreasePercent": 15.414690112891849,
+    "medianExtraCpuMsPerWorldSecond": 1.533433333333334,
+    "statsBytesAt600Seconds": 87940
+  },
+  "longRun": {
+    "worldHours": 6,
+    "statsBytes": 1506804,
+    "restarts": 2,
+    "dropped": 0,
+    "failures": 0,
+    "reconciliationCredits": 2.534565282985568e-06
+  },
+  "schemaMigrationRequired": false,
+  "productionApplied": false,
+  "partial": [
+    "Actual production c0 save comparison",
+    "Many concurrent companies and battles; PostgreSQL throughput near telemetry cap",
+    "Multi-day real elapsed soak test"
+  ],
+  "intentionalExclusions": [
+    "P9 balance tuning",
+    "Production deployment",
+    "Historical duplicate-rent compensation without policy/data/approval"
+  ],
+  "browser": {
+    "viewports": [
+      "1440x900",
+      "1024x768",
+      "390x844"
+    ],
+    "adminTabs": 6,
+    "leaseScenarioChecks": 8,
+    "actualWorld": {
+      "companies": 3,
+      "buckets": 3,
+      "mined": 1648.9933944000013,
+      "marketUnits": 3160.5966992,
+      "cash": {
+        "capital": 12000,
+        "income": 5878.431277074,
+        "expenses": 784.6666666599995,
+        "net": 5093.764610414
+      },
+      "bytes": 121880
+    },
+    "errorStates": {
+      "disabled": true,
+      "denied": true,
+      "recovered": true,
+      "errors": []
+    },
+    "runtimeErrors": 0
+  },
+  "verifiedAtUtc": "2026-11-08T07:07:31.613354+00:00"
+}

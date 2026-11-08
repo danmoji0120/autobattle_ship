@@ -1,0 +1,29 @@
+{
+  "checks": [
+    "sub-credit debt is legible in the actual upkeep panel",
+    "empty wallet cannot be forced negative",
+    "unpaid company cannot lease another block",
+    "one unpaid hour cancels extra capacity with exact 45cr debt and all goods retained",
+    "protected over-cap inventory has an actionable warehouse warning",
+    "selling protected inventory prioritizes the arrears balance",
+    "manual payment clears debt and refreshes the panel",
+    "fully paid company can lease again without browser errors"
+  ],
+  "state": {
+    "debt": 45,
+    "debtU": "45000000000",
+    "cancelled": {
+      "t": 3600,
+      "blocks": {
+        "rustport": 1
+      }
+    },
+    "goods": 4100,
+    "blocks": {}
+  },
+  "afterSale": {
+    "debt": 35.8,
+    "credits": 0
+  },
+  "errors": []
+}

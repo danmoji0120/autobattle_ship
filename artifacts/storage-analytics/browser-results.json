@@ -1,0 +1,16 @@
+{
+  "actual": {
+    "companies": 3,
+    "buckets": 3,
+    "mined": 1648.9933944000013,
+    "marketUnits": 3160.5966992,
+    "cash": {
+      "capital": 12000,
+      "income": 5878.431277074,
+      "expenses": 784.6666666599995,
+      "net": 5093.764610414
+    },
+    "bytes": 121880
+  },
+  "errors": []
+}

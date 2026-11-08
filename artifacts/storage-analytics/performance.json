@@ -1,0 +1,86 @@
+{
+  "fixture": "3 companies, real automatic mining and NPC markets, 600 world seconds × 3 alternating pairs; full state equality checked",
+  "pairs": [
+    {
+      "off": {
+        "enabled": false,
+        "seconds": 600,
+        "wallMs": 5693.697514,
+        "cpuMs": 6233.179,
+        "observerCpuMs": 0,
+        "heapDelta": 577048,
+        "statsBytes": 0,
+        "rows": 0,
+        "dropped": 0,
+        "reconciliation": 0
+      },
+      "on": {
+        "enabled": true,
+        "seconds": 600,
+        "wallMs": 6169.001938,
+        "cpuMs": 6693.315,
+        "observerCpuMs": 494.5446289993097,
+        "heapDelta": 452472,
+        "statsBytes": 87940,
+        "rows": 125,
+        "dropped": 0,
+        "reconciliation": 4.9112713895738125e-11
+      },
+      "overheadPercent": 7.382043737232635
+    },
+    {
+      "off": {
+        "enabled": false,
+        "seconds": 600,
+        "wallMs": 5493.204281,
+        "cpuMs": 5968.722,
+        "observerCpuMs": 0,
+        "heapDelta": 242720,
+        "statsBytes": 0,
+        "rows": 0,
+        "dropped": 0,
+        "reconciliation": 0
+      },
+      "on": {
+        "enabled": true,
+        "seconds": 600,
+        "wallMs": 6378.846777,
+        "cpuMs": 6888.782,
+        "observerCpuMs": 505.01729699926364,
+        "heapDelta": 397008,
+        "statsBytes": 87940,
+        "rows": 125,
+        "dropped": 0,
+        "reconciliation": 4.9112713895738125e-11
+      },
+      "overheadPercent": 15.414690112891849
+    },
+    {
+      "off": {
+        "enabled": false,
+        "seconds": 600,
+        "wallMs": 5248.165256,
+        "cpuMs": 5334.727,
+        "observerCpuMs": 0,
+        "heapDelta": 148344,
+        "statsBytes": 0,
+        "rows": 0,
+        "dropped": 0,
+        "reconciliation": 0
+      },
+      "on": {
+        "enabled": true,
+        "seconds": 600,
+        "wallMs": 6095.461596,
+        "cpuMs": 6578.775,
+        "observerCpuMs": 500.6954629998181,
+        "heapDelta": 462920,
+        "statsBytes": 87940,
+        "rows": 125,
+        "dropped": 0,
+        "reconciliation": 4.9112713895738125e-11
+      },
+      "overheadPercent": 23.31980624313108
+    }
+  ]
+}

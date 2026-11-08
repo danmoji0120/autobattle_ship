@@ -1,0 +1,129 @@
+{
+  "simulatedHours": 6,
+  "companies": 3,
+  "initialHeap": 8038936,
+  "finalHeap": 26887376,
+  "maxRssKiB": 236360,
+  "wallMs": 200196.025081,
+  "cpuMs": 204812.819,
+  "samples": [
+    {
+      "hours": 1,
+      "bytes": 322387,
+      "heap": 11791592,
+      "reloaded": false,
+      "fineBuckets": 6,
+      "hourlyBuckets": 0,
+      "reconciliation": -3.675777406897396e-7
+    },
+    {
+      "hours": 2,
+      "bytes": 580190,
+      "heap": 14966552,
+      "reloaded": true,
+      "fineBuckets": 12,
+      "hourlyBuckets": 0,
+      "reconciliation": -2.1064261090941727e-7
+    },
+    {
+      "hours": 3,
+      "bytes": 824852,
+      "heap": 14133136,
+      "reloaded": false,
+      "fineBuckets": 18,
+      "hourlyBuckets": 0,
+      "reconciliation": 0.000001325748598901555
+    },
+    {
+      "hours": 4,
+      "bytes": 1058740,
+      "heap": 17709240,
+      "reloaded": true,
+      "fineBuckets": 24,
+      "hourlyBuckets": 0,
+      "reconciliation": 0.0000017452111933380365
+    },
+    {
+      "hours": 5,
+      "bytes": 1282514,
+      "heap": 15944176,
+      "reloaded": false,
+      "fineBuckets": 30,
+      "hourlyBuckets": 0,
+      "reconciliation": 0.0000021477608243003488
+    },
+    {
+      "hours": 6,
+      "bytes": 1506804,
+      "heap": 16729096,
+      "reloaded": false,
+      "fineBuckets": 36,
+      "hourlyBuckets": 0,
+      "reconciliation": 0.000002534565282985568
+    }
+  ],
+  "dropped": 0,
+  "failures": 0,
+  "reconciliation": 0.000002534565282985568,
+  "growth": [
+    {
+      "id": "p1",
+      "name": "장기 물류 1",
+      "credits": 69074.210534072,
+      "assets": 220032.556691,
+      "liabilities": 0,
+      "rep": 0,
+      "ships": 5,
+      "classes": {
+        "miner": 2,
+        "destroyer": 1,
+        "corvette": 2
+      },
+      "stations": 0,
+      "research": 0,
+      "age": 21600,
+      "played": 0
+    },
+    {
+      "id": "p10",
+      "name": "장기 물류 2",
+      "credits": 27729.705248386,
+      "assets": 179831.131852,
+      "liabilities": 0,
+      "rep": 0,
+      "ships": 5,
+      "classes": {
+        "miner": 2,
+        "destroyer": 1,
+        "corvette": 2
+      },
+      "stations": 0,
+      "research": 0,
+      "age": 21600,
+      "played": 0
+    },
+    {
+      "id": "p19",
+      "name": "장기 물류 3",
+      "credits": 14908.475398295,
+      "assets": 166750.424455,
+      "liabilities": 0,
+      "rep": 0,
+      "ships": 5,
+      "classes": {
+        "miner": 2,
+        "destroyer": 1,
+        "corvette": 2
+      },
+      "stations": 0,
+      "research": 0,
+      "age": 21600,
+      "played": 0
+    }
+  ],
+  "mined": [
+    19437.734888799983,
+    8429.446922399988,
+    4970.686145600003
+  ]
+}

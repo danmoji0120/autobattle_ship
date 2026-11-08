@@ -1,5 +1,7 @@
 # 공용창고 안정화와 월드 분석 개발 기록
 
+최종 검증과 Complete/Partial 판정은 [최종 검증 보고서](STORAGE_ANALYTICS_VERIFICATION.md)를 참조한다.
+
 작업 기준: 2026-11-08 1차 개발 지시서. 기존 `GROWTH_PLAN.md`의 콘텐츠 전용 Codex 역할 경계는 이번 지시서에서 명시한 시스템 작업에 한해 대체한다. P9 경제 수치와 운영 DB는 변경하지 않는다.
 
 ## Stage 1
