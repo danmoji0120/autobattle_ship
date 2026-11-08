@@ -1,7 +1,7 @@
 // Authoritative persistent-world simulation. Runs identically on the Node server (multiplayer)
 // and inside the browser (single player). All state lives in `st` (plain JSON).
 
-import { emit, observing, watchMoney, observedWork, observationCostMs } from './observe';
+import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -1553,16 +1553,20 @@ export class WorldSim {
 
   // ===================================================================== economy
 
+  private marketObservations = new WeakMap<Station, { before: Record<string, number>; identities: Record<string, [import('./observe').Observation, import('./observe').Observation]>; budget: [import('./observe').Observation, import('./observe').Observation] }>();
   private economy(dt: number) {
     const st = this.st;
     for (const s of Object.values(st.stations)) {
       if (s.market) {
         // stations consume/produce so prices recover over time
         const m = s.market;
-        const beforeStock = observing(st) ? Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.stock])) : null;
+        const collect = observing(st);
+        let observed = collect ? this.marketObservations.get(s) : undefined;
+        if (collect && !observed) { observed = { before: {}, identities: {}, budget: [{ kind: 'currency.create', reason: 'regional_budget', amount: 0, to: `st:${s.id}`, station: s.id }, { kind: 'currency.destroy', reason: 'regional_budget', amount: 0, from: `st:${s.id}`, station: s.id }] }; this.marketObservations.set(s, observed); }
+        if (observed) for (const item in m) observed.before[item] = m[item].stock;
         this.npcMarket(s, m, dt);
-        if (beforeStock) for (const [item, v] of Object.entries(m)) { const delta = v.stock - (beforeStock[item] ?? 0); if (delta) emit(st, { kind: delta > 0 ? 'market.net_supply' : 'market.net_consumption', reason: 'npc_economy', amount: Math.abs(delta), item, station: s.id }); }
-        if (growthOn(st) && s.public) { const before = s.funds ?? 0; fundsStep(s, dt); const delta = (s.funds ?? 0) - before; if (delta) emit(st, { kind: delta > 0 ? 'currency.create' : 'currency.destroy', reason: 'regional_budget', amount: Math.abs(delta), ...(delta > 0 ? { to: `st:${s.id}` } : { from: `st:${s.id}` }), station: s.id }); this.restockYards(s, dt); }
+        if (observed) metricBatch(st, () => { for (const item in m) { const delta = m[item].stock - (observed!.before[item] ?? 0); if (!delta) continue; const identities = observed!.identities[item] ??= [{ kind: 'market.net_supply', reason: 'npc_economy', amount: 0, item, station: s.id }, { kind: 'market.net_consumption', reason: 'npc_economy', amount: 0, item, station: s.id }]; emitMetric(st, identities[delta > 0 ? 0 : 1], Math.abs(delta)); } });
+        if (growthOn(st) && s.public) { const before = s.funds ?? 0; fundsStep(s, dt); const delta = (s.funds ?? 0) - before; if (delta && observed) metricBatch(st, () => emitMetric(st, observed!.budget[delta > 0 ? 0 : 1], Math.abs(delta))); this.restockYards(s, dt); }
       }
       if (!s.public) {
         if (this.hasModule(s, 'defense') && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);

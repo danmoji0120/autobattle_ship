@@ -6,7 +6,7 @@ export interface Observation {
   station?: string; system?: string; item?: string; ref?: string; from?: string; to?: string; value?: number;
 }
 type Sink = (event: Observation, time: number) => void;
-const sinks = new WeakMap<WorldState, Sink>();
+const sinks = new WeakMap<WorldState, { sink: Sink; cost?: (ms: number) => void; metric?: (event: Observation, amount: number, time: number) => void }>();
 const depth = new WeakMap<WorldState, number>();
 const deferred = new WeakMap<WorldState, (() => void)[]>();
 export const inTransaction = (w: WorldState) => !!depth.get(w);
@@ -22,11 +22,13 @@ export function observedWork<T>(fn: () => T): T {
   try { return fn(); } finally { observedMs += Math.max(0, performance.now() - start - (observedMs - before)); }
 }
 export const observing = (w: WorldState) => sinks.has(w);
-export function observeWorld(w: WorldState, sink: Sink) { sinks.set(w, sink); return () => sinks.delete(w); }
+export function observeWorld(w: WorldState, sink: Sink, cost?: (ms: number) => void, metric?: (event: Observation, amount: number, time: number) => void) { sinks.set(w, { sink, cost, metric }); return () => sinks.delete(w); }
 export function emit(w: WorldState, event: Observation) {
   // Observability must not interrupt gameplay, including during a failed analytics write.
   const sink = sinks.get(w); if (!sink) return;
-  observedWork(() => { try { sink(event, w.time); } catch { /* collector exposes its own health counters */ } });
+  const start = performance.now(), before = observedMs;
+  try { sink.sink(event, w.time); } catch { /* collector exposes its own health counters */ }
+  finally { const ms = Math.max(0, performance.now() - start - (observedMs - before)); observedMs += ms; sink.cost?.(ms); }
 }
 export function moneySupply(w: WorldState) {
   return Object.values(w.companies).reduce((n, co) => n + co.credits, 0) + Object.values(w.stations).reduce((n, st) => n + (st.funds ?? 0), 0);
@@ -60,4 +62,16 @@ export function watchMoney<T>(w: WorldState, reason: string, meta: Partial<Obser
     const work = deferred.get(w); deferred.delete(w);
     for (const finish of work ?? []) finish();
   }
+}
+
+/** Stable metric identities for hot, scalar deltas. Normal observers still receive fresh events.
+ * Call inside metricBatch so timing is measured once for a station, not for every commodity. */
+export function emitMetric(w: WorldState, identity: Observation, amount: number) {
+  const entry = sinks.get(w); if (!entry) return;
+  try { if (entry.metric) entry.metric(identity, amount, w.time); else entry.sink({ ...identity, amount }, w.time); } catch { /* observation is passive */ }
+}
+export function metricBatch(w: WorldState, fn: () => void) {
+  const entry = sinks.get(w); if (!entry) return;
+  const start = performance.now(), before = observedMs;
+  try { fn(); } finally { const ms = Math.max(0, performance.now() - start - (observedMs - before)); observedMs += ms; entry.cost?.(ms); }
 }

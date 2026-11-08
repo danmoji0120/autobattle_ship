@@ -1,0 +1,186 @@
+{
+  "baseline": "f108438",
+  "fixture": "three companies, real mining/market/postpaid leases, alternating order, 3 x 600s pairs",
+  "before": {
+    "pairs": [
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5754.115,
+          "wallMs": 5307.642556,
+          "tickP95Ms": 2.8059460000004037,
+          "tickWorstMs": 18.366141999999854,
+          "heapDelta": 985112,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6081.587,
+          "wallMs": 5840.6514799999995,
+          "tickP95Ms": 2.9755629999999655,
+          "tickWorstMs": 10.468996000001425,
+          "heapDelta": 1376912,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 5.691092374761375,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5263.606,
+          "wallMs": 5076.726344999999,
+          "tickP95Ms": 2.5692399999970803,
+          "tickWorstMs": 12.393060999998852,
+          "heapDelta": 750464,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6273.852,
+          "wallMs": 5909.222654000001,
+          "tickP95Ms": 3.0575449999996636,
+          "tickWorstMs": 8.04855900000257,
+          "heapDelta": 1305416,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 19.19303990458252,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5096.825,
+          "wallMs": 5002.766079000001,
+          "tickP95Ms": 2.4957439999998314,
+          "tickWorstMs": 5.415499999999156,
+          "heapDelta": 686048,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6736.093,
+          "wallMs": 6065.438304000003,
+          "tickP95Ms": 3.3455460000004678,
+          "tickWorstMs": 6.7664589999985765,
+          "heapDelta": 1380984,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 32.16253255703305,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      }
+    ]
+  },
+  "after": {
+    "pairs": [
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5750.244,
+          "wallMs": 5235.309656,
+          "tickP95Ms": 2.807918999999856,
+          "tickWorstMs": 18.058508000000074,
+          "heapDelta": 985888,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6298.418,
+          "wallMs": 5830.436124999999,
+          "tickP95Ms": 3.3016289999995934,
+          "tickWorstMs": 44.96219000000019,
+          "heapDelta": 1358040,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 9.533056336391986,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5780.87,
+          "wallMs": 5459.5580279999995,
+          "tickP95Ms": 2.77486399999907,
+          "tickWorstMs": 8.099030000001221,
+          "heapDelta": 654336,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6516.761,
+          "wallMs": 5998.772208,
+          "tickP95Ms": 3.9776619999993272,
+          "tickWorstMs": 17.473706000000675,
+          "heapDelta": 1618376,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 12.729762129229695,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6118.077,
+          "wallMs": 5787.14356,
+          "tickP95Ms": 3.706362999997509,
+          "tickWorstMs": 11.055517000000691,
+          "heapDelta": 844552,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6146.445,
+          "wallMs": 5786.023693000003,
+          "tickP95Ms": 3.016632999999274,
+          "tickWorstMs": 13.15217400000256,
+          "heapDelta": 1451264,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 0.46367510575626714,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      }
+    ]
+  }
+}

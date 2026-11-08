@@ -1,5 +1,6 @@
 import { emit, moneySupply, observeWorld, type Observation } from '../world/observe';
 import type { WorldSim } from '../world/sim';
+import { sysIndexAt } from '../world/geom';
 import { cargoSum } from '../world/types';
 import { priceOf } from '../world/market';
 import { publicCap, storeUsed } from '../world/storage';
@@ -34,7 +35,9 @@ export function cashSummary(rows: Metric[]): CashSummary {
   return { capital, income, expenses, net: income - expenses };
 }
 export interface AnalyticsResult { cash: CashSummary; scope: 'admin' | 'player'; started: number; now: number; from: number; interval: number; points: Bucket[]; current: Frame; totals: Metric[]; alerts: { kind: string; text: string; company?: string; system?: string }[]; health: { dropped: number; failures: number; bytes: number; maxBytes: number; reconciliation: number; truncatedBefore?: number; queryOmitted: number; gaps: { start: number; end: number; supplyDelta: number }[] }; thresholds?: AlertConfig }
-const key = (e: Observation) => JSON.stringify([e.kind, e.company, e.group, e.ship, e.station, e.system, e.item, e.reason, e.from, e.to, e.ref, e.method, e.baseline]);
+// Length-prefixed fields are unambiguous even for user supplied IDs, without allocating a JSON array.
+const fieldKey = (v: string | number | undefined) => v === undefined ? ';' : `${String(v).length}:${v}`;
+const key = (e: Observation) => fieldKey(e.kind) + fieldKey(e.company) + fieldKey(e.group) + fieldKey(e.ship) + fieldKey(e.station) + fieldKey(e.system) + fieldKey(e.item) + fieldKey(e.reason) + fieldKey(e.from) + fieldKey(e.to) + fieldKey(e.ref) + fieldKey(e.method) + fieldKey(e.baseline);
 const clamp = (n: number | undefined, def: number, lo: number, hi: number) => Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.floor(n!))) : def;
 
 export class Analytics {
@@ -42,7 +45,9 @@ export class Analytics {
   readonly interval: number; readonly maxBytes: number; readonly maxRows: number;
   readonly alerts: AlertConfig;
   private index = new Map<string, Metric>();
+  private scalarRows = new WeakMap<Observation, { bucket: Bucket; row: Metric }>();
   private stationSystems = new Map<string, string>();
+  private systemsByIndex = new Map<number, string>();
   private limits: [number, number, number];
   private bytes = 0;
   cpuMs = 0;
@@ -54,6 +59,7 @@ export class Analytics {
     this.limits = [clamp(options.fineBuckets, 144, 1, 288), clamp(options.hourlyBuckets, 720, 1, 1440), clamp(options.dailyBuckets, 365, 1, 730)];
     this.alerts = { ...DEFAULT_ALERTS };
     for (const k of Object.keys(DEFAULT_ALERTS) as (keyof AlertConfig)[]) if (Number.isFinite(options.alerts?.[k]) && options.alerts![k]! > 0) this.alerts[k] = options.alerts![k]!;
+    for (const system of Object.values(sim.st.systems)) this.systemsByIndex.set(system.idx, system.id);
     for (const st of Object.values(sim.st.stations)) this.stationSystems.set(st.id, sim.sysOf(st.pos)?.id ?? '');
     const now = sim.time;
     this.data = saved?.version === 1 ? saved : { version: 1, started: now, openingSupply: moneySupply(sim.st), created: 0, destroyed: 0, fine: [], hourly: [], daily: [], current: { start: now, end: now, resolution: this.interval, rows: [] }, projects: {}, journeys: {}, waits: {}, dropped: 0, failures: 0, lastSample: now };
@@ -71,9 +77,22 @@ export class Analytics {
     }
     for (const row of this.data.current.rows) this.index.set(key(row), row);
     observeWorld(sim.st, (e, time) => {
-      const at = performance.now();
       try { this.ingest(e, time); } catch { this.data.failures++; }
-      this.cpuMs += performance.now() - at;
+    }, ms => { this.cpuMs += ms; }, (identity, amount, time) => {
+      try {
+        if (!Number.isFinite(amount)) { this.data.failures++; return; }
+        const budget = (identity.kind === 'currency.create' || identity.kind === 'currency.destroy') && (identity.to ?? identity.from ?? '').startsWith('st:');
+        if (identity.kind !== 'market.net_supply' && identity.kind !== 'market.net_consumption' && !budget) { this.ingest({ ...identity, amount }, time); return; }
+        this.roll(time);
+        const cached = this.scalarRows.get(identity);
+        if (cached?.bucket === this.data.current) { cached.row.amount += amount; cached.row.count++; if (identity.kind === 'currency.create') this.data.created += amount; else if (identity.kind === 'currency.destroy') this.data.destroyed += amount; }
+        else {
+          this.ingest({ ...identity, amount }, time);
+          const system = identity.station ? this.stationSystems.get(identity.station) : identity.system;
+          const row = this.index.get(key({ ...identity, system }));
+          if (row) this.scalarRows.set(identity, { bucket: this.data.current, row });
+        }
+      } catch { this.data.failures++; }
     });
     if (!this.data.current.frame) this.data.current.frame = this.sample();
     this.enforceLimit();
@@ -90,7 +109,7 @@ export class Analytics {
     this.roll(time);
     const w = this.sim.st;
     if (!e.company && e.kind.startsWith('currency.')) { const account = e.to?.startsWith('co:') ? e.to : e.from?.startsWith('co:') ? e.from : undefined; if (account) e = { ...e, company: account.slice(3) }; }
-    if (!e.station && !e.system) { const position = e.ship ? w.ships[e.ship]?.pos : e.company ? w.stations[w.companies[e.company]?.homeStation]?.pos : undefined; if (position) e = { ...e, system: this.sim.sysOf(position)?.id }; }
+    if (!e.station && !e.system) { const position = e.ship ? w.ships[e.ship]?.pos : e.company ? w.stations[w.companies[e.company]?.homeStation]?.pos : undefined; if (position) { const idx = sysIndexAt(position); let id = this.systemsByIndex.get(idx); if (!id || w.systems[id]?.idx !== idx) { id = this.sim.sysOf(position)?.id; if (id) this.systemsByIndex.set(idx, id); } e = { ...e, system: id }; } }
     if (!e.system && e.station) { let system = this.stationSystems.get(e.station); if (system === undefined) { system = this.sim.sysOf(w.stations[e.station]?.pos ?? { x: 0, y: 0, z: 0 })?.id ?? ''; this.stationSystems.set(e.station, system); } e = { ...e, system }; }
     if (e.kind === 'currency.create') this.data.created += e.amount;
     if (e.kind === 'currency.destroy') this.data.destroyed += e.amount;
@@ -147,7 +166,7 @@ export class Analytics {
     this.data.current.end = time;
     this.data.fine.push(this.data.current);
     this.data.current = { start: time, end: time, resolution: this.interval, rows: [] };
-    this.index.clear();
+    this.index.clear(); this.scalarRows = new WeakMap();
     this.fold(this.data.fine, this.data.hourly, this.limits[0], 3600);
     this.fold(this.data.hourly, this.data.daily, this.limits[1], 86400);
     while (this.data.daily.length > this.limits[2]) this.data.truncatedBefore = this.data.daily.shift()!.end;
@@ -171,14 +190,18 @@ export class Analytics {
     this.bytes = new TextEncoder().encode(JSON.stringify(this.data)).byteLength;
     // Keep current and newest data. Retention loss is explicit in every response.
     while (this.bytes > this.maxBytes) {
+      if (this.data.fine.length > 1) { this.fold(this.data.fine, this.data.hourly, this.data.fine.length - 1, 3600); this.fold(this.data.hourly, this.data.daily, this.limits[1], 86400); }
+      else if (this.data.hourly.length > 1) this.fold(this.data.hourly, this.data.daily, this.data.hourly.length - 1, 86400);
+      else {
       const source = this.data.daily.length ? this.data.daily : this.data.hourly.length ? this.data.hourly : this.data.fine;
       if (!source.length) {
-        if (this.data.current.rows.length) { const n = Math.min(this.data.current.rows.length, Math.max(64, Math.ceil(this.data.current.rows.length / 4))); this.data.current.rows.splice(-n); this.data.dropped += n - 1; this.index = new Map(this.data.current.rows.map(r => [key(r), r])); }
+        if (this.data.current.rows.length) { const n = Math.min(this.data.current.rows.length, Math.max(64, Math.ceil(this.data.current.rows.length / 4))); this.data.current.rows.splice(-n); this.scalarRows = new WeakMap(); this.data.dropped += n - 1; this.index = new Map(this.data.current.rows.map(r => [key(r), r])); }
         else if (this.data.current.frame) delete this.data.current.frame;
         else { const map = [this.data.journeys, this.data.projects, this.data.waits, this.data.onlineSeconds ?? {}].find(m => Object.keys(m).length); if (!map) break; delete map[Object.keys(map)[0]]; }
         this.data.dropped++; this.bytes = new TextEncoder().encode(JSON.stringify(this.data)).byteLength; continue;
       }
       this.data.truncatedBefore = source.shift()!.end;
+      }
       this.bytes = new TextEncoder().encode(JSON.stringify(this.data)).byteLength;
     }
   }

@@ -1,0 +1,182 @@
+{
+  "baseline": "f108438",
+  "fixture": "three companies, real mining/market/postpaid leases, alternating order, 3 x 600s pairs",
+  "before": {
+    "pairs": [
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6117.059,
+          "wallMs": 5566.988257000001,
+          "tickP95Ms": 3.314280999999937,
+          "tickWorstMs": 24.519742999999835,
+          "heapDelta": 983864,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6347.984,
+          "wallMs": 6048.563016,
+          "tickP95Ms": 3.228931999999986,
+          "tickWorstMs": 6.364692999999534,
+          "heapDelta": 1379752,
+          "bytes": 87904,
+          "dropped": 0,
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 3.7750984582623826,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5573.646,
+          "wallMs": 5358.885399999999,
+          "tickP95Ms": 2.855031000002782,
+          "tickWorstMs": 6.743002000002889,
+          "heapDelta": 746080,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6665.156,
+          "wallMs": 6299.687204,
+          "tickP95Ms": 3.6292240000002494,
+          "tickWorstMs": 11.724324999999226,
+          "heapDelta": 1296072,
+          "bytes": 87904,
+          "dropped": 0,
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 19.583410930654743,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5560.345,
+          "wallMs": 5442.286470999999,
+          "tickP95Ms": 2.8980739999969956,
+          "tickWorstMs": 22.683537000000797,
+          "heapDelta": 686768,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 7152.237,
+          "wallMs": 6428.275503999997,
+          "tickP95Ms": 3.9427770000038436,
+          "tickWorstMs": 10.48581700000068,
+          "heapDelta": 1381960,
+          "bytes": 87904,
+          "dropped": 0,
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 28.62937461614341,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      }
+    ]
+  },
+  "after": {
+    "pairs": [
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5840.763,
+          "wallMs": 5327.205211,
+          "tickP95Ms": 2.762380000000121,
+          "tickWorstMs": 20.896721999999954,
+          "heapDelta": 938048,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 5975.253,
+          "wallMs": 5608.016119999999,
+          "tickP95Ms": 2.9294620000000577,
+          "tickWorstMs": 6.2745319999994535,
+          "heapDelta": 1381440,
+          "bytes": 87904,
+          "dropped": 0,
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 2.30261012131463,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5627.546,
+          "wallMs": 5274.2579399999995,
+          "tickP95Ms": 2.7378700000008394,
+          "tickWorstMs": 5.141427999998996,
+          "heapDelta": 670672,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6222.522,
+          "wallMs": 5808.1868269999995,
+          "tickP95Ms": 3.0159349999994447,
+          "tickWorstMs": 24.680621999999858,
+          "heapDelta": 1593072,
+          "bytes": 87904,
+          "dropped": 0,
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 10.572565732914473,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5598.275,
+          "wallMs": 5264.5244569999995,
+          "tickP95Ms": 2.7395180000021355,
+          "tickWorstMs": 4.044230999999854,
+          "heapDelta": 825608,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 8950.085,
+          "wallMs": 9454.675796,
+          "tickP95Ms": 5.219312000001082,
+          "tickWorstMs": 41.048070999997435,
+          "heapDelta": 1462992,
+          "bytes": 87904,
+          "dropped": 0,
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 59.87219277366689,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      }
+    ]
+  },
+  "acceptedForPerformanceConclusion": false,
+  "reason": "Last after pair overlapped targeted tests; replaced by isolated analytics-performance.json."
+}
