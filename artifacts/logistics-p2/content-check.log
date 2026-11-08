@@ -1,0 +1,7 @@
+
+> siderarium@0.1.0 content:check
+> vite-node scripts/content-check.ts
+
+
+content: packs core,growth,arsenal,example,modeltest · hulls 27 · variants 38 · presets 52 · assets 3
+0 error(s), 0 warning(s)

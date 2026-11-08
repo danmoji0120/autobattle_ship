@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "first real account signs in",
+    "second real account signs in",
+    "loaded shipment waits safely at a genuinely full warehouse",
+    "mixed-company batch is rejected atomically",
+    "another company cannot edit a route",
+    "another company cannot unload its cargo",
+    "ordinary multiplayer snapshots isolate routes and inventory",
+    "real remote browser sees only its own logistics",
+    "pre-restart shipment has no duplicate loading or missing stock",
+    "real server restart restores manifest, cargo and route without duplicates",
+    "permitted transport continues while its company is offline",
+    "real UI escrow frees space and automatic delivery resumes without selling or losing goods",
+    "two actual browsers keep separate company route controls",
+    "both companies conserve goods through simultaneous operation, restart and recovery"
+  ],
+  "passed": 14,
+  "restarts": 2,
+  "assets": {
+    "p1": 20100,
+    "p10": 200
+  }
+}

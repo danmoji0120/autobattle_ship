@@ -1,0 +1,16 @@
+PASS empty view has a usable route-creation action
+PASS real miners → separate hauler → market sales repeat in the browser
+PASS live snapshots preserve typed route settings
+PASS route form creates an authoritative live route
+PASS live re-renders do not submit duplicate route commands
+PASS real supply → production → product transport runs without direct ship control
+PASS route management fits 1920px
+PASS route management fits 1440px
+PASS route management fits 1024px
+PASS route management fits 390px
+PASS editing protects the assigned fleet while preserving server validation
+PASS batch pause visibly stops all selected routes
+PASS real cargo-recovery button returns goods to owned storage and keeps the route paused
+PASS automatic sales need an explicit visible consent
+PASS Escape closes logistics without issuing a game command
+PASS no browser runtime errors

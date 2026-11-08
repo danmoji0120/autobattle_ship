@@ -1,0 +1,39 @@
+{
+  "sourceRevision": "1656ac88144f31724b78d32af03ac98f5c4be565",
+  "overall": "Partial",
+  "stages": {
+    "analytics": "Partial: observed median CPU overhead 9.533%, target <=5% unmet",
+    "server": "Complete",
+    "UI": "Complete within documented browser coverage",
+    "integration": "Complete within documented scenarios"
+  },
+  "unitTests": {
+    "passed": 220,
+    "failed": 0,
+    "postgresSeparated": 4
+  },
+  "postgres": {
+    "passed": 4,
+    "failed": 0
+  },
+  "browserChecks": 16,
+  "newMultiplayerChecks": 14,
+  "legacyMultiplayerChecks": 67,
+  "c0": {
+    "baseline": "4a19e19bc47ca7ae27d9c97e7f57533232686fe1",
+    "companies": 2,
+    "seconds": 1800,
+    "minuteHashesMatched": 30,
+    "hash": "baf2897aa5701df971d05d19ba12c85e1c953fa4d774ac074a9273afda6404a4",
+    "analyticsActive": true,
+    "reconciliation": 0
+  },
+  "productionDBChanged": false,
+  "deployed": false,
+  "contentBalanceChanged": false,
+  "notes": [
+    "Analytics performance is the isolated Stage 1 before/after result. Route performance is a separate later load test.",
+    "Four viewports passed separately. Final two-browser multiplayer interactions passed at 390px; initial simultaneous 1024px join click timeout remains a documented environment/coverage limitation.",
+    "No real-GPU or weeks-long live-world claim. No reverse-binary compatibility claim."
+  ]
+}

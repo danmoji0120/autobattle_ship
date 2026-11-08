@@ -15,6 +15,8 @@ node scripts/mptest.mjs      # 실제 WebSocket 클라이언트 2개로 동기�
 
 전략 화면 상단 **경제 · 월드**에서 자사 손익·물류와 공개 시장·세계 추세를 확인할 수 있습니다. 관리자 조회 권한, 통계 보존·집계 기준과 검증 결과는 [창고·월드 분석 개발 기록](docs/STORAGE_ANALYTICS.md)에 정리했습니다. [최종 검증 보고서](docs/STORAGE_ANALYTICS_VERIFICATION.md)에서 완료 범위·성능 수치·Partial 항목을 확인할 수 있습니다. 운영 서버의 관리자 조회는 계정 UUID를 설정하기 전까지 비활성화됩니다.
 
+성장 월드의 **물류 관리**에서 편대별 반복 운송·자동 판매·생산 공급을 설정할 수 있습니다. 일괄 정지·재개와 장애 해결 화면 연결을 제공하며, 취소·대기 시 화물을 보존합니다. [사용법과 설계](docs/LOGISTICS_AUTOMATION_P2.md), [P2 검증 결과 및 성능 한계](docs/LOGISTICS_AUTOMATION_P2_VERIFICATION.md)를 확인하세요.
+
 ## 구조 (멀티플레이 전제)
 
 | 층 | 내용 |

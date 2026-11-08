@@ -1,0 +1,157 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/growth.test.ts (16 tests) 519948ms
+     ✓ grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips  1105ms
+     ✓ without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands  2333ms
+     ✓ public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials  108103ms
+     ✓ own builds check blueprint, research, yard, facilities and materials; the launched ship carries the preset  61175ms
+     ✓ unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve  74886ms
+     ✓ reserve and reactivation by command  5106ms
+     ✓ dumping ore: price falls to the floor, the budget caps payment, the rest stays stored, budgets recover  31125ms
+     ✓ stock, listings, blueprints, upkeep and wear survive a restart exactly  6923ms
+     ✓ a long unattended mining run stays sane: no negative stock or budgets, no NaN, positive net  129800ms
+     ✓ miners that never dock (a hauler carries their ore) are still maintained: automation is not penalised  99334ms
+ ✓ tests/research.test.ts (9 tests) 130828ms
+     ✓ needs a lab of the right field; credits at registration, materials consumed at start, then the tech is known  17857ms
+     ✓ prerequisites: refused unless known or queued earlier; a queued follow-up waits, then starts by itself  17573ms
+     ✓ parallel projects use separate slots; slot-limited projects queue; power and research techs change speed  3403ms
+     ✓ pause, reorder and cancel (full refund before start, pro-rata after; materials are not returned)  10847ms
+     ✓ unlocks are enforced: facility, recipe and hull design need the tech  1823ms
+     ✓ blueprints: bought from a broker, learned from storage; known techs can be copied into tradeable blueprints  6473ms
+     ✓ salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster  41474ms
+     ✓ projects survive a restart and finish identically  31365ms
+ ✓ tests/industry.test.ts (12 tests) 118687ms
+     ✓ ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting  12282ms
+     ✓ an order waits with the exact missing input, then starts on its own when it arrives  3027ms
+     ✓ no facility / research / storage full are reported, never silently ignored  1647ms
+     ✓ more instances = more parallel lines; low power slows production  2903ms
+     ✓ stock-target orders keep a level, pause/resume/reorder/cancel work  10441ms
+     ✓ nothing is created or destroyed except by recipes: long mixed run conserves every item  28824ms
+     ✓ fields yield their mixture; miners deliver several goods  10098ms
+     ✓ hauling: one item, everything, and automatic supply of what the destination lacks  18272ms
+     ✓ own warehouse capacity: unloading stops at the limit and keeps the rest aboard  10016ms
+     ✓ public markets trade the new goods; regional production restocks and pirate pressure slows it  12225ms
+     ✓ production state survives a restart exactly; old saves are upgraded in place  8944ms
+ ✓ tests/shipyard.test.ts (8 tests) 68508ms
+     ✓ a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting  15748ms
+     ✓ yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls  1705ms
+     ✓ designs need research; cancel refunds in full before the keel, partially after (parts are not returned)  8193ms
+     ✓ own facilities never sell finished ships for credits; public yards still sell complete hulls  2182ms
+     ✓ fitting moves modules between ship and storage all-or-nothing, within the hull slots  6380ms
+     ✓ builds survive a restart and finish identically  34289ms
+ ✓ tests/growth2.test.ts (6 tests) 60645ms
+     ✓ limit + leases: over the limit nothing new comes in, nothing stored is removed; ship holds and leases are the way out  407ms
+     ✓ shared public docks: a crowd of ships is only partly maintained, and the dock recovers over the hour  38941ms
+     ✓ sites are deterministic, found by survey, salvaged into the holds; deep sites can hold unsold blueprints  20811ms
+     ✓ reprices markets, seeds sites, deletes nothing (even storage over the new limits), round-trips and is idempotent  473ms
+ ✓ tests/construction.test.ts (9 tests) 56793ms
+     ✓ 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds  6321ms
+     ✓ a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive  3994ms
+     ✓ credit and material shortfalls are reported separately  1674ms
+     ✓ several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold  8549ms
+     ✓ pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first  3629ms
+     ✓ cancel returns reserved materials and refunds credits (in full before work starts)  1710ms
+     ✓ miners unloading at the station feed the waiting plan, which then builds itself  25505ms
+     ✓ plans, reservations and progress survive a restart  3617ms
+     ✓ old saves: an unbuilt module without plan data is migrated without losing paid progress  1789ms
+ ✓ tests/mining.test.ts (6 tests) 48633ms
+     ✓ own station + store: ore goes into the PMC storage there, then the miners go back and repeat  16465ms
+     ✓ refuses to sell at a station without a market (no silent fallback)  1930ms
+     ✓ automatic destination + sale still works (the quick right-click order)  5457ms
+     ✓ a vanished destination: warns, holds the ore, never sells it elsewhere; re-targeting resumes  10321ms
+     ✓ another system’s station is a valid destination (warp + gate routing)  14453ms
+ ✓ tests/factions.test.ts (4 tests) 39203ms
+     ✓ pirate raids push pirates up and the guild down; influence drifts back toward the situation  9375ms
+     ✓ delivery contracts ask for the new goods too, and influence survives a restart  29638ms
+ ✓ tests/p5.test.ts (6 tests) 23249ms
+     ✓ a c0 world refuses P5 research, facilities and recipes; a growth world accepts them  2976ms
+     ✓ works end to end  20135ms
+ ↓ tests/pg-migrate.test.ts (4 tests | 4 skipped)
+ ✓ tests/example-pack.test.ts (3 tests) 13306ms
+     ✓ is in the game tables, growth-only, and hidden from a legacy world  995ms
+     ✓ research → production → fitting → combat → save/reload  12079ms
+ ✓ tests/logistics-p2.test.ts (14 tests) 11628ms
+     ✓ repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice  2178ms
+     ✓ one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard  1312ms
+     ✓ full destination and lost leased capacity hold cargo with bounded retries and resume when space returns  1275ms
+     ✓ automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo  670ms
+     ✓ partial market fills conserve currency, survive reload and cannot sell a shipment twice  941ms
+     ✓ construction-reserved inputs stay unavailable until an explicit plan cancellation releases them  786ms
+     ✓ supply requires existing logistics infrastructure and reserves incoming shipments across fleets  1030ms
+     ✓ blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely  2749ms
+     ✓ manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery  422ms
+ ✓ tests/world.test.ts (8 tests) 8709ms
+     ✓ mining orders move ships into the field and turn ore into credits  3131ms
+     ✓ a constructor founds a station and builds its docking hub  1654ms
+     ✓ pirate encounters become battles whose results persist on the PMC  2019ms
+     ✓ save/load round-trips the world, including a battle in progress  1015ms
+     ✓ battle orders are stamped ahead and replay deterministically on clients  839ms
+ ✓ tests/sim.test.ts (13 tests) 8426ms
+     ✓ same seed produces identical state  954ms
+     ✓ different seeds diverge  616ms
+     ✓ recorded player orders replay exactly  927ms
+     ✓ scenario kestrel ends with an outcome  523ms
+     ✓ scenario bastion ends with an outcome  656ms
+     ✓ scenario wolfpack ends with an outcome  571ms
+     ✓ named commanders beat acting captains with identical ships  3554ms
+     ✓ a skilled admiral coordinates hammer & anvil (raiders wait for the line)  328ms
+ ✓ tests/accounts.test.ts (12 tests) 7112ms
+     ✓ passwords are stored only as salted scrypt hashes and verified in constant time  906ms
+     ✓ sign-up validates the login ID and password, rejects duplicates case-insensitively  332ms
+     ✓ login: wrong password and unknown IDs give the same error; throttled after repeated failures  2759ms
+     ✓ sessions expire, slide while used, and end on logout  472ms
+     ✓ password change signs out every other session; recovery code resets the password once  2147ms
+ ✓ tests/content.test.ts (12 tests) 5344ms
+     ✓ the validator rejects broken content  787ms
+     ✓ fills hull + variant on every ship, conserves every asset, is idempotent and round-trips  1084ms
+     ✓ census catches duplicated or lost equipment unless the migration recorded it as granted  976ms
+     ✓ dry-run mode leaves an old save untouched; new ships stay unmarked until the migration is applied  1031ms
+     ✓ rollback and roll forward: ships created by the previous code version are repaired on load  1054ms
+ ✓ tests/analytics.test.ts (11 tests) 2840ms
+     ✓ compacts old intervals, bounds bytes and metadata, and explicitly reports retention loss  1161ms
+     ✓ collecting statistics does not change c0 or growth simulation state or RNG  1479ms
+ ✓ tests/fitting.test.ts (20 tests) 2759ms
+     ✓ new player ships carry a fitting equal to their preset; NPC ships stay on legacy loadouts  686ms
+     ✓ every legacy module set still fits every legacy preset, and the bays never allow more than the old slots  477ms
+     ✓ for all 25 presets, the fitting spec builds the identical ship and the identical battle  365ms
+stdout | tests/fleetmarch.test.ts > fleet moves as one > 17-ship mixed fleet crosses two jump gates and arrives together (no ship runs ahead)
+arrival window 0 s, max in-flight spread 597 u, total 61 s
+
+stdout | tests/fleetmarch.test.ts > fleet moves as one > attack: the fleet stages, assembles, then the whole fleet enters the battle together
+phases transit→ready→engage ships in the first battle: 17
+
+stdout | tests/fleetmarch.test.ts > fleet moves as one > an explicitly detached vanguard moves on its own, ahead of the main body
+vanguard 39 s, main body 60 s
+
+ ✓ tests/fleetmarch.test.ts (3 tests) 2211ms
+     ✓ 17-ship mixed fleet crosses two jump gates and arrives together (no ship runs ahead)  800ms
+     ✓ attack: the fleet stages, assembles, then the whole fleet enters the battle together  824ms
+     ✓ an explicitly detached vanguard moves on its own, ahead of the main body  585ms
+ ✓ tests/npcbattle.test.ts (5 tests) 1872ms
+     ✓ battle ships move on the strategic map while fighting (mirrored from the engine)  1588ms
+ ✓ tests/econ-baseline.test.ts (8 tests) 1859ms
+     ✓ own builds pay labour + the yard fee; cancelling before the keel refunds exactly that and nothing more  1806ms
+ ✓ tests/lease-policy.test.ts (12 tests) 1422ms
+     ✓ shipless zero-credit 45cr/h accounts owe exactly 45 after one hour for every caller interval, then stop charging without losing goods  387ms
+     ✓ sale repayment and rent preserve identical state with collection disabled/enabled and reconcile real cash  560ms
+ ✓ tests/model-pipeline.test.ts (8 tests) 1226ms
+     ✓ reports missing files, changed files, broken files and bad axes  387ms
+     ✓ a legacy (c0) world never meets a model  321ms
+ ✓ tests/analytics-p2.test.ts (3 tests) 182ms
+ ✓ tests/storage-stability.test.ts (7 tests) 126ms
+ ✓ tests/security.test.ts (1 test) 57ms
+stdout | tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.2s)
+interval 0.2s: backwards frames old=169 new=0
+
+stdout | tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.5s)
+interval 0.5s: backwards frames old=84 new=0
+
+ ✓ tests/interp.test.ts (4 tests) 33ms
+
+ Test Files  26 passed | 1 skipped (27)
+      Tests  220 passed | 4 skipped (224)
+   Start at  08:42:44
+   Duration  1149.36s (transform 1.90s, setup 0ms, import 9.70s, tests 1135.61s, environment 4ms)
+
+JSON report written to /workspace/autobattle_ship/artifacts/logistics-p2/unit-tests.json

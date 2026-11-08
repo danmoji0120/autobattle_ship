@@ -1,0 +1,12 @@
+{
+  "dateUTC": "2026-11-08",
+  "sourceRevision": "1656ac88144f31724b78d32af03ac98f5c4be565",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "node": "v24.22.1",
+  "chromium": "Chromium 156.0.8078.79 built on Debian GNU/Linux 13 (trixie)",
+  "logicalCPUs": 3,
+  "rendering": "Chromium headless, ANGLE SwiftShader; no real GPU frame-rate claim",
+  "performance": "Metrics were taken separately from browser and full-suite work; analytics before/after is the Stage 1 measurement, routes load is Stage 4. CPU and heap values include the real simulation.",
+  "cpu.max": "200000 100000",
+  "memory.max": "8589934592"
+}

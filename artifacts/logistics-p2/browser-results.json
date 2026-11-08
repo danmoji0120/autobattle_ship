@@ -1,0 +1,108 @@
+{
+  "checks": [
+    "empty view has a usable route-creation action",
+    "real miners → separate hauler → market sales repeat in the browser",
+    "live snapshots preserve typed route settings",
+    "route form creates an authoritative live route",
+    "live re-renders do not submit duplicate route commands",
+    "real supply → production → product transport runs without direct ship control",
+    "route management fits 1920px",
+    "route management fits 1440px",
+    "route management fits 1024px",
+    "route management fits 390px",
+    "editing protects the assigned fleet while preserving server validation",
+    "batch pause visibly stops all selected routes",
+    "real cargo-recovery button returns goods to owned storage and keeps the route paused",
+    "automatic sales need an explicit visible consent",
+    "Escape closes logistics without issuing a game command",
+    "no browser runtime errors"
+  ],
+  "mining": {
+    "mined": 1275.8332567999998,
+    "saleIncome": 4039.486435408,
+    "haulerCarriedOre": true
+  },
+  "industry": {
+    "deliveredAlloy": 122,
+    "routes": [
+      {
+        "name": "제련소 원료 보충",
+        "loaded": 600,
+        "delivered": 600
+      },
+      {
+        "name": "합금 출하",
+        "loaded": 122,
+        "delivered": 122
+      }
+    ]
+  },
+  "requests": [
+    {
+      "command": {
+        "c": "putRoute",
+        "group": "g186",
+        "config": {
+          "name": "제련소 원료 보충",
+          "from": "astra",
+          "to": "p2factory",
+          "item": "ore",
+          "mode": "supply",
+          "amount": 80,
+          "repeat": true,
+          "minStock": 60,
+          "targetStock": 120
+        }
+      },
+      "error": null
+    },
+    {
+      "command": {
+        "c": "putRoute",
+        "group": "g187",
+        "config": {
+          "name": "합금 출하",
+          "from": "p2factory",
+          "to": "p2depot",
+          "item": "alloy",
+          "mode": "transfer",
+          "amount": 10,
+          "repeat": true,
+          "minStock": 20,
+          "targetStock": 100
+        }
+      },
+      "error": null
+    },
+    {
+      "command": {
+        "c": "routeControl",
+        "routes": [
+          "lr190",
+          "lr191"
+        ],
+        "action": "pause"
+      },
+      "error": null
+    },
+    {
+      "command": {
+        "c": "unloadCargo",
+        "ship": "s189"
+      },
+      "error": null
+    },
+    {
+      "command": {
+        "c": "routeControl",
+        "routes": [
+          "lr190",
+          "lr191"
+        ],
+        "action": "resume"
+      },
+      "error": null
+    }
+  ],
+  "errors": []
+}
