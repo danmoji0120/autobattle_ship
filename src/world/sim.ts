@@ -1,6 +1,7 @@
 // Authoritative persistent-world simulation. Runs identically on the Node server (multiplayer)
 // and inside the browser (single player). All state lives in `st` (plain JSON).
 
+import { emit, observing, watchMoney, observedWork, observationCostMs } from './observe';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -372,7 +373,7 @@ export class WorldSim {
     if (st.owner !== company) return Infinity;
     const cap = storageCap(st);
     if (growthOn(this.st) && !this.hasModule(st, 'core')) return Object.keys(queueShortfall(st)).reduce((n, k) => n + constructionRoom(st, k), 0);
-    return cap > 0 ? Math.max(0, cap - cargoSum(this.storage(st, company))) : Infinity;
+    return cap > 0 ? Math.max(0, cap - (growthOn(this.st) ? storeUsed(st.storage[company]) : cargoSum(this.storage(st, company)))) : Infinity;
   }
   overCap(st: Station, company: string, add: number) { return this.room(st, company) < add; }
   /** why a public warehouse refused goods, and what the player can do about it */
@@ -437,7 +438,9 @@ export class WorldSim {
     return c;
   }
 
-  addPlayer(name: string): string {
+  addPlayer(name: string): string { return watchMoney(this.st, 'company_creation', {}, () => this.createPlayer(name)); }
+
+  private createPlayer(name: string): string {
     const n = Object.values(this.st.companies).filter(c => c.kind === 'player').length;
     const id = this.id('p');
     this.st.companies[id] = {
@@ -467,6 +470,11 @@ export class WorldSim {
   // ===================================================================== commands
 
   command(company: string, cmd: Cmd): string | null {
+    const meta = { company, ...('station' in cmd ? { station: cmd.station } : {}), ...('group' in cmd && typeof cmd.group === 'string' ? { group: cmd.group } : {}), ...('ship' in cmd && typeof cmd.ship === 'string' ? { ship: cmd.ship, group: this.st.ships[cmd.ship]?.groupId } : {}) };
+    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
+  }
+
+  private executeCommand(company: string, cmd: Cmd): string | null {
     const co = this.st.companies[company];
     if (!co || co.kind !== 'player') return '알 수 없는 회사';
     const G = (id: string) => { const g = this.st.groups[id]; return g && g.owner === company ? g : null; };
@@ -588,6 +596,7 @@ export class WorldSim {
           } else if (growthOn(this.st) && st.public) {
             if (this.overCap(st, company, a)) return this.storageFullMsg(st, company, a);
           } else if (st.owner !== company && this.overCap(st, company, a)) return '창고 용량 부족';
+          emit(this.st, { kind: 'market', reason: 'buy', amount: a, value: cost, company, station: st.id, item: cmd.res });
           co.credits -= cost; m.stock -= a; addc(ship ? ship.cargo : store, cmd.res, a);
           if (growthOn(this.st) && st.public) fundsIn(st, cost);
           this.ev('money', `${RES_NAME[cmd.res]} ${a} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
@@ -599,7 +608,7 @@ export class WorldSim {
         const st = S(s.task.station); if (!st.services.repair && !(st.owner === company && this.hasModule(st, 'repair'))) return '수리 시설 없음';
         const cost = Math.round((1 - s.hp) * shipWorth(this.st, s) * 0.3 / techFx(co.tech).repairMul);
         if (co.credits < cost) return '자금 부족';
-        co.credits -= cost; s.hp = 1;
+        co.credits -= cost; emit(this.st, { kind: 'cost', reason: 'repair', amount: cost, company, group: s.groupId, ship: s.id, station: st.id }); s.hp = 1;
         this.ev('money', `${s.name} 수리 완료 -${cost.toLocaleString()} cr`, { company });
         return null;
       }
@@ -654,6 +663,7 @@ export class WorldSim {
       case 'accept': {
         const k = this.st.contracts[cmd.contract]; if (!k || k.takenBy || k.done) return '수주 불가';
         if (Object.values(this.st.contracts).filter(x => x.takenBy === company && !x.done).length >= 3) return '동시 계약은 3건까지';
+        emit(this.st, { kind: 'contract', reason: 'accept', amount: 1, company, station: k.stationId, item: k.kind });
         k.takenBy = company; k.expires = this.time + (k.kind === 'lair' ? 1800 : 1200);
         this.ev('info', `계약 수주: ${k.title}`, { company, pos: S(k.stationId).pos });
         return null;
@@ -721,7 +731,7 @@ export class WorldSim {
         if ((st.orders ?? []).length >= 40) return '생산 주문은 정거장당 40개까지';
         st.seq = (st.seq ?? 0) + 1;
         (st.orders ??= []).push({ id: `o${st.seq}`, recipe: r.id, mode: cmd.mode === 'stock' ? 'stock' : 'count', n, done: 0 });
-        stepProduction(st, co, 0);
+        stepProduction(st, co, 0, this.st);
         return null;
       }
       case 'prodOp': {
@@ -742,7 +752,7 @@ export class WorldSim {
             q.splice(i, 1); q.splice(j, 0, o);
           }
         }
-        stepProduction(st, co, 0);
+        stepProduction(st, co, 0, this.st);
         return null;
       }
       // ── player market: goods are held in escrow at the station until sold or withdrawn ──
@@ -780,6 +790,8 @@ export class WorldSim {
         co.credits -= cost;
         const net = cost * (1 - (st.tax ?? 0.02));
         if (seller) { seller.credits += net; seller.stats.earned += net; }
+        emit(this.st, { kind: 'market', reason: 'player_exchange', amount: n, value: cost, company, station: st.id, item: l.item });
+        if (seller) emit(this.st, { kind: 'market.seller', reason: 'player_exchange', amount: n, value: net, company: seller.id, station: st.id, item: l.item });
         addc(this.storage(st, company), l.item, n);
         l.qty -= n;
         if (l.qty <= 0) st.listings!.splice(st.listings!.indexOf(l), 1);
@@ -805,7 +817,7 @@ export class WorldSim {
         const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: cmd.classId, loadoutId: lo.id, fit, group: g?.id, left: h.time, total: h.time, started: false, paid: h.credits };
         syncShipContent(this.st, nb);
         (st.builds ??= []).push(nb);
-        stepBuilds(st, co, 0);
+        stepBuilds(st, co, 0, this.st);
         this.ev('info', `${st.name}: ${hullName(cmd.classId)} 건조 등록 (${lo.name})`, { company, pos: st.pos, tag: 'build_plan' });
         return null;
       }
@@ -831,7 +843,7 @@ export class WorldSim {
             q.splice(i, 1); q.splice(j, 0, b);
           }
         }
-        stepBuilds(st, co, 0);
+        stepBuilds(st, co, 0, this.st);
         return null;
       }
       case 'research': {
@@ -845,6 +857,7 @@ export class WorldSim {
         const cr = projectCredits(cmd.tech, src), time = projectTime(cmd.tech, src);
         co.credits -= cr;
         co.rseq = (co.rseq ?? 0) + 1;
+        emit(this.st, { kind: 'research', reason: 'queue', amount: 1, company, station: st.id, item: cmd.tech, ref: `r${co.rseq}` });
         (co.research ??= []).push({ id: `r${co.rseq}`, tech: cmd.tech, station: st.id, left: time, total: time, started: false, paid: cr, source: src });
         stepResearch(this.st, co, 0);
         this.ev('info', `${st.name}: ${src === 'copy' ? '설계도 복제' : src === 'salvage' ? '노획품 분석' : '연구'} 등록 — ${techName(cmd.tech)}`, { company, pos: st.pos, tag: 'research_plan' });
@@ -860,6 +873,7 @@ export class WorldSim {
           case 'cancel': {
             // materials are spent when the project starts; credits come back for the unfinished part
             const back = Math.round((r.paid ?? 0) * (r.started ? Math.max(0, r.left / r.total) : 1));
+            emit(this.st, { kind: 'research', reason: 'cancel', amount: 1, company, item: r.tech, ref: r.id, station: r.station });
             co.credits += back; q.splice(i, 1);
             this.ev('info', `연구 취소: ${techName(r.tech)} — 환불 ${back.toLocaleString()} cr${r.started ? ' · 소모된 재료는 회수 불가' : ''}`, { company });
             break;
@@ -878,6 +892,7 @@ export class WorldSim {
         if (!st) return '정거장 없음';
         const err = learnBlueprint(co, st, cmd.tech);
         if (err) return err;
+        emit(this.st, { kind: 'research', reason: 'blueprint', amount: 1, company, station: st.id, item: cmd.tech });
         this.ev('milestone', `설계도 습득: ${techName(cmd.tech)} — ${TECHS[cmd.tech].unlocks}`, { company, pos: st.pos });
         return null;
       }
@@ -1156,7 +1171,7 @@ export class WorldSim {
     const label = p ? loadoutLabel(h.classId, ch.variant, { hp: p.weapons, bay: {} }) : getLoadout(h.classId, '').id;
     const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: h.classId, loadoutId: label, hull: ch.hull, variant: ch.variant, preset: p?.id, fit, group: g?.id, left: b.time, total: b.time, started: false, paid: pay };
     (st.builds ??= []).push(nb);
-    stepBuilds(st, co, 0);
+    stepBuilds(st, co, 0, this.st);
     this.ev('info', `${st.name}: ${h.name} 건조 등록 (${CONTENT.variants[ch.variant]?.name ?? ''}${p ? ` · ${p.name}` : ''})`, { company: co.id, pos: st.pos, tag: 'build_plan' });
     return null;
   }
@@ -1178,7 +1193,7 @@ export class WorldSim {
       const m = st.market;
       const short = Object.entries(need).filter(([r, n]) => m?.[r] && m[r].stock < n);
       if (short.length) { k.t = sale.restock; k.why = `자재 부족 (${short.map(([r]) => RES_NAME[r]).join(', ')})`; continue; }
-      for (const [r, n] of Object.entries(need)) if (m?.[r]) m[r].stock -= n;
+      for (const [r, n] of Object.entries(need)) if (m?.[r]) { m[r].stock -= n; emit(this.st, { kind: 'consume', reason: 'npc_ship_construction', amount: n, station: st.id, item: r }); }
       k.n++; k.t = 0; delete k.why;
     }
   }
@@ -1199,7 +1214,10 @@ export class WorldSim {
   private workOn(st: Station, m: import('./types').Module, rate: number, g: WGroup | null) {
     const md = MODULES[m.kind];
     if (m.progress <= 0 && rate > 0) this.ev('info', `${st.name}: ${md.name} 건설 시작`, { company: st.owner, pos: st.pos, tag: 'build_start' });
-    if (advance(m, rate)) {
+    const progress = m.progress;
+    const finished = advance(m, rate);
+    if (m.progress > progress) for (const [item, n] of Object.entries(md.mats)) emit(this.st, { kind: 'consume', reason: 'facility_construction', amount: n * (m.progress - progress), company: st.owner, station: st.id, item });
+    if (finished) {
       // rounding crumbs go back; completed modules carry no plan bookkeeping
       const store = this.storage(st, st.owner);
       for (const [r, n] of Object.entries(m.reserved ?? {})) if (n > 0) addc(store, r, n);
@@ -1346,7 +1364,7 @@ export class WorldSim {
     // re-runs locally, so what anyone watches is exactly what the server decides. Battles with
     // players come first; NPC-only fights share a wall-time budget (if it runs out they simply fall
     // a little behind real time; the outcome does not depend on timing).
-    const t0 = clockMs();
+    const t0 = clockMs(), observerStart = observationCostMs();
     const ids = [...this.battles.keys()];
     const npcIds = ids.filter(id => !this.st.engagements[id]?.live);
     const rot = npcIds.length ? this.npcRot++ % npcIds.length : 0;
@@ -1360,8 +1378,12 @@ export class WorldSim {
       if (npc) acc = Math.min(acc, Math.max(1.5, dt * 2));
       const s0 = clockMs();
       while (acc >= w.dt && !w.outcome) {
-        if (npc && clockMs() - t0 > NPC_BATTLE_BUDGET_MS) break;
+        if (npc && clockMs() - t0 - (observationCostMs() - observerStart) > NPC_BATTLE_BUDGET_MS) break;
         w.step(); acc -= w.dt;
+        if (observing(this.st)) observedWork(() => { for (const hit of w.events) if (hit.t === 'hit') {
+          const attacker = w.shipById.get(hit.attacker), ship = attacker?.ref ? this.st.ships[attacker.ref] : undefined;
+          if (ship) emit(this.st, { kind: 'combat.weapon', amount: hit.dmg, value: 1, company: ship.owner, group: ship.groupId, ship: ship.id, system: e.sys, item: hit.weapon, reason: hit.result });
+        } });
       }
       if (npc) npcSpent += clockMs() - s0;
       this.battleAcc.set(id, acc);
@@ -1473,6 +1495,7 @@ export class WorldSim {
     // growth P6: blueprint fragments from the wrecks of the classes they describe
     if (growthOn(this.st) && classes.length) for (const f of wreckFragments(rng, classes.filter(() => rng() < share))) loot[f] = (loot[f] ?? 0) + 1;
     if (!Object.keys(loot).length) return;
+    for (const [item, amount] of Object.entries(loot)) emit(this.st, { kind: 'produce', reason: 'battle_recovery', amount, company: co.id, system: this.sysOf(pos)?.id, item });
     const sys = sysAt(this.st.systems, pos);
     let best: Station | null = null, bd = Infinity;
     for (const x of Object.values(this.st.stations)) {
@@ -1515,14 +1538,16 @@ export class WorldSim {
       if (s.market) {
         // stations consume/produce so prices recover over time
         const m = s.market;
+        const beforeStock = observing(st) ? Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.stock])) : null;
         this.npcMarket(s, m, dt);
-        if (growthOn(st) && s.public) { fundsStep(s, dt); this.restockYards(s, dt); }
+        if (beforeStock) for (const [item, v] of Object.entries(m)) { const delta = v.stock - (beforeStock[item] ?? 0); if (delta) emit(st, { kind: delta > 0 ? 'market.net_supply' : 'market.net_consumption', reason: 'npc_economy', amount: Math.abs(delta), item, station: s.id }); }
+        if (growthOn(st) && s.public) { const before = s.funds ?? 0; fundsStep(s, dt); const delta = (s.funds ?? 0) - before; if (delta) emit(st, { kind: delta > 0 ? 'currency.create' : 'currency.destroy', reason: 'regional_budget', amount: Math.abs(delta), ...(delta > 0 ? { to: `st:${s.id}` } : { from: `st:${s.id}` }), station: s.id }); this.restockYards(s, dt); }
       }
       if (!s.public) {
         if (this.hasModule(s, 'defense') && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
         this.stationWorks(s, dt);
-        for (const b of stepBuilds(s, st.companies[s.owner], dt)) this.launchBuild(s, b);
-        for (const e of stepProduction(s, st.companies[s.owner], dt)) {
+        for (const b of stepBuilds(s, st.companies[s.owner], dt, st)) this.launchBuild(s, b);
+        for (const e of stepProduction(s, st.companies[s.owner], dt, st)) {
           if (e.kind === 'finished') this.ev('info', `${s.name}: 생산 주문 완료 — ${RECIPES[e.recipe].name}`, { company: s.owner, pos: s.pos, tag: 'prod_done' });
         }
       }
@@ -2077,12 +2102,12 @@ export class WorldSim {
     // growth P4: automatic maintenance wherever the station can do it (no order needed)
     if (!growthOn(this.st)) return;
     const capable = st.services.repair || (st.owner === s.owner && (this.hasModule(st, 'repair') || this.hasModule(st, 'hangar')));
-    if (s.wear) maintainOnDock(this.st, s, st, capable);
+    if (s.wear) watchMoney(this.st, 'maintenance_accrual', { company: s.owner, ship: s.id, group: s.groupId, station: st.id }, () => maintainOnDock(this.st, s, st, capable));
     // a mining group's miners hand their ore to the hauler at the field and never dock themselves: the
     // hauler brings their service parts back on each run, so automated mining is maintained too
     const g = this.st.groups[s.groupId];
     if (capable && s.classId === 'hauler' && g?.op?.k === 'mine')
-      for (const m of this.shipsOf(g)) if (m !== s && m.state === 'space' && m.wear) maintainOnDock(this.st, m, st, true);
+      for (const m of this.shipsOf(g)) if (m !== s && m.state === 'space' && m.wear) watchMoney(this.st, 'maintenance_accrual', { company: m.owner, ship: m.id, group: m.groupId, station: st.id }, () => maintainOnDock(this.st, m, st, true));
   }
 
   /** returns true once docked */
@@ -2258,6 +2283,7 @@ export class WorldSim {
         g.status = '하역지 사용 불가 — 화물 보관 중, 목적지 재지정 필요'; return;
       }
       if (full && dock && (!haulers.length || (s.task as any).why === 'deliver')) {
+        if ((s.task as any).why !== 'deliver') emit(this.st, { kind: 'logistics', reason: 'depart', amount: 1, company: s.owner, group: g.id, ship: s.id, ref: s.id });
         s.task = { k: 'goto', to: dock.pos, why: 'deliver' };
         if (this.goDock(s, dock, dt, speed)) { this.unload(s, dock, op.sell); this.undock(s); s.task = { k: 'none' }; }
         g.status = '광석 운반 중';
@@ -2283,7 +2309,7 @@ export class WorldSim {
         const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp) * (f.rich ?? 1) * (g3 ? wearMul(s) * (ec.minField && f.max < ec.minField ? 0.5 : 1) : 1);
         const a = Math.min(rate * dt * techFx(this.st.companies[g.owner]?.tech).mineMul, f.amount, cap - cargoSum(s.cargo));
         f.amount -= a;
-        for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) addc(s.cargo, k, a * w);
+        for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) { addc(s.cargo, k, a * w); if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
         s.task = { k: 'mine', field: f.id, rock };
         s.fx = { mining: f.id, rock };
         const r = rockPos(f, rock); s.heading = Math.atan2(r.x - s.pos.x, r.z - s.pos.z);
@@ -2315,6 +2341,7 @@ export class WorldSim {
       }
       if (!dock && (load > cap * 0.5 || delivering)) { s.task = { k: 'none' }; this.moveTo(s, this.formationSlot(s, g, vadd(f.pos, { x: 0, y: 60, z: 0 }), 120), speed, dt); return; }
       if (dock && (load > cap * 0.5 || (load > 0 && !donor) || delivering)) {
+        if ((s.task as any).why !== 'deliver') emit(this.st, { kind: 'logistics', reason: 'depart', amount: 1, company: s.owner, group: g.id, ship: s.id, ref: s.id });
         s.task = { k: 'goto', to: dock.pos, why: 'deliver' };
         if (this.goDock(s, dock, dt, speed)) { this.unload(s, dock, op.sell); this.undock(s); s.task = { k: 'none' }; }
         return;
@@ -2344,9 +2371,10 @@ export class WorldSim {
       if (alt) { op.deliver = alt; st = this.st.stations[alt]; why = null; this.say(g, `자동 하역지 변경: ${st.name}.`, 'radio', 0.3); }
     }
     const warned = (g as any)._dockWarn as string | undefined;
-    if (!why) { if (warned) delete (g as any)._dockWarn; return st!; }
+    if (!why) { if (warned) { delete (g as any)._dockWarn; emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company: g.owner, group: g.id }); } return st!; }
     if (warned !== op.deliver + why) {
       (g as any)._dockWarn = op.deliver + why;
+      emit(this.st, { kind: 'logistics', reason: `blocked:${why}`, amount: 0, company: g.owner, group: g.id, station: st?.id });
       const co = this.st.companies[g.owner];
       if (co?.kind === 'player') this.ev('warn', `${g.name}: ${st ? `하역지 ${st.name} 사용 불가 — ${why}` : '하역 정거장이 사라졌습니다'}. 화물은 판매하지 않고 보관 중입니다. 하역 목적지를 다시 지정하세요.`, { company: g.owner, who: g.name, pos: st?.pos });
     }
@@ -2379,7 +2407,8 @@ export class WorldSim {
     }
     const label = op.res === '*auto' ? '자동 보급' : op.res === '*all' ? '전 품목' : RES_NAME[op.res];
     if (cargoSum(s.cargo) > 0.5) {
-      if (growthOn(this.st) && this.intakeProblem(b, s.owner, false, s.cargo)) { g.status = `${b.name}: 창고 가득 — 화물 보존·하역 대기 (재고 이동/증설 필요)`; return; }
+      if (growthOn(this.st) && this.intakeProblem(b, s.owner, false, s.cargo)) { emit(this.st, { kind: 'logistics', reason: 'blocked:목적지 창고 용량 부족', amount: 0, company: s.owner, group: g.id, station: b.id }); g.status = `${b.name}: 창고 가득 — 화물 보존·하역 대기 (재고 이동/증설 필요)`; return; }
+      emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company: s.owner, group: g.id });
       g.status = `${b.name}로 ${label} 운송`;
       if (this.goDock(s, b, dt, speed)) {
         this.unload(s, b, false);
@@ -2393,7 +2422,7 @@ export class WorldSim {
       const pick = this.haulPick(op, a, b, store);
       let room = cap;
       for (const [k, want] of pick) { const t = takec(store, k, Math.min(room, Math.floor(want))); addc(s.cargo, k, t); room -= t; if (room < 1) break; }
-      if (cap - room > 0) { g.status = `${a.name}에서 적재 완료 (${Math.round(cap - room)})`; this.undock(s); }
+      if (cap - room > 0) { emit(this.st, { kind: 'logistics', reason: 'depart', amount: cap - room, company: s.owner, group: g.id, ship: s.id, ref: s.id, station: a.id }); g.status = `${a.name}에서 적재 완료 (${Math.round(cap - room)})`; this.undock(s); }
       else g.status = op.res === '*auto' ? `${b.name}에 부족한 원료가 ${a.name} 창고에 없음 — 대기` : `${a.name} 창고에 ${label} 없음 — 대기`;
     } else g.status = `${a.name}로 적재하러 이동`;
   }
@@ -2458,50 +2487,57 @@ export class WorldSim {
   private unload(s: WShip, st: Station, sell: boolean) {
     const co = this.st.companies[s.owner];
     if (!co) return;
+    const loadBefore = cargoSum(s.cargo);
     let msg = '';
+    const epsilon = growthOn(this.st) ? 1e-9 : 0.01;
     // an own station only takes what fits in its warehouse; the rest stays aboard
     let room = st.owner === s.owner || (st.public && growthOn(this.st)) ? this.room(st, s.owner) : Infinity;
     let held = 0;
     for (const r of cargoKeys(s.cargo)) {
       let amt = qty(s.cargo, r);
-      if (amt <= 0.01) continue;
+      if (amt <= epsilon) continue;
       // Delivery contracts consume cargo directly; a full warehouse must not block them.
       if (growthOn(this.st)) for (const k of Object.values(this.st.contracts)) {
         if (k.done || k.takenBy !== s.owner || k.kind !== 'delivery' || k.stationId !== st.id || k.res !== r) continue;
         const use = Math.min(amt, Math.max(0, (k.amount ?? 0) - k.progress));
+        if (use > 0) emit(this.st, { kind: 'consume', reason: 'contract_delivery', amount: use, company: s.owner, station: st.id, item: r });
         k.progress += use; amt -= takec(s.cargo, r, use);
-        if (k.progress >= (k.amount ?? 0) - 0.01) this.completeContract(k);
+        if (k.progress >= (k.amount ?? 0) - epsilon) this.completeContract(k);
       }
       const toStore = !(sell && st.market?.[r]) && co.kind === 'player';
-      const itemRoom = growthOn(this.st) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : room;
+      const itemRoom = growthOn(this.st) ? (takesSpace(r) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : Infinity) : room;
       if (toStore && amt > itemRoom) { held += amt - Math.max(0, itemRoom); amt = Math.max(0, itemRoom); }
       takec(s.cargo, r, amt);
-      if (toStore) room -= amt;
-      if (amt <= 0.01) continue;
+      if (toStore && (!growthOn(this.st) || takesSpace(r))) room -= amt;
+      if (amt <= epsilon) continue;
       // contracts first
       for (const k of Object.values(this.st.contracts)) {
         if (k.done || k.takenBy !== s.owner || k.kind !== 'delivery' || k.stationId !== st.id || k.res !== r) continue;
         const use = Math.min(amt, (k.amount ?? 0) - k.progress);
+        if (use > 0) emit(this.st, { kind: 'consume', reason: 'contract_delivery', amount: use, company: s.owner, station: st.id, item: r });
         k.progress += use; amt -= use;
-        if (k.progress >= (k.amount ?? 0) - 0.01) this.completeContract(k);
+        if (k.progress >= (k.amount ?? 0) - epsilon) this.completeContract(k);
       }
-      if (amt <= 0.01) continue;
+      if (amt <= epsilon) continue;
       if (co.kind !== 'player') { if (st.market?.[r]) st.market[r].stock += amt; continue; }
       if (sell && st.market?.[r]) {
-        const v = this.sellAt(st, s.owner, r, amt);
+        const v = watchMoney(this.st, 'market_sale', { company: s.owner, group: s.groupId, ship: s.id, station: st.id, item: r }, () => this.sellAt(st, s.owner, r, amt));
         msg += `${RES_NAME[r]} ${Math.round(v.sold)} → +${Math.round(v.value).toLocaleString()} cr `;
         // the station ran out of budget: the rest is kept in the company's storage there (never dumped)
         let left = amt - v.sold;
-        if (left > 0.01 && growthOn(this.st)) {
+        if (left > epsilon && growthOn(this.st)) {
           // growth: only what fits in the warehouse is kept; the rest stays aboard
           const put = Math.max(0, Math.min(left, room)); room -= put;
-          if (left - put > 0.01) { addc(s.cargo, r, left - put); held += left - put; }
+          if (left - put > epsilon) { addc(s.cargo, r, left - put); held += left - put; }
           left = put;
         }
-        if (left > 0.01) { addc(this.storage(st, s.owner), r, left); msg += `(구매 예산 소진 — ${Math.round(left)} 보관) `; }
+        if (left > epsilon) { addc(this.storage(st, s.owner), r, left); msg += `(구매 예산 소진 — ${Math.round(left)} 보관) `; }
       }
       else { addc(this.storage(st, s.owner), r, amt); msg += `${RES_NAME[r]} ${Math.round(amt)} 입고 `; }
     }
+    const unloaded = loadBefore - cargoSum(s.cargo);
+    if (unloaded > 0) emit(this.st, { kind: 'logistics', reason: 'unload', amount: unloaded, company: s.owner, group: s.groupId, ship: s.id, station: st.id });
+    if (held > 0.5) emit(this.st, { kind: 'logistics', reason: 'blocked:창고 용량 부족', amount: 0, company: s.owner, group: s.groupId });
     if (held > 0.5 && co.kind === 'player') this.ev('warn', st.public && growthOn(this.st)
       ? `${st.name} 공용 창고 한도 초과 — ${s.name}이(가) 화물 ${Math.round(held)}을(를) 싣고 있음. 구획을 임대하거나 재고를 팔거나, 자체 정거장으로 옮기세요.`
       : `${st.name} 창고 가득 — ${s.name}이(가) 화물 ${Math.round(held)}을(를) 하역하지 못함. 창고를 증설하거나 재고를 옮기세요.`, { company: s.owner, pos: st.pos, tag: 'storage_full' });
@@ -2514,6 +2550,9 @@ export class WorldSim {
   /** sell to the station's NPC market; returns credits paid and units sold (contentV ≥ 3: limited
    *  by the station's buying budget — what it cannot pay for is not sold) */
   sellAt(st: Station, company: string, r: Res, amt: number): { value: number; sold: number } {
+    return watchMoney(this.st, 'market_sale', { company, station: st.id, item: r }, () => this.sellAtObserved(st, company, r, amt));
+  }
+  private sellAtObserved(st: Station, company: string, r: Res, amt: number): { value: number; sold: number } {
     // sell in chunks so large dumps walk the price down
     let total = 0, left = amt, sold = 0;
     const m = st.market![r];
@@ -2529,6 +2568,7 @@ export class WorldSim {
     const co = this.st.companies[company];
     co.credits += total; co.stats.earned += total;
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
+    if (sold) emit(this.st, { kind: 'market', reason: 'sell', amount: sold, value: total, company, station: st.id, item: r });
     return { value: total, sold };
   }
 
@@ -2848,10 +2888,21 @@ export class WorldSim {
     return out;
   }
 
-  private finishEngagement(e: Engagement, res: BattleResult, tactical = false) {
+  private finishEngagement(e: Engagement, res: BattleResult, tactical = false) { return watchMoney(this.st, 'battle_reward', { system: e.sys, ref: e.id }, () => this.finishEngagementObserved(e, res, tactical)); }
+
+  private finishEngagementObserved(e: Engagement, res: BattleResult, tactical: boolean) {
     const st = this.st;
     if (e.done) return;
     e.done = true; e.winner = res.winner;
+    emit(st, { kind: 'combat.engagement', amount: 1, system: e.sys, reason: tactical ? 'tactical' : 'strength_model' });
+    for (const r of res.ships) {
+      const ship = st.ships[r.ref]; if (!ship) continue;
+      const meta = { company: ship.owner, group: ship.groupId, ship: ship.id, item: ship.classId, system: e.sys, reason: tactical ? 'tactical' : 'strength_model' };
+      emit(st, { ...meta, kind: 'combat.participation', amount: 1 });
+      if (r.dead) { emit(st, { ...meta, kind: 'combat.loss', amount: 1 }); for (const [item, amount] of Object.entries(ship.cargo)) if (amount > 0) emit(st, { ...meta, kind: 'consume', reason: 'combat_cargo_loss', item, amount }); }
+      if (e.sides[res.winner]?.includes(ship.owner)) emit(st, { ...meta, kind: 'combat.win', amount: 1 });
+      emit(st, { ...meta, kind: 'combat.damage', amount: r.dmg });
+    }
     const sideOf = (ref: string) => ref.startsWith('lair:') ? 1 : ref.startsWith('station:') ? 0 : (st.ships[ref] && e.sides[0].includes(st.ships[ref].owner) ? 0 : 1);
     const losses: [number, number] = [0, 0];
     for (const ts of res.ships) if (ts.dead && !ts.ref.startsWith('station:')) losses[sideOf(ts.ref)]++;
@@ -2948,7 +2999,8 @@ export class WorldSim {
       const share = totalDmg > 0 ? (dmgBy.get(c) ?? 0) / totalDmg : 1 / players.length;
       const pay = Math.round(bounty * share);
       if (pay > 0) { co.credits += pay; co.stats.earned += pay; }
-      co.rep += Math.round(destroyedPirateValue.size * share);
+      const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
+      if (standing) emit(st, { kind: 'reputation', reason: 'pirate_bounty', amount: standing, company: co.id, system: e.sys });
       co.stats.kills += Math.round(destroyedPirateValue.size * share);
       if (won) { co.stats.battlesWon++; if (!co.milestones.includes('first_victory')) this.milestone(co, 'first_victory'); }
       const lost = lostBy.get(c) ?? 0;
@@ -3004,7 +3056,7 @@ export class WorldSim {
     for (const f of Object.values(this.st.fields)) if (dist(f.pos, l.pos) < 9000) f.danger = Math.max(1, f.danger - 1);
     for (const c of e.sides[0]) {
       const co = this.st.companies[c];
-      if (co?.kind === 'player') { co.rep += 15; if (!co.milestones.includes('lair')) this.milestone(co, 'lair'); }
+      if (co?.kind === 'player') { co.rep += 15; emit(this.st, { kind: 'reputation', reason: 'lair_destroyed', amount: 15, company: co.id, system: e.sys }); if (!co.milestones.includes('lair')) this.milestone(co, 'lair'); }
     }
     for (const k of Object.values(this.st.contracts)) if (!k.done && k.kind === 'lair' && k.target === l.id) {
       if (k.takenBy && e.sides[0].includes(k.takenBy)) this.completeContract(k); else k.done = true;
@@ -3038,7 +3090,7 @@ export class WorldSim {
       if (k.done) continue;
       if (this.time > k.expires) {
         k.done = true;
-        if (k.takenBy) { const co = st.companies[k.takenBy]; co.rep = Math.max(0, co.rep - 2); this.ev('warn', `계약 기한 만료: ${k.title} (평판 -2)`, { company: k.takenBy }); }
+        if (k.takenBy) { const co = st.companies[k.takenBy]; const prev = co.rep; co.rep = Math.max(0, co.rep - 2); emit(st, { kind: 'reputation', amount: co.rep - prev, reason: 'contract_expired', company: co.id }); emit(st, { kind: 'contract', amount: 1, reason: 'fail', company: co.id, item: k.kind, station: k.stationId }); this.ev('warn', `계약 기한 만료: ${k.title} (평판 -2)`, { company: k.takenBy }); }
       }
     }
     // stations keep a few delivery jobs posted
@@ -3075,12 +3127,15 @@ export class WorldSim {
     }
   }
 
-  private completeContract(k: Contract) {
+  private completeContract(k: Contract) { return watchMoney(this.st, `contract_${k.kind}`, { company: k.takenBy ?? undefined, station: k.stationId }, () => this.completeContractObserved(k)); }
+
+  private completeContractObserved(k: Contract) {
     if (k.done) return;
     k.done = true;
     const co = k.takenBy ? this.st.companies[k.takenBy] : null;
     if (!co) return;
-    co.credits += k.reward; co.stats.earned += k.reward; co.rep += k.rep; co.stats.contracts++;
+    co.credits += k.reward; co.stats.earned += k.reward; co.rep += k.rep; emit(this.st, { kind: 'reputation', reason: `contract_${k.kind}`, amount: k.rep, company: co.id, station: k.stationId }); co.stats.contracts++;
+    emit(this.st, { kind: 'contract', reason: 'complete', amount: 1, value: k.reward, company: co.id, station: k.stationId, item: k.kind });
     this.ev('money', `계약 완수: ${k.title} — 보수 +${k.reward.toLocaleString()} cr, 평판 +${k.rep}`, { company: co.id, pos: this.st.stations[k.stationId]?.pos });
     // growth P6: lair assaults can award blueprints (contract / unique sources)
     if (growthOn(this.st) && k.kind === 'lair') {

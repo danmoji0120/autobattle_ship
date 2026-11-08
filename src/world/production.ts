@@ -11,7 +11,8 @@
 //  - Speed = power factor × research × support facilities. Low power slows everything, never stops it.
 //  - Every order carries `why`: the exact reason it is not producing right now.
 
-import type { Station, Cargo, Company } from './types';
+import { emit } from './observe';
+import type { Station, Cargo, Company, WorldState } from './types';
 import { qty, addc, cargoSum, hasAll } from './types';
 import { FACILITIES, RECIPES, ITEMS, itemName, techFx, type RecipeDef } from './industry';
 
@@ -71,7 +72,7 @@ export interface ProdEvent { kind: 'done' | 'finished'; recipe: string; order: s
  * Advance one station's production by dt seconds. Mutates storage, orders and jobs.
  * Returns what finished (for notifications).
  */
-export function stepProduction(st: Station, co: Company | undefined, dt: number): ProdEvent[] {
+export function stepProduction(st: Station, co: Company | undefined, dt: number, world?: WorldState): ProdEvent[] {
   const out: ProdEvent[] = [];
   const orders = (st.orders ??= []);
   const jobs = (st.jobs ??= []);
@@ -84,7 +85,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number)
     j.left -= dt * speed;
     if (j.left > 0) continue;
     const r = RECIPES[j.recipe];
-    for (const [k, n] of Object.entries(r.out)) addc(store, k, n);
+    for (const [k, n] of Object.entries(r.out)) { addc(store, k, n); if (world) emit(world, { kind: 'produce', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
     jobs.splice(i, 1);
     const o = orders.find(x => x.id === j.order);
     if (o) {
@@ -114,7 +115,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number)
       if (sh) { o.why = inflight(jobs, o) ? `가동 중 · 다음 배치 원료 부족: ${sh}` : `원료 부족: ${sh}`; break; }
       const outN = Object.values(r.out).reduce((a, b) => a + b, 0) - Object.values(r.in).reduce((a, b) => a + b, 0);
       if (cap > 0 && used + outN > cap) { o.why = `창고 가득 (${fmt(used)}/${fmt(cap)})`; break; }
-      for (const [k, n] of Object.entries(r.in)) addc(store, k, -n);
+      for (const [k, n] of Object.entries(r.in)) { addc(store, k, -n); if (world) emit(world, { kind: 'consume', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
       jobs.push({ id: `j${(st.seq = (st.seq ?? 0) + 1)}`, order: o.id, recipe: r.id, fac: r.fac, left: r.time, total: r.time });
       busy[r.fac] = (busy[r.fac] ?? 0) + 1;
       o.why = '가동 중';
@@ -200,7 +201,7 @@ function assignSlots(st: Station): Map<string, number> {
 export function buildSpeed(st: Station, co: Company | undefined) { return stationPower(st).factor * techFx(co?.tech).buildMul; }
 
 /** advance a station's ship construction; returns builds that just completed (removed from the queue) */
-export function stepBuilds(st: Station, co: Company | undefined, dt: number): ShipBuild[] {
+export function stepBuilds(st: Station, co: Company | undefined, dt: number, world?: WorldState): ShipBuild[] {
   const q = st.builds;
   if (!q?.length) return [];
   const store = (st.storage[st.owner] ??= { ore: 0, alloy: 0, crystal: 0 });
@@ -235,7 +236,7 @@ export function stepBuilds(st: Station, co: Company | undefined, dt: number): Sh
       b.why = `부품 부족: ${sh}${rivals.length ? ` — ${rivals.map(itemName).join(', ')}을(를) 건설 계획이 먼저 확보 중` : ''}`;
       continue;
     }
-    for (const [k, n] of Object.entries(need)) addc(store, k, -n);
+    for (const [k, n] of Object.entries(need)) { addc(store, k, -n); if (world) emit(world, { kind: 'consume', reason: 'ship_construction', amount: n, company: co?.id, station: st.id, item: k }); }
     b.started = true; used.add(i); taken.set(b.id, i);
     b.why = `건조 시작 — ${FACILITIES[slots[i].kind].name}`;
   }

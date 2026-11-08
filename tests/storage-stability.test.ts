@@ -110,4 +110,18 @@ describe('storage stability', () => {
     expect(loaded.st.stations.building.storage[p].ore).toBe(90000);
     expect(loaded.room(loaded.st.stations.building, p)).toBe(0);
   });
+  it('preserves fractional sale leftovers and stores blueprint records without consuming warehouse space', () => {
+    const { sim, p, st, co } = fixture();
+    const ship = Object.values(sim.st.ships).find(s => s.owner === p)!;
+    st.funds = 0; ship.cargo = { ore: .005 };
+    (sim as any).unload(ship, st, true);
+    expect(qty(ship.cargo, 'ore') + qty(st.storage[p], 'ore')).toBeCloseTo(.005, 12);
+    st.storage[p].ore = publicCap(co, st);
+    ship.cargo = { ore: .005, 'bpf:bp_destroyer_mk1': 3 };
+    (sim as any).unload(ship, st, false);
+    expect(qty(ship.cargo, 'ore')).toBe(.005);
+    expect(qty(st.storage[p], 'bpf:bp_destroyer_mk1')).toBe(3);
+    expect(storeUsed(st.storage[p])).toBe(publicCap(co, st));
+  });
+
 });

@@ -15,6 +15,7 @@
 //   stage 4 (120 min)        idle docked ships are proposed for reserve; moved only with consent
 //                            (the player's command, or the company's opt-in auto-reserve)
 // Nothing is ever deleted or confiscated, no interest is charged, and paying the debt clears it.
+import { emit, watchMoney } from './observe';
 import type { Company, Station, WorldState, WShip, Cargo, UpkeepState } from './types';
 import { qty, addc } from './types';
 import { econOf, hullIdOf, hullUpkeep, berthOf, growthOn, shipWorth } from './hullops';
@@ -98,6 +99,7 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
   for (const s of ships) {
     if (s.reserve?.until && w.time >= s.reserve.until) { delete s.reserve; out.push({ kind: 'info', text: `${s.name} 예비역 해제 — 재취역 완료`, tag: 'reserve' }); }
     const r = shipRate(w, s);
+    emit(w, { kind: 'cost', reason: 'fleet_upkeep', amount: (r.credits * om + r.dock) * h, company: co.id, ship: s.id, group: s.groupId });
     u.acc += (r.credits * om + r.dock) * h;
     for (const [k, n] of Object.entries(r.supplies)) u.supplies[k] = (u.supplies[k] ?? 0) + n * h;
     // wear: accumulates while the ship works in space; slower without supplies (stage ≥ 2 doubles it)
@@ -108,7 +110,7 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
   u.acc += rent; u.leaseAcc = (u.leaseAcc ?? 0) + rent;
   if (w.time - u.last < SETTLE_DT) return out;
   u.last = w.time;
-  out.push(...settle(w, co, u));
+  out.push(...watchMoney(w, 'upkeep_settlement', { company: co.id }, () => settle(w, co, u)));
   return out;
 }
 
@@ -127,7 +129,7 @@ function settle(w: WorldState, co: Company, u: UpkeepState): UpkeepEvent[] {
     if (delayed) continue;   // resupply delayed: the bill keeps accruing, nothing is drawn
     for (const st of sources) {
       const S = st.storage[co.id]; const t = Math.min(n, Math.floor(qty(S, k) + 1e-9));
-      if (t > 0) { addc(S as Cargo, k, -t); n -= t; fromStore[k] = (fromStore[k] ?? 0) + t; }
+      if (t > 0) { emit(w, { kind: 'consume', reason: 'upkeep', amount: t, company: co.id, station: st.id, item: k }); addc(S as Cargo, k, -t); n -= t; fromStore[k] = (fromStore[k] ?? 0) + t; }
       if (!n) break;
     }
     if (n > 0) {
@@ -139,6 +141,8 @@ function settle(w: WorldState, co: Company, u: UpkeepState): UpkeepEvent[] {
     }
     u.supplies[k] = owed - Math.floor(owed + 1e-9);
   }
+  emit(w, { kind: 'cost', reason: 'warehouse_rent', amount: u.leaseAcc ?? 0, company: co.id });
+  emit(w, { kind: 'cost', reason: 'supplies', amount: supplyCr, company: co.id });
   const bill = u.acc + supplyCr;
   u.acc = 0;
   u.total.credits += bill - supplyCr; u.total.supplies += supplyCr;
@@ -199,6 +203,7 @@ export function maintainOnDock(w: WorldState, s: WShip, st: Station, repairCapab
   if (fix < 1e-4) return 0;
   useDock(st, repairPoints(s, fix));
   const cost = Math.round(fix * shipWorth(w, s) * 0.12 * (st.owner === co.id ? 0.5 : serviceOf(st).fee));
+  emit(w, { kind: 'cost', reason: 'maintenance', amount: cost, company: co.id, group: s.groupId, ship: s.id, station: st.id });
   s.wear = s.wear! - fix;
   upkeepOf(co).acc += cost;
   if (st.public) fundsIn(st, cost);

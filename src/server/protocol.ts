@@ -13,7 +13,8 @@ export type ClientMsg =
   | { t: 'border'; id: number; eng: string; groupId: number; order: Order | null; opts: { retreatAt?: number; release?: boolean } }
   | { t: 'speed'; v: number }
   | { t: 'ping'; at: number }
-  | { t: 'view'; sys: string };
+  | { t: 'view'; sys: string }
+  | { t: 'analytics'; id: number; scope: 'player' | 'admin'; query?: import('./analytics').AnalyticsQuery };
 
 /** what clients see of the world (no RNG / auth) */
 /** finished battles as listed to clients (setup/orders are fetched on demand with bjoin) */
@@ -37,10 +38,13 @@ export type ServerMsg =
   | { t: 'auth'; need: 'login' }
   /** signed in, but the account has no PMC in this world yet */
   | { t: 'needPmc' }
-  | { t: 'pmcErr'; msg: string };
+  | { t: 'pmcErr'; msg: string }
+  | { t: 'analytics'; id: number; data?: import('./analytics').AnalyticsResult; error?: string; admin?: boolean };
 
 export interface SaveFile {
   v: number; world: WorldState;
+  /** Server-only, bounded observability history. Never included in WorldView. */
+  analytics?: import('./analytics').AnalyticsStore;
   /** legacy (pre-account) browser tokens → company; only usable once, to carry a PMC over to an account */
   auth: Record<string, string>;
   /** account UUID → company id in this world. Saved with the world, so backups and resets stay consistent */

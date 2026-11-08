@@ -27,7 +27,7 @@ export class LocalTransport implements Transport {
     let save: SaveFile | null = null;
     if (!fresh) { try { const raw = localStorage.getItem(SP_KEY); if (raw) save = JSON.parse(raw); } catch { save = null; } }
     this.server = new GameServer(save, {
-      singleplayer: true, snapInterval: 0.5, movInterval: 0.1, saveInterval: 20,
+      singleplayer: true, analytics: { maxBytes: 1048576 }, snapInterval: 0.5, movInterval: 0.1, saveInterval: 20,
       save: d => { try { localStorage.setItem(SP_KEY, JSON.stringify(d)); } catch (e) { console.warn('save failed', e); } },
     }, (Date.now() & 0xffff) + 1);
     // deliver asynchronously like a real socket so the client never aliases server objects mid-call
@@ -113,6 +113,7 @@ export class GameClient {
   onNeedPmc: (() => void) | null = null;
   onPmcErr: ((msg: string) => void) | null = null;
   onBattle: ((m: Extract<ServerMsg, { t: 'binit' | 'border' }>) => void) | null = null;
+  private analyticsAcks = new Map<number, (m: Extract<ServerMsg, { t: 'analytics' }>) => void>();
   private acks = new Map<number, (e: string | null) => void>();
   private seq = 1;
 
@@ -126,6 +127,7 @@ export class GameClient {
 
   private receive(m: ServerMsg) {
     switch (m.t) {
+      case 'analytics': this.analyticsAcks.get(m.id)?.(m); this.analyticsAcks.delete(m.id); break;
       case 'welcome': this.company = m.company; this.token = m.token; this.sp = m.sp; this.onWelcome.forEach(f => f()); break;
       case 'snap': {
         this.state = m.state; this.speed = m.speed; this.snapAt = performance.now();
@@ -154,6 +156,14 @@ export class GameClient {
       case 'needPmc': this.onNeedPmc?.(); break;
       case 'pmcErr': this.onPmcErr?.(m.msg); break;
     }
+  }
+
+  analytics(scope: 'player' | 'admin', query: import('../server/analytics').AnalyticsQuery = {}): Promise<Extract<ServerMsg, { t: 'analytics' }>> {
+    const id = this.seq++;
+    return new Promise(resolve => {
+      this.analyticsAcks.set(id, resolve); this.t.send({ t: 'analytics', id, scope, query });
+      setTimeout(() => { if (this.analyticsAcks.delete(id)) resolve({ t: 'analytics', id, error: '통계 응답이 없습니다. 연결 상태를 확인하고 다시 시도하세요.' }); }, 10000);
+    });
   }
 
   cmd(cmd: Cmd): Promise<string | null> {

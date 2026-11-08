@@ -10,6 +10,7 @@
 //  - kinds: 'lab' (normal), 'salvage' (reverse-engineering a captured item: consumes the item, faster,
 //    cheaper), 'copy' (prints a tradeable blueprint item `bp:<tech>` of a known tech).
 
+import { emit } from './observe';
 import type { Station, Company, ResearchProject, WorldState } from './types';
 import { qty, addc, hasAll } from './types';
 import { FACILITIES, TECHS, EQUIPMENT, ITEMS, itemName, techFx, type Field } from './industry';
@@ -122,8 +123,9 @@ export function stepResearch(stt: WorldState, co: Company, dt: number): Research
         p.why = `재료 부족: ${short.join(', ')}`;
         continue;
       }
-      for (const [k, n] of Object.entries(cost)) addc(S, k, -n);
+      for (const [k, n] of Object.entries(cost)) { addc(S, k, -n); emit(stt, { kind: 'consume', reason: 'research', amount: n, company: co.id, station: st.id, item: k }); }
       p.started = true;
+      emit(stt, { kind: 'research', reason: 'start', amount: 1, baseline: p.total, method: p.source ?? 'lab', company: co.id, item: p.tech, ref: p.id, station: p.station });
     }
     const [slot] = slots.splice(i, 1);
     const speed = stationPower(st).factor * mul;
@@ -132,6 +134,7 @@ export function stepResearch(stt: WorldState, co: Company, dt: number): Research
     if (p.left <= 0) done.push(p);
   }
   for (const p of done) {
+    emit(stt, { kind: 'research', reason: 'complete', amount: 1, baseline: p.total, method: p.source ?? 'lab', company: co.id, item: p.tech, ref: p.id, station: p.station });
     co.research = co.research!.filter(x => x !== p);
     const st = stt.stations[p.station];
     if (p.source === 'copy') { if (st) addc(st.storage[co.id] ??= {}, `bp:${p.tech}`, 1); }

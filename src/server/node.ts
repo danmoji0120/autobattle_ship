@@ -258,9 +258,13 @@ async function main() {
   }
   const auth = new AuthService(accountStore, { ttlMs: Number(process.env.SESSION_TTL_HOURS ?? 24 * 14) * 3600_000 });
   console.log(`[siderarium] accounts: ${accountStore.name} · ${Object.keys(saved?.accounts ?? {}).length} linked PMCs · ${Object.keys(saved?.auth ?? {}).length} legacy tokens`);
+  let alertConfig: import('./analytics').AnalyticsOptions['alerts'];
+  try { alertConfig = JSON.parse(process.env.ANALYTICS_ALERTS_JSON ?? '{}'); } catch { console.warn('[siderarium] invalid ANALYTICS_ALERTS_JSON; using defaults'); }
   let saving = false;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent, snapInterval: 1.0, movInterval: 0.2, saveInterval: Number(process.env.SAVE_INTERVAL_S ?? 30),
+    singleplayer: false, accounts: true, migrateContent: applyContent,
+    adminAccounts: (process.env.ANALYTICS_ADMIN_ACCOUNTS ?? '').split(',').map(s => s.trim()).filter(Boolean),
+    analytics: { enabled: process.env.ANALYTICS_ENABLED !== '0', snapshotSeconds: Number(process.env.ANALYTICS_INTERVAL_S ?? 600), maxBytes: Number(process.env.ANALYTICS_MAX_BYTES ?? 8388608), alerts: alertConfig }, snapInterval: 1.0, movInterval: 0.2, saveInterval: Number(process.env.SAVE_INTERVAL_S ?? 30),
     save: d => { if (saving) return; saving = true; storage.save(d).catch(e => console.error('save failed', e)).finally(() => { saving = false; }); },
   }, Number(process.env.WORLD_SEED ?? 1));
   console.log(`[siderarium] world ${saved ? 'restored' : 'created'} (t=${game.sim.time.toFixed(0)}s) storage=${storage.name}`);

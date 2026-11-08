@@ -14,6 +14,7 @@
 // Own stations have none of these limits beyond their own modules (core 20,000 + warehouses 30,000
 // each, repair bays, hangars), which is the point: the answer to a full public warehouse is a station.
 // Pure helpers; the sim applies them. Below contentV 3 nothing here is consulted.
+import { emit } from './observe';
 import type { Cargo, Company, Station, WorldState, WShip } from './types';
 import { queueShortfall } from './construction';
 import { qty } from './types';
@@ -77,6 +78,7 @@ export function setLease(w: WorldState, co: Company, st: Station, blocks: number
     const first = (n - cur) * sv.lease;
     if (co.credits < first) return `자금 부족 — 첫 시간 임대료 ${first.toLocaleString()} cr 필요`;
     co.credits -= first;
+    emit(w, { kind: 'cost', reason: 'warehouse_rent', amount: first, company: co.id, station: st.id });
   }
   const paid = (co.leasePaidUntil ??= {})[st.id] ?? Array(cur).fill(w.time);
   // Return newest blocks first; already accrued rent is never refunded or erased.

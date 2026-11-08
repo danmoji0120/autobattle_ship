@@ -1,6 +1,7 @@
 // Transport-agnostic authoritative game server. Used by the Node WebSocket server (multiplayer)
 // and by the in-browser LocalTransport (single player) — the same code path in both modes.
 
+import { Analytics, type AnalyticsOptions } from './analytics';
 import { WorldSim } from '../world/sim';
 import type { ClientMsg, ServerMsg, SaveFile, WorldView } from './protocol';
 import type { WorldEvent } from '../world/types';
@@ -20,6 +21,9 @@ export interface ServerOptions {
   /** apply the content-model migration to an older save (default true; the production server keeps it
    *  off until approved and only dry-runs it — see node.ts CONTENT_MIGRATE) */
   migrateContent?: boolean;
+  analytics?: AnalyticsOptions;
+  /** Verified account UUIDs, configured only by the server administrator. Empty = disabled. */
+  adminAccounts?: string[];
 }
 
 function token(): string {
@@ -30,6 +34,9 @@ function token(): string {
 
 export class GameServer {
   sim: WorldSim;
+  analytics: Analytics | null;
+  private inactiveAnalytics?: import('./analytics').AnalyticsStore;
+  private analyticsRequests = new Map<string, number>();
   auth: Record<string, string>;
   /** account UUID → company */
   accounts: Record<string, string>;
@@ -47,6 +54,8 @@ export class GameServer {
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
     this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent }) : WorldSim.create(seed);
+    this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
+    if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }
     this.auth = save?.auth ?? {};
     this.accounts = save?.accounts ?? {};
     for (const c of Object.values(this.sim.st.companies)) c.online = false;
@@ -55,7 +64,7 @@ export class GameServer {
     };
   }
 
-  snapshotFile(): SaveFile { return { v: 1, world: JSON.parse(this.sim.serialize()), auth: this.auth, accounts: this.accounts }; }
+  snapshotFile(): SaveFile { return { v: 1, world: JSON.parse(this.sim.serialize()), auth: this.auth, accounts: this.accounts, ...(this.analytics ? { analytics: this.analytics.snapshot() } : this.inactiveAnalytics ? { analytics: structuredClone(this.inactiveAnalytics) } : {}) }; }
 
   /** the company an account controls in this world (null: none yet, or its PMC is gone) */
   companyOf(account: string): string | null {
@@ -113,6 +122,7 @@ export class GameServer {
   disconnect(id: string) {
     const c = this.conns.get(id);
     this.conns.delete(id);
+    this.analyticsRequests.delete(id);
     if (c?.company && ![...this.conns.values()].some(o => o.company === c.company)) {
       const co = this.sim.st.companies[c.company];
       if (co) { co.online = false; this.sim.ev('world', `${co.name} 접속 종료 — 함대는 지휘관들이 계속 운용한다.`); }
@@ -124,6 +134,18 @@ export class GameServer {
     const c = this.conns.get(connId);
     if (!c) return;
     switch (msg.t) {
+      case 'analytics': {
+        const admin = !!(this.opts.singleplayer || this.opts.accounts && c.account && this.opts.adminAccounts?.includes(c.account));
+        if (!c.company) return c.send({ t: 'analytics', id: msg.id, error: '로그인이 필요합니다' });
+        if (msg.scope !== 'player' && msg.scope !== 'admin') return c.send({ t: 'analytics', id: msg.id, error: '잘못된 조회 범위' });
+        if (msg.scope === 'admin' && !admin) return c.send({ t: 'analytics', id: msg.id, error: '관리자 권한이 없습니다. 서버의 관리자 계정 설정이 필요합니다.', admin: false });
+        if (!this.analytics) return c.send({ t: 'analytics', id: msg.id, error: '통계 수집이 비활성화되어 있습니다', admin });
+        const last = this.analyticsRequests.get(c.id);
+        if (last !== undefined && this.clock - last < .5) return c.send({ t: 'analytics', id: msg.id, error: '조회가 너무 빠릅니다. 잠시 후 새로고침하세요.', admin });
+        this.analyticsRequests.set(c.id, this.clock);
+        const query = msg.query && typeof msg.query === 'object' ? msg.query : {};
+        return c.send({ t: 'analytics', id: msg.id, data: this.analytics.query(msg.scope, c.company, query), admin });
+      }
       case 'hello': {
         if (this.opts.accounts) {
           // identity is the verified account only; tokens and names in the message are ignored
@@ -188,6 +210,7 @@ export class GameServer {
     const dt = Math.min(realDt, this.opts.singleplayer ? 0.25 : 1) * this.speed;
     const t0 = performance.now();
     if (dt > 0) this.sim.update(dt);
+    this.analytics?.step(realDt);
     this.tickCost.push(performance.now() - t0);
     this.clock += realDt;
     this.snapAcc += realDt;
@@ -251,7 +274,11 @@ export class GameServer {
   }
 
   private sendSnap(c: Conn, base: Omit<WorldView, 'ships'>) {
-    const state = { ...base, ships: this.visibleShips(c) } as WorldView;
+    const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, id === c.company || co.kind !== 'player' ? co : { id, name: co.name, kind: co.kind, color: co.color, online: co.online, createdAt: co.createdAt, homeStation: co.homeStation, credits: 0, rep: 0, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [] }]));
+    const stations = Object.fromEntries(Object.entries(base.stations).map(([id, st]) => [id, { ...st, storage: { ...(c.company && st.storage[c.company] ? { [c.company]: st.storage[c.company] } : {}) }, ...(st.owner === c.company ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
+    const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, g.owner === c.company || base.companies[g.owner]?.kind !== 'player' ? g : { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined }]));
+    const ships = Object.fromEntries(Object.entries(this.visibleShips(c)).map(([id, s]) => [id, s.owner === c.company ? s : { ...s, cargo: {}, fitting: undefined, fit: undefined }]));
+    const state = { ...base, companies, stations, ships, groups, grants: undefined, conversions: undefined, sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c.company && s.seen.includes(c.company)).map(([id, s]) => [id, { ...s, scan: c.company && s.scan[c.company] !== undefined ? { [c.company]: s.scan[c.company] } : {}, seen: c.company ? [c.company] : [] }])) : undefined } as WorldView;
     // local clients must not alias server state; remote ones get JSON anyway
     c.send({ t: 'snap', at: this.sim.time, speed: this.speed, state: this.opts.singleplayer ? JSON.parse(JSON.stringify(state)) : state });
   }

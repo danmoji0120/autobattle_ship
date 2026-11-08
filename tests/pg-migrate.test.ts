@@ -8,6 +8,8 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import WebSocket from 'ws';
 import { makeC0World } from './support/oldSave';
+import { GameServer } from '../src/server/core';
+import { publicCap } from '../src/world/storage';
 import { WorldSim } from '../src/world/sim';
 import { census, compareCensus, CONTENT_VERSION } from '../src/world/migrate';
 import type { WorldState } from '../src/world/types';
@@ -172,4 +174,28 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     expect((await row())!.data.world.contentV ?? 0).toBe(0);
     expect((await row())!.gen).toBe(before.gen);
   }, 60_000);
+  it('persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 923);
+    const id = local.sim.addPlayer('PG 통계 검증');
+    const co = local.sim.st.companies[id], st = local.sim.st.stations.astra;
+    expect(local.sim.command(id, { c: 'lease', station: st.id, blocks: 1 })).toBeNull();
+    st.storage[id].ore = publicCap(co, st);
+    (local.sim as any).salvageWrecks(co, Array.from({ length: 12 }, () => ({ eq_laser: 2 })), 1, st.pos);
+    expect(Object.keys(co.pendingLoot?.astra ?? {}).length).toBeGreaterThan(0);
+    const file = local.snapshotFile();
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    for (const port of [8316, 8317]) {
+      const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' });
+      expect(await stop(srv)).toBe(0);
+      const data = (await row())!.data as typeof file;
+      expect(data.world.companies[id].leasePaidUntil).toEqual(co.leasePaidUntil);
+      expect(data.world.companies[id].pendingLoot).toEqual(co.pendingLoot);
+      expect(data.analytics?.started).toBe(file.analytics!.started);
+      expect(data.analytics?.openingSupply).toBe(file.analytics!.openingSupply);
+      const creation = [...data.analytics!.fine, data.analytics!.current].flatMap(b => b.rows).filter(r => r.kind === 'income' && r.company === id && r.reason === 'company_creation');
+      expect(creation.reduce((n, r) => n + r.amount, 0)).toBe(12000);
+      expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
+    }
+  }, 60_000);
+
 });
