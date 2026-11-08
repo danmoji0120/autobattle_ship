@@ -214,7 +214,7 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     const p = local.sim.addPlayer('PG 물류'), sim = local.sim, a = sim.st.stations.astra;
     const depot = { ...structuredClone(a), id: 'pg_depot', name: 'PG 물류항', public: false, owner: p, pos: { ...a.pos, x: a.pos.x + 6000 }, market: null, funds: undefined, fundsMax: undefined, shipStock: undefined, storage: { [p]: { ore: 20000 } }, modules: [{ kind: 'core', slot: 0, progress: 1, built: true }] };
     sim.st.stations[depot.id] = depot;
-    const g = sim.newGroup(p, 'PG 운송반'), ship = sim.spawnShip(p, 'hauler', 'std', g.id, a.pos); sim.dockShip(ship, a);
+    const g = sim.newGroup(p, 'PG 운송반'), ship = sim.spawnShip(p, 'hauler', 'std', g.id, a.pos); (sim as any).dockShip(ship, a);
     expect(sim.command(p, { c: 'buy', station: a.id, res: 'ore', amount: 100 })).toBeNull();
     expect(sim.command(p, { c: 'putRoute', group: g.id, config: { name: '재시작 운송', from: a.id, to: depot.id, item: 'ore', mode: 'transfer', amount: 20, repeat: true } })).toBeNull();
     sim.tick(0); const route = Object.values(sim.st.logistics!)[0];

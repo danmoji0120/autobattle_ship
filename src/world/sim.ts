@@ -2,7 +2,7 @@
 // and inside the browser (single player). All state lives in `st` (plain JSON).
 
 import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
-import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, type RouteConfig } from './logistics';
+import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -1078,7 +1078,7 @@ export class WorldSim {
         if (s.state !== 'docked' || s.task.k !== 'docked') return '정박한 함선만 창고로 하역할 수 있습니다';
         const st = this.st.stations[s.task.station]; if (!st || !this.canDock(st, company)) return '이용 가능한 정거장이 아닙니다';
         let moved = 0;
-        for (const item of cargoKeys(s.cargo)) { const n = takec(s.cargo, item, this.intakeRoom(st, company, item)); if (n > 0) { addc(this.storage(st, company), item, n); moved += n; emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company, group: s.groupId, ship: s.id, station: st.id, item }); } }
+        for (const item of cargoKeys(s.cargo)) { const n = takec(s.cargo, item, this.intakeRoom(st, company, item)); if (n > 0) { addc(this.storage(st, company), item, n); moved += n; withdrawRouteCargo(this, company, s.id, item, n); emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company, group: s.groupId, ship: s.id, station: st.id, item }); } }
         if (!moved) return cargoSum(s.cargo) > 0 ? '창고에 빈 공간이 없습니다 — 임대·재고 이동 후 다시 하역하세요' : '하역할 화물이 없습니다';
         this.ev('info', `${s.name}: ${moved.toLocaleString()}단위 자사 창고로 하역 (판매·계약 소비 없음)`, { company, pos: st.pos });
         return null;

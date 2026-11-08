@@ -95,6 +95,7 @@ export function putRoute(h: Host, owner: string, group: string, config: RouteCon
   const r: LogisticsRoute = existing ?? { id: h.id('lr'), owner, group, config: clean, state: 'running', created: h.time, updated: h.time, manifests: {}, cursors: {}, done: [], stats: { loaded: 0, delivered: 0, sold: 0, earned: 0, trips: 0, lost: 0, withdrawn: 0 }, recent: [] };
   if (!existing) pauseManualRoutes(h, manualRoutes(h, owner, group));
   r.replenishing = false; r.config = clean; r.updated = h.time;
+  const op = h.st.groups[group].op; if (op.k === 'haul' && op.route === r.id) { op.from = clean.from; op.to = clean.to; op.res = clean.item; }
   for (const m of Object.values(r.manifests)) { m.to = clean.to; m.targetStock = clean.targetStock; }
   if (!existing) { (h.st.logistics ??= {})[r.id] = r; bind(h, r); }
   else for (const c of Object.values(r.cursors)) delete c.retryAt;
@@ -123,9 +124,19 @@ function record(r: LogisticsRoute, time: number, change: Partial<RouteStats>) {
   if (!recent || recent.t !== t) { recent = { t, loaded: 0, delivered: 0, sold: 0, earned: 0, trips: 0, lost: 0, withdrawn: 0 }; r.recent.push(recent); if (r.recent.length > 60) r.recent.shift(); }
   for (const key of Object.keys(change) as (keyof RouteStats)[]) { r.stats[key] = (r.stats[key] ?? 0) + change[key]!; recent[key] = (recent[key] ?? 0) + change[key]!; }
 }
-function incoming(h: Host, to: string, item: string) {
+/** A manual partial unload removes tracked cargo immediately, before a same-tick resume. */
+export function withdrawRouteCargo(h: Host, owner: string, ship: string, item: string, amount: number) {
+  for (const r of Object.values(h.st.logistics ?? {})) {
+    const m = r.owner === owner ? r.manifests[ship] : undefined;
+    if (!m || m.item !== item) continue;
+    const withdrawn = Math.min(amount, m.amount); m.amount -= withdrawn;
+    if (withdrawn > 0) record(r, h.time, { withdrawn });
+    if (m.amount <= 0) delete r.manifests[ship];
+  }
+}
+function incoming(h: Host, owner: string, to: string, item: string) {
   let n = 0;
-  for (const r of Object.values(h.st.logistics ?? {})) for (const [id, m] of Object.entries(r.manifests)) { const ship = h.st.ships[id], group = ship && h.st.groups[ship.groupId]; if (ship?.owner === r.owner && group && h.opOwner(group).op.k === 'haul' && (h.opOwner(group).op as { route?: string }).route === r.id && m.mode !== 'sell' && m.to === to && m.item === item) n += Math.min(m.amount, qty(ship.cargo, item)); }
+  for (const r of Object.values(h.st.logistics ?? {})) if (r.owner === owner) for (const [id, m] of Object.entries(r.manifests)) { const ship = h.st.ships[id], group = ship && h.st.groups[ship.groupId]; if (ship?.owner === r.owner && group && h.opOwner(group).op.k === 'haul' && (h.opOwner(group).op as { route?: string }).route === r.id && m.mode !== 'sell' && m.to === to && m.item === item) n += Math.min(m.amount, qty(ship.cargo, item)); }
   return n;
 }
 export function maintainRoutes(h: Host) {
@@ -184,7 +195,7 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
     const dest = h.st.stations[r.config.to];
     if (!dest || !h.canDock(dest, r.owner)) { pause(h, r, '생산 목적지를 이용할 수 없습니다 — 설정을 확인하세요'); return; }
     const batch = supplyBatch(dest, r.config.item), needs = batch > 0;
-    const current = qty(h.storage(dest, r.owner), r.config.item), onWay = incoming(h, dest.id, r.config.item);
+    const current = qty(h.storage(dest, r.owner), r.config.item), onWay = incoming(h, r.owner, dest.id, r.config.item);
     if (current <= r.config.minStock!) r.replenishing = true;
     if (current + onWay >= r.config.targetStock!) r.replenishing = false;
     if (!needs || !r.replenishing) { const threshold = needs && current < batch && onWay === 0; block(h, r, s, c, threshold ? 'threshold' : 'supply', !needs ? '이 원료를 사용하는 생산 주문 대기' : threshold ? `생산 원료 ${current}/${batch} — 보충 시작 재고 ${r.config.minStock}. 노선 재고 기준을 조정하세요` : '공급 재고 충족 — 소비 후 자동 보충 (운송 중 물량 포함)', dest.id); return; }

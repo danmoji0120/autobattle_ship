@@ -22,4 +22,5 @@ for (let i = 1; i <= seconds * 4; i++) {
   if (i % 240 === 0 && hash(a.sim) !== hash(b.sim)) throw Error(`c0 divergence at ${i / 4}s`);
 }
 const report = { baseline, companies: 2, seconds, minuteHashesMatched: 30, hash: hash(a.sim), analyticsActive: !!b.analytics, reconciliation: b.analytics.query('admin', '').health.reconciliation };
-mkdirSync('artifacts/storage-analytics', { recursive: true }); writeFileSync('artifacts/storage-analytics/c0-results.json', JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));
+const out = process.env.C0_OUTPUT_DIR ?? 'artifacts/storage-analytics';
+mkdirSync(out, { recursive: true }); writeFileSync(path.join(out, 'c0-results.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify(report));

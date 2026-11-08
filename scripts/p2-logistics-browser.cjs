@@ -95,6 +95,21 @@ const check = (ok, text) => { if (!ok) throw Error(text); checks.push(text); con
   await page.locator('[data-lg-bulk="pause"]').click();
   await page.waitForFunction(() => Object.values(window.siderarium.client.state.logistics).every(r => r.state === 'paused'));
   check(await page.locator('.lg-badge.paused').count() === 2, 'batch pause visibly stops all selected routes');
+  const recovery = await page.evaluate(() => {
+    const sim = window.siderarium.client.t.server.sim, p = window.siderarium.client.company;
+    const ship = sim.st.ships[window.__p2.productShip], depot = sim.st.stations.p2depot;
+    if ((depot.storage[p].alloy || 0) < 5 || Object.values(ship.cargo).some(n => n > 0)) throw Error('manual recovery fixture needs real delivered goods and an empty hold');
+    depot.storage[p].alloy -= 5; ship.cargo.alloy = 5; sim.dockShip(ship, depot);
+    return { ship: ship.id, before: depot.storage[p].alloy, route: Object.values(sim.st.logistics).find(r => r.group === window.__p2.output).id };
+  });
+  await page.waitForSelector(`[data-lg-fleet="${recovery.route}"]`);
+  await page.locator(`[data-lg-fleet="${recovery.route}"] summary`).click();
+  await page.locator(`[data-lg-unload="${recovery.ship}"]`).click();
+  await page.waitForFunction(({ship, before, route}) => {
+    const w = window.siderarium.client.state, p = window.siderarium.client.company;
+    return !w.ships[ship].cargo.alloy && w.stations.p2depot.storage[p].alloy === before + 5 && w.logistics[route].state === 'paused';
+  }, recovery);
+  check(true, 'real cargo-recovery button returns goods to owned storage and keeps the route paused');
   await page.locator('[data-lg-bulk="resume"]').click();
   await page.waitForFunction(() => Object.values(window.siderarium.client.state.logistics).every(r => r.state === 'running'));
   // Market-sale consent is explicit even when editing an existing owned route.
