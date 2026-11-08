@@ -1,3 +1,4 @@
+import { LogisticsPanel } from './logisticsUi';
 import { AnalyticsPanel } from './analyticsUi';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
@@ -60,6 +61,7 @@ export class PmcHud {
   private modalTab = 'market';
   private ind = newIndUi();
   private gy = newGrowthYardUi();
+  private logisticsPanel: LogisticsPanel | null = null;
   private analyticsPanel: AnalyticsPanel | null = null;
   private upkOpen = false;
   private upkEl: HTMLElement | null = null;
@@ -98,7 +100,7 @@ export class PmcHud {
     this.onEvents([]);
   }
 
-  dispose() { this.analyticsPanel?.close(); this.disposers.forEach(d => d()); this.overlay.remove(); this.root.innerHTML = ''; }
+  dispose() { this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.disposers.forEach(d => d()); this.overlay.remove(); this.root.innerHTML = ''; }
 
   private parked: DocumentFragment | null = null;
   /** detach DOM while a battle view is open (ids are shared with the battle HUD) */
@@ -108,7 +110,7 @@ export class PmcHud {
     while (this.root.firstChild) this.parked.appendChild(this.root.firstChild);
     this.overlay.remove();
     this.closeModal();
-    this.analyticsPanel?.close();
+    this.analyticsPanel?.close(); this.logisticsPanel?.close();
   }
   resume() {
     if (!this.parked) return;
@@ -539,7 +541,7 @@ export class PmcHud {
     switch (k) {
       case 'idle': this.setOp({ k: 'idle' }); break;
       case 'release': this.cmd({ c: 'release', group: g.id }); break;
-      case 'haul': this.setMode('haul_from'); break;
+      case 'haul': if (growthOn(this.st)) this.openLogistics({ group: g.id, create: true }); else this.setMode('haul_from'); break;
       default: this.setMode(this.mode === k ? null : k as Mode);
     }
   }
@@ -641,11 +643,13 @@ export class PmcHud {
       ${this.c.sp ? `<div class="speedgrp">${[[0, '❚❚'], [1, '1×'], [2, '2×'], [4, '4×'], [8, '8×']].map(([v, l]) => `<button class="btn${spd === v ? ' on' : ''}" data-spd="${v}">${l}</button>`).join('')}</div>`
         : `<div class="kv"><span>접속 중</span><b>${this.c.players.filter(p => p.online).length}명</b></div>${players.map(p => `<span class="dot" title="${esc(p.name)}${p.online ? '' : ' (오프라인)'}" style="background:${p.color};opacity:${p.online ? 1 : 0.3}"></span>`).join('')}`}
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
+      ${growthOn(this.st) ? '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>' : ''}
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
     el.querySelectorAll<HTMLButtonElement>('[data-spd]').forEach(b => b.onclick = () => this.c.setSpeed(Number(b.dataset.spd)));
-    const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.closeModal(); this.analyticsPanel?.close(); this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
+    const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
     const ab = document.getElementById('acctBtn') as HTMLButtonElement | null; if (ab) ab.onclick = () => this.opts.onAccount?.();
+    const logistics = document.getElementById('logisticsBtn'); if (logistics) logistics.onclick = () => this.openLogistics();
     (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
   }
@@ -737,6 +741,7 @@ export class PmcHud {
     this.bindMineForm(el);
     el.querySelectorAll<HTMLButtonElement>('[data-op]').forEach(b => b.onclick = () => this.opButton(b.dataset.op!));
     el.querySelectorAll<HTMLInputElement>('[data-detach]').forEach(b => b.onchange = () => this.cmd({ c: 'setDetached', group: b.dataset.detach!, on: b.checked }));
+    el.querySelectorAll<HTMLButtonElement>('[data-unloadship]').forEach(b => b.onclick = () => this.cmd({ c: 'unloadCargo', ship: b.dataset.unloadship! }));
     el.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(b => b.onclick = () => this.openStation(b.dataset.open!));
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
     el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
@@ -947,6 +952,7 @@ export class PmcHud {
     const docked = s.task.k === 'docked' ? this.st.stations[(s.task as any).station] : null;
     return `<div class="shipd"><b>${esc(s.name)}</b> <span class="dim">${SHIP_CLASSES[s.classId].name} ${SHIP_CLASSES[s.classId].type} · ${esc(getLoadout(s.classId, s.loadoutId).name)}</span>
       · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${cargoKeys(s.cargo).filter(r => s.cargo[r] > 0.5).map(r => `${RES_NAME[r]} ${Math.round(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}` : ''}
+      ${growthOn(this.st) && docked && cargoSum(s.cargo) > 0 ? `<button class="btn mini" data-unloadship="${s.id}">창고로 하역</button>` : ''}
       ${docked ? ` · ⚓ ${esc(docked.name)} <button class="btn mini" data-open="${docked.id}">수리·개조</button>` : ''}
       <select data-mvship="${s.id}"><option value="">편대 이동…</option><option value="__new">→ 새 편대로 분리</option>${groups.filter(g => g.id !== s.groupId).map(g => `<option value="${g.id}">→ ${esc(g.name)}</option>`).join('')}</select></div>`;
   }
@@ -991,9 +997,20 @@ export class PmcHud {
 
   // ============================================================== station modal
 
-  openAnalytics() { this.upkOpen = false; this.renderUpkeep(true); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
+  openLogistics(options: { station?: string; group?: string; create?: boolean } = {}) {
+    if (!growthOn(this.st)) return;
+    this.closeModal(); this.analyticsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
+    this.logisticsPanel = new LogisticsPanel(this.root, this.c, {
+      station: (id, tab) => this.openStation(id, tab ?? 'store'),
+      fleet: (id, ship) => { this.select({ kind: 'group', id }); const pos = ship ? this.st.ships[ship]?.pos : this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
+      analytics: () => this.openAnalytics(), close: () => { this.logisticsPanel = null; },
+    }, options);
+  }
+
+  openAnalytics() { this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
+    this.logisticsPanel?.close();
     this.upkOpen = false; this.renderUpkeep(true);
     this.modalStation = id;
     const s = this.st.stations[id];
@@ -1042,6 +1059,7 @@ export class PmcHud {
       case 'prod': body = prodHtml(this.st, s, this.me, this.ind); break;
       case 'research': body = researchHtml(this.st, s, this.me, this.ind); break;
     }
+    if (growthOn(this.st) && ['store', 'market', 'prod'].includes(this.modalTab)) body = `<div class="lg-station-link"><button class="btn mini" data-logistics-station="${s.id}">이 정거장의 물류 →</button></div>` + body;
     trackSelects(this.modal);
     // patched in place (not rebuilt): open dropdowns, picks, typed text and scroll survive live updates
     morph(this.modal, `<div class="panel sbox"><div class="shdr"><div><div class="stitle">${esc(s.name)}</div><div class="dim">${esc(s.desc)}</div></div><div class="money">${fmt(co.credits)} cr</div><button class="btn" data-close>✕</button></div>
@@ -1059,6 +1077,7 @@ export class PmcHud {
       const into = m.querySelector<HTMLSelectElement>('[data-buyinto]')?.value || undefined;
       this.cmd(kind === 'buy' && into ? { c: 'buy', station: s.id, res: res as Res, amount: Number(amt), ship: into } : { c: kind as 'sell' | 'buy', station: s.id, res: res as Res, amount: Number(amt) });
     });
+    m.querySelectorAll<HTMLButtonElement>('[data-logistics-station]').forEach(b => b.onclick = () => this.openLogistics({ station: b.dataset.logisticsStation }));
     m.querySelectorAll<HTMLButtonElement>('[data-lease]').forEach(b => b.onclick = () => this.cmd({ c: 'lease', station: s.id, blocks: Number(b.dataset.lease) }));
     m.querySelectorAll<HTMLButtonElement>('[data-buyship]').forEach(b => b.onclick = () => {
       const cls = b.dataset.buyship!;

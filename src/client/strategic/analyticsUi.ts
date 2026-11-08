@@ -41,7 +41,7 @@ export class AnalyticsPanel {
   private scope: 'player' | 'admin' = 'player';
   private tab = 'overview'; private hours = 6; private company = ''; private system = ''; private station = ''; private ship = ''; private item = 'ore';
   private data?: AnalyticsResult; private admin = false; private loading = true; private error = ''; private closed = false;
-  private timer: ReturnType<typeof setInterval>; private pending?: ReturnType<typeof setTimeout>; private lastRequest = -1000; private generation = 0;
+  private timer: ReturnType<typeof setInterval>; private pending?: ReturnType<typeof setTimeout>; private lastRequest = -1000; private generation = 0; private inFlightKey = '';
   private resize = () => this.render();
   private key = (e: KeyboardEvent) => { if (e.code === 'Escape') { e.stopImmediatePropagation(); this.close(); } };
   constructor(private root: HTMLElement, private c: GameClient, private onClose: () => void, private openStation: (id: string) => void) {
@@ -55,11 +55,13 @@ export class AnalyticsPanel {
   close() { if (this.closed) return; this.closed = true; this.generation++; clearInterval(this.timer); clearTimeout(this.pending); window.removeEventListener('keydown', this.key, true); window.removeEventListener('resize', this.resize); this.el.remove(); document.getElementById('analyticsBtn')?.focus(); this.onClose(); }
   private async load() {
     clearTimeout(this.pending);
-    if (this.closed) return;
+    const requestKey = JSON.stringify([this.scope, this.hours, this.company, this.system, this.station, this.ship]);
+    if (this.closed || this.inFlightKey === requestKey) return;
     const delay = Math.max(0, this.lastRequest + 650 - performance.now());
     if (delay) { this.pending = setTimeout(() => void this.load(), delay); return; }
-    const generation = ++this.generation; this.lastRequest = performance.now(); this.loading = true; this.error = ''; this.render();
+    const generation = ++this.generation; this.inFlightKey = requestKey; this.lastRequest = performance.now(); this.loading = true; this.error = ''; this.render();
     const result = await this.c.analytics(this.scope, { hours: this.hours, company: this.company || undefined, system: this.system || undefined, station: this.station || undefined, ship: this.ship || undefined });
+    if (this.inFlightKey === requestKey) this.inFlightKey = '';
     if (this.closed || generation !== this.generation) return;
     this.admin = !!result.admin; this.loading = false; this.error = result.error ?? '';
     if (result.data) this.data = result.data;
@@ -82,10 +84,10 @@ export class AnalyticsPanel {
       <footer class="an-foot">${d ? `관측 ${clock(d.started)}부터 · 표시 범위 ${clock(d.from)}–${clock(d.now)} · ${Math.round(d.interval / 60)}분 스냅샷 · 15초마다 새로고침` : '인증된 서버의 실제 기록을 사용합니다.'}<span>${d ? `${num(d.health.bytes / 1024)} / ${num(d.health.maxBytes / 1024)} KB` : ''}</span></footer></div>`);
     this.el.querySelectorAll<HTMLElement>('[data-close]').forEach(b => b.onclick = () => this.close());
     this.el.querySelectorAll<HTMLElement>('[data-refresh]').forEach(b => b.onclick = () => void this.load());
-    this.el.querySelector<HTMLElement>('[data-scope]')?.addEventListener('click', () => { this.scope = admin ? 'player' : 'admin'; this.company = ''; this.ship = ''; this.data = undefined; void this.load(); });
+    const scopeButton = this.el.querySelector<HTMLElement>('[data-scope]'); if (scopeButton) scopeButton.onclick = () => { this.scope = admin ? 'player' : 'admin'; this.company = ''; this.ship = ''; this.data = undefined; void this.load(); };
     this.el.querySelectorAll<HTMLElement>('[data-an-tab]').forEach(b => b.onclick = () => { this.tab = b.dataset.anTab!; this.render(); const body = this.el.querySelector('.an-body'); if (body) body.scrollTop = 0; });
     this.el.querySelectorAll<HTMLSelectElement>('[data-filter]').forEach(s => s.onchange = () => { const k = s.dataset.filter!; if (k === 'hours') this.hours = Number(s.value); else if (k === 'company') this.company = s.value; else if (k === 'system') this.system = s.value; else if (k === 'station') this.station = s.value; else if (k === 'ship') this.ship = s.value; void this.load(); });
-    this.el.querySelector<HTMLSelectElement>('[data-item]')?.addEventListener('change', e => { this.item = (e.target as HTMLSelectElement).value; this.render(); });
+    const itemSelect = this.el.querySelector<HTMLSelectElement>('[data-item]'); if (itemSelect) itemSelect.onchange = e => { this.item = (e.target as HTMLSelectElement).value; this.render(); };
     this.el.querySelectorAll<HTMLElement>('[data-company-detail]').forEach(b => b.onclick = () => { this.company = b.dataset.companyDetail!; this.tab = 'growth'; void this.load(); });
     this.el.querySelectorAll<HTMLElement>('[data-station-detail]').forEach(b => b.onclick = () => { this.station = b.dataset.stationDetail!; this.tab = 'market'; void this.load(); });
     this.el.querySelectorAll<HTMLElement>('[data-ship-detail]').forEach(b => b.onclick = () => { this.ship = b.dataset.shipDetail!; void this.load(); });
