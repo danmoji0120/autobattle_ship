@@ -14,7 +14,7 @@ import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
 import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from './migrate';
 import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, type ShipFitting } from './fitting';
 import { CONTENT, legacyOf, contentAvail } from '../content/registry';
-import { normPlan, allocate, advance, activePlan, cancelRefund, plans, missing, isSecured, prereqBuilt, matsOf } from './construction';
+import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, matsOf } from './construction';
 import { stepProduction, storageCap, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, growthFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
@@ -27,7 +27,7 @@ import { yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
 import { priceOf, driftV3, fundsStep, fundsIn, seedFunds } from './market';
-import { publicCap, storeUsed, setLease, takesSpace } from './storage';
+import { publicCap, storeUsed, setLease, takesSpace, constructionRoom, serviceOf } from './storage';
 import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } from './explore';
 import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
@@ -223,18 +223,41 @@ export class WorldSim {
   berthOfGroup(g: WGroup): Size { return growthOn(this.st) ? berthNeed(this.subtreeShips(g)) : 'S'; }
 
   /** best station to unload a field's ore: same system first, own stations preferred for storage */
-  autoDeliver(company: string, fieldId: string, sell: boolean, berth: Size = 'S'): string | null {
+  autoDeliver(company: string, fieldId: string, sell: boolean, berth: Size = 'S', cargo?: Cargo): string | null {
     const f = this.st.fields[fieldId]; if (!f) return null;
     const fs = sysAt(this.st.systems, f.pos)?.id;
     let best: string | null = null, bd = Infinity;
     for (const st of Object.values(this.st.stations)) {
-      if (this.deliverProblem(st, company, sell, berth)) continue;
+      if (this.deliverProblem(st, company, sell, berth) || this.intakeProblem(st, company, sell, cargo ?? f.mix ?? { [f.res]: 1 })) continue;
       const ss = sysAt(this.st.systems, st.pos)?.id;
       const j = fs && ss ? jumps(this.st.systems, fs, ss) : 0;
       const d = (Math.hypot(st.pos.x - f.pos.x, st.pos.z - f.pos.z) + j * 200000) * (!sell && st.owner === company ? 0.6 : 1);
       if (d < bd) { bd = d; best = st.id; }
     }
     return best;
+  }
+
+  /** Intake for one item; unfinished construction is never a general warehouse. */
+  intakeRoom(st: Station, company: string, item: string): number {
+    if (growthOn(this.st) && st.owner === company && !this.hasModule(st, 'core')) return constructionRoom(st, item);
+    return takesSpace(item) ? this.room(st, company) : Infinity;
+  }
+
+  private deliveryCargo(g: WGroup, field: string): Cargo {
+    const cargo: Cargo = {};
+    for (const s of this.subtreeShipsInOp(g)) for (const k of cargoKeys(s.cargo)) addc(cargo, k, s.cargo[k]);
+    if (!cargoKeys(cargo).length) { const f = this.st.fields[field]; if (f) Object.assign(cargo, f.mix ?? { [f.res]: 1 }); }
+    return cargo;
+  }
+
+  private intakeProblem(st: Station | undefined, company: string, sell: boolean, cargo: Cargo): string | null {
+    if (!st || !growthOn(this.st)) return null;
+    for (const k of cargoKeys(cargo)) {
+      if (this.intakeRoom(st, company, k) > 0.01) return null;
+      if (sell && st.market?.[k] && (st.funds === undefined || st.funds >= this.price(st, k, 'sell') * (1 - (st.tax ?? 0)))) return null;
+      if (Object.values(this.st.contracts).some(c => !c.done && c.takenBy === company && c.kind === 'delivery' && c.stationId === st.id && c.res === k && (c.amount ?? 0) > c.progress)) return null;
+    }
+    return sell ? '창고 가득 · 판매 가능한 품목의 구매 예산 부족 — 임대·재고 판매·다른 하역지 지정 필요' : '창고 가득 — 임대·재고 이동·창고 증설 필요';
   }
 
   /** strategic cruise speed: hull, fitted drives, propulsion research */
@@ -348,6 +371,7 @@ export class WorldSim {
     if (st.public && growthOn(this.st)) return Math.max(0, publicCap(this.st.companies[company], st) - storeUsed(st.storage[company]));
     if (st.owner !== company) return Infinity;
     const cap = storageCap(st);
+    if (growthOn(this.st) && !this.hasModule(st, 'core')) return Object.keys(queueShortfall(st)).reduce((n, k) => n + constructionRoom(st, k), 0);
     return cap > 0 ? Math.max(0, cap - cargoSum(this.storage(st, company))) : Infinity;
   }
   overCap(st: Station, company: string, add: number) { return this.room(st, company) < add; }
@@ -924,7 +948,7 @@ export class WorldSim {
         const before = this.st.companies[company].leases?.[st.id] ?? 0;
         const e = setLease(this.st, co, st, cmd.blocks); if (e) return e;
         const now = co.leases?.[st.id] ?? 0;
-        this.ev('money', `${st.name} 창고 임대 ${before} → ${now}구획 (용량 ${publicCap(co, st).toLocaleString()})`, { company, pos: st.pos });
+        this.ev('money', `${st.name} 창고 임대 ${before} → ${now}구획 (용량 ${publicCap(co, st).toLocaleString()})${now > before ? ` · 첫 1시간 ${(now - before) * serviceOf(st).lease} cr 선납` : ' · 선납 환불 없음, 발생한 미정산 요금 유지'}`, { company, pos: st.pos });
         return null;
       }
       case 'buyBlueprint': case 'assembleBlueprint': {
@@ -1380,6 +1404,7 @@ export class WorldSim {
     }
     if (this.slow >= 1) {
       this.slow = 0;
+      if (growthOn(st)) for (const co of Object.values(st.companies)) if (co.pendingLoot) this.recoverLoot(co);
       this.npcSlow();
       this.detectEngagements();
       this.resolveAuto();
@@ -1455,17 +1480,31 @@ export class WorldSim {
       const d = dist(x.pos, pos) + (sysAt(this.st.systems, x.pos) === sys ? 0 : 1e7) - (x.owner === co.id ? 5000 : 0);
       if (d < bd) { bd = d; best = x; }
     }
-    if (!best) return;
-    const S = best.storage[co.id] ??= emptyCargo();
-    let room = growthOn(this.st) && best.public ? this.room(best, co.id) : Infinity, lost = 0;
-    for (const [k, n0] of Object.entries(loot)) {
-      let n = n0;
-      if (takesSpace(k) && n > room) { lost += n - Math.max(0, room); n = Math.max(0, room); loot[k] = n; }
-      if (takesSpace(k)) room -= n;
-      if (n > 0) addc(S, k, n);
+    if (!growthOn(this.st)) {
+      if (!best) return;
+      for (const [k, n] of Object.entries(loot)) addc(this.storage(best, co.id), k, n);
+      this.ev('money', `전장 회수: ${Object.entries(loot).map(([k, n]) => `${RES_NAME[k]} ${n}`).join(', ')} → ${best.name} 창고`, { company: co.id, pos: best.pos, tag: 'salvage' });
+      return;
     }
-    if (lost > 0) this.ev('warn', `${best.name} 공용 창고 한도 초과 — 전장 회수품 ${Math.round(lost)}단위를 보관하지 못했습니다`, { company: co.id, pos: best.pos, tag: 'storage_full' });
-    this.ev('money', `전장 회수: ${Object.entries(loot).map(([k, n]) => `${RES_NAME[k]} ${n}`).join(', ')} → ${best.name} 창고`, { company: co.id, pos: best.pos, tag: 'salvage' });
+    const destination = best?.id ?? '';
+    const pending = ((co.pendingLoot ??= {})[destination] ??= {});
+    for (const [k, n] of Object.entries(loot)) addc(pending, k, n);
+    this.recoverLoot(co);
+    if (cargoKeys(pending).length) this.ev('warn', `전장 회수품 ${Math.ceil(cargoSum(pending))}단위 안전 보관 중 — ${best?.name ?? '정거장'} 창고에 공간이 생기면 자동 입고됩니다. 임대·재고 이동으로 공간을 확보하세요.`, { company: co.id, tag: 'storage_full' });
+  }
+
+  private recoverLoot(co: Company) {
+    for (const [id, pending] of Object.entries(co.pendingLoot ?? {})) {
+      const st = this.st.stations[id];
+      if (!st || !(st.public || st.owner === co.id)) continue;
+      let moved = 0;
+      for (const k of cargoKeys(pending)) {
+        const n = takec(pending, k, this.intakeRoom(st, co.id, k));
+        if (n > 0) { addc(this.storage(st, co.id), k, n); moved += n; }
+      }
+      if (moved) this.ev('info', `${st.name}: 보존 중인 전장 회수품 ${Math.ceil(moved)}단위 입고`, { company: co.id, tag: 'salvage' });
+      if (!cargoKeys(pending).length) delete co.pendingLoot![id];
+    }
   }
 
   // ===================================================================== economy
@@ -2209,7 +2248,7 @@ export class WorldSim {
     if (ec.mine > 0) {
       const cap = ec.cargo;
       if (s.state === 'docked') {
-        if (cargoSum(s.cargo) > 0 && dock) this.unload(s, dock, op.sell);
+        if (cargoSum(s.cargo) > 0 && dock && s.task.k === 'docked' && s.task.station === dock.id) this.unload(s, dock, op.sell);
         this.undock(s);
       }
       const full = cargoSum(s.cargo) >= cap * 0.98;
@@ -2255,7 +2294,7 @@ export class WorldSim {
     }
     if (ec.cargo > 0 && s.classId === 'hauler') {
       const cap = ec.cargo;
-      if (s.state === 'docked') { if (cargoSum(s.cargo) > 0 && dock) this.unload(s, dock, op.sell); this.undock(s); }
+      if (s.state === 'docked') { if (cargoSum(s.cargo) > 0 && dock && s.task.k === 'docked' && s.task.station === dock.id) this.unload(s, dock, op.sell); this.undock(s); }
       const miners = groupShips.filter(x => econOf(x).mine > 0 && x.state === 'space');
       const load = cargoSum(s.cargo);
       // stick with the current donor until it's empty, otherwise pick the fullest miner
@@ -2298,9 +2337,10 @@ export class WorldSim {
   private mineDock(g: WGroup, op: Extract<Op, { k: 'mine' }>): Station | null {
     let st: Station | undefined = this.st.stations[op.deliver];
     const berth = this.berthOfGroup(g);
-    let why = this.deliverProblem(st, g.owner, op.sell, berth);
+    const cargo = this.deliveryCargo(g, op.field);
+    let why = this.deliverProblem(st, g.owner, op.sell, berth) ?? this.intakeProblem(st, g.owner, op.sell, cargo);
     if (why && op.auto) {
-      const alt = this.autoDeliver(g.owner, op.field, op.sell, berth);
+      const alt = this.autoDeliver(g.owner, op.field, op.sell, berth, cargo);
       if (alt) { op.deliver = alt; st = this.st.stations[alt]; why = null; this.say(g, `자동 하역지 변경: ${st.name}.`, 'radio', 0.3); }
     }
     const warned = (g as any)._dockWarn as string | undefined;
@@ -2339,6 +2379,7 @@ export class WorldSim {
     }
     const label = op.res === '*auto' ? '자동 보급' : op.res === '*all' ? '전 품목' : RES_NAME[op.res];
     if (cargoSum(s.cargo) > 0.5) {
+      if (growthOn(this.st) && this.intakeProblem(b, s.owner, false, s.cargo)) { g.status = `${b.name}: 창고 가득 — 화물 보존·하역 대기 (재고 이동/증설 필요)`; return; }
       g.status = `${b.name}로 ${label} 운송`;
       if (this.goDock(s, b, dt, speed)) {
         this.unload(s, b, false);
@@ -2374,7 +2415,7 @@ export class WorldSim {
     if (!this.moveTo(s, spot, speed, dt, 90)) { g.status = `${st.name}로 이동 중 (건설)`; return; }
     // the constructor unloads what it carries into the station's storage; plans take it from there
     let unloaded = false;
-    for (const r of cargoKeys(s.cargo)) { addc(store, r, takec(s.cargo, r, s.cargo[r])); unloaded = true; }
+    for (const r of cargoKeys(s.cargo)) { const n = takec(s.cargo, r, this.intakeRoom(st, s.owner, r)); if (n > 0) { addc(store, r, n); unloaded = true; } }
     if (unloaded) this.stationWorks(st, 0);
     if (active) {
       const md = MODULES[active.kind];
@@ -2406,7 +2447,7 @@ export class WorldSim {
     for (const cid of Object.keys(this.st.companies)) station.storage[cid] = emptyCargo();
     this.st.stations[id] = station;
     const store = station.storage[g.owner];
-    for (const r of cargoKeys(s.cargo)) addc(store, r, takec(s.cargo, r, s.cargo[r]));
+    for (const r of cargoKeys(s.cargo)) addc(store, r, takec(s.cargo, r, this.intakeRoom(station, g.owner, r)));
     g.op = { k: 'build', station: id }; g.override = true;
     this.ev('world', `${co.name}이(가) 새 정거장 "${station.name}" 건설에 착수했다.`, { pos: station.pos, ref: id });
     this.say(g, '부지 도착. 골조 조립을 시작합니다.', 'radio', 0);
@@ -2424,8 +2465,16 @@ export class WorldSim {
     for (const r of cargoKeys(s.cargo)) {
       let amt = qty(s.cargo, r);
       if (amt <= 0.01) continue;
+      // Delivery contracts consume cargo directly; a full warehouse must not block them.
+      if (growthOn(this.st)) for (const k of Object.values(this.st.contracts)) {
+        if (k.done || k.takenBy !== s.owner || k.kind !== 'delivery' || k.stationId !== st.id || k.res !== r) continue;
+        const use = Math.min(amt, Math.max(0, (k.amount ?? 0) - k.progress));
+        k.progress += use; amt -= takec(s.cargo, r, use);
+        if (k.progress >= (k.amount ?? 0) - 0.01) this.completeContract(k);
+      }
       const toStore = !(sell && st.market?.[r]) && co.kind === 'player';
-      if (toStore && amt > room) { held += amt - Math.max(0, room); amt = Math.max(0, room); }
+      const itemRoom = growthOn(this.st) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : room;
+      if (toStore && amt > itemRoom) { held += amt - Math.max(0, itemRoom); amt = Math.max(0, itemRoom); }
       takec(s.cargo, r, amt);
       if (toStore) room -= amt;
       if (amt <= 0.01) continue;
@@ -2801,6 +2850,7 @@ export class WorldSim {
 
   private finishEngagement(e: Engagement, res: BattleResult, tactical = false) {
     const st = this.st;
+    if (e.done) return;
     e.done = true; e.winner = res.winner;
     const sideOf = (ref: string) => ref.startsWith('lair:') ? 1 : ref.startsWith('station:') ? 0 : (st.ships[ref] && e.sides[0].includes(st.ships[ref].owner) ? 0 : 1);
     const losses: [number, number] = [0, 0];
@@ -3065,6 +3115,7 @@ export class WorldSim {
   netWorth(company: string): number {
     const co = this.st.companies[company];
     let v = co.credits;
+    for (const cargo of Object.values(co.pendingLoot ?? {})) for (const k of cargoKeys(cargo)) v += cargo[k] * itemPriceOf(k);
     for (const s of Object.values(this.st.ships)) if (s.owner === company) v += shipWorth(this.st, s) * (0.5 + 0.5 * s.hp);
     for (const s of Object.values(this.st.stations)) {
       const store = s.storage[company]; if (store) for (const k of cargoKeys(store)) v += store[k] * itemPriceOf(k);

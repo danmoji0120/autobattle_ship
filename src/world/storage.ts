@@ -15,6 +15,8 @@
 // each, repair bays, hangars), which is the point: the answer to a full public warehouse is a station.
 // Pure helpers; the sim applies them. Below contentV 3 nothing here is consulted.
 import type { Cargo, Company, Station, WorldState, WShip } from './types';
+import { queueShortfall } from './construction';
+import { qty } from './types';
 import { econOf } from './hullops';
 import { sizeRank } from '../content/schema';
 
@@ -64,6 +66,7 @@ export function leaseRate(w: WorldState, co: Company): number {
 /** change the number of leased blocks. Taking a block pays its first hour now. Releasing is always
  *  allowed — goods over the new limit stay, only new intake stops. */
 export function setLease(w: WorldState, co: Company, st: Station, blocks: number): string | null {
+  if (!Number.isFinite(blocks) || !Number.isInteger(blocks) || blocks < 0) return '임대 구획은 0 이상의 정수여야 합니다';
   if (!st.public) return '자사 정거장은 창고 모듈로 확장합니다';
   const sv = serviceOf(st);
   const n = Math.max(0, Math.min(sv.blocks, Math.floor(blocks)));
@@ -75,6 +78,12 @@ export function setLease(w: WorldState, co: Company, st: Station, blocks: number
     if (co.credits < first) return `자금 부족 — 첫 시간 임대료 ${first.toLocaleString()} cr 필요`;
     co.credits -= first;
   }
+  const paid = (co.leasePaidUntil ??= {})[st.id] ?? Array(cur).fill(w.time);
+  // Return newest blocks first; already accrued rent is never refunded or erased.
+  paid.length = Math.min(paid.length, n);
+  while (paid.length < n) paid.push(w.time + 3600);
+  co.leasePaidUntil[st.id] = paid;
+  if (!n) delete co.leasePaidUntil[st.id];
   (co.leases ??= {})[st.id] = n;
   if (!n) delete co.leases[st.id];
   return null;
@@ -102,3 +111,20 @@ export function dockCapacity(w: WorldState, st: Station): number {
   return d.left;
 }
 export function useDock(st: Station, pts: number) { if (st.dockCap) st.dockCap.left = Math.max(0, st.dockCap.left - pts); }
+
+/** Rent for the actual interval, excluding prepaid time. No new grace period on reload. */
+export function leaseAccrual(w: WorldState, co: Company, dt: number): number {
+  let cost = 0;
+  for (const [id, n] of Object.entries(co.leases ?? {})) {
+    const st = w.stations[id]; if (!st || n <= 0) continue;
+    const paid = co.leasePaidUntil?.[id] ?? [];
+    for (let i = 0; i < n; i++) cost += serviceOf(st).lease * Math.max(0, w.time - Math.max(w.time - dt, paid[i] ?? 0)) / 3600;
+  }
+  return cost;
+}
+
+/** Before the core is built only outstanding construction materials may enter.
+ * Existing inventory and reservations remain untouched, including over-cap legacy stock. */
+export function constructionRoom(st: Station, item: string): number {
+  return Math.max(0, (queueShortfall(st)[item] ?? 0) - qty(st.storage[st.owner], item));
+}

@@ -188,6 +188,7 @@ export function census(w: WorldState) {
   const equipment: Record<string, number> = {};
   const add = (k: string, n: number) => { equipment[k] = (equipment[k] ?? 0) + n; };
   for (const s of Object.values(w.stations ?? {})) for (const id of ids) for (const [k, v] of Object.entries(s.storage?.[id] ?? {})) if (isEquip(k)) add(k, Number(v) || 0);
+  for (const co of players) for (const cargo of Object.values(co.pendingLoot ?? {})) for (const [k, n] of Object.entries(cargo)) if (isEquip(k)) add(k, n);
   for (const s of ships) {
     if (s.fitting) { for (const [k, n] of Object.entries(fittingItems(s.fitting))) add(k, n); continue; }
     for (const k of s.fit ?? []) add(k, 1);
@@ -206,7 +207,7 @@ export function census(w: WorldState) {
     ships: ships.length,
     stations: own.length,
     modules: own.reduce((a, s) => a + s.modules.length, 0),
-    stored: Math.round(Object.values(w.stations ?? {}).reduce((a, s) => a + [...ids].reduce((b, id) => b + sum(s.storage?.[id], () => true), 0), 0)),
+    stored: Math.round(players.reduce((n, co) => n + Object.values(co.pendingLoot ?? {}).reduce((a, c) => a + sum(c, () => true), 0), 0) + Object.values(w.stations ?? {}).reduce((a, s) => a + [...ids].reduce((b, id) => b + sum(s.storage?.[id], () => true), 0), 0)),
     equipment,
     granted,
   };

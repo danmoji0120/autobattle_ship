@@ -40,6 +40,10 @@ export interface Company {
   upkeep?: UpkeepState;
   /** growth: leased storage blocks at public stations (station id → blocks) */
   leases?: Record<string, number>;
+  /** first-hour prepayment expiry per block; absent legacy entries accrue normally */
+  leasePaidUntil?: Record<string, number[]>;
+  /** recovered battle assets awaiting space at their original destination */
+  pendingLoot?: Record<string, Cargo>;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -54,9 +58,10 @@ export interface UpkeepState {
   /** accrued but unsettled credits / supplies since the last settlement */
   acc: number;
   supplies: Record<string, number>;
+  leaseAcc?: number;
   last: number;
   /** last settlement: what it cost and how it was covered (for the client) */
-  bill?: { t: number; credits: number; supplies: number; dock: number; overhead: number; fromStore: Record<string, number>; bought: Record<string, number>; paid: number; short: number; perHour: number };
+  bill?: { t: number; lease?: number; credits: number; supplies: number; dock: number; overhead: number; fromStore: Record<string, number>; bought: Record<string, number>; paid: number; short: number; perHour: number };
   /** running totals (econsim / UI) */
   total: { credits: number; supplies: number; paid: number };
   /** let the server move idle docked ships to reserve at stage 4 (off unless the player opts in) */

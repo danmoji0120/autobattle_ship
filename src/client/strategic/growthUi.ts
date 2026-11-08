@@ -247,7 +247,7 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
   if (!s.public) {
     if (s.owner !== me) return '';
     const cap = storageCap(s); const used = storeUsed(s.storage[me]);
-    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '무제한 (코어 건설 전)'} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
+    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '건설 계획의 부족 자재만 수용'} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
   }
   const sv = serviceOf(s);
   const cap = publicCap(co, s), used = storeUsed(s.storage[me]);
@@ -262,6 +262,9 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
         <button class="btn mini" data-lease="${n - 1}" ${n <= 0 ? 'disabled' : ''}>1 구획 반납</button></div>
       ${over ? `<div class="warn small">한도를 넘었습니다 — 보관 중인 물품은 그대로지만 새로 들여올 수 없습니다 (하역분은 함선에 남고, 구매는 거부). 팔거나 옮기거나 구획을 임대하세요.</div>` : pct > 85 ? '<div class="warnish small">창고가 거의 찼습니다. 하역하지 못한 화물은 함선에 남아 채굴·운송이 멈춥니다.</div>' : ''}
       <div class="dim small">${esc(sv.note)} 공용 정비 능력 ${fmt(sv.repair)} 정비점/h (모든 회사 공유, 남은 ${fmt(dockCapacity(full(w), s))}) · 정비료 ×${sv.fee}</div>
+      <div class="dim small">추가 구획은 첫 1시간 요금을 즉시 선납합니다. 구획별 선납 만료 후 사용 시간만 60초마다 후불 정산합니다. 반납은 최근 추가 구획부터이며 선납 환불은 없습니다.</div>
+      ${n ? `<div class="small">선납 잔여: ${(co.leasePaidUntil?.[s.id] ?? []).map((t, i) => `${i + 1}구획 ${dur(Math.max(0, t - w.time))}`).join(' · ') || '기존 임대 — 사용 시간 후불 정산'} · 최근 정산 임대료 ${fmt(co.upkeep?.bill?.lease ?? 0)} cr</div>` : ''}
+      ${storeUsed(co.pendingLoot?.[s.id]) > 0 ? `<div class="warnish small">전장 회수품 ${fmt(storeUsed(co.pendingLoot?.[s.id]))} 안전 보관 중 · 공간 확보 시 자동 입고</div>` : ''}
     </div>
     <details class="small"><summary>공용 정거장 vs 자체 정거장</summary><table class="gt">
       <tr><th></th><th>공용 (${esc(s.name)})</th><th>자체 정거장</th></tr>

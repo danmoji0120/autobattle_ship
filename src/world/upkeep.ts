@@ -21,7 +21,7 @@ import { econOf, hullIdOf, hullUpkeep, berthOf, growthOn, shipWorth } from './hu
 import { sizeRank } from '../content/schema';
 import { itemPrice, EQUIPMENT, techFx } from './industry';
 import { priceOf, fundsIn } from './market';
-import { leaseRate, dockCapacity, useDock, repairPoints, serviceOf } from './storage';
+import { leaseRate, leaseAccrual, dockCapacity, useDock, repairPoints, serviceOf } from './storage';
 
 export const SETTLE_DT = 60;
 export const RESERVE_MUL = 0.15;
@@ -104,7 +104,8 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     const wr = hullUpkeep(hullIdOf(s), s.variant).wear ?? 0;
     if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : 1));
   }
-  u.acc += leaseRate(w, co) * h;
+  const rent = leaseAccrual(w, co, dt);
+  u.acc += rent; u.leaseAcc = (u.leaseAcc ?? 0) + rent;
   if (w.time - u.last < SETTLE_DT) return out;
   u.last = w.time;
   out.push(...settle(w, co, u));
@@ -146,7 +147,8 @@ function settle(w: WorldState, co: Company, u: UpkeepState): UpkeepEvent[] {
   co.credits -= pay; u.total.paid += pay;
   u.debt = due - pay;
   const f = forecast(w, co);
-  u.bill = { t: w.time, credits: Math.round(bill - supplyCr), supplies: Math.round(supplyCr), dock: Math.round(f.dock), overhead: Math.round(f.overhead), fromStore, bought, paid: Math.round(pay), short: Math.round(u.debt), perHour: Math.round(f.perHour) };
+  u.bill = { t: w.time, lease: u.leaseAcc ?? 0, credits: Math.round(bill - supplyCr), supplies: Math.round(supplyCr), dock: Math.round(f.dock), overhead: Math.round(f.overhead), fromStore, bought, paid: Math.round(pay), short: Math.round(u.debt), perHour: Math.round(f.perHour) };
+  u.leaseAcc = 0;
   // arrears stages
   const prev = u.stage;
   if (u.debt > 1) {
