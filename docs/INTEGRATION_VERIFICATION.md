@@ -2,7 +2,7 @@
 
 검증일 2026-11-08. 통합 브랜치 `integration/growth-p8-logistics`. 운영 배포·운영 DB 변경·운영 콘텐츠 마이그레이션은 수행하지 않았다.
 
-**현재 판정: Partial.** 기능 검증은 완료했고 성능 악화 없음은 확정하지 못했다. 운영 사본 검증과 실제 GPU·장기 부하는 남아 있다.
+**최종 판정: Partial.** 기능 검증은 완료했고 성능 악화 없음은 확정하지 못했다. 운영 사본 검증과 실제 GPU·장기 부하는 남아 있다.
 
 ## 통합 이력
 
@@ -25,7 +25,7 @@ P8의 다섯 선체·10개 변형·10개 프리셋·6개 설계도·5개 GLB를 
 - 최초 브라우저 저장 비교는 재접속 시 정상 1배속으로 진행된 0.5게임초 때문에 위치·속도·마모가 달랐다. 같은 틱을 새 권위 서버에서 재실행한 결과와 자산·전체 함선 상태·노선을 비교해 일치함을 확인했다. 저장 결함으로 판정하지 않았다. 원래 차이와 실패 기록은 `artifacts/integration/browser-save-diagnostic.json` 등에 보존했다.
 - 전투 시험의 관측 코드에서 엔진에 없는 `shotsFired`를 읽는 오류를 확인했다. 실제 누적 값인 `Ship.stats.shots`로 바로잡았으며 전투 결과·HP·파괴를 강제하지 않는다. 이전 시험 실패도 진단 자료로 보존한다.
 
-## 검증 진행
+## 검증 결과
 
 | 검사 | 현재 결과 |
 |---|---|
@@ -106,3 +106,10 @@ P8 멀티플레이의 두 수송선은 격리된 시나리오 자산으로 생�
 - `C0_OUTPUT_DIR=artifacts/integration node scripts/verify-c0.mjs`
 
 이번 통합에서 원본 개발 브랜치는 삭제·재작성하지 않았다. GitHub 게시 대상은 새 `integration/growth-p8-logistics` 브랜치 하나이며, 게시 후 원격 SHA 대조 결과는 아래 게시 기록과 완료 메시지에 남긴다.
+
+
+## GitHub 게시 기록
+
+통합 코드·검증 스크립트·증거·보고서를 포함한 `c8a2be1a35f8ecae96e432e6b6feefcb677ea2d5`를 `origin/integration/growth-p8-logistics`에 새 브랜치로 푸시했고, 실제 `git ls-remote --heads origin`에서 같은 SHA임을 확인했다. [게시된 검증 커밋](https://github.com/danmoji0120/autobattle_ship/commit/c8a2be1a35f8ecae96e432e6b6feefcb677ea2d5) · [최신 통합 브랜치](https://github.com/danmoji0120/autobattle_ship/tree/integration/growth-p8-logistics).
+
+이 게시 기록을 덧붙이는 후속 커밋은 보고 자료만 변경한다. 최종 브랜치 HEAD SHA는 완료 메시지와 원격 브랜치에서 확인할 수 있다. 원래 네 입력 브랜치의 원격 SHA는 변경하지 않았다. PR 병합·기존 브랜치 삭제·강제 푸시·운영 배포·운영 DB 수정은 수행하지 않았다.

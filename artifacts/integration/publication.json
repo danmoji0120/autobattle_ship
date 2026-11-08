@@ -1,0 +1,10 @@
+{
+  "branch": "integration/growth-p8-logistics",
+  "remote": "origin",
+  "verifiedPublicationCommit": "c8a2be1a35f8ecae96e432e6b6feefcb677ea2d5",
+  "remoteSHAAtVerification": "c8a2be1a35f8ecae96e432e6b6feefcb677ea2d5",
+  "pushSucceeded": true,
+  "remoteMatchedLocal": true,
+  "originalBranchesRewritten": false,
+  "note": "A later documentation-only commit adds this publication receipt; final branch HEAD is verified separately in the completion message."
+}
