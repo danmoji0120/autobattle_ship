@@ -174,7 +174,7 @@ describe('research: labs, prerequisites, consumption, parallel projects, unlocks
     expect(co.research![0].total).toBe(Math.round(TECHS.heavy_ordnance.time * 0.4));
     run(sim, co.research![0].total + 10);
     expect(co.tech).toContain('heavy_ordnance');
-  }, 300_000); // Long world simulation; allow for slower CI hosts.
+  });
 
   it('projects survive a restart and finish identically', () => {
     const { sim, p, own, co } = base();
@@ -187,5 +187,5 @@ describe('research: labs, prerequisites, consumption, parallel projects, unlocks
     run(sim, 1300); run(sim2, 1300);
     expect(sim2.st.companies[p].tech).toEqual(co.tech);
     expect(co.tech).toContain('process_control');
-  }, 300_000);
+  });
 });

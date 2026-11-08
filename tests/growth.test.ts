@@ -102,7 +102,7 @@ describe('growth: hulls and variants (P3)', () => {
       expect(Object.values(CONTENT.presets).some(x => x.hull === h.id), h.id).toBe(true);
     }
     const dd = growth.filter(h => h.classId === 'destroyer').map(h => h.id).sort();
-    expect(dd).toEqual(expect.arrayContaining(['destroyer_fast', 'destroyer_heavy', 'destroyer_picket', 'destroyer_vls']));
+    expect(dd).toEqual(['destroyer_fast', 'destroyer_heavy', 'destroyer_lancet', 'destroyer_picket', 'destroyer_vls']);
     for (const cls of ['miner', 'hauler', 'constructor']) expect(new Set(Object.values(CONTENT.hulls).filter(h => h.classId === cls && !h.dev).map(h => h.size)).size, cls).toBeGreaterThanOrEqual(3);
     // mk1 hulls keep the legacy economy exactly
     for (const c of ['miner', 'hauler', 'constructor', 'destroyer', 'battleship']) expect(hullEcon(`${c}_mk1`)).toMatchObject({ cargo: ECON[c].cargo, mine: ECON[c].mine, cruise: ECON[c].cruise, price: ECON[c].price });

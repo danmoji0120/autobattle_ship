@@ -173,5 +173,5 @@ describe('shipbuilding from parts, yards and fitting', () => {
     run(sim, HULLS.corvette.time); run(sim2, HULLS.corvette.time);
     expect(ships(sim2, p, 'corvette').length).toBe(ships(sim, p, 'corvette').length);
     expect(Object.keys(EQUIPMENT).length).toBeGreaterThan(15);
-  }, 300_000); // Both the original and reloaded worlds run through a full build.
+  });
 });

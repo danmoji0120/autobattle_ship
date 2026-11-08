@@ -14,6 +14,7 @@ import { publicCap } from '../src/world/storage';
 import { WorldSim } from '../src/world/sim';
 import { census, compareCensus, CONTENT_VERSION } from '../src/world/migrate';
 import type { WorldState } from '../src/world/types';
+import { integrationFixture, integrationRun, startIntegrationIndustry, startIntegrationProjects } from './support/integration';
 
 const URL = process.env.PG_TEST_URL;
 const BIN = path.resolve(process.env.SERVER_BIN ?? 'dist-server/server.mjs');
@@ -230,4 +231,25 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     }
   }, 60_000);
 
+  it('restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts', async () => {
+    const f = integrationFixture(975); startIntegrationIndustry(f); startIntegrationProjects(f); integrationRun(f.server, 5);
+    const file = f.server.snapshotFile();
+    expect(file.world.companies[f.p].research![0].started).toBe(true);
+    expect(file.world.stations[f.factory.id].builds![0].started).toBe(true);
+    expect(file.world.stations[f.factory.id].modules.some(m => m.kind === 'warehouse' && !m.built && m.progress > 0)).toBe(true);
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    for (const port of [8322, 8323]) {
+      const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(srv)).toBe(0);
+      const data = (await row())!.data as typeof file;
+      expect(data.world.companies[f.p].credits).toBe(file.world.companies[f.p].credits);
+      expect(data.world.companies[f.p].research).toEqual(file.world.companies[f.p].research);
+      expect(data.world.stations[f.factory.id].builds).toEqual(file.world.stations[f.factory.id].builds);
+      expect(data.world.stations[f.factory.id].modules).toEqual(file.world.stations[f.factory.id].modules);
+      expect(data.world.stations[f.factory.id].storage).toEqual(file.world.stations[f.factory.id].storage);
+      expect(data.world.logistics).toEqual(file.world.logistics);
+      for (const id of [f.carrier.id, f.miner.id, f.product.id]) expect(data.world.ships[id]).toEqual(file.world.ships[id]);
+      expect(data.analytics).toEqual(file.analytics);
+      expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
+    }
+  }, 60_000);
 });
