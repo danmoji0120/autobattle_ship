@@ -1,0 +1,14 @@
+PASS first test account signs in
+PASS second test account signs in
+PASS administrator access is disabled without trusted server configuration
+PASS real rental command creates a prepaid lease
+PASS server file save includes actual telemetry
+PASS account and company survive server restart
+PASS forged client admin/account fields do not grant access
+PASS player query returns only its own company
+PASS private event rows are scoped to the authenticated company
+PASS ordinary snapshots redact competitor finances and lease data
+PASS ordinary snapshots redact competitor warehouse inventory
+PASS trusted server account receives administrator analysis
+PASS real server currency ledger reconciles
+PASS restart does not duplicate starting-money statistics

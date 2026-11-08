@@ -1,0 +1,18 @@
+PASS fresh history has an honest insufficient-data state
+PASS three-company world supplies actual mining, trade and history
+{"companies":3,"buckets":3,"mined":1648.9933944000013,"marketUnits":3160.5966992,"cash":{"capital":12000,"income":5878.431277074,"expenses":784.6666666599995,"net":5093.764610414},"bytes":121880}
+PASS player charts show real observed points
+PASS admin overview renders
+PASS admin growth renders
+PASS admin market renders
+PASS market rows display star-system names rather than same-ID station names
+PASS admin industry renders
+PASS admin research renders
+PASS admin world renders
+PASS growth comparison shows three real companies
+PASS company drill-down updates both query and filter
+PASS panel fits 1024 viewport
+PASS panel fits 390 viewport
+PASS player view contains only its own private growth data
+PASS Escape closes analysis
+PASS no browser runtime errors

@@ -1,0 +1,21 @@
+
+> siderarium@0.1.0 test:pg
+> npm run -s build:server && vitest run tests/pg-migrate.test.ts --maxWorkers=1 --reporter=default --reporter=json --outputFile=artifacts/storage-analytics/pg-tests.json
+
+
+  dist-server/server.mjs  695.4kb
+
+⚡ Done in 52ms
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/pg-migrate.test.ts (3 tests) 15689ms
+     ✓ A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive  13282ms
+     ✓ persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts  915ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  06:35:03
+   Duration  16.72s (transform 767ms, setup 0ms, import 897ms, tests 15.69s, environment 0ms)
+
+JSON report written to /workspace/autobattle_ship/artifacts/storage-analytics/pg-tests.json

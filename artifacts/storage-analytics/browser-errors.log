@@ -1,0 +1,3 @@
+PASS disabled collection produces an actionable error state
+PASS permission denial does not leave private tables on screen
+PASS error recovery restores a usable player view without runtime errors

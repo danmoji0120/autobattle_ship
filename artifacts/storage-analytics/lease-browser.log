@@ -1,0 +1,8 @@
+PASS sub-credit debt is legible in the actual upkeep panel
+PASS empty wallet cannot be forced negative
+PASS unpaid company cannot lease another block
+PASS one unpaid hour cancels extra capacity with exact 45cr debt and all goods retained
+PASS protected over-cap inventory has an actionable warehouse warning
+PASS selling protected inventory prioritizes the arrears balance
+PASS manual payment clears debt and refreshes the panel
+PASS fully paid company can lease again without browser errors

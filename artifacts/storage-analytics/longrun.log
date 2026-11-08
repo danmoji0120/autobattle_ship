@@ -1,0 +1,7 @@
+{"hours":1,"bytes":322387,"heap":11791592,"reloaded":false,"fineBuckets":6,"hourlyBuckets":0,"reconciliation":-3.675777406897396e-7}
+{"hours":2,"bytes":580190,"heap":14966552,"reloaded":true,"fineBuckets":12,"hourlyBuckets":0,"reconciliation":-2.1064261090941727e-7}
+{"hours":3,"bytes":824852,"heap":14133136,"reloaded":false,"fineBuckets":18,"hourlyBuckets":0,"reconciliation":0.000001325748598901555}
+{"hours":4,"bytes":1058740,"heap":17709240,"reloaded":true,"fineBuckets":24,"hourlyBuckets":0,"reconciliation":0.0000017452111933380365}
+{"hours":5,"bytes":1282514,"heap":15944176,"reloaded":false,"fineBuckets":30,"hourlyBuckets":0,"reconciliation":0.0000021477608243003488}
+{"hours":6,"bytes":1506804,"heap":16729096,"reloaded":false,"fineBuckets":36,"hourlyBuckets":0,"reconciliation":0.000002534565282985568}
+PASS real long-running economy with collection, bounded history and save/reload
