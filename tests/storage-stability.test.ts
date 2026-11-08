@@ -56,6 +56,10 @@ describe('storage stability', () => {
     const g = Object.values(sim.st.groups).find(g => g.owner === p && g.op.k === 'idle' && g.shipIds.some(id => sim.st.ships[id].classId === 'miner'))!;
     for (const x of Object.values(sim.st.stations)) if (x.public) { x.storage[p].ore = publicCap(co, x); x.funds = 0; }
     expect(sim.autoDeliver(p, 'kestrel', true)).toBeNull();
+    const unavailable = sim.command(p, { c: 'setOp', group: g.id, op: { k: 'mine', field: 'kestrel', deliver: '', sell: true, auto: true } });
+    expect(unavailable).toMatch(/창고 가득.*임대.*화물.*보존/);
+    expect(unavailable).not.toMatch(/사라짐/);
+    expect(g.op.k).toBe('idle');
     const op = { k: 'mine' as const, field: 'kestrel', deliver: st.id, sell: true, auto: true };
     g.op = op;
     const miner = sim.st.ships[g.shipIds.find(id => sim.st.ships[id].classId === 'miner')!];
@@ -122,6 +126,21 @@ describe('storage stability', () => {
     expect(qty(ship.cargo, 'ore')).toBe(.005);
     expect(qty(st.storage[p], 'bpf:bp_destroyer_mk1')).toBe(3);
     expect(storeUsed(st.storage[p])).toBe(publicCap(co, st));
+  });
+
+  it('a new child mining order inspects the child cargo instead of an unrelated inherited parent operation', () => {
+    const { sim, p, co, st } = fixture();
+    const miners = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.filter(id => sim.st.ships[id].classId === 'miner').length === 2)!;
+    const ship = sim.st.ships[miners.shipIds[0]], other = sim.st.ships[miners.shipIds[1]];
+    const child = sim.newGroup(p, '독립 채굴반', miners.id);
+    expect(sim.command(p, { c: 'moveShip', ship: ship.id, group: child.id })).toBeNull();
+    other.cargo = { legacy_untradeable: 5 };
+    for (const x of Object.values(sim.st.stations)) if (x.public) { x.storage[p].ore = publicCap(co, x); x.funds = 0; }
+    st.funds = 10000;
+    expect(sim.command(p, { c: 'setOp', group: child.id, op: { k: 'mine', field: 'kestrel', deliver: '', sell: true, auto: true } })).toBeNull();
+    expect(child.op.k).toBe('mine');
+    expect(miners.op.k).toBe('idle');
+    expect(other.cargo.legacy_untradeable).toBe(5);
   });
 
 });

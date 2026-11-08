@@ -244,9 +244,9 @@ export class WorldSim {
     return takesSpace(item) ? this.room(st, company) : Infinity;
   }
 
-  private deliveryCargo(g: WGroup, field: string): Cargo {
+  private deliveryCargo(g: WGroup, field: string, orderRoot = false): Cargo {
     const cargo: Cargo = {};
-    for (const s of this.subtreeShipsInOp(g)) for (const k of cargoKeys(s.cargo)) addc(cargo, k, s.cargo[k]);
+    for (const s of this.subtreeShipsInOp(g, orderRoot)) for (const k of cargoKeys(s.cargo)) addc(cargo, k, s.cargo[k]);
     if (!cargoKeys(cargo).length) { const f = this.st.fields[field]; if (f) Object.assign(cargo, f.mix ?? { [f.res]: 1 }); }
     return cargo;
   }
@@ -491,7 +491,19 @@ export class WorldSim {
       case 'setOp': {
         const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
         // automatic unloading: resolve the station now (and again whenever it stops being usable)
-        if (cmd.op.k === 'mine' && cmd.op.auto) cmd.op = { ...cmd.op, deliver: this.autoDeliver(company, cmd.op.field, cmd.op.sell, this.berthOfGroup(g)) ?? '' };
+        if (cmd.op.k === 'mine' && cmd.op.auto) {
+          const berth = this.berthOfGroup(g), cargo = this.deliveryCargo(g, cmd.op.field, true);
+          const deliver = this.autoDeliver(company, cmd.op.field, cmd.op.sell, berth, cargo);
+          if (!deliver && growthOn(this.st) && this.st.fields[cmd.op.field] && this.subtreeShips(g).some(s => econOf(s).mine > 0)) {
+            const causes = new Map<string, number>();
+            for (const station of Object.values(this.st.stations)) if (station.public || station.owner === company) {
+              const why = this.deliverProblem(station, company, cmd.op.sell, berth) ?? this.intakeProblem(station, company, cmd.op.sell, cargo);
+              if (why) causes.set(why, (causes.get(why) ?? 0) + 1);
+            }
+            return `자동 하역 가능한 정거장이 없습니다 — ${[...causes].map(([why, n]) => `${why} (${n}곳)`).join('; ')}. 구획 임대·재고 이동·구매 예산 회복·정박 규격을 확인하세요. 화물은 함선에 보존됩니다.`;
+          }
+          cmd.op = { ...cmd.op, deliver: deliver ?? '' };
+        }
         const err = this.validateOp(company, g, cmd.op);
         if (err) return err;
         if (cmd.op.k === 'found') {
@@ -2382,9 +2394,9 @@ export class WorldSim {
   }
 
   /** ships that share this group's effective op: the group plus delegated children */
-  private subtreeShipsInOp(g: WGroup): WShip[] {
+  private subtreeShipsInOp(g: WGroup, orderRoot = false): WShip[] {
     let root = g;
-    while (root.parentId && !root.override) root = this.st.groups[root.parentId];
+    while (!orderRoot && root.parentId && !root.override) root = this.st.groups[root.parentId];
     const out: WShip[] = [];
     const walk = (x: WGroup) => { out.push(...this.shipsOf(x)); for (const c of x.childIds) { const cg = this.st.groups[c]; if (cg && !cg.override) walk(cg); } };
     walk(root);

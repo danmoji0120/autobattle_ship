@@ -27,7 +27,13 @@ export interface AlertConfig { assetPerHour: number; repPerHour: number; saturat
 export const DEFAULT_ALERTS: AlertConfig = { assetPerHour: 1000000, repPerHour: 100, saturationRatio: 4, saturationSeconds: 1800, tradeShare: .8, tradeMinimum: 1000, waitSeconds: 600, researchFraction: .25, combatWinRate: .9, combatSamples: 10, weaponDamageRatio: 2, weaponSamples: 30 };
 export interface AnalyticsOptions { enabled?: boolean; snapshotSeconds?: number; maxBytes?: number; maxRows?: number; fineBuckets?: number; hourlyBuckets?: number; dailyBuckets?: number; alerts?: Partial<AlertConfig> }
 export interface AnalyticsQuery { hours?: number; company?: string; system?: string; ship?: string; station?: string }
-export interface AnalyticsResult { scope: 'admin' | 'player'; started: number; now: number; from: number; interval: number; points: Bucket[]; current: Frame; totals: Metric[]; alerts: { kind: string; text: string; company?: string; system?: string }[]; health: { dropped: number; failures: number; bytes: number; maxBytes: number; reconciliation: number; truncatedBefore?: number; queryOmitted: number; gaps: { start: number; end: number; supplyDelta: number }[] }; thresholds?: AlertConfig }
+export interface CashSummary { capital: number; income: number; expenses: number; net: number }
+export function cashSummary(rows: Metric[]): CashSummary {
+  let capital = 0, income = 0, expenses = 0;
+  for (const r of rows) { if (r.kind === 'income') { if (r.reason === 'company_creation') capital += r.amount; else income += r.amount; } else if (r.kind === 'expense') expenses += r.amount; }
+  return { capital, income, expenses, net: income - expenses };
+}
+export interface AnalyticsResult { cash: CashSummary; scope: 'admin' | 'player'; started: number; now: number; from: number; interval: number; points: Bucket[]; current: Frame; totals: Metric[]; alerts: { kind: string; text: string; company?: string; system?: string }[]; health: { dropped: number; failures: number; bytes: number; maxBytes: number; reconciliation: number; truncatedBefore?: number; queryOmitted: number; gaps: { start: number; end: number; supplyDelta: number }[] }; thresholds?: AlertConfig }
 const key = (e: Observation) => JSON.stringify([e.kind, e.company, e.group, e.ship, e.station, e.system, e.item, e.reason, e.from, e.to, e.ref, e.method, e.baseline]);
 const clamp = (n: number | undefined, def: number, lo: number, hi: number) => Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.floor(n!))) : def;
 
@@ -221,7 +227,7 @@ export class Analytics {
     for (const b of bins.values()) queryOmitted += this.merge(totals, b, false);
     const current = redact(this.sample(scope === 'player' ? viewer : undefined, false));
     const alerts = this.detect([...bins.values()], current, totals.rows).filter(a => scope === 'admin' || a.company === viewer);
-    return { scope, started: this.data.started, now: this.sim.time, from: Math.min(from, ...[...bins.values()].map(b => b.start)), interval: this.interval, points: [...bins.values()], current, totals: totals.rows, alerts, health: { dropped: this.data.dropped, failures: this.data.failures, bytes: this.bytes, maxBytes: this.maxBytes, reconciliation: scope === 'admin' ? moneySupply(this.sim.st) - this.data.openingSupply - this.data.created + this.data.destroyed - (this.data.unobservedSupply ?? 0) : 0, truncatedBefore: this.data.truncatedBefore, queryOmitted, gaps: (this.data.gaps ?? []).map(g => scope === 'admin' ? { ...g } : { ...g, supplyDelta: 0 }) }, ...(scope === 'admin' ? { thresholds: this.alerts } : {}) };
+    return { cash: cashSummary(totals.rows), scope, started: this.data.started, now: this.sim.time, from: Math.min(from, ...[...bins.values()].map(b => b.start)), interval: this.interval, points: [...bins.values()], current, totals: totals.rows, alerts, health: { dropped: this.data.dropped, failures: this.data.failures, bytes: this.bytes, maxBytes: this.maxBytes, reconciliation: scope === 'admin' ? moneySupply(this.sim.st) - this.data.openingSupply - this.data.created + this.data.destroyed - (this.data.unobservedSupply ?? 0) : 0, truncatedBefore: this.data.truncatedBefore, queryOmitted, gaps: (this.data.gaps ?? []).map(g => scope === 'admin' ? { ...g } : { ...g, supplyDelta: 0 }) }, ...(scope === 'admin' ? { thresholds: this.alerts } : {}) };
   }
   private detect(points: Bucket[], frame: Frame, rows: Metric[]) {
     const out: { kind: string; text: string; company?: string; system?: string }[] = [], cfg = this.alerts;

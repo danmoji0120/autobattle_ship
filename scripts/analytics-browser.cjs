@@ -47,9 +47,11 @@ const assert = (ok, label) => { if (!ok) throw Error(label); console.log('PASS',
     }
     for (let t = 0; t < 1201; t += .5) { sim.update(.5); server.analytics.step(); }
     const report = server.analytics.query('admin', me);
+    const cash = server.analytics.query('player', me).cash;
+    if (cash.capital !== 12000 || Math.abs(cash.income - sim.st.companies[me].stats.earned) > .000001 || Math.abs(cash.net - (sim.st.companies[me].credits - 12000)) > .000001) throw Error('starting capital contaminated earned cash profit');
     if (Math.abs(report.health.reconciliation) > .001) throw Error('unreconciled currency: ' + report.health.reconciliation);
     server.step(0); // deliver the real server state; no dummy chart series
-    return { companies: report.current.companies.length, buckets: report.points.length, mined: sim.st.companies[me].stats.mined, marketUnits: report.totals.filter(r => r.kind === 'market').reduce((n, r) => n + r.amount, 0), bytes: new TextEncoder().encode(JSON.stringify(server.analytics.snapshot())).length };
+    return { companies: report.current.companies.length, buckets: report.points.length, mined: sim.st.companies[me].stats.mined, marketUnits: report.totals.filter(r => r.kind === 'market').reduce((n, r) => n + r.amount, 0), cash, bytes: new TextEncoder().encode(JSON.stringify(server.analytics.snapshot())).length };
   });
   assert(actual.companies === 3 && actual.mined > 0 && actual.marketUnits > 0, 'three-company world supplies actual mining, trade and history');
   console.log(JSON.stringify(actual));

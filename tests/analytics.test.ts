@@ -191,4 +191,17 @@ describe('authoritative analytics', () => {
     expect(server.analytics!.query('player', p).current.companies[0].played).toBe(3);
   });
 
+  it('separates starting capital from earned cash profit without hiding the real cash balance', () => {
+    const server = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 414);
+    const p = server.sim.addPlayer('자본 구분');
+    const first = server.analytics!.query('player', p);
+    expect(first.cash).toEqual({ capital: 12000, income: 0, expenses: 0, net: 0 });
+    expect(first.current.companies[0].credits).toBe(12000);
+    expect(server.sim.command(p, { c: 'lease', station: 'astra', blocks: 1 })).toBeNull();
+    const after = server.analytics!.query('player', p);
+    expect(after.cash.capital).toBe(12000);
+    expect(after.cash.net).toBe(-70);
+    expect(after.current.companies[0].credits).toBe(11930);
+  });
+
 });
