@@ -247,7 +247,7 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
   if (!s.public) {
     if (s.owner !== me) return '';
     const cap = storageCap(s); const used = storeUsed(s.storage[me]);
-    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '건설 계획의 부족 자재만 수용'} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
+    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '건설 계획의 부족 자재만 수용'}${co.pendingLoot?.[s.id] ? ` · <span class="warnish">회수품 ${fmt(Object.values(co.pendingLoot[s.id]).reduce((n, v) => n + v, 0))} 안전 보관 중 — 공간 확보 시 자동 입고</span>` : ''} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
   }
   const sv = serviceOf(s);
   const cap = publicCap(co, s), used = storeUsed(s.storage[me]);

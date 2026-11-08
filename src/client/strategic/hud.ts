@@ -1,3 +1,4 @@
+import { AnalyticsPanel } from './analyticsUi';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
 import type { StrategicView, Pick } from './view';
@@ -59,6 +60,7 @@ export class PmcHud {
   private modalTab = 'market';
   private ind = newIndUi();
   private gy = newGrowthYardUi();
+  private analyticsPanel: AnalyticsPanel | null = null;
   private upkOpen = false;
   private upkEl: HTMLElement | null = null;
   private tabScroll = new Map<string, number>();
@@ -96,7 +98,7 @@ export class PmcHud {
     this.onEvents([]);
   }
 
-  dispose() { this.disposers.forEach(d => d()); this.overlay.remove(); this.root.innerHTML = ''; }
+  dispose() { this.analyticsPanel?.close(); this.disposers.forEach(d => d()); this.overlay.remove(); this.root.innerHTML = ''; }
 
   private parked: DocumentFragment | null = null;
   /** detach DOM while a battle view is open (ids are shared with the battle HUD) */
@@ -106,6 +108,7 @@ export class PmcHud {
     while (this.root.firstChild) this.parked.appendChild(this.root.firstChild);
     this.overlay.remove();
     this.closeModal();
+    this.analyticsPanel?.close();
   }
   resume() {
     if (!this.parked) return;
@@ -638,10 +641,12 @@ export class PmcHud {
       ${this.c.sp ? `<div class="speedgrp">${[[0, '❚❚'], [1, '1×'], [2, '2×'], [4, '4×'], [8, '8×']].map(([v, l]) => `<button class="btn${spd === v ? ' on' : ''}" data-spd="${v}">${l}</button>`).join('')}</div>`
         : `<div class="kv"><span>접속 중</span><b>${this.c.players.filter(p => p.online).length}명</b></div>${players.map(p => `<span class="dot" title="${esc(p.name)}${p.online ? '' : ' (오프라인)'}" style="background:${p.color};opacity:${p.online ? 1 : 0.3}"></span>`).join('')}`}
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
+      <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
     el.querySelectorAll<HTMLButtonElement>('[data-spd]').forEach(b => b.onclick = () => this.c.setSpeed(Number(b.dataset.spd)));
     const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
     const ab = document.getElementById('acctBtn') as HTMLButtonElement | null; if (ab) ab.onclick = () => this.opts.onAccount?.();
+    (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
   }
 
@@ -983,6 +988,8 @@ export class PmcHud {
   }
 
   // ============================================================== station modal
+
+  openAnalytics() { this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
     this.modalStation = id;
