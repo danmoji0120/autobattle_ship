@@ -37,7 +37,7 @@ export function cashSummary(rows: Metric[]): CashSummary {
 export interface AnalyticsResult { cash: CashSummary; scope: 'admin' | 'player'; started: number; now: number; from: number; interval: number; points: Bucket[]; current: Frame; totals: Metric[]; alerts: { kind: string; text: string; company?: string; system?: string }[]; health: { dropped: number; failures: number; bytes: number; maxBytes: number; reconciliation: number; truncatedBefore?: number; queryOmitted: number; gaps: { start: number; end: number; supplyDelta: number }[] }; thresholds?: AlertConfig }
 // Length-prefixed fields are unambiguous even for user supplied IDs, without allocating a JSON array.
 const fieldKey = (v: string | number | undefined) => v === undefined ? ';' : `${String(v).length}:${v}`;
-const key = (e: Observation) => fieldKey(e.kind) + fieldKey(e.company) + fieldKey(e.group) + fieldKey(e.ship) + fieldKey(e.station) + fieldKey(e.system) + fieldKey(e.item) + fieldKey(e.reason) + fieldKey(e.from) + fieldKey(e.to) + fieldKey(e.ref) + fieldKey(e.method) + fieldKey(e.baseline);
+const key = (e: Observation) => fieldKey(e.kind) + fieldKey(e.company) + fieldKey(e.group) + fieldKey(e.ship) + fieldKey(e.station) + fieldKey(e.system) + fieldKey(e.item) + fieldKey(e.reason) + fieldKey(e.from) + fieldKey(e.to) + fieldKey(e.ref) + fieldKey(e.method) + fieldKey(e.baseline) + fieldKey(e.route);
 const clamp = (n: number | undefined, def: number, lo: number, hi: number) => Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.floor(n!))) : def;
 
 export class Analytics {

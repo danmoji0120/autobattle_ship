@@ -91,7 +91,7 @@ export type Op =
   /** deliver: unloading station; sell: sell there (else store in the company's storage there);
    *  auto: the server picks (and re-picks) the most suitable reachable station */
   | { k: 'mine'; field: string; deliver: string; sell: boolean; auto?: boolean }
-  | { k: 'haul'; from: string; to: string; res: Res }   // res '*auto' = supply what `to` lacks, '*all' = move everything
+  | { k: 'haul'; from: string; to: string; res: Res; route?: string }   // res '*auto' = supply what `to` lacks, '*all' = move everything
   | { k: 'patrol'; at: V; radius: number }
   | { k: 'escort'; group: string }
   | { k: 'attack'; group?: string; lair?: string }
@@ -452,6 +452,8 @@ export interface WorldState {
   fields: Record<string, Field>;
   lairs: Record<string, Lair>;
   systems: Record<string, StarSystem>;
+  /** Growth-only managed routes. Authority owns execution; replicas receive only their own routes. */
+  logistics?: Record<string, import('./logistics').LogisticsRoute>;
   contracts: Record<string, Contract>;
   engagements: Record<string, Engagement>;
   /** finished tactical battles, replayable from setup + seed + orders (newest last) */

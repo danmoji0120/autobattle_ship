@@ -3,7 +3,7 @@
 import type { WorldState } from './types';
 export interface Observation {
   kind: string; amount: number; baseline?: number; method?: string; reason?: string; company?: string; group?: string; ship?: string;
-  station?: string; system?: string; item?: string; ref?: string; from?: string; to?: string; value?: number;
+  route?: string; station?: string; system?: string; item?: string; ref?: string; from?: string; to?: string; value?: number;
 }
 type Sink = (event: Observation, time: number) => void;
 const sinks = new WeakMap<WorldState, { sink: Sink; cost?: (ms: number) => void; metric?: (event: Observation, amount: number, time: number) => void }>();

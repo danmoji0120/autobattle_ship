@@ -2,6 +2,7 @@
 // and inside the browser (single player). All state lives in `st` (plain JSON).
 
 import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
+import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, type RouteConfig } from './logistics';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -99,7 +100,10 @@ export type Cmd =
   | { c: 'buyShipListing'; station: string; listing: string; group?: string }
   | { c: 'reserve'; ship: string; on: boolean }
   | { c: 'autoReserve'; on: boolean }
-  | { c: 'payArrears' };
+  | { c: 'payArrears' }
+  | { c: 'unloadCargo'; ship: string }
+  | { c: 'putRoute'; group: string; config: RouteConfig; route?: string }
+  | { c: 'routeControl'; routes: string[]; action: 'pause' | 'resume' | 'cancel' };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
 /** "창살급 구축함" */
@@ -473,7 +477,9 @@ export class WorldSim {
 
   command(company: string, cmd: Cmd): string | null {
     const meta = { company, ...('station' in cmd ? { station: cmd.station } : {}), ...('group' in cmd && typeof cmd.group === 'string' ? { group: cmd.group } : {}), ...('ship' in cmd && typeof cmd.ship === 'string' ? { ship: cmd.ship, group: this.st.ships[cmd.ship]?.groupId } : {}) };
-    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
+    const manual = growthOn(this.st) && ['setOp', 'release', 'setParent', 'deleteGroup', 'moveShip', 'listShip', 'unloadCargo'].includes(cmd.c) ? manualRoutes(this, company, 'group' in cmd ? cmd.group : undefined, 'ship' in cmd ? cmd.ship : undefined) : [];
+    if (cmd.c === 'setParent' && cmd.parent && growthOn(this.st)) manual.push(...manualRoutes(this, company, cmd.parent));
+    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && manual.length) pauseManualRoutes(this, manual); if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
   }
 
   private executeCommand(company: string, cmd: Cmd): string | null {
@@ -1065,6 +1071,20 @@ export class WorldSim {
         this.ev('info', `${s.name} 재취역 시작 — ${REACTIVATE_S / 60}분 후 출항 가능 (-${fee.toLocaleString()} cr)`, { company, tag: 'reserve' });
         return null;
       }
+      case 'unloadCargo': {
+        if (!growthOn(this.st)) return '이 월드에서는 수동 화물 하역을 사용할 수 없습니다';
+        const s = this.st.ships[cmd.ship];
+        if (!s || s.owner !== company) return '자사 함선이 아닙니다';
+        if (s.state !== 'docked' || s.task.k !== 'docked') return '정박한 함선만 창고로 하역할 수 있습니다';
+        const st = this.st.stations[s.task.station]; if (!st || !this.canDock(st, company)) return '이용 가능한 정거장이 아닙니다';
+        let moved = 0;
+        for (const item of cargoKeys(s.cargo)) { const n = takec(s.cargo, item, this.intakeRoom(st, company, item)); if (n > 0) { addc(this.storage(st, company), item, n); moved += n; emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company, group: s.groupId, ship: s.id, station: st.id, item }); } }
+        if (!moved) return cargoSum(s.cargo) > 0 ? '창고에 빈 공간이 없습니다 — 임대·재고 이동 후 다시 하역하세요' : '하역할 화물이 없습니다';
+        this.ev('info', `${s.name}: ${moved.toLocaleString()}단위 자사 창고로 하역 (판매·계약 소비 없음)`, { company, pos: st.pos });
+        return null;
+      }
+      case 'putRoute': return putRoute(this, company, cmd.group, cmd.config, cmd.route);
+      case 'routeControl': return controlRoutes(this, company, cmd.routes, cmd.action);
       case 'payArrears': {
         if (!growthOn(this.st)) return '이 월드에는 운영비 미납금이 없습니다';
         const paid = payDebt(this.st, co, 'manual');
@@ -1284,6 +1304,7 @@ export class WorldSim {
         return this.deliverProblem(st, company, op.sell, this.berthOfGroup(g));
       }
       case 'haul': {
+        if (op.route) return '관리형 운송 노선은 물류 관리 화면에서 설정하거나 재개하세요';
         const a = this.st.stations[op.from], b = this.st.stations[op.to];
         if (!a || !b || a === b || !this.canDock(a, company) || !this.canDock(b, company)) return '운송 경로 오류';
         if (!sub.some(s => econOf(s).cargo > 0)) return '화물 적재 함선이 없음';
@@ -1441,6 +1462,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
+    if (this.slow >= 1 && growthOn(st) && st.logistics) maintainRoutes(this);
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
       this.runGroup(g, dt);
@@ -2023,11 +2045,11 @@ export class WorldSim {
   secAt(p: V): number { return secAt(this.st, p); }
 
   /** move toward `to`, routing through jump gates when it lies in another system */
-  private moveTo(s: WShip, to: V, speed: number, dt: number, arrive = 40): boolean {
+  private moveTo(s: WShip, to: V, speed: number, dt: number, arrive = 40, managed = false): boolean {
     if (s.state === 'docked') this.undock(s);
     const here = this.sysOf(s.pos), there = this.sysOf(to);
     if (here && there && here.id !== there.id) {
-      const gate = nextGate(this.st.systems, here.id, there.id);
+      const gate = nextGate(this.st.systems, here.id, there.id, managed ? gate => usableRouteGate(this.st, gate) : undefined);
       if (!gate) { s.vel.x *= 0.9; s.vel.z *= 0.9; return false; }
       if (!s.warp && dist(s.pos, gate.pos) < 180) { this.jump(s, gate); return false; }
       this.fly(s, gate.pos, speed, dt, 10);
@@ -2117,7 +2139,7 @@ export class WorldSim {
     return false;
   }
 
-  private undock(s: WShip) { s.state = 'space'; if (s.task.k === 'docked') s.task = { k: 'none' }; }
+  undock(s: WShip) { s.state = 'space'; if (s.task.k === 'docked') s.task = { k: 'none' }; }
 
   private dockShip(s: WShip, st: Station) {
     const used = new Set(Object.values(this.st.ships).filter(o => o.task.k === 'docked' && o.task.station === st.id).map(o => (o.task as any).berth));
@@ -2136,10 +2158,10 @@ export class WorldSim {
   }
 
   /** returns true once docked */
-  private goDock(s: WShip, st: Station, dt: number, speed: number): boolean {
+  goDock(s: WShip, st: Station, dt: number, speed: number, managed = false): boolean {
     if (s.state === 'docked' && s.task.k === 'docked' && s.task.station === st.id) return true;
     const approach = berthPos(st, hashId(s.id) % BERTH_MAX);
-    if (this.moveTo(s, approach, speed, dt, 45)) { this.dockShip(s, st); return true; }
+    if (this.moveTo(s, approach, speed, dt, 45, managed)) { this.dockShip(s, st); return true; }
     return false;
   }
 
@@ -2417,6 +2439,7 @@ export class WorldSim {
   }
 
   private behaveHaul(s: WShip, g: WGroup, op: Extract<Op, { k: 'haul' }>, dt: number, speed: number) {
+    if (growthOn(this.st) && op.route) { const route = this.st.logistics?.[op.route]; if (route) stepRouteShip(this, route, s, g, dt, speed); else g.status = '운송 노선 없음 — 화물 보존'; return; }
     const a = this.st.stations[op.from], b = this.st.stations[op.to];
     const ec = econOf(s);
     if (!a || !b) return;
@@ -2599,7 +2622,10 @@ export class WorldSim {
   }
 
   private behaveTrade(s: WShip, g: WGroup, op: Extract<Op, { k: 'trade' }>, dt: number, speed: number) {
-    const target = this.st.stations[op.route[op.leg % op.route.length]];
+    let target = this.st.stations[op.route[op.leg % op.route.length]];
+    // A removed market must not crash the world. Keep cargo and skip only unavailable NPC stops.
+    for (let n = 0; n < op.route.length && !target?.market; n++) { op.leg = (op.leg + 1) % op.route.length; target = this.st.stations[op.route[op.leg]]; }
+    if (!target?.market) { g.status = '교역 가능한 시장 없음 — 화물 보존'; return; }
     g.status = `${target.name}로 교역`;
     if (this.goDock(s, target, dt, speed * 0.8)) {
       const m = target.market!;

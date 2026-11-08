@@ -58,14 +58,14 @@ export function sysAt(systems: Record<string, StarSystem>, p: V): StarSystem | u
 export const local = (s: StarSystem, p: V): V => ({ x: p.x - s.origin.x, y: p.y - s.origin.y, z: p.z - s.origin.z });
 
 /** gate-graph route: the next gate to take from system a toward b (BFS over links) */
-export function nextGate(systems: Record<string, StarSystem>, from: string, to: string): import('./types').Gate | null {
+export function nextGate(systems: Record<string, StarSystem>, from: string, to: string, usable?: (gate: import('./types').Gate) => boolean): import('./types').Gate | null {
   if (from === to) return null;
   const prev = new Map<string, { sys: string; gate: import('./types').Gate }>();
   const q = [from]; const seen = new Set([from]);
   while (q.length) {
     const cur = q.shift()!;
     if (cur === to) break;
-    for (const g of systems[cur]?.gates ?? []) if (!seen.has(g.to)) { seen.add(g.to); prev.set(g.to, { sys: cur, gate: g }); q.push(g.to); }
+    for (const g of systems[cur]?.gates ?? []) if ((!usable || usable(g)) && !seen.has(g.to)) { seen.add(g.to); prev.set(g.to, { sys: cur, gate: g }); q.push(g.to); }
   }
   if (!prev.has(to)) return null;
   let node = to; let step = prev.get(node)!;
