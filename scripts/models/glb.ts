@@ -5,7 +5,7 @@ import type * as THREE from 'three';
 export interface GlbMaterial { name: string; color: [number, number, number]; metal: number; rough: number; emissive?: [number, number, number] }
 export interface GlbMarker { name: string; pos: [number, number, number]; scale?: number }
 
-export function writeGlb(name: string, parts: { mat: GlbMaterial; geo: THREE.BufferGeometry }[], markers: GlbMarker[]): Uint8Array {
+export function writeGlb(name: string, parts: { mat: GlbMaterial; geo: THREE.BufferGeometry }[], markers: GlbMarker[], generator = 'siderarium make-fixtures'): Uint8Array {
   const chunks: Uint8Array[] = []; let off = 0;
   const bufferViews: any[] = [], accessors: any[] = [], primitives: any[] = [], materials: any[] = [];
   const push = (arr: Float32Array) => { const b = new Uint8Array(arr.buffer.slice(0)); chunks.push(b); bufferViews.push({ buffer: 0, byteOffset: off, byteLength: b.length, target: 34962 }); off += b.length; return bufferViews.length - 1; };
@@ -25,7 +25,7 @@ export function writeGlb(name: string, parts: { mat: GlbMaterial; geo: THREE.Buf
   nodes[0].children.push(1);
   for (const m of markers) { nodes.push({ name: m.name, translation: m.pos, ...(m.scale ? { scale: [m.scale, m.scale, m.scale] } : {}) }); nodes[0].children.push(nodes.length - 1); }
   const json = {
-    asset: { version: '2.0', generator: 'siderarium make-fixtures' },
+    asset: { version: '2.0', generator },
     scene: 0, scenes: [{ nodes: [0] }], nodes, meshes: [{ name: `${name}_mesh`, primitives }], materials,
     buffers: [{ byteLength: off }], bufferViews, accessors,
   };
