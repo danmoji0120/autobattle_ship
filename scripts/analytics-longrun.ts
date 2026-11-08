@@ -9,6 +9,7 @@ const hours = Math.max(1, Math.min(24, Number(process.env.ANALYTICS_LONG_HOURS ?
 const seed = WorldSim.create(411), players: string[] = [];
 for (let i = 0; i < 3; i++) {
   const p = seed.addPlayer(`장기 물류 ${i + 1}`); players.push(p);
+  seed.st.companies[p].leases = { astra: 1 }; // existing postpaid lease, no balance parameter change
   const group = Object.values(seed.st.groups).find(g => g.owner === p && g.shipIds.some(id => seed.st.ships[id].classId === 'miner'))!;
   const err = seed.command(p, { c: 'setOp', group: group.id, op: { k: 'mine', field: 'kestrel', deliver: '', sell: true, auto: true } }); if (err) throw Error(err);
 }

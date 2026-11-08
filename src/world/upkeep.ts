@@ -22,7 +22,7 @@ import { econOf, hullIdOf, hullUpkeep, berthOf, growthOn, shipWorth } from './hu
 import { sizeRank } from '../content/schema';
 import { itemPrice, EQUIPMENT, techFx } from './industry';
 import { priceOf, fundsIn } from './market';
-import { leaseRate, leaseAccrual, dockCapacity, useDock, repairPoints, serviceOf } from './storage';
+import { leaseRate, advanceRent, dockCapacity, useDock, repairPoints, serviceOf } from './storage';
 
 export const SETTLE_DT = 60;
 export const RESERVE_MUL = 0.15;
@@ -33,7 +33,8 @@ export const STAGE_NAME = ['정상', '경고', '보급·정비 지연', '신규 
 /** docking fee per hour for large hulls at public stations (own stations: free) */
 export const BIG_DOCK_FEE: Record<string, number> = { L: 250, XL: 700 };
 
-export const upkeepOf = (co: Company): UpkeepState => (co.upkeep ??= { debt: 0, stage: 0, since: 0, acc: 0, supplies: {}, last: 0, total: { credits: 0, supplies: 0, paid: 0 } });
+import { upkeepAccount, moneyUnits, moneyNumber, addDebt, chargeTotals, payDebt } from './money';
+export const upkeepOf = upkeepAccount;
 
 /** administrative overhead per ship (rev 2: flat). The old curve (+3% per ship beyond 8) made
  *  splitting a fleet over several accounts cheaper than running it as one; a flat share costs the
@@ -106,8 +107,8 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     const wr = hullUpkeep(hullIdOf(s), s.variant).wear ?? 0;
     if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : 1));
   }
-  const rent = leaseAccrual(w, co, dt);
-  u.acc += rent; u.leaseAcc = (u.leaseAcc ?? 0) + rent;
+  const cancelled = advanceRent(w, co, w.time - dt);
+  if (cancelled) out.push({ kind: 'warn', tag: 'upkeep', text: `창고 임대료 미납 1시간 — 추가 구획 ${Object.entries(cancelled).map(([id, n]) => `${w.stations[id]?.name ?? id} ${n}개`).join(', ')} 자동 해지. 기존 물품과 미납금은 보존되며 신규 입고는 남은 용량까지만 가능합니다. 보관 물품을 판매해 미납금을 우선 정산하세요.` });
   if (w.time - u.last < SETTLE_DT) return out;
   u.last = w.time;
   out.push(...watchMoney(w, 'upkeep_settlement', { company: co.id }, () => settle(w, co, u)));
@@ -141,25 +142,30 @@ function settle(w: WorldState, co: Company, u: UpkeepState): UpkeepEvent[] {
     }
     u.supplies[k] = owed - Math.floor(owed + 1e-9);
   }
-  emit(w, { kind: 'cost', reason: 'warehouse_rent', amount: u.leaseAcc ?? 0, company: co.id });
+  const rent = moneyNumber(BigInt(u.rent?.billChargeU ?? '0'));
+  // Prepayments already emitted their cost when the lease was signed.
+  const previousPrepaid = u.rent?.prepaidReportedU ?? '0';
+  const prepaid = BigInt(u.rent?.prepaidU ?? '0') - BigInt(previousPrepaid);
+  emit(w, { kind: 'cost', reason: 'warehouse_rent', amount: Math.max(0, rent - moneyNumber(prepaid)), company: co.id });
+  if (u.rent) u.rent.prepaidReportedU = u.rent.prepaidU;
   emit(w, { kind: 'cost', reason: 'supplies', amount: supplyCr, company: co.id });
-  const bill = u.acc + supplyCr;
+  const credit = moneyUnits(u.acc), supply = moneyUnits(supplyCr);
   u.acc = 0;
-  u.total.credits += bill - supplyCr; u.total.supplies += supplyCr;
-  const due = bill + u.debt;
-  const pay = Math.max(0, Math.min(co.credits, due));
-  co.credits -= pay; u.total.paid += pay;
-  u.debt = due - pay;
+  addDebt(co, credit + supply, w.time); chargeTotals(co, credit, supply);
+  payDebt(w, co, 'settlement');
   const f = forecast(w, co);
-  u.bill = { t: w.time, lease: u.leaseAcc ?? 0, credits: Math.round(bill - supplyCr), supplies: Math.round(supplyCr), dock: Math.round(f.dock), overhead: Math.round(f.overhead), fromStore, bought, paid: Math.round(pay), short: Math.round(u.debt), perHour: Math.round(f.perHour) };
-  u.leaseAcc = 0;
-  // arrears stages
+  const pay = moneyNumber(BigInt(u.paymentWindowU ?? '0'));
+  u.bill = { t: w.time, lease: rent, credits: moneyNumber(credit) + rent, supplies: moneyNumber(supply), dock: Math.round(f.dock), overhead: Math.round(f.overhead), fromStore, bought, paid: pay, short: u.debt, perHour: Math.round(f.perHour) };
+  u.paymentWindowU = '0';
+  if (u.rent) u.rent.billChargeU = '0';
+  // Keep the established warning thresholds, but never erase small unpaid obligations.
   const prev = u.stage;
   if (u.debt > 1) {
-    if (!u.since) u.since = w.time;
-    const dt = w.time - u.since;
+    u.debtSince ??= u.since > 0 ? u.since : w.time;
+    u.since = u.debtSince;
+    const dt = w.time - u.debtSince;
     u.stage = dt >= STAGE_AT[4] ? 4 : dt >= STAGE_AT[3] ? 3 : dt >= STAGE_AT[2] ? 2 : 1;
-  } else { u.debt = 0; u.since = 0; u.stage = 0; }
+  } else { u.stage = 0; if (u.debt === 0) { u.since = 0; delete u.debtSince; } }
   if (u.stage !== prev) {
     if (u.stage === 0) out.push({ kind: 'info', text: '운영비 체납 해소 — 모든 함선 정상 운용', tag: 'upkeep' });
     else if (u.stage === 1) out.push({ kind: 'warn', text: `운영비 체납 ${Math.round(u.debt).toLocaleString()} cr — 시간당 운영비 약 ${Math.round(f.perHour).toLocaleString()} cr. 30분 안에 갚지 못하면 보급·정비가 지연됩니다.`, tag: 'upkeep' });

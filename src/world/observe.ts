@@ -1,4 +1,5 @@
-// Passive, transient observers. Never serialized, never consume RNG, never change simulation state.
+// Transient observation and transaction boundaries. Observers never consume RNG or alter gameplay.
+// Deferred gameplay payments run identically with or without an observer. Nothing here is serialized.
 import type { WorldState } from './types';
 export interface Observation {
   kind: string; amount: number; baseline?: number; method?: string; reason?: string; company?: string; group?: string; ship?: string;
@@ -7,6 +8,12 @@ export interface Observation {
 type Sink = (event: Observation, time: number) => void;
 const sinks = new WeakMap<WorldState, Sink>();
 const depth = new WeakMap<WorldState, number>();
+const deferred = new WeakMap<WorldState, (() => void)[]>();
+export const inTransaction = (w: WorldState) => !!depth.get(w);
+export function afterTransaction(w: WorldState, fn: () => void) {
+  if (!inTransaction(w)) { fn(); return; }
+  let list = deferred.get(w); if (!list) { list = []; deferred.set(w, list); } list.push(fn);
+}
 let observedMs = 0;
 export const observationCostMs = () => observedMs;
 /** Account observer work once, including nested emit calls, outside the NPC simulation budget. */
@@ -31,24 +38,26 @@ function balances(w: WorldState) {
  * and credits are transfers; unmatched deltas are actual currency creation/destruction. This also
  * observes budget caps and credit-on-service-accrual exactly as the existing game implements them. */
 export function watchMoney<T>(w: WorldState, reason: string, meta: Partial<Observation>, fn: () => T): T {
-  if (!observing(w) || depth.get(w)) return fn();
-  const before = observedWork(() => balances(w));
+  if (depth.get(w)) return fn();
+  const before = observing(w) ? observedWork(() => balances(w)) : null;
   depth.set(w, 1);
   try { return fn(); } finally {
     depth.delete(w);
-    observedWork(() => {
+    if (before) observedWork(() => {
     const after = balances(w), plus: [string, number][] = [], minus: [string, number][] = [];
     for (const id of new Set([...before.keys(), ...after.keys()])) {
       const d = (after.get(id) ?? 0) - (before.get(id) ?? 0);
-      if (d > 1e-9) plus.push([id, d]); else if (d < -1e-9) minus.push([id, -d]);
+      if (d > 0) plus.push([id, d]); else if (d < 0) minus.push([id, -d]);
     }
     for (const debit of minus) for (const credit of plus) {
-      const n = Math.min(debit[1], credit[1]); if (n <= 1e-9) continue;
+      const n = Math.min(debit[1], credit[1]); if (n <= 0) continue;
       emit(w, { ...meta, kind: 'currency.transfer', reason, from: debit[0], to: credit[0], amount: n });
       debit[1] -= n; credit[1] -= n;
     }
-    for (const [from, amount] of minus) if (amount > 1e-9) emit(w, { ...meta, kind: 'currency.destroy', reason, from, amount });
-    for (const [to, amount] of plus) if (amount > 1e-9) emit(w, { ...meta, kind: 'currency.create', reason, to, amount });
+    for (const [from, amount] of minus) if (amount > 0) emit(w, { ...meta, kind: 'currency.destroy', reason, from, amount });
+    for (const [to, amount] of plus) if (amount > 0) emit(w, { ...meta, kind: 'currency.create', reason, to, amount });
     });
+    const work = deferred.get(w); deferred.delete(w);
+    for (const finish of work ?? []) finish();
   }
 }

@@ -26,6 +26,7 @@ import { STATION_CREW_RATE } from './data';
 import { econOf, hullEcon, hullBuild, hullSale, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
 import { yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
+import { payDebt, payFromSale } from './money';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
 import { priceOf, driftV3, fundsStep, fundsIn, seedFunds } from './market';
 import { publicCap, storeUsed, setLease, takesSpace, constructionRoom, serviceOf } from './storage';
@@ -97,7 +98,8 @@ export type Cmd =
   | { c: 'delistShip'; station: string; listing: string }
   | { c: 'buyShipListing'; station: string; listing: string; group?: string }
   | { c: 'reserve'; ship: string; on: boolean }
-  | { c: 'autoReserve'; on: boolean };
+  | { c: 'autoReserve'; on: boolean }
+  | { c: 'payArrears' };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
 /** "창살급 구축함" */
@@ -801,7 +803,7 @@ export class WorldSim {
         const seller = this.st.companies[l.seller];
         co.credits -= cost;
         const net = cost * (1 - (st.tax ?? 0.02));
-        if (seller) { seller.credits += net; seller.stats.earned += net; }
+        if (seller) { seller.credits += net; seller.stats.earned += net; payFromSale(this.st, seller, net); }
         emit(this.st, { kind: 'market', reason: 'player_exchange', amount: n, value: cost, company, station: st.id, item: l.item });
         if (seller) emit(this.st, { kind: 'market.seller', reason: 'player_exchange', amount: n, value: net, company: seller.id, station: st.id, item: l.item });
         addc(this.storage(st, company), l.item, n);
@@ -1028,7 +1030,7 @@ export class WorldSim {
         const seller = this.st.companies[l.seller];
         co.credits -= l.price;
         const net = l.price * (1 - (st.tax ?? 0.02));
-        if (seller) { seller.credits += net; seller.stats.earned += net; }
+        if (seller) { seller.credits += net; seller.stats.earned += net; payFromSale(this.st, seller, net); }
         st.shipListings!.splice(st.shipListings!.indexOf(l), 1);
         // the ship changes hands with its fitted equipment; no blueprint or research is needed to own it
         const old = this.st.groups[s.groupId];
@@ -1061,6 +1063,13 @@ export class WorldSim {
         co.credits -= fee;
         s.reserve.until = this.time + REACTIVATE_S;
         this.ev('info', `${s.name} 재취역 시작 — ${REACTIVATE_S / 60}분 후 출항 가능 (-${fee.toLocaleString()} cr)`, { company, tag: 'reserve' });
+        return null;
+      }
+      case 'payArrears': {
+        if (!growthOn(this.st)) return '이 월드에는 운영비 미납금이 없습니다';
+        const paid = payDebt(this.st, co, 'manual');
+        if (!paid) return co.upkeep?.debt ? '납부할 크레딧이 없습니다' : '미납금이 없습니다';
+        this.ev('money', `미납금 ${paid.toLocaleString(undefined, { maximumFractionDigits: 9 })} cr 납부`, { company });
         return null;
       }
       case 'autoReserve': upkeepOf(co).autoReserve = !!cmd.on; return null;
@@ -2579,6 +2588,7 @@ export class WorldSim {
     total *= tax;
     const co = this.st.companies[company];
     co.credits += total; co.stats.earned += total;
+    payFromSale(this.st, co, total);
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
     if (sold) emit(this.st, { kind: 'market', reason: 'sell', amount: sold, value: total, company, station: st.id, item: r });
     return { value: total, sold };

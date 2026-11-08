@@ -8,6 +8,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 const sim = WorldSim.create(511);
 for (let i = 0; i < 3; i++) {
   const p = sim.addPlayer(`성능검증 ${i}`);
+  sim.st.companies[p].leases = { astra: 1 }; // existing postpaid lease, no balance parameter change
   const g = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'miner'))!;
   sim.command(p, { c: 'setOp', group: g.id, op: { k: 'mine', field: 'kestrel', deliver: '', sell: true, auto: true } });
 }

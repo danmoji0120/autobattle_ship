@@ -15,6 +15,7 @@
 // each, repair bays, hangars), which is the point: the answer to a full public warehouse is a station.
 // Pure helpers; the sim applies them. Below contentV 3 nothing here is consulted.
 import { emit } from './observe';
+import { moneyUnits, moneyNumber, upkeepAccount, debtUnits, addDebt, chargeTotals, paidTotals, payDebt } from './money';
 import type { Cargo, Company, Station, WorldState, WShip } from './types';
 import { queueShortfall } from './construction';
 import { qty } from './types';
@@ -67,17 +68,24 @@ export function leaseRate(w: WorldState, co: Company): number {
 /** change the number of leased blocks. Taking a block pays its first hour now. Releasing is always
  *  allowed — goods over the new limit stay, only new intake stops. */
 export function setLease(w: WorldState, co: Company, st: Station, blocks: number): string | null {
+  if ((w.contentV ?? 0) < 3 || co.kind !== 'player') return '이 월드에서는 창고를 임대할 수 없습니다';
   if (!Number.isFinite(blocks) || !Number.isInteger(blocks) || blocks < 0) return '임대 구획은 0 이상의 정수여야 합니다';
   if (!st.public) return '자사 정거장은 창고 모듈로 확장합니다';
   const sv = serviceOf(st);
   const n = Math.max(0, Math.min(sv.blocks, Math.floor(blocks)));
   if (blocks > sv.blocks) return `${st.name}은(는) 한 회사에 최대 ${sv.blocks}구획(${(sv.blocks * LEASE_BLOCK).toLocaleString()})까지만 임대합니다 — 더 필요하면 자체 정거장을 지으세요`;
+  advanceRent(w, co, w.time, true);
   const cur = leasedAt(co, st.id);
   if (n === cur) return '변경 없음';
   if (n > cur) {
+    if (debtUnits(upkeepAccount(co)) > 0n) return '미납금 정산 후 새 구획을 임대할 수 있습니다 — 보관 물품 판매대금으로 우선 정산하거나 운영비 화면에서 납부하세요';
     const first = (n - cur) * sv.lease;
     if (co.credits < first) return `자금 부족 — 첫 시간 임대료 ${first.toLocaleString()} cr 필요`;
     co.credits -= first;
+    const u = upkeepAccount(co), units = moneyUnits(first);
+    u.rent!.prepaidU = (BigInt(u.rent!.prepaidU) + units).toString();
+    u.rent!.billChargeU = (BigInt(u.rent!.billChargeU) + units).toString();
+    chargeTotals(co, units); paidTotals(co, units);
     emit(w, { kind: 'cost', reason: 'warehouse_rent', amount: first, company: co.id, station: st.id });
   }
   const paid = (co.leasePaidUntil ??= {})[st.id] ?? Array(cur).fill(w.time);
@@ -114,7 +122,68 @@ export function dockCapacity(w: WorldState, st: Station): number {
 }
 export function useDock(st: Station, pts: number) { if (st.dockCap) st.dockCap.left = Math.max(0, st.dockCap.left - pts); }
 
-/** Rent for the actual interval, excluding prepaid time. No new grace period on reload. */
+/** Exact rent ledger. Simulation time is integrated on absolute 250ms boundaries, independently
+ * of caller dt or the 60s statement interval. Lease changes flush the final partial boundary first.
+ * Unknown historical rent is never invented when an old save first acquires this clock. */
+export function advanceRent(w: WorldState, co: Company, start: number, flush = false): Record<string, number> | undefined {
+  if ((w.contentV ?? 0) < 3 || co.kind !== 'player') return;
+  const u = upkeepAccount(co);
+  if (!u.rent) {
+    u.rent = { lastMs: Math.round(start * 1000), remainder: '0', debtU: '0', accruedU: '0', prepaidU: '0', paidU: '0', billChargeU: '0' };
+    // Earlier versions accumulated this known rent in acc. Move it once, without charging twice.
+    const old = moneyUnits(Math.max(0, u.leaseAcc ?? 0));
+    if (old > 0n) {
+      u.acc = Math.max(0, u.acc - moneyNumber(old)); u.leaseAcc = 0;
+      addDebt(co, old, start); chargeTotals(co, old);
+      u.rent.debtU = old.toString(); u.rent.accruedU = old.toString(); u.rent.billChargeU = old.toString();
+      u.rent.sinceMs = Math.round(start * 1000);
+    }
+  }
+  const r = u.rent, now = Math.round(w.time * 1000), end = flush ? now : Math.floor(now / 250) * 250;
+  let cancelled: Record<string, number> | undefined;
+  while (r.lastMs < end) {
+    // A payment before this update can resolve an earlier overdue balance.
+    payDebt(w, co, 'rent', undefined, true);
+    if (r.sinceMs !== undefined && r.lastMs >= r.sinceMs + 3_600_000) {
+      const blocks = Object.fromEntries(Object.entries(co.leases ?? {}).filter(([, n]) => n > 0));
+      if (Object.keys(blocks).length) {
+        cancelled = blocks; r.cancelled = { t: r.lastMs / 1000, blocks };
+        co.leases = {}; co.leasePaidUntil = {};
+      }
+    }
+    if (!Object.values(co.leases ?? {}).some(n => n > 0)) { r.lastMs = end; break; }
+    let until = Math.min(end, (Math.floor(r.lastMs / 250) + 1) * 250);
+    if (r.sinceMs !== undefined) until = Math.min(until, r.sinceMs + 3_600_000);
+    let numerator = BigInt(r.remainder);
+    for (const [id, n] of Object.entries(co.leases ?? {})) {
+      const st = w.stations[id]; if (!st || n <= 0) continue;
+      const paid = co.leasePaidUntil?.[id] ?? [];
+      for (let i = 0; i < n; i++) {
+        const elapsed = Math.max(0, until - Math.max(r.lastMs, Math.round((paid[i] ?? 0) * 1000)));
+        numerator += moneyUnits(serviceOf(st).lease) * BigInt(elapsed);
+      }
+    }
+    const units = numerator / 3_600_000n; r.remainder = (numerator % 3_600_000n).toString();
+    if (units > 0n) {
+      addDebt(co, units, r.lastMs / 1000); chargeTotals(co, units);
+      r.debtU = (BigInt(r.debtU) + units).toString();
+      r.accruedU = (BigInt(r.accruedU) + units).toString();
+      r.billChargeU = (BigInt(r.billChargeU) + units).toString();
+      if (r.sinceMs === undefined) r.sinceMs = r.lastMs;
+      payDebt(w, co, 'rent', undefined, true);
+    }
+    r.lastMs = until;
+  }
+  // The final boundary itself may be the termination deadline.
+  if (r.sinceMs !== undefined && end >= r.sinceMs + 3_600_000 && Object.values(co.leases ?? {}).some(n => n > 0)) {
+    cancelled = Object.fromEntries(Object.entries(co.leases ?? {}).filter(([, n]) => n > 0));
+    r.cancelled = { t: (r.sinceMs + 3_600_000) / 1000, blocks: cancelled };
+    co.leases = {}; co.leasePaidUntil = {};
+  }
+  return cancelled;
+}
+
+/** Pure interval quote for forecasts/tests. Authoritative charges use advanceRent exclusively. */
 export function leaseAccrual(w: WorldState, co: Company, dt: number): number {
   let cost = 0;
   for (const [id, n] of Object.entries(co.leases ?? {})) {

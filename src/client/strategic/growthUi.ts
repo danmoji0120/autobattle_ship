@@ -1,3 +1,4 @@
+import { moneyText } from '../../world/money';
 // Growth UI (contentV ≥ 3): public yard stock, own-yard builds by hull, the player ship exchange,
 // blueprints and running costs. Pure HTML builders; hud.ts wires the data-* buttons to commands.
 import type { Station, Cargo, WShip } from '../../world/types';
@@ -198,9 +199,12 @@ export function upkeepHtml(w: WorldState, me: string): string {
   return `<div class="panel upk"><div class="shdr"><div class="stitle">운영비</div><button class="btn" data-upclose>✕</button></div>
     <div class="bdr">시간당 약 <b class="money">${fmt(f.perHour)} cr</b> — 선체 유지 ${fmt(f.credits)} · 관리비 ${fmt(f.overhead)} · 대형선 정박료 ${fmt(f.dock)} · 창고 임대 ${fmt(f.lease)} · 소모품 ${fmt(f.suppliesCr)}${Object.keys(f.supplies).length ? ` (${itemList(f.supplies)})` : ''}</div>
     <div class="dim small">소모품은 자사 창고(자사 정거장 → 본거지)에서 먼저 쓰고, 없으면 본거지 시장에서 실제 재고·가격으로 삽니다. 함선은 우주에서 일하며 마모되고, 수리 시설이 있는 곳에 정박할 때마다 자동 정비됩니다. 관리비는 함선마다 똑같이 유지비의 10%입니다 (함대를 나눠도 줄지 않음). 대형 함대의 진짜 부담은 정비 능력입니다 — 공용 정비소는 모든 회사가 나눠 쓰므로 붐비면 마모가 다 지워지지 않고, 자사 정비소·격납고가 있어야 대함대를 유지할 수 있습니다.</div>
-    <div class="bdr">상태: <b class="${stage >= 2 ? 'warn' : stage ? 'warnish' : 'good'}">${STAGE_NAME[stage]}</b>${u?.debt ? ` · 체납 <b class="warn">${fmt(u.debt)} cr</b>` : ''}${next > 0 ? ` · 다음 단계까지 ${dur(next)}` : ''}</div>
+    <div class="bdr">상태: <b class="${stage >= 2 ? 'warn' : stage ? 'warnish' : 'good'}">${!stage && u?.debt ? '소액 미납' : STAGE_NAME[stage]}</b>${u?.debt ? ` · 체납 <b class="warn">${moneyText(u.debt)} cr</b>` : ''}${next > 0 ? ` · 다음 단계까지 ${dur(next)}` : ''}</div>
     ${stage ? '<div class="small">체납 단계: 1 경고 → 2 보급·정비 지연(30분) → 3 정박 함선 신규 출항 보류(60분) → 4 예비역 전환 권고(120분). 운항·전투 중인 함선은 건드리지 않으며, 함선·장비는 삭제되지 않습니다. 자금이 들어오면 자동으로 갚습니다.</div>' : ''}
-    ${b ? `<div class="dim small">최근 정산: 청구 ${fmt(b.credits + b.supplies)} cr · 지불 ${fmt(b.paid)} cr${b.short ? ` · 미납 ${fmt(b.short)}` : ''}${Object.keys(b.fromStore).length ? ` · 창고 사용 ${itemList(b.fromStore)}` : ''}${Object.keys(b.bought).length ? ` · 시장 구매 ${itemList(b.bought)}` : ''}</div>` : ''}
+    ${b ? `<div class="dim small">최근 정산: 청구 ${moneyText(b.credits + b.supplies)} cr · 지불 ${moneyText(b.paid)} cr${b.short ? ` · 미납 ${moneyText(b.short)}` : ''}${Object.keys(b.fromStore).length ? ` · 창고 사용 ${itemList(b.fromStore)}` : ''}${Object.keys(b.bought).length ? ` · 시장 구매 ${itemList(b.bought)}` : ''}</div>` : ''}
+    ${u?.debt ? `<div class="bdr small"><button class="btn" data-payarrears ${co.credits <= 0 ? 'disabled' : ''}>보유 크레딧으로 미납금 납부</button> · 물품·함선 판매대금은 미납금부터 자동 정산합니다. 잔액 부족분은 보존되며 잔액을 음수로 만들지 않습니다.</div>` : ''}
+    ${u?.rent?.sinceMs !== undefined && Object.values(co.leases ?? {}).some(n => n > 0) ? `<div class="warn small">창고 임대료 미납 ${moneyText(Number(u.rent.debtU) / 1e9)} cr · 추가 임대 구획 자동 해지까지 ${dur(Math.max(0, u.rent.sinceMs / 1000 + 3600 - w.time))}. 일부 납부만으로 유예 시간이 초기화되지 않습니다.</div>` : ''}
+    ${u?.rent?.cancelled ? `<div class="warnish small">최근 임대 해지: 임대료 미납으로 추가 구획이 자동 해지됐습니다 (게임 시간 ${dur(u.rent.cancelled.t)}). 기존 물품은 보존됩니다. 미납 정산 후 다시 임대할 수 있습니다.</div>` : ''}
     <label class="small"><input type="checkbox" data-autores ${u?.autoReserve ? 'checked' : ''}> 체납 4단계에서 정박 중인 유휴 함선을 자동으로 예비역 전환 (동의)</label>
     <table class="gt"><tr><th>함선</th><th>상태</th><th class="n">cr/h</th><th class="n">마모</th><th></th></tr>${ships.map(s => {
       const r = shipRate(full(w), s); const held = departureHeld(full(w), s);
@@ -258,12 +262,14 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
   return `<div class="bdr stor"><b>공용 창고</b> <span class="${cls}">${fmt(used)} / ${fmt(cap)}</span>
       <div class="sbar"><i style="width:${pct.toFixed(0)}%" class="${cls}"></i></div>
       <div class="small">기본 ${fmt(sv.store)} + 임대 ${n}/${sv.blocks}구획 × ${fmt(LEASE_BLOCK)} · 구획당 <b class="money">${fmt(sv.lease)} cr/h</b> (현재 임대료 합계 ${fmt(leaseRate(full(w), co))} cr/h)
-        <button class="btn mini" data-lease="${n + 1}" ${n >= sv.blocks ? 'disabled title="이 정거장의 임대 한도"' : ''}>+1 구획 임대</button>
+        <button class="btn mini" data-lease="${n + 1}" ${co.upkeep?.debt ? 'disabled title="미납금 정산 후 임대 가능"' : n >= sv.blocks ? 'disabled title="이 정거장의 임대 한도"' : ''}>+1 구획 임대</button>
         <button class="btn mini" data-lease="${n - 1}" ${n <= 0 ? 'disabled' : ''}>1 구획 반납</button></div>
       ${over ? `<div class="warn small">한도를 넘었습니다 — 보관 중인 물품은 그대로지만 새로 들여올 수 없습니다 (하역분은 함선에 남고, 구매는 거부). 팔거나 옮기거나 구획을 임대하세요.</div>` : pct > 85 ? '<div class="warnish small">창고가 거의 찼습니다. 하역하지 못한 화물은 함선에 남아 채굴·운송이 멈춥니다.</div>' : ''}
       <div class="dim small">${esc(sv.note)} 공용 정비 능력 ${fmt(sv.repair)} 정비점/h (모든 회사 공유, 남은 ${fmt(dockCapacity(full(w), s))}) · 정비료 ×${sv.fee}</div>
-      <div class="dim small">추가 구획은 첫 1시간 요금을 즉시 선납합니다. 구획별 선납 만료 후 사용 시간만 60초마다 후불 정산합니다. 반납은 최근 추가 구획부터이며 선납 환불은 없습니다.</div>
-      ${n ? `<div class="small">선납 잔여: ${(co.leasePaidUntil?.[s.id] ?? []).map((t, i) => `${i + 1}구획 ${dur(Math.max(0, t - w.time))}`).join(' · ') || '기존 임대 — 사용 시간 후불 정산'} · 최근 정산 임대료 ${fmt(co.upkeep?.bill?.lease ?? 0)} cr</div>` : ''}
+      <div class="dim small">추가 구획은 첫 1시간 요금을 즉시 선납합니다. 구획별 선납 만료 후 사용 시간만 고정소수점으로 청구하며 60초마다 명세를 갱신합니다. 미납이 게임 시간 1시간 지속되면 모든 추가 구획이 자동 해지되고 이후 임대료는 중단됩니다. 미납금·보관 물품은 보존되며, 미납 정산 전에는 새 임대가 제한됩니다. 반납은 최근 추가 구획부터이며 선납 환불은 없습니다.</div>
+      ${n ? `<div class="small">선납 잔여: ${(co.leasePaidUntil?.[s.id] ?? []).map((t, i) => `${i + 1}구획 ${dur(Math.max(0, t - w.time))}`).join(' · ') || '기존 임대 — 사용 시간 후불 정산'} · 최근 정산 임대료 ${moneyText(co.upkeep?.bill?.lease ?? 0)} cr</div>` : ''}
+      ${!n && co.upkeep?.rent?.cancelled?.blocks[s.id] ? `<div class="warnish small">미납 1시간으로 추가 구획이 해지되었습니다. 이후 임대료는 발생하지 않으며 기존 물품은 보존됩니다.</div>` : ''}
+      ${co.upkeep?.debt ? `<div class="warn small">미납 ${moneyText(co.upkeep.debt)} cr — 보관 물품을 판매하면 미납금을 우선 정산합니다. 운영비 화면에서 보유 크레딧으로 납부할 수도 있습니다.${co.upkeep.rent?.sinceMs !== undefined && Object.values(co.leases ?? {}).some(n => n > 0) ? ` 추가 구획 자동 해지까지 ${dur(Math.max(0, co.upkeep.rent.sinceMs / 1000 + 3600 - w.time))}.` : ''}</div>` : ''}
       ${storeUsed(co.pendingLoot?.[s.id]) > 0 ? `<div class="warnish small">전장 회수품 ${fmt(storeUsed(co.pendingLoot?.[s.id]))} 안전 보관 중 · 공간 확보 시 자동 입고</div>` : ''}
     </div>
     <details class="small"><summary>공용 정거장 vs 자체 정거장</summary><table class="gt">

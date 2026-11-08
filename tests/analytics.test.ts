@@ -94,6 +94,7 @@ describe('authoritative analytics', () => {
     expect(JSON.stringify(sent.admin.at(-1))).toContain('SECRET_ASSET');
     const snap = sent.player.find(m => m.t === 'snap') as Extract<ServerMsg, { t: 'snap' }>;
     expect(snap.state.companies[a].credits).toBe(0);
+    expect(snap.state.companies[a].upkeep).toBeUndefined();
     expect(snap.state.stations.astra.storage[a]).toBeUndefined();
     expect((snap.state as any).analytics).toBeUndefined();
   });

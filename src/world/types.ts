@@ -51,6 +51,19 @@ export interface BlueprintHolding { src: string; t: number; /** builds left (lim
 export interface UpkeepState {
   /** credits owed but not yet paid (arrears) */
   debt: number;
+  /** authoritative nano-credit debt; numeric debt is a legacy/display projection */
+  debtU?: string;
+  debtSince?: number;
+  creditChargesU?: string;
+  supplyChargesU?: string;
+  paidU?: string;
+  paymentWindowU?: string;
+  lastPayment?: { t: number; units: string; source: 'sale' | 'manual' | 'settlement' | 'rent' };
+  rent?: {
+    lastMs: number; remainder: string; debtU: string; accruedU: string; prepaidU: string; paidU: string; billChargeU: string; prepaidReportedU?: string;
+    sinceMs?: number;
+    cancelled?: { t: number; blocks: Record<string, number> };
+  };
   /** arrears stage 0..4 (1 warning, 2 resupply/maintenance delayed, 3 new departures held, 4 reserve proposed) */
   stage: number;
   /** world time arrears began (0 = none) */

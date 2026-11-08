@@ -1,3 +1,4 @@
+import { stepUpkeep } from '../src/world/upkeep';
 // Real Postgres + real server processes: an old instance A (contentV 0) keeps autosaving while new
 // instances apply the c0→c2 content migration — the deploy race on Render. Runs only with
 // PG_TEST_URL (a throwaway database: its siderarium_* tables are dropped), e.g.
@@ -182,6 +183,12 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     st.storage[id].ore = publicCap(co, st);
     (local.sim as any).salvageWrecks(co, Array.from({ length: 12 }, () => ({ eq_laser: 2 })), 1, st.pos);
     expect(Object.keys(co.pendingLoot?.astra ?? {}).length).toBeGreaterThan(0);
+    const overdue = local.sim.addPlayer('PG 체납 검증'), late = local.sim.st.companies[overdue];
+    for (const [sid, ship] of Object.entries(local.sim.st.ships)) if (ship.owner === overdue) delete local.sim.st.ships[sid];
+    late.credits = 0; late.leases = { rustport: 1 }; delete late.upkeep;
+    local.sim.st.stations.rustport.storage[overdue].ore = 4100;
+    local.sim.st.time += 3600; stepUpkeep(local.sim.st, late, 3600);
+    expect(late.upkeep!.debtU).toBe('45000000000');
     const file = local.snapshotFile();
     await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
     for (const port of [8316, 8317]) {
@@ -190,6 +197,10 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       const data = (await row())!.data as typeof file;
       expect(data.world.companies[id].leasePaidUntil).toEqual(co.leasePaidUntil);
       expect(data.world.companies[id].pendingLoot).toEqual(co.pendingLoot);
+      expect(data.world.companies[overdue].upkeep!.debtU).toBe('45000000000');
+      expect(data.world.companies[overdue].upkeep!.rent!.cancelled).toEqual({ t: 3600, blocks: { rustport: 1 } });
+      expect(data.world.companies[overdue].leases).toEqual({});
+      expect(data.world.stations.rustport.storage[overdue].ore).toBe(4100);
       expect(data.analytics?.started).toBe(file.analytics!.started);
       expect(data.analytics?.openingSupply).toBe(file.analytics!.openingSupply);
       const creation = [...data.analytics!.fine, data.analytics!.current].flatMap(b => b.rows).filter(r => r.kind === 'income' && r.company === id && r.reason === 'company_creation');

@@ -31,7 +31,9 @@ describe('storage stability', () => {
     expect(setLease(loaded.st, c, loaded.st.stations.astra, 1)).toBeNull();
     loaded.st.time += 900;
     expect(leaseAccrual(loaded.st, c, 900)).toBeCloseTo(rate / 4);
-    expect(c.credits).toBe(start - 2 * rate);
+    // Returning the newest block flushes the oldest block’s actual 15 minutes of postpaid use.
+    expect(c.credits).toBe(start - 2 * rate - rate / 4);
+    expect(c.upkeep!.total.credits).toBe(2 * rate + rate / 4);
     expect(setLease(loaded.st, c, loaded.st.stations.astra, NaN)).toMatch(/정수/);
   });
 

@@ -644,7 +644,7 @@ export class PmcHud {
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
     el.querySelectorAll<HTMLButtonElement>('[data-spd]').forEach(b => b.onclick = () => this.c.setSpeed(Number(b.dataset.spd)));
-    const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
+    const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.closeModal(); this.analyticsPanel?.close(); this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
     const ab = document.getElementById('acctBtn') as HTMLButtonElement | null; if (ab) ab.onclick = () => this.opts.onAccount?.();
     (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
@@ -655,13 +655,15 @@ export class PmcHud {
   private renderUpkeep(force: boolean) {
     if (!this.upkOpen || !growthOn(this.st)) { this.upkEl?.remove(); this.upkEl = null; return; }
     const co = this.st.companies[this.me]; if (!co) return;
-    const key = JSON.stringify([co.upkeep?.stage, Math.round(co.upkeep?.debt ?? 0), co.upkeep?.bill?.t, co.upkeep?.autoReserve, Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [s.id, s.state, s.reserve, s.listed, Math.round((s.wear ?? 0) * 100)])]);
+    const key = JSON.stringify([co.credits, co.upkeep?.stage, co.upkeep?.debt, co.upkeep?.rent?.sinceMs, co.upkeep?.rent?.cancelled, Math.floor(this.st.time), co.upkeep?.bill?.t, co.upkeep?.autoReserve, Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [s.id, s.state, s.reserve, s.listed, Math.round((s.wear ?? 0) * 100)])]);
     if (!force && key === this.upkKey && this.upkEl) return;
     this.upkKey = key;
     if (!this.upkEl) { this.upkEl = h('div', 'upkwrap'); this.root.appendChild(this.upkEl); }
     morph(this.upkEl, upkeepHtml(this.st, this.me));
     const e = this.upkEl;
     e.querySelector<HTMLButtonElement>('[data-upclose]')!.onclick = () => { this.upkOpen = false; this.renderUpkeep(true); };
+    const pay = e.querySelector<HTMLButtonElement>('[data-payarrears]');
+    if (pay) pay.onclick = () => this.cmd({ c: 'payArrears' });
     const ar = e.querySelector<HTMLInputElement>('[data-autores]');
     if (ar) ar.onchange = () => { if (ar.checked && !confirm('체납 4단계가 되면 정박 중인 유휴 함선을 자동으로 예비역으로 돌립니다. 함선·장비는 그대로이며 재취역할 수 있습니다. 동의할까요?')) { ar.checked = false; return; } this.cmd({ c: 'autoReserve', on: ar.checked }); };
     e.querySelectorAll<HTMLButtonElement>('[data-reserve]').forEach(b => b.onclick = async () => { const [ship, on] = b.dataset.reserve!.split(':'); if (await this.cmd({ c: 'reserve', ship, on: on === '1' })) this.renderUpkeep(true); });
@@ -989,9 +991,10 @@ export class PmcHud {
 
   // ============================================================== station modal
 
-  openAnalytics() { this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
+  openAnalytics() { this.upkOpen = false; this.renderUpkeep(true); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
+    this.upkOpen = false; this.renderUpkeep(true);
     this.modalStation = id;
     const s = this.st.stations[id];
     this.modalTab = tab ?? (s.owner === this.me ? 'build' : s.market ? 'market' : 'yard');
@@ -1010,7 +1013,7 @@ export class PmcHud {
     const s = this.st.stations[this.modalStation!];
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
-    const key = JSON.stringify([this.modalTab, this.ind, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit, x.variant, x.fitting]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length, this.gy, s.shipStock, s.shipListings, co.blueprints, Math.round((s.funds ?? 0) / 500)]);
+    const key = JSON.stringify([this.modalTab, this.ind, co.leases, co.upkeep?.debt, co.upkeep?.rent?.cancelled, co.upkeep?.rent?.sinceMs !== undefined ? Math.floor(this.st.time) : null, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit, x.variant, x.fitting]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length, this.gy, s.shipStock, s.shipListings, co.blueprints, Math.round((s.funds ?? 0) / 500)]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
