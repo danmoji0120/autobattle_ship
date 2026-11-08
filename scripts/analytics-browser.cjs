@@ -65,6 +65,7 @@ const assert = (ok, label) => { if (!ok) throw Error(label); console.log('PASS',
     await page.locator(`[data-an-tab="${tab}"]`).click();
     await page.screenshot({ animations: 'disabled', path: `${out}/admin-${tab}-1440.png` });
     assert(await page.locator('.an-body').innerText().then(t => t.length > 30), `admin ${tab} renders`);
+    if (tab === 'market') assert(await page.evaluate(() => { const names = Object.values(window.siderarium.client.state.systems).map(s => s.name); return [...document.querySelectorAll('.an-body tbody tr')].every(row => names.includes(row.children[1].textContent.trim())); }), 'market rows display star-system names rather than same-ID station names');
   }
   await page.locator('[data-an-tab="growth"]').click();
   assert(await page.locator('[data-company-detail]').count() === 3, 'growth comparison shows three real companies');
