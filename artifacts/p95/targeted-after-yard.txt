@@ -1,0 +1,34 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > pre-pays once, refunds an interrupted order, and never buys remotely or charges twice for multiple constructors 144ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > rejects malformed founding names and coordinates before prepayment or cargo changes 44ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > uses actual docked stock within hold capacity, and restores an old already-paid founding order 25ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds a previously paid but already delegated legacy founding order once 27ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > buys at the market, carries a reserved multi-gate shipment through restart, and consumes exactly once 757ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > deduplicates the same purchase request across save/restart and rejects stale or conflicting retries 9ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > rejects non-finite or inherited market items without corrupting credits or stock 5ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > delivers carried cargo directly, accepts only needed material, and refuses another company 18ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > does not accept a delivery order when its only cargo ship has an overriding child order 3ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > retains a shipment when its destination disappears and when its route is cancelled 11ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > returns the plan prepayment and keeps an in-flight shipment when its construction plan is cancelled 156ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds only unused reservations and the remaining paid fraction after work has begun 18ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > uses the existing combat cargo-loss path when a construction carrier is destroyed 24ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > waits with cargo aboard when a completed station is full and resumes once space is freed 180ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > manual site delivery respects a completed station warehouse cap and retains excess aboard 56ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > partial manual delivery immediately withdraws the tracked manifest before a same-tick save and resume 20ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > founding unloads tracked constructor cargo from the paused route immediately 9ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > ordinary partial unloading also withdraws tracked cargo before a paused route can resume 20ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > allocates one partial unload only once across old and new route manifests on the same ship 18ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > persists prepayment, allows retargeting without a second debit, and refunds exactly once on cancellation 7ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds a destroyed constructor’s prepayment after restart without recreating its lost cargo 7ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > keeps prepayment in assessed assets and reconciles the actual debit and refund in server analytics 30ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > keeps company stock and construction reservations separate, and refunds only unworked materials on cancellation 4ms
+ ✓ tests/p95-purchase-client.test.ts > construction-material market purchase retries > reuses an unacknowledged purchase after a browser reload without a second debit or delivery 51ms
+ ✓ tests/p95-yard-equivalence.test.ts > public yard restocking does not calculate unrelated prices > keeps the same eligible hulls, stock limits and restock periods as the full sale definitions 27ms
+ ✓ tests/p95-yard-equivalence.test.ts > public yard restocking does not calculate unrelated prices > reads current content values instead of caching mutable stock limits 1ms
+
+ Test Files  3 passed (3)
+      Tests  26 passed (26)
+   Start at  15:23:19
+   Duration  6.13s (transform 2.88s, setup 0ms, import 3.66s, tests 1.68s, environment 1ms)

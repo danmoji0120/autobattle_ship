@@ -1,0 +1,25 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > hull classes span the agreed build times and grow in parts, slots and yard size 5ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting 22868ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls 3500ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > designs need research; cancel refunds in full before the keel, partially after (parts are not returned) 12053ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > own facilities never sell finished ships for credits; public yards still sell complete hulls 2423ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitting moves modules between ship and storage all-or-nothing, within the hull slots 7440ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitted modules change the tactical ship (hp, armour, speed, accuracy, range, evasion) 2ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > builds survive a restart and finish identically 48082ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds 8384ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive 5661ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately 2319ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold 12010ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first 5500ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > cancel returns reserved materials and refunds credits (in full before work starts) 2632ms
+ × tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself 60385ms
+   → Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart 8314ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > old saves: an unbuilt module without plan data is migrated without losing paid progress 2718ms
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > manufacturing adds value: every good is worth more than the inputs of its cheapest recipe 7ms
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > price rises steeply with class; small standard hulls stay cheap; the industrial base grows with the tier 5ms
+ ✓ tests/growth2.test.ts > rev 2: public storage > limit + leases: over the limit nothing new comes in, nothing stored is removed; ship holds and leases are the way out 603ms

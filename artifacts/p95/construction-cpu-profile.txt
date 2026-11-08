@@ -1,0 +1,33 @@
+Current P9.5 code: standalone reproduction of the mining/refining/construction test, with a 5ms CPU sampler.
+{"ms":50647.998117999996,"ticks":11760,"ships":97,"groups":29,"station":"st185","simTime":2940}
+active samples: 9072
+1683 hullCost file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3010
+925 hullCost file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3010
+915 hullPrice file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3019
+741 nearestHostile file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 11053
+539 hullPrice file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3019
+337 behave file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10848
+258 yardHulls file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3118
+225 (garbage collector)  0
+175 hullEcon file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3045
+172 hullEcon file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3045
+149 hullBuild file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3069
+127 (program)  0
+123 stepUpkeep file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3980
+122 hullBuild file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3069
+117 fly file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10739
+105 scrambled file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10725
+104 economy file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10134
+98 restockYards file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 9683
+96 runGroup file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10412
+93 driftV3 file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3597
+90 hullBuild file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3069
+87 moveTo file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10691
+86 groupSpeed file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10843
+85 contracts file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 12141
+82 tick file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 9980
+72 threatCheck file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 10628
+71 hullBuild file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3069
+65 hullSale file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3107
+61 hullEcon file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3045
+58 (anonymous) file:///tmp/siderarium-p95-profile-zbT0jM/reproduce.cjs 3015

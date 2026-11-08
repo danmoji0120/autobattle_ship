@@ -25,7 +25,7 @@ import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInflu
 import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot, unlockSummary } from './research';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
-import { econOf, hullEcon, hullBuild, hullSale, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
+import { econOf, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
 import { yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale } from './money';
@@ -1280,7 +1280,7 @@ export class WorldSim {
     const sys = this.sysOf(st.pos);
     const supply = Math.max(0.2, 1 - (sys?.heat ?? 0) / 120) * supplyMul(sys, this.time);
     for (const id of hulls) {
-      const sale = hullSale(id); if (!sale) continue;
+      const sale = hullStock(id); if (!sale) continue;
       const k = (st.shipStock ??= {})[id] ??= { n: sale.stock, t: 0 };
       if (k.n >= sale.stock) { k.t = 0; delete k.why; continue; }
       k.t += dt * supply;

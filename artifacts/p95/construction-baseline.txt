@@ -1,0 +1,17 @@
+
+ RUN  v4.0.18 /tmp/siderarium-p95-baseline-wLWJlT
+
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > cancel returns reserved materials and refunds credits (in full before work starts)
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself 40296ms
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > old saves: an unbuilt module without plan data is migrated without losing paid progress
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 8 skipped (9)
+   Start at  15:15:25
+   Duration  42.57s (transform 1.69s, setup 0ms, import 1.96s, tests 40.30s, environment 0ms)

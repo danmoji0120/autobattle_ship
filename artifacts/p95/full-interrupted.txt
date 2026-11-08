@@ -1,0 +1,11 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips 1797ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands 3356ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > every growth hull is its own hull: own silhouette, a standard variant, presets that fit; mk1 hulls are unchanged 4ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > a growth ship maps to its hull + variant: stats multipliers and mesh reach the battle loadout 5ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > large industrial hulls do not dominate: lower efficiency on small fields, big berths, higher cost per throughput 4ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials 183303ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > a player-built ship sold on the exchange: ownership and equipment move, the buyer needs no blueprint or research 44ms
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > own builds check blueprint, research, yard, facilities and materials; the launched ship carries the preset 91111ms

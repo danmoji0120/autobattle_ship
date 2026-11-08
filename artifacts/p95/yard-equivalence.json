@@ -1,0 +1,14 @@
+{
+  "seconds": 310,
+  "checkpointHashesMatched": 6,
+  "coldWorldPricesMatched": true,
+  "hulls": 32,
+  "stations": 15,
+  "restocked": 68,
+  "hash": "30c4f82b260b1f10ff00db113e76ca51bf012996a785b94d8011f601c0066de5",
+  "elapsedMs": {
+    "before": 6042.534919,
+    "after": 715.770075
+  },
+  "note": "Single sequential sample; NPC spawning suppressed and elapsed simulation wall clock fixed for reproducibility. Both versions include the same P9.5 changes."
+}

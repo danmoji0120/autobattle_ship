@@ -99,18 +99,33 @@ export function hullUpkeep(hullId: string, variantId?: string): HullUpkeep {
   return { credits: u.credits * mul, supplies: Object.fromEntries(Object.entries(u.supplies ?? {}).map(([k, n]) => [k, n * mul])), wear: u.wear };
 }
 
+/** Legacy hulls sold at public yards share the same class and yard eligibility rules. */
+function legacySaleYard(h: HullDef): number | undefined {
+  if (!ECON[h.classId] || h.classId === 'platform') return undefined;
+  const yard = HULLS[h.classId]?.yard ?? 1;
+  return yard >= 4 ? undefined : yard;
+}
+
+/** Restock only needs quantities and time, not the much more expensive price calculation. */
+export function hullStock(hullId: string): Pick<HullSale, 'stock' | 'restock'> | undefined {
+  const h = CONTENT.hulls[hullId];
+  if (!h) return undefined;
+  if (h.sale) return h.sale;
+  const yard = legacySaleYard(h);
+  return yard === undefined ? undefined : { stock: MK1_STOCK[yard], restock: MK1_RESTOCK[yard] };
+}
+
 /** NPC supply of a hull (growth hulls declare it; mk1 hulls are stocked by every yard that lists the class) */
 export function hullSale(hullId: string): (HullSale & { price: number }) | undefined {
   const h = CONTENT.hulls[hullId];
   if (!h) return undefined;
   // list price = production cost × tier multiple (valuation.ts) unless the content sets one
   if (h.sale) return { ...h.sale, price: h.sale.price ?? hullPrice(h.id).price };
+  const yard = legacySaleYard(h); if (yard === undefined) return undefined;
   const e = ECON[h.classId];
-  if (!e || h.classId === 'platform') return undefined;
   // mk1: stock and restock scale with hull size; stations come from the station's shipyard list.
   // Capital hulls are scarce: one at a time, a day to replace, and only for trusted companies.
-  const yard = HULLS[h.classId]?.yard ?? 1;
-  if (yard >= 4) return undefined;     // the largest hulls are never sold by NPC yards: build or buy from a producer
+  // The largest hulls are never sold by NPC yards: build or buy from a producer.
   return { stations: [], price: hullPrice(h.id).price, rep: e.military ? Math.max(e.rep, MK1_MIL_REP[yard]) : e.rep, stock: MK1_STOCK[yard], restock: MK1_RESTOCK[yard] };
 }
 
@@ -124,7 +139,7 @@ export function yardHulls(st: Station): string[] {
   const out: string[] = [];
   for (const h of Object.values(CONTENT.hulls)) {
     if (h.classId === 'platform') continue;
-    if (h.sale ? h.sale.stations.includes(st.id) : h.id.endsWith('_mk1') && st.services.shipyard.includes(h.classId) && hullSale(h.id)) out.push(h.id);
+    if (h.sale ? h.sale.stations.includes(st.id) : h.id.endsWith('_mk1') && st.services.shipyard.includes(h.classId) && legacySaleYard(h) !== undefined) out.push(h.id);
   }
   return out;
 }
