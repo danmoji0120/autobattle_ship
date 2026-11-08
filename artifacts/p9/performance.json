@@ -1,0 +1,37 @@
+{
+  "note": "single process, warm modules, 20 creations, 1600 simulation ticks and 800 GameServer steps per layout; analytics enabled, no connected clients; heap is a GC-based 30-world estimate, not RSS",
+  "results": [
+    {
+      "layout": "five",
+      "systems": 5,
+      "createMs": 3.1543371500000035,
+      "tickMs": 3.3886088137499994,
+      "tickCpuMs": 4.480856875,
+      "serverStepMs": 3.293652727499999,
+      "serverCpuMs": 4.02929125,
+      "serverSteps": 800,
+      "saveBytes": 147967,
+      "heapPerWorldBytes": 35299.46666666667,
+      "pathUs": 0.5929219999999986,
+      "pathsFound": 20000,
+      "ships": 98,
+      "serverShips": 130
+    },
+    {
+      "layout": "p9",
+      "systems": 22,
+      "createMs": 1.8586688000000322,
+      "tickMs": 3.2899127212500003,
+      "tickCpuMs": 4.000271875,
+      "serverStepMs": 3.6225279187499972,
+      "serverCpuMs": 4.1266887500000005,
+      "serverSteps": 800,
+      "saveBytes": 184973,
+      "heapPerWorldBytes": 60466.666666666664,
+      "pathUs": 1.9979067000000215,
+      "pathsFound": 20000,
+      "ships": 110,
+      "serverShips": 139
+    }
+  ]
+}

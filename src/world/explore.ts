@@ -2,8 +2,8 @@
 // the non-core systems. A site is hidden until a company surveys its system (ships flying a sweep);
 // then any group of that company can salvage it — work proportional to the site's tier, done on the
 // spot, far from repair docks. Salvage yields rare goods, blueprint fragments and, from deep sites,
-// whole blueprints that are never sold (BlueprintSource kind 'explore'). Danger is the point: tier 3
-// sites lie in lawless space where pirates roam. Deterministic: positions come from hashId, loot from
+// whole blueprints that are never sold (BlueprintSource kind 'explore'). Authored layouts may vary
+// discovery capacity and tier independently of security. Deterministic: positions come from hashId, loot from
 // the world RNG.
 import { CONTENT } from '../content/registry';
 import type { BlueprintSource } from '../content/schema';
@@ -20,7 +20,7 @@ export const SCAN_NEED = [0, 240, 600, 1200];
 export const WORK_NEED = [0, 900, 2400, 5400];
 const NAMES: [string, string][] = [['유기 화물선', '난파 수송선단'], ['전쟁 잔해 지대', '버려진 채광 기지'], ['고대 함대 묘지', '봉인된 연구 기록고']];
 
-export function siteTier(sys: StarSystem): number { return sys.security >= 50 ? 1 : sys.security >= 25 ? 2 : 3; }
+export function siteTier(sys: StarSystem): number { return sys.exploration?.tier ?? (sys.security >= 50 ? 1 : sys.security >= 25 ? 2 : 3); }
 const eligible = (sys: StarSystem) => sys.kind !== 'core' && sys.security < 90;
 
 function makeSite(sys: StarSystem, n: number, born: number): Site {
@@ -42,7 +42,7 @@ export function seedSites(w: WorldState) {
   for (const sys of Object.values(w.systems)) {
     if (!eligible(sys)) continue;
     const have = Object.values(S).filter(s => s.system === sys.id).length;
-    for (let n = have; n < SITES_PER_SYS; n++) { const s = makeSite(sys, n, 0); S[s.id] = s; }
+    for (let n = have; n < (sys.exploration?.slots ?? SITES_PER_SYS); n++) { const s = makeSite(sys, n, 0); S[s.id] = s; }
   }
 }
 

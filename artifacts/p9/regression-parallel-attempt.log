@@ -1,0 +1,28 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips 3073ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice 5662ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands 6775ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard 4328ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > full destination and lost leased capacity hold cargo with bounded retries and resume when space returns 3979ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo 2166ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial market fills conserve currency, survive reload and cannot sell a shipment twice 2410ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > construction-reserved inputs stay unavailable until an explicit plan cancellation releases them 1472ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply requires existing logistics infrastructure and reserves incoming shipments across fleets 1970ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely 6679ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual orders take priority, active state survives reload, and destruction pauses an empty fleet 317ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery 778ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial manual unloading atomically withdraws manifest cargo before same-tick resume and reload 28ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply reservations count only the same company even at a shared public destination 7ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > moving a ship between route fleets pauses both and mixed-ownership bulk requests are atomic 6ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > owns settings on the server, rejects cross-company batches atomically, redacts snapshots and gates c0 13ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting 29835ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives 6291ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored 3171ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production 5381ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work 21813ms
+ × tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item 107614ms
+   → Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ✓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods 31305ms

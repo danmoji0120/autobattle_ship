@@ -278,7 +278,7 @@ export interface Site {
   id: string;
   system: string;
   pos: V;
-  /** 1 quiet frontier … 3 lawless deep space: bigger finds, longer work, more danger */
+  /** 1 modest wreck … 3 rare archive: bigger finds and longer work, independent of system security */
   tier: number;
   name: string;
   /** survey seconds each company has put into the system while the site was hidden from it */
@@ -365,6 +365,8 @@ export interface StarSystem {
   planets: Planet[];
   gates: Gate[];
   lanes: [string, string][];   // trade lanes between station/gate ids
+  /** Authored exploration capacity in new layouts; absent retains the legacy rules. */
+  exploration?: { slots: number; tier: 1 | 2 | 3 };
   stats: { pirateKills: number; unionLosses: number; civLosses: number; raids: number; bands: number };
   /** faction influence 0..100 (factions.ts) */
   inf?: { union: number; pirates: number; guild: number };
@@ -465,6 +467,8 @@ export interface WorldState {
   industryV?: number;
   /** content-model migration applied (world/migrate.ts CONTENT_VERSION) */
   contentV?: number;
+  /** Layout of a freshly created world. Existing saves are never implicitly expanded. */
+  worldLayout?: 'p9';
   /** items created by migrations (asset conservation ledger) */
   grants?: import('./migrate').GrantRecord[];
   /** existing items that changed form during migrations (not new) */

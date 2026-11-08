@@ -1,0 +1,71 @@
+{
+  "results": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "names": 22,
+      "overlaps": [],
+      "svgWidth": 1200,
+      "viewportWidth": 1276,
+      "viewportScroll": 1276,
+      "current": true,
+      "zoomBefore": 1200,
+      "zoomAfter": 1440,
+      "scrollRetained": 120,
+      "frameMedianMs": 233.29999999999927,
+      "frameP95Ms": 466.6000000000022
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "names": 22,
+      "overlaps": [],
+      "svgWidth": 1200,
+      "viewportWidth": 1276,
+      "viewportScroll": 1276,
+      "current": true,
+      "zoomBefore": 1200,
+      "zoomAfter": 1440,
+      "scrollRetained": 120,
+      "renderMs": {
+        "fiveChanged": 3.1050000000745057,
+        "expandedChanged": 5.830000000074506,
+        "expandedUnchanged": 0.0650000000372529,
+        "iterations": 20
+      },
+      "frameMedianMs": 183.40000000000146,
+      "frameP95Ms": 250
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "names": 22,
+      "overlaps": [],
+      "svgWidth": 954,
+      "viewportWidth": 996,
+      "viewportScroll": 996,
+      "current": true,
+      "zoomBefore": 954,
+      "zoomAfter": 1194,
+      "scrollRetained": 120,
+      "frameMedianMs": 166.5,
+      "frameP95Ms": 200
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "names": 22,
+      "overlaps": [],
+      "svgWidth": 864,
+      "viewportWidth": 362,
+      "viewportScroll": 864,
+      "current": true,
+      "zoomBefore": 864,
+      "zoomAfter": 1104,
+      "scrollRetained": 120,
+      "frameMedianMs": 116.69999999999709,
+      "frameP95Ms": 150
+    }
+  ],
+  "errors": []
+}

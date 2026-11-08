@@ -130,7 +130,7 @@ export function yardHulls(st: Station): string[] {
 }
 
 /** berth size of a station: public hubs by size, own stations grow with dock modules */
-export const PUBLIC_BERTH: Record<string, Size> = { helios: 'XL', exchange: 'XL', bastion: 'XL', astra: 'L', nova: 'L', barcaco: 'L', drakeout: 'M', cinderco: 'M', rustport: 'M' };
+export const PUBLIC_BERTH: Record<string, Size> = { helios: 'XL', exchange: 'XL', bastion: 'XL', astra: 'L', nova: 'L', barcaco: 'L', drakeout: 'M', cinderco: 'M', rustport: 'M', p9_lyra_port: 'L', p9_ceres_works: 'L', p9_harbor_port: 'L', p9_forge_works: 'L' };
 export function berthOf(st: Station): Size {
   if (st.public) return PUBLIC_BERTH[st.id] ?? 'M';
   const docks = st.modules.filter(m => m.built && m.kind === 'dock').length;

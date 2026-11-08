@@ -1,0 +1,21 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p9-world.test.ts > P9 authored world > creates a unique connected 22-system graph with matching reciprocal gates and spatial ownership 223ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps system lookup correct after records are added, removed, replaced or reindexed 19ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps the five original systems and assets, and never expands an existing c0 or growth save 201ms
+ ✓ tests/p9-world.test.ts > P9 authored world > is deterministic and persists surveyed sites and player assets without recreating or moving them 84ms
+ ✓ tests/p9-world.test.ts > P9 authored world > continues the same seeded P9 simulation after saving and restoring 4960ms
+ ✓ tests/p9-world.test.ts > P9 authored world > creates regional demand, finite mining budgets and real industrial conversion without changing legacy prices 12ms
+ ✓ tests/p9-world.test.ts > P9 authored world > chooses actual nearby jump routes and a market that buys the mined goods 7ms
+ ✓ tests/p9-world.test.ts > P9 authored world > replicates the same expanded world to two independent multiplayer clients and restores it 99ms
+ ✓ tests/p9-world.test.ts > P9 authored world > permits a real station foundation in an initially empty frontier system 35ms
+ ✓ tests/p9-world.test.ts > P9 authored world > runs the existing bounded pirate and trader AI in the new regions 242ms
+ ✓ tests/p9-world.test.ts > P9 authored world > does not populate empty and frontier systems with settled-lane rogues when security is raised 6ms
+ ✓ tests/p9-world.test.ts > P9 authored world > moves an actual fleet to the distant lawless endpoint and back through eight gates 9854ms
+ ✓ tests/p9-world.test.ts > P9 authored world > repeats a four-jump freight route, recovers after a gate outage and reloads the in-flight manifest 18908ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  12:24:19
+   Duration  40.27s (transform 4.04s, setup 0ms, import 4.91s, tests 34.75s, environment 0ms)

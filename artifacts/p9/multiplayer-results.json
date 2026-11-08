@@ -1,0 +1,20 @@
+{
+  "passed": 12,
+  "checks": [
+    "two separate accounts join the same test server",
+    "P9 첫 회사 receives the 22-system topology",
+    "P9 첫 회사 does not receive the undiscovered archive",
+    "P9 둘째 회사 receives the 22-system topology",
+    "P9 둘째 회사 does not receive the undiscovered archive",
+    "server accepts a real cross-system movement order",
+    "restart restores the owner and in-progress command",
+    "restart preserves all systems and destination gates",
+    "restart preserves every ship in the first company fleet",
+    "restart preserves all first-company station inventories",
+    "restart preserves the first company credit balance",
+    "second company and undiscovered site privacy survive restart"
+  ],
+  "backend": "temporary JSON file",
+  "realWebSockets": 2,
+  "restarts": 1
+}

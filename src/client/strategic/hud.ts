@@ -349,72 +349,89 @@ export class PmcHud {
   }
 
   private galaxy: HTMLElement | null = null;
+  private galRenderKey = '';
   toggleGalaxy() {
-    if (this.galaxy) { this.galaxy.remove(); this.galaxy = null; return; }
+    if (this.galaxy) { this.galaxy.remove(); this.galaxy = null; this.galRenderKey = ''; return; }
     this.galaxy = h('div', 'modal galaxy');
     this.root.appendChild(this.galaxy);
     this.galaxy.onclick = e => { if (e.target === this.galaxy) this.toggleGalaxy(); };
     this.renderGalaxy();
   }
 
-  private renderGalaxy() {
+  private renderGalaxy(force = false) {
     const el = this.galaxy; if (!el) return;
     const st = this.st;
-    const W = Math.min(980, innerWidth - 40), H = Math.min(560, innerHeight - 160);
-    const P = (s: { map: { x: number; y: number } }) => ({ x: 60 + s.map.x * (W - 120), y: 40 + s.map.y * (H - 80) });
+    const W = 1200, H = 600;
+    const fit = Math.min(1, Math.max(.25, (innerWidth - 70) / W));
+    const zoom = this.galZoom ?? Math.max(.72, fit);
+    const P = (s: { map: { x: number; y: number } }) => ({ x: 90 + s.map.x * 1020, y: 75 + s.map.y * 450 });
     const g = this.group ? st.groups[this.group] : null;
     const gSys = g ? this.groupSys(g) : undefined;
-    const mine = (sid: string) => Object.values(st.ships).filter(s => s.owner === this.me && sysAt(st.systems, s.pos)?.id === sid).length;
-    const myStations = (sid: string) => Object.values(st.stations).filter(s => s.owner === this.me && sysAt(st.systems, s.pos)?.id === sid).length;
-    let svg = `<svg width="${W}" height="${H}" class="galsvg">`;
+    const ownedShips: Record<string, number> = {}, ownedStations: Record<string, number> = {};
+    for (const ship of Object.values(st.ships)) if (ship.owner === this.me) { const id = sysAt(st.systems, ship.pos)?.id; if (id) ownedShips[id] = (ownedShips[id] ?? 0) + 1; }
+    for (const station of Object.values(st.stations)) if (station.owner === this.me) { const id = sysAt(st.systems, station.pos)?.id; if (id) ownedStations[id] = (ownedStations[id] ?? 0) + 1; }
+    const sel = this.galSel && st.systems[this.galSel] ? st.systems[this.galSel] : this.v.sys ? st.systems[this.v.sys.id] : null;
+    const stations = sel ? Object.values(st.stations).filter(x => sysAt(st.systems, x.pos)?.id === sel.id) : [];
+    const fields = sel ? Object.values(st.fields).filter(x => !x.salvage && sysAt(st.systems, x.pos)?.id === sel.id) : [];
+    const lairs = sel ? Object.values(st.lairs).filter(x => sysAt(st.systems, x.pos)?.id === sel.id) : [];
+    // Most snapshots do not change this panel. Avoid parsing and morphing the whole SVG every 0.4 s.
+    const key = JSON.stringify({ zoom, selected: sel?.id, here: this.v.sys?.id, group: g && [g.id, g.name, g.owner, gSys], ownedShips, ownedStations,
+      systems: Object.values(st.systems).map(s => [s.id, s.name, s.map.x, s.map.y, s.star.color, Math.round(effSec(s)), secBand(effSec(s)).min, s.gates.map(gt => gt.to)]),
+      detail: sel && [sel.desc, sel.security, Math.round(sel.heat), sel.heat > 1, sel.stats, sel.inf && [Math.round(sel.inf.union), Math.round(sel.inf.pirates), Math.round(sel.inf.guild), sel.inf.pirates < LAIR_FOOTHOLD], (sel.recoverUntil ?? 0) > st.time,
+        stations.map(s => [s.id, s.name, s.tax]), fields.map(f => [f.id, f.name, f.res, f.mix, f.rich]), lairs.map(l => [l.id, l.name, l.alive])] });
+    if (!force && key === this.galRenderKey) return;
+    this.galRenderKey = key;
+    let svg = `<svg width="${Math.round(W * zoom)}" height="${Math.round(H * zoom)}" viewBox="0 0 ${W} ${H}" class="galsvg" role="group" aria-label="점프게이트로 연결된 성계 지도">`;
     const done = new Set<string>();
     for (const s of Object.values(st.systems)) for (const gt of s.gates) {
       const k = [s.id, gt.to].sort().join(); if (done.has(k)) continue; done.add(k);
+      if (!st.systems[gt.to]) continue;
       const a = P(s), b = P(st.systems[gt.to]);
       svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#4a7aa0" stroke-width="2" stroke-dasharray="6 5" opacity=".7"/>`;
     }
     for (const s of Object.values(st.systems)) {
       const p = P(s), eff = effSec(s), band = secBand(eff);
       const here = this.v.sys?.id === s.id;
-      svg += `<g class="gnode" data-sys="${s.id}" style="cursor:pointer">
-        <circle cx="${p.x}" cy="${p.y}" r="${here ? 30 : 24}" fill="${band.color}" opacity=".16"/>
+      const selected = (this.galSel ?? this.v.sys?.id) === s.id;
+      svg += `<g class="gnode" data-sys="${s.id}" role="button" tabindex="0" aria-label="${esc(s.name)} · 치안 ${Math.round(eff)}" style="cursor:pointer">
+        <title>${esc(s.name)} · ${band.name} · 치안 ${Math.round(eff)}</title>
+        <circle cx="${p.x}" cy="${p.y}" r="${here || selected ? 25 : 21}" fill="${band.color}" opacity=".16"/>
         <circle cx="${p.x}" cy="${p.y}" r="11" fill="${s.star.color}" stroke="${band.color}" stroke-width="3"/>
-        ${here ? `<circle cx="${p.x}" cy="${p.y}" r="34" fill="none" stroke="#fff" stroke-width="1" opacity=".6"/>` : ''}
-        <text x="${p.x}" y="${p.y - 38}" text-anchor="middle" fill="#e8f4ff" font-size="14" font-weight="700">${esc(s.name)}</text>
-        <text x="${p.x}" y="${p.y + 44}" text-anchor="middle" fill="${band.color}" font-size="12">${band.name} · 치안 ${Math.round(eff)}</text>
-        ${mine(s.id) || myStations(s.id) ? `<text x="${p.x}" y="${p.y + 60}" text-anchor="middle" fill="#5fd4ff" font-size="11">자사 함선 ${mine(s.id)}${myStations(s.id) ? ` · 기지 ${myStations(s.id)}` : ''}</text>` : ''}
+        ${here || selected ? `<circle cx="${p.x}" cy="${p.y}" r="29" fill="none" stroke="${selected ? '#fff' : '#8fdcff'}" stroke-width="${selected ? 2 : 1}" opacity=".8"/>` : ''}
+        <text class="galname" x="${p.x}" y="${p.y - 33}" text-anchor="middle" fill="#e8f4ff" font-size="15" font-weight="700">${esc(s.name)}</text>
+        <text x="${p.x}" y="${p.y + 43}" text-anchor="middle" fill="${band.color}" font-size="13">치안 ${Math.round(eff)}${here ? ' · 현재' : ''}</text>
+        ${ownedShips[s.id] || ownedStations[s.id] ? `<text x="${p.x}" y="${p.y + 59}" text-anchor="middle" fill="#5fd4ff" font-size="12">함선 ${ownedShips[s.id] ?? 0}${ownedStations[s.id] ? ` · 기지 ${ownedStations[s.id]}` : ''}</text>` : ''}
       </g>`;
     }
     svg += '</svg>';
-    const sel = this.galSel && st.systems[this.galSel] ? st.systems[this.galSel] : this.v.sys ? st.systems[this.v.sys.id] : null;
     let info = '';
     if (sel) {
       const eff = effSec(sel);
-      const stations = Object.values(st.stations).filter(x => sysAt(st.systems, x.pos)?.id === sel.id);
-      const fields = Object.values(st.fields).filter(x => !x.salvage && sysAt(st.systems, x.pos)?.id === sel.id);
-      const lairs = Object.values(st.lairs).filter(x => sysAt(st.systems, x.pos)?.id === sel.id);
       const hops = gSys ? jumps(st.systems, gSys, sel.id) : 0;
       info = `<div class="galinfo"><div class="stitle">${esc(sel.name)} <span class="secb" style="background:${secBand(eff).color}">${secBand(eff).name} · 치안 ${Math.round(eff)} (기본 ${sel.security})</span></div>
         <div class="dim">${esc(sel.desc)}</div>
         <div class="svc">정거장: ${stations.map(x => esc(x.name) + (x.tax ? ` <span class="dim">(세금 ${Math.round(x.tax * 100)}%)</span>` : '')).join(', ') || '없음'}</div>
-        <div class="svc">자원: ${fields.map(f => `${esc(f.name)} <span style="color:${RES_COLOR[f.res]}">${RES_NAME[f.res]}</span>${(f.rich ?? 1) > 1 ? ` <span class="good">×${(f.rich ?? 1).toFixed(2)}</span>` : (f.rich ?? 1) < 1 ? ` <span class="dim">×${(f.rich ?? 1).toFixed(2)}</span>` : ''}`).join(' · ')}</div>
+        <div class="svc">자원: ${fields.map(f => `${esc(f.name)} <span style="color:${RES_COLOR[f.res]}">${Object.keys(f.mix ?? { [f.res]: 1 }).map(r => esc(RES_NAME[r])).join(' / ')}</span>${(f.rich ?? 1) > 1 ? ` <span class="good">×${(f.rich ?? 1).toFixed(2)}</span>` : (f.rich ?? 1) < 1 ? ` <span class="dim">×${(f.rich ?? 1).toFixed(2)}</span>` : ''}`).join(' · ') || '없음'}</div>
         ${lairs.length ? `<div class="svc warn">해적 거점: ${lairs.map(l => `${esc(l.name)}${l.alive ? '' : ` (파괴됨${(sel.inf?.pirates ?? 0) < LAIR_FOOTHOLD ? ' — 해적 세력이 약해 재건 불가' : ''})`}`).join(', ')}</div>` : ''}
         ${sel.inf ? `<div class="svc">세력 판도 ${(['union', 'pirates', 'guild'] as const).map(k => `<span class="infb" title="${FACTION_NAME[k]}"><b style="color:${k === 'union' ? '#7fb0ff' : k === 'pirates' ? '#ff4a3a' : '#e8c070'}">${FACTION_NAME[k]}</b> <i><u style="width:${Math.round(sel.inf![k])}%;background:${k === 'union' ? '#7fb0ff' : k === 'pirates' ? '#ff4a3a' : '#e8c070'}"></u></i> ${Math.round(sel.inf![k])}</span>`).join(' ')}${(sel.recoverUntil ?? 0) > st.time ? ' <span class="good">· 재건 호황 (시장 공급 증가)</span>' : ''}</div>` : ''}
         <div class="svc dim">최근 기록 — 해적 격침 ${sel.stats.pirateKills} · 연합 손실 ${sel.stats.unionLosses} · 민간 피해 ${sel.stats.civLosses}${sel.heat > 1 ? ` · 해적 활동도 ${Math.round(sel.heat)}` : ''}</div>
         <div class="mrow"><button class="btn go" data-view="${sel.id}">이 성계 보기</button>
         ${g && g.owner === this.me ? `<button class="btn" data-goto="${sel.id}" ${gSys === sel.id ? 'disabled' : ''}>${esc(g.name)} 이동 (${hops}회 점프)</button>` : '<span class="dim small">편대를 선택하면 이 성계로 이동을 명령할 수 있습니다.</span>'}</div></div>`;
     }
-    morph(el, `<div class="panel sbox gbox"><div class="shdr"><div><div class="stitle">성계 지도</div><div class="dim">점프게이트로 연결된 성계들. 치안이 낮을수록 자원과 보수가 크지만 해적이 강하다. 클릭: 정보 · 더블클릭: 이동해서 보기</div></div><button class="btn" data-close>✕</button></div>${svg}${info}</div>`);
+    morph(el, `<div class="panel sbox gbox"><div class="shdr"><div><div class="stitle">성계 지도 <span class="dim small">${Object.keys(st.systems).length}개 성계</span></div><div class="dim">선은 점프게이트 연결 · 색은 치안 · 클릭: 정보 · 더블클릭: 성계 보기</div></div><button class="btn" data-close aria-label="지도 닫기">✕</button></div><div class="galcontrols"><span class="dim small">지도를 스크롤해 이동</span><button class="btn mini" data-zoom="out" aria-label="지도 축소">−</button><span class="dim small">${Math.round(zoom * 100)}%</span><button class="btn mini" data-zoom="in" aria-label="지도 확대">＋</button><button class="btn mini" data-zoom="fit">전체 보기</button></div><div class="galviewport">${svg}</div>${info}</div>`);
     el.querySelector<HTMLButtonElement>('[data-close]')!.onclick = () => this.toggleGalaxy();
     el.querySelectorAll<SVGGElement>('[data-sys]').forEach(n => {
       // property handlers: the map is morphed in place, so listeners must not pile up
       n.onclick = () => { this.galSel = n.dataset.sys!; this.renderGalaxy(); };
       n.ondblclick = () => { this.v.setSystem(n.dataset.sys!); this.toggleGalaxy(); };
+      n.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.galSel = n.dataset.sys!; this.renderGalaxy(); } };
     });
+    el.querySelectorAll<HTMLButtonElement>('[data-zoom]').forEach(b => b.onclick = () => { this.galZoom = b.dataset.zoom === 'fit' ? fit : Math.max(.25, Math.min(1.6, zoom + (b.dataset.zoom === 'in' ? .2 : -.2))); this.renderGalaxy(); });
     const vb = el.querySelector<HTMLButtonElement>('[data-view]'); if (vb) vb.onclick = e => { this.v.setSystem((e.target as HTMLElement).dataset.view!); this.toggleGalaxy(); };
     const gb = el.querySelector<HTMLButtonElement>('[data-goto]'); if (gb) gb.onclick = e => { const id = (e.target as HTMLElement).dataset.goto!; this.setOp({ k: 'move', to: this.systemDestination(id) }); this.toggleGalaxy(); };
   }
   private galSel: string | null = null;
+  private galZoom: number | null = null;
 
   private diagT = 0;
   private renderDiag(dt: number) {

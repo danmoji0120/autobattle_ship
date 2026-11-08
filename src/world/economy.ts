@@ -46,6 +46,13 @@ export const PROFILES: Record<string, Profile> = {
   drakeout: { mult: 1.1, make: ['titanium_ore', 'rare_ore', 'armor_plate'], use: { ore: 0.5, alloy: 0.4, machinery: 0.04, weapon_parts: 0.02 }, sell: ['titanium', 'machinery', 'weapon_parts', 'eq_autocannon', 'eq_torpedo'] },
   cinderco: { mult: 1.15, make: ['gas', 'chemicals', 'titanium_ore', 'rare_ore'], use: { ore: 0.5, alloy: 0.4, machinery: 0.05, electronics: 0.02, engine: 0.0005 }, sell: ['machinery', 'electronics', 'engine', 'eq_missile_rack'] },
   rustport: { mult: 1.25, make: ['weapon_parts', 'electronics', 'rare_metal'], use: { crystal: 0.05, alloy: 0.2 }, sell: ['rare_ore', 'eq_medium_gun', 'eq_heavy_cannon', 'mod_ecm', 'mod_engine'] },
+  // P9 public markets use the existing finite-demand and production rules.
+  p9_lyra_port: { make: [], use: { alloy: 0.2, machinery: 0.05 }, sell: ['ore', 'metal', 'electronics', 'machinery'] },
+  p9_ceres_works: { make: ['machinery'], use: { alloy: 0.35 }, conv: [{ in: { ore: 2 }, out: { metal: 1 }, rate: 1.0 }], sell: ['ore', 'metal', 'alloy', 'machinery'] },
+  p9_forge_works: { make: ['structure'], use: { metal: 0.3, alloy: 0.4 }, conv: [{ in: { ore: 2 }, out: { metal: 1 }, rate: 1.2 }], sell: ['ore', 'metal', 'alloy', 'structure'] },
+  p9_anvil_port: { make: ['ore', 'titanium_ore'], use: { machinery: 0.04, alloy: 0.1 }, sell: ['ore', 'titanium_ore', 'machinery', 'alloy'] },
+  p9_harbor_port: { make: [], use: { machinery: 0.04, alloy: 0.1 }, sell: ['ore', 'alloy', 'machinery', 'metal'] },
+  p9_junction_port: { make: [], use: { alloy: 0.2, machinery: 0.05 }, sell: ['ore', 'alloy', 'machinery'] },
 };
 
 /** target stock for a good at a market: cheap bulk goods are stocked in thousands, ship parts in single digits */

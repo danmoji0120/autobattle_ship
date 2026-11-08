@@ -1,0 +1,20 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting
+ ↓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives
+ ↓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored
+ ↓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production
+ ↓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work
+ ✓ tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item 57619ms
+ ↓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods
+ ↓ tests/industry.test.ts > industry: multi-tier production > hauling: one item, everything, and automatic supply of what the destination lacks
+ ↓ tests/industry.test.ts > industry: multi-tier production > own warehouse capacity: unloading stops at the limit and keeps the rest aboard
+ ↓ tests/industry.test.ts > industry: multi-tier production > public markets trade the new goods; regional production restocks and pirate pressure slows it
+ ↓ tests/industry.test.ts > industry: multi-tier production > production state survives a restart exactly; old saves are upgraded in place
+ ↓ tests/industry.test.ts > industry: multi-tier production > player exchange: escrow, purchase, withdrawal, no duplication under competing buyers
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 11 skipped (12)
+   Start at  11:45:49
+   Duration  59.21s (transform 1.19s, setup 0ms, import 1.39s, tests 57.62s, environment 0ms)

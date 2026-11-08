@@ -50,9 +50,17 @@ export const sysIndexAt = (p: V) => Math.round(p.x / SYS_SPACING) + 2;
 export const sysOriginX = (idx: number) => (idx - 2) * SYS_SPACING;
 
 import type { StarSystem } from './types';
+// Worlds own their system records. The cache is weak and validates entries so edits, removals and
+// reloads remain visible; it avoids scanning all systems for every ship on every tick.
+const systemIndex = new WeakMap<Record<string, StarSystem>, Map<number, StarSystem>>();
 export function sysAt(systems: Record<string, StarSystem>, p: V): StarSystem | undefined {
   const i = sysIndexAt(p);
-  for (const s of Object.values(systems)) if (s.idx === i) return s;
+  let index = systemIndex.get(systems);
+  if (!index) { index = new Map(); systemIndex.set(systems, index); }
+  const cached = index.get(i);
+  if (cached && cached.idx === i && systems[cached.id] === cached) return cached;
+  for (const s of Object.values(systems)) if (s.idx === i) { index.set(i, s); return s; }
+  index.delete(i);
   return undefined;
 }
 export const local = (s: StarSystem, p: V): V => ({ x: p.x - s.origin.x, y: p.y - s.origin.y, z: p.z - s.origin.z });

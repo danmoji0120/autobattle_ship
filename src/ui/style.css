@@ -346,8 +346,11 @@ select { background: rgba(5, 10, 18, 0.92); color: var(--text); border: 1px soli
 .secb { display: inline-block; padding: 1px 8px; border-radius: 3px; color: #04121c; font-size: 11px; font-weight: 700; letter-spacing: .02em; }
 .systag { display: inline-block; font-size: 9px; padding: 0 5px; margin-right: 5px; border: 1px solid var(--line); border-radius: 3px; color: var(--accent, #7fd0ff); vertical-align: 1px; }
 #modeHint { top: 104px; }
-.galaxy .gbox { width: min(1020px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; }
-.galsvg { display: block; margin: 6px auto; background: radial-gradient(ellipse at center, rgba(30,60,100,.25), rgba(0,0,0,0) 70%); border-radius: 8px; max-width: 100%; }
+.galaxy .gbox { width: min(1280px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; background: rgba(8, 14, 22, .97); backdrop-filter: none; }
+.galcontrols { display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin: 4px 0; }
+.galcontrols > span:first-child { margin-right: auto; }
+.galviewport { flex: 0 0 auto; overflow: auto; max-height: min(58vh, 610px); overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 8px; }
+.galsvg { display: block; margin: 0 auto; background: radial-gradient(ellipse at center, rgba(30,60,100,.25), rgba(0,0,0,0) 70%); border-radius: 8px; max-width: none; }
 .galsvg text { font-family: "Noto Sans KR", sans-serif; pointer-events: none; }
 .gnode:hover circle { opacity: 1; }
 .galinfo { border-top: 1px solid var(--line); padding: 10px 4px 2px; display: flex; flex-direction: column; gap: 5px; }

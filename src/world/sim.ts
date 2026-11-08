@@ -13,6 +13,7 @@ import type { March, WorldState, WShip, WGroup, Op, V, Res, Station, Field, Carg
 import { emptyCargo, cargoSum, RES, qty, addc, takec, cargoKeys } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
+import { expandFreshWorld } from './worldgen-p9';
 import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from './migrate';
 import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, type ShipFitting } from './fitting';
 import { CONTENT, legacyOf, contentAvail } from '../content/registry';
@@ -159,7 +160,11 @@ export class WorldSim {
     if (c) { this.acc = c.acc; this.slow = c.slow; this.npcRot = c.npcRot; for (const [k, v] of Object.entries(c.battleAcc ?? {})) if (this.battles.has(k)) this.battleAcc.set(k, v); }
   }
 
-  static create(seed = 1): WorldSim { return new WorldSim(newWorld(seed)); }
+  static create(seed = 1): WorldSim {
+    const sim = new WorldSim(newWorld(seed));
+    expandFreshWorld(sim.st);
+    return sim;
+  }
 
   serialize(): string {
     this.st.rng = this.rng.state();
@@ -218,6 +223,14 @@ export class WorldSim {
   }
   storage(st: Station, company: string): Cargo { return st.storage[company] ??= emptyCargo(); }
   hasModule(st: Station, kind: string) { return st.modules.some(m => m.kind === kind && m.built); }
+  /** P9 system origins are storage coordinates, not a measure of travel distance. */
+  private routeDistance(a: V, b: V): number {
+    if (this.st.worldLayout !== 'p9') return dist(a, b);
+    const from = sysAt(this.st.systems, a), to = sysAt(this.st.systems, b);
+    if (!from || !to || from.id === to.id) return dist(a, b);
+    const n = jumps(this.st.systems, from.id, to.id);
+    return n >= 99 ? Infinity : n * 200000 + dist(a, from.origin) + dist(b, to.origin);
+  }
   /** why a station can't take this mining delivery (null = fine) */
   deliverProblem(st: Station | undefined, company: string, sell: boolean, berth: Size = 'S'): string | null {
     if (!st) return '하역 정거장이 사라짐';
@@ -233,12 +246,14 @@ export class WorldSim {
   autoDeliver(company: string, fieldId: string, sell: boolean, berth: Size = 'S', cargo?: Cargo): string | null {
     const f = this.st.fields[fieldId]; if (!f) return null;
     const fs = sysAt(this.st.systems, f.pos)?.id;
+    const goods = cargo && cargoKeys(cargo).length ? cargo : f.mix ?? { [f.res]: 1 };
     let best: string | null = null, bd = Infinity;
     for (const st of Object.values(this.st.stations)) {
-      if (this.deliverProblem(st, company, sell, berth) || this.intakeProblem(st, company, sell, cargo ?? f.mix ?? { [f.res]: 1 })) continue;
+      if (this.deliverProblem(st, company, sell, berth) || this.intakeProblem(st, company, sell, this.st.worldLayout === 'p9' ? goods : cargo ?? f.mix ?? { [f.res]: 1 })) continue;
+      if (this.st.worldLayout === 'p9' && sell && !cargoKeys(goods).some(k => st.market?.[k])) continue;
       const ss = sysAt(this.st.systems, st.pos)?.id;
-      const j = fs && ss ? jumps(this.st.systems, fs, ss) : 0;
-      const d = (Math.hypot(st.pos.x - f.pos.x, st.pos.z - f.pos.z) + j * 200000) * (!sell && st.owner === company ? 0.6 : 1);
+      const j = this.st.worldLayout !== 'p9' && fs && ss ? jumps(this.st.systems, fs, ss) : 0;
+      const d = (this.st.worldLayout === 'p9' ? this.routeDistance(f.pos, st.pos) : Math.hypot(st.pos.x - f.pos.x, st.pos.z - f.pos.z) + j * 200000) * (!sell && st.owner === company ? 0.6 : 1);
       if (d < bd) { bd = d; best = st.id; }
     }
     return best;
@@ -1362,7 +1377,7 @@ export class WorldSim {
     let cost = FOUND_COST.credits;
     let fromStore = 0;
     if (at) fromStore = Math.min(need, Math.floor(qty(this.storage(at, company), 'alloy')));
-    const market = Object.values(this.st.stations).filter(s => s.market?.alloy).sort((a, b) => dist(a.pos, con.pos) - dist(b.pos, con.pos))[0];
+    const market = Object.values(this.st.stations).filter(s => s.market?.alloy).sort((a, b) => this.routeDistance(a.pos, con.pos) - this.routeDistance(b.pos, con.pos))[0];
     const buy = need - fromStore;
     if (buy > 0) { if (!market || market.market!.alloy.stock < buy) return '합금 재고 부족'; cost += buy * this.price(market, 'alloy', 'buy'); }
     if (co.credits < cost) return `자금 부족 (설립비+합금 ${Math.round(cost).toLocaleString()} cr)`;
@@ -1782,6 +1797,9 @@ export class WorldSim {
     }
     // settled systems without a lair: occasional rogue bands drift in on the rim, then move on
     for (const sys of Object.values(st.systems)) {
+      // Raising a frontier's security in a test or future control update does not turn an empty
+      // system into a settled trade lane. P9 keeps rogue traffic in the authored settled regions.
+      if (st.worldLayout === 'p9' && sys.kind !== 'settled') continue;
       if (sys.security >= 90 || sys.security < 70) continue;
       const rogues = Object.values(st.groups).filter(g => g.owner === 'pirates' && g.npc?.role === 'rogue' && g.npc.sys === sys.id);
       for (const g of rogues) {
@@ -1816,7 +1834,7 @@ export class WorldSim {
   }
 
   private spawnTrader() {
-    const ids = ['astra', 'nova', 'barcaco', 'exchange', 'helios', 'drakeout', 'cinderco'].filter(x => this.st.stations[x]);
+    const ids = ['astra', 'nova', 'barcaco', 'exchange', 'helios', 'drakeout', 'cinderco', ...(this.st.worldLayout === 'p9' ? ['p9_lyra_port', 'p9_ceres_works', 'p9_forge_works', 'p9_anvil_port', 'p9_harbor_port', 'p9_junction_port'] : [])].filter(x => this.st.stations[x]);
     const start = this.rng.pick(ids);
     const route = [start];
     while (route.length < 4) { const n = this.rng.pick(ids); if (n !== route[route.length - 1]) route.push(n); }
@@ -2033,7 +2051,7 @@ export class WorldSim {
 
   nearestDock(p: V, company: string): Station | null {
     let best: Station | null = null, bd = Infinity;
-    for (const s of Object.values(this.st.stations)) { if (!this.canDock(s, company)) continue; const d = dist(s.pos, p); if (d < bd) { bd = d; best = s; } }
+    for (const s of Object.values(this.st.stations)) { if (!this.canDock(s, company)) continue; const d = this.routeDistance(s.pos, p); if (d < bd) { bd = d; best = s; } }
     return best;
   }
 
@@ -3165,7 +3183,7 @@ export class WorldSim {
       if (!l.alive) continue;
       if (Object.values(st.contracts).some(k => !k.done && k.kind === 'lair' && k.target === l.id)) continue;
       const lsys = this.sysOf(l.pos);
-      const host = Object.values(st.stations).filter(x => x.public && x.services.contracts).sort((a, b) => dist(a.pos, l.pos) - dist(b.pos, l.pos))[0];
+      const host = Object.values(st.stations).filter(x => x.public && x.services.contracts).sort((a, b) => this.routeDistance(a.pos, l.pos) - this.routeDistance(b.pos, l.pos))[0];
       const tier = l.tier ?? 2;
       this.offerContract({ stationId: host?.id ?? 'astra', kind: 'lair', title: `토벌: ${l.name}`, desc: `${lsys?.name ?? ''} — ${l.name}을(를) 파괴하라. 요새 포대와 수비대가 있다 — ${tier >= 4 ? '전함을 포함한 대함대' : tier >= 3 ? '순양함 여러 척' : '순양함급 이상'}의 전력을 권장.`, reward: tier * 14000 + 4000, rep: 8 + tier * 4, target: l.id });
     }
