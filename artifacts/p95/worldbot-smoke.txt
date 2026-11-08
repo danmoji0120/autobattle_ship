@@ -1,0 +1,64 @@
+
+> siderarium@0.1.0 worldbot
+> vite-node scripts/worldbot.ts 5 7
+
+   [0.0m world] 신생 PMC "테스트 PMC"가 아스트라 자유항에 등록했다.
+   [0.0m info] 아스트라 자유항에 정박 중. 채굴반을 소행성 지대로 보내 첫 수익을 올려 보자.
+t=1.0m cr=2662 ships=5 (mmdcc) mined=0 earned=0 rep=0 kills=0 lost=0 battles=0 pirates=0 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+t=2.0m cr=2617 ships=6 (mmdcch) mined=286 earned=0 rep=0 kills=0 lost=0 battles=0 pirates=0 status=[제1 채굴반:케스트렐 암초대 채굴 중 | 경비대:제1 채굴반 호위 중]
+   [2.6m warn] 드레이크 변경: 자갈 해적단 은신처에서 해적 무리가 출격했다 (4척).
+   [2.8m world] 드레이크 변경: 드레이크 변경 신속대응함대 출동 — 갈퀴 무리 요격에 나섰다.
+   [2.9m warn] 검은 송곳니 공역: 검은 송곳니 요새에서 해적 무리가 출격했다 (11척).
+   [2.9m world] 드레이크 변경: 연합 관리청 ↔ 해적 교전 발생 (7척) — 클릭하여 관전
+t=3.0m cr=2574 ships=6 (mmdcch) mined=623 earned=0 rep=0 kills=0 lost=0 battles=1 pirates=25 status=[제1 채굴반:케스트렐 암초대 채굴 중 | 경비대:제1 채굴반 호위 중]
+   [3.0m warn] 검은 송곳니 공역: 송곳니 전초에서 해적 무리가 출격했다 (10척).
+   [3.0m info] 계약 수주: 현상금: 갈퀴 무리
+   [3.0m info] 계약 수주: 현상금: 하이에나 무리
+   [3.0m info] 계약 수주: 현상금: 피의 달 무리
+   [3.3m world] 드레이크 변경: 연합군이 해적에게 밀려났다! 주변 항로가 위험해진다.
+   [3.6m milestone] 목표 달성: 첫 수익
+   [3.8m world] 드레이크 변경: 드레이크 변경 신속대응함대 출동 — 갈퀴 무리 요격에 나섰다.
+   [3.9m world] 드레이크 변경: 연합 관리청 ↔ 해적 교전 발생 (7척) — 클릭하여 관전
+t=4.0m cr=4181 ships=6 (mmdcch) mined=695 earned=1656 rep=0 kills=0 lost=0 battles=2 pirates=39 status=[제1 채굴반:광석 운반 중 | 경비대:제1 채굴반 호위 중]
+   [4.0m warn] 감시자의 틈: 감시자의 해적 초소에서 해적 무리가 출격했다 (4척).
+   [4.0m warn] 검은 관문: 검은 관문 은신처에서 해적 무리가 출격했다 (6척).
+   [4.0m warn] 황혼 광맥: 황혼 약탈단에서 해적 무리가 출격했다 (4척).
+   [4.5m warn] 엠버 성운: 붉은 갈퀴단 은신처에서 해적 무리가 출격했다 (7척).
+   [4.8m world] 엠버 성운: 연합 관리청 ↔ 해적 교전 발생 (10척) — 클릭하여 관전
+   [4.9m world] 드레이크 변경: 연합군이 해적 3척을 격침했다.
+t=5.0m cr=4681 ships=6 (mmdcch) mined=748 earned=2200 rep=0 kills=0 lost=0 battles=3 pirates=43 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+   [5.3m world] 드레이크 변경: 드레이크 변경 신속대응함대 출동 — 갈퀴 무리 요격에 나섰다.
+   [5.6m world] 엠버 성운: 연합군이 해적에게 밀려났다! 주변 항로가 위험해진다.
+   [6.0m world] 드레이크 변경: 연합 관리청 ↔ 해적 교전 발생 (4척) — 클릭하여 관전
+t=6.0m cr=4638 ships=6 (mmdcch) mined=932 earned=2200 rep=0 kills=0 lost=0 battles=4 pirates=43 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+   [6.1m info] 계약 "현상금: 갈퀴 무리" 대상이 다른 세력에 의해 소멸했다.
+t=7.0m cr=5557 ships=6 (mmdcch) mined=1069 earned=3167 rep=0 kills=0 lost=0 battles=4 pirates=42 status=[제1 채굴반:수송선 대기 (화물칸 가득) | 경비대:제1 채굴반 호위 중]
+   [7.0m info] 계약 수주: 현상금: 까마귀 무리
+t=8.0m cr=5514 ships=6 (mmdcch) mined=1190 earned=3167 rep=0 kills=0 lost=0 battles=4 pirates=42 status=[제1 채굴반:광석 운반 중 | 경비대:제1 채굴반 호위 중]
+   [8.1m warn] 검은 송곳니 공역: 검은 송곳니 요새에서 해적 무리가 출격했다 (12척).
+t=9.0m cr=6007 ships=6 (mmdcch) mined=1217 earned=3705 rep=0 kills=0 lost=0 battles=4 pirates=54 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+   [9.3m warn] 검은 송곳니 공역: 송곳니 전초에서 해적 무리가 출격했다 (10척).
+t=10.0m cr=5964 ships=6 (mmdcch) mined=1217 earned=3705 rep=0 kills=0 lost=0 battles=4 pirates=64 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+t=11.0m cr=5921 ships=6 (mmdcch) mined=1499 earned=3705 rep=0 kills=0 lost=0 battles=4 pirates=64 status=[제1 채굴반:수송선 대기 (화물칸 가득) | 경비대:제1 채굴반 호위 중]
+   [11.2m warn] 드레이크 변경: 자갈 해적단 은신처에서 해적 무리가 출격했다 (4척).
+   [11.9m warn] 엠버 성운: 붉은 갈퀴단 은신처에서 해적 무리가 출격했다 (6척).
+t=12.0m cr=6970 ships=6 (mmdcch) mined=1499 earned=4807 rep=0 kills=0 lost=0 battles=4 pirates=74 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+t=13.0m cr=7434 ships=6 (mmdcch) mined=1644 earned=5316 rep=0 kills=0 lost=0 battles=4 pirates=74 status=[제1 채굴반:수송선 대기 (화물칸 가득) | 경비대:제1 채굴반 호위 중]
+   [13.0m world] 드레이크 변경: 성계 상인 길드 ↔ 해적 교전 발생 (5척) — 클릭하여 관전
+   [13.3m world] 드레이크 전초기지: 드레이크 변경 순찰대 1 재편성 완료, 작전 재개.
+   [13.4m world] 드레이크 변경: 길드 상선이 해적에게 약탈당했다.
+t=14.0m cr=7391 ships=6 (mmdcch) mined=1782 earned=5316 rep=0 kills=0 lost=0 battles=3 pirates=74 status=[제1 채굴반:케스트렐 암초대 채굴 중 | 경비대:제1 채굴반 호위 중]
+   [14.5m world] 드레이크 변경: 드레이크 변경 신속대응함대 출동 — 독수리 무리 요격에 나섰다.
+   [14.7m world] 드레이크 변경: 드레이크 변경 신속대응함대 출동 — 독수리 무리 요격에 나섰다.
+t=15.0m cr=837 ships=6 (mmdcch) mined=1934 earned=6410 rep=0 kills=0 lost=0 battles=2 pirates=74 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+   [15.1m world] 드레이크 변경: 연합 관리청 ↔ 해적 교전 발생 (7척) — 클릭하여 관전
+t=16.0m cr=787 ships=7 (mmdcchm) mined=2060 earned=6410 rep=0 kills=0 lost=0 battles=2 pirates=74 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+   [16.1m world] 드레이크 변경: 연합군이 해적 4척을 격침했다.
+   [16.8m world] 엠버 성운: 성계 상인 길드 ↔ 해적 교전 발생 (13척) — 클릭하여 관전
+t=17.0m cr=1240 ships=7 (mmdcchm) mined=2219 earned=6914 rep=0 kills=0 lost=0 battles=3 pirates=70 status=[제1 채굴반:수송선 대기 (화물칸 가득) | 경비대:제1 채굴반 호위 중]
+   [17.2m world] 엠버 성운: 길드 상선이 해적에게 약탈당했다.
+t=18.0m cr=1190 ships=7 (mmdcchm) mined=2240 earned=6914 rep=0 kills=0 lost=0 battles=3 pirates=70 status=[제1 채굴반:광석 운반 중 | 경비대:제1 채굴반 호위 중]
+   [18.4m warn] 엠버 성운: 붉은 갈퀴단 은신처에서 해적 무리가 출격했다 (6척).
+t=19.0m cr=1637 ships=7 (mmdcchm) mined=2502 earned=7414 rep=0 kills=0 lost=0 battles=3 pirates=76 status=[제1 채굴반:케스트렐 암초대로 이동 | 경비대:제1 채굴반 호위 중]
+t=20.0m cr=1588 ships=7 (mmdcchm) mined=2687 earned=7414 rep=0 kills=0 lost=0 battles=3 pirates=76 status=[제1 채굴반:케스트렐 암초대 채굴 중 | 경비대:제1 채굴반 호위 중]
+milestones [ 'first_sale' ] networth 168788 cpu ms 21271 save bytes 230264

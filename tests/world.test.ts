@@ -48,6 +48,7 @@ describe('persistent world', () => {
     sim.st.companies[p].credits = 60000;
     expect(sim.command(p, { c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })).toBeNull();
     const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
+    expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
     expect(sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: near(sim, 2600, 2600), name: '시험기지' } })).toBeNull();
     // prevent pirates from interfering with this test
     for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e9; }

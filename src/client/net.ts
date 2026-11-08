@@ -7,10 +7,13 @@ import type { Cmd } from '../world/sim';
 import type { WorldEvent } from '../world/types';
 import type { Order, OrderRecord } from '../sim/types';
 import { NetClock, MotionTrack } from './interp';
+import { growthOn } from '../world/hullops';
 
 export interface Transport { send(m: ClientMsg): void; onMessage: (m: ServerMsg) => void; close(): void; readonly kind: 'local' | 'remote' }
 
 const SP_KEY = 'siderarium.sp.v1';
+type BuyRequest = { seq: number; id: string };
+type BuyBook = { confirmed: number; pending: Record<string, BuyRequest> };
 
 export function hasLocalSave(): boolean { try { return !!localStorage.getItem(SP_KEY); } catch { return false; } }
 export function clearLocalSave() { try { localStorage.removeItem(SP_KEY); } catch { /* */ } }
@@ -115,6 +118,7 @@ export class GameClient {
   onBattle: ((m: Extract<ServerMsg, { t: 'binit' | 'border' }>) => void) | null = null;
   private analyticsAcks = new Map<number, (m: Extract<ServerMsg, { t: 'analytics' }>) => void>();
   private acks = new Map<number, (e: string | null) => void>();
+  private buyBooks = new Map<string, BuyBook>();
   private seq = 1;
 
   constructor(t: Transport) {
@@ -166,9 +170,49 @@ export class GameClient {
     });
   }
 
+  private buyBook(key: string): BuyBook {
+    let book = this.buyBooks.get(key);
+    if (!book) {
+      try { book = JSON.parse(sessionStorage.getItem(key) ?? 'null') as BuyBook | null ?? undefined; } catch { /* storage may be unavailable */ }
+      if (!book || !Number.isSafeInteger(book.confirmed) || !book.pending || typeof book.pending !== 'object') book = { confirmed: 0, pending: {} };
+      this.buyBooks.set(key, book);
+    }
+    return book;
+  }
+  private saveBuyBook(key: string, book: BuyBook) { try { sessionStorage.setItem(key, JSON.stringify(book)); } catch { /* in-memory retries still work */ } }
+
   cmd(cmd: Cmd): Promise<string | null> {
+    let purchase: { bookKey: string; signature: string; request: BuyRequest } | undefined;
+    if (cmd.c === 'buy' && growthOn(this.state ?? undefined) && !cmd.request) {
+      const bookKey = `siderarium.buy.${this.state?.seed ?? 'unknown'}.${this.company}`;
+      const signature = JSON.stringify([cmd.station, cmd.res, cmd.amount, cmd.ship ?? null]);
+      const book = this.buyBook(bookKey);
+      let request = book.pending[signature];
+      if (!request) {
+        const last = this.state?.companies[this.company]?.lastPurchase?.seq ?? 0;
+        const pending = Object.values(book.pending).reduce((n, r) => Math.max(n, r.seq), 0);
+        const nonce = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+        request = { seq: Math.max(last, book.confirmed, pending) + 1, id: nonce };
+        book.pending[signature] = request; this.saveBuyBook(bookKey, book);
+      }
+      purchase = { bookKey, signature, request };
+      cmd = { ...cmd, request };
+    }
     const id = this.seq++;
-    return new Promise(res => { this.acks.set(id, res); this.t.send({ t: 'cmd', id, cmd }); setTimeout(() => { if (this.acks.has(id)) { this.acks.delete(id); res('응답 없음'); } }, 8000); });
+    return new Promise(res => {
+      const finish = (err: string | null) => {
+        if (purchase && err !== '응답 없음') {
+          const book = this.buyBook(purchase.bookKey);
+          if (book.pending[purchase.signature]?.id === purchase.request.id) delete book.pending[purchase.signature];
+          if (err === null) book.confirmed = Math.max(book.confirmed, purchase.request.seq);
+          else book.confirmed = 0; // the next request follows a fresh server snapshot after a conflict
+          this.saveBuyBook(purchase.bookKey, book);
+        }
+        res(err === '응답 없음' && purchase ? '구매 응답 없음 — 시장 재고와 자사 보관함을 확인하고 같은 구매를 다시 시도하세요' : err);
+      };
+      this.acks.set(id, finish); this.t.send({ t: 'cmd', id, cmd });
+      setTimeout(() => { if (this.acks.has(id)) { this.acks.delete(id); finish('응답 없음'); } }, 8000);
+    });
   }
   battleOrder(eng: string, groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean }): Promise<string | null> {
     const id = this.seq++;

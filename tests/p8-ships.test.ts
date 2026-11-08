@@ -52,6 +52,7 @@ describe('P8 production ships', () => {
     expect(sim.command(p, { c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })).toBeNull();
     const g = Object.values(sim.st.groups).find(x => x.owner === p && x.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
     const a = sim.st.stations.astra.pos;
+    expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
     expect(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'found', at: { x: a.x + 2600, y: 0, z: a.z + 2600 }, name: '시험 조선소' } })).toBeNull();
     run(sim, 200, 0.5);
     const own = Object.values(sim.st.stations).find(s => s.owner === p)!;

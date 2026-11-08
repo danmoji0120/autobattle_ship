@@ -209,7 +209,7 @@ export class Analytics {
   private assessedAssets(company: string): { assets: number; liabilities: number } {
     const w = this.sim.st, co = w.companies[company];
     const value = (cargo: Record<string, number>) => Object.entries(cargo).reduce((n, [k, qty]) => n + qty * itemPrice(k), 0);
-    let assets = this.sim.netWorth(company);
+    let assets = this.sim.netWorth(company) + Object.values(co.foundingEscrow ?? {}).reduce((n, amount) => n + amount, 0);
     for (const ship of Object.values(w.ships)) if (ship.owner === company) assets += value(ship.cargo);
     for (const station of Object.values(w.stations)) {
       for (const listing of station.listings ?? []) if (listing.seller === company) assets += listing.qty * itemPrice(listing.item);

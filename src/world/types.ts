@@ -44,6 +44,10 @@ export interface Company {
   leasePaidUntil?: Record<string, number[]>;
   /** recovered battle assets awaiting space at their original destination */
   pendingLoot?: Record<string, Cargo>;
+  /** Growth: refundable foundation prepayments, keyed by the group carrying the order. */
+  foundingEscrow?: Record<string, number>;
+  /** Last sequenced market purchase, for retrying an unacknowledged transaction safely. */
+  lastPurchase?: { seq: number; id: string; signature: string };
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -96,7 +100,8 @@ export type Op =
   | { k: 'escort'; group: string }
   | { k: 'attack'; group?: string; lair?: string }
   | { k: 'build'; station: string }
-  | { k: 'found'; at: V; name: string }
+  /** The server marks growth-world orders backed by a saved foundation prepayment. */
+  | { k: 'found'; at: V; name: string; escrowed?: boolean }
   /** growth: sweep a star system for hidden derelicts; salvage one the company has found */
   | { k: 'survey'; system: string }
   | { k: 'salvage'; site: string }

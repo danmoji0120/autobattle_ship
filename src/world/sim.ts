@@ -67,7 +67,7 @@ export type Cmd =
   /** contentV ≥ 3: `hull` (+ `preset`) picks a hull from the yard's stock; classId/loadoutId stay for older clients */
   | { c: 'buyShip'; station: string; classId: string; loadoutId: string; group?: string; hull?: string; preset?: string }
   | { c: 'sell'; station: string; res: Res; amount: number }
-  | { c: 'buy'; station: string; res: Res; amount: number; /** growth: load straight into this docked ship's hold */ ship?: string }
+  | { c: 'buy'; station: string; res: Res; amount: number; /** growth: load straight into this docked ship's hold */ ship?: string; request?: { seq: number; id: string } }
   | { c: 'lease'; station: string; blocks: number }
   | { c: 'repair'; ship: string }
   | { c: 'refit'; ship: string; loadoutId: string }
@@ -143,6 +143,15 @@ export class WorldSim {
     if (opts.migrateContent !== false) this.contentReport = migrateContent(st);
     else if ((st.contentV ?? 0) >= 1) this.contentReport = migrateContent(st, st.contentV);
     this.st = st;
+    // Before P9.5 every player founding order was charged on issue. Preserve that already-paid
+    // amount as a refundable prepayment when an old in-flight order is restored.
+    if (growthOn(st)) for (const g of Object.values(st.groups)) {
+      const co = st.companies[g.owner];
+      if (co?.kind === 'player' && g.op.k === 'found' && !g.op.escrowed) {
+        (co.foundingEscrow ??= {})[g.id] ??= FOUND_COST.credits;
+        g.op.escrowed = true;
+      }
+    }
     this.rng = new Rng(st.seed).restore(st.rng.length ? st.rng : new Rng(st.seed).state());
     // industry: field compositions, NPC markets for the new goods, legacy facility kinds (idempotent)
     upgradeIndustry(st);
@@ -494,7 +503,7 @@ export class WorldSim {
     const meta = { company, ...('station' in cmd ? { station: cmd.station } : {}), ...('group' in cmd && typeof cmd.group === 'string' ? { group: cmd.group } : {}), ...('ship' in cmd && typeof cmd.ship === 'string' ? { ship: cmd.ship, group: this.st.ships[cmd.ship]?.groupId } : {}) };
     const manual = growthOn(this.st) && ['setOp', 'release', 'setParent', 'deleteGroup', 'moveShip', 'listShip', 'unloadCargo'].includes(cmd.c) ? manualRoutes(this, company, 'group' in cmd ? cmd.group : undefined, 'ship' in cmd ? cmd.ship : undefined) : [];
     if (cmd.c === 'setParent' && cmd.parent && growthOn(this.st)) manual.push(...manualRoutes(this, company, cmd.parent));
-    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && manual.length) pauseManualRoutes(this, manual); if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
+    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && manual.length) pauseManualRoutes(this, manual); if (!err && growthOn(this.st)) this.reconcileFoundEscrows(company); if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
   }
 
   private executeCommand(company: string, cmd: Cmd): string | null {
@@ -530,8 +539,26 @@ export class WorldSim {
         const err = this.validateOp(company, g, cmd.op);
         if (err) return err;
         if (cmd.op.k === 'found') {
-          const e2 = this.prepareFound(company, g);
-          if (e2) return e2;
+          if (growthOn(this.st)) {
+            const held = co.foundingEscrow?.[g.id] ?? 0;
+            if (!held && co.credits < FOUND_COST.credits) return `${FOUND_COST.credits} cr 필요`;
+            // Only the constructor's actual cargo and its current dock's free stock can travel
+            // with it. A market elsewhere never moves resources into this hold.
+            const con = this.shipsOf(g).find(s => s.classId === 'constructor')!;
+            const at = con.state === 'docked' && con.task.k === 'docked' ? this.st.stations[con.task.station] : undefined;
+            if (at && this.canDock(at, company)) {
+              const room = Math.max(0, Math.floor(econOf(con).cargo * techFx(co.tech).cargoMul - cargoSum(con.cargo)));
+              const wanted = Math.max(0, FOUND_COST.alloy - qty(con.cargo, 'alloy'));
+              const n = takec(this.storage(at, company), 'alloy', Math.min(room, wanted));
+              if (n > 0) addc(con.cargo, 'alloy', n);
+            }
+            if (!held) { co.credits -= FOUND_COST.credits; (co.foundingEscrow ??= {})[g.id] = FOUND_COST.credits; }
+            // Never trust a client-supplied bookkeeping flag.
+            cmd.op = { ...cmd.op, escrowed: true };
+          } else {
+            const e2 = this.prepareFound(company, g);
+            if (e2) return e2;
+          }
         }
         g.op = cmd.op; g.override = true; g.fleeing = false; g.march = undefined;
         for (const s of this.shipsOf(g)) if (s.state !== 'battle' && s.state !== 'docked') s.task = { k: 'none' };
@@ -611,7 +638,20 @@ export class WorldSim {
         return null;
       }
       case 'sell': case 'buy': {
-        const st = S(cmd.station); if (!st?.market?.[cmd.res]) return '거래 불가';
+        if (growthOn(this.st) && (typeof cmd.amount !== 'number' || !Number.isFinite(cmd.amount))) return '거래 수량이 올바르지 않습니다';
+        let receipt: Company['lastPurchase'];
+        if (cmd.c === 'buy' && growthOn(this.st) && cmd.request !== undefined) {
+          const request = cmd.request, last = co.lastPurchase;
+          if (!request || !Number.isSafeInteger(request.seq) || request.seq < 1 || typeof request.id !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(request.id)) return '구매 요청 식별자가 올바르지 않습니다';
+          const signature = JSON.stringify([cmd.station, cmd.res, cmd.amount, cmd.ship ?? null]);
+          if (last && request.seq <= last.seq) {
+            if (request.seq === last.seq && request.id === last.id && signature === last.signature) return null;
+            return '이미 지난 구매 요청입니다 — 시장 재고와 자사 보관함을 확인한 뒤 다시 시도하세요';
+          }
+          if (request.seq !== (last?.seq ?? 0) + 1) return '다른 구매가 먼저 처리되었거나 이전 요청이 대기 중입니다 — 시장을 새로 확인하세요';
+          receipt = { seq: request.seq, id: request.id, signature };
+        }
+        const st = S(cmd.station); if (!st?.market?.[cmd.res] || growthOn(this.st) && !Object.hasOwn(st.market, cmd.res)) return '거래 불가';
         const store = this.storage(st, company);
         const amt = Math.floor(Math.max(0, cmd.amount));
         if (cmd.c === 'sell') {
@@ -634,6 +674,7 @@ export class WorldSim {
           emit(this.st, { kind: 'market', reason: 'buy', amount: a, value: cost, company, station: st.id, item: cmd.res });
           co.credits -= cost; m.stock -= a; addc(ship ? ship.cargo : store, cmd.res, a);
           if (growthOn(this.st) && st.public) fundsIn(st, cost);
+          if (receipt) co.lastPurchase = receipt;
           this.ev('money', `${RES_NAME[cmd.res]} ${a} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
         }
         return null;
@@ -1336,8 +1377,14 @@ export class WorldSim {
         if (!t || this.st.companies[t.owner]?.kind !== 'pirate') return '공격할 수 없는 대상 (현재는 해적만 공격 가능)';
         return null;
       }
-      case 'build': { const st = this.st.stations[op.station]; if (!st || st.owner !== company) return '자사 정거장이 아님'; return sub.some(s => s.classId === 'constructor') ? null : '공작선이 필요'; }
+      case 'build': {
+        const st = this.st.stations[op.station]; if (!st || st.owner !== company) return '자사 정거장이 아님';
+        // An overridden child does not execute this order, even if it owns the only cargo ship.
+        const working = growthOn(this.st) ? this.subtreeShipsInOp(g, true) : sub;
+        return working.some(s => s.classId === 'constructor' || growthOn(this.st) && econOf(s).cargo > 0 && cargoSum(s.cargo) > 0) ? null : growthOn(this.st) ? '명령을 수행할 공작선 또는 자재를 실은 화물선이 필요' : '공작선이 필요';
+      }
       case 'found': {
+        if (growthOn(this.st) && (typeof op.name !== 'string' || !op.at || !Number.isFinite(op.at.x) || !Number.isFinite(op.at.y) || !Number.isFinite(op.at.z))) return '정거장 이름과 부지 좌표를 확인하세요';
         if (!ships.some(s => s.classId === 'constructor')) return '공작선이 이 부대에 직접 있어야 함';
         for (const s of Object.values(this.st.stations)) if (dist2(s.pos, op.at) < 2600) return '다른 정거장과 너무 가깝다 (2,600 이상)';
         for (const l of Object.values(this.st.lairs)) if (dist2(l.pos, op.at) < 3000) return '해적 은신처와 너무 가깝다';
@@ -1387,6 +1434,22 @@ export class WorldSim {
     con.cargo.alloy += need;
     this.ev('money', `정거장 설립 자금 및 합금 확보 -${Math.round(cost).toLocaleString()} cr`, { company });
     return null;
+  }
+
+  /** Refund once when an order is replaced, delegated, disbanded or loses its constructors. */
+  private reconcileFoundEscrows(company?: string) {
+    const companies = company ? [this.st.companies[company]].filter(Boolean) : Object.values(this.st.companies);
+    for (const co of companies) for (const [id, amount] of Object.entries(co.foundingEscrow ?? {})) {
+      const g = this.st.groups[id];
+      const valid = g?.owner === co.id && g.override && g.op.k === 'found' && g.op.escrowed && this.shipsOf(g).some(s => s.owner === co.id && s.classId === 'constructor');
+      if (valid) continue;
+      watchMoney(this.st, 'foundation_refund', { company: co.id, group: id }, () => {
+        delete co.foundingEscrow![id]; if (!Object.keys(co.foundingEscrow!).length) delete co.foundingEscrow;
+        co.credits += amount;
+        if (g?.owner === co.id && g.op.k === 'found' && g.op.escrowed) { g.op = { k: 'idle' }; g.status = '정거장 설립 중단 — 선납금 환급'; }
+        this.ev('money', `정거장 설립 중단 — 선납 ${Math.round(amount).toLocaleString()} cr 환급`, { company: co.id, ref: id });
+      });
+    }
   }
 
   private ackOp(g: WGroup, op: Op) {
@@ -1477,7 +1540,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st) && st.logistics) maintainRoutes(this);
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); }
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
       this.runGroup(g, dt);
@@ -2183,6 +2246,12 @@ export class WorldSim {
     return false;
   }
 
+  /** Approach an owned construction site without inventing a completed docking facility. */
+  goConstruction(s: WShip, st: Station, dt: number, speed: number): boolean {
+    const a = (hashId(s.id) % 628) / 100;
+    return this.moveTo(s, { x: st.pos.x + Math.cos(a) * (st.radius + 120), y: st.pos.y + 30, z: st.pos.z + Math.sin(a) * (st.radius + 120) }, speed, dt, 70, true);
+  }
+
   private formationSlot(s: WShip, g: WGroup, center: V, spread = 70): V {
     const idx = g.shipIds.indexOf(s.id);
     const a = idx * 2.4;
@@ -2258,7 +2327,19 @@ export class WorldSim {
       case 'build': this.behaveBuild(s, g, op.station, dt, speed, c); break;
       case 'found': {
         if (s.classId !== 'constructor') { this.moveTo(s, this.formationSlot(s, g, op.at, 120), speed, dt); break; }
-        if (this.moveTo(s, op.at, speed, dt, 60)) this.foundStation(g, s, op);
+        if (this.moveTo(s, op.at, speed, dt, 60)) {
+          if (growthOn(this.st) && op.escrowed) {
+            // Inherited/stale orders cannot create duplicate sites or charge a second time.
+            if (g.op !== op) break;
+            const co = this.st.companies[g.owner];
+            const invalid = this.validateOp(g.owner, g, op);
+            if (invalid) { g.status = `설립 대기: ${invalid} — 자재·화물 보존`; break; }
+            const paid = co.foundingEscrow?.[g.id];
+            if (!paid) { g.op = { k: 'idle' }; g.status = '설립 선납금 없음 — 다시 명령하세요'; break; }
+            delete co.foundingEscrow![g.id]; if (!Object.keys(co.foundingEscrow!).length) delete co.foundingEscrow;
+            this.foundStation(g, s, op, paid);
+          } else this.foundStation(g, s, op);
+        }
         else g.status = `정거장 부지로 이동 (${Math.round(dist(s.pos, op.at))}m)`;
         break;
       }
@@ -2398,7 +2479,7 @@ export class WorldSim {
         if (this.moveTo(s, near, speed, dt, 40)) {
           const amt = Math.min(30 * dt, cargoSum(donor.cargo), cap - load);
           let left = amt;
-          for (const r of cargoKeys(donor.cargo)) { const t = takec(donor.cargo, r, left); addc(s.cargo, r, t); left -= t; if (left <= 1e-9) break; }
+          for (const r of cargoKeys(donor.cargo)) { const t = takec(donor.cargo, r, left); addc(s.cargo, r, t); if (t > 0 && growthOn(this.st)) withdrawRouteCargo(this, donor.owner, donor.id, r, t); left -= t; if (left <= 1e-9) break; }
           s.fx = { transfer: donor.id };
           if ((donor.task as any).why === 'deliver') donor.task = { k: 'none' };
         }
@@ -2495,8 +2576,20 @@ export class WorldSim {
 
   private behaveBuild(s: WShip, g: WGroup, stationId: string, dt: number, speed: number, c: CommanderDef) {
     const st = this.st.stations[stationId];
-    if (!st) return;
-    if (s.classId !== 'constructor') { if (this.canDock(st, s.owner)) this.goDock(s, st, dt, speed); else this.moveTo(s, this.formationSlot(s, g, st.pos, 250), speed, dt); return; }
+    if (!st || growthOn(this.st) && st.owner !== s.owner) { if (growthOn(this.st)) g.status = '건설 현장을 이용할 수 없음 — 화물 보존'; return; }
+    if (s.classId !== 'constructor') {
+      if (growthOn(this.st) && cargoSum(s.cargo) > 0) {
+        if (!this.goConstruction(s, st, dt, speed)) { g.status = `${st.name} 건설 현장으로 자재 운송`; return; }
+        let moved = 0;
+        for (const r of cargoKeys(s.cargo)) {
+          const n = takec(s.cargo, r, Math.min(constructionRoom(st, r), this.intakeRoom(st, s.owner, r)));
+          if (n > 0) { addc(this.storage(st, s.owner), r, n); moved += n; withdrawRouteCargo(this, s.owner, s.id, r, n); emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company: s.owner, group: g.id, ship: s.id, station: st.id, item: r }); }
+        }
+        if (moved) this.stationWorks(st, 0);
+        g.status = moved ? `${st.name}: 건설 자재 ${Math.round(moved)} 반입` : `${st.name}: 필요한 자재 없음 — 남은 화물 보존`;
+      } else if (this.canDock(st, s.owner)) this.goDock(s, st, dt, speed); else this.moveTo(s, this.formationSlot(s, g, st.pos, 250), speed, dt);
+      return;
+    }
     const store = this.storage(st, s.owner);
     const waiting = plans(st);
     const active = activePlan(st);
@@ -2510,7 +2603,13 @@ export class WorldSim {
     if (!this.moveTo(s, spot, speed, dt, 90)) { g.status = `${st.name}로 이동 중 (건설)`; return; }
     // the constructor unloads what it carries into the station's storage; plans take it from there
     let unloaded = false;
-    for (const r of cargoKeys(s.cargo)) { const n = takec(s.cargo, r, this.intakeRoom(st, s.owner, r)); if (n > 0) { addc(store, r, n); unloaded = true; } }
+    for (const r of cargoKeys(s.cargo)) {
+      const n = takec(s.cargo, r, this.intakeRoom(st, s.owner, r));
+      if (n > 0) {
+        addc(store, r, n); unloaded = true;
+        if (growthOn(this.st)) { withdrawRouteCargo(this, s.owner, s.id, r, n); emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company: s.owner, group: g.id, ship: s.id, station: st.id, item: r }); }
+      }
+    }
     if (unloaded) this.stationWorks(st, 0);
     if (active) {
       const md = MODULES[active.kind];
@@ -2530,19 +2629,23 @@ export class WorldSim {
     } else g.status = `${md.name} — 선행 시설 대기`;
   }
 
-  private foundStation(g: WGroup, s: WShip, op: Extract<Op, { k: 'found' }>) {
+  private foundStation(g: WGroup, s: WShip, op: Extract<Op, { k: 'found' }>, paid = 0) {
     const co = this.st.companies[g.owner];
     const id = this.id('st');
     const station: Station = {
       id, name: op.name.slice(0, 18) || `${co.name} 기지`, owner: g.owner, public: false, style: 3, pos: { ...op.at, y: 0 }, radius: 180,
       market: null, services: { repair: false, shipyard: [], recruit: false, contracts: false, refit: false },
-      storage: {}, modules: [normPlan({ kind: 'core', progress: 0, built: false, slot: 0, paid: 0 }, () => this.id('pl'))], defenseHp: 1, founded: this.time,
+      storage: {}, modules: [normPlan({ kind: 'core', progress: 0, built: false, slot: 0, paid }, () => this.id('pl'))], defenseHp: 1, founded: this.time,
       desc: `${co.name}의 자체 정거장.`,
     };
     for (const cid of Object.keys(this.st.companies)) station.storage[cid] = emptyCargo();
     this.st.stations[id] = station;
     const store = station.storage[g.owner];
-    for (const r of cargoKeys(s.cargo)) addc(store, r, takec(s.cargo, r, this.intakeRoom(station, g.owner, r)));
+    for (const r of cargoKeys(s.cargo)) {
+      const n = takec(s.cargo, r, this.intakeRoom(station, g.owner, r));
+      addc(store, r, n);
+      if (n > 0 && growthOn(this.st)) { withdrawRouteCargo(this, g.owner, s.id, r, n); emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company: g.owner, group: g.id, ship: s.id, station: id, item: r }); }
+    }
     g.op = { k: 'build', station: id }; g.override = true;
     this.ev('world', `${co.name}이(가) 새 정거장 "${station.name}" 건설에 착수했다.`, { pos: station.pos, ref: id });
     this.say(g, '부지 도착. 골조 조립을 시작합니다.', 'radio', 0);
@@ -2554,6 +2657,7 @@ export class WorldSim {
     const co = this.st.companies[s.owner];
     if (!co) return;
     const loadBefore = cargoSum(s.cargo);
+    const trackedBefore = growthOn(this.st) && co.kind === 'player' && Object.values(this.st.logistics ?? {}).some(r => r.owner === s.owner && !!r.manifests[s.id]) ? { ...s.cargo } : null;
     let msg = '';
     const epsilon = growthOn(this.st) ? 1e-9 : 0.01;
     // an own station only takes what fits in its warehouse; the rest stays aboard
@@ -2600,6 +2704,10 @@ export class WorldSim {
         if (left > epsilon) { addc(this.storage(st, s.owner), r, left); msg += `(구매 예산 소진 — ${Math.round(left)} 보관) `; }
       }
       else { addc(this.storage(st, s.owner), r, amt); msg += `${RES_NAME[r]} ${Math.round(amt)} 입고 `; }
+    }
+    if (trackedBefore) for (const [item, amount] of Object.entries(trackedBefore)) {
+      const removed = Math.max(0, amount - qty(s.cargo, item));
+      if (removed > 0) withdrawRouteCargo(this, s.owner, s.id, item, removed);
     }
     const unloaded = loadBefore - cargoSum(s.cargo);
     if (unloaded > 0) emit(this.st, { kind: 'logistics', reason: 'unload', amount: unloaded, company: s.owner, group: s.groupId, ship: s.id, station: st.id });

@@ -4,7 +4,7 @@
 // conservation sanity and performance.
 //   npx vite-node scripts/pmcbot.ts [hours=12] [seed=7] [-v]
 import { WorldSim } from '../src/world/sim';
-import { ECON, MODULES } from '../src/world/data';
+import { ECON, FOUND_COST, MODULES } from '../src/world/data';
 import { HULLS, TECHS, RECIPES, itemPrice } from '../src/world/industry';
 import { buildNeeds, stationNeeds, yardSlots } from '../src/world/production';
 import { qty } from '../src/world/types';
@@ -61,11 +61,16 @@ function policy() {
   if (!founded) {
     if (!sh.some(s => s.classId === 'hauler') && co.credits > 6000) cmd({ c: 'buyShip', station: 'astra', classId: 'hauler', loadoutId: 'std', group: mg.id });
     else if (sh.filter(s => s.classId === 'miner').length < 4 && co.credits > 6000) cmd({ c: 'buyShip', station: 'astra', classId: 'miner', loadoutId: 'std', group: mg.id });
-    else if (co.credits > 30000) {
-      if (!cmd({ c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })) {
-        const cg = groups().find(g => g.shipIds.some(id => st.ships[id]?.classId === 'constructor'))!;
+    else if (co.credits > 30000 || sh.some(s => s.classId === 'constructor')) {
+      let cg = groups().find(g => g.shipIds.some(id => st.ships[id]?.classId === 'constructor'));
+      if (!cg && !cmd({ c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })) cg = groups().find(g => g.shipIds.some(id => st.ships[id]?.classId === 'constructor'));
+      const con = cg && cg.shipIds.map(id => st.ships[id]).find(s => s?.classId === 'constructor');
+      if (cg && con) {
+        const needed = Math.max(0, FOUND_COST.alloy - qty(con.cargo, 'alloy') - qty(st.stations.astra.storage[me], 'alloy'));
+        if (needed) marketBuy('astra', 'alloy', needed, FOUND_COST.credits);
+        const ready = qty(con.cargo, 'alloy') + qty(st.stations.astra.storage[me], 'alloy') >= FOUND_COST.alloy;
         const f = st.fields.kestrel.pos;
-        if (!cmd({ c: 'setOp', group: cg.id, op: { k: 'found', at: { x: f.x + 2200, y: 0, z: f.z - 1800 }, name: '제1 공업 기지' } })) { founded = true; mark('정거장 착공'); }
+        if (ready && co.credits >= FOUND_COST.credits && !cmd({ c: 'setOp', group: cg.id, op: { k: 'found', at: { x: f.x + 2200, y: 0, z: f.z - 1800 }, name: '제1 공업 기지' } })) { founded = true; mark('정거장 착공'); }
       }
     }
     return;

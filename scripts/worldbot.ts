@@ -1,6 +1,7 @@
 // Headless progression check: a scripted "reasonable player" runs a PMC for N minutes.
 import { WorldSim } from '../src/world/sim';
-import { ECON } from '../src/world/data';
+import { ECON, FOUND_COST } from '../src/world/data';
+import { qty } from '../src/world/types';
 const minutes = Number(process.argv[2] ?? 40);
 const verbose = process.argv.includes('-v');
 const sim = WorldSim.create(Number(process.argv[3] ?? 7));
@@ -25,10 +26,16 @@ for (let t = 0; t < minutes * 60; t += 0.05) {
     if (!ships.some(s => s.classId === 'hauler') && co.credits > 6000) cmd({ c: 'buyShip', station: 'astra', classId: 'hauler', loadoutId: 'std', group: mg.id });
     else if (ships.filter(s => s.classId === 'miner').length < 4 && co.credits > 6000) cmd({ c: 'buyShip', station: 'astra', classId: 'miner', loadoutId: 'std', group: mg.id });
     else if (ships.filter(s => s.classId === 'destroyer').length < 2 && co.credits > 9000) cmd({ c: 'buyShip', station: 'astra', classId: 'destroyer', loadoutId: 'aa', group: G('경비대').id });
-    else if (!founded && co.credits > 30000) {
-      cmd({ c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' });
-      const cg = groups().find(g => g.shipIds.some(id => st.ships[id]?.classId === 'constructor'))!;
-      if (!cmd({ c: 'setOp', group: cg.id, op: { k: 'found', at: { x: 3200, y: 0, z: -5200 }, name: '전진기지' } })) founded = true;
+    else if (!founded && (co.credits > 30000 || ships.some(s => s.classId === 'constructor'))) {
+      let cg = groups().find(g => g.shipIds.some(id => st.ships[id]?.classId === 'constructor'));
+      if (!cg && !cmd({ c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })) cg = groups().find(g => g.shipIds.some(id => st.ships[id]?.classId === 'constructor'));
+      const con = cg && cg.shipIds.map(id => st.ships[id]).find(s => s?.classId === 'constructor');
+      if (cg && con) {
+        const station = st.stations.astra, needed = Math.max(0, FOUND_COST.alloy - qty(con.cargo, 'alloy') - qty(station.storage[me], 'alloy'));
+        const available = Math.floor(Math.min(needed, station.market?.alloy?.stock ?? 0, Math.max(0, co.credits - FOUND_COST.credits) / Math.max(1, sim.price(station, 'alloy', 'buy'))));
+        if (available > 0) cmd({ c: 'buy', station: 'astra', res: 'alloy', amount: available });
+        if (qty(con.cargo, 'alloy') + qty(station.storage[me], 'alloy') >= FOUND_COST.alloy && co.credits >= FOUND_COST.credits && !cmd({ c: 'setOp', group: cg.id, op: { k: 'found', at: { x: 3200, y: 0, z: -5200 }, name: '전진기지' } })) founded = true;
+      }
     }
     const own = Object.values(st.stations).find(s => s.owner === me);
     if (own && own.modules.find(m => m.kind === 'core')?.built && own.modules.length < 3 && co.credits > 12000) cmd({ c: 'queueModule', station: own.id, kind: own.modules.length === 1 ? 'refinery' : 'repair' });

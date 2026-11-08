@@ -8,10 +8,11 @@ import { orderWants } from './production';
 import { nextGate } from './geom';
 import { departureHeld } from './upkeep';
 import { emit, watchMoney } from './observe';
+import { constructionRoom } from './storage';
 
 export interface RouteConfig {
   name: string; from: string; to: string; item: string;
-  mode: 'transfer' | 'sell' | 'supply'; amount: number; repeat: boolean;
+  mode: 'transfer' | 'sell' | 'supply' | 'construction'; amount: number; repeat: boolean;
   minStock?: number; targetStock?: number;
 }
 export interface RouteCursor {
@@ -27,7 +28,7 @@ export interface LogisticsRoute {
   manifests: Record<string, RouteManifest>; cursors: Record<string, RouteCursor>; done: string[];
   replenishing?: boolean; stats: RouteStats; recent: ({ t: number } & RouteStats)[];
 }
-type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'undock' | 'sellAt' | 'ev'>;
+type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'undock' | 'sellAt' | 'ev'>;
 export const routeShips = (w: Pick<WorldState, 'ships' | 'groups'>, route: Pick<LogisticsRoute, 'group' | 'owner'>): WShip[] => {
   const out: WShip[] = [], root = w.groups[route.group]; if (!root) return out;
   const walk = (g: WGroup) => { for (const id of g.shipIds) { const s = w.ships[id]; if (s?.owner === route.owner && econOf(s).cargo > 0) out.push(s); } for (const id of g.childIds) { const child = w.groups[id]; if (child && !child.override) walk(child); } }; walk(root); return out;
@@ -66,15 +67,15 @@ function configError(h: Host, owner: string, group: string, c: RouteConfig): str
   const g = h.st.groups[group]; if (!g || g.owner !== owner) return '자사 편대를 선택하세요';
   if (!c || typeof c.from !== 'string' || typeof c.to !== 'string' || !Object.hasOwn(h.st.stations, c.from) || !Object.hasOwn(h.st.stations, c.to) || c.from === c.to) return '서로 다른 출발지·목적지를 선택하세요';
   const a = h.st.stations[c.from], b = h.st.stations[c.to];
-  if (!h.canDock(a, owner) || !h.canDock(b, owner)) return '이용 가능한 정거장을 선택하세요 (자사 코어 완공 필요)';
-  if (!['transfer', 'sell', 'supply'].includes(c.mode)) return '운송 목적을 선택하세요';
+  if (!['transfer', 'sell', 'supply', 'construction'].includes(c.mode)) return '운송 목적을 선택하세요';
+  if (!h.canDock(a, owner) || (c.mode === 'construction' ? b.owner !== owner : !h.canDock(b, owner))) return c.mode === 'construction' ? '출발지는 이용 가능한 정거장, 목적지는 자사 건설 현장이어야 합니다' : '이용 가능한 정거장을 선택하세요 (자사 코어 완공 필요)';
   if (typeof c.item !== 'string' || (!Object.hasOwn(ITEMS, c.item) && !Object.hasOwn(EQUIPMENT, c.item) && !c.item.startsWith('bp:'))) return '운송할 품목을 선택하세요';
   if (typeof c.repeat !== 'boolean') return '반복 운송 여부를 지정하세요';
   if (!Number.isSafeInteger(c.amount) || c.amount < 1) return '회당 적재량은 1 이상의 정수여야 합니다';
   const carriers = routeShips(h.st, { group, owner });
   if (!carriers.length) return '편대에 화물 적재 함선이 없습니다';
   if (carriers.some(s => s.state === 'building')) return '건설 중인 함선은 작업을 정리한 후 배정하세요';
-  if (carriers.some(s => !berthFits(a, econOf(s).berth) || !berthFits(b, econOf(s).berth))) return '이 편대의 선체가 이용할 수 없는 정박 규격입니다';
+  if (carriers.some(s => !berthFits(a, econOf(s).berth) || c.mode !== 'construction' && !berthFits(b, econOf(s).berth))) return '이 편대의 선체가 이용할 수 없는 정박 규격입니다';
   if (c.mode === 'sell' && !b.market?.[c.item]) return '목적지 시장에서 이 품목을 매입하지 않습니다';
   if (c.mode === 'supply') {
     if (b.owner !== owner) return '생산 공급 목적지는 자사 정거장이어야 합니다';
@@ -126,10 +127,14 @@ function record(r: LogisticsRoute, time: number, change: Partial<RouteStats>) {
 }
 /** A manual partial unload removes tracked cargo immediately, before a same-tick resume. */
 export function withdrawRouteCargo(h: Host, owner: string, ship: string, item: string, amount: number) {
+  let remaining = amount;
   for (const r of Object.values(h.st.logistics ?? {})) {
+    if (remaining <= 1e-9) break;
     const m = r.owner === owner ? r.manifests[ship] : undefined;
     if (!m || m.item !== item) continue;
-    const withdrawn = Math.min(amount, m.amount); m.amount -= withdrawn;
+    // A moved ship may still carry manifests from its old and new routes. One physical removal
+    // can reduce their combined tracked quantity only once, in stable route order.
+    const withdrawn = Math.min(remaining, m.amount); m.amount -= withdrawn; remaining -= withdrawn;
     if (withdrawn > 0) record(r, h.time, { withdrawn });
     if (m.amount <= 0) delete r.manifests[ship];
   }
@@ -162,13 +167,14 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
   if (held) { block(h, r, s, c, 'held', held); return; }
   const m = r.manifests[s.id], conf = m ?? r.config, target = m ? conf.to : conf.from;
   const st = h.st.stations[target];
-  if (!st || !h.canDock(st, r.owner)) { pause(h, r, `${m ? '목적지' : '출발지'} 정거장을 이용할 수 없습니다 — 설정을 수정하고 재개하세요`); return; }
-  if (!berthFits(st, econOf(s).berth)) { block(h, r, s, c, 'berth', '정박 규격이 부족합니다 — 적합한 함선·정거장으로 변경하세요', target); return; }
+  const site = !!m && m.mode === 'construction';
+  if (!st || (site ? st.owner !== r.owner : !h.canDock(st, r.owner))) { pause(h, r, `${m ? '목적지' : '출발지'} 정거장을 이용할 수 없습니다 — 설정을 수정하고 재개하세요`); return; }
+  if (!site && !berthFits(st, econOf(s).berth)) { block(h, r, s, c, 'berth', '정박 규격이 부족합니다 — 적합한 함선·정거장으로 변경하세요', target); return; }
   const here = h.sysOf(s.pos), there = h.sysOf(st.pos);
   if (!here || !there || here.id !== there.id && !nextGate(h.st.systems, here.id, there.id, gate => usableRouteGate(h.st, gate))) { block(h, r, s, c, 'path', '연결된 점프 경로가 없습니다 — 게이트 연결 회복 대기', target); return; }
   if (c.code) { emit(h.st, { kind: 'logistics', reason: 'resumed', amount: 0, company: r.owner, group: g.id, ship: s.id, route: r.id }); resetCursor(c, m ? 'destination' : 'source'); }
   c.phase = m ? 'destination' : 'source'; g.status = `${st.name}로 ${m ? '운송' : '적재하러 이동'}`;
-  if (!h.goDock(s, st, dt, speed, true)) return;
+  if (!(site ? h.goConstruction(s, st, dt, speed) : h.goDock(s, st, dt, speed, true))) return;
   if (m) {
     m.amount = Math.min(m.amount, qty(s.cargo, m.item));
     let moved = 0, earned = 0;
@@ -178,19 +184,28 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
       moved = result.sold; earned = result.value;
       if (moved) { takec(s.cargo, m.item, moved); record(r, h.time, { sold: moved, earned }); }
     } else {
-      const targetRoom = m.mode === 'supply' ? Math.max(0, (m.targetStock ?? 0) - qty(h.storage(st, r.owner), m.item)) : Infinity;
+      const targetRoom = m.mode === 'supply' ? Math.max(0, (m.targetStock ?? 0) - qty(h.storage(st, r.owner), m.item)) : m.mode === 'construction' ? constructionRoom(st, m.item) : Infinity;
       moved = Math.max(0, Math.min(m.amount, h.intakeRoom(st, r.owner, m.item), targetRoom));
       if (moved) { takec(s.cargo, m.item, moved); addc(h.storage(st, r.owner), m.item, moved); }
     }
     m.amount -= moved;
     if (moved) { record(r, h.time, { delivered: moved }); c.lastAction = h.time; emit(h.st, { kind: 'logistics', reason: 'unload', amount: moved, company: r.owner, group: g.id, ship: s.id, station: st.id, item: m.item, route: r.id }); }
-    if (m.amount > 1e-9) { block(h, r, s, c, m.mode === 'sell' ? 'budget' : m.mode === 'supply' && qty(h.storage(st, r.owner), m.item) >= (m.targetStock ?? 0) ? 'target' : 'storage', m.mode === 'sell' ? '시장 구매 예산 부족 — 남은 화물 보존·예산 회복 대기' : m.mode === 'supply' && qty(h.storage(st, r.owner), m.item) >= (m.targetStock ?? 0) ? '목표 재고 충족 — 화물 보존·소비 후 자동 공급' : '목적지 창고 가득 — 재고 이동·임대·증설 후 자동 재개', st.id); return; }
+    if (m.amount > 1e-9) { block(h, r, s, c, m.mode === 'sell' ? 'budget' : m.mode === 'construction' ? 'construction' : m.mode === 'supply' && qty(h.storage(st, r.owner), m.item) >= (m.targetStock ?? 0) ? 'target' : 'storage', m.mode === 'sell' ? '시장 구매 예산 부족 — 남은 화물 보존·예산 회복 대기' : m.mode === 'construction' ? '현장에 더 받을 자재가 없거나 창고가 가득 찼습니다 — 화물 보존·노선 변경 가능' : m.mode === 'supply' && qty(h.storage(st, r.owner), m.item) >= (m.targetStock ?? 0) ? '목표 재고 충족 — 화물 보존·소비 후 자동 공급' : '목적지 창고 가득 — 재고 이동·임대·증설 후 자동 재개', st.id); return; }
     delete r.manifests[s.id]; record(r, h.time, { trips: 1 }); resetCursor(c, r.config.repeat ? 'source' : 'complete'); c.lastAction = h.time;
     if (!r.config.repeat && !r.done.includes(s.id)) r.done.push(s.id);
     return;
   }
   const stock = h.storage(st, r.owner), cap = econOf(s).cargo * techFx(h.st.companies[r.owner]?.tech).cargoMul;
-  let amount = Math.min(r.config.amount, Math.floor(cap - cargoSum(s.cargo)), Math.floor(qty(stock, r.config.item)));
+  let amount = r.config.mode === 'construction'
+    ? Math.min(r.config.amount, Math.max(0, cap - cargoSum(s.cargo)), qty(stock, r.config.item))
+    : Math.min(r.config.amount, Math.floor(cap - cargoSum(s.cargo)), Math.floor(qty(stock, r.config.item)));
+  if (r.config.mode === 'construction') {
+    const dest = h.st.stations[r.config.to];
+    if (!dest || dest.owner !== r.owner) { pause(h, r, '자사 건설 현장을 이용할 수 없습니다 — 설정을 확인하세요'); return; }
+    const outstanding = Math.max(0, constructionRoom(dest, r.config.item) - incoming(h, r.owner, dest.id, r.config.item));
+    if (outstanding <= 1e-9) { block(h, r, s, c, 'construction', '필요 자재 확보 또는 운송 중 — 추가 수요 대기', dest.id); return; }
+    amount = Math.min(amount, outstanding);
+  }
   if (r.config.mode === 'supply') {
     const dest = h.st.stations[r.config.to];
     if (!dest || !h.canDock(dest, r.owner)) { pause(h, r, '생산 목적지를 이용할 수 없습니다 — 설정을 확인하세요'); return; }
@@ -201,7 +216,10 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
     if (!needs || !r.replenishing) { const threshold = needs && current < batch && onWay === 0; block(h, r, s, c, threshold ? 'threshold' : 'supply', !needs ? '이 원료를 사용하는 생산 주문 대기' : threshold ? `생산 원료 ${current}/${batch} — 보충 시작 재고 ${r.config.minStock}. 노선 재고 기준을 조정하세요` : '공급 재고 충족 — 소비 후 자동 보충 (운송 중 물량 포함)', dest.id); return; }
     amount = Math.min(amount, Math.max(0, r.config.targetStock! - current - onWay));
   }
-  if (amount < 1) { block(h, r, s, c, cap - cargoSum(s.cargo) < 1 ? 'cargo' : 'source', cap - cargoSum(s.cargo) < 1 ? '기존 화물로 화물칸이 찼습니다 — 기존 화물 하역 필요' : `${st.name}의 자유 재고 부족 — 예약 자재는 사용하지 않음`, st.id); return; }
+  if (r.config.mode === 'construction' ? amount <= 1e-9 : amount < 1) {
+    const full = cap - cargoSum(s.cargo) < (r.config.mode === 'construction' ? 1e-9 : 1);
+    block(h, r, s, c, full ? 'cargo' : 'source', full ? '기존 화물로 화물칸이 찼습니다 — 기존 화물 하역 필요' : `${st.name}의 자유 재고 부족 — 예약 자재는 사용하지 않음`, st.id); return;
+  }
   const loaded = takec(stock, r.config.item, amount); addc(s.cargo, r.config.item, loaded);
   r.manifests[s.id] = { from: r.config.from, to: r.config.to, item: r.config.item, mode: r.config.mode, amount: loaded, targetStock: r.config.targetStock, loadedAt: h.time };
   record(r, h.time, { loaded }); resetCursor(c, 'destination'); c.lastAction = h.time;

@@ -1,0 +1,24 @@
+{
+  "checks": [
+    "first isolated account signs in",
+    "second isolated account signs in",
+    "owner sees a real paused multi-gate shipment",
+    "other company snapshots hide routes, stock and prepayment",
+    "foreign company cannot resume the shipment",
+    "foreign company cannot take cargo",
+    "foreign company cannot deliver to another company site",
+    "file-backed process restart restores cargo and manifest without duplicate loading",
+    "process restart restores the other company’s refundable prepayment",
+    "owner can cancel its own founding order after restart",
+    "prepayment is returned once without credit duplication",
+    "owner can resume the preserved route after restart",
+    "duplicate WebSocket purchase request is acknowledged without a second trade",
+    "same purchase can be retried after a server process restart",
+    "restart and retry do not duplicate purchased material",
+    "saved resumed route conserves the purchased cargo exactly once"
+  ],
+  "passed": 16,
+  "processRestarts": 3,
+  "shipment": 300,
+  "escrowRefund": 8000
+}

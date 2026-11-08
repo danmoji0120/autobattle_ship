@@ -1,0 +1,93 @@
+{
+  "checks": [
+    "founding through the game UI takes a refundable prepayment",
+    "constructor physically establishes an initially empty frontier site",
+    "construction panel explains the shortage before any purchase",
+    "market purchase stays at the source until physically shipped",
+    "construction panel opens a destination-prefilled supply editor",
+    "actual loaded carrier passes a jump gate with a tracked manifest",
+    "browser reload restores in-flight cargo, manifest and waiting plan",
+    "construction screen distinguishes shipment from on-site materials",
+    "construction screen fits 1920px",
+    "construction screen fits 1440px",
+    "construction screen fits 1024px",
+    "construction screen fits 390px",
+    "mobile shortage and shipment amounts are visible without horizontal scrolling",
+    "mobile construction-supply editor fits the viewport",
+    "real transport delivers and the constructor completes the core once",
+    "concurrent copies of one browser purchase debit and deliver only once",
+    "no browser runtime errors"
+  ],
+  "fixture": {
+    "p": "p1",
+    "at": {
+      "x": 3760000,
+      "y": 0,
+      "z": 0
+    },
+    "builder": "s12",
+    "builders": "g10",
+    "freight": "g11",
+    "hauler": "s13"
+  },
+  "center": {
+    "x": 720,
+    "y": 450,
+    "plane": {
+      "x": 3760000,
+      "z": 1.1368683772161603e-12
+    },
+    "target": {
+      "x": 3760000,
+      "z": 0
+    },
+    "element": "CANVAS"
+  },
+  "afterBuy": {
+    "source": 300,
+    "destination": 0,
+    "progress": 0
+  },
+  "traveling": {
+    "id": "lr16",
+    "manifest": {
+      "from": "astra",
+      "to": "st14",
+      "item": "alloy",
+      "mode": "construction",
+      "amount": 300,
+      "loadedAt": 0.75
+    },
+    "system": "helios",
+    "source": 0
+  },
+  "restored": {
+    "manifest": 300,
+    "cargo": 300,
+    "progress": 0
+  },
+  "done": {
+    "built": true,
+    "route": {
+      "loaded": 300,
+      "delivered": 300,
+      "sold": 0,
+      "earned": 0,
+      "trips": 1,
+      "lost": 0,
+      "withdrawn": 0
+    },
+    "held": 0
+  },
+  "retry": {
+    "replies": [
+      null,
+      null
+    ],
+    "debit": 4630,
+    "expected": 4630,
+    "stock": 100,
+    "owned": 100
+  },
+  "errors": []
+}

@@ -1,0 +1,54 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds 10358ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive 6054ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately 2484ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold 14512ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first 5360ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > cancel returns reserved materials and refunds credits (in full before work starts) 2391ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself 46274ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart 5182ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > old saves: an unbuilt module without plan data is migrated without losing paid progress 2516ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice 4175ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard 2100ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > full destination and lost leased capacity hold cargo with bounded retries and resume when space returns 2131ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo 1305ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial market fills conserve currency, survive reload and cannot sell a shipment twice 1461ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > construction-reserved inputs stay unavailable until an explicit plan cancellation releases them 1366ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply requires existing logistics infrastructure and reserves incoming shipments across fleets 1551ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely 4459ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual orders take priority, active state survives reload, and destruction pauses an empty fleet 323ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery 660ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial manual unloading atomically withdraws manifest cargo before same-tick resume and reload 44ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply reservations count only the same company even at a shared public destination 10ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > moving a ship between route fleets pauses both and mixed-ownership bulk requests are atomic 7ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > owns settings on the server, rejects cross-company batches atomically, redacts snapshots and gates c0 12ms
+ ✓ tests/world.test.ts > persistent world > a new PMC starts docked at the free port with a small fleet 17ms
+ ✓ tests/world.test.ts > persistent world > mining orders move ships into the field and turn ore into credits 5761ms
+ ✓ tests/world.test.ts > persistent world > rejects commands on other companies’ assets and invalid orders 13ms
+ ✓ tests/world.test.ts > persistent world > a constructor founds a station and builds its docking hub 2723ms
+ ✓ tests/world.test.ts > persistent world > pirate encounters become battles whose results persist on the PMC 1267ms
+ ✓ tests/world.test.ts > persistent world > save/load round-trips the world, including a battle in progress 1230ms
+ ✓ tests/world.test.ts > authoritative server > two clients share one world, own separate PMCs and reconnect by token 51ms
+ ✓ tests/world.test.ts > authoritative server > battle orders are stamped ahead and replay deterministically on clients 1640ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > pays only at a valid site, never buys remotely, and does not charge twice for multiple constructors 32ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > uses actual docked stock within hold capacity, and restores an old already-paid founding order 14ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > buys at the market, carries a reserved multi-gate shipment through restart, and consumes exactly once 1800ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > delivers carried cargo directly, accepts only needed material, and refuses another company 37ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > retains a shipment when its destination disappears and when its route is cancelled 47ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > waits with cargo aboard when a completed station is full and resumes once space is freed 740ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > waits at the site when the unreserved founding fee was spent, and charges exactly once when it becomes available 7ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > keeps company stock and construction reservations separate, and refunds only unworked materials on cancellation 7ms
+ ✓ tests/storage-stability.test.ts > storage stability > prepaid first hour, independently added blocks, release and reload never bill twice 158ms
+ ✓ tests/storage-stability.test.ts > storage stability > legacy leases accrue without inventing prepayments; arrears and released inventory survive 27ms
+ ✓ tests/storage-stability.test.ts > storage stability > automatic delivery rejects full or unaffordable markets, retains cargo with one warning, resumes when space opens 14ms
+ ✓ tests/storage-stability.test.ts > storage stability > battle recovery overflow remains conserved and is deposited exactly once after save/reload 10ms
+ ✓ tests/storage-stability.test.ts > storage stability > unfinished cores accept only missing construction materials and preserve legacy overstock across completion 12ms
+ ✓ tests/storage-stability.test.ts > storage stability > preserves fractional sale leftovers and stores blueprint records without consuming warehouse space 6ms
+ ✓ tests/storage-stability.test.ts > storage stability > a new child mining order inspects the child cargo instead of an unrelated inherited parent operation 5ms
+
+ Test Files  5 passed (5)
+      Tests  46 passed (46)
+   Start at  13:48:01
+   Duration  133.83s (transform 1.66s, setup 0ms, import 2.45s, tests 130.38s, environment 1ms)

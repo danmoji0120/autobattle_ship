@@ -16,6 +16,7 @@ function withStation(seed = 11) {
   expect(sim.command(p, { c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })).toBeNull();
   const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
   const a = sim.st.stations.astra.pos;
+  expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
   expect(sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: { x: a.x + 2600, y: 0, z: a.z + 2600 }, name: '건설 기지' } })).toBeNull();
   run(sim, 200);
   const own = Object.values(sim.st.stations).find(s => s.owner === p) as Station;
