@@ -78,6 +78,9 @@ describe('P5 gameplay chain: research → facility → production → fitting �
     const sim = WorldSim.create(17); calm(sim);
     const p = sim.addPlayer('무장사'); const co = sim.st.companies[p];
     const own = station(sim, p);
+    // This pre-equipped industrial fixture needs a medium footprint for its nine facilities;
+    // the test exercises the research-to-fitting chain, not the cost of founding a new core.
+    own.size = 'M';
     give(own, 'power', 'power', 'lab_weapons', 'lab_basic', 'lab_materials', 'lab_electronics', 'fitting', 'reactor_plant', 'yard_s');
     co.tech = [...(co.tech ?? []), 'fire_control', 'research_methods'];
     stock(own, p, { electronics: 200, crystal: 200, machinery: 100, chemicals: 200, metal: 200, precision: 40, silicon: 100, weapon_parts: 40, alloy: 2000, optics: 0 });

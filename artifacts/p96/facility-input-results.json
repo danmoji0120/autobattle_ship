@@ -1,0 +1,17 @@
+{
+  "baseline": "cfc3717912a5da563eabe593d325ce77a3062035",
+  "old": {
+    "returned": null,
+    "exception": "TypeError: Cannot read properties of undefined (reading 'mats')",
+    "creditsFinite": false,
+    "creditsUnchanged": false,
+    "modules": 1
+  },
+  "current": {
+    "returned": "건설 불가",
+    "exception": null,
+    "creditsFinite": true,
+    "creditsUnchanged": true,
+    "modules": 1
+  }
+}

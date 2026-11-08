@@ -1,0 +1,15 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive 13839ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > a failing migration rolls back completely: world, generation and backup rows untouched 885ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts 1808ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an in-flight managed route and its exact manifest through PostgreSQL process restarts 1103ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts 1477ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves P9.5 founding escrow, purchase receipts and a construction shipment through PostgreSQL restarts 1130ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a sized station, a running production batch and pending physical cargo handling through PostgreSQL restarts 1530ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  17:00:28
+   Duration  24.91s (transform 1.67s, setup 0ms, import 1.92s, tests 22.78s, environment 0ms)

@@ -23,6 +23,9 @@ import { sizeRank } from '../content/schema';
 import { itemPrice, EQUIPMENT, techFx } from './industry';
 import { priceOf, fundsIn } from './market';
 import { leaseRate, advanceRent, dockCapacity, useDock, repairPoints, serviceOf } from './storage';
+import { stationUpkeep } from './stations';
+import { stationPower } from './production';
+import { stationSize } from './stations';
 
 export const SETTLE_DT = 60;
 export const RESERVE_MUL = 0.15;
@@ -63,7 +66,7 @@ export function shipRate(w: WorldState, s: WShip): { credits: number; supplies: 
   return { credits: u.credits * mul * tf.upkeepMul, supplies, dock };
 }
 
-export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; lease: number; perHour: number }
+export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; lease: number; station: number; perHour: number }
 /** what the company's fleet costs per hour at current prices */
 export function forecast(w: WorldState, co: Company): Forecast {
   const ships = Object.values(w.ships).filter(s => s.owner === co.id && s.classId !== 'platform');
@@ -76,7 +79,8 @@ export function forecast(w: WorldState, co: Company): Forecast {
   for (const [k, n] of Object.entries(supplies)) suppliesCr += n * (market?.market?.[k] ? priceOf(market.market[k], 'buy', true) : itemPrice(k) * 2);
   const overhead = credits * (om - 1);
   const lease = leaseRate(w, co);
-  return { ships: ships.length, credits, supplies, suppliesCr, dock, overhead, lease, perHour: credits + overhead + dock + suppliesCr + lease };
+  const station = Object.values(w.stations).filter(s => s.owner === co.id).reduce((n, s) => n + stationUpkeep(s), 0);
+  return { ships: ships.length, credits, supplies, suppliesCr, dock, overhead, lease, station, perHour: credits + overhead + dock + suppliesCr + lease + station };
 }
 
 /** the market a company buys its consumables at: its home station's, else the nearest public market */
@@ -106,6 +110,10 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     // wear: accumulates while the ship works in space; slower without supplies (stage ≥ 2 doubles it)
     const wr = hullUpkeep(hullIdOf(s), s.variant).wear ?? 0;
     if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : 1));
+  }
+  for (const st of Object.values(w.stations)) if (st.owner === co.id) {
+    const amount = stationUpkeep(st) * h;
+    if (amount > 0) { u.acc += amount; emit(w, { kind: 'cost', reason: 'station_upkeep', amount, company: co.id, station: st.id }); }
   }
   const cancelled = advanceRent(w, co, w.time - dt);
   if (cancelled) out.push({ kind: 'warn', tag: 'upkeep', text: `창고 임대료 미납 1시간 — 추가 구획 ${Object.entries(cancelled).map(([id, n]) => `${w.stations[id]?.name ?? id} ${n}개`).join(', ')} 자동 해지. 기존 물품과 미납금은 보존되며 신규 입고는 남은 용량까지만 가능합니다. 보관 물품을 판매해 미납금을 우선 정산하세요.` });
@@ -201,6 +209,7 @@ export function maintainOnDock(w: WorldState, s: WShip, st: Station, repairCapab
   const co = w.companies[s.owner];
   if (!co || co.kind !== 'player' || (co.upkeep?.stage ?? 0) >= 2) return 0;
   let fix = Math.min(s.wear!, 0.5);
+  if (stationSize(st)) fix *= stationPower(st).factor;
   // rev 2: a dock maintains only so many hull-points an hour (shared at public stations); a crowded
   // dock does part of the job and the rest waits for the next visit
   const cap = dockCapacity(w, st);

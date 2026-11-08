@@ -4,6 +4,7 @@
 import type { CommanderDef } from '../sim/data/commanders';
 import type { BattleSetup } from '../sim/world';
 import type { OrderRecord } from '../sim/types';
+import type { Size } from '../content/schema';
 
 /** item id (see industry.ts ITEMS / EQUIPMENT / 'bp:<tech>') */
 export type Res = string;
@@ -101,7 +102,7 @@ export type Op =
   | { k: 'attack'; group?: string; lair?: string }
   | { k: 'build'; station: string }
   /** The server marks growth-world orders backed by a saved foundation prepayment. */
-  | { k: 'found'; at: V; name: string; escrowed?: boolean }
+  | { k: 'found'; at: V; name: string; size?: Size; escrowed?: boolean }
   /** growth: sweep a star system for hidden derelicts; salvage one the company has found */
   | { k: 'survey'; system: string }
   | { k: 'salvage'; site: string }
@@ -154,6 +155,8 @@ export interface WShip {
   wear?: number;
   /** growth: last time a crowded dock could not finish this ship's maintenance */
   dockWait?: number;
+  /** P9.6: in-progress physical cargo handling; the goods remain in their original location. */
+  cargoWork?: { station: string; key: string; amount: number; done: number; time: number };
   /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
@@ -221,6 +224,9 @@ export interface WCommander extends Omit<CommanderDef, 'team'> {
 
 export interface Module {
   kind: string; progress: number; built: boolean; slot: number;
+  /** Original inputs for sized-station plans and optional core work. Old plans use facility defaults. */
+  materials?: Record<string, number>;
+  work?: number;
   // ── construction plan (unbuilt modules). Queue order = order in Station.modules. ──
   /** stable id for queue commands */
   id?: string;
@@ -243,6 +249,8 @@ export interface Station {
   name: string;
   owner: string;              // company id ('union' / 'guild' for public)
   public: boolean;
+  /** P9.6 station structure; absent for public and legacy stations with their original rules. */
+  size?: Size;
   style: number;
   pos: V;
   radius: number;

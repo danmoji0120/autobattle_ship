@@ -1,0 +1,90 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+···························xx··xx························
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p95-construction-logistics.test.ts > P9.5 construction logistics > waits with cargo aboard when a completed station is full and resumes once space is freed
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ until tests/p95-construction-logistics.test.ts:17:18
+     15| function until(sim: WorldSim, done: () => boolean, seconds = 1800) {
+     16|   for (let t = 0; t < seconds && !done(); t += .25) sim.update(.25);
+     17|   expect(done()).toBe(true);
+       |                  ^
+     18| }
+     19| function fixture() {
+ ❯ tests/p95-construction-logistics.test.ts:263:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/p95-construction-logistics.test.ts > P9.5 construction logistics > manual site delivery respects a completed station warehouse cap and retains excess aboard
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ until tests/p95-construction-logistics.test.ts:17:18
+     15| function until(sim: WorldSim, done: () => boolean, seconds = 1800) {
+     16|   for (let t = 0; t < seconds && !done(); t += .25) sim.update(.25);
+     17|   expect(done()).toBe(true);
+       |                  ^
+     18| }
+     19| function fixture() {
+ ❯ tests/p95-construction-logistics.test.ts:277:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/p95-construction-logistics.test.ts > P9.5 construction logistics > ordinary partial unloading also withdraws tracked cargo before a paused route can resume
+AssertionError: expected 130 to be 80 // Object.is equality
+
+- Expected
++ Received
+
+- 80
++ 130
+
+ ❯ tests/p95-construction-logistics.test.ts:333:38
+    331|     expect(f.sim.command(f.p, { c: 'setOp', group: g.id, op: { k: 'idl…
+    332|     (f.sim as any).unload(ship, site, false);
+    333|     expect(qty(ship.cargo, 'alloy')).toBe(80); expect(route.manifests[…
+       |                                      ^
+    334|     expect(route.stats.withdrawn).toBe(50);
+    335|     const restored = new WorldSim(JSON.parse(f.sim.serialize()), { mig…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/p95-construction-logistics.test.ts > P9.5 construction logistics > allocates one partial unload only once across old and new route manifests on the same ship
+AssertionError: expected 230 to be 180 // Object.is equality
+
+- Expected
++ Received
+
+- 180
++ 230
+
+ ❯ tests/p95-construction-logistics.test.ts:354:44
+    352|     expect(f.sim.command(f.p, { c: 'setOp', group: secondGroup.id, op:…
+    353|     (f.sim as any).unload(first.ship, site, false);
+    354|     expect(qty(first.ship.cargo, 'alloy')).toBe(180);
+       |                                            ^
+    355|     expect(first.route.manifests[first.ship.id].amount + second.manife…
+    356|     expect((first.route.stats.withdrawn ?? 0) + (second.stats.withdraw…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  4 failed | 53 passed (57)
+   Start at  16:33:03
+   Duration  17.00s (transform 1.71s, setup 0ms, import 2.62s, tests 13.18s, environment 1ms)

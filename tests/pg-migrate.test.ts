@@ -296,4 +296,40 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
     }
   }, 60_000);
+
+  it('restores a sized station, a running production batch and pending physical cargo handling through PostgreSQL restarts', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 969), sim = local.sim;
+    const p = sim.addPlayer('PG 정거장 시설'); sim.st.companies[p].credits = 500_000;
+    (sim as any).npcSlow = () => {};
+    for (const lair of Object.values(sim.st.lairs)) { lair.alive = false; lair.respawnAt = 1e10; }
+    const sys = sim.st.systems.quiet, at = { x: sys.origin.x + 10000, y: 0, z: 0 };
+    const builders = sim.newGroup(p, '공작반'), builder = sim.spawnShip(p, 'constructor', 'std', builders.id, at);
+    builder.cargo.alloy = 300;
+    expect(sim.command(p, { c: 'setOp', group: builders.id, op: { k: 'found', at, name: 'PG 소형 기지', size: 'S' } })).toBeNull();
+    for (let i = 0; i < 800 && !Object.values(sim.st.stations).some(s => s.owner === p && s.modules[0].built); i++) sim.update(.25);
+    const site = Object.values(sim.st.stations).find(s => s.owner === p)!;
+    expect(site.modules[0].built).toBe(true); expect(site.size).toBe('S');
+    site.storage[p].alloy = 220;
+    expect(sim.command(p, { c: 'queueModule', station: site.id, kind: 'refinery' })).toBeNull();
+    for (let i = 0; i < 1200 && !site.modules.some(m => m.kind === 'refinery' && m.built); i++) sim.update(.25);
+    expect(site.modules.some(m => m.kind === 'refinery' && m.built)).toBe(true);
+    site.storage[p].ore = 40;
+    expect(sim.command(p, { c: 'prodOrder', station: site.id, recipe: 'metal', mode: 'count', n: 1 })).toBeNull();
+    expect(site.jobs).toHaveLength(1);
+    const freight = sim.newGroup(p, '하역반'), ship = sim.spawnShip(p, 'hauler', 'std', freight.id, site.pos);
+    ship.cargo.alloy = 120; expect((sim as any).dockShip(ship, site)).toBe(true);
+    expect(sim.command(p, { c: 'unloadCargo', ship: ship.id })).toBeNull();
+    for (let i = 0; i < 8; i++) sim.update(.25);
+    expect(ship.cargoWork!.done).toBeGreaterThan(0); expect(ship.cargo.alloy).toBe(120);
+    const file = local.snapshotFile(), work = structuredClone(ship.cargoWork), jobs = structuredClone(site.jobs);
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    for (const port of [8326, 8327]) {
+      const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(srv)).toBe(0);
+      const world = (await row())!.data.world, saved = world.stations[site.id];
+      expect(saved.size).toBe('S'); expect(saved.modules).toEqual(file.world.stations[site.id].modules);
+      expect(saved.jobs).toEqual(jobs); expect(saved.storage[p].ore ?? 0).toBe(0);
+      expect(world.ships[ship.id].cargo.alloy).toBe(120); expect(world.ships[ship.id].cargoWork).toEqual(work);
+      expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
+    }
+  }, 60_000);
 });

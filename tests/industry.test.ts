@@ -104,7 +104,7 @@ describe('industry: multi-tier production', () => {
 
   it('stock-target orders keep a level, pause/resume/reorder/cancel work', () => {
     const { sim, p, own } = base();
-    give(own, 'power', 'refinery');
+    give(own, 'power', 'refinery', 'warehouse'); // the original 10,000 ore needs more than an S core
     const S = own.storage[p]; for (const k of Object.keys(S)) S[k] = 0;
     S.ore = 10000;
     sim.command(p, { c: 'prodOrder', station: own.id, recipe: 'metal', mode: 'stock', n: 100 });
@@ -123,7 +123,9 @@ describe('industry: multi-tier production', () => {
 
   it('nothing is created or destroyed except by recipes: long mixed run conserves every item', () => {
     const { sim, p, own } = base();
-    give(own, 'power', 'power', 'refinery', 'smelter', 'alloy_plant', 'machine_shop', 'hull_works', 'gas_plant');
+    // One generator covers the same full-speed lines; the warehouse holds the unchanged starting
+    // stock while keeping the S station within its eight-facility footprint.
+    give(own, 'power', 'refinery', 'smelter', 'alloy_plant', 'machine_shop', 'hull_works', 'gas_plant', 'warehouse');
     const S = own.storage[p]; for (const k of Object.keys(S)) S[k] = 0;
     Object.assign(S, { ore: 3000, titanium_ore: 600, silicate: 400, gas: 400 });
     for (const r of ['metal', 'titanium', 'silicon', 'alloy', 'machinery', 'structure', 'chemicals', 'precision']) sim.command(p, { c: 'prodOrder', station: own.id, recipe: r, mode: 'stock', n: 60 });

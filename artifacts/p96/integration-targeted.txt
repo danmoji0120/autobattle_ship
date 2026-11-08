@@ -1,0 +1,93 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting
+ ↓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives
+ ↓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored
+ ↓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production
+ ↓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work
+ ↓ tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item
+ ↓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods
+ ↓ tests/industry.test.ts > industry: multi-tier production > hauling: one item, everything, and automatic supply of what the destination lacks
+ ✓ tests/industry.test.ts > industry: multi-tier production > own warehouse capacity: unloading stops at the limit and keeps the rest aboard 7585ms
+ ↓ tests/industry.test.ts > industry: multi-tier production > public markets trade the new goods; regional production restocks and pirate pressure slows it
+ ↓ tests/industry.test.ts > industry: multi-tier production > production state survives a restart exactly; old saves are upgraded in place
+ ✓ tests/industry.test.ts > industry: multi-tier production > player exchange: escrow, purchase, withdrawal, no duplication under competing buyers 8ms
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > nine fields, every lab facility covers some, the tree is acyclic and every prerequisite exists
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > needs a lab of the right field; credits at registration, materials consumed at start, then the tech is known 11766ms
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > prerequisites: refused unless known or queued earlier; a queued follow-up waits, then starts by itself
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > parallel projects use separate slots; slot-limited projects queue; power and research techs change speed
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > pause, reorder and cancel (full refund before start, pro-rata after; materials are not returned)
+ × tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > unlocks are enforced: facility, recipe and hull design need the tech 1128ms
+   → expected 'S급 정거장에는 이 규모의 산업 시설을 설치할 수 없습니다' to match /연구 필요: 함선 추진기관/
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > blueprints: bought from a broker, learned from storage; known techs can be copied into tradeable blueprints
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > projects survive a restart and finish identically
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > hull classes span the agreed build times and grow in parts, slots and yard size
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting 8464ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls 926ms
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > designs need research; cancel refunds in full before the keel, partially after (parts are not returned)
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > own facilities never sell finished ships for credits; public yards still sell complete hulls
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitting moves modules between ship and storage all-or-nothing, within the hull slots
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitted modules change the tactical ship (hp, armour, speed, accuracy, range, evasion)
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > builds survive a restart and finish identically
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds 3872ms
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately 1066ms
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > cancel returns reserved materials and refunds credits (in full before work starts)
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > old saves: an unbuilt module without plan data is migrated without losing paid progress
+ ↓ tests/p8-ships.test.ts > P8 production ships > sells the real hulls at their declared yards and carries their fitted models into battle and saves
+ × tests/p8-ships.test.ts > P8 production ships > acquires blueprints, enforces research and builds the five hulls with real parts and presets 1135ms
+   → hauler_meridian: expected 'L급 선체를 수용할 정박 시설이 없습니다 (하역시설 증설 필요, 현…' to be null
+ ↓ tests/p8-ships.test.ts > P8 production ships > keeps growth content out of c0 and retains industrial tradeoffs
+ ↓ tests/p8-ships.test.ts > P8 production ships > fires the fitted weapons from each new combat hull in an actual battle simulation
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p8-ships.test.ts > P8 production ships > acquires blueprints, enforces research and builds the five hulls with real parts and presets
+AssertionError: hauler_meridian: expected 'L급 선체를 수용할 정박 시설이 없습니다 (하역시설 증설 필요, 현…' to be null
+
+- Expected:
+null
+
++ Received:
+"L급 선체를 수용할 정박 시설이 없습니다 (하역시설 증설 필요, 현재 M)"
+
+ ❯ tests/p8-ships.test.ts:76:138
+     74|     for (const x of ships) {
+     75|       const h = CONTENT.hulls[x.hull];
+     76|       expect(sim.command(p, { c: 'buildShip', station: own.id, classId…
+       |                                                                                                                                          ^
+     77|     }
+     78|     for (let i = 0; i < 20 && own.builds!.length; i++) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > unlocks are enforced: facility, recipe and hull design need the tech
+AssertionError: expected 'S급 정거장에는 이 규모의 산업 시설을 설치할 수 없습니다' to match /연구 필요: 함선 추진기관/
+
+- Expected:
+/연구 필요: 함선 추진기관/
+
++ Received:
+"S급 정거장에는 이 규모의 산업 시설을 설치할 수 없습니다"
+
+ ❯ tests/research.test.ts:125:89
+    123|     const { sim, p, own, co } = base();
+    124|     give(own, 'power', 'yard_s');
+    125|     expect(sim.command(p, { c: 'queueModule', station: own.id, kind: '…
+       |                                                                                         ^
+    126|     // c3: the blueprint (right) and the research (know-how) are separ…
+    127|     expect(sim.command(p, { c: 'buildShip', station: own.id, classId: …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  2 failed | 7 passed | 33 skipped (42)
+   Start at  16:47:38
+   Duration  39.25s (transform 1.67s, setup 0ms, import 2.42s, tests 35.96s, environment 1ms)

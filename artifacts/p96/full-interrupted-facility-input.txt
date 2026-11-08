@@ -1,0 +1,15 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips 1029ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands 2681ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > every growth hull is its own hull: own silhouette, a standard variant, presets that fit; mk1 hulls are unchanged 4ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > a growth ship maps to its hull + variant: stats multipliers and mesh reach the battle loadout 8ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > large industrial hulls do not dominate: lower efficiency on small fields, big berths, higher cost per throughput 5ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials 74479ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > a player-built ship sold on the exchange: ownership and equipment move, the buyer needs no blueprint or research 22ms
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > own builds check blueprint, research, yard, facilities and materials; the launched ship carries the preset 39056ms
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > blueprints are bought with credits from their source; wreck fragments assemble into one; unique ones are limited 5ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > overhead is flat per ship: splitting a fleet over accounts saves nothing (rev 2) 7ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve 61446ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > reserve and reactivation by command 4033ms

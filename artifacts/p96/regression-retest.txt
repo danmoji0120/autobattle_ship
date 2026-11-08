@@ -1,0 +1,26 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting
+ ↓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives
+ ↓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored
+ ↓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production
+ ✓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work 7602ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item 34873ms
+ ↓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods
+ ↓ tests/industry.test.ts > industry: multi-tier production > hauling: one item, everything, and automatic supply of what the destination lacks
+ ↓ tests/industry.test.ts > industry: multi-tier production > own warehouse capacity: unloading stops at the limit and keeps the rest aboard
+ ↓ tests/industry.test.ts > industry: multi-tier production > public markets trade the new goods; regional production restocks and pirate pressure slows it
+ ↓ tests/industry.test.ts > industry: multi-tier production > production state survives a restart exactly; old saves are upgraded in place
+ ↓ tests/industry.test.ts > industry: multi-tier production > player exchange: escrow, purchase, withdrawal, no duplication under competing buyers
+ ↓ tests/p5.test.ts > P5 content is installed and gated > weapons, modules, techs, facilities and recipes are in the game tables, marked growth-only
+ ↓ tests/p5.test.ts > P5 content is installed and gated > a c0 world refuses P5 research, facilities and recipes; a growth world accepts them
+ ✓ tests/p5.test.ts > P5 gameplay chain: research → facility → production → fitting → combat effect → save > works end to end 14247ms
+ ↓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > shields absorb hits first; energy weapons strip them faster than kinetic ones; they regenerate
+ ↓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > target preference: anti-small weapons prefer escorts, anti-capital weapons ignore raiders
+ ↓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > research combat effects: family-scoped damage, global accuracy, shields
+
+ Test Files  2 passed (2)
+      Tests  3 passed | 15 skipped (18)
+   Start at  17:18:02
+   Duration  59.87s (transform 1.84s, setup 0ms, import 2.54s, tests 56.73s, environment 0ms)

@@ -1,0 +1,47 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > creates S with its exact paid foundation plan and capacity
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > creates M with its exact paid foundation plan and capacity
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > creates L with its exact paid foundation plan and capacity
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > creates XL with its exact paid foundation plan and capacity
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > changes foundation escrow by the price difference and refunds the actual paid amount exactly once
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > retains old stations and c0 as legacy and gates industrial tiers only on new stations
+ × tests/p96-stations.test.ts > P9.6 sized stations > rejects inherited and malformed facility identifiers without altering credits or plans 104ms
+   → Cannot read properties of undefined (reading 'credits')
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > defaults a new unsized founding command to S while leaving a saved legacy order unchanged
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > limits power, resumes production, and never duplicates a batch held by a full warehouse
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > suspends instant support and defense on a brownout, then restores them when power is added
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > charges only sized stations through the existing upkeep account
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > settles the station charge once and retains it over a save and restart
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > recovers half the materials once, requires room, and rejects foreign demolition
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > snapshots the materials committed to each new facility and recovers half of that cost
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > blocks berth overflow without moving or deleting existing ships
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > holds a completed ship build safely until a berth becomes free
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > keeps manually unloaded cargo aboard until physical handling finishes, including across restart
+ ↓ tests/p96-stations.test.ts > P9.6 sized stations > physically transports purchased construction materials across gates and resumes handling after restart
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p96-stations.test.ts > P9.6 sized stations > rejects inherited and malformed facility identifiers without altering credits or plans
+TypeError: Cannot read properties of undefined (reading 'credits')
+ ❯ normPlan src/world/construction.ts:35:17
+     33|   m.used ??= Object.fromEntries(Object.entries(moduleMaterials(m)).map…
+     34|   m.reserved ??= {};
+     35|   m.paid ??= md.credits;
+       |                 ^
+     36|   m.paused ??= false;
+     37|   return m;
+ ❯ WorldSim.executeCommand src/world/sim.ts:771:19
+ ❯ src/world/sim.ts:509:70
+ ❯ watchMoney src/world/observe.ts:46:16
+ ❯ WorldSim.command src/world/sim.ts:509:12
+ ❯ tests/p96-stations.test.ts:81:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 17 skipped (18)
+   Start at  16:58:28
+   Duration  2.23s (transform 1.63s, setup 0ms, import 1.87s, tests 107ms, environment 0ms)

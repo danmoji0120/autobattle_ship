@@ -28,7 +28,7 @@ export interface LogisticsRoute {
   manifests: Record<string, RouteManifest>; cursors: Record<string, RouteCursor>; done: string[];
   replenishing?: boolean; stats: RouteStats; recent: ({ t: number } & RouteStats)[];
 }
-type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'undock' | 'sellAt' | 'ev'>;
+type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'undock' | 'sellAt' | 'ev'>;
 export const routeShips = (w: Pick<WorldState, 'ships' | 'groups'>, route: Pick<LogisticsRoute, 'group' | 'owner'>): WShip[] => {
   const out: WShip[] = [], root = w.groups[route.group]; if (!root) return out;
   const walk = (g: WGroup) => { for (const id of g.shipIds) { const s = w.ships[id]; if (s?.owner === route.owner && econOf(s).cargo > 0) out.push(s); } for (const id of g.childIds) { const child = w.groups[id]; if (child && !child.override) walk(child); } }; walk(root); return out;
@@ -51,7 +51,7 @@ function block(h: Host, r: LogisticsRoute, s: WShip, c: RouteCursor, code: strin
 function pause(h: Host, r: LogisticsRoute, reason: string) {
   if (r.state === 'paused' && r.reason === reason) return;
   r.state = 'paused'; r.reason = reason; r.updated = h.time;
-  for (const s of routeShips(h.st, r)) emit(h.st, { kind: 'logistics', reason: 'resumed', amount: 0, company: r.owner, group: s.groupId, ship: s.id, route: r.id });
+  for (const s of routeShips(h.st, r)) { if (s.cargoWork?.key.startsWith(`route:${r.id}:`)) delete s.cargoWork; emit(h.st, { kind: 'logistics', reason: 'resumed', amount: 0, company: r.owner, group: s.groupId, ship: s.id, route: r.id }); }
 }
 function bind(h: Host, r: LogisticsRoute) {
   const g = h.st.groups[r.group]; g.op = { k: 'haul', from: r.config.from, to: r.config.to, res: r.config.item, route: r.id }; g.override = true; g.fleeing = false; delete g.march;
@@ -110,7 +110,7 @@ export function controlRoutes(h: Host, owner: string, ids: string[], action: 'pa
   for (const r of routes as LogisticsRoute[]) {
     if (action === 'pause') { pause(h, r, '플레이어가 일시정지함'); for (const s of routeShips(h.st, r)) if (s.state !== 'battle') { s.vel = { x: 0, y: 0, z: 0 }; delete s.warp; } }
     else if (action === 'resume') { const restart = r.state === 'complete' || routeShips(h.st, r).every(s => r.done.includes(s.id)); r.state = 'running'; delete r.reason; if (restart) r.done = []; for (const c of Object.values(r.cursors)) { delete c.retryAt; delete c.code; } bind(h, r); r.updated = h.time; }
-    else { const g = h.st.groups[r.group]; if (g?.op.k === 'haul' && g.op.route === r.id) { for (const s of routeShips(h.st, r)) if (s.state !== 'battle') { s.vel = { x: 0, y: 0, z: 0 }; delete s.warp; } g.op = { k: 'idle' }; g.status = '노선 취소 — 화물 보존'; } delete h.st.logistics![r.id]; }
+    else { const g = h.st.groups[r.group]; if (g?.op.k === 'haul' && g.op.route === r.id) { for (const s of routeShips(h.st, r)) { if (s.cargoWork?.key.startsWith(`route:${r.id}:`)) delete s.cargoWork; if (s.state !== 'battle') { s.vel = { x: 0, y: 0, z: 0 }; delete s.warp; } } g.op = { k: 'idle' }; g.status = '노선 취소 — 화물 보존'; } delete h.st.logistics![r.id]; }
   }
   return null;
 }
@@ -185,7 +185,10 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
       if (moved) { takec(s.cargo, m.item, moved); record(r, h.time, { sold: moved, earned }); }
     } else {
       const targetRoom = m.mode === 'supply' ? Math.max(0, (m.targetStock ?? 0) - qty(h.storage(st, r.owner), m.item)) : m.mode === 'construction' ? constructionRoom(st, m.item) : Infinity;
-      moved = Math.max(0, Math.min(m.amount, h.intakeRoom(st, r.owner, m.item), targetRoom));
+      const desired = Math.max(0, Math.min(m.amount, h.intakeRoom(st, r.owner, m.item), targetRoom));
+      const permit = h.cargoPermit(s, st, `route:${r.id}:unload`, desired);
+      if (permit === null) { g.status = `${st.name}: 화물 하역 중`; return; }
+      moved = Math.min(desired, permit);
       if (moved) { takec(s.cargo, m.item, moved); addc(h.storage(st, r.owner), m.item, moved); }
     }
     m.amount -= moved;
@@ -220,6 +223,9 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
     const full = cap - cargoSum(s.cargo) < (r.config.mode === 'construction' ? 1e-9 : 1);
     block(h, r, s, c, full ? 'cargo' : 'source', full ? '기존 화물로 화물칸이 찼습니다 — 기존 화물 하역 필요' : `${st.name}의 자유 재고 부족 — 예약 자재는 사용하지 않음`, st.id); return;
   }
+  const permit = h.cargoPermit(s, st, `route:${r.id}:load`, amount);
+  if (permit === null) { g.status = `${st.name}: 화물 적재 중`; return; }
+  amount = Math.min(amount, permit);
   const loaded = takec(stock, r.config.item, amount); addc(s.cargo, r.config.item, loaded);
   r.manifests[s.id] = { from: r.config.from, to: r.config.to, item: r.config.item, mode: r.config.mode, amount: loaded, targetStock: r.config.targetStock, loadedAt: h.time };
   record(r, h.time, { loaded }); resetCursor(c, 'destination'); c.lastAction = h.time;

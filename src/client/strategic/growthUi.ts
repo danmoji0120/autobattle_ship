@@ -197,7 +197,7 @@ export function upkeepHtml(w: WorldState, me: string): string {
   const next = stage >= 1 && stage < 4 && u?.since ? STAGE_AT[stage + 1] - (w.time - u.since) : 0;
   const b = u?.bill;
   return `<div class="panel upk"><div class="shdr"><div class="stitle">운영비</div><button class="btn" data-upclose>✕</button></div>
-    <div class="bdr">시간당 약 <b class="money">${fmt(f.perHour)} cr</b> — 선체 유지 ${fmt(f.credits)} · 관리비 ${fmt(f.overhead)} · 대형선 정박료 ${fmt(f.dock)} · 창고 임대 ${fmt(f.lease)} · 소모품 ${fmt(f.suppliesCr)}${Object.keys(f.supplies).length ? ` (${itemList(f.supplies)})` : ''}</div>
+    <div class="bdr">시간당 약 <b class="money">${fmt(f.perHour)} cr</b> — 선체 유지 ${fmt(f.credits)} · 관리비 ${fmt(f.overhead)} · 대형선 정박료 ${fmt(f.dock)} · 정거장 ${fmt(f.station)} · 창고 임대 ${fmt(f.lease)} · 소모품 ${fmt(f.suppliesCr)}${Object.keys(f.supplies).length ? ` (${itemList(f.supplies)})` : ''}</div>
     <div class="dim small">소모품은 자사 창고(자사 정거장 → 본거지)에서 먼저 쓰고, 없으면 본거지 시장에서 실제 재고·가격으로 삽니다. 함선은 우주에서 일하며 마모되고, 수리 시설이 있는 곳에 정박할 때마다 자동 정비됩니다. 관리비는 함선마다 똑같이 유지비의 10%입니다 (함대를 나눠도 줄지 않음). 대형 함대의 진짜 부담은 정비 능력입니다 — 공용 정비소는 모든 회사가 나눠 쓰므로 붐비면 마모가 다 지워지지 않고, 자사 정비소·격납고가 있어야 대함대를 유지할 수 있습니다.</div>
     <div class="bdr">상태: <b class="${stage >= 2 ? 'warn' : stage ? 'warnish' : 'good'}">${!stage && u?.debt ? '소액 미납' : STAGE_NAME[stage]}</b>${u?.debt ? ` · 체납 <b class="warn">${moneyText(u.debt)} cr</b>` : ''}${next > 0 ? ` · 다음 단계까지 ${dur(next)}` : ''}</div>
     ${stage ? '<div class="small">체납 단계: 1 경고 → 2 보급·정비 지연(30분) → 3 정박 함선 신규 출항 보류(60분) → 4 예비역 전환 권고(120분). 운항·전투 중인 함선은 건드리지 않으며, 함선·장비는 삭제되지 않습니다. 자금이 들어오면 자동으로 갚습니다.</div>' : ''}

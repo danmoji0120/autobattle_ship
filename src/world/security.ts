@@ -3,13 +3,14 @@
 import type { StarSystem, Station, Lair, V } from './types';
 import { sysAt } from './geom';
 import { influenceSec } from './factions';
+import { stationSupportOnline } from './production';
 
 interface SecWorld { systems: Record<string, StarSystem>; stations: Record<string, Station>; lairs: Record<string, Lair> }
 
 /** effective system security: base minus recent pirate activity, bounded so a capital never collapses */
 export const effSec = (sys: StarSystem) => Math.max(0, Math.min(100, sys.security - Math.min(sys.heat * 0.3, 4 + (100 - sys.security) * 0.35) + influenceSec(sys)));
 
-const hasDefense = (s: Station) => s.modules.some(m => m.kind === 'defense' && m.built);
+const hasDefense = (s: Station) => s.modules.some(m => m.kind === 'defense' && m.built) && stationSupportOnline(s);
 
 /** local security at a point: government reach, station defences, pirate lairs and remoteness */
 export function secAt(w: SecWorld, p: V, sys = sysAt(w.systems, p)): number {

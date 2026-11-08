@@ -15,6 +15,7 @@ import type { Station, Company, ResearchProject, WorldState } from './types';
 import { qty, addc, hasAll } from './types';
 import { FACILITIES, TECHS, EQUIPMENT, ITEMS, itemName, techFx, type Field } from './industry';
 import { stationPower } from './production';
+import { stationSize } from './stations';
 
 export const SALVAGE_TIME = 0.4;
 export const COPY_TIME = 0.15;
@@ -108,6 +109,7 @@ export function stepResearch(stt: WorldState, co: Company, dt: number): Research
     const t = TECHS[p.tech];
     if (!st || st.owner !== co.id || !t) { p.why = '연구 정거장 상실'; continue; }
     if (p.paused) { p.why = '일시정지'; continue; }
+    if (stationSize(st) && stationPower(st).factor <= 0) { p.why = '전력 부족 — 연구 자재 보존'; continue; }
     if (!p.started && p.source !== 'copy') {
       const miss = missingPre(co, p.tech);
       if (miss.length) { p.why = `선행 연구 대기: ${miss.map(x => TECHS[x]?.name ?? x).join(', ')}`; continue; }

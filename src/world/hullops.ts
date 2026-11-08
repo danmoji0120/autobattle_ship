@@ -10,6 +10,7 @@ import { HULLS, FACILITIES } from './industry';
 import { hullPrice } from './valuation';
 import { MK1_STOCK, MK1_RESTOCK, MK1_MIL_REP } from './econConfig';
 import type { Station, WShip, WorldState } from './types';
+import { stationSize } from './stations';
 
 /** contentV from which hull data, upkeep, market demand and blueprint rules apply */
 export const GROWTH_V = 3;
@@ -148,6 +149,7 @@ export function yardHulls(st: Station): string[] {
 export const PUBLIC_BERTH: Record<string, Size> = { helios: 'XL', exchange: 'XL', bastion: 'XL', astra: 'L', nova: 'L', barcaco: 'L', drakeout: 'M', cinderco: 'M', rustport: 'M', p9_lyra_port: 'L', p9_ceres_works: 'L', p9_harbor_port: 'L', p9_forge_works: 'L' };
 export function berthOf(st: Station): Size {
   if (st.public) return PUBLIC_BERTH[st.id] ?? 'M';
+  const sized = stationSize(st); if (sized) return sized.berth;
   const docks = st.modules.filter(m => m.built && m.kind === 'dock').length;
   const big = st.modules.some(m => m.built && (FACILITIES[m.kind]?.yard ?? 0) >= 3);
   return docks >= 2 || (docks >= 1 && big) ? 'XL' : docks >= 1 ? 'L' : 'M';

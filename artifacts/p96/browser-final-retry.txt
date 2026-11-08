@@ -1,0 +1,21 @@
+PASS founding screen offers all four sizes
+PASS S shows its own founding cost
+PASS M shows its own founding cost
+PASS L shows its own founding cost
+PASS XL shows its own founding cost
+PASS founding through the game UI takes a refundable prepayment
+PASS constructor physically establishes an initially empty frontier site
+PASS construction panel explains the shortage before any purchase
+PASS market purchase stays at the source until physically shipped
+PASS construction panel opens a destination-prefilled supply editor
+PASS actual loaded carrier passes a jump gate with a tracked manifest
+page.goto: net::ERR_ABORTED at http://127.0.0.1:5175/?sp=continue
+Call log:
+[2m  - navigating to "http://127.0.0.1:5175/?sp=continue", waiting until "domcontentloaded"[22m
+
+    at /workspace/autobattle_ship/scripts/p96-browser.cjs:86:16 {
+  log: [
+    '  - navigating to "http://127.0.0.1:5175/?sp=continue", waiting until "domcontentloaded"'
+  ],
+  name: 'Error'
+}

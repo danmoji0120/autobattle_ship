@@ -8,13 +8,16 @@
 //    for its kind whose recipe is researched, whose target isn't met, whose inputs are ALL in storage
 //    and whose output still fits in the warehouse. The inputs are taken out of storage at that moment
 //    (so nothing can spend them twice) and the output appears when the job finishes.
-//  - Speed = power factor × research × support facilities. Low power slows everything, never stops it.
+//  - Speed = power factor × research × support facilities. Sized stations can also stop at zero power;
+//    legacy stations retain their original 25% floor.
 //  - Every order carries `why`: the exact reason it is not producing right now.
 
 import { emit } from './observe';
 import type { Station, Cargo, Company, WorldState } from './types';
 import { qty, addc, cargoSum, hasAll } from './types';
 import { FACILITIES, RECIPES, ITEMS, itemName, techFx, type RecipeDef } from './industry';
+import { stationSize, stationBerths, occupiedBerths } from './stations';
+import { storeUsed, takesSpace } from './storage';
 
 export interface ProdOrder { id: string; recipe: string; mode: 'count' | 'stock'; n: number; done: number; paused?: boolean; why?: string }
 export interface ProdJob { id: string; order: string; recipe: string; fac: string; left: number; total: number }
@@ -26,16 +29,19 @@ export function stationPower(st: Station) {
   let supply = 0, demand = 0;
   for (const m of st.modules) {
     if (!m.built) continue;
-    const p = FACILITIES[m.kind]?.power ?? 0;
+    const p = m.kind === 'core' && stationSize(st) ? stationSize(st)!.power : FACILITIES[m.kind]?.power ?? 0;
     if (p >= 0) supply += p; else demand -= p;
   }
-  const factor = demand <= 0 ? 1 : Math.max(0.25, Math.min(1, supply / demand));
+  const factor = demand <= 0 ? 1 : Math.max(stationSize(st) ? 0 : 0.25, Math.min(1, supply / demand));
   return { supply, demand, factor };
 }
 
+/** Instantaneous support services cannot run fractionally; old stations keep their prior rules. */
+export const stationSupportOnline = (st: Station) => !stationSize(st) || stationPower(st).factor >= 1;
+
 export function storageCap(st: Station): number {
   let cap = 0;
-  for (const m of st.modules) if (m.built) cap += FACILITIES[m.kind]?.storage ?? 0;
+  for (const m of st.modules) if (m.built) cap += m.kind === 'core' && stationSize(st) ? stationSize(st)!.storage : FACILITIES[m.kind]?.storage ?? 0;
   return cap;
 }
 
@@ -79,12 +85,19 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   if (!orders.length && !jobs.length) return out;
   const store = (st.storage[st.owner] ??= { ore: 0, alloy: 0, crystal: 0 });
   const speed = prodSpeed(st, co);
+  const sized = !!stationSize(st);
+  const capacity = sized ? storageCap(st) : 0;
+  const space = (cargo: Record<string, number>) => Object.entries(cargo).reduce((n, [item, amount]) => n + (takesSpace(item) ? amount : 0), 0);
   // 1) running jobs
   for (let i = jobs.length - 1; i >= 0; i--) {
     const j = jobs[i];
     j.left -= dt * speed;
     if (j.left > 0) continue;
     const r = RECIPES[j.recipe];
+    if (sized && (speed <= 0 || storeUsed(store) + space(r.out) > capacity + 1e-9)) {
+      j.left = 0;
+      continue; // The completed batch remains in its job until power and output space return.
+    }
     for (const [k, n] of Object.entries(r.out)) { addc(store, k, n); if (world) emit(world, { kind: 'produce', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
     jobs.splice(i, 1);
     const o = orders.find(x => x.id === j.order);
@@ -97,6 +110,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   // 2) free lines take the first order they can serve
   const cap = storageCap(st);
   const used = cargoSum(store);
+  let projected = sized ? storeUsed(store) + jobs.reduce((n, j) => n + space(RECIPES[j.recipe]?.out ?? {}), 0) : 0;
   const busy: Record<string, number> = {};
   for (const j of jobs) busy[j.fac] = (busy[j.fac] ?? 0) + 1;
   for (const o of orders) {
@@ -104,6 +118,8 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
     if (!r) { o.why = '알 수 없는 레시피'; continue; }
     if (o.paused) { o.why = '일시 정지'; continue; }
     if (!recipeOk(r, co)) { o.why = `연구 필요`; continue; }
+    if (sized && speed <= 0) { o.why = '전력 부족 — 자재와 작업 보존'; continue; }
+    if (sized && jobs.some(j => j.order === o.id && j.left <= 0)) { o.why = '창고 가득 — 완성품 보관 공간 대기'; continue; }
     const lines = facLines(st, r.fac);
     if (!lines) { o.why = `${FACILITIES[r.fac]?.name ?? r.fac} 없음`; continue; }
     let started = 0;
@@ -114,8 +130,9 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
       const sh = shortText(store, r.in);
       if (sh) { o.why = inflight(jobs, o) ? `가동 중 · 다음 배치 원료 부족: ${sh}` : `원료 부족: ${sh}`; break; }
       const outN = Object.values(r.out).reduce((a, b) => a + b, 0) - Object.values(r.in).reduce((a, b) => a + b, 0);
-      if (cap > 0 && used + outN > cap) { o.why = `창고 가득 (${fmt(used)}/${fmt(cap)})`; break; }
+      if (sized ? projected - space(r.in) + space(r.out) > cap + 1e-9 : cap > 0 && used + outN > cap) { o.why = `창고 가득 (${fmt(sized ? storeUsed(store) : used)}/${fmt(cap)})`; break; }
       for (const [k, n] of Object.entries(r.in)) { addc(store, k, -n); if (world) emit(world, { kind: 'consume', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
+      if (sized) projected += space(r.out) - space(r.in);
       jobs.push({ id: `j${(st.seq = (st.seq ?? 0) + 1)}`, order: o.id, recipe: r.id, fac: r.fac, left: r.time, total: r.time });
       busy[r.fac] = (busy[r.fac] ?? 0) + 1;
       o.why = '가동 중';
@@ -155,7 +172,7 @@ export { hasAll, ITEMS };
 import type { ShipBuild } from './types';
 import { HULLS, loadoutEquipment, EQUIPMENT, TECHS } from './industry';
 import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
-import { hullBuild } from './hullops';
+import { hullBuild, hullEcon, berthFits } from './hullops';
 import { CONTENT } from '../content/registry';
 
 export const YARD_NAME = ['', '소형', '중형', '대형', '초대형'];
@@ -215,12 +232,19 @@ export function stepBuilds(st: Station, co: Company | undefined, dt: number, wor
     if (b.started) {
       if (b.paused) { b.why = '일시 정지 (슬롯 유지)'; continue; }
       if (!taken.has(b.id)) { b.why = '조선소 슬롯 없음'; continue; }
+      if (stationSize(st) && speed <= 0) { b.why = '전력 부족 — 건조 중단'; continue; }
       b.left -= dt * speed;
       b.why = `건조 중 — ${FACILITIES[slots[taken.get(b.id)!].kind].name}`;
-      if (b.left <= 0) { q.splice(q.indexOf(b), 1); done.push(b); }
+      if (b.left <= 0) {
+        const limit = stationBerths(st);
+        if (limit !== undefined && world && occupiedBerths(world, st.id) + done.length >= limit) { b.left = 0; b.why = '정박 공간 대기 — 완성된 선체 보존'; continue; }
+        q.splice(q.indexOf(b), 1); done.push(b);
+      }
       continue;
     }
     if (b.paused) { b.why = '일시 정지'; continue; }
+    if (stationSize(st) && speed <= 0) { b.why = '전력 부족 — 부품 보존'; continue; }
+    if (stationSize(st) && !berthFits(st, hullEcon(b.hull ?? `${b.classId}_mk1`, b.variant).berth)) { b.why = '이 정거장의 정박 규격으로 수용할 수 없는 선체'; continue; }
     const noTech = (h.tech ?? []).filter(t => !co?.tech?.includes(t));
     if (noTech.length) { b.why = `설계 연구 필요: ${noTech.map(t => TECHS[t]?.name ?? t).join(', ')}`; continue; }
     const noFac = (h.facilities ?? []).filter(f => !st.modules.some(m => m.built && m.kind === f));

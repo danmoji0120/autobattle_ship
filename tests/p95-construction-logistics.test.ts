@@ -7,6 +7,7 @@ import { observeWorld, type Observation } from '../src/world/observe';
 import { FUNDS_INFLOW } from '../src/world/market';
 import { GameServer } from '../src/server/core';
 import type { RouteConfig } from '../src/world/logistics';
+import { storageCap } from '../src/world/production';
 
 function quiet(sim: WorldSim) {
   (sim as any).npcSlow = () => {};
@@ -253,7 +254,7 @@ describe('P9.5 construction logistics', () => {
 
   it('waits with cargo aboard when a completed station is full and resumes once space is freed', () => {
     const f = fixture(), site = createSite(f);
-    site.modules[0].built = true; site.modules[0].progress = 1; site.storage[f.p].ore = 20000;
+    site.modules[0].built = true; site.modules[0].progress = 1; site.storage[f.p].ore = storageCap(site);
     expect(f.sim.command(f.p, { c: 'queueModule', station: site.id, kind: 'repair' })).toBeNull();
     expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 180 })).toBeNull();
     const { ship, route } = routeTo(f.sim, f.p, site.id, 180);
@@ -267,7 +268,7 @@ describe('P9.5 construction logistics', () => {
 
   it('manual site delivery respects a completed station warehouse cap and retains excess aboard', () => {
     const f = fixture(), site = createSite(f); site.modules[0].built = true; site.modules[0].progress = 1;
-    site.storage[f.p].ore = 20000;
+    site.storage[f.p].ore = storageCap(site);
     expect(f.sim.command(f.p, { c: 'queueModule', station: site.id, kind: 'repair' })).toBeNull();
     const g = f.sim.newGroup(f.p, '수동 반입'), ship = f.sim.spawnShip(f.p, 'hauler', 'std', g.id, f.at); ship.cargo.alloy = 180;
     expect(f.sim.command(f.p, { c: 'setOp', group: g.id, op: { k: 'build', station: site.id } })).toBeNull();
@@ -323,7 +324,7 @@ describe('P9.5 construction logistics', () => {
   });
 
   it('ordinary partial unloading also withdraws tracked cargo before a paused route can resume', () => {
-    const f = fixture(), site = createSite(f); site.modules[0].built = true; site.modules[0].progress = 1; site.storage[f.p].ore = 19950;
+    const f = fixture(), site = createSite(f); site.modules[0].built = true; site.modules[0].progress = 1; site.storage[f.p].ore = storageCap(site) - 50;
     expect(f.sim.command(f.p, { c: 'queueModule', station: site.id, kind: 'repair' })).toBeNull();
     expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 100 })).toBeNull();
     const { g, ship, route } = routeTo(f.sim, f.p, site.id, 100); ship.cargo.alloy = 30;
@@ -337,7 +338,7 @@ describe('P9.5 construction logistics', () => {
   });
 
   it('allocates one partial unload only once across old and new route manifests on the same ship', () => {
-    const f = fixture(), site = createSite(f); site.modules[0].built = true; site.modules[0].progress = 1; site.storage[f.p].ore = 19950;
+    const f = fixture(), site = createSite(f); site.modules[0].built = true; site.modules[0].progress = 1; site.storage[f.p].ore = storageCap(site) - 50;
     expect(f.sim.command(f.p, { c: 'queueModule', station: site.id, kind: 'repair' })).toBeNull();
     expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 200 })).toBeNull();
     const first = routeTo(f.sim, f.p, site.id, 100); first.ship.cargo.alloy = 30;

@@ -1,0 +1,26 @@
+PASS founding screen offers all four sizes
+PASS S shows its own founding cost
+PASS M shows its own founding cost
+PASS L shows its own founding cost
+PASS XL shows its own founding cost
+PASS founding through the game UI takes a refundable prepayment
+PASS constructor physically establishes an initially empty frontier site
+PASS construction panel explains the shortage before any purchase
+PASS market purchase stays at the source until physically shipped
+PASS construction panel opens a destination-prefilled supply editor
+page.screenshot: Timeout 30000ms exceeded.
+Call log:
+[2m  - taking page screenshot[22m
+[2m    - disabled all CSS animations[22m
+[2m  - waiting for fonts to load...[22m
+[2m  - fonts loaded[22m
+
+    at /workspace/autobattle_ship/scripts/p96-browser.cjs:77:16 {
+  log: [
+    '  - taking page screenshot',
+    '    - disabled all CSS animations',
+    '  - waiting for fonts to load...',
+    '  - fonts loaded'
+  ],
+  name: 'TimeoutError'
+}

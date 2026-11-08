@@ -1,0 +1,9 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+···················-----·----·--
+
+ Test Files  4 passed (4)
+      Tests  21 passed | 11 skipped (32)
+   Start at  16:59:17
+   Duration  8.51s (transform 1.67s, setup 0ms, import 2.35s, tests 5.31s, environment 0ms)

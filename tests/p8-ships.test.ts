@@ -56,6 +56,9 @@ describe('P8 production ships', () => {
     expect(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'found', at: { x: a.x + 2600, y: 0, z: a.z + 2600 }, name: '시험 조선소' } })).toBeNull();
     run(sim, 200, 0.5);
     const own = Object.values(sim.st.stations).find(s => s.owner === p)!;
+    // This P8 fixture represents a pre-P9.6 saved yard, whose existing docks and assets retain
+    // their legacy berth rules. New size and berth limits have separate P9.6 coverage.
+    delete own.size;
     addModules(own, 'power', 'power', 'power', 'power', 'yard_s', 'yard_m', 'hull_works', 'machine_shop', 'electronics_fab', 'dock', 'comms', 'fitting');
     for (const x of ships) {
       const h = CONTENT.hulls[x.hull];

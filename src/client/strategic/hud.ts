@@ -16,7 +16,7 @@ import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
 import { CHART_HEIGHT, CHART_STARS, CHART_WIDTH, chartPoint, chartRoute, edgeKey } from './galaxyMap';
 import { morph, trackSelects } from '../../ui/morph';
-import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, matsOf, type Mat } from '../../world/construction';
+import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, planMats, type Mat } from '../../world/construction';
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
 import { TECHS, ITEMS, EQUIPMENT } from '../../world/industry';
 import { FittingScreen } from './fittingUi';
@@ -26,6 +26,10 @@ import { growthOn, econOf } from '../../world/hullops';
 import { priceOf } from '../../world/market';
 import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml, storageGrowthHtml, sitesHtml } from './growthUi';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
+import type { Size } from '../../content/schema';
+import { STATION_SIZES, facilityProblem, facilityCapacity, occupiedCapacity, stationSize, stationBerths, occupiedBerths, stationCargoRate, moduleMaterials, moduleWork, moduleUnlocks } from '../../world/stations';
+import { stationPower, storageCap, facilityLoad } from '../../world/production';
+import { storeUsed } from '../../world/storage';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
 type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string } | null;
@@ -54,6 +58,7 @@ export class PmcHud {
   sel: Sel = null;
   group: string | null = null;      // own group receiving orders
   private mode: Mode = null;
+  private foundSize: Size = 'S';
   private haulFrom: string | null = null;
   private refreshT = 0;
   private expanded = new Set<string>();
@@ -548,7 +553,7 @@ export class PmcHud {
       case 'found': {
         const pt = plane(); if (!pt) return;
         const name = prompt('새 정거장 이름', `${this.st.companies[this.me].name} 기지`);
-        if (name !== null) this.setOp({ k: 'found', at: pt, name: name || '전진기지' });
+        if (name !== null) this.setOp({ k: 'found', at: pt, name: name || '전진기지', ...(growthOn(this.st) ? { size: this.foundSize } : {}) });
         return;
       }
     }
@@ -587,7 +592,7 @@ export class PmcHud {
     const txt: Record<string, string> = {
       move: '이동 지점 클릭', dock: '정박할 정거장 클릭', mine: '채굴할 소행성 지대 클릭 → 하역 목적지·방식 설정', haul_from: '운송 출발 정거장 클릭',
       patrol: '순찰 지점 또는 소행성 지대 클릭', escort: '호위할 자사 함선 클릭', attack: '해적 함선 또는 은신처 클릭', build: growthOn(this.st) ? '자사 건설 현장 클릭 — 공작선은 작업, 화물선은 필요한 자재 반입' : '건설할 자사 정거장 클릭',
-      found: `정거장 부지 클릭 — 다른 정거장과 2,600 이상 떨어져야 함 (비용 ${fmt(FOUND_COST.credits)} cr + 합금 ${FOUND_COST.alloy}${growthOn(this.st) ? ' · 설립비 선납, 중단 시 환급 · 자재 직접 운송' : ''})`,
+      found: growthOn(this.st) ? `${this.foundSize}급 부지 클릭 — 설립비 ${fmt(STATION_SIZES[this.foundSize].credits)} cr 선납 · 자재 직접 운송 · 중단 시 환급` : `정거장 부지 클릭 — 다른 정거장과 2,600 이상 떨어져야 함 (비용 ${fmt(FOUND_COST.credits)} cr + 합금 ${FOUND_COST.alloy})`,
     };
     if (m) { e.textContent = txt[m] + ' · 우클릭/Esc 취소'; e.classList.remove('hidden'); this.v.renderer.domElement.style.cursor = 'crosshair'; }
     else { e.classList.add('hidden'); this.v.renderer.domElement.style.cursor = ''; }
@@ -814,6 +819,7 @@ export class PmcHud {
     morph(el, html);
     this.bindMineForm(el);
     el.querySelectorAll<HTMLButtonElement>('[data-op]').forEach(b => b.onclick = () => this.opButton(b.dataset.op!));
+    const size = el.querySelector<HTMLSelectElement>('[data-found-size]'); if (size) size.onchange = () => { this.foundSize = size.value as Size; if (this.mode === 'found') this.setMode('found'); else this.renderSel(true); };
     el.querySelectorAll<HTMLInputElement>('[data-detach]').forEach(b => b.onchange = () => this.cmd({ c: 'setDetached', group: b.dataset.detach!, on: b.checked }));
     el.querySelectorAll<HTMLButtonElement>('[data-unloadship]').forEach(b => b.onclick = () => this.cmd({ c: 'unloadCargo', ship: b.dataset.unloadship! }));
     el.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(b => b.onclick = () => this.openStation(b.dataset.open!));
@@ -924,6 +930,7 @@ export class PmcHud {
           ${opb('build', growthOn(st) && !hasCon ? '현장 반입' : '건설', '', hasCon || growthOn(st) && hasCargo)}${opb('found', '정거장 설립', '', ships.some(s => s.classId === 'constructor'))}
           ${opb('idle', '대기', 'I')}${g.parentId ? `<button class="btn${!g.override ? ' on' : ''}" data-op="release" title="상위 편대 지휘관에게 위임">위임<span class="key">T</span></button>` : ''}
         </div>
+        ${growthOn(st) && ships.some(s => s.classId === 'constructor') ? `<div class="station-found-choice"><label>정거장 규모 <select data-found-size data-keep>${Object.entries(STATION_SIZES).map(([id, d]) => `<option value="${id}" ${id === this.foundSize ? 'selected' : ''}>${id} · ${d.name}</option>`).join('')}</select></label><span>${fmt(STATION_SIZES[this.foundSize].credits)} cr · ${Object.entries(STATION_SIZES[this.foundSize].mats).map(([r, n]) => `${iname(r)} ${fmt(n)}`).join(' · ')}</span><small>시설 ${STATION_SIZES[this.foundSize].capacity} · 전력 ${STATION_SIZES[this.foundSize].power} · 정박 ${STATION_SIZES[this.foundSize].berths}척 · 운영 ${fmt(STATION_SIZES[this.foundSize].upkeep)} cr/h</small></div>` : ''}
         ${g.parentId ? `<div class="row small"><label class="chk" title="체크하면 이 편대는 본대 진형에서 빠져 자기 속도로 앞서 움직입니다 (정찰·선봉). 해제하면 본대와 함께 가장 느린 함선 속도로 이동합니다."><input type="checkbox" data-detach="${g.id}" ${g.detached ? 'checked' : ''}> 독립 기동 (정찰·선봉 — 본대보다 먼저 움직임)</label></div>` : ''}
         ${hasMiner ? this.mineFormHtml(g) : ''}
         ${this.exploreHtml(g, hasCargo)}
@@ -1062,7 +1069,7 @@ export class PmcHud {
     if (!ships.some(x => x.classId === 'constructor') && !Object.values(st.stations).some(x => x.owner === me) && co.credits > 20000) return '자금이 쌓였습니다. <b>공작선</b>을 구매하고 <b>정거장 설립</b>으로 자체 기지를 세울 수 있습니다.';
     const own = Object.values(st.stations).find(x => x.owner === me);
     if (own && own.modules.some(m => m.kind === 'core' && !m.built) && !groups.some(g => g.op.k === 'build')) return `공작선 편대에 <b>건설</b> 명령을 내려 ${esc(own.name)}의 도킹 허브를 완성하세요. 합금이 부족하면 시장에서 사서 <b>운송</b>하세요.`;
-    if (own && own.modules.some(m => !m.built && matsOf(m.kind).some(r => missing(m, r) > 1))) return `${esc(own.name)}의 건설 계획이 <b>자재 대기 중</b>입니다. 채굴선 하역지를 이 정거장으로 지정하거나 합금을 <b>운송</b>하면 자동으로 착공합니다.`;
+    if (own && own.modules.some(m => !m.built && planMats(m).some(r => missing(m, r) > 1))) return `${esc(own.name)}의 건설 계획이 <b>자재 대기 중</b>입니다. 채굴선 하역지를 이 정거장으로 지정하거나 자재를 <b>운송</b>하면 자동으로 착공합니다.`;
     if (own && own.modules.length === 1 && own.modules[0].built) return `${esc(own.name)}에 <b>정제소</b>를 지으면 광석을 합금으로 바꿔 건설·조선에 쓸 수 있습니다.`;
     if (co.rep >= 10 && !ships.some(x => x.classId === 'cruiser')) return '평판이 올랐습니다. 수도 성계 <b>헬리오스</b> 조선소에서 <b>순양함</b>을 살 수 있습니다 (Tab: 성계 지도).';
     if (co.stats.earned > 30000 && !ships.some(s => sysAt(st.systems, s.pos)?.id !== 'astra')) return '아스트라는 안전하지만 수익이 제한적입니다. <b>Tab</b>으로 성계 지도를 열어 <b>드레이크 변경</b>을 살펴보세요 — 광맥이 풍부하고 보수가 높지만 호위가 필요합니다.';
@@ -1258,6 +1265,11 @@ export class PmcHud {
         follow(12);
       }
     });
+    m.querySelectorAll<HTMLButtonElement>('[data-remove-module]').forEach(b => b.onclick = async () => {
+      const slot = Number(b.dataset.removeModule), target = s.modules.find(x => x.slot === slot && x.built);
+      if (!target || !confirm(`${MODULES[target.kind]?.name ?? target.kind}을(를) 철거할까요? 자재의 50%를 회수하며 크레딧은 환급되지 않습니다.`)) return;
+      if (await this.cmd({ c: 'removeModule', station: s.id, slot })) this.renderModal(true);
+    });
     m.querySelectorAll<HTMLElement>('[data-bpick]').forEach(b => b.onclick = () => { this.bSel = { kind: b.dataset.bpick! }; this.renderModal(true); });
     m.querySelectorAll<HTMLElement>('[data-bplan]').forEach(b => b.onclick = e => {
       if ((e.target as HTMLElement).closest('button')) return;
@@ -1378,19 +1390,21 @@ export class PmcHud {
       const amount = Math.min(manifest.amount, qty(ship.cargo, manifest.item));
       return amount > 0 ? [{ route: r, ship, manifest, amount }] : [];
     }));
-    const materials = [...new Set(plans.flatMap(m => matsOf(m.kind)))];
+    const materials = [...new Set(plans.flatMap(planMats))];
     const marketItem = materials.find(r => (shortQ[r] ?? 0) > qty(store, r));
     const sys = sysAt(this.st.systems, s.pos);
     const markets = marketItem ? Object.values(this.st.stations).filter(st => st.public && st.market?.[marketItem] && st.market[marketItem].stock >= 1).sort((a, b) => jumps(this.st.systems, sys?.id ?? '', sysAt(this.st.systems, a.pos)?.id ?? '') - jumps(this.st.systems, sys?.id ?? '', sysAt(this.st.systems, b.pos)?.id ?? '')).slice(0, 2) : [];
     const lst = (c: Record<string, number>) => Object.entries(c).map(([k, n]) => `${iname(k)} ${fmt(n)}`).join(' · ');
     const count = (k: string) => built.filter(m => m.kind === k).length;
+    const size = stationSize(s), power = stationPower(s), load = facilityLoad(s), berths = stationBerths(s);
+    const sizeInfo = size ? `<div class="station-facts"><span><b>${s.size}급 ${size.name}</b> · 운영 ${fmt(size.upkeep)} cr/h</span><span>시설 용량 <b>${occupiedCapacity(s)}/${size.capacity}</b></span><span>전력 <b>${fmt(power.supply)}/${fmt(power.demand)}</b>${power.factor < 1 ? ` <em>가동 ${Math.round(power.factor * 100)}%</em>` : ''}</span><span>창고 <b>${fmt(storeUsed(store))}/${fmt(storageCap(s))}</b></span><span>정박 <b>${occupiedBerths(this.st as any, s.id)}/${berths}</b> · ${size.berth}급 이하</span><span>화물 처리 <b>${fmt(stationCargoRate(s) ?? size.cargoRate)}/초</b> · 함선당</span></div>` : '<div class="dim small">기존 호환 정거장 — 저장된 시설·용량과 운영 규칙 유지</div>';
     // ── summary ──
-    let html = `<div class="bstore"><div><b>시설</b> ${built.length}개 가동 · 계획 ${plans.length} · 슬롯 ${s.modules.length}/${MAX_MODULES}${cons.length ? ` · 공작선 ${cons.length}개 편대 투입` : ''}${count('core') ? ' · 자체 건설반' : ''}</div>
+    let html = `<div class="bstore">${sizeInfo}<div><b>시설</b> ${built.length}개 완공 · 계획 ${plans.length} · 슬롯 ${s.modules.length}/${MAX_MODULES}${cons.length ? ` · 공작선 ${cons.length}개 편대 투입` : ''}${count('core') ? ' · 자체 건설반' : ''}</div>
       ${Object.keys(reservedTot).length ? `<div class="dim small">건설 예약됨: ${lst(reservedTot)}</div>` : ''}
       ${Object.keys(shortQ).length ? `<div class="small"><span class="warn">대기열 부족분</span>: ${lst(shortQ)} — 현장에 반입하면 자동 예약됩니다.</div>` : ''}</div>`;
     if (growthOn(this.st) && plans.length) {
       const rows = materials.map(item => {
-        const required = plans.reduce((n, m) => n + (MODULES[m.kind].mats[item] ?? 0), 0);
+        const required = plans.reduce((n, m) => n + (moduleMaterials(m)[item] ?? 0), 0);
         const used = plans.reduce((n, m) => n + (m.used?.[item] ?? 0), 0), reserved = plans.reduce((n, m) => n + (m.reserved?.[item] ?? 0), 0);
         const local = qty(store, item), short = Math.max(0, (shortQ[item] ?? 0) - local);
         const traveling = incoming.filter(x => x.manifest.item === item).reduce((n, x) => n + x.amount, 0);
@@ -1406,9 +1420,9 @@ export class PmcHud {
     html += `<h3>건설 진행 · 대기열 (${plans.length})</h3>`;
     html += plans.length ? `<div class="bq">${plans.map((m, i) => {
       const md = MODULES[m.kind]; const ps = planState(s, m);
-      const mats = matsOf(m.kind).map(r => {
+      const mats = planMats(m).map(r => {
         const have = (m.used?.[r] ?? 0) + (m.reserved?.[r] ?? 0), miss = missing(m, r);
-        return `${iname(r)} ${fmt(have)}/${fmt(md.mats[r])}${miss > 0.5 ? ` <span class="warn">${fmt(miss)} 부족</span>` : ''}`;
+        return `${iname(r)} ${fmt(have)}/${fmt(moduleMaterials(m)[r])}${miss > 0.5 ? ` <span class="warn">${fmt(miss)} 부족</span>` : ''}`;
       }).join(' · ');
       const sel = this.bSel?.plan === m.id;
       const waitingCrew = ps === 'building' && m.kind === 'core' && !cons.length;
@@ -1423,15 +1437,15 @@ export class PmcHud {
     const planned = (k: string) => s.modules.filter(m => m.kind === k).length;
     const buildable = (md: ModuleDef) => md.kind !== 'core' && (!md.growth || growthOn(this.st)) && (md.max === undefined || planned(md.kind) < md.max);
     html += `<div class="bcols"><div class="bcat">${FAC_CATS.map(c => {
-      const kinds = [...new Set(built.filter(m => MODULES[m.kind]?.cat === c).map(m => m.kind))];
+      const installed = built.filter(m => MODULES[m.kind]?.cat === c);
       const can = Object.values(MODULES).filter(md => md.cat === c && buildable(md));
-      if (!kinds.length && !can.length) return '';
+      if (!installed.length && !can.length) return '';
       return `<div class="bcg"><div class="bch">${c}</div>
-        ${kinds.map(k => `<div class="bfac own"><b>${MODULES[k].name}</b>${count(k) > 1 ? ` ×${count(k)}` : ''} <span class="good">가동 중</span></div>`).join('')}
+        ${installed.map(m => { const md = MODULES[m.kind], activity = load[m.kind]; const status = md.power < 0 && power.factor < 1 ? size && ['armory', 'defense', 'trade_hub', 'fitting'].includes(m.kind) ? '전력 부족 · 가동 중단' : `전력 제한 ${Math.round(power.factor * 100)}%` : activity ? `작업 ${activity.busy}/${activity.lines}` : '완공'; return `<div class="bfac own station-installed"><span><b>${md.name}</b> <span class="${power.factor < 1 && md.power < 0 ? 'warn' : 'good'}">${status}</span></span>${m.kind !== 'core' && growthOn(this.st) ? `<button class="btn mini warnb" data-remove-module="${m.slot}">철거</button>` : ''}</div>`; }).join('')}
         ${can.map(md => {
           const req = !md.requires || s.modules.some(m => m.kind === md.requires);
-          const tech = !md.tech || co.tech?.includes(md.tech);
-          return `<div class="bfac pick${this.bSel?.kind === md.kind && !this.bSel.plan ? ' sel' : ''}${req && tech ? '' : ' locked'}" data-bpick="${md.kind}"><b>${md.name}</b>${planned(md.kind) ? ` <span class="dim">(+${planned(md.kind)})</span>` : ''} <span class="money">${fmt(md.credits)} cr</span><div class="dim small">${lst(md.mats)}${tech ? '' : ` · <span class="warn">연구: ${esc(TECHS[md.tech!]?.name ?? '')}</span>`}</div></div>`;
+          const tech = !md.tech || co.tech?.includes(md.tech), problem = facilityProblem(s, md.kind);
+          return `<div class="bfac pick${this.bSel?.kind === md.kind && !this.bSel.plan ? ' sel' : ''}${req && tech && !problem ? '' : ' locked'}" data-bpick="${md.kind}"><b>${md.name}</b>${planned(md.kind) ? ` <span class="dim">(+${planned(md.kind)})</span>` : ''} <span class="money">${fmt(md.credits)} cr</span><div class="dim small">${lst(md.mats)}${size ? ` · 용량 ${facilityCapacity(md.kind)}` : ''}${tech ? '' : ` · <span class="warn">연구: ${esc(TECHS[md.tech!]?.name ?? '')}</span>`}${problem ? ` · <span class="warn">${esc(problem)}</span>` : ''}</div></div>`;
         }).join('')}</div>`;
     }).join('')}</div><div class="bdet">${this.buildDetail(s)}</div></div>
       <div class="dim small">건설 자재는 <b>이 정거장 창고</b>에서만 쓰입니다 (다른 정거장 창고는 운송 필요, 함선 화물은 하역 후 반영). 계획에 예약된 자재는 판매·생산·운송에 쓸 수 없습니다. 같은 시설을 여러 개 지으면 처리량(라인)이 늘어납니다.</div>`;
@@ -1455,10 +1469,10 @@ export class PmcHud {
     const cons = this.constructionGroups(s.id);
     const crew = s.modules.some(m => m.kind === 'core' && m.built) && md.kind !== 'core';
     const rate = (crew ? STATION_CREW_RATE : 0) + cons.reduce((a, g) => a + (g.commanderId ? 0.8 + (this.st.commanders[g.commanderId]?.skill ?? 0.5) * 0.5 : 1), 0);
-    const left = md.work * (1 - (plan?.progress ?? 0));
+    const left = (plan ? moduleWork(plan) : md.work) * (1 - (plan?.progress ?? 0));
     const tStr = rate > 0 ? `약 ${fmtT(left / rate)}${cons.length ? ` (공작선 ${cons.length}개 편대${crew ? ' + 자체 건설반' : ''})` : ' (자체 건설반만 — 공작선을 투입하면 더 빠름)'}` : '공작선 필요 (도킹 허브는 공작선만 건설 가능)';
     const ahead = queueShortfall(s);
-    const rows = Object.entries(md.mats).map(([r, need]) => {
+    const rows = Object.entries(plan ? moduleMaterials(plan) : md.mats).map(([r, need]) => {
       const name = iname(r); const have = qty(store, r);
       if (plan) {
         const used = plan.used?.[r] ?? 0, res = plan.reserved?.[r] ?? 0, miss = missing(plan, r);
@@ -1476,19 +1490,19 @@ export class PmcHud {
     const extra = [md.power > 0 ? `전력 +${md.power}` : md.power < 0 ? `전력 소모 ${-md.power}` : '', md.lines ? `라인 ${md.lines}` : '', md.storage ? `창고 +${fmt(md.storage)}` : '', md.max ? `정거장당 최대 ${md.max}` : '여러 개 건설 가능'].filter(Boolean).join(' · ');
     let act = '';
     if (!plan) {
-      const why = !tech ? `연구 필요: ${esc(TECHS[md.tech!]?.name ?? md.tech!)}` : !req ? `${MODULES[md.requires!].name}이(가) 먼저 필요합니다` : !slots ? `시설 슬롯이 가득 찼습니다 (${MAX_MODULES})` : crShort > 0 ? `자금 부족 — ${fmt(crShort)} cr 더 필요` : '';
+      const why = !tech ? `연구 필요: ${esc(TECHS[md.tech!]?.name ?? md.tech!)}` : !req ? `${MODULES[md.requires!].name}이(가) 먼저 필요합니다` : !slots ? `시설 슬롯이 가득 찼습니다 (${MAX_MODULES})` : facilityProblem(s, md.kind) ?? (crShort > 0 ? `자금 부족 — ${fmt(crShort)} cr 더 필요` : '');
       act = `${why ? `<div class="warn">${why}</div>` : ''}<button class="btn go" data-module="${md.kind}" ${why ? 'disabled' : ''}>건설 계획 등록</button>
         <div class="dim small">자재가 부족해도 등록할 수 있습니다. 자재가 이 정거장 창고에 들어오면 자동으로 예약되고, 모두 확보되면 착공합니다.</div>`;
     } else act = `<div class="bqa">${plan.paused ? `<button class="btn" data-pop="resume:${plan.id}">▶ 재개</button>` : `<button class="btn" data-pop="pause:${plan.id}">⏸ 일시 정지</button>`}${plan.kind === 'core' ? '' : `<button class="btn warnb" data-pop="cancel:${plan.id}">✕ 계획 취소</button>`}</div>
       <div class="dim small">일시 정지: 예약 자재는 유지, 작업·추가 확보 중단 · 취소: 예약 자재는 창고로 반환, 투입된 자재는 회수 불가, 크레딧은 남은 공정 비율만큼 환불${plan.progress <= 0 ? ' (착공 전이라 전액)' : ` (현재 ${fmt((plan.paid ?? 0) * (1 - plan.progress))} cr)`}</div>`;
     const waitingCrew = ps === 'building' && plan?.kind === 'core' && !cons.length;
     return `<div class="bdh"><b>${md.name} 건설</b> <span class="dim">· ${md.cat}</span>${ps ? ` <span class="pst ps-${ps}">${waitingCrew ? '공작선 대기' : PLAN_STATE_NAME[ps]}${ps === 'building' && !waitingCrew ? ` ${Math.round(plan!.progress * 100)}%` : ''}</span>` : ''}</div>
-      <div class="dim">${esc(md.desc)}</div>
+      <div class="dim">${esc(stationSize(s) && md.kind === 'dock' ? '화물 처리 속도와 정박 정원을 늘립니다.' : md.desc)}</div>
       <div class="bdr small">${extra}</div>
-      <div class="bdr">비용 <b class="money">${fmt(md.credits)} cr</b>${plan ? ' (등록 시 지불됨)' : ` — 보유 ${fmt(co.credits)} cr ${crShort > 0 ? `<span class="warn">${fmt(crShort)} 부족</span>` : '<span class="good">충분</span>'}`}</div>
+      <div class="bdr">비용 <b class="money">${fmt(plan?.paid ?? md.credits)} cr</b>${plan ? ' (등록 시 지불됨)' : ` — 보유 ${fmt(co.credits)} cr ${crShort > 0 ? `<span class="warn">${fmt(crShort)} 부족</span>` : '<span class="good">충분</span>'}`}</div>
       <table class="gt bmat"><tr><th>자재</th><th>필요</th>${plan ? '<th>확보</th><th>예약</th><th>창고 가용</th>' : '<th>창고</th><th>가용</th>'}<th>상태</th></tr>${rows}</table>
       <div class="bdr">예상 건설 시간: ${tStr}</div>
-      <div class="bdr">완공 시 해금: <b>${esc(md.unlocks)}</b></div>${act}`;
+      <div class="bdr">완공 시 해금: <b>${esc(moduleUnlocks(s, md.kind))}</b></div>${act}`;
   }
 
   // ============================================================== overlay
