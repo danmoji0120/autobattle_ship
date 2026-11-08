@@ -1,0 +1,12 @@
+
+> siderarium@0.1.0 models:hash
+> vite-node scripts/models/hash.ts
+
+OK   model.patrol_pathfinder  aca43b5a1c23a6c9e287a987b3d8ebbb601939addc394195b037113e2d8c92ad  (77 KB)
+OK   model.destroyer_lancet  a35ebb154e7a6f76658653b6b56455e7c0dd6a275eb51162426f6e917382f6a8  (87 KB)
+OK   model.miner_quarry  92937f023ecbb56beddebb08d4babaac4c93a920d2a29c8dad6338e445690003  (99 KB)
+OK   model.hauler_meridian  d124a333c2287c7af38a02da888a03762feffd6b0493cb537aea4128e2f1ff42  (103 KB)
+OK   model.cruiser_vigil  e1848b16b36bd35754811a21b98548f283b3bf1d9b6092f0ae148aec41d0bd63  (101 KB)
+OK   model.testbed_destroyer  2931550e1b55b4849d0f1c2bc9049fca75c4400f7f263f450ae0830454c5d6a4  (89 KB)
+OK   lod.testbed_destroyer  ae631971b4528bce359b2db4f64dce4d8404ac228f948daf110d5ae05218939c  (31 KB)
+OK   model.testbed_hauler  8dd0b11af9c0da91854f77265791418d9c70f0174e8a7739be849147b97bca9c  (140 KB)

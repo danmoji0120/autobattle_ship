@@ -1,0 +1,13 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/research.test.ts (9 tests | 7 skipped) 98001ms
+     ✓ salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster  57725ms
+     ✓ projects survive a restart and finish identically  40272ms
+ ✓ tests/shipyard.test.ts (8 tests | 7 skipped) 52691ms
+     ✓ builds survive a restart and finish identically  52689ms
+
+ Test Files  2 passed (2)
+      Tests  3 passed | 14 skipped (17)
+   Start at  09:29:16
+   Duration  152.25s (transform 904ms, setup 0ms, import 1.20s, tests 150.69s, environment 0ms)

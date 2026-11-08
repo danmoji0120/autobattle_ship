@@ -1,0 +1,36 @@
+{
+  "overall": "Partial",
+  "testedCodeCommit": "59eeb12d3f5380d93d7b0f08fb030df65b4f13e7",
+  "mergeCommit": "20ea70c1bda9ff81b6d6f825c0823d1cdc6a7a68",
+  "runtimeMatchesMergeCommit": true,
+  "previousEvidenceUnchanged": true,
+  "unit": {
+    "passed": 228,
+    "failed": 0,
+    "postgresSeparated": 5
+  },
+  "postgresPassed": 5,
+  "p8MultiplayerPassed": 16,
+  "legacyMultiplayerPassed": 67,
+  "analyticsMultiplayerPassed": 14,
+  "browserGameplayPassed": 21,
+  "browserFocusedBattlePassed": 6,
+  "c0": {
+    "baseline": "4a19e19bc47ca7ae27d9c97e7f57533232686fe1",
+    "companies": 2,
+    "seconds": 1800,
+    "minuteHashesMatched": 30,
+    "hash": "baf2897aa5701df971d05d19ba12c85e1c953fa4d774ac074a9273afda6404a4",
+    "analyticsActive": true,
+    "reconciliation": 0
+  },
+  "productionDataCopyUsed": false,
+  "productionDBChanged": false,
+  "productionDeployed": false,
+  "balanceChangedByIntegration": false,
+  "remaining": [
+    "Collector overhead non-regression is not established: paired medians 4.544% before and 9.976% after, with high variability.",
+    "No production copy was provided/configured; synthetic c0 migration and original-commit deterministic comparison were used.",
+    "Real GPU, weeks-long runtime and full-duration construction of every P8 hull are not claimed."
+  ]
+}

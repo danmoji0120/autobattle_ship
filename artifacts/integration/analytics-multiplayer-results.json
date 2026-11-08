@@ -1,0 +1,19 @@
+{
+  "checks": [
+    "first test account signs in",
+    "second test account signs in",
+    "administrator access is disabled without trusted server configuration",
+    "real rental command creates a prepaid lease",
+    "server file save includes actual telemetry",
+    "account and company survive server restart",
+    "forged client admin/account fields do not grant access",
+    "player query returns only its own company",
+    "private event rows are scoped to the authenticated company",
+    "ordinary snapshots redact competitor finances and lease data",
+    "ordinary snapshots redact competitor warehouse inventory",
+    "trusted server account receives administrator analysis",
+    "real server currency ledger reconciles",
+    "restart does not duplicate starting-money statistics"
+  ],
+  "passed": 14
+}

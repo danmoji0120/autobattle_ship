@@ -1,0 +1,21 @@
+PASS all five purchased P8 hulls load their GLBs in the integrated strategic view
+PASS P8 warships follow an authoritative strategic move command
+PASS all five variants retain correct model and valid hardpoint loadouts
+PASS P8 Quarry and Meridian repeat mining, collection, unloading and real market sales
+PASS two UI-configured P8 routes feed production and deliver the real output
+PASS integrated logistics fits 1440px
+PASS integrated logistics fits 1024px
+PASS integrated logistics fits 390px
+PASS player analytics graphs use the actual P8 mining, trade and production history
+PASS admin overview works with integrated content
+PASS admin growth works with integrated content
+PASS admin market works with integrated content
+PASS admin industry works with integrated content
+PASS admin research works with integrated content
+PASS admin world works with integrated content
+PASS integrated economy reconciles without missing or duplicated telemetry
+PASS browser reload resumes the normal strategic clock
+PASS browser save/reload preserves all P8 fittings, assets and live routes after accounting for normal elapsed ticks
+PASS all five military and industrial P8 models enter the actual tactical view
+PASS P8 warships fire, take real damage and are naturally destroyed in the authoritative battle
+PASS no browser runtime errors during integrated play

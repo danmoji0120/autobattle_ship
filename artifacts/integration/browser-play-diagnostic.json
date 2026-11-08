@@ -1,0 +1,1139 @@
+{
+  "metadata": {
+    "p": "p1",
+    "combat": "g10",
+    "mine": "g11",
+    "supply": "g12",
+    "output": "g13",
+    "carrier": "s18",
+    "miner": "s17",
+    "product": "s19",
+    "hulls": {
+      "patrol_pathfinder": "s14",
+      "destroyer_lancet": "s15",
+      "miner_quarry": "s17",
+      "hauler_meridian": "s18",
+      "cruiser_vigil": "s16"
+    }
+  },
+  "checks": [
+    "all five purchased P8 hulls load their GLBs in the integrated strategic view",
+    "P8 warships follow an authoritative strategic move command",
+    "all five variants retain correct model and valid hardpoint loadouts",
+    "P8 Quarry and Meridian repeat mining, collection, unloading and real market sales",
+    "two UI-configured P8 routes feed production and deliver the real output",
+    "integrated logistics fits 1440px",
+    "integrated logistics fits 1024px",
+    "integrated logistics fits 390px",
+    "player analytics graphs use the actual P8 mining, trade and production history",
+    "admin overview works with integrated content",
+    "admin growth works with integrated content",
+    "admin market works with integrated content",
+    "admin industry works with integrated content",
+    "admin research works with integrated content",
+    "admin world works with integrated content",
+    "integrated economy reconciles without missing or duplicated telemetry",
+    "browser reload resumes the normal strategic clock",
+    "browser save/reload preserves all P8 fittings, assets and live routes after accounting for normal elapsed ticks",
+    "all three P8 military models enter the actual tactical view"
+  ],
+  "errors": [],
+  "movement": 1121.0986012114245,
+  "variants": [
+    {
+      "hull": "patrol_pathfinder",
+      "variant": "patrol_pathfinder_scout",
+      "hp": {
+        "main1": "eq_autocannon",
+        "gun1": "eq_autocannon",
+        "gun2": "eq_autocannon"
+      },
+      "model": "model.patrol_pathfinder"
+    },
+    {
+      "hull": "destroyer_lancet",
+      "variant": "destroyer_lancet_screen",
+      "hp": {
+        "gun1": "eq_medium_gun",
+        "vls1": "eq_missile_rack",
+        "vls2": "eq_missile_rack",
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun"
+      },
+      "model": "model.destroyer_lancet"
+    },
+    {
+      "hull": "miner_quarry",
+      "variant": "miner_quarry_hold",
+      "hp": {
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun"
+      },
+      "model": "model.miner_quarry"
+    },
+    {
+      "hull": "hauler_meridian",
+      "variant": "hauler_meridian_express",
+      "hp": {
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun",
+        "pd3": "eq_pd_gun",
+        "pd4": "eq_pd_gun"
+      },
+      "model": "model.hauler_meridian"
+    },
+    {
+      "hull": "cruiser_vigil",
+      "variant": "cruiser_vigil_command",
+      "hp": {
+        "main1": "eq_medium_gun",
+        "main2": "eq_medium_gun",
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun"
+      },
+      "model": "model.cruiser_vigil"
+    }
+  ],
+  "mining": {
+    "mined": 7338.240853942501,
+    "saleIncome": 22956.932615404923,
+    "carried": true
+  },
+  "industry": {
+    "delivered": 126,
+    "routes": [
+      {
+        "name": "P8 원료 공급",
+        "delivered": 600,
+        "owner": "p1"
+      },
+      {
+        "name": "P8 합금 출하",
+        "delivered": 126,
+        "owner": "p1"
+      }
+    ]
+  },
+  "health": {
+    "dropped": 0,
+    "failures": 0,
+    "bytes": 144536,
+    "maxBytes": 1048576,
+    "reconciliation": -1.3923272490501404e-7,
+    "queryOmitted": 0,
+    "gaps": []
+  },
+  "saveReload": {
+    "elapsed": 0.5,
+    "differences": [],
+    "expected": {
+      "logistics": {
+        "lr219": {
+          "id": "lr219",
+          "owner": "p1",
+          "group": "g12",
+          "config": {
+            "name": "P8 원료 공급",
+            "from": "astra",
+            "to": "integration_factory",
+            "item": "ore",
+            "mode": "supply",
+            "amount": 80,
+            "repeat": true,
+            "minStock": 60,
+            "targetStock": 120
+          },
+          "state": "running",
+          "created": 1512.5,
+          "updated": 1512.5,
+          "manifests": {},
+          "cursors": {
+            "s18": {
+              "phase": "waiting",
+              "lastAction": 1954.75,
+              "since": 2112.75,
+              "attempts": 1,
+              "code": "source",
+              "reason": "아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음",
+              "station": "astra",
+              "retryAt": 2116.75
+            }
+          },
+          "done": [],
+          "stats": {
+            "loaded": 600,
+            "delivered": 600,
+            "sold": 0,
+            "earned": 0,
+            "trips": 10,
+            "lost": 0,
+            "withdrawn": 0
+          },
+          "recent": [
+            {
+              "t": 1500,
+              "loaded": 180,
+              "delivered": 160,
+              "sold": 0,
+              "earned": 0,
+              "trips": 2,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1560,
+              "loaded": 60,
+              "delivered": 80,
+              "sold": 0,
+              "earned": 0,
+              "trips": 2,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1620,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1680,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1740,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1800,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1860,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1920,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            }
+          ],
+          "replenishing": true
+        },
+        "lr220": {
+          "id": "lr220",
+          "owner": "p1",
+          "group": "g13",
+          "config": {
+            "name": "P8 합금 출하",
+            "from": "integration_factory",
+            "to": "integration_depot",
+            "item": "alloy",
+            "mode": "transfer",
+            "amount": 14,
+            "repeat": true
+          },
+          "state": "running",
+          "created": 1512.5,
+          "updated": 1512.5,
+          "manifests": {},
+          "cursors": {
+            "s19": {
+              "phase": "waiting",
+              "lastAction": 2087,
+              "since": 2109.25,
+              "attempts": 1,
+              "code": "source",
+              "reason": "통합 제련소의 자유 재고 부족 — 예약 자재는 사용하지 않음",
+              "station": "integration_factory",
+              "retryAt": 2113.25
+            }
+          },
+          "done": [],
+          "stats": {
+            "loaded": 126,
+            "delivered": 126,
+            "sold": 0,
+            "earned": 0,
+            "trips": 9,
+            "lost": 0,
+            "withdrawn": 0
+          },
+          "recent": [
+            {
+              "t": 1560,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1620,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1680,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1740,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1800,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1860,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1920,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1980,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 2040,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            }
+          ],
+          "replenishing": false
+        }
+      },
+      "ships": {
+        "s14": {
+          "id": "s14",
+          "owner": "p1",
+          "classId": "corvette",
+          "loadoutId": "torp",
+          "name": "포말하우트",
+          "hp": 1,
+          "pos": {
+            "x": -258367.12078265887,
+            "y": -322,
+            "z": -12278.045516944114
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": -0.8975979010256645,
+          "groupId": "g10",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "integration_factory",
+            "berth": 2
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "patrol_pathfinder",
+          "variant": "patrol_pathfinder_scout",
+          "fitting": {
+            "hp": {
+              "main1": "eq_autocannon",
+              "gun1": "eq_autocannon",
+              "gun2": "eq_autocannon"
+            },
+            "bay": {},
+            "preset": "pathfinder_scout",
+            "sig": "torp|"
+          },
+          "fit": [],
+          "_holdWarp": false,
+          "wear": 0.00016319444444444462,
+          "dockWait": 12.5
+        },
+        "s15": {
+          "id": "s15",
+          "owner": "p1",
+          "classId": "destroyer",
+          "loadoutId": "aa",
+          "name": "아크투루스",
+          "hp": 1,
+          "pos": {
+            "x": -258499.44050906666,
+            "y": -278,
+            "z": -12214.32369513856
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": -1.3463968515384708,
+          "groupId": "g10",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "integration_factory",
+            "berth": 3
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "destroyer_lancet",
+          "variant": "destroyer_lancet_screen",
+          "fitting": {
+            "hp": {
+              "gun1": "eq_medium_gun",
+              "vls1": "eq_missile_rack",
+              "vls2": "eq_missile_rack",
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "lancet_screen",
+            "sig": "aa|"
+          },
+          "fit": [],
+          "_holdWarp": false,
+          "wear": 0.0001597222222222224,
+          "dockWait": 12.5
+        },
+        "s17": {
+          "id": "s17",
+          "owner": "p1",
+          "classId": "miner",
+          "loadoutId": "std",
+          "name": "곡괭이 18호",
+          "hp": 1,
+          "pos": {
+            "x": -255386.50169066244,
+            "y": 187.86710330317672,
+            "z": -15434.182702473885
+          },
+          "vel": {
+            "x": -4.862870133526631e-109,
+            "y": 0.9419042123966119,
+            "z": 3.7505929446935216e-109
+          },
+          "heading": -0.9138198951137144,
+          "groupId": "g11",
+          "state": "space",
+          "task": {
+            "k": "none"
+          },
+          "cargo": {
+            "ore": 367.98702658124995,
+            "alloy": 0,
+            "crystal": 0,
+            "silicate": 122.66234219375
+          },
+          "kills": 0,
+          "hull": "miner_quarry",
+          "variant": "miner_quarry_hold",
+          "fitting": {
+            "hp": {
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "quarry_hold",
+            "sig": "std|"
+          },
+          "fit": [],
+          "_waitFull": 0,
+          "wear": 0.0006944444444444421
+        },
+        "s18": {
+          "id": "s18",
+          "owner": "p1",
+          "classId": "hauler",
+          "loadoutId": "std",
+          "name": "짐꾼 19호",
+          "hp": 1,
+          "pos": {
+            "x": -259570.19214368003,
+            "y": -322,
+            "z": -12392.868272249769
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": 3.5903916041026327,
+          "groupId": "g12",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "astra",
+            "berth": 6
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "hauler_meridian",
+          "variant": "hauler_meridian_express",
+          "fitting": {
+            "hp": {
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun",
+              "pd3": "eq_pd_gun",
+              "pd4": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "meridian_express",
+            "sig": "std|"
+          },
+          "fit": [],
+          "wear": 0,
+          "dockWait": 1954.75
+        },
+        "s16": {
+          "id": "s16",
+          "owner": "p1",
+          "classId": "light_cruiser",
+          "loadoutId": "gun",
+          "name": "라이라",
+          "hp": 1,
+          "pos": {
+            "x": -258646.30432547783,
+            "y": -322,
+            "z": -12214.32369513856
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": 4.4879895051282634,
+          "groupId": "g10",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "integration_factory",
+            "berth": 4
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "cruiser_vigil",
+          "variant": "cruiser_vigil_command",
+          "fitting": {
+            "hp": {
+              "main1": "eq_medium_gun",
+              "main2": "eq_medium_gun",
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "vigil_command",
+            "sig": "gun|"
+          },
+          "fit": [],
+          "_holdWarp": false,
+          "wear": 0.00016319444444444462,
+          "dockWait": 12.5
+        }
+      }
+    },
+    "actual": {
+      "logistics": {
+        "lr219": {
+          "id": "lr219",
+          "owner": "p1",
+          "group": "g12",
+          "config": {
+            "name": "P8 원료 공급",
+            "from": "astra",
+            "to": "integration_factory",
+            "item": "ore",
+            "mode": "supply",
+            "amount": 80,
+            "repeat": true,
+            "minStock": 60,
+            "targetStock": 120
+          },
+          "state": "running",
+          "created": 1512.5,
+          "updated": 1512.5,
+          "manifests": {},
+          "cursors": {
+            "s18": {
+              "phase": "waiting",
+              "lastAction": 1954.75,
+              "since": 2112.75,
+              "attempts": 1,
+              "code": "source",
+              "reason": "아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음",
+              "station": "astra",
+              "retryAt": 2116.75
+            }
+          },
+          "done": [],
+          "stats": {
+            "loaded": 600,
+            "delivered": 600,
+            "sold": 0,
+            "earned": 0,
+            "trips": 10,
+            "lost": 0,
+            "withdrawn": 0
+          },
+          "recent": [
+            {
+              "t": 1500,
+              "loaded": 180,
+              "delivered": 160,
+              "sold": 0,
+              "earned": 0,
+              "trips": 2,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1560,
+              "loaded": 60,
+              "delivered": 80,
+              "sold": 0,
+              "earned": 0,
+              "trips": 2,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1620,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1680,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1740,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1800,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1860,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1920,
+              "loaded": 60,
+              "delivered": 60,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            }
+          ],
+          "replenishing": true
+        },
+        "lr220": {
+          "id": "lr220",
+          "owner": "p1",
+          "group": "g13",
+          "config": {
+            "name": "P8 합금 출하",
+            "from": "integration_factory",
+            "to": "integration_depot",
+            "item": "alloy",
+            "mode": "transfer",
+            "amount": 14,
+            "repeat": true
+          },
+          "state": "running",
+          "created": 1512.5,
+          "updated": 1512.5,
+          "manifests": {},
+          "cursors": {
+            "s19": {
+              "phase": "waiting",
+              "lastAction": 2087,
+              "since": 2109.25,
+              "attempts": 1,
+              "code": "source",
+              "reason": "통합 제련소의 자유 재고 부족 — 예약 자재는 사용하지 않음",
+              "station": "integration_factory",
+              "retryAt": 2113.25
+            }
+          },
+          "done": [],
+          "stats": {
+            "loaded": 126,
+            "delivered": 126,
+            "sold": 0,
+            "earned": 0,
+            "trips": 9,
+            "lost": 0,
+            "withdrawn": 0
+          },
+          "recent": [
+            {
+              "t": 1560,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1620,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1680,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1740,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1800,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1860,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1920,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 1980,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            },
+            {
+              "t": 2040,
+              "loaded": 14,
+              "delivered": 14,
+              "sold": 0,
+              "earned": 0,
+              "trips": 1,
+              "lost": 0,
+              "withdrawn": 0
+            }
+          ],
+          "replenishing": false
+        }
+      },
+      "ships": {
+        "s14": {
+          "id": "s14",
+          "owner": "p1",
+          "classId": "corvette",
+          "loadoutId": "torp",
+          "name": "포말하우트",
+          "hp": 1,
+          "pos": {
+            "x": -258367.12078265887,
+            "y": -322,
+            "z": -12278.045516944114
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": -0.8975979010256645,
+          "groupId": "g10",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "integration_factory",
+            "berth": 2
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "patrol_pathfinder",
+          "variant": "patrol_pathfinder_scout",
+          "fitting": {
+            "hp": {
+              "main1": "eq_autocannon",
+              "gun1": "eq_autocannon",
+              "gun2": "eq_autocannon"
+            },
+            "bay": {},
+            "preset": "pathfinder_scout",
+            "sig": "torp|"
+          },
+          "fit": [],
+          "_holdWarp": false,
+          "wear": 0.00016319444444444462,
+          "dockWait": 12.5
+        },
+        "s15": {
+          "id": "s15",
+          "owner": "p1",
+          "classId": "destroyer",
+          "loadoutId": "aa",
+          "name": "아크투루스",
+          "hp": 1,
+          "pos": {
+            "x": -258499.44050906666,
+            "y": -278,
+            "z": -12214.32369513856
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": -1.3463968515384708,
+          "groupId": "g10",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "integration_factory",
+            "berth": 3
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "destroyer_lancet",
+          "variant": "destroyer_lancet_screen",
+          "fitting": {
+            "hp": {
+              "gun1": "eq_medium_gun",
+              "vls1": "eq_missile_rack",
+              "vls2": "eq_missile_rack",
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "lancet_screen",
+            "sig": "aa|"
+          },
+          "fit": [],
+          "_holdWarp": false,
+          "wear": 0.0001597222222222224,
+          "dockWait": 12.5
+        },
+        "s17": {
+          "id": "s17",
+          "owner": "p1",
+          "classId": "miner",
+          "loadoutId": "std",
+          "name": "곡괭이 18호",
+          "hp": 1,
+          "pos": {
+            "x": -255386.50169066244,
+            "y": 187.86710330317672,
+            "z": -15434.182702473885
+          },
+          "vel": {
+            "x": -4.862870133526631e-109,
+            "y": 0.9419042123966119,
+            "z": 3.7505929446935216e-109
+          },
+          "heading": -0.9138198951137144,
+          "groupId": "g11",
+          "state": "space",
+          "task": {
+            "k": "none"
+          },
+          "cargo": {
+            "ore": 367.98702658124995,
+            "alloy": 0,
+            "crystal": 0,
+            "silicate": 122.66234219375
+          },
+          "kills": 0,
+          "hull": "miner_quarry",
+          "variant": "miner_quarry_hold",
+          "fitting": {
+            "hp": {
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "quarry_hold",
+            "sig": "std|"
+          },
+          "fit": [],
+          "_waitFull": 0,
+          "wear": 0.0006944444444444421
+        },
+        "s18": {
+          "id": "s18",
+          "owner": "p1",
+          "classId": "hauler",
+          "loadoutId": "std",
+          "name": "짐꾼 19호",
+          "hp": 1,
+          "pos": {
+            "x": -259570.19214368003,
+            "y": -322,
+            "z": -12392.868272249769
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": 3.5903916041026327,
+          "groupId": "g12",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "astra",
+            "berth": 6
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "hauler_meridian",
+          "variant": "hauler_meridian_express",
+          "fitting": {
+            "hp": {
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun",
+              "pd3": "eq_pd_gun",
+              "pd4": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "meridian_express",
+            "sig": "std|"
+          },
+          "fit": [],
+          "wear": 0,
+          "dockWait": 1954.75
+        },
+        "s16": {
+          "id": "s16",
+          "owner": "p1",
+          "classId": "light_cruiser",
+          "loadoutId": "gun",
+          "name": "라이라",
+          "hp": 1,
+          "pos": {
+            "x": -258646.30432547783,
+            "y": -322,
+            "z": -12214.32369513856
+          },
+          "vel": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "heading": 4.4879895051282634,
+          "groupId": "g10",
+          "state": "docked",
+          "task": {
+            "k": "docked",
+            "station": "integration_factory",
+            "berth": 4
+          },
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "kills": 0,
+          "hull": "cruiser_vigil",
+          "variant": "cruiser_vigil_command",
+          "fitting": {
+            "hp": {
+              "main1": "eq_medium_gun",
+              "main2": "eq_medium_gun",
+              "pd1": "eq_pd_gun",
+              "pd2": "eq_pd_gun"
+            },
+            "bay": {},
+            "preset": "vigil_command",
+            "sig": "gun|"
+          },
+          "fit": [],
+          "_holdWarp": false,
+          "wear": 0.00016319444444444462,
+          "dockWait": 12.5
+        }
+      }
+    }
+  },
+  "failure": "TimeoutError: page.waitForFunction: Timeout 90000ms exceeded."
+}

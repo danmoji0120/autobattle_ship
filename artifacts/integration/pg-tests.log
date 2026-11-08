@@ -1,0 +1,24 @@
+
+> siderarium@0.1.0 test:pg
+> npm run -s build:server && vitest run tests/pg-migrate.test.ts --maxWorkers=1 --reporter=default --reporter=json --outputFile=artifacts/integration/pg-tests.json
+
+
+  dist-server/server.mjs  742.7kb
+
+⚡ Done in 233ms
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/pg-migrate.test.ts (5 tests) 22402ms
+     ✓ A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive  12424ms
+     ✓ a failing migration rolls back completely: world, generation and backup rows untouched  586ms
+     ✓ persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts  2006ms
+     ✓ preserves an in-flight managed route and its exact manifest through PostgreSQL process restarts  1500ms
+     ✓ restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts  2998ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  09:45:08
+   Duration  25.35s (transform 2.31s, setup 0ms, import 2.70s, tests 22.40s, environment 0ms)
+
+JSON report written to /workspace/autobattle_ship/artifacts/integration/pg-tests.json

@@ -17,6 +17,8 @@ node scripts/mptest.mjs      # 실제 WebSocket 클라이언트 2개로 동기�
 
 성장 월드의 **물류 관리**에서 편대별 반복 운송·자동 판매·생산 공급을 설정할 수 있습니다. 일괄 정지·재개와 장애 해결 화면 연결을 제공하며, 취소·대기 시 화물을 보존합니다. [사용법과 설계](docs/LOGISTICS_AUTOMATION_P2.md), [P2 검증 결과 및 성능 한계](docs/LOGISTICS_AUTOMATION_P2_VERIFICATION.md)를 확인하세요.
 
+P8 함선·성장·경제 분석·물류를 합친 개발 브랜치는 `integration/growth-p8-logistics`입니다. [통합 검증 보고서](docs/INTEGRATION_VERIFICATION.md)에 실제 플레이·저장·권한 검사와 남은 성능 한계를 기록합니다.
+
 ## 구조 (멀티플레이 전제)
 
 | 층 | 내용 |

@@ -1,0 +1,312 @@
+{
+  "baseline": "92d1fac",
+  "fixture": "three companies, real mining/market/postpaid leases, alternating order, 5 x 600s pairs; 300s warmup each; only new P8 public yard stock keys excluded from cross-version world hash",
+  "before": {
+    "pairs": [
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5794.138,
+          "wallMs": 5471.852616,
+          "tickP95Ms": 2.938975000000937,
+          "tickWorstMs": 5.9424300000000585,
+          "heapDelta": 850936,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6057.44,
+          "wallMs": 5857.515804000001,
+          "tickP95Ms": 3.1359749999992346,
+          "tickWorstMs": 8.387337000000116,
+          "heapDelta": 1472088,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 4.5442825144999865,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6020.138,
+          "wallMs": 5752.796472000002,
+          "tickP95Ms": 3.104386999999406,
+          "tickWorstMs": 7.308823999999731,
+          "heapDelta": 774728,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6852.318,
+          "wallMs": 6235.087549,
+          "tickP95Ms": 3.298862999999983,
+          "tickWorstMs": 5.476826000001893,
+          "heapDelta": 1521512,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 13.823271160893658,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6418.093,
+          "wallMs": 5906.230048000001,
+          "tickP95Ms": 3.1837850000010803,
+          "tickWorstMs": 8.281306000000768,
+          "heapDelta": 733856,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6460.454,
+          "wallMs": 6129.692430999996,
+          "tickP95Ms": 3.2717150000025867,
+          "tickWorstMs": 7.040929000002507,
+          "heapDelta": 1577072,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 0.6600247145063243,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 5943.939,
+          "wallMs": 5692.558633000001,
+          "tickP95Ms": 3.037530000001425,
+          "tickWorstMs": 4.900315999999293,
+          "heapDelta": 670376,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6831.623,
+          "wallMs": 6278.924074000002,
+          "tickP95Ms": 3.365447000003769,
+          "tickWorstMs": 9.872343999995792,
+          "heapDelta": 1509328,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 14.934271700971347,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6700.343,
+          "wallMs": 6189.040031999997,
+          "tickP95Ms": 3.5007019999975455,
+          "tickWorstMs": 25.237487999998848,
+          "heapDelta": 691352,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6640.503,
+          "wallMs": 6240.162312000008,
+          "tickP95Ms": 3.330504999998084,
+          "tickWorstMs": 32.4730469999995,
+          "heapDelta": 1623760,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": -0.8930886075533717,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc"
+      }
+    ]
+  },
+  "after": {
+    "pairs": [
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6573.953,
+          "wallMs": 6215.211173,
+          "tickP95Ms": 3.395586999999068,
+          "tickWorstMs": 20.232553999998345,
+          "heapDelta": 825592,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6686.951,
+          "wallMs": 6403.8417549999995,
+          "tickP95Ms": 3.4000379999997676,
+          "tickWorstMs": 7.6953990000001795,
+          "heapDelta": 1469048,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 1.7188744732431038,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "0088937fb03cf6e8bb9b372a1551e2e2c9f04bb0a1c673193c910a03662bba96"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6648.462,
+          "wallMs": 6335.908982000001,
+          "tickP95Ms": 3.331105999997817,
+          "tickWorstMs": 31.152328000000125,
+          "heapDelta": 752936,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 7311.703,
+          "wallMs": 6756.416952,
+          "tickP95Ms": 3.660413999998127,
+          "tickWorstMs": 7.179381999998441,
+          "heapDelta": 1562848,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 9.975856070170819,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "0088937fb03cf6e8bb9b372a1551e2e2c9f04bb0a1c673193c910a03662bba96"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6519.423,
+          "wallMs": 6268.740472999998,
+          "tickP95Ms": 3.314172000005783,
+          "tickWorstMs": 8.460059999997611,
+          "heapDelta": 667368,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 7485.321,
+          "wallMs": 6808.021165999999,
+          "tickP95Ms": 3.7161160000032396,
+          "tickWorstMs": 7.773670000002312,
+          "heapDelta": 1464488,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 14.815697646862303,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "0088937fb03cf6e8bb9b372a1551e2e2c9f04bb0a1c673193c910a03662bba96"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 7069.385,
+          "wallMs": 6516.536084000007,
+          "tickP95Ms": 3.518025999997917,
+          "tickWorstMs": 9.089304000000993,
+          "heapDelta": 326856,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 6937.508,
+          "wallMs": 6559.9118549999985,
+          "tickP95Ms": 3.4192800000018906,
+          "tickWorstMs": 5.704520999999659,
+          "heapDelta": 1574280,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": -1.8654663736661692,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "0088937fb03cf6e8bb9b372a1551e2e2c9f04bb0a1c673193c910a03662bba96"
+      },
+      {
+        "off": {
+          "enabled": false,
+          "seconds": 600,
+          "cpuMs": 6576.989,
+          "wallMs": 6275.780326,
+          "tickP95Ms": 3.2595819999987725,
+          "tickWorstMs": 5.120152000003145,
+          "heapDelta": 776688,
+          "bytes": 0,
+          "dropped": 0,
+          "reconciliation": 0
+        },
+        "on": {
+          "enabled": true,
+          "seconds": 600,
+          "cpuMs": 7678.842,
+          "wallMs": 6992.72276199999,
+          "tickP95Ms": 3.754531999991741,
+          "tickWorstMs": 6.613842000006116,
+          "heapDelta": 1568424,
+          "bytes": 87904,
+          "dropped": 0,
+          "statisticsHash": "d7611c8b9e5012cecada06f684f07716a8a522a582f01f9d709b9fbbec5e9cf7",
+          "reconciliation": 4.9112713895738125e-11
+        },
+        "overheadPercent": 16.7531525444242,
+        "hash": "e6085f4abf042ebef2152e1755794dd09f30950b2a1beb4b8ddb4c95fcd98cbc",
+        "rawHash": "0088937fb03cf6e8bb9b372a1551e2e2c9f04bb0a1c673193c910a03662bba96"
+      }
+    ]
+  }
+}

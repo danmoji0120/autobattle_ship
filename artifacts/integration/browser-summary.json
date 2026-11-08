@@ -1,0 +1,28 @@
+{
+  "play": {
+    "passed": 21,
+    "file": "browser-play-results.json"
+  },
+  "focusedBattle": {
+    "passed": 6,
+    "file": "browser-battle-results.json"
+  },
+  "framedStrategicHulls": [
+    "strategic camera actually frames patrol_pathfinder",
+    "strategic camera actually frames destroyer_lancet",
+    "strategic camera actually frames miner_quarry",
+    "strategic camera actually frames hauler_meridian",
+    "strategic camera actually frames cruiser_vigil"
+  ],
+  "failedHarnessRunsPreserved": [
+    "browser-first-failure.json",
+    "browser-save-diagnostic.json",
+    "browser-play-diagnostic.json",
+    "browser-visual-diagnostic.json"
+  ],
+  "notes": [
+    "Checks are phase-specific, not summed as unique assertions.",
+    "Final battle camera follows the ship and natural GLB wreck; no combat state is forced.",
+    "Visual phase failure was corrected by waiting for natural destroyed/wreck events before pausing."
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "p": "p1",
+    "combat": "g10",
+    "mine": "g11",
+    "supply": "g12",
+    "output": "g13",
+    "carrier": "s18",
+    "miner": "s17",
+    "product": "s19",
+    "hulls": {
+      "patrol_pathfinder": "s14",
+      "destroyer_lancet": "s15",
+      "miner_quarry": "s17",
+      "hauler_meridian": "s18",
+      "cruiser_vigil": "s16"
+    }
+  },
+  "checks": [
+    "all five purchased P8 hulls load their GLBs in the integrated strategic view",
+    "P8 warships follow an authoritative strategic move command",
+    "all five variants retain correct model and valid hardpoint loadouts",
+    "P8 Quarry and Meridian repeat mining, collection, unloading and real market sales",
+    "two UI-configured P8 routes feed production and deliver the real output",
+    "integrated logistics fits 1440px",
+    "integrated logistics fits 1024px",
+    "integrated logistics fits 390px",
+    "player analytics graphs use the actual P8 mining, trade and production history",
+    "admin overview works with integrated content",
+    "admin growth works with integrated content",
+    "admin market works with integrated content",
+    "admin industry works with integrated content",
+    "admin research works with integrated content",
+    "admin world works with integrated content",
+    "integrated economy reconciles without missing or duplicated telemetry"
+  ],
+  "errors": [],
+  "movement": 1121.0986012114245,
+  "variants": [
+    {
+      "hull": "patrol_pathfinder",
+      "variant": "patrol_pathfinder_scout",
+      "hp": {
+        "main1": "eq_autocannon",
+        "gun1": "eq_autocannon",
+        "gun2": "eq_autocannon"
+      },
+      "model": "model.patrol_pathfinder"
+    },
+    {
+      "hull": "destroyer_lancet",
+      "variant": "destroyer_lancet_screen",
+      "hp": {
+        "gun1": "eq_medium_gun",
+        "vls1": "eq_missile_rack",
+        "vls2": "eq_missile_rack",
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun"
+      },
+      "model": "model.destroyer_lancet"
+    },
+    {
+      "hull": "miner_quarry",
+      "variant": "miner_quarry_hold",
+      "hp": {
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun"
+      },
+      "model": "model.miner_quarry"
+    },
+    {
+      "hull": "hauler_meridian",
+      "variant": "hauler_meridian_express",
+      "hp": {
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun",
+        "pd3": "eq_pd_gun",
+        "pd4": "eq_pd_gun"
+      },
+      "model": "model.hauler_meridian"
+    },
+    {
+      "hull": "cruiser_vigil",
+      "variant": "cruiser_vigil_command",
+      "hp": {
+        "main1": "eq_medium_gun",
+        "main2": "eq_medium_gun",
+        "pd1": "eq_pd_gun",
+        "pd2": "eq_pd_gun"
+      },
+      "model": "model.cruiser_vigil"
+    }
+  ],
+  "mining": {
+    "mined": 7338.240853942501,
+    "saleIncome": 22956.932615404923,
+    "carried": true
+  },
+  "industry": {
+    "delivered": 126,
+    "routes": [
+      {
+        "name": "P8 원료 공급",
+        "delivered": 600,
+        "owner": "p1"
+      },
+      {
+        "name": "P8 합금 출하",
+        "delivered": 126,
+        "owner": "p1"
+      }
+    ]
+  },
+  "health": {
+    "dropped": 0,
+    "failures": 0,
+    "bytes": 144537,
+    "maxBytes": 1048576,
+    "reconciliation": -1.3923272490501404e-7,
+    "queryOmitted": 0,
+    "gaps": []
+  },
+  "failure": "Error: browser save/reload preserves all P8 fittings, assets and managed route states"
+}

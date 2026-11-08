@@ -1,0 +1,12 @@
+{
+  "inputs": {
+    "base": "4a19e19bc47ca7ae27d9c97e7f57533232686fe1",
+    "analytics": "f108438be431c81a05fd1687f18723f0b26f1c0f",
+    "logistics": "92d1fac10ba91e885329e8aaea3c3e26fac1c5cd",
+    "p8": "922029ffd6274dd68cf7436ae0fd2ffab342e403"
+  },
+  "merge": "20ea70c1bda9ff81b6d6f825c0823d1cdc6a7a68",
+  "testedCommit": "59eeb12d3f5380d93d7b0f08fb030df65b4f13e7",
+  "allInputsAreAncestors": true,
+  "conflicts": false
+}

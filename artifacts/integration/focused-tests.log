@@ -1,0 +1,33 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/logistics-p2.test.ts (14 tests) 13664ms
+     ✓ repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice  2617ms
+     ✓ one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard  1531ms
+     ✓ full destination and lost leased capacity hold cargo with bounded retries and resume when space returns  1492ms
+     ✓ automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo  794ms
+     ✓ partial market fills conserve currency, survive reload and cannot sell a shipment twice  1089ms
+     ✓ construction-reserved inputs stay unavailable until an explicit plan cancellation releases them  947ms
+     ✓ supply requires existing logistics infrastructure and reserves incoming shipments across fleets  1187ms
+     ✓ blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely  3237ms
+     ✓ manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery  488ms
+ ✓ tests/analytics.test.ts (11 tests) 3088ms
+     ✓ compacts old intervals, bounds bytes and metadata, and explicitly reports retention loss  1251ms
+     ✓ collecting statistics does not change c0 or growth simulation state or RNG  1644ms
+ ✓ tests/lease-policy.test.ts (12 tests) 1481ms
+     ✓ shipless zero-credit 45cr/h accounts owe exactly 45 after one hour for every caller interval, then stop charging without losing goods  457ms
+     ✓ sale repayment and rent preserve identical state with collection disabled/enabled and reconcile real cash  584ms
+ ✓ tests/p8-ships.test.ts (4 tests) 2716ms
+     ✓ acquires blueprints, enforces research and builds the five hulls with real parts and presets  2616ms
+ ✓ tests/integration-p8-logistics.test.ts (4 tests) 25147ms
+     ✓ runs actual P8 mining with a separate P8 hauler, sells and records real income without currency drift  16632ms
+     ✓ supplies real production and exports it with L-berth P8 hulls, preserving ownership and analytics  6603ms
+     ✓ round-trips research, construction, P8 build, fitted ships and live route manifests without resubmission  646ms
+     ✓ dry-runs a synthetic c0 copy without touching its source and conserves its migration census  1261ms
+ ✓ tests/analytics-p2.test.ts (3 tests) 179ms
+ ✓ tests/storage-stability.test.ts (7 tests) 151ms
+
+ Test Files  7 passed (7)
+      Tests  55 passed (55)
+   Start at  09:34:37
+   Duration  49.21s (transform 963ms, setup 0ms, import 1.81s, tests 46.43s, environment 1ms)

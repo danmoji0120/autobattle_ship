@@ -1,0 +1,16 @@
+PASS all five purchased P8 hulls load their GLBs in the integrated strategic view
+PASS strategic camera actually frames patrol_pathfinder
+PASS strategic camera actually frames destroyer_lancet
+PASS strategic camera actually frames miner_quarry
+PASS strategic camera actually frames hauler_meridian
+PASS strategic camera actually frames cruiser_vigil
+PASS browser reload resumes the normal strategic clock
+PASS browser save/reload preserves all P8 fittings, assets and live routes after accounting for normal elapsed ticks
+PASS all five military and industrial P8 models enter the actual tactical view
+page.evaluate: Error: natural P8 model wreck not present
+    at eval (eval at evaluate (:311:30), <anonymous>:4:23)
+    at UtilityScript.evaluate (<anonymous>:313:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at /workspace/autobattle_ship/scripts/integration-browser.mjs:142:14 {
+  log: []
+}

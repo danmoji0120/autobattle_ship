@@ -1,0 +1,6 @@
+PASS all five purchased P8 hulls load their GLBs in the integrated strategic view
+PASS browser reload resumes the normal strategic clock
+PASS browser save/reload preserves all P8 fittings, assets and live routes after accounting for normal elapsed ticks
+PASS all five military and industrial P8 models enter the actual tactical view
+PASS P8 warships fire, take real damage and are naturally destroyed in the authoritative battle
+PASS no browser runtime errors during integrated play

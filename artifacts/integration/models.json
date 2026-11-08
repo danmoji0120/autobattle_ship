@@ -1,0 +1,32 @@
+[
+  {
+    "hull": "patrol_pathfinder",
+    "bytes": 78596,
+    "sha256": "aca43b5a1c23a6c9e287a987b3d8ebbb601939addc394195b037113e2d8c92ad",
+    "buildCopyIdentical": true
+  },
+  {
+    "hull": "destroyer_lancet",
+    "bytes": 89228,
+    "sha256": "a35ebb154e7a6f76658653b6b56455e7c0dd6a275eb51162426f6e917382f6a8",
+    "buildCopyIdentical": true
+  },
+  {
+    "hull": "miner_quarry",
+    "bytes": 101776,
+    "sha256": "92937f023ecbb56beddebb08d4babaac4c93a920d2a29c8dad6338e445690003",
+    "buildCopyIdentical": true
+  },
+  {
+    "hull": "hauler_meridian",
+    "bytes": 105344,
+    "sha256": "d124a333c2287c7af38a02da888a03762feffd6b0493cb537aea4128e2f1ff42",
+    "buildCopyIdentical": true
+  },
+  {
+    "hull": "cruiser_vigil",
+    "bytes": 103184,
+    "sha256": "e1848b16b36bd35754811a21b98548f283b3bf1d9b6092f0ae148aec41d0bd63",
+    "buildCopyIdentical": true
+  }
+]

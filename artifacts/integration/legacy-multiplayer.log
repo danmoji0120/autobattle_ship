@@ -1,0 +1,80 @@
+  [srv] [siderarium] accounts: file · 0 linked PMCs · 0 legacy tokens
+  [srv] [siderarium] world created (t=0s) storage=file /tmp/siderarium-integration-legacy-multiplayer-_c9hrn17/data/mptest.json
+  [srv] [siderarium] listening on :8199
+PASS WebSocket without a session is refused at the handshake ({"rejected":401})
+PASS a forged session cookie is refused
+PASS /me without a session → 401
+  [srv] [siderarium] account created: alpha_1
+PASS A signs up (login id normalised, recovery code issued)
+PASS session cookie is HttpOnly; SameSite=Lax (siderarium_sid=…; Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600)
+PASS the session id is not in any response body (cookie only)
+PASS duplicate login ID (case-insensitive) is refused
+PASS password confirmation mismatch is refused
+  [srv] [siderarium] account created: beta
+PASS B signs up
+PASS cross-origin login POST is refused
+PASS wrong password → 401 "로그인 ID 또는 비밀번호가 올바르지 않습니다"
+PASS WebSocket from a foreign origin is refused even with the cookie
+PASS A (no PMC yet) is asked to create one
+PASS concurrent PMC creation from two tabs → one company (p1, p1)
+PASS B is asked to create a PMC
+PASS two companies: p1, p10
+PASS exactly two player companies exist
+PASS A sees B in the shared world
+PASS /me reports A's PMC (알파 PMC)
+PASS A's warships carry a server fitting (3 docked)
+PASS B cannot refit A's ship
+PASS oversized weapon rejected by the server (hp01: 크기 초과 — 장비 L, 하드포인트 M)
+PASS unknown hardpoint rejected (hp99: 이 선체에 없는 하드포인트)
+PASS unfitting moves the weapon to station storage (ok)
+PASS refitting takes it back — nothing duplicated (ok)
+PASS 6 concurrent yard buys from two players: 2 sold, stock 4→2, ships +2 — no duplication (ok | ok | 자금 부족 — 10,460 cr 필요 | 자금 부족 — 10,460 cr 필요 | 자금 부족 — 10,460 cr 필요 | 자금 부족 — 10,460 cr 필요)
+PASS A lists a docked corvette on the Astra exchange (ok)
+PASS B cannot take down A's listing
+PASS A cannot buy its own listing
+PASS two simultaneous purchases of one listing → exactly one succeeds, the ship now belongs to B (ok / 매물이 이미 팔렸거나 내려갔습니다)
+PASS the seller cannot list the sold ship again
+PASS A orders mining
+PASS B cannot command A's group (부대를 찾을 수 없음)
+PASS B observes A's miners moving (2 ships moved)
+PASS A received its commander radio
+PASS B doesn't receive A's private events
+PASS compact motion packets stream between snapshots (56)
+PASS B orders its escort to another system (Drake)
+PASS B escort jumped through the gate and is in Drake
+PASS A (viewing Astra) is not sent B's ships in Drake (interest management)
+PASS A still sees its own ships
+PASS A switches view to Drake and sees B's escort there
+PASS A logs in from a second browser
+PASS second browser controls the same PMC
+PASS A switches mining to automatic destination + storage (from browser 2)
+PASS logout closes browser 1's live socket (code 4401 logout)
+PASS the logged-out cookie cannot open a socket
+PASS browser 2 keeps playing after browser 1 logged out
+PASS password change signs out the other session (1, socket 4401)
+PASS old password no longer works
+  [srv] [siderarium] saving before exit…
+PASS world saved on shutdown
+PASS server log contains no passwords or session ids
+  [srv] [siderarium] accounts: file · 2 linked PMCs · 0 legacy tokens
+  [srv] [siderarium] world restored (t=52s) storage=file /tmp/siderarium-integration-legacy-multiplayer-_c9hrn17/data/mptest.json
+  [srv] [siderarium] migration check OK {"players":2,"credits":3410,"ships":12,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":26,"eq_medium_gun":2,"eq_autocannon":20,"eq_torpedo":2},"granted":{}} · restore round-trip identical
+  [srv] [siderarium] listening on :8199
+PASS account ↔ PMC links restored from the save
+PASS after restart: login with the new password
+PASS after restart same PMC & world time continues (t=52.3 ≥ 51.5)
+PASS after restart all of A's ships and its money are there
+PASS browser 2 session survives the restart (cookie session in the store)
+PASS mining settings survive restart (auto → astra, store)
+PASS recovery code resets the password, same PMC, other sessions closed (4401)
+PASS a used recovery code does not work twice
+  [srv] [siderarium] account created: watcher
+PASS an NPC battle is fought live on the server (연합 관리청 vs 해적, 10척)
+PASS live progress is broadcast ({"alive":[3,7],"total":[3,7],"value":[1,1]})
+PASS two spectators receive the identical live battle (setup + seed)
+PASS a spectator cannot order NPC ships (지휘 권한 없음)
+PASS the battle finishes on the server with a spectator gone
+PASS battle record listed (light: no setup in snapshots) — 해적 승리 — 손실 연합 관리청 3척 · 해적 0척
+PASS finished battle can be replayed from the same setup
+  [srv] [siderarium] saving before exit…
+mptest: 67 PASS / 0 FAIL (67/67 checks ran)
