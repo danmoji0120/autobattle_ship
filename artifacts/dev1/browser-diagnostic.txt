@@ -1,0 +1,47 @@
+PASS lab_admin2: account login
+PASS missing lab password hash rejects even an administrator
+PASS direct URL shows authentication to anonymous users
+PASS unauthenticated UI and worker assets are denied
+PASS forged client flags do not grant a server session
+PASS existing public skirmish remains available
+PASS lab_player: account login
+PASS non-admin cannot authenticate even with the right password and forged admin data
+PASS lab_admin1: account login
+PASS cross-origin password request rejected
+PASS password request without Origin rejected
+PASS repeated incorrect passwords are rate limited
+PASS lab_admin2: account login
+PASS lab grant is an HttpOnly Strict cookie
+PASS authorized lab code is served with no-store
+PASS authorized worker is available
+PASS default fleets appear in the production UI
+PASS searchable usable hull catalog excludes development fixtures
+PASS weapon and internal-equipment catalogs are selectable
+PASS settings JSON contains the fleets and content identity
+BROWSER PAGE ERROR NotFoundError: Failed to set the 'innerHTML' property on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?
+    at at.change (http://127.0.0.1:44861/assets/devCombatLab-FnVsp2T1.js:15:4345)
+    at app.onchange (http://127.0.0.1:44861/assets/devCombatLab-FnVsp2T1.js:15:294)
+    at InjectedScript.dispatchEvent (<anonymous>:7701:10)
+    at eval (eval at eval (:6851:24), <anonymous>:2:26)
+    at eval (eval at eval (:6851:24), <anonymous>:4:28)
+    at callMatchedElements (eval at evaluate (:311:30), <anonymous>:15:10)
+    at UtilityScript.evaluate (<anonymous>:313:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+PASS fleet entries can be duplicated and given quantities
+PASS either side can be copied to the other
+PASS fleet sides can be swapped
+PASS settings JSON restores the original fleet
+PASS invalid hardpoint fitting blocks battle with a reason
+PASS correcting the fitting enables battle
+BROWSER PAGE ERROR NotFoundError: Failed to set the 'innerHTML' property on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?
+    at at.render (http://127.0.0.1:44861/assets/devCombatLab-FnVsp2T1.js:10:303)
+    at at.change (http://127.0.0.1:44861/assets/devCombatLab-FnVsp2T1.js:15:3455)
+    at app.onchange (http://127.0.0.1:44861/assets/devCombatLab-FnVsp2T1.js:15:294)
+    at InjectedScript.dispatchEvent (<anonymous>:7701:10)
+    at eval (eval at eval (:6851:24), <anonymous>:2:26)
+    at eval (eval at eval (:6851:24), <anonymous>:4:28)
+    at callMatchedElements (eval at evaluate (:311:30), <anonymous>:15:10)
+    at UtilityScript.evaluate (<anonymous>:313:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+PASS real rendered battle advances the simulation
+PASS either side can be selected for inspection

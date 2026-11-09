@@ -1,0 +1,17 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > requires a live allowlisted account, configured scrypt hash, correct password, and rate limits concurrent failures 2938ms
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > revokes on logout, account-password change, lab-password change and removal from the admin allowlist 5340ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > exposes all usable hulls and variants and excludes developer fixtures 9ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > uses the requested standard ships, equal commanders, no bonuses and full starting hull 17ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > applies real fitting validation and each side’s separate weapons and internal equipment 28ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > rejects invalid imports, developer hulls, wrong content identity and invalid research 11ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > is deterministic per seed, supports swapped placement and aggregates the real outcomes 150ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > aggregates 1,000 real engine runs without a fleet budget 3837ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > enforces a custom engine time limit and preserves the separate PMC world 54ms
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  04:53:28
+   Duration  14.43s (transform 1.37s, setup 0ms, import 1.63s, tests 12.39s, environment 0ms)

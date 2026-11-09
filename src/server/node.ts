@@ -21,6 +21,7 @@ import { INDUSTRY_VERSION } from '../world/economy';
 import { WORLD_VERSION } from '../world/worldgen';
 import { CONTENT_VERSION, census, compareCensus, migrateContent } from '../world/migrate';
 import { AuthService, AuthError, memoryStore, pgAccountStore, type AccountStore } from './accounts';
+import { DevCombatAuth } from './devCombatAuth';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const ROOT = path.resolve(process.env.STATIC_DIR ?? 'dist');
@@ -261,9 +262,10 @@ async function main() {
   let alertConfig: import('./analytics').AnalyticsOptions['alerts'];
   try { alertConfig = JSON.parse(process.env.ANALYTICS_ALERTS_JSON ?? '{}'); } catch { console.warn('[siderarium] invalid ANALYTICS_ALERTS_JSON; using defaults'); }
   let saving = false;
+  const adminAccounts = (process.env.ANALYTICS_ADMIN_ACCOUNTS ?? '').split(',').map(s => s.trim()).filter(Boolean);
   const game = new GameServer(saved, {
     singleplayer: false, accounts: true, migrateContent: applyContent,
-    adminAccounts: (process.env.ANALYTICS_ADMIN_ACCOUNTS ?? '').split(',').map(s => s.trim()).filter(Boolean),
+    adminAccounts,
     analytics: { enabled: process.env.ANALYTICS_ENABLED !== '0', snapshotSeconds: Number(process.env.ANALYTICS_INTERVAL_S ?? 600), maxBytes: Number(process.env.ANALYTICS_MAX_BYTES ?? 8388608), alerts: alertConfig }, snapInterval: 1.0, movInterval: 0.2, saveInterval: Number(process.env.SAVE_INTERVAL_S ?? 30),
     save: d => { if (saving) return; saving = true; storage.save(d).catch(e => console.error('save failed', e)).finally(() => { saving = false; }); },
   }, Number(process.env.WORLD_SEED ?? 1));
@@ -284,16 +286,31 @@ async function main() {
 
   // ── sessions: an HttpOnly cookie carries a random session id; scripts in the page never see it ──
   const COOKIE = 'siderarium_sid';
-  const getSid = (req: http.IncomingMessage) => {
-    for (const part of (req.headers.cookie ?? '').split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === COOKIE) return decodeURIComponent(part.slice(i + 1).trim()); }
+  const LAB_COOKIE = 'siderarium_devcombat';
+  const lab = new DevCombatAuth(auth, { admins: () => adminAccounts, passwordHash: () => process.env.DEV_COMBAT_LAB_PASSWORD_HASH });
+  const getCookie = (req: http.IncomingMessage, name: string) => {
+    for (const part of (req.headers.cookie ?? '').split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === name) { try { return decodeURIComponent(part.slice(i + 1).trim()); } catch { return null; } } }
     return null;
+  };
+  const getSid = (req: http.IncomingMessage) => {
+    return getCookie(req, COOKIE);
   };
   const https = (req: http.IncomingMessage) => String(req.headers['x-forwarded-proto'] ?? '').split(',')[0].trim() === 'https';
   const cookie = (req: http.IncomingMessage, sid: string | null) =>
     `${COOKIE}=${sid ?? ''}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${sid ? Math.floor(auth.ttl / 1000) : 0}${https(req) ? '; Secure' : ''}`;
+  const labCookie = (req: http.IncomingMessage, token: string | null) =>
+    `${LAB_COOKIE}=${token ?? ''}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${token ? Math.floor(lab.ttl / 1000) : 0}${https(req) ? '; Secure' : ''}`;
   const ipOf = (req: http.IncomingMessage) => String(req.headers['x-forwarded-for'] ?? '').split(',')[0].trim() || req.socket.remoteAddress || '?';
   // a browser always sends Origin on cross-site POSTs and WebSocket handshakes: it must be this host
   const originOk = (req: http.IncomingMessage) => { const o = req.headers.origin; if (!o) return true; try { return new URL(o).host === req.headers.host; } catch { return false; } };
+  // Unlike legacy account routes, lab mutations require an explicit, exact Origin.
+  const labOriginOk = (req: http.IncomingMessage, requireOrigin = false) => {
+    const site = req.headers['sec-fetch-site'];
+    if (site && site !== 'same-origin' && site !== 'none') return false;
+    const origin = req.headers.origin;
+    if (!origin) return !requireOrigin;
+    try { const u = new URL(origin); return u.origin === `${https(req) ? 'https' : 'http'}://${req.headers.host}`; } catch { return false; }
+  };
 
   // open sockets per session, so logout / password change / expiry close them at once
   const socketsBySession = new Map<string, Set<WebSocket>>();
@@ -322,6 +339,24 @@ async function main() {
 
   async function api(req: http.IncomingMessage, res: http.ServerResponse, url: string) {
     try {
+      if (url.startsWith('/api/dev-combat/')) {
+        if (!labOriginOk(req, req.method !== 'GET')) return json(res, 403, { error: '허용되지 않은 요청 출처' });
+        if (url === '/api/dev-combat/session' && req.method === 'GET') {
+          return await lab.valid(getSid(req), getCookie(req, LAB_COOKIE)) ? json(res, 200, { ok: true }) : json(res, 401, { error: '전투 실험실 인증이 필요합니다' });
+        }
+        if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+        if (!String(req.headers['content-type'] ?? '').startsWith('application/json')) return json(res, 403, { error: '허용되지 않은 요청 출처' });
+        const b = await readBody(req);
+        if (url === '/api/dev-combat/login') {
+          const grant = await lab.login(getSid(req), b.password, ipOf(req));
+          return json(res, 200, { ok: true, expiresAt: grant.expiresAt }, { 'set-cookie': labCookie(req, grant.token) });
+        }
+        if (url === '/api/dev-combat/logout') {
+          lab.logout(getCookie(req, LAB_COOKIE));
+          return json(res, 200, { ok: true }, { 'set-cookie': labCookie(req, null) });
+        }
+        return json(res, 404, { error: 'not found' });
+      }
       if (url === '/api/auth/me' && req.method === 'GET') {
         const m = await me(getSid(req));
         return m ? json(res, 200, m) : json(res, 401, { error: '로그인이 필요합니다', code: 'NO_SESSION' }, getSid(req) ? { 'set-cookie': cookie(req, null) } : {});
@@ -350,7 +385,9 @@ async function main() {
           if (b.next !== b.confirm) throw new AuthError('CONFIRM', '새 비밀번호 확인이 일치하지 않습니다');
           const sid = getSid(req);
           if (!sid) throw new AuthError('NO_SESSION', '세션이 만료되었습니다. 다시 로그인하세요', 401);
+          const account = await auth.resolve(sid);
           const revoked = await auth.changePassword(sid, b.current, b.next);
+          if (account) lab.revokeAccount(account.account.id);
           closeSessions(revoked, 'password');
           return json(res, 200, { ok: true, signedOut: revoked.length });
         }
@@ -373,20 +410,28 @@ async function main() {
     const url = (req.url ?? '/').split('?')[0];
     if (url === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, time: game.sim.time, players: game.conns.size })); return; }
     if (url.startsWith('/api/')) { void api(req, res, url); return; }
-    let file = path.join(ROOT, decodeURIComponent(url));
+    let decoded: string;
+    try { decoded = decodeURIComponent(url); } catch { res.writeHead(400); res.end(); return; }
+    let file = path.join(ROOT, decoded);
     if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
     if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       // a missing asset is a 404 (the model loader then keeps the procedural hull), not the app page
       if (url.startsWith('/assets/')) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found'); return; }
       file = path.join(ROOT, 'index.html');
     }
-    fs.readFile(file, (err, data) => {
+    const protectedLab = /^(?:devCombatLab|combatLabWorker)-[A-Za-z0-9_-]+\.js$/.test(path.basename(file));
+    const sendFile = () => fs.readFile(file, (err, data) => {
       if (err) { res.writeHead(404); res.end('not found'); return; }
       const ext = path.extname(file);
-      res.writeHead(200, { 'content-type': MIME[ext] ?? 'application/octet-stream', 'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=86400',
+      res.writeHead(200, { 'content-type': MIME[ext] ?? 'application/octet-stream', 'cache-control': protectedLab ? 'private, no-store' : ext === '.html' ? 'no-cache' : 'public, max-age=86400',
         'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'same-origin' });
       res.end(data);
     });
+    // The production-only UI and worker chunks require the server grant, not a client flag.
+    if (protectedLab) {
+      if (!labOriginOk(req)) { res.writeHead(403, { 'cache-control': 'no-store' }); res.end(); return; }
+      void lab.valid(getSid(req), getCookie(req, LAB_COOKIE)).then(ok => { if (ok) sendFile(); else { res.writeHead(403, { 'cache-control': 'no-store' }); res.end(); } }, () => { res.writeHead(503); res.end(); });
+    } else sendFile();
   });
 
   // the WebSocket handshake itself is authenticated: no valid session cookie → 401, no game data at all

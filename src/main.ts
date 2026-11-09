@@ -12,6 +12,7 @@ import type { BattleSetup } from './sim/world';
 import type { OrderRecord } from './sim/types';
 import { sfx } from './audio/sfx';
 import { showMenu, startCampaign, type Campaign } from './client/app';
+import { showDevCombatGate } from './client/devCombatGate';
 
 const getCanvas = () => document.getElementById('view') as HTMLCanvasElement;
 const app = document.getElementById('app')!;
@@ -90,7 +91,8 @@ function startBattle(bs: BattleSetup, replay: OrderRecord[] | null = null) {
 (window as any).fleetcmd = { startBattle, showSetup, showMainMenu, get session() { return session; }, get lastOrders() { return lastOrders; } };
 
 
-if (params.has('modelview')) void import('./render/modelPreview').then(m => m.startModelPreview(app, getCanvas(), params));
+if (params.get('devskirmish') === '1') showDevCombatGate(app, getCanvas);
+else if (params.has('modelview')) void import('./render/modelPreview').then(m => m.startModelPreview(app, getCanvas(), params));
 else if (params.has('auto')) {
   const scen = params.get('scenario') ?? loadScenarioId();
   startBattle({ seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [loadFleet(), getScenario(scen).enemy] });

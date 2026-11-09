@@ -20,6 +20,8 @@ const fmtTime = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60
 
 export interface HudOptions {
   replay: boolean;
+  /** Local experiments may inspect either side; commanding still follows mayCommand(). */
+  inspectAll?: boolean;
   /** spectating a battle you have no part in: side names replace "ally/enemy" */
   spectate?: { sides: [string, string] };
   /** persistent world: which tactical groups this player may command */
@@ -49,6 +51,7 @@ export class BattleHUD {
   private refreshT = 0;
   private radioEnemy = true;
   private resultShown = false;
+  private resultTimer: ReturnType<typeof setTimeout> | null = null;
   private pointer = { x: 0, y: 0, down: -1, sx: 0, sy: 0, moved: false };
   private keys = new Set<string>();
   private opts: HudOptions;
@@ -97,6 +100,7 @@ export class BattleHUD {
   }
 
   dispose() {
+    if (this.resultTimer) clearTimeout(this.resultTimer);
     this.disposers.forEach(d => d());
     this.overlay.remove();
     this.root.innerHTML = '';
@@ -296,7 +300,7 @@ export class BattleHUD {
   private leftClick(x: number, y: number, shift: boolean) {
     const { ship, group } = this.pickUnit(x, y);
     if (this.mode) { this.applyTarget(x, y, ship, group, shift); return; }
-    if (group && group.team === 0) { this.select(group.id); if (ship) this.hoverShip = ship; }
+    if (group && (group.team === 0 || this.opts.inspectAll)) { this.select(group.id); if (ship) this.hoverShip = ship; }
     else if (ship) { this.hoverShip = ship; }
   }
 
@@ -389,7 +393,7 @@ export class BattleHUD {
       if (e.t === 'radio') this.addRadio(e.msg);
       else if (e.t === 'highlight') {
         if (e.h.score >= 4) this.banner(e.h.title, e.h.text, e.h.team === 0 ? 'ally' : 'lose');
-      } else if (e.t === 'end') setTimeout(() => this.showResult(), 3500);
+      } else if (e.t === 'end') this.resultTimer = setTimeout(() => this.showResult(), 3500);
     }
     const w = this.s.world;
     if (w.firstContact >= 0 && !(this as any)._contact) { (this as any)._contact = true; this.banner('교전 개시', '적 함대와 접촉했습니다', 'ally', 'ENGAGE'); }
@@ -483,11 +487,11 @@ export class BattleHUD {
       row.onclick = () => {
         if (this.mode && g.team === 1) { this.applyTarget(0, 0, null, g, false); return; }
         if (this.mode === 'escort' && g.team === 0) { this.applyTarget(0, 0, null, g, false); return; }
-        if (g.team === 0) this.select(g.id);
+        if (g.team === 0 || this.opts.inspectAll) this.select(g.id);
         const c = w.groupCenter(g);
         if (alive) { const rig = this.s.view.rig; if (rig.mode === 'tactical') rig.focus.set(c.x, 0, c.z); }
       };
-      row.ondblclick = () => { if (g.team === 0) { this.select(g.id); this.setCam('follow'); } };
+      row.ondblclick = () => { if (g.team === 0 || this.opts.inspectAll) { this.select(g.id); this.setCam('follow'); } };
       body.appendChild(row);
       if (!open) return;
       for (const id of g.childIds) addGroup(w.groupById.get(id)!, depth + 1);

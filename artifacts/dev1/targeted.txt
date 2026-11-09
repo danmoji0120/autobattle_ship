@@ -1,0 +1,80 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/sim.test.ts > determinism & replay > same seed produces identical state 1428ms
+ ✓ tests/sim.test.ts > determinism & replay > different seeds diverge 987ms
+ ✓ tests/sim.test.ts > determinism & replay > recorded player orders replay exactly 1219ms
+ ✓ tests/sim.test.ts > battle flow > scenario kestrel ends with an outcome 625ms
+ ✓ tests/sim.test.ts > battle flow > scenario bastion ends with an outcome 922ms
+ ✓ tests/sim.test.ts > battle flow > scenario wolfpack ends with an outcome 854ms
+ ✓ tests/sim.test.ts > battle flow > default fleet fits the budget and validates 1ms
+ ✓ tests/sim.test.ts > commanders matter > named commanders beat acting captains with identical ships 5612ms
+ ✓ tests/sim.test.ts > commanders matter > a skilled admiral coordinates hammer & anvil (raiders wait for the line) 506ms
+ ✓ tests/sim.test.ts > commanders matter > player orders override delegation and can be released 49ms
+ ✓ tests/sim.test.ts > commanders matter > retreating groups leave the battlefield 416ms
+ ✓ tests/sim.test.ts > damage model > heavy shells penetrate, light rounds ricochet off battleship armor 2ms
+ ✓ tests/sim.test.ts > damage model > rear armor is weaker than the bow 1ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > passwords are stored only as salted scrypt hashes and verified in constant time 1496ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > sign-up validates the login ID and password, rejects duplicates case-insensitively 411ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > login: wrong password and unknown IDs give the same error; throttled after repeated failures 5127ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > sessions expire, slide while used, and end on logout 686ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > password change signs out every other session; recovery code resets the password once 3501ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > no account → no game: hello asks for login, commands and battle joins are refused 17ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > signed-in account without a PMC creates one exactly once, even with duplicate / concurrent requests 16ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > A and B are fully separated; A cannot touch B by sending B's ids 16ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > restart keeps the account links and every asset; a world reset keeps accounts but asks for a new PMC 238ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > a link whose company does not exist in this world (restored older backup) asks for a PMC instead of failing 6ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > legacy browser token carries an old PMC over once, never one that is already linked 18ms
+ ✓ tests/accounts.test.ts > accounts: long-lived game connections > an open connection keeps its session alive past the idle lifetime 333ms
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > requires a live allowlisted account, configured scrypt hash, correct password, and rate limits concurrent failures 2737ms
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > revokes on logout, account-password change, lab-password change and removal from the admin allowlist 3458ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts budget-backed trade and player payments as transfers; records only actual money creation/destruction 71ms
+ ✓ tests/analytics.test.ts > authoritative analytics > persists buckets and in-flight research across restart without re-emitting records 19ms
+ ✓ tests/analytics.test.ts > authoritative analytics > compacts old intervals, bounds bytes and metadata, and explicitly reports retention loss 2642ms
+ ✓ tests/analytics.test.ts > authoritative analytics > enforces admin identity and filters all private company data before transmission 25ms
+ ✓ tests/analytics.test.ts > authoritative analytics > collecting statistics does not change c0 or growth simulation state or RNG 1680ms
+ ✓ tests/analytics.test.ts > authoritative analytics > records real research start/pause/completion and actual industry input/output, with no shortened test conditions 31ms
+ ✓ tests/analytics.test.ts > authoritative analytics > does not duplicate player-exchange volume and records seller receipts without exposing the buyer history 9ms
+ ✓ tests/analytics.test.ts > authoritative analytics > retains history while collection is disabled and explicitly reports the unobserved interval on resume 31ms
+ ✓ tests/analytics.test.ts > authoritative analytics > keeps asset assessment unchanged for cargo transfers and listing escrow; analysis queries are read-only 17ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts online time once per company across simultaneous authenticated tabs 54ms
+ ✓ tests/analytics.test.ts > authoritative analytics > separates starting capital from earned cash profit without hiding the real cash balance 5ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > new player ships carry a fitting equal to their preset; NPC ships stay on legacy loadouts 552ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > rejects wrong size, type, mount, power, mass, unknown slots/items, foreign or undocked ships — and changes nothing 9ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > mount styles are enforced (torpedo tubes do not go on spinal mounts) 0ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > every legacy module set still fits every legacy preset, and the bays never allow more than the old slots 689ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > fit and unfit move items between ship and storage, all or nothing, over many cycles 10ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > two ships cannot share one stored item 4ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > public stations sell missing items only when asked, at 1.2× price, and only researched ones 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > own facilities never sell items; they use storage only and charge nothing 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > legacy refit and fitShip commands translate to V2 fittings with the same conservation 57ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > company presets: save, overwrite by name, limit, delete; invalid fittings are not saved 16ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > ships launched from an own yard get a fitting with the built modules 5ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > for all 25 presets, the fitting spec builds the identical ship and the identical battle 764ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > a custom fitting changes the ship in battle (weapons, arcs, structure) 7ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > the world battle setup passes the fitting to the combat engine for player ships 130ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > 3D model turrets sit exactly on the fitted hardpoints 190ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > turns loadouts + modules into fittings, records conversions, conserves every item 221ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > a module with no bay (corrupt old save) goes to storage, never disappears 200ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > dry-run (migrateContent:false) on a contentV 0 save keeps the legacy path: no fittings, legacy commands work 162ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > rollback to older code and forward again: ships the old code refitted are rebuilt from their loadout 162ms
+ ✓ tests/fitting.test.ts > fitting V2: hostile input > prototype keys and junk are rejected without side effects 4ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > fights are resolved by the tactical engine, not a coin flip 2ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > a spectator replay reproduces the server result exactly: winner and every ship lost 219ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > two spectators get identical simulations (same tick, same positions) 91ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > battle ships move on the strategic map while fighting (mirrored from the engine) 827ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > the battle record survives a save/restore 75ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > scalar fast path preserves every quantity and event count across snapshots and restart 78ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > byte pressure compresses old frames before expiring their flow history 181ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > fallback observers receive independent immutable scalar events 5ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > exposes all usable hulls and variants and excludes developer fixtures 10ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > uses the requested standard ships, equal commanders, no bonuses and full starting hull 13ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > applies real fitting validation and each side’s separate weapons and internal equipment 19ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > rejects invalid imports, developer hulls, wrong content identity and invalid research 7ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > is deterministic per seed, supports swapped placement and aggregates the real outcomes 166ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > enforces a custom engine time limit and preserves the separate PMC world 23ms
+
+ Test Files  8 passed (8)
+      Tests  72 passed (72)
+   Start at  04:48:17
+   Duration  49.41s (transform 1.85s, setup 0ms, import 7.61s, tests 40.21s, environment 2ms)

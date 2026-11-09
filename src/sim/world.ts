@@ -14,6 +14,8 @@ export interface BattleSetup {
   fleets: [FleetSpec, FleetSpec];
   /** half-distance between the two fleets at start (default SPAWN_Z) */
   spawnZ?: number;
+  /** Optional local experiment limit; ordinary and persistent battles retain TIME_LIMIT. */
+  timeLimit?: number;
   /** persistent-world encounters: free-for-all retreat edge relative to spawn */
   backdrop?: string;
 }
@@ -1014,7 +1016,7 @@ export class World {
         return end(other, team === 0 ? '아군 함대 퇴각' : '적 함대 퇴각');
       }
     }
-    if (this.time >= TIME_LIMIT) {
+    if (this.time >= (this.setup.timeLimit ?? TIME_LIMIT)) {
       const f0 = this.teamValueFrac(0), f1 = this.teamValueFrac(1);
       return end(Math.abs(f0 - f1) < 0.05 ? -1 : f0 > f1 ? 0 : 1, '교전 시간 종료');
     }
