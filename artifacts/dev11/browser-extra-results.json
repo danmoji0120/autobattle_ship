@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "lab_admin2: account login",
+    "isolated lab session for additional visual checks",
+    "moving a group cannot target itself or its descendants",
+    "a hardpoint marker is visible in the rendered preview",
+    "clicking the 3D marker selects its actual hardpoint",
+    "dragging the preview rotates the rendered ship",
+    "incompatible equipment is rejected with a visible reason",
+    "variant change updates the fitting layout",
+    "experimental preset is available",
+    "experimental preset can be deleted",
+    "mobile equipment search stays focused",
+    "mobile equipment search is visible inside the viewport",
+    "additional visual flow emitted no runtime errors"
+  ],
+  "errors": []
+}

@@ -1,0 +1,56 @@
+PASS lab_admin2: account login
+PASS missing lab password hash rejects even an administrator
+PASS direct URL shows authentication to anonymous users
+PASS unauthenticated UI and worker assets are denied
+PASS forged client flags do not grant a server session
+PASS existing public skirmish remains available
+PASS original setup retains the 1700-point budget
+PASS lab_player: account login
+PASS non-admin cannot authenticate even with the right password and forged admin data
+PASS lab_admin1: account login
+PASS cross-origin password request rejected
+PASS password request without Origin rejected
+PASS repeated incorrect passwords are rate limited
+PASS lab_admin2: account login
+PASS lab grant remains an HttpOnly Strict cookie
+PASS authorized lab code is served with no-store
+PASS authorized worker is available
+PASS new setup and fitting code remain in the protected lab chunk
+PASS copied three-panel setup shows the default BLUE fleet
+PASS all 30 usable hulls appear in the copied catalog
+PASS mobile setup has no horizontal page overflow
+PASS catalog search filters and keeps focus
+PASS RED has its independent default fleet
+PASS commander editing retains input focus
+PASS nested groups and quantity-five ships are edited in the tree
+PASS ship and fitting row can be cloned
+PASS ships can move to another group
+PASS a commander can be copied to a different group
+PASS copied fitting has the 3D preview and three original columns
+PASS hardpoint and internal bay slots are available
+PASS mobile fitting window remains within the viewport
+PASS mobile fitting columns do not overlap or overflow horizontally
+PASS compatible weapons appear as selectable equipment cards
+PASS equipment search retains input focus
+PASS equipment type filter works
+PASS bay selection shows compatible internal equipment
+PASS fitting preview compares actual before and after statistics
+PASS cancel does not apply the draft
+PASS experiment preset can be stored independently
+PASS undo and apply retain the earlier fitting
+PASS compatible copied fitting can be applied to another ship
+PASS JSON export preserves nested commanders, quantity, fittings and presets
+PASS copied BLUE and RED fleets remain independent
+PASS side swap exchanges the edited fleets
+PASS v2 settings import succeeds
+PASS result JSON is rejected as a fleet settings file
+PASS DEV-1 flat settings import migrates successfully
+PASS worker executes paired experiments and displays results
+PASS long worker experiment cancels
+PASS recorded seed opens the real battle HUD with pause
+PASS same-condition restart and replay use the real battle engine
+PASS unmodified in-game fitting still opens with its original layout
+PASS browser emitted no runtime errors
+PASS lab did not create a persistent PMC session
+PASS logout revokes the grant and protected code access
+PASS credentials are absent from saves and logs

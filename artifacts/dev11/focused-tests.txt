@@ -1,0 +1,15 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/dev1-auth.test.ts (2 tests) 6994ms
+     ✓ requires a live allowlisted account, configured scrypt hash, correct password, and rate limits concurrent failures  3743ms
+     ✓ revokes on logout, account-password change, lab-password change and removal from the admin allowlist  3246ms
+ ✓ tests/dev1-combat.test.ts (7 tests) 3938ms
+     ✓ aggregates 1,000 real engine runs without a fleet budget  3593ms
+ ✓ tests/dev11-combat.test.ts (4 tests) 539ms
+     ✓ migrates a DEV-1 setting without losing its rows, fitting, quantities, commander or deterministic result  460ms
+
+ Test Files  3 passed (3)
+      Tests  13 passed (13)
+   Start at  06:20:53
+   Duration  14.25s (transform 1.63s, setup 0ms, import 2.06s, tests 11.47s, environment 1ms)

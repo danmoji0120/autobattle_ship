@@ -2,16 +2,19 @@
 import { CONTENT, variantsOfHull, presetsOfHull } from '../content/registry';
 import { SHIP_CLASSES } from '../sim/data/ships';
 import { WEAPONS } from '../sim/data/weapons';
-import { ACTING_CAPTAIN, type Specialty } from '../sim/data/commanders';
+import { ACTING_CAPTAIN, type CommanderDef, type Specialty } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, InitialOrder, ShipFx, ShipSpec } from '../sim/fleet';
 import { World, type BattleSetup } from '../sim/world';
 import { EQUIPMENT, TECHS, fitFx, growthFx } from '../world/industry';
 import { bayModules, checkFitting, loadoutLabel, shipLoadout, type ShipFitting } from '../world/fitting';
 import { CONTENT_VERSION } from '../world/migrate';
 
-export interface LabShip { id: string; hull: string; variant: string; fitting: ShipFitting; count: number; group: string; order: InitialOrder }
-export interface LabSide { name: string; ships: LabShip[]; commander: { skill: number; aggression: number; discipline: number; specialty: Specialty }; research: string[] }
-export interface LabConfig { schema: 'siderarium-combat-lab-1'; content: { version: number; fingerprint: string; packs: string[] }; seed: number; distance: number; timeLimit: number; speed: number; sides: [LabSide, LabSide] }
+export interface LabShip { id: string; hull: string; variant: string; fitting: ShipFitting; count: number }
+/** The shape mirrors GroupSpec while retaining lab-only quantities and fittings. */
+export interface LabGroup { name: string; commander: CommanderDef | null; order: InitialOrder; retreatAt: number; ships: LabShip[]; children: LabGroup[] }
+export interface LabSide { name: string; root: LabGroup; research: string[] }
+export interface LabPreset { id: string; name: string; hull: string; variant: string; hp: Record<string, string>; bay: Record<string, string> }
+export interface LabConfig { schema: 'siderarium-combat-lab-2'; content: { version: number; fingerprint: string; packs: string[] }; seed: number; distance: number; timeLimit: number; speed: number; sides: [LabSide, LabSide]; presets: LabPreset[] }
 export interface SideResult { survivors: number; destroyed: number; kills: number; escaped: number; dealt: number; taken: number; hull: number; maxHull: number; shots: number; hits: number; intercepts: number }
 export interface BattleResult { seed: number; swapped: boolean; winner: 0 | 1 | -1; reason: string; time: number; digest: string; sides: [SideResult, SideResult] }
 export interface Experiment { schema: 'siderarium-combat-results-1'; config: LabConfig; battles: BattleResult[]; summary: Summary }
@@ -37,18 +40,20 @@ export function defaultShip(hull: string, id: string, variant?: string): LabShip
   if (!v) throw new Error('선체의 파생형이 없습니다');
   const presets = presetsOfHull(hull).filter(p => p.variant === v.id);
   const p = presets[0];
-  return { id, hull, variant: v.id, fitting: { hp: { ...(p?.weapons ?? {}) }, bay: {} }, count: 1, group: h.name, order: 'engage' };
+  return { id, hull, variant: v.id, fitting: { hp: { ...(p?.weapons ?? {}) }, bay: {} }, count: 1 };
 }
 
+/** Construct v2 through the same migration as a saved DEV-1 setup. */
 export function defaultConfig(): LabConfig {
   const commander = { skill: .4, aggression: .5, discipline: .75, specialty: 'none' as const };
-  return { schema: 'siderarium-combat-lab-1', content: contentIdentity(), seed: 1, distance: 2900, timeLimit: 540, speed: 1,
-    sides: [{ name: 'BLUE', ships: [defaultShip('patrol_pathfinder', 'blue-1')], commander: { ...commander }, research: [] },
-      { name: 'RED', ships: [defaultShip('corvette_mk1', 'red-1')], commander: { ...commander }, research: [] }] };
+  const legacyShip = (hull: string, id: string) => ({ ...defaultShip(hull, id), group: CONTENT.hulls[hull].name, order: 'engage' as const });
+  return migrateConfig({ schema: 'siderarium-combat-lab-1', content: contentIdentity(), seed: 1, distance: 2900, timeLimit: 540, speed: 1,
+    sides: [{ name: 'BLUE', ships: [legacyShip('patrol_pathfinder', 'blue-1')], commander: { ...commander }, research: [] },
+      { name: 'RED', ships: [legacyShip('corvette_mk1', 'red-1')], commander: { ...commander }, research: [] }] });
 }
 
 /** Strict validation is also used after JSON import, before constructing any engine objects. */
-export function configProblems(input: unknown): string[] {
+function legacyProblems(input: unknown): string[] {
   const errors: string[] = [];
   if (!record(input) || input.schema !== 'siderarium-combat-lab-1') return ['실험 설정 형식이 올바르지 않습니다'];
   if (!record(input.content) || input.content.fingerprint !== contentIdentity().fingerprint || input.content.version !== CONTENT_VERSION) errors.push('콘텐츠 식별자가 현재 빌드와 다릅니다');
@@ -77,6 +82,69 @@ export function configProblems(input: unknown): string[] {
   return errors;
 }
 
+/** Old flat rows become separate root children, retaining their original insertion order,
+ * names, orders, commander, ship refs and counts. This is needed for deterministic replays. */
+export function migrateConfig(input: unknown): LabConfig {
+  if (record(input) && input.schema === 'siderarium-combat-lab-2') {
+    const errors = configProblems(input); if (errors.length) throw new Error(errors.join(' · '));
+    return structuredClone(input) as LabConfig;
+  }
+  const errors = legacyProblems(input); if (errors.length) throw new Error(errors.join(' · '));
+  const old = input as any;
+  const sides = old.sides.map((side: any) => {
+    const commander: CommanderDef = { ...ACTING_CAPTAIN, ...side.commander, id: 'lab-legacy', name: '실험 지휘관' };
+    const children: LabGroup[] = side.ships.map((row: any) => ({ name: row.group, commander: { ...commander }, order: row.order,
+      retreatAt: 0, ships: [{ id: row.id, hull: row.hull, variant: row.variant, fitting: structuredClone(row.fitting), count: row.count }], children: [] }));
+    return { name: side.name, research: [...side.research], root: { name: side.name, commander: { ...commander }, order: 'engage', retreatAt: 0, ships: [], children } };
+  }) as [LabSide, LabSide];
+  return { schema: 'siderarium-combat-lab-2', content: structuredClone(old.content), seed: old.seed, distance: old.distance,
+    timeLimit: old.timeLimit, speed: old.speed, sides, presets: [] };
+}
+
+/** Validate imported settings before walking trees or constructing engine objects. */
+export function configProblems(input: unknown): string[] {
+  if (record(input) && input.schema === 'siderarium-combat-lab-1') return legacyProblems(input);
+  const errors: string[] = [];
+  if (!record(input) || input.schema !== 'siderarium-combat-lab-2') return ['실험 설정 형식이 올바르지 않습니다'];
+  if (!record(input.content) || input.content.fingerprint !== contentIdentity().fingerprint || input.content.version !== CONTENT_VERSION) errors.push('콘텐츠 식별자가 현재 빌드와 다릅니다');
+  if (!Number.isSafeInteger(input.seed) || input.seed < 0 || input.seed > 0x7fffffff) errors.push('시드는 0~2,147,483,647 정수여야 합니다');
+  if (!finite(input.distance, 400, 6000)) errors.push('초기 기준 거리는 400~6,000이어야 합니다');
+  if (!finite(input.timeLimit, 10, 3600)) errors.push('제한 시간은 10~3,600초여야 합니다');
+  if (![.5, 1, 2, 4].includes(input.speed)) errors.push('배속이 올바르지 않습니다');
+  if (!Array.isArray(input.sides) || input.sides.length !== 2) return [...errors, '두 진영이 필요합니다'];
+  let total = 0;
+  for (let team = 0; team < 2; team++) {
+    const side = input.sides[team], label = team ? 'RED' : 'BLUE';
+    if (!record(side) || typeof side.name !== 'string' || side.name.length > 40) { errors.push(`${label}: 편성이 필요합니다`); continue; }
+    if (!Array.isArray(side.research) || side.research.length > Object.keys(TECHS).length || new Set(side.research).size !== side.research.length || side.research.some((t: unknown) => typeof t !== 'string' || !Object.hasOwn(TECHS, t))) errors.push(`${label}: 알 수 없는 연구가 있습니다`);
+    const ids = new Set<string>(), seen = new Set<object>(); let groups = 0, count = 0;
+    const visit = (group: unknown, depth: number) => {
+      if (!record(group) || seen.has(group) || depth > 20 || ++groups > 400 || typeof group.name !== 'string' || !group.name.trim() || group.name.length > 40 || !Array.isArray(group.ships) || !Array.isArray(group.children) || group.ships.length > 200 || group.children.length > 200 || !ORDERS.includes(group.order) || !finite(group.retreatAt, 0, 1)) { errors.push(`${label}: 부대 정보가 올바르지 않습니다`); return; }
+      seen.add(group);
+      const cmd = group.commander;
+      if (cmd !== null && (!record(cmd) || typeof cmd.id !== 'string' || cmd.id.length > 100 || typeof cmd.name !== 'string' || cmd.name.length > 40 || typeof cmd.rank !== 'string' || cmd.rank.length > 40 || typeof cmd.bio !== 'string' || cmd.bio.length > 500 || typeof cmd.color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(cmd.color) || !['calm','bold','formal','nervous','cold','savage'].includes(cmd.voice) || !finite(cmd.skill,0,1) || !finite(cmd.aggression,0,1) || !finite(cmd.discipline,0,1) || !SPECIALTIES.includes(cmd.specialty))) errors.push(`${label}: 지휘관 능력이 올바르지 않습니다`);
+      for (const ship of group.ships) {
+        if (!record(ship) || typeof ship.id !== 'string' || !/^[A-Za-z0-9_-]{1,60}$/.test(ship.id) || ids.has(ship.id) || !Number.isInteger(ship.count) || ship.count < 1 || ship.count > 200) { errors.push(`${label}: 편대 정보가 올바르지 않습니다`); continue; }
+        ids.add(ship.id); count += ship.count; total += ship.count;
+        const hull = typeof ship.hull === 'string' ? CONTENT.hulls[ship.hull] : undefined;
+        if (!hull || hull.dev || !SHIP_CLASSES[hull.classId] || typeof ship.variant !== 'string' || CONTENT.variants[ship.variant]?.hull !== ship.hull) { errors.push(`${label}: 알 수 없거나 사용할 수 없는 선체·파생형`); continue; }
+        if (!record(ship.fitting) || !record(ship.fitting.hp) || !record(ship.fitting.bay) || [...Object.entries(ship.fitting.hp), ...Object.entries(ship.fitting.bay)].some(([k,v]) => k.length > 60 || typeof v !== 'string' || v.length > 80)) { errors.push(`${label}: 피팅 형식 오류`); continue; }
+        for (const problem of checkFitting(ship.variant, ship.fitting as ShipFitting).errors) errors.push(`${label} ${group.name}: ${problem}`);
+      }
+      for (const child of group.children) visit(child, depth + 1);
+    };
+    visit(side.root, 0); if (!count) errors.push(`${label}: 편성이 필요합니다`);
+  }
+  if (total > 200) errors.push('브라우저 안정성을 위해 전투당 함선은 최대 200척입니다');
+  if (!Array.isArray(input.presets) || input.presets.length > 200 || input.presets.some((p: unknown) => !record(p) || typeof p.id !== 'string' || p.id.length > 60 || typeof p.name !== 'string' || p.name.length > 40 || typeof p.hull !== 'string' || typeof p.variant !== 'string' || CONTENT.variants[p.variant]?.hull !== p.hull || !record(p.hp) || !record(p.bay) || [...Object.entries(p.hp), ...Object.entries(p.bay)].some(([k,v]) => k.length > 60 || typeof v !== 'string' || v.length > 80) || checkFitting(p.variant, { hp: p.hp, bay: p.bay } as ShipFitting).errors.length > 0)) errors.push('프리셋 형식이 올바르지 않습니다');
+  return errors;
+}
+
+export function allLabGroups(root: LabGroup): LabGroup[] {
+  const out: LabGroup[] = []; const walk = (g: LabGroup) => { out.push(g); g.children.forEach(walk); }; walk(root); return out;
+}
+export function labShipCount(side: LabSide): number { return allLabGroups(side.root).reduce((n, g) => n + g.ships.reduce((a,s) => a + s.count, 0), 0); }
+
 function shipFx(ship: LabShip, tech: string[]): ShipFx {
   const mods = bayModules(ship.variant, ship.fitting), fx = fitFx(mods, tech), g = growthFx(mods, tech);
   const out: ReturnType<typeof fitFx> & ShipFx = { ...fx };
@@ -91,14 +159,19 @@ export function battleSetup(config: LabConfig, seed = config.seed, swapped = fal
   const errors = configProblems(config); if (errors.length) throw new Error(errors.join('\n'));
   const sides = swapped ? [config.sides[1], config.sides[0]] : config.sides;
   const fleets = sides.map((side, team): FleetSpec => {
-    const commander = { ...ACTING_CAPTAIN, ...side.commander, id: `lab-${team}`, name: '실험 지휘관', team: team as 0 | 1 };
-    const children: GroupSpec[] = side.ships.map(row => {
-      const hull = CONTENT.hulls[row.hull], label = loadoutLabel(hull.classId, row.variant, row.fitting);
-      const fitted = shipLoadout({ classId: hull.classId, loadoutId: label, variant: row.variant, fitting: row.fitting });
-      const ship: ShipSpec = { classId: hull.classId, loadoutId: label, fx: shipFx(row, side.research), fit: fitted };
-      return { name: row.group, commander, order: row.order, retreatAt: 0, ships: Array.from({ length: row.count }, (_, i) => ({ ...ship, ref: `${row.id}:${i}` })), children: [] };
+    const toGroup = (group: LabGroup): GroupSpec => ({
+      name: group.name,
+      commander: group.commander ? { ...group.commander, id: group.commander.id === 'lab-legacy' ? `lab-${team}` : group.commander.id, team: team as 0 | 1 } : null,
+      order: group.order, retreatAt: group.retreatAt,
+      ships: group.ships.flatMap(row => {
+        const hull = CONTENT.hulls[row.hull], label = loadoutLabel(hull.classId, row.variant, row.fitting);
+        const fitted = shipLoadout({ classId: hull.classId, loadoutId: label, variant: row.variant, fitting: row.fitting });
+        const ship: ShipSpec = { classId: hull.classId, loadoutId: label, fx: shipFx(row, side.research), fit: fitted };
+        return Array.from({ length: row.count }, (_, i) => ({ ...ship, ref: `${row.id}:${i}` }));
+      }),
+      children: group.children.map(toGroup),
     });
-    return { name: side.name, root: { name: side.name, commander, order: 'engage', retreatAt: 0, ships: [], children } };
+    return { name: side.name, root: toGroup(side.root) };
   }) as [FleetSpec, FleetSpec];
   return { seed, scenarioId: 'kestrel', fleets, spawnZ: config.distance / 2, timeLimit: config.timeLimit };
 }

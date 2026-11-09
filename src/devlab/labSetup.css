@@ -1,0 +1,24 @@
+/* Only additions to the copied setup screen; original game styles remain unchanged. */
+.lab-setup .lab-sides { align-items: stretch; }
+.lab-setup .scen { color: var(--text); text-align: left; font: inherit; }
+.lab-setup .lab-search { padding: 8px; }
+.lab-setup .lab-search input, .lab-setup .lab-add input, .lab-setup .lab-cmd-edit input, .lab-setup .lab-cmd-edit select { background: rgba(5,10,18,.9); border: 1px solid var(--line); color: var(--text); padding: 5px; min-width: 0; }
+.lab-setup .lab-search input { width: 100%; }
+.lab-setup .lab-variants, .lab-setup .lab-add, .lab-setup .lab-cmd-actions { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.lab-setup .lab-add input { width: 52px; }
+.lab-setup .lab-srow { grid-template-columns: minmax(120px,1fr) auto auto auto auto auto; }
+.lab-setup .lab-srow input { width: 48px; background: rgba(5,10,18,.9); border: 1px solid var(--line); color: var(--text); }
+.lab-setup .lab-cmd-edit label { display: flex; justify-content: space-between; gap: 5px; margin: 4px 0; font-size: 12px; }
+.lab-setup .lab-cmd-edit input, .lab-setup .lab-cmd-edit select { max-width: 160px; }
+@media (max-width: 1100px) {
+ .lab-setup { overflow-y: auto; display: block !important; }
+ .lab-setup .shead, .lab-setup .sfoot { flex-wrap: wrap; padding: 12px; gap: 8px; }
+ .lab-setup .sbody { display: flex; flex-direction: column; padding: 0 12px; }
+ .lab-setup .sbody > .panel { min-height: 320px; max-height: 520px; }
+ .lab-setup .sbody > .panel:nth-child(2) { min-height: 360px; }
+ .lab-setup .lab-sides { margin-left: 0; }
+ .lab-setup .scen { width: auto; }
+ .lab-setup .lab-srow { display: flex; flex-wrap: wrap; padding: 6px; }
+ .lab-setup .lab-srow > span:first-child { flex-basis: 100%; }
+ .lab-setup .sfoot .brief { min-width: 180px; }
+}

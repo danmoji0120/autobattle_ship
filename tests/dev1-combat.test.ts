@@ -21,15 +21,15 @@ describe('DEV-1 local combat experiments', () => {
 
   it('uses the requested standard ships, equal commanders, no bonuses and full starting hull', () => {
     const c = defaultConfig(); expect(configProblems(c)).toEqual([]);
-    expect(c.sides.map(s => s.ships[0].hull)).toEqual(['patrol_pathfinder', 'corvette_mk1']);
-    expect(c.sides[0].commander).toEqual(c.sides[1].commander); expect(c.sides.map(s => s.research)).toEqual([[], []]);
+    expect(c.sides.map(s => s.root.children[0].ships[0].hull)).toEqual(['patrol_pathfinder', 'corvette_mk1']);
+    expect(c.sides[0].root.commander).toEqual(c.sides[1].root.commander); expect(c.sides.map(s => s.research)).toEqual([[], []]);
     const w = new World(battleSetup(c)); expect(w.ships).toHaveLength(2);
     for (const s of w.ships) expect(s.hp).toBe(s.maxHp);
     expect(w.ships[0].mounts.map(x => x.weapon.id)).toEqual(['autocannon', 'autocannon', 'autocannon', 'pd_gun']);
   });
 
   it('applies real fitting validation and each side’s separate weapons and internal equipment', () => {
-    const c = defaultConfig(), blue = c.sides[0].ships[0], red = c.sides[1].ships[0];
+    const c = defaultConfig(), blue = c.sides[0].root.children[0].ships[0], red = c.sides[1].root.children[0].ships[0];
     const hp = variantLayout(blue.variant)!.hardpoints[0];
     const candidates = Object.keys(CONTENT.equipment).filter(id => EQUIPMENT[id]?.weapon && !hpAccepts(hp, id));
     expect(candidates.length).toBeGreaterThan(1);
@@ -43,13 +43,13 @@ describe('DEV-1 local combat experiments', () => {
     blue.fitting.hp[hp.id] = 'mod_engine';
     expect(configProblems(c).join(' ')).toMatch(/무장|하드포인트/);
     expect(() => battleSetup(c)).toThrow();
-    expect(red.fitting).toEqual(defaultConfig().sides[1].ships[0].fitting);
+    expect(red.fitting).toEqual(defaultConfig().sides[1].root.children[0].ships[0].fitting);
   });
 
   it('rejects invalid imports, developer hulls, wrong content identity and invalid research', () => {
     const c = defaultConfig(); c.content.fingerprint = 'incorrect';
     expect(configProblems(c).join(' ')).toContain('콘텐츠 식별자');
-    c.content = defaultConfig().content; c.sides[0].ships[0].variant = c.sides[1].ships[0].variant;
+    c.content = defaultConfig().content; c.sides[0].root.children[0].ships[0].variant = c.sides[1].root.children[0].ships[0].variant;
     expect(configProblems(c).join(' ')).toContain('선체');
     c.sides[0].research = ['not-a-tech']; expect(configProblems(c).join(' ')).toContain('연구');
     expect(configProblems({ schema: 'invalid' }).length).toBeGreaterThan(0);

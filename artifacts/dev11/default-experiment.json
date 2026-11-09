@@ -1,0 +1,7390 @@
+{
+  "schema": "siderarium-combat-results-1",
+  "config": {
+    "schema": "siderarium-combat-lab-2",
+    "content": {
+      "version": 4,
+      "fingerprint": "fnv1a32-089dfd16",
+      "packs": [
+        "core",
+        "growth",
+        "arsenal",
+        "example",
+        "modeltest"
+      ]
+    },
+    "seed": 1,
+    "distance": 2900,
+    "timeLimit": 540,
+    "speed": 1,
+    "sides": [
+      {
+        "name": "BLUE",
+        "research": [],
+        "root": {
+          "name": "BLUE",
+          "commander": {
+            "id": "lab-legacy",
+            "team": 0,
+            "name": "실험 지휘관",
+            "rank": "",
+            "skill": 0.4,
+            "aggression": 0.5,
+            "discipline": 0.75,
+            "specialty": "none",
+            "voice": "formal",
+            "color": "#8a9aa8",
+            "bio": "지휘관이 배정되지 않은 부대. 선임 함장이 임시로 지휘한다."
+          },
+          "order": "engage",
+          "retreatAt": 0,
+          "ships": [],
+          "children": [
+            {
+              "name": "길잡이급",
+              "commander": {
+                "id": "lab-legacy",
+                "team": 0,
+                "name": "실험 지휘관",
+                "rank": "",
+                "skill": 0.4,
+                "aggression": 0.5,
+                "discipline": 0.75,
+                "specialty": "none",
+                "voice": "formal",
+                "color": "#8a9aa8",
+                "bio": "지휘관이 배정되지 않은 부대. 선임 함장이 임시로 지휘한다."
+              },
+              "order": "engage",
+              "retreatAt": 0,
+              "ships": [
+                {
+                  "id": "blue-1",
+                  "hull": "patrol_pathfinder",
+                  "variant": "patrol_pathfinder_std",
+                  "fitting": {
+                    "hp": {
+                      "main1": "eq_autocannon",
+                      "gun1": "eq_autocannon",
+                      "gun2": "eq_autocannon",
+                      "pd1": "eq_pd_gun"
+                    },
+                    "bay": {}
+                  },
+                  "count": 1
+                }
+              ],
+              "children": []
+            }
+          ]
+        }
+      },
+      {
+        "name": "RED",
+        "research": [],
+        "root": {
+          "name": "RED",
+          "commander": {
+            "id": "lab-legacy",
+            "team": 0,
+            "name": "실험 지휘관",
+            "rank": "",
+            "skill": 0.4,
+            "aggression": 0.5,
+            "discipline": 0.75,
+            "specialty": "none",
+            "voice": "formal",
+            "color": "#8a9aa8",
+            "bio": "지휘관이 배정되지 않은 부대. 선임 함장이 임시로 지휘한다."
+          },
+          "order": "engage",
+          "retreatAt": 0,
+          "ships": [],
+          "children": [
+            {
+              "name": "스틸레토급",
+              "commander": {
+                "id": "lab-legacy",
+                "team": 0,
+                "name": "실험 지휘관",
+                "rank": "",
+                "skill": 0.4,
+                "aggression": 0.5,
+                "discipline": 0.75,
+                "specialty": "none",
+                "voice": "formal",
+                "color": "#8a9aa8",
+                "bio": "지휘관이 배정되지 않은 부대. 선임 함장이 임시로 지휘한다."
+              },
+              "order": "engage",
+              "retreatAt": 0,
+              "ships": [
+                {
+                  "id": "red-1",
+                  "hull": "corvette_mk1",
+                  "variant": "corvette_mk1_std",
+                  "fitting": {
+                    "hp": {
+                      "hp01": "eq_torpedo",
+                      "hp02": "eq_autocannon",
+                      "hp03": "eq_autocannon",
+                      "hp04": "eq_pd_gun"
+                    },
+                    "bay": {}
+                  },
+                  "count": 1
+                }
+              ],
+              "children": []
+            }
+          ]
+        }
+      }
+    ],
+    "presets": []
+  },
+  "battles": [
+    {
+      "seed": 1,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 297,
+      "digest": "8afe52c1",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 864.4462914056533,
+          "taken": 596.0556492365902,
+          "hull": 433.94435076341,
+          "maxHull": 1030,
+          "shots": 1209,
+          "hits": 103,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 596.0556492365902,
+          "taken": 1008.8462914056787,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 622,
+          "hits": 85,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 1,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 378.5,
+      "digest": "bb11dc7b",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.1079393543146,
+          "taken": 845.5894314109869,
+          "hull": 184.41056858901328,
+          "maxHull": 1030,
+          "shots": 1554,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 845.5894314109869,
+          "taken": 1002.3079393543204,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 786,
+          "hits": 110,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 295,
+      "digest": "f5d37274",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 858.4309476927411,
+          "taken": 815.8164722684398,
+          "hull": 214.18352773156076,
+          "maxHull": 1030,
+          "shots": 1418,
+          "hits": 110,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 815.8164722684398,
+          "taken": 1002.8309476927584,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 678,
+          "hits": 111,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 294,
+      "digest": "52c79d28",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 927.0991357321167,
+          "taken": 792.0509332659643,
+          "hull": 237.94906673403594,
+          "maxHull": 1030,
+          "shots": 1375,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 792.0509332659643,
+          "taken": 1001.6991357321336,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 660,
+          "hits": 113,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 3,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 380.5,
+      "digest": "bf1706e0",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1005.5384782560975,
+          "taken": 824.0909801050544,
+          "hull": 205.90901989494625,
+          "maxHull": 1030,
+          "shots": 1569,
+          "hits": 125,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 749.7249801050481,
+          "taken": 1005.5384782560975,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 774,
+          "hits": 113,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 3,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 395,
+      "digest": "d5db486d",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 987.3475736028549,
+          "taken": 1034.315276010942,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1618,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1034.315276010942,
+          "taken": 987.3475736028549,
+          "hull": 12.65242639714469,
+          "maxHull": 1000,
+          "shots": 842,
+          "hits": 133,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 4,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 381.5,
+      "digest": "77e4002d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1001.8228590865987,
+          "taken": 971.9600761903067,
+          "hull": 58.039923809693136,
+          "maxHull": 1030,
+          "shots": 1623,
+          "hits": 122,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 897.5940761903005,
+          "taken": 1001.8228590865987,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 806,
+          "hits": 119,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 4,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 292,
+      "digest": "3538aeed",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 929.5108820083489,
+          "taken": 707.7628391337239,
+          "hull": 322.2371608662764,
+          "maxHull": 1030,
+          "shots": 1234,
+          "hits": 109,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 707.7628391337239,
+          "taken": 1001.7108820083448,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 621,
+          "hits": 89,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 5,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 361,
+      "digest": "f4d52e88",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 825.3755532429814,
+          "taken": 1033.5358794360388,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1449,
+          "hits": 108,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 884.8038794360263,
+          "taken": 897.5755532429772,
+          "hull": 102.42444675700627,
+          "maxHull": 1000,
+          "shots": 735,
+          "hits": 121,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 5,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 329,
+      "digest": "fcb51b5d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 939.1978632800216,
+          "taken": 883.4915486444623,
+          "hull": 146.50845135553772,
+          "maxHull": 1030,
+          "shots": 1362,
+          "hits": 104,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 883.4915486444623,
+          "taken": 1011.3978632800208,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 681,
+          "hits": 113,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 6,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 266,
+      "digest": "c06f2664",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.7440267804607,
+          "taken": 845.1770260994689,
+          "hull": 184.8229739005309,
+          "maxHull": 1030,
+          "shots": 1165,
+          "hits": 108,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 845.1770260994689,
+          "taken": 1002.9440267804771,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 576,
+          "hits": 103,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 6,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 279.5,
+      "digest": "98fbe9a4",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1012.386871117946,
+          "taken": 865.3102630139011,
+          "hull": 164.6897369860989,
+          "maxHull": 1030,
+          "shots": 1262,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 790.944263013895,
+          "taken": 1012.386871117946,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 603,
+          "hits": 106,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 7,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 379,
+      "digest": "8115052b",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 867.079125321167,
+          "taken": 1039.0908929672098,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1571,
+          "hits": 102,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 964.724892967213,
+          "taken": 867.079125321167,
+          "hull": 132.92087467883297,
+          "maxHull": 1000,
+          "shots": 804,
+          "hits": 133,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 7,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 344.5,
+      "digest": "61e3beac",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 935.0654154610207,
+          "taken": 857.4151343001893,
+          "hull": 172.58486569981073,
+          "maxHull": 1030,
+          "shots": 1405,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 857.4151343001893,
+          "taken": 1007.2654154610372,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 690,
+          "hits": 112,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 8,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 320.5,
+      "digest": "28c546da",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 932.7531239737299,
+          "taken": 1028.3947455895518,
+          "hull": 1.6052544104566073,
+          "maxHull": 1030,
+          "shots": 1488,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 954.0287455895457,
+          "taken": 1004.9531239737307,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 725,
+          "hits": 128,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 8,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 355.5,
+      "digest": "b03bdeef",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 967.546738897526,
+          "taken": 1040.7042394187804,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1629,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 891.9722394187778,
+          "taken": 967.546738897526,
+          "hull": 32.45326110247408,
+          "maxHull": 1000,
+          "shots": 797,
+          "hits": 125,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 9,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 396,
+      "digest": "6a61a9a1",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 987.5769037187766,
+          "taken": 1041.1333289736679,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1652,
+          "hits": 126,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 966.7673289736616,
+          "taken": 987.5769037187766,
+          "hull": 12.423096281223373,
+          "maxHull": 1000,
+          "shots": 825,
+          "hits": 134,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 9,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 394,
+      "digest": "620d25e9",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 935.8606285356918,
+          "taken": 965.24958186009,
+          "hull": 64.75041813990961,
+          "maxHull": 1030,
+          "shots": 1601,
+          "hits": 122,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 965.24958186009,
+          "taken": 1008.0606285357082,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 811,
+          "hits": 118,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 10,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 296.5,
+      "digest": "70cec645",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 929.568010881822,
+          "taken": 988.949413678695,
+          "hull": 41.05058632129634,
+          "maxHull": 1030,
+          "shots": 1347,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 840.2174136786908,
+          "taken": 1001.7680108818384,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 657,
+          "hits": 118,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 10,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 312.5,
+      "digest": "cc10132d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.7128892195425,
+          "taken": 874.6426673361456,
+          "hull": 155.35733266384966,
+          "maxHull": 1030,
+          "shots": 1389,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 800.2766673361444,
+          "taken": 1003.7128892195425,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 706,
+          "hits": 103,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 11,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 394.5,
+      "digest": "9955edfe",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1012.1019811034319,
+          "taken": 909.3126314837214,
+          "hull": 120.6873685162785,
+          "maxHull": 1030,
+          "shots": 1623,
+          "hits": 126,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 909.3126314837214,
+          "taken": 1012.1019811034319,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 790,
+          "hits": 123,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 11,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 329.5,
+      "digest": "ae94411a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 934.9147375558622,
+          "taken": 882.0877966977496,
+          "hull": 147.9122033022502,
+          "maxHull": 1030,
+          "shots": 1352,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 807.7217966977433,
+          "taken": 1007.1147375558786,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 679,
+          "hits": 110,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 12,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 334.5,
+      "digest": "7efdc59b",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 931.4710633043181,
+          "taken": 898.2110562920102,
+          "hull": 131.78894370798972,
+          "maxHull": 1030,
+          "shots": 1427,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 823.8450562920042,
+          "taken": 1003.6710633043343,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 712,
+          "hits": 110,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 12,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 283,
+      "digest": "6b5e431d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 863.8070938059806,
+          "taken": 728.4088788926938,
+          "hull": 301.5911211073058,
+          "maxHull": 1030,
+          "shots": 1216,
+          "hits": 112,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 654.0428788926876,
+          "taken": 1008.2070938059978,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 614,
+          "hits": 100,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 13,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 394,
+      "digest": "5435d0a7",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1010.6023772969792,
+          "taken": 937.583362447449,
+          "hull": 92.41663755255043,
+          "maxHull": 1030,
+          "shots": 1641,
+          "hits": 125,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 937.583362447449,
+          "taken": 1010.6023772969792,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 814,
+          "hits": 122,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 13,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 346,
+      "digest": "248a30db",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 906.611117558541,
+          "taken": 1031.5182727017323,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1423,
+          "hits": 107,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1031.5182727017323,
+          "taken": 906.611117558541,
+          "hull": 93.38888244145903,
+          "maxHull": 1000,
+          "shots": 740,
+          "hits": 132,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 14,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 354.5,
+      "digest": "6b9bc7de",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.7020569716325,
+          "taken": 997.3593127719656,
+          "hull": 32.64068722804389,
+          "maxHull": 1030,
+          "shots": 1519,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 922.9933127719594,
+          "taken": 1004.7020569716325,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 761,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 14,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 306,
+      "digest": "a2ac4e58",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 935.2207172376877,
+          "taken": 881.3333929386401,
+          "hull": 148.66660706135107,
+          "maxHull": 1030,
+          "shots": 1316,
+          "hits": 107,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 806.967392938643,
+          "taken": 1007.4207172376836,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 648,
+          "hits": 104,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 15,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 329.5,
+      "digest": "fc4c2754",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 928.6405220134361,
+          "taken": 1031.6730934676077,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1365,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1031.6730934676077,
+          "taken": 928.6405220134361,
+          "hull": 71.35947798656333,
+          "maxHull": 1000,
+          "shots": 700,
+          "hits": 121,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 15,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 327,
+      "digest": "6d2df9ad",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.1590918360499,
+          "taken": 760.5362659713966,
+          "hull": 269.46373402860326,
+          "maxHull": 1030,
+          "shots": 1374,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 760.5362659713966,
+          "taken": 1003.1590918360499,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 677,
+          "hits": 102,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 16,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 378,
+      "digest": "9855fb32",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 878.6301330924383,
+          "taken": 1036.5520124767459,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1545,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 962.1860124767396,
+          "taken": 950.8301330924343,
+          "hull": 49.169866907545355,
+          "maxHull": 1000,
+          "shots": 790,
+          "hits": 121,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 16,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 366,
+      "digest": "8ef6cd63",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 939.2031234495006,
+          "taken": 992.0492304659567,
+          "hull": 37.9507695340435,
+          "maxHull": 1030,
+          "shots": 1489,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 992.0492304659567,
+          "taken": 1011.4031234494965,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 695,
+          "hits": 132,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 17,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 298.5,
+      "digest": "8023dde9",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 974.5321627072909,
+          "taken": 889.7750026496777,
+          "hull": 140.22499735032227,
+          "maxHull": 1030,
+          "shots": 1342,
+          "hits": 116,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 889.7750026496777,
+          "taken": 1000.1321627072967,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 621,
+          "hits": 116,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 17,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 323.5,
+      "digest": "471cdfa8",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 906.1786837315952,
+          "taken": 832.1527611975325,
+          "hull": 197.8472388024673,
+          "maxHull": 1030,
+          "shots": 1430,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 832.1527611975325,
+          "taken": 1000.178683731596,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 657,
+          "hits": 112,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 18,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 345.5,
+      "digest": "9356b87d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1009.6336776346218,
+          "taken": 1016.306099844761,
+          "hull": 13.693900155248151,
+          "maxHull": 1030,
+          "shots": 1418,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 793.2080998447424,
+          "taken": 1009.6336776346218,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 714,
+          "hits": 96,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 18,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 360.5,
+      "digest": "5112dbb3",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.3009411363017,
+          "taken": 924.3935774926765,
+          "hull": 105.60642250732299,
+          "maxHull": 1030,
+          "shots": 1482,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 850.0275774926714,
+          "taken": 1002.5009411363181,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 765,
+          "hits": 110,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 19,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 289,
+      "digest": "92aa7cdb",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 929.0145702799995,
+          "taken": 718.2179434315804,
+          "hull": 311.7820565684191,
+          "maxHull": 1030,
+          "shots": 1208,
+          "hits": 106,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 718.2179434315804,
+          "taken": 1001.2145702799953,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 633,
+          "hits": 103,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 19,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 336,
+      "digest": "2dedce1d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.2555477367124,
+          "taken": 805.2799764344437,
+          "hull": 224.72002356555643,
+          "maxHull": 1030,
+          "shots": 1453,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 805.2799764344437,
+          "taken": 1003.2555477367124,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 702,
+          "hits": 110,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 20,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 329,
+      "digest": "e9da0aff",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1007.3773967040814,
+          "taken": 979.2095783776938,
+          "hull": 50.790421622307015,
+          "maxHull": 1030,
+          "shots": 1350,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 904.8435783776875,
+          "taken": 1007.3773967040814,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 690,
+          "hits": 112,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 20,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 310.5,
+      "digest": "546c6ee5",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.374969818389,
+          "taken": 720.7278575223563,
+          "hull": 309.27214247764346,
+          "maxHull": 1030,
+          "shots": 1273,
+          "hits": 112,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 720.7278575223563,
+          "taken": 1004.374969818389,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 627,
+          "hits": 90,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 21,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 306.5,
+      "digest": "6ece5f87",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1008.8416208718688,
+          "taken": 942.3897894282421,
+          "hull": 87.61021057175833,
+          "maxHull": 1030,
+          "shots": 1411,
+          "hits": 129,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 942.3897894282421,
+          "taken": 1008.8416208718688,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 692,
+          "hits": 123,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 21,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 323.5,
+      "digest": "5aa0c383",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.8574997253129,
+          "taken": 941.026729720904,
+          "hull": 88.97327027909597,
+          "maxHull": 1030,
+          "shots": 1541,
+          "hits": 122,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 941.026729720904,
+          "taken": 1002.8574997253129,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 724,
+          "hits": 126,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 22,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 349.5,
+      "digest": "c6b8971b",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 939.9475956182022,
+          "taken": 805.4776575993038,
+          "hull": 224.5223424006959,
+          "maxHull": 1030,
+          "shots": 1496,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 805.4776575993038,
+          "taken": 1012.1475956182186,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 734,
+          "hits": 108,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 22,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 366,
+      "digest": "60fee8de",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 852.7910401432846,
+          "taken": 1037.5456917218164,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1538,
+          "hits": 104,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 960.0896917218206,
+          "taken": 858.1910401432858,
+          "hull": 141.8089598567163,
+          "maxHull": 1000,
+          "shots": 773,
+          "hits": 135,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 23,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 464,
+      "digest": "98d667ce",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.4984573363191,
+          "taken": 933.1126319861976,
+          "hull": 96.88736801380216,
+          "maxHull": 1030,
+          "shots": 1899,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 933.1126319861976,
+          "taken": 1000.4984573363191,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 932,
+          "hits": 119,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 23,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 344,
+      "digest": "7d121e4c",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1011.330133385739,
+          "taken": 814.9300631747282,
+          "hull": 215.06993682527175,
+          "maxHull": 1030,
+          "shots": 1420,
+          "hits": 119,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 814.9300631747282,
+          "taken": 1011.330133385739,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 715,
+          "hits": 104,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 24,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 346.5,
+      "digest": "a5463f73",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1001.4336160250359,
+          "taken": 896.0510644590609,
+          "hull": 133.94893554093798,
+          "maxHull": 1030,
+          "shots": 1590,
+          "hits": 121,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 896.0510644590609,
+          "taken": 1001.4336160250359,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 777,
+          "hits": 116,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 24,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 326.5,
+      "digest": "fe0889c0",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1009.0592842292026,
+          "taken": 896.3024604266919,
+          "hull": 133.6975395733086,
+          "maxHull": 1030,
+          "shots": 1417,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 896.3024604266919,
+          "taken": 1009.0592842292026,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 727,
+          "hits": 119,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 25,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 447,
+      "digest": "4ec51d6f",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.2318176717814,
+          "taken": 958.1966898422543,
+          "hull": 71.80331015774539,
+          "maxHull": 1030,
+          "shots": 1785,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 883.8306898422479,
+          "taken": 1000.4318176717978,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 887,
+          "hits": 133,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 25,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 360.5,
+      "digest": "1057bc85",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 838.5367797208419,
+          "taken": 1034.993422097433,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1476,
+          "hits": 104,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1034.993422097433,
+          "taken": 910.7367797208377,
+          "hull": 89.26322027914179,
+          "maxHull": 1000,
+          "shots": 737,
+          "hits": 124,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 26,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 360,
+      "digest": "3b88ff3a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.222048919182,
+          "taken": 947.2045861467869,
+          "hull": 82.79541385321303,
+          "maxHull": 1030,
+          "shots": 1493,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 947.2045861467869,
+          "taken": 1003.222048919182,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 751,
+          "hits": 131,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 26,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 377.5,
+      "digest": "b2646d9",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 929.9848303272194,
+          "taken": 919.797805895202,
+          "hull": 110.20219410480807,
+          "maxHull": 1030,
+          "shots": 1525,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 845.4318058951958,
+          "taken": 1002.1848303272153,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 768,
+          "hits": 110,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 27,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 378,
+      "digest": "7b3dc75d",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 872.7550300869691,
+          "taken": 1042.1840634587854,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1566,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1042.1840634587854,
+          "taken": 944.9550300869652,
+          "hull": 55.044969913014334,
+          "maxHull": 1000,
+          "shots": 774,
+          "hits": 127,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 27,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 373,
+      "digest": "db2e3683",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.2253557454386,
+          "taken": 898.3334044995282,
+          "hull": 131.66659550047163,
+          "maxHull": 1030,
+          "shots": 1593,
+          "hits": 126,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 898.3334044995282,
+          "taken": 1000.2253557454386,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 767,
+          "hits": 131,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 28,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 315,
+      "digest": "b6e62cfc",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1009.9926808321961,
+          "taken": 895.0396464108996,
+          "hull": 134.9603535891019,
+          "maxHull": 1030,
+          "shots": 1383,
+          "hits": 121,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 746.3076464108872,
+          "taken": 1009.9926808321961,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 667,
+          "hits": 112,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 28,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 313,
+      "digest": "fbed6aa9",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.721039251035,
+          "taken": 983.4157135210734,
+          "hull": 46.58428647892683,
+          "maxHull": 1030,
+          "shots": 1400,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 908.4317135210671,
+          "taken": 1004.721039251035,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 709,
+          "hits": 116,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 29,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 444,
+      "digest": "af9822dc",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 972.4408866242911,
+          "taken": 1032.2402200528923,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1802,
+          "hits": 124,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1032.2402200528923,
+          "taken": 972.4408866242911,
+          "hull": 27.559113375709636,
+          "maxHull": 1000,
+          "shots": 888,
+          "hits": 137,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 29,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 429.5,
+      "digest": "fbbef9cc",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.8776888059735,
+          "taken": 1024.4595076872386,
+          "hull": 5.54049231276079,
+          "maxHull": 1030,
+          "shots": 1785,
+          "hits": 138,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 1024.4595076872386,
+          "taken": 1002.8776888059735,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 890,
+          "hits": 135,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 30,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 336,
+      "digest": "2b77f0ce",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 938.7025512649836,
+          "taken": 772.2065107843888,
+          "hull": 257.79348921561024,
+          "maxHull": 1030,
+          "shots": 1484,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 772.2065107843888,
+          "taken": 1010.902551265,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 689,
+          "hits": 114,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 30,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 342.5,
+      "digest": "26fc74bb",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1005.2637658390214,
+          "taken": 841.4112949357891,
+          "hull": 188.58870506421178,
+          "maxHull": 1030,
+          "shots": 1404,
+          "hits": 107,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 841.4112949357891,
+          "taken": 1005.2637658390214,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 733,
+          "hits": 103,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 31,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 343,
+      "digest": "6b7da312",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 859.1434071107012,
+          "taken": 975.4136117478124,
+          "hull": 54.58638825218165,
+          "maxHull": 1030,
+          "shots": 1408,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 901.0476117478124,
+          "taken": 1003.543407110734,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 709,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 31,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 412.5,
+      "digest": "249a7a7d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.4900809448446,
+          "taken": 1017.5394344417255,
+          "hull": 12.46056555827551,
+          "maxHull": 1030,
+          "shots": 1645,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 1017.5394344417255,
+          "taken": 1000.6900809448404,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 842,
+          "hits": 136,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 32,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 354,
+      "digest": "7b5218f6",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 806.9391483519381,
+          "taken": 1030.1612226816742,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1433,
+          "hits": 102,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 899.9692226816666,
+          "taken": 806.9391483519381,
+          "hull": 193.0608516480619,
+          "maxHull": 1000,
+          "shots": 706,
+          "hits": 118,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 32,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 396.5,
+      "digest": "beb83040",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 969.9215607022992,
+          "taken": 1031.015209900498,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1597,
+          "hits": 116,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1031.015209900498,
+          "taken": 969.9215607022992,
+          "hull": 30.07843929770044,
+          "maxHull": 1000,
+          "shots": 801,
+          "hits": 131,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 33,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 324.5,
+      "digest": "9f762f59",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1007.1587655914589,
+          "taken": 1025.3812581403527,
+          "hull": 4.6187418596496155,
+          "maxHull": 1030,
+          "shots": 1458,
+          "hits": 129,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 951.0152581403464,
+          "taken": 1007.1587655914589,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 716,
+          "hits": 123,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 33,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 321.5,
+      "digest": "684d14f3",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.522108971682,
+          "taken": 983.4064562134648,
+          "hull": 46.59354378653492,
+          "maxHull": 1030,
+          "shots": 1500,
+          "hits": 132,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 909.0404562134586,
+          "taken": 1004.522108971682,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 721,
+          "hits": 128,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 34,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 404.5,
+      "digest": "1c9c7154",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1008.5334206612922,
+          "taken": 744.417297661447,
+          "hull": 285.5827023385526,
+          "maxHull": 1030,
+          "shots": 1668,
+          "hits": 122,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 744.417297661447,
+          "taken": 1008.5334206612922,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 843,
+          "hits": 106,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 34,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 349,
+      "digest": "d4b70986",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 931.5058754755499,
+          "taken": 804.1414584294216,
+          "hull": 225.8585415705779,
+          "maxHull": 1030,
+          "shots": 1487,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 804.1414584294216,
+          "taken": 1003.7058754755475,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 728,
+          "hits": 99,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 35,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 319,
+      "digest": "b6828d50",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 787.1183764152757,
+          "taken": 815.6600957326112,
+          "hull": 214.33990426738805,
+          "maxHull": 1030,
+          "shots": 1383,
+          "hits": 100,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 815.6600957326112,
+          "taken": 1003.7183764153046,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 679,
+          "hits": 122,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 35,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 333.5,
+      "digest": "b227bfa1",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.9433199247187,
+          "taken": 966.97379815865,
+          "hull": 63.026201841350286,
+          "maxHull": 1030,
+          "shots": 1430,
+          "hits": 109,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 892.6077981586438,
+          "taken": 1003.1433199247351,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 709,
+          "hits": 105,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 36,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 429,
+      "digest": "117924bf",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1005.3381372042743,
+          "taken": 994.808215459672,
+          "hull": 35.19178454032684,
+          "maxHull": 1030,
+          "shots": 1769,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 920.4422154596664,
+          "taken": 1005.3381372042743,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 881,
+          "hits": 130,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 36,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 428.5,
+      "digest": "51632243",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1006.8159933682975,
+          "taken": 1005.0168392428142,
+          "hull": 24.983160757191378,
+          "maxHull": 1030,
+          "shots": 1752,
+          "hits": 130,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 930.6508392428079,
+          "taken": 1006.8159933682975,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 863,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 37,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 309.5,
+      "digest": "27e2438d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 939.193172563689,
+          "taken": 960.1968201969396,
+          "hull": 69.80317980305965,
+          "maxHull": 1030,
+          "shots": 1416,
+          "hits": 106,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 885.8308201969334,
+          "taken": 1011.3931725637054,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 705,
+          "hits": 127,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 37,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 309.5,
+      "digest": "558c8ed2",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 969.0336161105183,
+          "taken": 1033.9313193782498,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1376,
+          "hits": 121,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 959.5653193782435,
+          "taken": 969.0336161105183,
+          "hull": 30.96638388948158,
+          "maxHull": 1000,
+          "shots": 703,
+          "hits": 131,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 38,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 362.5,
+      "digest": "523558c8",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 888.7996499213532,
+          "taken": 1032.8291333954464,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1477,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1032.8291333954464,
+          "taken": 888.7996499213532,
+          "hull": 111.20035007864732,
+          "maxHull": 1000,
+          "shots": 752,
+          "hits": 134,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 38,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 409,
+      "digest": "f2282a6",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 923.8470913612874,
+          "taken": 1030.0233849054337,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1658,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 955.8633849054307,
+          "taken": 923.8470913612874,
+          "hull": 76.15290863871309,
+          "maxHull": 1000,
+          "shots": 787,
+          "hits": 129,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 39,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 456.5,
+      "digest": "5191f521",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 919.8205152891657,
+          "taken": 1039.0884079002662,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1935,
+          "hits": 112,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 964.7224079002601,
+          "taken": 919.8205152891657,
+          "hull": 80.17948471083494,
+          "maxHull": 1000,
+          "shots": 945,
+          "hits": 130,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 39,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 378,
+      "digest": "7e7d9d12",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 890.9259084323083,
+          "taken": 1030.150942090512,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1484,
+          "hits": 109,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1030.150942090512,
+          "taken": 890.9259084323083,
+          "hull": 109.0740915676916,
+          "maxHull": 1000,
+          "shots": 777,
+          "hits": 141,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 40,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 308.5,
+      "digest": "11a078dc",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1010.6549258315696,
+          "taken": 818.1506792197957,
+          "hull": 211.84932078020418,
+          "maxHull": 1030,
+          "shots": 1490,
+          "hits": 119,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 818.1506792197957,
+          "taken": 1010.6549258315696,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 723,
+          "hits": 112,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 40,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 325.5,
+      "digest": "1d9b67a4",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 838.6840262357799,
+          "taken": 1036.8090420876972,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1508,
+          "hits": 98,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 962.4430420876912,
+          "taken": 838.6840262357799,
+          "hull": 161.31597376421988,
+          "maxHull": 1000,
+          "shots": 743,
+          "hits": 132,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 41,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 362,
+      "digest": "5f10fbeb",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.0704123377858,
+          "taken": 844.1051957470236,
+          "hull": 185.89480425297708,
+          "maxHull": 1030,
+          "shots": 1492,
+          "hits": 106,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 844.1051957470236,
+          "taken": 1002.2704123378022,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 737,
+          "hits": 106,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 41,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 318.5,
+      "digest": "d0463ad0",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 884.4798506640692,
+          "taken": 655.2170054401946,
+          "hull": 374.78299455980516,
+          "maxHull": 1030,
+          "shots": 1318,
+          "hits": 116,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 655.2170054401946,
+          "taken": 1000.0798506640749,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 644,
+          "hits": 87,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 384.5,
+      "digest": "adf1599d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1010.1812665713097,
+          "taken": 932.5625165519716,
+          "hull": 97.43748344802857,
+          "maxHull": 1030,
+          "shots": 1668,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 858.1965165519653,
+          "taken": 1010.1812665713097,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 826,
+          "hits": 124,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 42,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 339.5,
+      "digest": "be4aa248",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.2470077875072,
+          "taken": 867.988189003578,
+          "hull": 162.01181099642227,
+          "maxHull": 1030,
+          "shots": 1432,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 867.988189003578,
+          "taken": 1002.2470077875072,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 725,
+          "hits": 116,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 379.5,
+      "digest": "b03b61e3",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 934.0215143210337,
+          "taken": 896.6837494331455,
+          "hull": 133.316250566855,
+          "maxHull": 1030,
+          "shots": 1549,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 892.9757494331452,
+          "taken": 1006.2215143210501,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 786,
+          "hits": 116,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 43,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 408,
+      "digest": "4aec8852",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 768.5032555794601,
+          "taken": 1037.2747831350794,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1698,
+          "hits": 110,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1037.2747831350794,
+          "taken": 768.5032555794601,
+          "hull": 231.49674442054007,
+          "maxHull": 1000,
+          "shots": 853,
+          "hits": 140,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 44,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 354.5,
+      "digest": "359fa837",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 953.0846568583066,
+          "taken": 745.61654232561,
+          "hull": 284.3834576743905,
+          "maxHull": 1030,
+          "shots": 1454,
+          "hits": 109,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 745.61654232561,
+          "taken": 1000.0846568583173,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 720,
+          "hits": 103,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 44,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 344,
+      "digest": "15afce67",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.5620412051022,
+          "taken": 865.5304929723719,
+          "hull": 164.4695070276223,
+          "maxHull": 1030,
+          "shots": 1396,
+          "hits": 121,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 716.7984929723647,
+          "taken": 1004.5620412051022,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 666,
+          "hits": 98,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 45,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 361.5,
+      "digest": "56fcdc3c",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1005.158142665773,
+          "taken": 983.2702508493146,
+          "hull": 46.729749150685336,
+          "maxHull": 1030,
+          "shots": 1514,
+          "hits": 127,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 983.2702508493146,
+          "taken": 1005.158142665773,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 780,
+          "hits": 130,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 45,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 356,
+      "digest": "6411dc88",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 927.978509737779,
+          "taken": 918.9846508214414,
+          "hull": 111.01534917855815,
+          "maxHull": 1030,
+          "shots": 1543,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 918.9846508214414,
+          "taken": 1000.1785097377954,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 755,
+          "hits": 119,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 46,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 355,
+      "digest": "9096f780",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 935.8232426142121,
+          "taken": 779.3062856112986,
+          "hull": 250.69371438870127,
+          "maxHull": 1030,
+          "shots": 1513,
+          "hits": 122,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 779.3062856112986,
+          "taken": 1008.0232426142082,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 747,
+          "hits": 108,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 46,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 351,
+      "digest": "19efcf48",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.1792731604063,
+          "taken": 935.3714125632471,
+          "hull": 94.62858743675302,
+          "maxHull": 1030,
+          "shots": 1527,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 861.0054125632408,
+          "taken": 1002.1792731604063,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 738,
+          "hits": 118,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 47,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 311,
+      "digest": "76264c3e",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1007.2926279105656,
+          "taken": 766.9775857387482,
+          "hull": 263.0224142612518,
+          "maxHull": 1030,
+          "shots": 1309,
+          "hits": 119,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 766.9775857387482,
+          "taken": 1007.2926279105656,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 628,
+          "hits": 102,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 47,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 276,
+      "digest": "3d520d90",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 857.824294690317,
+          "taken": 489.0297403301591,
+          "hull": 540.970259669841,
+          "maxHull": 1030,
+          "shots": 1166,
+          "hits": 99,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 489.0297403301591,
+          "taken": 1002.2242946903293,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 570,
+          "hits": 70,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 48,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 341,
+      "digest": "541db5e8",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.1362758160927,
+          "taken": 907.3327686550181,
+          "hull": 122.66723134498177,
+          "maxHull": 1030,
+          "shots": 1530,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 907.3327686550181,
+          "taken": 1000.1362758160927,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 760,
+          "hits": 134,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 48,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 349,
+      "digest": "d8801a98",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 927.6286800839083,
+          "taken": 1030.5394751060887,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1551,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1030.5394751060887,
+          "taken": 927.6286800839083,
+          "hull": 72.37131991609128,
+          "maxHull": 1000,
+          "shots": 745,
+          "hits": 134,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 49,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 345.5,
+      "digest": "83e98cd",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 941.8649457003838,
+          "taken": 1032.4407891078733,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1436,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1027.0847891078733,
+          "taken": 941.8649457003838,
+          "hull": 58.13505429961643,
+          "maxHull": 1000,
+          "shots": 716,
+          "hits": 134,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 49,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 402,
+      "digest": "337dd581",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 992.8589971201194,
+          "taken": 1036.779344352311,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1685,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1036.779344352311,
+          "taken": 992.8589971201194,
+          "hull": 7.1410028798808,
+          "maxHull": 1000,
+          "shots": 861,
+          "hits": 136,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 50,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 412.5,
+      "digest": "22c5aafe",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.3064913665254,
+          "taken": 818.4228014183979,
+          "hull": 211.57719858160223,
+          "maxHull": 1030,
+          "shots": 1714,
+          "hits": 127,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 818.4228014183979,
+          "taken": 1003.3064913665254,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 832,
+          "hits": 109,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 50,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 363.5,
+      "digest": "347e99b4",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 931.9583863270467,
+          "taken": 955.1248379903465,
+          "hull": 74.87516200965341,
+          "maxHull": 1030,
+          "shots": 1497,
+          "hits": 110,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 948.7388379903459,
+          "taken": 1004.1583863270425,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 764,
+          "hits": 123,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 51,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 382,
+      "digest": "fda148e1",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 934.3900981996974,
+          "taken": 855.7346267734947,
+          "hull": 174.26537322650458,
+          "maxHull": 1030,
+          "shots": 1673,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 855.7346267734947,
+          "taken": 1006.5900981996932,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 792,
+          "hits": 113,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 51,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 341,
+      "digest": "c2caf340",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 873.1357471255154,
+          "taken": 1033.3954572521866,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1410,
+          "hits": 107,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 959.0294572521908,
+          "taken": 873.1357471255154,
+          "hull": 126.86425287448435,
+          "maxHull": 1000,
+          "shots": 728,
+          "hits": 117,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 52,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 332.5,
+      "digest": "eb346755",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1005.4305456200675,
+          "taken": 837.7012399775728,
+          "hull": 192.29876002242838,
+          "maxHull": 1030,
+          "shots": 1483,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 837.7012399775728,
+          "taken": 1005.4305456200675,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 731,
+          "hits": 108,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 52,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 336,
+      "digest": "e196ccf7",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 932.0218326381078,
+          "taken": 895.721274345163,
+          "hull": 134.27872565483642,
+          "maxHull": 1030,
+          "shots": 1500,
+          "hits": 107,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 895.721274345163,
+          "taken": 1004.2218326381035,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 755,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 53,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 401.5,
+      "digest": "aa678984",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.1727787089206,
+          "taken": 963.176577807466,
+          "hull": 66.82342219253317,
+          "maxHull": 1030,
+          "shots": 1702,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 963.176577807466,
+          "taken": 1002.1727787089206,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 850,
+          "hits": 126,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 53,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 357.5,
+      "digest": "53c0059d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.6878597629276,
+          "taken": 963.8661000720258,
+          "hull": 66.13389992797433,
+          "maxHull": 1030,
+          "shots": 1540,
+          "hits": 105,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 889.5001000720196,
+          "taken": 1000.8878597629233,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 764,
+          "hits": 107,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 54,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 307.5,
+      "digest": "3f1b241b",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 763.7122259263006,
+          "taken": 1040.63143501735,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1309,
+          "hits": 98,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 817.5334350173314,
+          "taken": 763.7122259263006,
+          "hull": 236.28777407369947,
+          "maxHull": 1000,
+          "shots": 646,
+          "hits": 108,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 54,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 380,
+      "digest": "477394ed",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1007.3749377444094,
+          "taken": 888.5864731884852,
+          "hull": 141.41352681151426,
+          "maxHull": 1030,
+          "shots": 1558,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 888.5864731884852,
+          "taken": 1007.3749377444094,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 792,
+          "hits": 117,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 55,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 377.5,
+      "digest": "235fe991",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 937.0263700309754,
+          "taken": 1016.3149255260939,
+          "hull": 13.685074473906194,
+          "maxHull": 1030,
+          "shots": 1652,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 1016.3149255260939,
+          "taken": 1009.2263700309713,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 813,
+          "hits": 137,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 55,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 315,
+      "digest": "f01637d6",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.3266582472293,
+          "taken": 813.7036416282283,
+          "hull": 216.29635837177088,
+          "maxHull": 1030,
+          "shots": 1424,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 813.7036416282283,
+          "taken": 1004.3266582472293,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 675,
+          "hits": 106,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 56,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 375.5,
+      "digest": "76861298",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1009.9880315466779,
+          "taken": 885.0701843103417,
+          "hull": 144.9298156896656,
+          "maxHull": 1030,
+          "shots": 1712,
+          "hits": 127,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 810.7041843103354,
+          "taken": 1009.9880315466779,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 799,
+          "hits": 117,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 56,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 258,
+      "digest": "61ae02c4",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 633.6636052678076,
+          "taken": 1030.1053583433934,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1079,
+          "hits": 80,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 841.2033583433808,
+          "taken": 633.6636052678076,
+          "hull": 366.33639473219256,
+          "maxHull": 1000,
+          "shots": 563,
+          "hits": 112,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 57,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 346.5,
+      "digest": "24d3f3",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 864.4731090341469,
+          "taken": 883.2828301493932,
+          "hull": 146.71716985060672,
+          "maxHull": 1030,
+          "shots": 1442,
+          "hits": 104,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 883.2828301493932,
+          "taken": 1008.8731090341591,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 716,
+          "hits": 109,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 57,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 377,
+      "digest": "5f1b7f74",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 847.4828532564392,
+          "taken": 1035.629949607684,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1518,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 886.8979496076716,
+          "taken": 847.4828532564392,
+          "hull": 152.51714674356066,
+          "maxHull": 1000,
+          "shots": 790,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 58,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 344,
+      "digest": "73653dc8",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 871.4791554770891,
+          "taken": 1040.573268640954,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1420,
+          "hits": 103,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1040.573268640954,
+          "taken": 871.4791554770891,
+          "hull": 128.52084452291092,
+          "maxHull": 1000,
+          "shots": 718,
+          "hits": 129,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 58,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 329,
+      "digest": "a0f5638a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.9756821851032,
+          "taken": 816.9090129196386,
+          "hull": 213.09098708035194,
+          "maxHull": 1030,
+          "shots": 1416,
+          "hits": 116,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 742.5430129196411,
+          "taken": 1001.1756821851196,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 672,
+          "hits": 105,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 59,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 413,
+      "digest": "839f417",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 941.294763782541,
+          "taken": 1031.849888119496,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1707,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1031.849888119496,
+          "taken": 941.294763782541,
+          "hull": 58.705236217458534,
+          "maxHull": 1000,
+          "shots": 841,
+          "hits": 134,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 59,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 344.5,
+      "digest": "ca7fb8b2",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 954.571823188635,
+          "taken": 1032.7382987646426,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1408,
+          "hits": 124,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 884.0062987646352,
+          "taken": 954.571823188635,
+          "hull": 45.42817681136505,
+          "maxHull": 1000,
+          "shots": 718,
+          "hits": 119,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 60,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 353,
+      "digest": "840b1058",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 935.5677445642792,
+          "taken": 991.6796615041865,
+          "hull": 38.3203384958139,
+          "maxHull": 1030,
+          "shots": 1657,
+          "hits": 106,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 991.6796615041865,
+          "taken": 1007.7677445642956,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 779,
+          "hits": 139,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 60,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 278.5,
+      "digest": "52221739",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1009.3996995922745,
+          "taken": 738.8626260584882,
+          "hull": 291.1373739415012,
+          "maxHull": 1030,
+          "shots": 1329,
+          "hits": 119,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 590.1306260584861,
+          "taken": 1009.3996995922745,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 633,
+          "hits": 82,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 61,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 344.5,
+      "digest": "19c8821b",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1008.6472479465335,
+          "taken": 814.4095796965306,
+          "hull": 215.59042030346419,
+          "maxHull": 1030,
+          "shots": 1437,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 740.0435796965297,
+          "taken": 1008.6472479465335,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 712,
+          "hits": 109,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 61,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 345.5,
+      "digest": "c1dce66e",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1009.3139602406426,
+          "taken": 915.1652967019198,
+          "hull": 114.83470329807203,
+          "maxHull": 1030,
+          "shots": 1454,
+          "hits": 126,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 840.7992967019217,
+          "taken": 1009.3139602406426,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 725,
+          "hits": 106,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 62,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 375,
+      "digest": "3397be9f",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.7140168246036,
+          "taken": 935.6256977512569,
+          "hull": 94.3743022487432,
+          "maxHull": 1030,
+          "shots": 1569,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 935.6256977512569,
+          "taken": 1003.7140168246036,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 745,
+          "hits": 135,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 62,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 383.5,
+      "digest": "70e0c300",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 987.881739090182,
+          "taken": 1039.8316640418657,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1646,
+          "hits": 125,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 965.4656640418602,
+          "taken": 987.881739090182,
+          "hull": 12.118260909818433,
+          "maxHull": 1000,
+          "shots": 820,
+          "hits": 141,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 63,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 324,
+      "digest": "38168952",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 862.9430575506924,
+          "taken": 825.0254910425313,
+          "hull": 204.97450895746135,
+          "maxHull": 1030,
+          "shots": 1315,
+          "hits": 104,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 750.6594910425325,
+          "taken": 1000.1430575507032,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 646,
+          "hits": 92,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 63,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 378.5,
+      "digest": "7bf9706a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 927.953531897466,
+          "taken": 957.8275344431436,
+          "hull": 72.17246555685658,
+          "maxHull": 1030,
+          "shots": 1541,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 883.4615344431373,
+          "taken": 1000.1535318974799,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 795,
+          "hits": 119,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 64,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 415.5,
+      "digest": "b94489e1",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 987.1432606980669,
+          "taken": 1034.425664341414,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1933,
+          "hits": 127,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1034.425664341414,
+          "taken": 987.1432606980669,
+          "hull": 12.856739301933128,
+          "maxHull": 1000,
+          "shots": 944,
+          "hits": 139,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 64,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 357,
+      "digest": "95c03317",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1008.4549148666454,
+          "taken": 935.5857463649888,
+          "hull": 94.41425363501023,
+          "maxHull": 1030,
+          "shots": 1611,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 935.5857463649888,
+          "taken": 1008.4549148666454,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 790,
+          "hits": 130,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 65,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 339.5,
+      "digest": "5c9b3b0d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.6650653260093,
+          "taken": 899.2458172830203,
+          "hull": 130.75418271697902,
+          "maxHull": 1030,
+          "shots": 1504,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 824.879817283014,
+          "taken": 1000.6650653260093,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 762,
+          "hits": 114,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 65,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 298,
+      "digest": "fa396273",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.3466974712042,
+          "taken": 909.9342718540744,
+          "hull": 120.06572814592518,
+          "maxHull": 1030,
+          "shots": 1368,
+          "hits": 132,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 909.9342718540744,
+          "taken": 1000.3466974712042,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 671,
+          "hits": 123,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 66,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 259.5,
+      "digest": "4c5a0421",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.7949107919194,
+          "taken": 729.9886095496483,
+          "hull": 300.01139045034654,
+          "maxHull": 1030,
+          "shots": 1195,
+          "hits": 116,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 655.6226095496474,
+          "taken": 1002.9949107919151,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 580,
+          "hits": 91,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 66,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 320.5,
+      "digest": "8f11f9ac",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 847.9897098018919,
+          "taken": 1031.963808624332,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1416,
+          "hits": 106,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 883.2318086243298,
+          "taken": 847.9897098018919,
+          "hull": 152.0102901981082,
+          "maxHull": 1000,
+          "shots": 728,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 67,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 347,
+      "digest": "9d59e780",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 939.9146784962413,
+          "taken": 938.4234212595451,
+          "hull": 91.57657874045495,
+          "maxHull": 1030,
+          "shots": 1493,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 938.4234212595451,
+          "taken": 1012.1146784962418,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 749,
+          "hits": 123,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 67,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 315,
+      "digest": "edb2eda2",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 929.0879599293665,
+          "taken": 841.5922623474845,
+          "hull": 188.40773765250626,
+          "maxHull": 1030,
+          "shots": 1416,
+          "hits": 110,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 767.2262623474872,
+          "taken": 1001.287959929383,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 702,
+          "hits": 107,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 68,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 444.5,
+      "digest": "b0686f9b",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1007.9363457289624,
+          "taken": 923.489641635185,
+          "hull": 106.51035836481472,
+          "maxHull": 1030,
+          "shots": 1823,
+          "hits": 127,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 923.489641635185,
+          "taken": 1007.9363457289624,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 904,
+          "hits": 130,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 68,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 375.5,
+      "digest": "d1415d0c",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.8658901610241,
+          "taken": 1022.6218750871036,
+          "hull": 7.378124912896295,
+          "maxHull": 1030,
+          "shots": 1551,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 1022.6218750871036,
+          "taken": 1003.8658901610241,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 756,
+          "hits": 128,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 69,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 360,
+      "digest": "a83c4c5b",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 991.1877382071666,
+          "taken": 1032.3898502313327,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1610,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 958.0238502313298,
+          "taken": 991.1877382071666,
+          "hull": 8.812261792834075,
+          "maxHull": 1000,
+          "shots": 788,
+          "hits": 127,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 69,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 332.5,
+      "digest": "c8a99ae3",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.3376243688772,
+          "taken": 690.4643710379597,
+          "hull": 339.5356289620398,
+          "maxHull": 1030,
+          "shots": 1506,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 690.4643710379597,
+          "taken": 1002.3376243688772,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 723,
+          "hits": 107,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 70,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 261.5,
+      "digest": "93aa0221",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.0373138715979,
+          "taken": 681.7907803039222,
+          "hull": 348.2092196960781,
+          "maxHull": 1030,
+          "shots": 1239,
+          "hits": 126,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 681.7907803039222,
+          "taken": 1003.0373138715979,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 616,
+          "hits": 100,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 70,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 308.5,
+      "digest": "f3a441b1",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 913.3788815176304,
+          "taken": 1034.0889273792945,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1455,
+          "hits": 109,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 885.3569273792818,
+          "taken": 985.5788815176263,
+          "hull": 14.421118482353176,
+          "maxHull": 1000,
+          "shots": 703,
+          "hits": 122,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 71,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 285.5,
+      "digest": "1c3f57da",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 927.8680675601089,
+          "taken": 771.1365741696812,
+          "hull": 258.8634258303188,
+          "maxHull": 1030,
+          "shots": 1248,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 771.1365741696812,
+          "taken": 1000.0680675601049,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 615,
+          "hits": 105,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 71,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 340.5,
+      "digest": "fc963285",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1013.0159151217979,
+          "taken": 909.8570972876764,
+          "hull": 120.14290271232422,
+          "maxHull": 1030,
+          "shots": 1475,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 901.2050972876757,
+          "taken": 1013.0159151217979,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 729,
+          "hits": 125,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 72,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 360.5,
+      "digest": "9c342d4a",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 958.0973651337168,
+          "taken": 1036.84444996328,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1473,
+          "hits": 130,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1036.84444996328,
+          "taken": 958.0973651337168,
+          "hull": 41.90263486628281,
+          "maxHull": 1000,
+          "shots": 759,
+          "hits": 131,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 72,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 379,
+      "digest": "582bf69a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.9000788142857,
+          "taken": 876.0291885911442,
+          "hull": 153.9708114088553,
+          "maxHull": 1030,
+          "shots": 1551,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 876.0291885911442,
+          "taken": 1001.1000788142816,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 777,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 73,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 269.5,
+      "digest": "c98d0b07",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 856.4403005056635,
+          "taken": 821.5762771361018,
+          "hull": 208.42372286389812,
+          "maxHull": 1030,
+          "shots": 1196,
+          "hits": 98,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 821.5762771361018,
+          "taken": 1000.8403005056757,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 607,
+          "hits": 121,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 73,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 328.5,
+      "digest": "cce169ad",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1005.6536246580794,
+          "taken": 924.556255057254,
+          "hull": 105.44374494274663,
+          "maxHull": 1030,
+          "shots": 1473,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 924.556255057254,
+          "taken": 1005.6536246580794,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 729,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 74,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 313.5,
+      "digest": "8102f151",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1012.2510031726072,
+          "taken": 968.2884355958898,
+          "hull": 61.711564404110284,
+          "maxHull": 1030,
+          "shots": 1383,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 968.2884355958898,
+          "taken": 1012.2510031726072,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 707,
+          "hits": 125,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 74,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 348,
+      "digest": "85bdd9d5",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1006.1812960474812,
+          "taken": 932.3035088536412,
+          "hull": 97.69649114634862,
+          "maxHull": 1030,
+          "shots": 1550,
+          "hits": 122,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 783.5715088536391,
+          "taken": 1006.1812960474812,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 764,
+          "hits": 112,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 75,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 327.5,
+      "digest": "236dd166",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 891.5701190878218,
+          "taken": 1035.4596513076888,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1355,
+          "hits": 106,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 961.0936513076826,
+          "taken": 963.7701190878382,
+          "hull": 36.2298809121823,
+          "maxHull": 1000,
+          "shots": 695,
+          "hits": 117,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 75,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 339,
+      "digest": "d5a6efe5",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.5682051845013,
+          "taken": 821.1915633996153,
+          "hull": 208.80843660038468,
+          "maxHull": 1030,
+          "shots": 1460,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 821.1915633996153,
+          "taken": 1000.5682051845013,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 686,
+          "hits": 114,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 76,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 281.5,
+      "digest": "f556580e",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 931.4436050144055,
+          "taken": 843.5081981477629,
+          "hull": 186.4918018522369,
+          "maxHull": 1030,
+          "shots": 1214,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 843.5081981477629,
+          "taken": 1003.6436050144049,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 644,
+          "hits": 109,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 76,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 331,
+      "digest": "185d9f94",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 983.1400530069031,
+          "taken": 1038.9610119135616,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1430,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 964.5950119135554,
+          "taken": 983.1400530069031,
+          "hull": 16.859946993097022,
+          "maxHull": 1000,
+          "shots": 730,
+          "hits": 124,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 77,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 362,
+      "digest": "a61b2c8d",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 804.2509852435754,
+          "taken": 1031.9188050280302,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1477,
+          "hits": 99,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1031.9188050280302,
+          "taken": 804.2509852435754,
+          "hull": 195.74901475642454,
+          "maxHull": 1000,
+          "shots": 763,
+          "hits": 135,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 77,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 344.5,
+      "digest": "6de411a2",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 931.7921431725432,
+          "taken": 871.3020271961315,
+          "hull": 158.69797280386803,
+          "maxHull": 1030,
+          "shots": 1465,
+          "hits": 110,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 871.3020271961315,
+          "taken": 1003.992143172539,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 740,
+          "hits": 115,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 78,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 311.5,
+      "digest": "5841d57d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.8527908498723,
+          "taken": 1005.2284255528082,
+          "hull": 24.77157444719217,
+          "maxHull": 1030,
+          "shots": 1293,
+          "hits": 100,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 1005.2284255528082,
+          "taken": 1001.0527908498683,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 676,
+          "hits": 124,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 78,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 352,
+      "digest": "546b34d4",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1001.3691735018435,
+          "taken": 1026.393541377603,
+          "hull": 3.6064586223970108,
+          "maxHull": 1030,
+          "shots": 1539,
+          "hits": 129,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 952.0275413775967,
+          "taken": 1001.3691735018435,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 768,
+          "hits": 126,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 79,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 308.5,
+      "digest": "eb28f58",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.140301469171,
+          "taken": 918.383007609635,
+          "hull": 111.61699239035487,
+          "maxHull": 1030,
+          "shots": 1422,
+          "hits": 116,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 844.017007609639,
+          "taken": 1002.3403014691875,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 676,
+          "hits": 114,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 79,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 310.5,
+      "digest": "856b9a22",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.6153863649607,
+          "taken": 808.55151420846,
+          "hull": 221.44848579153017,
+          "maxHull": 1030,
+          "shots": 1435,
+          "hits": 125,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 734.1855142084638,
+          "taken": 1004.6153863649607,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 687,
+          "hits": 103,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 80,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 322.5,
+      "digest": "32234d16",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 892.6029923959333,
+          "taken": 1041.4207156217897,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1489,
+          "hits": 107,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 967.0547156217835,
+          "taken": 892.6029923959333,
+          "hull": 107.39700760406654,
+          "maxHull": 1000,
+          "shots": 732,
+          "hits": 130,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 80,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 294,
+      "digest": "8ca3c5d5",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1001.9559974898428,
+          "taken": 1013.5974695089244,
+          "hull": 16.40253049107558,
+          "maxHull": 1030,
+          "shots": 1376,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 1013.5974695089244,
+          "taken": 1001.9559974898428,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 683,
+          "hits": 132,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 81,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 347,
+      "digest": "783abd02",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 887.6150879673474,
+          "taken": 1032.4529006409896,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1443,
+          "hits": 103,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 958.0869006409833,
+          "taken": 959.8150879673484,
+          "hull": 40.18491203263572,
+          "maxHull": 1000,
+          "shots": 730,
+          "hits": 116,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 81,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 377.5,
+      "digest": "8a7ebdc2",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 940.5393194268381,
+          "taken": 869.2530130872349,
+          "hull": 160.74698691276518,
+          "maxHull": 1030,
+          "shots": 1575,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 869.2530130872349,
+          "taken": 1012.7393194268545,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 802,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 82,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 445.5,
+      "digest": "36acdfb6",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 862.7290750896583,
+          "taken": 1040.6843603949153,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1836,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 966.3183603949091,
+          "taken": 862.7290750896583,
+          "hull": 137.2709249103413,
+          "maxHull": 1000,
+          "shots": 931,
+          "hits": 122,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 82,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 377,
+      "digest": "570f97a0",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 932.2745016315964,
+          "taken": 952.4615507049224,
+          "hull": 77.53844929507709,
+          "maxHull": 1030,
+          "shots": 1536,
+          "hits": 110,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 952.4615507049224,
+          "taken": 1004.4745016316128,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 762,
+          "hits": 122,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 83,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 380,
+      "digest": "fbc73193",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.6128041358876,
+          "taken": 926.1641292256455,
+          "hull": 103.83587077435455,
+          "maxHull": 1030,
+          "shots": 1666,
+          "hits": 124,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 926.1641292256455,
+          "taken": 1002.6128041358876,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 808,
+          "hits": 138,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 83,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 378.5,
+      "digest": "f785697f",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 903.1464777598801,
+          "taken": 1042.0378500953232,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1672,
+          "hits": 126,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 967.6718500953172,
+          "taken": 975.3464777598758,
+          "hull": 24.653522240103406,
+          "maxHull": 1000,
+          "shots": 804,
+          "hits": 128,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 84,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 353.5,
+      "digest": "41e855d6",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 933.8681485917335,
+          "taken": 976.9449908271107,
+          "hull": 53.05500917288917,
+          "maxHull": 1030,
+          "shots": 1634,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 976.9449908271107,
+          "taken": 1006.0681485917295,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 765,
+          "hits": 138,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 84,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 353,
+      "digest": "4c16a917",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1012.2764112055593,
+          "taken": 1003.3255787586462,
+          "hull": 26.67442124135372,
+          "maxHull": 1030,
+          "shots": 1610,
+          "hits": 121,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 1003.3255787586462,
+          "taken": 1012.2764112055593,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 776,
+          "hits": 139,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 85,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 345.5,
+      "digest": "605ce515",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1012.56390195798,
+          "taken": 923.0436634373991,
+          "hull": 106.95633656260037,
+          "maxHull": 1030,
+          "shots": 1516,
+          "hits": 124,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 923.0436634373991,
+          "taken": 1012.56390195798,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 750,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 85,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 321,
+      "digest": "f8325902",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 937.2653348411159,
+          "taken": 667.8827600985774,
+          "hull": 362.11723990141274,
+          "maxHull": 1030,
+          "shots": 1381,
+          "hits": 116,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 593.5167600985815,
+          "taken": 1009.4653348411166,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 650,
+          "hits": 79,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 86,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 363,
+      "digest": "8e656871",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 931.6405647427217,
+          "taken": 929.353811362144,
+          "hull": 100.64618863786042,
+          "maxHull": 1030,
+          "shots": 1480,
+          "hits": 125,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 854.9878113621378,
+          "taken": 1003.8405647427381,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 732,
+          "hits": 111,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 86,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 411,
+      "digest": "f96a9a23",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 885.8109109488053,
+          "taken": 1032.574057699457,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1623,
+          "hits": 119,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1032.574057699457,
+          "taken": 958.0109109488011,
+          "hull": 41.98908905117885,
+          "maxHull": 1000,
+          "shots": 859,
+          "hits": 135,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 87,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 314.5,
+      "digest": "368bdf67",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1012.2966601023411,
+          "taken": 894.131791791259,
+          "hull": 135.86820820874104,
+          "maxHull": 1030,
+          "shots": 1413,
+          "hits": 121,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 894.131791791259,
+          "taken": 1012.2966601023411,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 707,
+          "hits": 122,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 87,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 283.5,
+      "digest": "99ffa98b",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.9775780335125,
+          "taken": 841.4494092212008,
+          "hull": 188.55059077879918,
+          "maxHull": 1030,
+          "shots": 1266,
+          "hits": 105,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 767.0834092211946,
+          "taken": 1001.1775780335289,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 624,
+          "hits": 101,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 88,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 264.5,
+      "digest": "969750e3",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 667.0070348498517,
+          "taken": 1033.0848783733295,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1173,
+          "hits": 88,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 884.3528783733273,
+          "taken": 667.0070348498517,
+          "hull": 332.99296515014856,
+          "maxHull": 1000,
+          "shots": 609,
+          "hits": 107,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 88,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 296.5,
+      "digest": "b1de96a4",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.632740459628,
+          "taken": 775.4153883945747,
+          "hull": 254.58461160542456,
+          "maxHull": 1030,
+          "shots": 1321,
+          "hits": 112,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 775.4153883945747,
+          "taken": 1000.8327404596239,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 649,
+          "hits": 105,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 89,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 281,
+      "digest": "76679277",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 857.3878578526178,
+          "taken": 801.5281159913928,
+          "hull": 228.47188400859739,
+          "maxHull": 1030,
+          "shots": 1346,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 652.79611599139,
+          "taken": 1001.7878578526506,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 650,
+          "hits": 99,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 89,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 330,
+      "digest": "db8d3297",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 852.2044299256161,
+          "taken": 1033.7772894605973,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1547,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 885.0452894605846,
+          "taken": 852.2044299256161,
+          "hull": 147.79557007438422,
+          "maxHull": 1000,
+          "shots": 747,
+          "hits": 126,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 90,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 321,
+      "digest": "4cc9effe",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.2271893800928,
+          "taken": 898.4214473135764,
+          "hull": 131.57855268642322,
+          "maxHull": 1030,
+          "shots": 1364,
+          "hits": 124,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 898.4214473135764,
+          "taken": 1000.2271893800928,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 678,
+          "hits": 117,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 90,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 331,
+      "digest": "6cbf3834",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 822.6490743744752,
+          "taken": 1030.2188399611807,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1445,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 955.8528399611746,
+          "taken": 894.8490743744711,
+          "hull": 105.15092562550983,
+          "maxHull": 1000,
+          "shots": 726,
+          "hits": 132,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 91,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 379,
+      "digest": "82f08ed0",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 929.918642992568,
+          "taken": 954.0625078163989,
+          "hull": 75.93749218360152,
+          "maxHull": 1030,
+          "shots": 1542,
+          "hits": 115,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 954.0625078163989,
+          "taken": 1002.1186429925845,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 777,
+          "hits": 120,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 91,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 360.5,
+      "digest": "c28b246d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1006.9473674879873,
+          "taken": 906.2352097661484,
+          "hull": 123.76479023385367,
+          "maxHull": 1030,
+          "shots": 1492,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 895.7292097661475,
+          "taken": 1006.9473674879873,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 748,
+          "hits": 133,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 92,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 313,
+      "digest": "a25550d3",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.4192262564881,
+          "taken": 616.0581113361754,
+          "hull": 413.94188866382467,
+          "maxHull": 1030,
+          "shots": 1291,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 616.0581113361754,
+          "taken": 1000.6192262564839,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 643,
+          "hits": 87,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 92,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 328,
+      "digest": "1f520562",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 940.7225209549448,
+          "taken": 768.6361890137999,
+          "hull": 261.3638109862,
+          "maxHull": 1030,
+          "shots": 1365,
+          "hits": 109,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 768.6361890137999,
+          "taken": 1012.9225209549612,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 690,
+          "hits": 95,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 93,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 347.5,
+      "digest": "e9440b1a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 857.4606142163848,
+          "taken": 841.0629132278724,
+          "hull": 188.9370867721278,
+          "maxHull": 1030,
+          "shots": 1392,
+          "hits": 104,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 841.0629132278724,
+          "taken": 1001.8606142163983,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 686,
+          "hits": 110,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 93,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 371.5,
+      "digest": "fd65bf67",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 941.0582733502978,
+          "taken": 1015.4823955047697,
+          "hull": 14.51760449523045,
+          "maxHull": 1030,
+          "shots": 1518,
+          "hits": 113,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 941.1163955047634,
+          "taken": 1000.0582733503112,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 747,
+          "hits": 122,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 94,
+      "swapped": false,
+      "winner": 1,
+      "reason": "아군 함대 퇴각",
+      "time": 398,
+      "digest": "717aa79",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 951.8705877644585,
+          "taken": 1033.9573642830953,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1613,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 959.5913642830893,
+          "taken": 951.8705877644585,
+          "hull": 48.129412235541956,
+          "maxHull": 1000,
+          "shots": 805,
+          "hits": 135,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 94,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 328,
+      "digest": "89c6959d",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 929.2237380788463,
+          "taken": 828.0753020408157,
+          "hull": 201.92469795918475,
+          "maxHull": 1030,
+          "shots": 1344,
+          "hits": 114,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 828.0753020408157,
+          "taken": 1001.4237380788627,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 666,
+          "hits": 111,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 95,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 379,
+      "digest": "8dd956fc",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1010.6597005498356,
+          "taken": 844.6902840952166,
+          "hull": 185.30971590478373,
+          "maxHull": 1030,
+          "shots": 1573,
+          "hits": 123,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 844.6902840952166,
+          "taken": 1010.6597005498356,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 779,
+          "hits": 121,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 95,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 361,
+      "digest": "57ff36e2",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 932.2101605830064,
+          "taken": 999.3053077299357,
+          "hull": 30.694692270064454,
+          "maxHull": 1030,
+          "shots": 1516,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 999.3053077299357,
+          "taken": 1004.410160583005,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 743,
+          "hits": 135,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 96,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 345,
+      "digest": "2ac95f0c",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 930.3979284789524,
+          "taken": 944.9783799429761,
+          "hull": 85.02162005702301,
+          "maxHull": 1030,
+          "shots": 1459,
+          "hits": 112,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 870.6123799429703,
+          "taken": 1002.5979284789688,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 684,
+          "hits": 111,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 96,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 392,
+      "digest": "fed9032f",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1003.2505856878187,
+          "taken": 984.7378344403888,
+          "hull": 45.26216555961102,
+          "maxHull": 1030,
+          "shots": 1618,
+          "hits": 120,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 984.7378344403888,
+          "taken": 1003.2505856878187,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 817,
+          "hits": 127,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 97,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 394.5,
+      "digest": "65c0e7bf",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1004.1545241420213,
+          "taken": 786.8143193435031,
+          "hull": 243.18568065649734,
+          "maxHull": 1030,
+          "shots": 1638,
+          "hits": 124,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 786.8143193435031,
+          "taken": 1004.1545241420213,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 793,
+          "hits": 108,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 97,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 362.5,
+      "digest": "5b55df90",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 994.835647156226,
+          "taken": 1032.497359680267,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1477,
+          "hits": 117,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1032.497359680267,
+          "taken": 994.835647156226,
+          "hull": 5.164352843773724,
+          "maxHull": 1000,
+          "shots": 744,
+          "hits": 131,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 98,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 267,
+      "digest": "6dfbfb9a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1007.5674258939024,
+          "taken": 832.3581685057048,
+          "hull": 197.64183149429448,
+          "maxHull": 1030,
+          "shots": 1160,
+          "hits": 118,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 757.9921685056988,
+          "taken": 1007.5674258939024,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 577,
+          "hits": 99,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 98,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 237,
+      "digest": "7e931951",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 928.4821122026342,
+          "taken": 639.5959114751472,
+          "hull": 390.4040885248523,
+          "maxHull": 1030,
+          "shots": 1068,
+          "hits": 101,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 639.5959114751472,
+          "taken": 1000.682112202635,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 513,
+          "hits": 86,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 99,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 361.5,
+      "digest": "6405f752",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 938.1766194281663,
+          "taken": 926.9905036667167,
+          "hull": 103.00949633328307,
+          "maxHull": 1030,
+          "shots": 1481,
+          "hits": 108,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 926.9905036667167,
+          "taken": 1010.3766194281621,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 754,
+          "hits": 113,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 99,
+      "swapped": true,
+      "winner": 0,
+      "reason": "아군 함대 퇴각",
+      "time": 442.5,
+      "digest": "f36c4cb8",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1002.9428316691838,
+          "taken": 1022.814864602943,
+          "hull": 7.1851353970512815,
+          "maxHull": 1030,
+          "shots": 1889,
+          "hits": 128,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 948.4488646029423,
+          "taken": 1002.9428316691838,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 914,
+          "hits": 131,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 100,
+      "swapped": false,
+      "winner": 0,
+      "reason": "적 함대 퇴각",
+      "time": 297.5,
+      "digest": "a3f35a2a",
+      "sides": [
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 1000.9656459251494,
+          "taken": 698.5428040022034,
+          "hull": 331.4571959977967,
+          "maxHull": 1030,
+          "shots": 1228,
+          "hits": 111,
+          "intercepts": 0
+        },
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 698.5428040022034,
+          "taken": 1000.9656459251494,
+          "hull": 0,
+          "maxHull": 1000,
+          "shots": 621,
+          "hits": 92,
+          "intercepts": 0
+        }
+      ]
+    },
+    {
+      "seed": 100,
+      "swapped": true,
+      "winner": 1,
+      "reason": "적 함대 퇴각",
+      "time": 396,
+      "digest": "fbc4a3fd",
+      "sides": [
+        {
+          "survivors": 0,
+          "destroyed": 1,
+          "kills": 0,
+          "escaped": 0,
+          "dealt": 992.3880309656693,
+          "taken": 1034.3717319124316,
+          "hull": 0,
+          "maxHull": 1030,
+          "shots": 1624,
+          "hits": 124,
+          "intercepts": 0
+        },
+        {
+          "survivors": 1,
+          "destroyed": 0,
+          "kills": 1,
+          "escaped": 0,
+          "dealt": 885.639731912419,
+          "taken": 992.3880309656693,
+          "hull": 7.611969034330826,
+          "maxHull": 1000,
+          "shots": 816,
+          "hits": 125,
+          "intercepts": 0
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total": 200,
+    "wins": [
+      149,
+      51
+    ],
+    "draws": 0,
+    "winRate": [
+      0.745,
+      0.255
+    ],
+    "meanTime": 347.27,
+    "meanSides": [
+      {
+        "survivors": 0.745,
+        "destroyed": 0.255,
+        "kills": 0.745,
+        "escaped": 0,
+        "dealt": 945.8651133774831,
+        "taken": 918.0741031411053,
+        "hull": 113.1979682765177,
+        "maxHull": 1030,
+        "shots": 1482.5,
+        "hits": 115.805,
+        "intercepts": 0
+      },
+      {
+        "survivors": 0.255,
+        "destroyed": 0.745,
+        "kills": 0.255,
+        "escaped": 0,
+        "dealt": 879.476913141103,
+        "taken": 980.786113377486,
+        "hull": 22.92800913039515,
+        "maxHull": 1000,
+        "shots": 735.125,
+        "hits": 117.48,
+        "intercepts": 0
+      }
+    ]
+  },
+  "mismatches": []
+}

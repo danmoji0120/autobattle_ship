@@ -1,0 +1,13 @@
+PASS lab_admin2: account login
+PASS isolated lab session for additional visual checks
+PASS moving a group cannot target itself or its descendants
+PASS a hardpoint marker is visible in the rendered preview
+PASS clicking the 3D marker selects its actual hardpoint
+PASS dragging the preview rotates the rendered ship
+PASS incompatible equipment is rejected with a visible reason
+PASS variant change updates the fitting layout
+PASS experimental preset is available
+PASS experimental preset can be deleted
+PASS mobile equipment search stays focused
+PASS mobile equipment search is visible inside the viewport
+PASS additional visual flow emitted no runtime errors
