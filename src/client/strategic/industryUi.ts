@@ -22,6 +22,7 @@ export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', 
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => (Math.abs(n) >= 100 || Number.isInteger(n) ? Math.round(n) : Math.round(n * 10) / 10).toLocaleString();
+const stockFmt = (n: number) => n > 0 && n < .001 ? '&lt;0.001' : n.toLocaleString(undefined, { maximumFractionDigits: 3 });
 const dur = (t: number) => t >= 3600 ? `${Math.floor(t / 3600)}시간 ${Math.round(t % 3600 / 60)}분` : t >= 60 ? `${Math.floor(t / 60)}분 ${Math.round(t % 60)}초` : `${Math.ceil(t)}초`;
 export const iname = (id: string) => `<span style="color:${RES_COLOR[id]}">${esc(itemName(id))}</span>`;
 const CATS: ItemCat[] = ['raw', 'refined', 'part', 'shippart', 'equip', 'blueprint'];
@@ -43,7 +44,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   const used = growthOn(w as any) && own ? storeUsed(store) : cargoSum(store);
   const overflow = cap ? Math.max(0, used - cap) : 0;
   const held = own && growthOn(w as any) ? reservedSpace(s) + listedSpace(s, me) : 0;
-  const ids = cargoKeys(store).filter(k => qty(store, k) >= 0.5);
+  const ids = cargoKeys(store);
   const reserved: Record<string, number> = {};
   for (const m of s.modules) for (const [k, n] of Object.entries(m.reserved ?? {})) if (n > 0.01) reserved[k] = (reserved[k] ?? 0) + n;
   const inJobs: Record<string, number> = {};
@@ -53,7 +54,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   // logistics: own haul operations touching this station
   const hauls = Object.values(w.groups).filter(g => g.owner === me && g.op.k === 'haul' && ((g.op as any).to === s.id || (g.op as any).from === s.id));
   const label = (r: string) => r === '*auto' ? '자동 보급' : r === '*all' ? '전 품목' : itemName(r);
-  let html = `<div class="bstore"><div><b>${own ? '정거장 창고' : '자사 보관함'}</b> · ${ids.length}종 · 총 ${fmt(used)}${cap ? ` / 용량 ${fmt(cap)} <span class="${used > cap * 0.9 ? 'warn' : 'dim'}">(${Math.round(used / cap * 100)}%)</span>` : own ? ' <span class="warn">도킹 허브 완공 전 — 창고 없음</span>' : (growthOn(w as any) ? '' : ' <span class="dim">(공용 정거장: 용량 제한 없음)</span>')}</div>
+  let html = `<div class="bstore"><div><b>${own ? '정거장 창고' : '자사 보관함'}</b> · ${ids.length}종 · 총 ${stockFmt(used)}${cap ? ` / 용량 ${fmt(cap)} <span class="${used > cap * 0.9 ? 'warn' : 'dim'}">(${Math.round(used / cap * 100)}%)</span>` : own ? ' <span class="warn">도킹 허브 완공 전 — 창고 없음</span>' : (growthOn(w as any) ? '' : ' <span class="dim">(공용 정거장: 용량 제한 없음)</span>')}</div>
     ${cap ? `<div class="bar"><i style="width:${Math.min(100, used / cap * 100)}%;${used > cap * 0.9 ? 'background:var(--warn)' : ''}"></i></div>` : ''}
     ${overflow > 0 ? `<div class="warn" role="status">초과 보관 ${fmt(overflow)} — 신규 입고 불가 · 자재 이동·소비 또는 창고 증설</div>` : held > 0 && used + held >= cap ? '<div class="warnish small">건설 예약·매물의 반환 공간 확보 중 — 일반 입고 대기</div>' : ''}
     ${Object.keys(reserved).length ? `<div class="dim small">건설 예약(창고에서 빠짐): ${itemList(reserved)}</div>` : ''}
@@ -63,7 +64,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   html += `<div class="frow">${chips('icat', ui.invCat, [['all', '전체'], ...CATS.map(c => [c, ITEM_CAT_NAME[c]] as [string, string])])}<input class="search" data-iq placeholder="품목 검색" value="${esc(ui.invQ)}"></div>`;
   html += shown.length ? `<table class="gt inv"><tr><th>품목</th><th>분류</th><th class="n">수량</th><th class="n">기준가</th><th class="n">가치</th></tr>${shown.map(k => {
     const p = ITEMS[k]?.price ?? (EQUIPMENT[k] ? 0 : 0);
-    return `<tr><td>${iname(k)}</td><td class="dim">${ITEM_CAT_NAME[itemCat(k)]}</td><td class="n"><b>${fmt(qty(store, k))}</b></td><td class="n dim">${p ? fmt(p) : '—'}</td><td class="n dim">${p ? fmt(p * qty(store, k)) : '—'}</td></tr>`;
+    return `<tr><td>${iname(k)}</td><td class="dim">${ITEM_CAT_NAME[itemCat(k)]}</td><td class="n"><b>${stockFmt(qty(store, k))}</b></td><td class="n dim">${p ? fmt(p) : '—'}</td><td class="n dim">${p ? fmt(p * qty(store, k)) : '—'}</td></tr>`;
   }).join('')}</table>` : `<div class="dim small" style="padding:8px">${ids.length ? '조건에 맞는 품목이 없습니다.' : '보관 중인 품목이 없습니다.'}</div>`;
   html += `<h3>물류</h3>${hauls.length ? `<table class="gt"><tr><th>편대</th><th>경로</th><th>품목</th><th>상태</th></tr>${hauls.map(g => {
     const op = g.op as { from: string; to: string; res: string };

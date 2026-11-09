@@ -18,7 +18,7 @@ import { CHART_HEIGHT, CHART_STARS, CHART_WIDTH, chartPoint, chartRoute, edgeKey
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, planMats, type Mat } from '../../world/construction';
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
-import { TECHS, ITEMS, EQUIPMENT, facilityBuild, facilityTech, facilityDescription } from '../../world/industry';
+import { TECHS, ITEMS, EQUIPMENT, itemName, facilityBuild, facilityTech, facilityDescription } from '../../world/industry';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
@@ -37,6 +37,7 @@ type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 
 const h = (tag: string, cls = '', html = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => Math.round(n).toLocaleString();
+const cargoNum = (n: number) => n > 0 && n < .001 ? '&lt;0.001' : n.toLocaleString(undefined, { maximumFractionDigits: 3 });
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
 
@@ -1032,7 +1033,7 @@ export class PmcHud {
     const cap = econOf(s).cargo;
     const docked = s.task.k === 'docked' ? this.st.stations[(s.task as any).station] : null;
     return `<div class="shipd"><b>${esc(s.name)}</b> <span class="dim">${SHIP_CLASSES[s.classId].name} ${SHIP_CLASSES[s.classId].type} · ${esc(getLoadout(s.classId, s.loadoutId).name)}</span>
-      · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${cargoKeys(s.cargo).filter(r => s.cargo[r] > 0.5).map(r => `${RES_NAME[r]} ${Math.round(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}` : ''}
+      · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${cargoKeys(s.cargo).map(r => `${esc(itemName(r))} ${cargoNum(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}` : ''}
       ${growthOn(this.st) && docked && cargoSum(s.cargo) > 0 ? `<button class="btn mini" data-unloadship="${s.id}">창고로 하역</button>` : ''}
       ${docked ? ` · ⚓ ${esc(docked.name)} <button class="btn mini" data-open="${docked.id}">수리·개조</button>` : ''}
       <select data-mvship="${s.id}"><option value="">편대 이동…</option><option value="__new">→ 새 편대로 분리</option>${groups.filter(g => g.id !== s.groupId).map(g => `<option value="${g.id}">→ ${esc(g.name)}</option>`).join('')}</select></div>`;
@@ -1294,7 +1295,7 @@ export class PmcHud {
       const docked = Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id && econOf(x).cargo > 0);
       into = storageGrowthHtml(this.st, s, this.me).split('<details')[0] + (docked.length ? `<div class="yrow small">구매품 받을 곳 <select data-buyinto data-keep><option value="">공용 창고 (이 정거장)</option>${docked.map(x => `<option value="${x.id}">${esc(x.name)} 화물칸 (여유 ${fmt(econOf(x).cargo - cargoSum(x.cargo))})</option>`).join('')}</select> <span class="dim">— 화물칸으로 사면 창고 한도와 상관없이 바로 싣고 떠날 수 있습니다</span></div>` : '');
     }
-    const retry = v3 ? '<p class="dim small">구매 응답을 기다리는 동안 같은 구매를 다시 누르면 중복 결제하지 않고 기존 요청을 확인합니다. 별도 구매는 확인 후 다시 선택하세요.</p>' : '';
+    const retry = v3 ? '<p class="dim small">구매·판매 응답을 기다리는 동안 같은 거래를 다시 누르면 중복 체결하지 않고 기존 요청을 확인합니다. 별도 거래는 확인 후 다시 선택하세요.</p>' : '';
     return funds + into + marketPanel(this.st, s, this.me, this.ind, price) + retry;
   }
 
