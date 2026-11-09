@@ -1,0 +1,10 @@
+file:///tmp/siderarium-p9632-verify-Dng5T6OZ/compare-integration.mjs:51
+  if (err) throw Error(`foundation ${err}`);
+                 ^
+
+Error: foundation 고요한 공백은(는) 연합 핵심 성계 — 민간 정거장 건설 허가가 나지 않는다
+    at prepare (file:///tmp/siderarium-p9632-verify-Dng5T6OZ/compare-integration.mjs:51:18)
+    at file:///tmp/siderarium-p9632-verify-Dng5T6OZ/compare-integration.mjs:53:1
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v24.22.1

@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "buyer": "p1",
+    "seller": "p20",
+    "station": "p9632_private_exchange",
+    "listing": "l1",
+    "group": "g12",
+    "ship": "s18",
+    "fractionalShip": "s30",
+    "capacity": 3564.9999999999995
+  },
+  "checks": [
+    "ship exchange visibly identifies fractional cargo before a listing",
+    "server rejects a ship listing with fractional cargo",
+    "the owner can unload the fractional cargo",
+    "warehouse UI shows the authoritative fractional inventory",
+    "warehouse capacity summary matches its fractional inventory",
+    "double-click buys one item at the private exchange without granting docking",
+    "route editor explains owner-only external pickup",
+    "UI-configured route physically delivers exactly one purchased item",
+    "route shows the server research-adjusted cargo capacity",
+    "an existing route retains its now-empty private pickup station in the editor",
+    "browser save and restart preserve the trade, route, cargo and credits",
+    "no browser runtime errors"
+  ],
+  "errors": [],
+  "before": {
+    "buyer": 19352760,
+    "seller": 12000,
+    "home": 600.25
+  },
+  "bought": {
+    "buyer": 19352750,
+    "seller": 12009.5,
+    "held": 1,
+    "listing": 9,
+    "dock": false
+  },
+  "route": {
+    "id": "lr31",
+    "state": "complete",
+    "loaded": 1,
+    "delivered": 1,
+    "source": 0,
+    "destination": 601.25,
+    "cargo": 0
+  },
+  "restored": {
+    "delivered": 1,
+    "home": 601.25,
+    "source": 0,
+    "credits": 19352750
+  }
+}

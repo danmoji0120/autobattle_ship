@@ -1,0 +1,42 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ❯ tests/p9632-trade-cargo.test.ts (18 tests | 1 failed | 17 skipped) 76ms
+     ↓ rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings
+     ↓ idempotently sells a confirmed request even across reload, without selling a second lot
+     ↓ records only successful sale requests, isolates companies and rejects conflicts and stale sequences
+     ↓ preserves the unsold portion and retries an idempotent partial sale at the actual station budget
+     ↓ idempotently purchases a partial player listing without charging or delivering twice
+     ↓ does not buy another NPC ship when the same successful request is retried
+     ↓ replays a ship handoff acknowledgement and rejects an orphan sale before charging
+     ↓ does not transfer a seller’s fractional cargo with a newly listed or legacy listed ship
+     ↓ registers and withdraws the same escrow request only once, including after save and restore
+     ↓ rejects invalid legacy listings before money or goods move
+     ↓ keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal
+     ↓ preserves credits, market stock and goods for a failed purchase and makes normal trades exactly once
+     ↓ does not charge for a full warehouse or hold, and only delivers to an owned ship at the market
+     ↓ acknowledges authoritative trades and sends each company only its own inventory and receipts
+     ↓ partially unloads only available warehouse room and never takes another company’s cargo
+     × never loads past a ship’s remaining capacity when it already contains fractional cargo 74ms
+     ↓ transports owned blueprint fragments without inventing or losing records
+     ↓ physically collects the buyer-owned goods from a private exchange without general docking access
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > never loads past a ship’s remaining capacity when it already contains fractional cargo
+AssertionError: expected 450.25 to be less than or equal to 450
+ ❯ tests/p9632-trade-cargo.test.ts:267:36
+    265|     expect(sim.command(buyer, { c: 'setOp', group: group.id, op: { k: …
+    266|     until(sim, () => qty(ship.cargo, 'ore') > .25, 20);
+    267|     expect(qty(ship.cargo, 'ore')).toBeLessThanOrEqual(cap);
+       |                                    ^
+    268|     expect(qty(market.storage[buyer], 'ore') + qty(ship.cargo, 'ore'))…
+    269|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 17 skipped (18)
+   Start at  10:35:40
+   Duration  2.68s (transform 2.03s, setup 0ms, import 2.31s, tests 76ms, environment 0ms)

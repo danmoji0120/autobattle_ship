@@ -1,8 +1,8 @@
 import type { GameClient } from '../net';
 import type { LogisticsRoute, RouteConfig } from '../../world/logistics';
 import { routeShips, routeLabel, supplyBatch } from '../../world/logistics';
-import { ITEMS, EQUIPMENT, itemName } from '../../world/industry';
-import { cargoSum, qty } from '../../world/types';
+import { ITEMS, EQUIPMENT, itemName, techFx } from '../../world/industry';
+import { cargoKeys, cargoSum, qty } from '../../world/types';
 import { econOf } from '../../world/hullops';
 import { sysAt } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
@@ -33,6 +33,10 @@ export class LogisticsPanel {
   }
   close() { if (this.closed) return; this.closed = true; const i = this.c.onSnap.indexOf(this.onSnap); if (i >= 0) this.c.onSnap.splice(i, 1); window.removeEventListener('keydown', this.key, true); this.el.remove(); this.actions.close(); document.getElementById('logisticsBtn')?.focus(); }
   private get routes() { return Object.values(this.c.state?.logistics ?? {}).filter(r => r.owner === this.c.company); }
+  private hasExternalSource(id: string) {
+    const st = this.c.state?.stations[id];
+    return !!st && (cargoKeys(st.storage[this.c.company] ?? {}).length > 0 || this.routes.some(r => r.config.from === id));
+  }
   private newRoute(group?: string, construction = false) {
     const w = this.c.state!;
     this.editing = true; this.editId = ''; this.editKey++; this.group = group ?? (construction ? '' : Object.values(w.groups).find(g => g.owner === this.c.company && routeShips(w, { group: g.id, owner: g.owner }).length && !this.routes.some(r => r.group === g.id))?.id ?? '');
@@ -59,7 +63,7 @@ export class LogisticsPanel {
     const list = routes.filter(r => (!this.station || r.config.from === this.station || r.config.to === this.station) && (this.filter === 'all' || this.filter === 'issues' && ['waiting', 'paused'].includes(routeLabel(r).state) || routeLabel(r).state === this.filter) && (!this.search || `${r.config.name} ${w.groups[r.group]?.name ?? ''} ${itemName(r.config.item)}`.toLowerCase().includes(this.search.toLowerCase())));
     for (const id of this.expanded) if (!routes.some(r => r.id === id)) this.expanded.delete(id);
     for (const id of this.selected) if (!routes.some(r => r.id === id)) this.selected.delete(id);
-    const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company);
+    const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company || this.hasExternalSource(s.id));
     const choose = (items: { id: string; name: string }[], value: string, first: string) => `<option value="">${first}</option>${items.map(i => `<option value="${esc(i.id)}" ${i.id === value ? 'selected' : ''}>${esc(i.name)}</option>`).join('')}`;
     morph(this.el, `<div class="panel lg-box"><header class="lg-head"><div><div class="an-eyebrow">SIDERARIUM / LOGISTICS</div><h2>물류 관리 <span>자사 노선 · 서버 자동 운용</span></h2></div><div class="lg-actions"><button class="btn go" data-lg-new>+ 운송 노선</button><button class="btn" data-lg-close aria-label="물류 닫기">✕</button></div></header>
       <div class="lg-summary"><div><span>운용 노선</span><b>${active}</b></div><div><span>조건 회복 대기</span><b class="${waiting ? 'warn' : ''}">${waiting}</b></div><div><span>최근 1시간 하역량</span><b>${num(recent)}</b></div><div><span>누적 판매 수입</span><b class="money">${num(routes.reduce((n, r) => n + r.stats.earned, 0))} <small>cr</small></b></div></div>
@@ -84,15 +88,15 @@ export class LogisticsPanel {
       <div class="lg-cargo"><strong>${esc(itemName(r.config.item))}</strong><span>${modes[r.config.mode]} · 함선당 최대 ${num(r.config.amount)} · ${r.config.repeat ? '반복' : '편도'}</span></div>
       <div class="lg-route-status ${state.state === 'waiting' || state.state === 'paused' ? 'warn' : 'dim'}">${esc(state.text)}${blocked?.code === 'threshold' ? `<button class="an-link" data-lg-edit="${esc(r.id)}">재고 기준 수정 →</button>` : help && w.stations[help] ? ` <button class="an-link" data-lg-help="${esc(help)}" data-lg-tab="${blocked?.code === 'budget' ? 'market' : blocked?.code === 'supply' ? 'prod' : blocked?.code === 'construction' ? 'build' : 'store'}">해결 화면 →</button>` : ''}</div>
       <div class="lg-metrics"><span>최근 하역 <b>${num(recent)}</b></span><span>운송 중 <b>${num(cargo)}</b></span><span>판매 <b class="money">${num(r.stats.earned)} cr</b></span></div>
-      <details class="lg-fleet" data-lg-fleet="${esc(r.id)}" ${this.expanded.has(r.id) ? 'open' : ''}><summary>${esc(w.groups[r.group]?.name ?? '편대 없음')} · ${ships.length}척 · ${esc(position)}</summary>${ships.map(s => `<div><span>${esc(s.name)} · ${num(cargoSum(s.cargo))}/${num(econOf(s).cargo)}</span>${s.task.k === 'docked' && cargoSum(s.cargo) > 0 ? `<button class="btn mini" data-lg-unload="${esc(s.id)}">창고로 하역</button>` : ''}<span>${s.state === 'battle' ? '교전 중' : esc(r.cursors[s.id]?.reason ?? (r.manifests[s.id] ? '목적지로 운송' : r.done.includes(s.id) ? '편도 완료' : '적재하러 이동'))}</span></div>`).join('') || '<p>함선을 배정한 뒤 노선을 재개하세요.</p>'}</details>
+      <details class="lg-fleet" data-lg-fleet="${esc(r.id)}" ${this.expanded.has(r.id) ? 'open' : ''}><summary>${esc(w.groups[r.group]?.name ?? '편대 없음')} · ${ships.length}척 · ${esc(position)}</summary>${ships.map(s => `<div><span>${esc(s.name)} · ${num(cargoSum(s.cargo))}/${num(econOf(s).cargo * techFx(w.companies[r.owner]?.tech).cargoMul)}</span>${s.task.k === 'docked' && cargoSum(s.cargo) > 0 ? `<button class="btn mini" data-lg-unload="${esc(s.id)}">창고로 하역</button>` : ''}<span>${s.state === 'battle' ? '교전 중' : esc(r.cursors[s.id]?.reason ?? (r.manifests[s.id] ? '목적지로 운송' : r.done.includes(s.id) ? '편도 완료' : '적재하러 이동'))}</span></div>`).join('') || '<p>함선을 배정한 뒤 노선을 재개하세요.</p>'}</details>
       <div class="lg-card-actions"><button class="btn mini" data-lg-edit="${esc(r.id)}">설정</button><button class="btn mini" data-lg-map="${esc(r.id)}" ${!ships.length ? 'disabled' : ''}>현재 위치</button><button class="btn mini" data-lg-control="${esc(r.id)}:${r.state === 'running' ? 'pause' : 'resume'}" ${this.busy ? 'disabled' : ''}>${r.state === 'running' ? '일시정지' : r.state === 'complete' ? '다시 운송' : '재개'}</button><button class="btn mini warnb" data-lg-cancel="${esc(r.id)}">취소</button></div>
     </article>`;
   }
   private suggestSupply() { const n = supplyBatch(this.c.state?.stations[this.draft.to], this.draft.item); if (n > 0) { this.draft.minStock = n; this.draft.targetStock = Math.max(n * 2, this.draft.amount); } }
   private form() {
     const w = this.c.state!, d = this.draft;
-    const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company);
-    const options = (value: string, destination = false) => `<option value="">정거장 선택</option>${stations.filter(s => destination && d.mode === 'construction' ? s.owner === this.c.company : s.public || s.modules.some(m => m.kind === 'core' && m.built)).map(s => `<option value="${esc(s.id)}" ${s.id === value ? 'selected' : ''}>${esc(s.name)} · ${esc(sysAt(w.systems, s.pos)?.name ?? '')}${s.owner === this.c.company && !s.modules.some(m => m.kind === 'core' && m.built) ? ' · 건설 현장' : ''}</option>`).join('')}`;
+    const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company || this.hasExternalSource(s.id));
+    const options = (value: string, destination = false) => `<option value="">정거장 선택</option>${stations.filter(s => destination ? (d.mode === 'construction' ? s.owner === this.c.company : s.public || s.owner === this.c.company && s.modules.some(m => m.kind === 'core' && m.built)) : s.public || s.owner === this.c.company && s.modules.some(m => m.kind === 'core' && m.built) || s.owner !== this.c.company && this.hasExternalSource(s.id)).map(s => `<option value="${esc(s.id)}" ${s.id === value ? 'selected' : ''}>${esc(s.name)} · ${esc(sysAt(w.systems, s.pos)?.name ?? '')}${s.owner === this.c.company && !s.modules.some(m => m.kind === 'core' && m.built) ? ' · 건설 현장' : ''}</option>`).join('')}`;
     const groups = Object.values(w.groups).filter(g => g.owner === this.c.company && routeShips(w, { group: g.id, owner: g.owner }).length);
     const items = [...new Set([...Object.keys(ITEMS), ...Object.keys(EQUIPMENT), ...Object.keys(w.stations[d.from]?.storage[this.c.company] ?? {})])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
     const batch = supplyBatch(w.stations[d.to], d.item);
@@ -105,6 +109,7 @@ export class LogisticsPanel {
       <fieldset><legend>운송 목적</legend><div class="lg-modes">${Object.entries(modes).map(([mode, text]) => `<button type="button" class="btn ${d.mode === mode ? 'on' : ''}" data-lg-mode="${mode}" aria-pressed="${d.mode === mode}">${text}</button>`).join('')}</div></fieldset>
       <label>운송 물품<select data-lg-field="item" data-keep>${items.map(id => `<option value="${esc(id)}" ${d.item === id ? 'selected' : ''}>${esc(itemName(id))}</option>`).join('')}</select></label>
       <div class="lg-stock"><span>출발지 자유 재고 <b>${num(available)}</b></span><span>도착지 자사 재고 <b>${num(destination)}</b></span></div>
+      ${w.stations[d.from] && !w.stations[d.from].public && w.stations[d.from].owner !== this.c.company ? '<p class="dim small">사설 정거장의 자사 재고만 외부에서 인수합니다. 정박이나 타사 창고 접근 권한은 부여되지 않습니다.</p>' : ''}
       <label>함선당 회당 최대 적재량<input data-lg-field="amount" type="number" min="1" step="1" required value="${d.amount}"></label>
       ${d.mode === 'supply' ? `<div class="lg-supply"><label>보충 시작 재고<input data-lg-field="minStock" type="number" min="0" step="1" value="${d.minStock ?? 20}"></label><label>목표 재고<input data-lg-field="targetStock" type="number" min="1" step="1" value="${d.targetStock ?? 100}"></label></div><p class="dim small">${batch ? `현재 한 배치에 ${num(batch)}단위 필요. <button class="an-link" type="button" data-lg-suggest>생산 기준 적용</button> ` : ''}이 원료를 사용하는 생산 주문이 있을 때 보충합니다. 운송 중 물량을 포함하며 목표 재고를 넘겨 하역하지 않습니다. 출발지·목적지 중 한 곳에 물류센터가 필요합니다.</p>` : ''}
       ${d.mode === 'construction' ? '<p class="dim small">자사 현장에 실제 필요한 양만, 다른 노선의 운송 중 물량을 고려해 적재합니다. 현장에 접근해 외부에서 반입하며 남는 화물은 함선에 보존합니다. 출발지에서 구매한 자사 보관함 재고를 사용합니다.</p>' : ''}
@@ -121,7 +126,7 @@ export class LogisticsPanel {
   }
   private bind(list: LogisticsRoute[]) {
     const on = (selector: string, event: string, handler: (e: Event) => void) => { const target = this.el.querySelector(selector); if (target) Reflect.set(target, `on${event}`, handler); };
-    this.el.querySelectorAll<HTMLElement>('[data-lg-unload]').forEach(b => b.onclick = () => void this.send({ c: 'unloadCargo', ship: b.dataset.lgUnload! }, '자사 창고로 하역했습니다. 노선은 일시정지되며 남은 화물은 보존됩니다'));
+    this.el.querySelectorAll<HTMLElement>('[data-lg-unload]').forEach(b => b.onclick = () => void this.send({ c: 'unloadCargo', ship: b.dataset.lgUnload! }, '하역 명령을 접수했습니다. 노선은 일시정지되며 처리 중이거나 남은 화물은 함선에 보존됩니다'));
     this.el.querySelectorAll<HTMLElement>('[data-lg-close]').forEach(b => b.onclick = () => this.close());
     this.el.querySelectorAll<HTMLElement>('[data-lg-new]').forEach(b => b.onclick = () => this.newRoute());
     on('[data-lg-form-close]', 'click', () => { this.editing = false; this.render(); });

@@ -1,0 +1,6 @@
+PASS ship exchange visibly identifies fractional cargo before a listing
+page.waitForFunction: Timeout 30000ms exceeded.
+    at /workspace/autobattle_ship/scripts/p9632-trade-browser.mjs:48:14 {
+  log: [],
+  name: 'TimeoutError'
+}

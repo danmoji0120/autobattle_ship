@@ -1,0 +1,12 @@
+PASS ship exchange visibly identifies fractional cargo before a listing
+PASS server rejects a ship listing with fractional cargo
+PASS the owner can unload the fractional cargo
+PASS warehouse UI shows the authoritative fractional inventory
+PASS warehouse capacity summary matches its fractional inventory
+PASS double-click buys one item at the private exchange without granting docking
+PASS route editor explains owner-only external pickup
+PASS UI-configured route physically delivers exactly one purchased item
+PASS route shows the server research-adjusted cargo capacity
+PASS an existing route retains its now-empty private pickup station in the editor
+PASS browser save and restart preserve the trade, route, cargo and credits
+PASS no browser runtime errors
