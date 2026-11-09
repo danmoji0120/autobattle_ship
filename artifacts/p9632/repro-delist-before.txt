@@ -1,0 +1,31 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ❯ tests/p9632-trade-cargo.test.ts (7 tests | 1 failed | 6 skipped) 63ms
+     ↓ rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings
+     ↓ idempotently sells a confirmed request even across reload, without selling a second lot
+     ↓ idempotently purchases a partial player listing without charging or delivering twice
+     ↓ rejects invalid legacy listings before money or goods move
+     × keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal 60ms
+     ↓ preserves credits, market stock and goods for a failed purchase and makes normal trades exactly once
+     ↓ physically collects the buyer-owned goods from a private exchange without general docking access
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal
+TypeError: .toMatch() expects to receive a string, but got object
+ ❯ tests/p9632-trade-cargo.test.ts:73:93
+     71|     market.listings = [{ id: 'legacy-bad', seller, item: '__proto__', …
+     72|     const before = JSON.stringify(market.storage[seller]);
+     73|     expect(sim.command(seller, { c: 'delist', station: market.id, list…
+       |                                                                                             ^
+     74|     expect(market.listings).toHaveLength(1); expect(JSON.stringify(mar…
+     75|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 skipped (7)
+   Start at  10:12:14
+   Duration  2.26s (transform 1.67s, setup 0ms, import 1.90s, tests 63ms, environment 0ms)

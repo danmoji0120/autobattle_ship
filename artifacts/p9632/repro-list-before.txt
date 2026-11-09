@@ -1,0 +1,42 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ❯ tests/p9632-trade-cargo.test.ts (11 tests | 1 failed | 10 skipped) 132ms
+     ↓ rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings
+     ↓ idempotently sells a confirmed request even across reload, without selling a second lot
+     ↓ records only successful sale requests, isolates companies and rejects conflicts and stale sequences
+     ↓ preserves the unsold portion and retries an idempotent partial sale at the actual station budget
+     ↓ idempotently purchases a partial player listing without charging or delivering twice
+     × registers and withdraws the same escrow request only once, including after save and restore 129ms
+     ↓ rejects invalid legacy listings before money or goods move
+     ↓ keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal
+     ↓ preserves credits, market stock and goods for a failed purchase and makes normal trades exactly once
+     ↓ partially unloads only available warehouse room and never takes another company’s cargo
+     ↓ physically collects the buyer-owned goods from a private exchange without general docking access
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > registers and withdraws the same escrow request only once, including after save and restore
+AssertionError: expected 10 to be 20 // Object.is equality
+
+- Expected
++ Received
+
+- 20
++ 10
+
+ ❯ tests/p9632-trade-cargo.test.ts:94:49
+     92|     expect(sim.command(seller, list as any)).toBeNull();
+     93|     expect(sim.command(seller, list as any)).toBeNull();
+     94|     expect(qty(station.storage[seller], 'ore')).toBe(20); expect(stati…
+       |                                                 ^
+     95|     const id = station.listings![0].id;
+     96|     sim = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 skipped (11)
+   Start at  10:15:19
+   Duration  2.69s (transform 1.95s, setup 0ms, import 2.24s, tests 132ms, environment 0ms)

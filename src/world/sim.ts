@@ -66,8 +66,8 @@ export type Cmd =
   | { c: 'setParent'; group: string; parent: string | null }
   | { c: 'assignCmd'; group: string; commander: string | null }
   /** contentV ≥ 3: `hull` (+ `preset`) picks a hull from the yard's stock; classId/loadoutId stay for older clients */
-  | { c: 'buyShip'; station: string; classId: string; loadoutId: string; group?: string; hull?: string; preset?: string }
-  | { c: 'sell'; station: string; res: Res; amount: number }
+  | { c: 'buyShip'; station: string; classId: string; loadoutId: string; group?: string; hull?: string; variant?: string; preset?: string; request?: { seq: number; id: string } }
+  | { c: 'sell'; station: string; res: Res; amount: number; request?: { seq: number; id: string } }
   | { c: 'buy'; station: string; res: Res; amount: number; /** growth: load straight into this docked ship's hold */ ship?: string; request?: { seq: number; id: string } }
   | { c: 'lease'; station: string; blocks: number }
   | { c: 'repair'; ship: string }
@@ -80,9 +80,9 @@ export type Cmd =
   | { c: 'planOp'; station: string; plan: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
   | { c: 'prodOrder'; station: string; recipe: string; mode: 'count' | 'stock'; n: number }
   | { c: 'prodOp'; station: string; order: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' | 'set'; n?: number }
-  | { c: 'list'; station: string; item: string; qty: number; price: number }
-  | { c: 'delist'; station: string; listing: string }
-  | { c: 'buyListing'; station: string; listing: string; qty: number }
+  | { c: 'list'; station: string; item: string; qty: number; price: number; request?: { seq: number; id: string } }
+  | { c: 'delist'; station: string; listing: string; request?: { seq: number; id: string } }
+  | { c: 'buyListing'; station: string; listing: string; qty: number; request?: { seq: number; id: string } }
   | { c: 'buildShip'; station: string; classId: string; loadoutId: string; fit?: string[]; group?: string; hull?: string; variant?: string; preset?: string }
   | { c: 'buildOp'; station: string; build: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
   | { c: 'fitShip'; ship: string; fit: string[] }
@@ -100,7 +100,7 @@ export type Cmd =
   | { c: 'assembleBlueprint'; station: string; blueprint: string }
   | { c: 'listShip'; ship: string; price: number }
   | { c: 'delistShip'; station: string; listing: string }
-  | { c: 'buyShipListing'; station: string; listing: string; group?: string }
+  | { c: 'buyShipListing'; station: string; listing: string; group?: string; request?: { seq: number; id: string } }
   | { c: 'reserve'; ship: string; on: boolean }
   | { c: 'autoReserve'; on: boolean }
   | { c: 'payArrears' }
@@ -111,6 +111,19 @@ export type Cmd =
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
 /** "창살급 구축함" */
 const hullLabel = (s: { classId: string; hull?: string }) => `${CONTENT.hulls[hullIdOf(s)]?.name ?? SHIP_CLASSES[s.classId]?.name ?? s.classId} ${SHIP_CLASSES[s.classId]?.type ?? ''}`.trim();
+
+/** A request identity is optional for legacy clients; the latest committed request survives saves. */
+function tradeRequest(last: Company['lastTrade'], request: { seq: number; id: string }, signature: string): { receipt?: NonNullable<Company['lastTrade']>; duplicate?: true; error?: string } {
+  if (!request || !Number.isSafeInteger(request.seq) || request.seq < 1 || typeof request.id !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(request.id)) return { error: '거래 요청 식별자가 올바르지 않습니다' };
+  if (last && request.seq <= last.seq) {
+    if (request.seq === last.seq && request.id === last.id && signature === last.signature) return { duplicate: true };
+    return { error: '이미 지난 거래 요청입니다 — 거래 내역과 자사 보관함을 확인한 뒤 다시 시도하세요' };
+  }
+  if (request.seq !== (last?.seq ?? 0) + 1) return { error: '다른 거래가 먼저 처리되었거나 이전 요청이 대기 중입니다 — 시장을 새로 확인하세요' };
+  return { receipt: { seq: request.seq, id: request.id, signature } };
+}
+/** Avoid inherited object keys and only escrow actual finite, owned inventory. */
+const safeCargoItem = (id: unknown): id is string => typeof id === 'string' && id.length > 0 && !Object.hasOwn(Object.prototype, id);
 
 const vadd = (a: V, b: V, k = 1): V => ({ x: a.x + b.x * k, y: a.y + b.y * k, z: a.z + b.z * k });
 const vlerp = (a: V, b: V, t: number): V => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t });
@@ -639,7 +652,18 @@ export class WorldSim {
         return null;
       }
       case 'buyShip': {
-        if (growthOn(this.st)) return this.buyHull(co, cmd, G);
+        if (growthOn(this.st)) {
+          let receipt: Company['lastTrade'];
+          if (cmd.request !== undefined) {
+            const checked = tradeRequest(co.lastTrade, cmd.request, JSON.stringify(['buyShip', cmd.station, cmd.classId, cmd.loadoutId, cmd.group ?? null, cmd.hull ?? null, cmd.variant ?? null, cmd.preset ?? null]));
+            if (checked.error) return checked.error;
+            if (checked.duplicate) return null;
+            receipt = checked.receipt;
+          }
+          const err = this.buyHull(co, cmd, G);
+          if (!err && receipt) co.lastTrade = receipt;
+          return err;
+        }
         const st = S(cmd.station); const cls = SHIP_CLASSES[cmd.classId]; const ec = ECON[cmd.classId];
         if (!st || !cls || !ec) return '구매 불가';
         if (st.owner === company) return '자사 조선소는 부품으로 직접 건조합니다 — 조선소 탭의 건조 대기열을 쓰세요';
@@ -659,7 +683,14 @@ export class WorldSim {
         return null;
       }
       case 'sell': case 'buy': {
-        if (growthOn(this.st) && (typeof cmd.amount !== 'number' || !Number.isFinite(cmd.amount))) return '거래 수량이 올바르지 않습니다';
+        if (typeof cmd.amount !== 'number' || !Number.isFinite(cmd.amount)) return '거래 수량이 올바르지 않습니다';
+        let saleReceipt: Company['lastTrade'];
+        if (cmd.c === 'sell' && growthOn(this.st) && cmd.request !== undefined) {
+          const checked = tradeRequest(co.lastTrade, cmd.request, JSON.stringify(['sell', cmd.station, cmd.res, cmd.amount]));
+          if (checked.error) return checked.error;
+          if (checked.duplicate) return null;
+          saleReceipt = checked.receipt;
+        }
         let receipt: Company['lastPurchase'];
         if (cmd.c === 'buy' && growthOn(this.st) && cmd.request !== undefined) {
           const request = cmd.request, last = co.lastPurchase;
@@ -672,13 +703,14 @@ export class WorldSim {
           if (request.seq !== (last?.seq ?? 0) + 1) return '다른 구매가 먼저 처리되었거나 이전 요청이 대기 중입니다 — 시장을 새로 확인하세요';
           receipt = { seq: request.seq, id: request.id, signature };
         }
-        const st = S(cmd.station); if (!st?.market?.[cmd.res] || growthOn(this.st) && !Object.hasOwn(st.market, cmd.res)) return '거래 불가';
+        const st = S(cmd.station); if (!st?.market || typeof cmd.res !== 'string' || !Object.hasOwn(st.market, cmd.res)) return '거래 불가';
         const store = this.storage(st, company);
         const amt = Math.floor(Math.max(0, cmd.amount));
         if (cmd.c === 'sell') {
           const a = Math.min(amt, Math.floor(qty(store, cmd.res))); if (a <= 0) return '창고에 자원 없음';
           const r = this.sellAt(st, company, cmd.res, a); addc(store, cmd.res, -r.sold);
           if (r.sold <= 0) return `${st.name}의 구매 예산이 바닥났습니다 — 예산은 시간이 지나면 회복됩니다 (현재 ${Math.round(st.funds ?? 0).toLocaleString()} cr)`;
+          if (saleReceipt) co.lastTrade = saleReceipt;
           this.ev('money', `${RES_NAME[cmd.res]} ${Math.round(r.sold)} 판매 +${Math.round(r.value).toLocaleString()} cr${r.sold < a ? ` — 정거장 구매 예산 소진, ${Math.round(a - r.sold)}은(는) 보관함에 남음` : ''}`, { company, pos: st.pos });
         } else {
           const m = st.market[cmd.res]; const a = Math.min(amt, Math.floor(m.stock)); const cost = a * this.price(st, cmd.res, 'buy');
@@ -890,29 +922,56 @@ export class WorldSim {
       }
       // ── player market: goods are held in escrow at the station until sold or withdrawn ──
       case 'list': {
+        let receipt: Company['lastTrade'];
+        if (growthOn(this.st) && cmd.request !== undefined) {
+          const checked = tradeRequest(co.lastTrade, cmd.request, JSON.stringify(['list', cmd.station, cmd.item, cmd.qty, cmd.price]));
+          if (checked.error) return checked.error;
+          if (checked.duplicate) return null;
+          receipt = checked.receipt;
+        }
         const st = S(cmd.station); if (!st) return '정거장 없음';
         if (!this.hasExchange(st)) return '이 정거장에는 거래소가 없습니다';
         const n = Math.floor(cmd.qty), price = Math.round(cmd.price * 10) / 10;
-        if (!(n >= 1) || !(price > 0 && price < 1e8)) return '수량·가격 오류';
+        if (typeof cmd.qty !== 'number' || !Number.isFinite(cmd.qty) || !(n >= 1) || !(price > 0 && price < 1e8)) return '수량·가격 오류';
+        if (!safeCargoItem(cmd.item)) return '알 수 없는 품목';
         const store = this.storage(st, company);
-        if (qty(store, cmd.item) < n) return '보관함에 수량 부족';
+        if (!Object.hasOwn(store, cmd.item) || !Number.isFinite(store[cmd.item]) || store[cmd.item] < n) return '보관함에 수량 부족';
         if ((st.listings ?? []).filter(l => l.seller === company).length >= 20) return '정거장당 매물은 20개까지';
         addc(store, cmd.item, -n);
         st.seq = (st.seq ?? 0) + 1;
         (st.listings ??= []).push({ id: `l${st.seq}`, seller: company, item: cmd.item, qty: n, price, t: this.time });
+        if (receipt) co.lastTrade = receipt;
         this.ev('world', `${co.name}이(가) ${st.name} 거래소에 ${RES_NAME[cmd.item]} ${n}을(를) 개당 ${price.toLocaleString()} cr에 내놓았다.`, { pos: st.pos, ref: st.id });
         return null;
       }
       case 'delist': {
+        let receipt: Company['lastTrade'];
+        if (growthOn(this.st) && cmd.request !== undefined) {
+          const checked = tradeRequest(co.lastTrade, cmd.request, JSON.stringify(['delist', cmd.station, cmd.listing]));
+          if (checked.error) return checked.error;
+          if (checked.duplicate) return null;
+          receipt = checked.receipt;
+        }
         const st = S(cmd.station); const l = st?.listings?.find(x => x.id === cmd.listing);
         if (!st || !l || l.seller !== company) return '매물 없음';
+        if (!safeCargoItem(l.item) || !Number.isFinite(l.qty) || l.qty <= 0) return '유효하지 않은 매물입니다 — 관리자 확인이 필요합니다';
         addc(this.storage(st, company), l.item, l.qty);
         st.listings!.splice(st.listings!.indexOf(l), 1);
+        if (receipt) co.lastTrade = receipt;
         return null;
       }
       case 'buyListing': {
+        let receipt: Company['lastTrade'];
+        if (growthOn(this.st) && cmd.request !== undefined) {
+          const checked = tradeRequest(co.lastTrade, cmd.request, JSON.stringify(['buyListing', cmd.station, cmd.listing, cmd.qty]));
+          if (checked.error) return checked.error;
+          if (checked.duplicate) return null;
+          receipt = checked.receipt;
+        }
         const st = S(cmd.station); const l = st?.listings?.find(x => x.id === cmd.listing);
         if (!st || !l) return '매물이 이미 팔렸거나 내려갔습니다';
+        if (!safeCargoItem(l.item) || !Number.isFinite(l.qty) || l.qty < 1 || !Number.isFinite(l.price) || l.price <= 0) return '유효하지 않은 매물입니다';
+        if (typeof cmd.qty !== 'number' || !Number.isFinite(cmd.qty)) return '수량 오류';
         if (stationSize(st) && !stationSupportOnline(st)) return '전력 부족 — 거래소 복구 대기';
         if (l.seller === company) return '자기 매물';
         const n = Math.min(Math.floor(cmd.qty), l.qty);
@@ -921,6 +980,7 @@ export class WorldSim {
         if (co.credits < cost) return `자금 부족 — ${Math.ceil(cost - co.credits).toLocaleString()} cr 더 필요`;
         if (this.overCap(st, company, takesSpace(l.item) ? n : 0)) return growthOn(this.st) && st.public ? this.storageFullMsg(st, company, n) : '창고 용량 부족';
         const seller = this.st.companies[l.seller];
+        if (!seller) return '판매 회사를 찾을 수 없어 거래할 수 없습니다';
         co.credits -= cost;
         const net = cost * (1 - (st.tax ?? 0.02));
         if (seller) { seller.credits += net; seller.stats.earned += net; payFromSale(this.st, seller, net); }
@@ -929,6 +989,7 @@ export class WorldSim {
         addc(this.storage(st, company), l.item, n);
         l.qty -= n;
         if (l.qty <= 0) st.listings!.splice(st.listings!.indexOf(l), 1);
+        if (receipt) co.lastTrade = receipt;
         this.ev('money', `${st.name} 거래소: ${RES_NAME[l.item]} ${n} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
         if (seller) this.ev('money', `${st.name} 거래소: ${co.name}이(가) ${RES_NAME[l.item]} ${n} 구매 +${Math.round(net).toLocaleString()} cr`, { company: l.seller, pos: st.pos });
         return null;
@@ -1121,7 +1182,7 @@ export class WorldSim {
         if (!this.hasExchange(st)) return '이 정거장에는 거래소가 없습니다';
         if (s.listed) return '이미 매물로 등록됨';
         if (s.reserve) return '예비역 함선은 먼저 재취역해야 합니다';
-        if (cargoSum(s.cargo) > 0.5) return '화물을 먼저 하역하세요';
+        if (cargoKeys(s.cargo).length) return '화물을 먼저 하역하세요';
         if (Object.values(this.st.ships).filter(x => x.owner === company && x.classId !== 'platform').length <= 1) return '마지막 함선은 팔 수 없습니다';
         const price = Math.round(cmd.price);
         if (!(price >= 100 && price < 1e9)) return '가격 오류 (100 cr 이상)';
@@ -1144,14 +1205,24 @@ export class WorldSim {
         return null;
       }
       case 'buyShipListing': {
+        let receipt: Company['lastTrade'];
+        if (growthOn(this.st) && cmd.request !== undefined) {
+          const checked = tradeRequest(co.lastTrade, cmd.request, JSON.stringify(['buyShipListing', cmd.station, cmd.listing, cmd.group ?? null]));
+          if (checked.error) return checked.error;
+          if (checked.duplicate) return null;
+          receipt = checked.receipt;
+        }
         const st = S(cmd.station); const l = st?.shipListings?.find(x => x.id === cmd.listing);
         if (!st || !l) return '매물이 이미 팔렸거나 내려갔습니다';
+        if (!Number.isFinite(l.price) || l.price <= 0) return '유효하지 않은 매물입니다';
         if (stationSize(st) && !stationSupportOnline(st)) return '전력 부족 — 거래소 복구 대기';
         if (l.seller === company) return '자기 매물';
         const s = this.st.ships[l.ship];
         if (!s || s.owner !== l.seller || s.listed !== l.id || s.task.k !== 'docked' || s.task.station !== st.id) { st.shipListings!.splice(st.shipListings!.indexOf(l), 1); if (s?.listed === l.id) delete s.listed; return '매물이 더 이상 유효하지 않습니다'; }
+        if (cargoKeys(s.cargo).length) return '매물 함선에 화물이 남아 있습니다 — 판매자가 매물을 회수하고 하역해야 합니다';
         if (co.credits < l.price) return `자금 부족 — ${Math.ceil(l.price - co.credits).toLocaleString()} cr 더 필요`;
         const seller = this.st.companies[l.seller];
+        if (!seller) return '판매 회사를 찾을 수 없어 거래할 수 없습니다';
         co.credits -= l.price;
         const net = l.price * (1 - (st.tax ?? 0.02));
         if (seller) { seller.credits += net; seller.stats.earned += net; payFromSale(this.st, seller, net); }
@@ -1164,6 +1235,7 @@ export class WorldSim {
         if (!g) g = this.newGroup(company, `인수 함선`, null, { k: 'idle' });
         this.moveShipTo(s, g);
         if (old && !old.shipIds.length && !old.childIds.length && old.name.startsWith('매물:')) { this.dropGroup(old); }
+        if (receipt) co.lastTrade = receipt;
         this.ev('money', `${st.name} 거래소: ${hullLabel(s)} "${s.name}" 인수 -${l.price.toLocaleString()} cr`, { company, pos: st.pos });
         if (seller) this.ev('money', `${st.name} 거래소: "${s.name}" 매각 +${Math.round(net).toLocaleString()} cr (${co.name})`, { company: l.seller, pos: st.pos });
         return null;
@@ -2668,13 +2740,14 @@ export class WorldSim {
     if (this.goDock(s, a, dt, speed)) {
       const store = this.storage(a, s.owner);
       const cap = ec.cargo * techFx(this.st.companies[s.owner]?.tech).cargoMul;
+      const free = Math.max(0, cap - cargoSum(s.cargo));
       const pick = this.haulPick(op, a, b, store);
-      const total = Math.min(cap, pick.reduce((n, [, want]) => n + Math.floor(want), 0));
+      const total = Math.min(free, pick.reduce((n, [, want]) => n + Math.floor(want), 0));
       const permit = this.cargoPermit(s, a, `haul:${g.id}:load`, total);
       if (permit === null) { g.status = `${a.name}: 화물 적재 중`; return; }
-      let room = Math.min(cap, permit);
+      let room = Math.min(free, permit);
       for (const [k, want] of pick) { const t = takec(store, k, Math.min(room, Math.floor(want))); addc(s.cargo, k, t); room -= t; if (room < 1) break; }
-      if (Math.min(cap, permit) - room > 0) { const loaded = Math.min(cap, permit) - room; emit(this.st, { kind: 'logistics', reason: 'depart', amount: loaded, company: s.owner, group: g.id, ship: s.id, ref: s.id, station: a.id }); g.status = `${a.name}에서 적재 완료 (${Math.round(loaded)})`; this.undock(s); }
+      if (Math.min(free, permit) - room > 0) { const loaded = Math.min(free, permit) - room; emit(this.st, { kind: 'logistics', reason: 'depart', amount: loaded, company: s.owner, group: g.id, ship: s.id, ref: s.id, station: a.id }); g.status = `${a.name}에서 적재 완료 (${Math.round(loaded)})`; this.undock(s); }
       else g.status = op.res === '*auto' ? `${b.name}에 부족한 원료가 ${a.name} 창고에 없음 — 대기` : `${a.name} 창고에 ${label} 없음 — 대기`;
     } else g.status = `${a.name}로 적재하러 이동`;
   }

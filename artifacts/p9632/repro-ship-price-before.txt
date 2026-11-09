@@ -1,0 +1,43 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ❯ tests/p9632-trade-cargo.test.ts (19 tests | 1 failed | 18 skipped) 100ms
+     ↓ rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings
+     ↓ idempotently sells a confirmed request even across reload, without selling a second lot
+     ↓ records only successful sale requests, isolates companies and rejects conflicts and stale sequences
+     ↓ preserves the unsold portion and retries an idempotent partial sale at the actual station budget
+     ↓ idempotently purchases a partial player listing without charging or delivering twice
+     ↓ does not buy another NPC ship when the same successful request is retried
+     ↓ replays a ship handoff acknowledgement and rejects an orphan sale before charging
+     ↓ does not transfer a seller’s fractional cargo with a newly listed or legacy listed ship
+     × rejects a corrupt ship-listing price without paying a buyer or taking the seller’s ship 97ms
+     ↓ registers and withdraws the same escrow request only once, including after save and restore
+     ↓ rejects invalid legacy listings before money or goods move
+     ↓ keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal
+     ↓ preserves credits, market stock and goods for a failed purchase and makes normal trades exactly once
+     ↓ does not charge for a full warehouse or hold, and only delivers to an owned ship at the market
+     ↓ acknowledges authoritative trades and sends each company only its own inventory and receipts
+     ↓ partially unloads only available warehouse room and never takes another company’s cargo
+     ↓ never loads past a ship’s remaining capacity when it already contains fractional cargo
+     ↓ transports owned blueprint fragments without inventing or losing records
+     ↓ physically collects the buyer-owned goods from a private exchange without general docking access
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects a corrupt ship-listing price without paying a buyer or taking the seller’s ship
+TypeError: .toMatch() expects to receive a string, but got object
+ ❯ tests/p9632-trade-cargo.test.ts:153:98
+    151|     const listing = market.shipListings![0], buyerCredit = sim.st.comp…
+    152|     listing.price = -1000;
+    153|     expect(sim.command(buyer, { c: 'buyShipListing', station: market.i…
+       |                                                                                                  ^
+    154|     expect(sim.st.companies[buyer].credits).toBe(buyerCredit); expect(…
+    155|     expect(ship.owner).toBe(seller); expect(market.shipListings).toHav…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 18 skipped (19)
+   Start at  10:37:44
+   Duration  8.99s (transform 7.23s, setup 0ms, import 8.16s, tests 100ms, environment 0ms)

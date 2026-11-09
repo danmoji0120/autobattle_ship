@@ -1,0 +1,11 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p9632-trade-cargo.test.ts (19 tests) 580ms
+ ✓ tests/p9632-trade-client.test.ts (5 tests) 121ms
+ ✓ tests/p95-purchase-client.test.ts (1 test) 59ms
+
+ Test Files  3 passed (3)
+      Tests  25 passed (25)
+   Start at  10:39:04
+   Duration  4.51s (transform 2.09s, setup 0ms, import 2.87s, tests 760ms, environment 1ms)

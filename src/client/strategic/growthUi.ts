@@ -7,10 +7,10 @@ import type { WorldState as FullState } from '../../world/types';
 // the client view lacks only rng/events, which none of these helpers read
 type WorldState = WorldView;
 const full = (w: WorldView) => w as unknown as FullState;
-import { qty } from '../../world/types';
+import { cargoKeys, qty } from '../../world/types';
 import { CONTENT } from '../../content/registry';
 import { SHIP_CLASSES } from '../../sim/data/ships';
-import { EQUIPMENT, TECHS, FACILITIES } from '../../world/industry';
+import { EQUIPMENT, TECHS, FACILITIES, itemName } from '../../world/industry';
 import { MODULES } from '../../world/data';
 import { yardSlots, buildNeeds, YARD_NAME } from '../../world/production';
 import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFits } from '../../world/hullops';
@@ -24,6 +24,7 @@ import { storageCap } from '../../world/production';
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => Math.round(n).toLocaleString();
+const stockFmt = (n: number) => n > 0 && n < .001 ? '&lt;0.001' : n.toLocaleString(undefined, { maximumFractionDigits: 3 });
 const dur = (t: number) => t >= 3600 ? `${Math.floor(t / 3600)}시간 ${Math.round(t % 3600 / 60)}분` : t >= 60 ? `${Math.floor(t / 60)}분` : `${Math.ceil(t)}초`;
 const hullTitle = (id: string) => { const h = CONTENT.hulls[id]; return h ? `${h.name} ${SHIP_CLASSES[h.classId]?.type ?? ''}` : id; };
 const presetsOf = (hull: string, commonOnly = false) => Object.values(CONTENT.presets).filter(p => p.hull === hull && (!commonOnly || CONTENT.variants[p.variant]?.blueprint === 'common'));
@@ -144,7 +145,7 @@ export function exchangeHtml(w: WorldState, s: Station, me: string, groups: { id
   const co = w.companies[me];
   const ls = s.shipListings ?? [];
   const mine = Object.values(w.ships).filter(x => x.owner === me && x.state === 'docked' && x.task.k === 'docked' && (x.task as any).station === s.id && x.classId !== 'platform');
-  const shipLine = (x: WShip) => `<b>${esc(x.name)}</b> <span class="dim">${esc(hullTitle(x.hull ?? `${x.classId}_mk1`))} · 내구 ${Math.round(x.hp * 100)}% · 마모 ${Math.round((x.wear ?? 0) * 100)}%</span>`;
+  const shipLine = (x: WShip) => `<b>${esc(x.name)}</b> <span class="dim">${esc(hullTitle(x.hull ?? `${x.classId}_mk1`))} · 내구 ${Math.round(x.hp * 100)}% · 마모 ${Math.round((x.wear ?? 0) * 100)}%</span>${x.owner === me && cargoKeys(x.cargo).length ? ` <span class="warn">화물: ${cargoKeys(x.cargo).map(k => `${esc(itemName(k))} ${stockFmt(x.cargo[k])}`).join(', ')} · 먼저 하역</span>` : ''}`;
   const fitLine = (x: WShip) => { const n: Record<string, number> = {}; for (const k of Object.values(x.fitting?.hp ?? {})) n[k] = (n[k] ?? 0) + 1; for (const k of Object.values(x.fitting?.bay ?? x.fit ?? {})) n[k] = (n[k] ?? 0) + 1; return Object.entries(n).map(([k, c]) => `${esc(EQUIPMENT[k]?.name ?? k)}${c > 1 ? ` ×${c}` : ''}`).join(', '); };
   return `<h3>함선 매물 (${ls.length})</h3><div class="dim small">플레이어가 내놓은 완성 함선입니다. 장착된 무장·모듈과 함께 넘어오며, 사는 쪽은 설계도나 연구가 필요 없습니다. 판매 대금에서 거래 수수료 ${Math.round((s.tax ?? 0.02) * 100)}%가 빠집니다.</div>
     ${ls.length ? `<table class="gt"><tr><th>함선</th><th>장비</th><th>판매사</th><th class="n">가격</th><th></th></tr>${ls.map(l => {
@@ -254,7 +255,7 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
     const cap = storageCap(s); const used = storeUsed(s.storage[me]);
     const overflow = cap ? Math.max(0, used - cap) : 0;
     const held = reservedSpace(s) + listedSpace(s, me);
-    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '건설 계획의 부족 자재만 수용'}${overflow > 0 ? ` · <span class="warn">초과 보관 ${fmt(overflow)} — 신규 입고 불가</span>` : held > 0 && used + held >= cap ? ' · <span class="warnish">예약 자재·매물 반환 공간 확보 — 일반 입고 대기</span>' : ''}${co.pendingLoot?.[s.id] ? ` · <span class="warnish">회수품 ${fmt(Object.values(co.pendingLoot[s.id]).reduce((n, v) => n + v, 0))} 안전 보관 중 — 공간 확보 시 자동 입고</span>` : ''} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
+    return `<div class="bdr"><b>자사 창고</b> ${stockFmt(used)} / ${cap ? fmt(cap) : '건설 계획의 부족 자재만 수용'}${overflow > 0 ? ` · <span class="warn">초과 보관 ${stockFmt(overflow)} — 신규 입고 불가</span>` : held > 0 && used + held >= cap ? ' · <span class="warnish">예약 자재·매물 반환 공간 확보 — 일반 입고 대기</span>' : ''}${co.pendingLoot?.[s.id] ? ` · <span class="warnish">회수품 ${fmt(Object.values(co.pendingLoot[s.id]).reduce((n, v) => n + v, 0))} 안전 보관 중 — 공간 확보 시 자동 입고</span>` : ''} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
   }
   const sv = serviceOf(s);
   const cap = publicCap(co, s), used = storeUsed(s.storage[me]), listed = listedSpace(s, me);
@@ -262,7 +263,7 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
   const pct = Math.min(100, used / Math.max(1, cap) * 100);
   const over = used > cap;
   const cls = over ? 'warn' : pct > 85 ? 'warnish' : 'good';
-  return `<div class="bdr stor"><b>공용 창고</b> <span class="${cls}">${fmt(used)} / ${fmt(cap)}</span>
+  return `<div class="bdr stor"><b>공용 창고</b> <span class="${cls}">${stockFmt(used)} / ${fmt(cap)}</span>
       <div class="sbar"><i style="width:${pct.toFixed(0)}%" class="${cls}"></i></div>
       <div class="small">기본 ${fmt(sv.store)} + 임대 ${n}/${sv.blocks}구획 × ${fmt(LEASE_BLOCK)} · 구획당 <b class="money">${fmt(sv.lease)} cr/h</b> (현재 임대료 합계 ${fmt(leaseRate(full(w), co))} cr/h)
         <button class="btn mini" data-lease="${n + 1}" ${co.upkeep?.debt ? 'disabled title="미납금 정산 후 임대 가능"' : n >= sv.blocks ? 'disabled title="이 정거장의 임대 한도"' : ''}>+1 구획 임대</button>

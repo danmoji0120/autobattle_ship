@@ -1,0 +1,85 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ❯ tests/p9632-trade-cargo.test.ts (4 tests | 4 failed) 121ms
+     × rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings 64ms
+     × idempotently sells a confirmed request even across reload, without selling a second lot 19ms
+     × idempotently purchases a partial player listing without charging or delivering twice 10ms
+     × physically collects the buyer-owned goods from a private exchange without general docking access 27ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings
+AssertionError: expected null not to be null
+ ❯ tests/p9632-trade-cargo.test.ts:27:100
+     25|     const before = JSON.stringify(market.storage[seller]);
+     26|     for (const item of ['__proto__', 'constructor', 'toString', 'value…
+     27|       expect(sim.command(seller, { c: 'list', station: market.id, item…
+       |                                                                                                    ^
+     28|     }
+     29|     expect(market.listings ?? []).toEqual([]); expect(JSON.stringify(m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently sells a confirmed request even across reload, without selling a second lot
+AssertionError: expected 1000055.1000000001 to be 1000027.55 // Object.is equality
+
+- Expected
++ Received
+
+- 1000027.55
++ 1000055.1000000001
+
+ ❯ tests/p9632-trade-cargo.test.ts:41:46
+     39|     expect(credits).toBeGreaterThan(before); expect(qty(market.storage…
+     40|     expect(sim.command(seller, sell as any)).toBeNull();
+     41|     expect(sim.st.companies[seller].credits).toBe(credits); expect(mar…
+       |                                              ^
+     42|     const restored = new WorldSim(JSON.parse(sim.serialize()), { migra…
+     43|     expect(restored.command(seller, sell as any)).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently purchases a partial player listing without charging or delivering twice
+AssertionError: expected 999800 to be 999900 // Object.is equality
+
+- Expected
++ Received
+
+- 999900
++ 999800
+
+ ❯ tests/p9632-trade-cargo.test.ts:55:45
+     53|     const credits = sim.st.companies[buyer].credits, sellerCredits = s…
+     54|     expect(sim.command(buyer, buy as any)).toBeNull();
+     55|     expect(sim.st.companies[buyer].credits).toBe(credits); expect(sim.…
+       |                                             ^
+     56|     expect(qty(market.storage[buyer], 'alloy')).toBe(10); expect(listi…
+     57|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > physically collects the buyer-owned goods from a private exchange without general docking access
+AssertionError: expected '이용 가능한 정거장을 선택하세요 (자사 코어 완공 필요)' to be null
+
+- Expected:
+null
+
++ Received:
+"이용 가능한 정거장을 선택하세요 (자사 코어 완공 필요)"
+
+ ❯ tests/p9632-trade-cargo.test.ts:71:81
+     69|     const group = sim.newGroup(buyer, '인수 화물선'), ship = sim.spawnShip(…
+     70|     const cfg: RouteConfig = { name: '구매품 인수', from: station.id, to: h…
+     71|     expect(sim.command(buyer, { c: 'putRoute', group: group.id, config…
+       |                                                                                 ^
+     72|     const id = Object.values(sim.st.logistics!).find(r => r.group === …
+     73|     until(sim, () => !!sim.st.logistics![id].manifests[ship.id]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  10:07:09
+   Duration  2.28s (transform 1.61s, setup 0ms, import 1.86s, tests 121ms, environment 0ms)

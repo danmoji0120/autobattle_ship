@@ -182,38 +182,47 @@ export class GameClient {
   private saveBuyBook(key: string, book: BuyBook) { try { sessionStorage.setItem(key, JSON.stringify(book)); } catch { /* in-memory retries still work */ } }
 
   cmd(cmd: Cmd): Promise<string | null> {
-    let purchase: { bookKey: string; signature: string; request: BuyRequest } | undefined;
-    if (cmd.c === 'buy' && growthOn(this.state ?? undefined) && !cmd.request) {
-      const bookKey = `siderarium.buy.${this.state?.seed ?? 'unknown'}.${this.company}`;
-      const signature = JSON.stringify([cmd.station, cmd.res, cmd.amount, cmd.ship ?? null]);
+    let transaction: { bookKey: string; signature: string; request: BuyRequest; kind: 'buy' | 'trade' } | undefined;
+    if (growthOn(this.state ?? undefined) && (cmd.c === 'buy' || cmd.c === 'sell' || cmd.c === 'buyListing' || cmd.c === 'list' || cmd.c === 'delist' || cmd.c === 'buyShip' || cmd.c === 'buyShipListing') && !cmd.request) {
+      const kind = cmd.c === 'buy' ? 'buy' : 'trade';
+      const bookKey = `siderarium.${kind}.${this.state?.seed ?? 'unknown'}.${this.company}`;
+      const signature = cmd.c === 'buy' ? JSON.stringify([cmd.station, cmd.res, cmd.amount, cmd.ship ?? null])
+        : cmd.c === 'sell' ? JSON.stringify(['sell', cmd.station, cmd.res, cmd.amount])
+        : cmd.c === 'buyListing' ? JSON.stringify(['buyListing', cmd.station, cmd.listing, cmd.qty])
+        : cmd.c === 'list' ? JSON.stringify(['list', cmd.station, cmd.item, cmd.qty, cmd.price])
+        : cmd.c === 'delist' ? JSON.stringify(['delist', cmd.station, cmd.listing])
+        : cmd.c === 'buyShip' ? JSON.stringify(['buyShip', cmd.station, cmd.classId, cmd.loadoutId, cmd.group ?? null, cmd.hull ?? null, cmd.variant ?? null, cmd.preset ?? null])
+        : JSON.stringify(['buyShipListing', cmd.station, cmd.listing, cmd.group ?? null]);
       const book = this.buyBook(bookKey);
       let request = book.pending[signature];
       if (!request) {
-        const last = this.state?.companies[this.company]?.lastPurchase?.seq ?? 0;
+        const co = this.state?.companies[this.company];
+        const last = (kind === 'buy' ? co?.lastPurchase?.seq : co?.lastTrade?.seq) ?? 0;
         const pending = Object.values(book.pending).reduce((n, r) => Math.max(n, r.seq), 0);
         const nonce = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
         request = { seq: Math.max(last, book.confirmed, pending) + 1, id: nonce };
         book.pending[signature] = request; this.saveBuyBook(bookKey, book);
       }
-      purchase = { bookKey, signature, request };
+      transaction = { bookKey, signature, request, kind };
       cmd = { ...cmd, request };
     }
     const id = this.seq++;
     return new Promise(res => {
       const finish = (err: string | null) => {
-        if (purchase && err !== '응답 없음') {
-          const book = this.buyBook(purchase.bookKey);
-          if (book.pending[purchase.signature]?.id === purchase.request.id) delete book.pending[purchase.signature];
-          if (err === null) book.confirmed = Math.max(book.confirmed, purchase.request.seq);
+        if (transaction && err !== '응답 없음') {
+          const book = this.buyBook(transaction.bookKey);
+          if (book.pending[transaction.signature]?.id === transaction.request.id) delete book.pending[transaction.signature];
+          if (err === null) book.confirmed = Math.max(book.confirmed, transaction.request.seq);
           else book.confirmed = 0; // the next request follows a fresh server snapshot after a conflict
-          this.saveBuyBook(purchase.bookKey, book);
+          this.saveBuyBook(transaction.bookKey, book);
         }
-        res(err === '응답 없음' && purchase ? '구매 응답 없음 — 시장 재고와 자사 보관함을 확인하고 같은 구매를 다시 시도하세요' : err);
+        res(err === '응답 없음' && transaction ? `${transaction.kind === 'buy' ? '구매' : '거래'} 응답 없음 — 시장 재고와 자사 보관함을 확인하고 같은 거래를 다시 시도하세요` : err);
       };
       this.acks.set(id, finish); this.t.send({ t: 'cmd', id, cmd });
       setTimeout(() => { if (this.acks.has(id)) { this.acks.delete(id); finish('응답 없음'); } }, 8000);
     });
   }
+
   battleOrder(eng: string, groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean }): Promise<string | null> {
     const id = this.seq++;
     return new Promise(res => { this.acks.set(id, res); this.t.send({ t: 'border', id, eng, groupId, order, opts }); });

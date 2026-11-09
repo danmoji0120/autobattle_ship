@@ -62,20 +62,29 @@ export function supplyBatch(st: import('./types').Station | undefined, item: str
   for (const order of st.orders ?? []) { const recipe = RECIPES[order.recipe]; if (!order.paused && recipe && !orderWants(order, st.storage[st.owner] ?? {}, st.jobs ?? [])) need = Math.max(need, recipe.in[item] ?? 0); }
   return need;
 }
+/** External collection exposes only the requesting company's already-owned stock. */
+function canCollect(h: Host, station: import('./types').Station, owner: string, group: string, item: string): boolean {
+  if (station.public || station.owner === owner) return false;
+  const stock = station.storage[owner];
+  if (stock && Object.hasOwn(stock, item) && Number.isFinite(stock[item]) && stock[item] > 0) return true;
+  // An already-authorized route may wait for more stock, even after its last shipment was delivered.
+  return Object.values(h.st.logistics ?? {}).some(r => r.owner === owner && r.group === group && r.config.from === station.id && r.config.item === item);
+}
 function configError(h: Host, owner: string, group: string, c: RouteConfig): string | null {
   if (!growthOn(h.st)) return '이 월드에서는 관리형 물류 노선을 사용할 수 없습니다';
   const g = h.st.groups[group]; if (!g || g.owner !== owner) return '자사 편대를 선택하세요';
   if (!c || typeof c.from !== 'string' || typeof c.to !== 'string' || !Object.hasOwn(h.st.stations, c.from) || !Object.hasOwn(h.st.stations, c.to) || c.from === c.to) return '서로 다른 출발지·목적지를 선택하세요';
   const a = h.st.stations[c.from], b = h.st.stations[c.to];
   if (!['transfer', 'sell', 'supply', 'construction'].includes(c.mode)) return '운송 목적을 선택하세요';
-  if (!h.canDock(a, owner) || (c.mode === 'construction' ? b.owner !== owner : !h.canDock(b, owner))) return c.mode === 'construction' ? '출발지는 이용 가능한 정거장, 목적지는 자사 건설 현장이어야 합니다' : '이용 가능한 정거장을 선택하세요 (자사 코어 완공 필요)';
-  if (typeof c.item !== 'string' || (!Object.hasOwn(ITEMS, c.item) && !Object.hasOwn(EQUIPMENT, c.item) && !c.item.startsWith('bp:'))) return '운송할 품목을 선택하세요';
+  if (typeof c.item !== 'string' || (!Object.hasOwn(ITEMS, c.item) && !Object.hasOwn(EQUIPMENT, c.item) && !c.item.startsWith('bp:') && !c.item.startsWith('bpf:'))) return '운송할 품목을 선택하세요';
+  const external = !h.canDock(a, owner) && canCollect(h, a, owner, group, c.item);
+  if ((!h.canDock(a, owner) && !external) || (c.mode === 'construction' ? b.owner !== owner : !h.canDock(b, owner))) return c.mode === 'construction' ? '출발지는 이용 가능한 정거장, 목적지는 자사 건설 현장이어야 합니다' : '이용 가능한 정거장을 선택하세요 (자사 코어 완공 필요)';
   if (typeof c.repeat !== 'boolean') return '반복 운송 여부를 지정하세요';
   if (!Number.isSafeInteger(c.amount) || c.amount < 1) return '회당 적재량은 1 이상의 정수여야 합니다';
   const carriers = routeShips(h.st, { group, owner });
   if (!carriers.length) return '편대에 화물 적재 함선이 없습니다';
   if (carriers.some(s => s.state === 'building')) return '건설 중인 함선은 작업을 정리한 후 배정하세요';
-  if (carriers.some(s => !berthFits(a, econOf(s).berth) || c.mode !== 'construction' && !berthFits(b, econOf(s).berth))) return '이 편대의 선체가 이용할 수 없는 정박 규격입니다';
+  if (carriers.some(s => !external && !berthFits(a, econOf(s).berth) || c.mode !== 'construction' && !berthFits(b, econOf(s).berth))) return '이 편대의 선체가 이용할 수 없는 정박 규격입니다';
   if (c.mode === 'sell' && !b.market?.[c.item]) return '목적지 시장에서 이 품목을 매입하지 않습니다';
   if (c.mode === 'supply') {
     if (b.owner !== owner) return '생산 공급 목적지는 자사 정거장이어야 합니다';
@@ -168,13 +177,15 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
   const m = r.manifests[s.id], conf = m ?? r.config, target = m ? conf.to : conf.from;
   const st = h.st.stations[target];
   const site = !!m && m.mode === 'construction';
-  if (!st || (site ? st.owner !== r.owner : !h.canDock(st, r.owner))) { pause(h, r, `${m ? '목적지' : '출발지'} 정거장을 이용할 수 없습니다 — 설정을 수정하고 재개하세요`); return; }
-  if (!site && !berthFits(st, econOf(s).berth)) { block(h, r, s, c, 'berth', '정박 규격이 부족합니다 — 적합한 함선·정거장으로 변경하세요', target); return; }
+  if (!st || (site ? st.owner !== r.owner : !!m && !h.canDock(st, r.owner))) { pause(h, r, `${m ? '목적지' : '출발지'} 정거장을 이용할 수 없습니다 — 설정을 수정하고 재개하세요`); return; }
+  const externalPickup = !m && !h.canDock(st, r.owner);
+  if (externalPickup && !canCollect(h, st, r.owner, r.group, r.config.item)) { block(h, r, s, c, 'source', '이 정거장에 인수할 자사 재고가 없습니다 — 재고 회복 대기', target); return; }
+  if (!site && !externalPickup && !berthFits(st, econOf(s).berth)) { block(h, r, s, c, 'berth', '정박 규격이 부족합니다 — 적합한 함선·정거장으로 변경하세요', target); return; }
   const here = h.sysOf(s.pos), there = h.sysOf(st.pos);
   if (!here || !there || here.id !== there.id && !nextGate(h.st.systems, here.id, there.id, gate => usableRouteGate(h.st, gate))) { block(h, r, s, c, 'path', '연결된 점프 경로가 없습니다 — 게이트 연결 회복 대기', target); return; }
   if (c.code) { emit(h.st, { kind: 'logistics', reason: 'resumed', amount: 0, company: r.owner, group: g.id, ship: s.id, route: r.id }); resetCursor(c, m ? 'destination' : 'source'); }
   c.phase = m ? 'destination' : 'source'; g.status = `${st.name}로 ${m ? '운송' : '적재하러 이동'}`;
-  if (!(site ? h.goConstruction(s, st, dt, speed) : h.goDock(s, st, dt, speed, true))) return;
+  if (!(site || externalPickup ? h.goConstruction(s, st, dt, speed) : h.goDock(s, st, dt, speed, true))) return;
   if (m) {
     m.amount = Math.min(m.amount, qty(s.cargo, m.item));
     let moved = 0, earned = 0;

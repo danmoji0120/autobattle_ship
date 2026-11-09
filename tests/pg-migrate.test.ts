@@ -382,4 +382,27 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
     }
   }, 60_000);
+
+  it('preserves committed trade identity and inventory across PostgreSQL process restarts', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 9632), sim = local.sim;
+    const p = sim.addPlayer('PG 거래 재전송'), station = sim.st.stations.astra;
+    station.storage[p].ore = 30;
+    const command = { c: 'sell', station: station.id, res: 'ore', amount: 10, request: { seq: 1, id: 'pg-p9632-sale01' } } as const;
+    expect(sim.command(p, command)).toBeNull();
+    const credits = sim.st.companies[p].credits, stock = station.market!.ore.stock;
+    const file = local.snapshotFile();
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    for (const port of [8330, 8331]) {
+      const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(srv)).toBe(0);
+      const world = (await row())!.data.world;
+      expect(world.companies[p].lastTrade).toEqual(file.world.companies[p].lastTrade);
+      expect(world.companies[p].credits).toBe(credits); expect(world.stations.astra.storage[p].ore).toBe(20);
+      expect(world.stations.astra.market!.ore.stock).toBe(stock);
+      const restored = new WorldSim(structuredClone(world), { migrateContent: false });
+      expect(restored.command(p, command)).toBeNull();
+      expect(restored.st.companies[p].credits).toBe(credits); expect(restored.st.stations.astra.storage[p].ore).toBe(20);
+      expect(restored.st.stations.astra.market!.ore.stock).toBe(stock);
+      expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
+    }
+  }, 60_000);
 });

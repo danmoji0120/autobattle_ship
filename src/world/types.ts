@@ -49,6 +49,8 @@ export interface Company {
   foundingEscrow?: Record<string, number>;
   /** Last sequenced market purchase, for retrying an unacknowledged transaction safely. */
   lastPurchase?: { seq: number; id: string; signature: string };
+  /** Last sequenced sale or player-exchange action, for retry-safe trade. */
+  lastTrade?: { seq: number; id: string; signature: string };
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
