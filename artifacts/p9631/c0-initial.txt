@@ -1,0 +1,1 @@
+{"baseline":"793ff7746ae08c2500d4c4c44eb39aed99ed9b22","contentV":0,"systems":5,"companies":2,"constructionCommands":["refinery","yard_s","battleship (legacy tier 3)"],"seconds":1800,"minuteHashesMatched":30,"hash":"ec96bd8abdaa198bccd14bcdbf9549dde82128a63cd89c04b182936c132c75d7","analyticsActive":true,"reconciliation":0}

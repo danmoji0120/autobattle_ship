@@ -4,9 +4,9 @@
 import type { Station, Cargo } from '../../world/types';
 import type { WorldView as WorldState } from '../../server/protocol';
 import { qty, cargoKeys, cargoSum } from '../../world/types';
-import { ITEMS, ITEM_CAT_NAME, RECIPES, FACILITIES, FAC_CATS, TECHS, EQUIPMENT, itemName, itemCat, type ItemCat, type RecipeDef } from '../../world/industry';
+import { ITEMS, ITEM_CAT_NAME, RECIPES, FACILITIES, FAC_CATS, TECHS, EQUIPMENT, facilityTech, techUnlocks, itemName, itemCat, type ItemCat, type RecipeDef } from '../../world/industry';
 import { RES_COLOR } from '../../world/data';
-import { stationPower, storageCap, facLines, facilityLoad, prodSpeed, recipeOk, stationNeeds, builtCount, yardSlots, buildNeeds, fitUnits, buildSpeed, YARD_NAME, hullName } from '../../world/production';
+import { stationPower, storageCap, facLines, facilityLoad, prodSpeed, recipeOk, stationNeeds, builtCount, yardSlots, buildNeeds, buildSpec, fitUnits, buildSpeed, YARD_NAME, hullName } from '../../world/production';
 import { HULLS } from '../../world/industry';
 import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
@@ -15,6 +15,7 @@ import { growthOn } from '../../world/hullops';
 import { WEAPONS } from '../../sim/data/weapons';
 import { weaponRole } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
+import { storeUsed, reservedSpace, listedSpace } from '../../world/storage';
 
 export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
 export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', recQ: '', recSel: null, mkCat: 'all', mkQ: '', hull: null, fit: [], rField: 'all', tSel: null });
@@ -39,7 +40,9 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   const store: Cargo = s.storage[me] ?? {};
   const own = s.owner === me;
   const cap = own ? storageCap(s) : 0;
-  const used = cargoSum(store);
+  const used = growthOn(w as any) && own ? storeUsed(store) : cargoSum(store);
+  const overflow = cap ? Math.max(0, used - cap) : 0;
+  const held = own && growthOn(w as any) ? reservedSpace(s) + listedSpace(s, me) : 0;
   const ids = cargoKeys(store).filter(k => qty(store, k) >= 0.5);
   const reserved: Record<string, number> = {};
   for (const m of s.modules) for (const [k, n] of Object.entries(m.reserved ?? {})) if (n > 0.01) reserved[k] = (reserved[k] ?? 0) + n;
@@ -52,6 +55,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   const label = (r: string) => r === '*auto' ? '자동 보급' : r === '*all' ? '전 품목' : itemName(r);
   let html = `<div class="bstore"><div><b>${own ? '정거장 창고' : '자사 보관함'}</b> · ${ids.length}종 · 총 ${fmt(used)}${cap ? ` / 용량 ${fmt(cap)} <span class="${used > cap * 0.9 ? 'warn' : 'dim'}">(${Math.round(used / cap * 100)}%)</span>` : own ? ' <span class="warn">도킹 허브 완공 전 — 창고 없음</span>' : (growthOn(w as any) ? '' : ' <span class="dim">(공용 정거장: 용량 제한 없음)</span>')}</div>
     ${cap ? `<div class="bar"><i style="width:${Math.min(100, used / cap * 100)}%;${used > cap * 0.9 ? 'background:var(--warn)' : ''}"></i></div>` : ''}
+    ${overflow > 0 ? `<div class="warn" role="status">초과 보관 ${fmt(overflow)} — 신규 입고 불가 · 자재 이동·소비 또는 창고 증설</div>` : held > 0 && used + held >= cap ? '<div class="warnish small">건설 예약·매물의 반환 공간 확보 중 — 일반 입고 대기</div>' : ''}
     ${Object.keys(reserved).length ? `<div class="dim small">건설 예약(창고에서 빠짐): ${itemList(reserved)}</div>` : ''}
     ${Object.keys(inJobs).length ? `<div class="dim small">생산 중 (완료 시 입고): ${itemList(inJobs)}</div>` : ''}
     ${Object.keys(needs).length ? `<div class="small"><span class="warn">생산 원료 부족</span>: ${itemList(needs)}</div>` : ''}
@@ -179,7 +183,7 @@ export function yardOwnHtml(w: WorldState, s: Station, me: string, ui: IndUi, gr
   const speed = buildSpeed(s, co);
   // slot occupancy, same rule as the server (smallest fitting slot, queue order)
   const used = new Set<number>(); const at = new Map<string, number>();
-  for (const b of q) if (b.started) { const i = slots.findIndex((x, j) => !used.has(j) && x.size >= HULLS[b.classId].yard); if (i >= 0) { used.add(i); at.set(b.id, i); } }
+  for (const b of q) if (b.started) { const i = slots.findIndex((x, j) => !used.has(j) && x.size >= buildSpec(b).yard); if (i >= 0) { used.add(i); at.set(b.id, i); } }
   let html = `<div class="bstore"><div><b>조선소 슬롯</b> ${slots.length ? slots.map((y, i) => {
     const b = q.find(x => at.get(x.id) === i);
     return `<span class="cap${b ? ' on' : ''}">${YARD_NAME[y.size]} ${b ? `— ${esc(hullName(b.classId))} ${Math.round((1 - b.left / b.total) * 100)}%` : '— 비어 있음'}</span>`;
@@ -326,9 +330,9 @@ export function techTags(id: string): [string, string][] {
   return out.filter((x, i) => out.findIndex(y => y[0] === x[0]) === i);
 }
 /** the content a tech unlocks, with the key numbers (weapons: role, size, power) */
-function unlockedList(id: string): string {
+function unlockedList(id: string, growth: boolean): string {
   const eq = Object.values(EQUIPMENT).filter(e => e.tech === id);
-  const fac = Object.values(FACILITIES).filter(f => f.tech === id);
+  const fac = Object.values(FACILITIES).filter(f => facilityTech(f, growth) === id);
   const rec = Object.values(RECIPES).filter(r => r.tech === id && !EQUIPMENT[Object.keys(r.out)[0]]);
   if (!eq.length && !fac.length && !rec.length) return '';
   const row = (icon: string, name: string, note: string) => `<div class="uline"><span class="uico">${icon}</span><b>${esc(name)}</b> <span class="dim small">${note}</span></div>`;
@@ -357,7 +361,7 @@ function techDetail(w: WorldState, s: Station, me: string, id: string, fields: S
   const canSal = own && fields.has(t.field) && k === 'ok' && sal && qty(store, sal) >= 1;
   const canCopy = own && fields.has(t.field) && k === 'known' && !!t.bp;
   return `<div class="bdh"><b>${esc(t.name)}</b> <span class="dim">· ${FIELD_NAME[t.field]} · ${esc(t.desc)}</span></div>
-    <div class="bdr"><b>해금:</b> ${esc(t.unlocks)}</div>${unlockedList(id)}
+    <div class="bdr"><b>해금:</b> ${esc(techUnlocks(id, growthOn(w as any)))}</div>${unlockedList(id, growthOn(w as any))}
     ${t.needLab ? `<div class="bdr small">전문 연구소: <span class="${s.modules.some(m => m.built && m.kind === t.needLab) ? 'good' : 'warn'}">${esc(FACILITIES[t.needLab]?.name ?? t.needLab)}</span> (이 정거장에 건설되어 있어야 연구 가능)</div>` : ''}
     <div class="bdr small">선행: ${(t.pre ?? []).map(p => `<span class="${co.tech?.includes(p) ? 'good' : 'warn'}">${esc(TECHS[p].name)}</span>`).join(', ') || '없음'}${after.length ? ` · 후속: ${after.map(esc).join(', ')}` : ''}</div>
     <div class="bdr">연구 ${dur(t.time)} (슬롯 1개 기준) · 비용 <b class="money">${fmt(t.credits)} cr</b> (등록 시)${t.bp ? ` · 설계도 시세 ${fmt(t.bp)} cr` : ''}</div>

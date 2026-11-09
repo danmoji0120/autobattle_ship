@@ -18,7 +18,7 @@ import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBluep
 import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld } from '../../world/upkeep';
 import { iname, itemList } from './industryUi';
 import { hullPrice } from '../../world/valuation';
-import { serviceOf, publicCap, storeUsed, leasedAt, LEASE_BLOCK, leaseRate, ownRepairCap, OWN_REPAIR, dockCapacity, SERVICES } from '../../world/storage';
+import { serviceOf, publicCap, storeUsed, reservedSpace, listedSpace, leasedAt, LEASE_BLOCK, leaseRate, ownRepairCap, OWN_REPAIR, dockCapacity, SERVICES } from '../../world/storage';
 import { sitesIn, knows, surveyLeft, SCAN_NEED } from '../../world/explore';
 import { storageCap } from '../../world/production';
 
@@ -219,11 +219,12 @@ export function upkeepHtml(w: WorldState, me: string): string {
 export function priceWhy(hull: string, variant?: string): string {
   const p = hullPrice(hull, variant);
   const b = hullBuild(hull, variant);
-  const tier = ['', '소형 양산', '중형 군용', '대형 주력', '초대형'][b.yard] ?? '';
+  const pricingYard = b.pricingYard ?? b.yard;
+  const tier = ['', '소형 양산', '중형 군용', '대형 주력', '초대형'][pricingYard] ?? '';
   return `<details class="small pwhy"><summary>가격 구성 — 생산원가 <b>${fmt(p.total)}</b> cr × ${tier} 배율 ${p.mul} × 등급 ${p.grade}</summary>
     <table class="gt"><tr><td>부품 (${Object.keys(b.parts).length}종)</td><td class="n">${fmt(p.parts)}</td><td class="dim">${itemList(b.parts)}</td></tr>
     <tr><td>조립 공임</td><td class="n">${fmt(p.labour)}</td><td></td></tr>
-    <tr><td>조선소 가동 (${dur(b.time)})</td><td class="n">${fmt(p.yard)}</td><td class="dim">${YARD_NAME[b.yard]} — 큰 독일수록 시간당 비용이 크다</td></tr>
+    <tr><td>조선소 가동 (${dur(b.time)})</td><td class="n">${fmt(p.yard)}</td><td class="dim">${YARD_NAME[pricingYard]} 비용 기준${pricingYard !== b.yard ? ' · 변경 전 가격 유지' : ' — 큰 독일수록 시간당 비용이 크다'}</td></tr>
     <tr><td>표준 무장</td><td class="n">${fmt(p.equipment)}</td><td></td></tr></table>
     <div class="dim">공영 조선소 가격 = 원가 × 함급 허가 배율 ×${p.mul} × 설계 등급 ×${p.grade}. 초계함·호위함과 민간선은 대량 생산 보조로 원가보다 싸고, 구축함부터는 군용 허가·희소성 때문에 원가를 크게 웃돈다. 직접 건조하면 원가(부품 + 공임 + 조선소 운영비)와 시설 투자로 지을 수 있다.</div></details>`;
 }
@@ -251,10 +252,12 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
   if (!s.public) {
     if (s.owner !== me) return '';
     const cap = storageCap(s); const used = storeUsed(s.storage[me]);
-    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '건설 계획의 부족 자재만 수용'}${co.pendingLoot?.[s.id] ? ` · <span class="warnish">회수품 ${fmt(Object.values(co.pendingLoot[s.id]).reduce((n, v) => n + v, 0))} 안전 보관 중 — 공간 확보 시 자동 입고</span>` : ''} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
+    const overflow = cap ? Math.max(0, used - cap) : 0;
+    const held = reservedSpace(s) + listedSpace(s, me);
+    return `<div class="bdr"><b>자사 창고</b> ${fmt(used)} / ${cap ? fmt(cap) : '건설 계획의 부족 자재만 수용'}${overflow > 0 ? ` · <span class="warn">초과 보관 ${fmt(overflow)} — 신규 입고 불가</span>` : held > 0 && used + held >= cap ? ' · <span class="warnish">예약 자재·매물 반환 공간 확보 — 일반 입고 대기</span>' : ''}${co.pendingLoot?.[s.id] ? ` · <span class="warnish">회수품 ${fmt(Object.values(co.pendingLoot[s.id]).reduce((n, v) => n + v, 0))} 안전 보관 중 — 공간 확보 시 자동 입고</span>` : ''} · 자체 정비 능력 ${fmt(ownRepairCap(s))} 정비점/h <span class="dim small">(정비소 +${OWN_REPAIR.repair} · 격납고 +${OWN_REPAIR.hangar})</span></div>`;
   }
   const sv = serviceOf(s);
-  const cap = publicCap(co, s), used = storeUsed(s.storage[me]);
+  const cap = publicCap(co, s), used = storeUsed(s.storage[me]), listed = listedSpace(s, me);
   const n = leasedAt(co, s.id);
   const pct = Math.min(100, used / Math.max(1, cap) * 100);
   const over = used > cap;
@@ -264,6 +267,7 @@ export function storageGrowthHtml(w: WorldState, s: Station, me: string): string
       <div class="small">기본 ${fmt(sv.store)} + 임대 ${n}/${sv.blocks}구획 × ${fmt(LEASE_BLOCK)} · 구획당 <b class="money">${fmt(sv.lease)} cr/h</b> (현재 임대료 합계 ${fmt(leaseRate(full(w), co))} cr/h)
         <button class="btn mini" data-lease="${n + 1}" ${co.upkeep?.debt ? 'disabled title="미납금 정산 후 임대 가능"' : n >= sv.blocks ? 'disabled title="이 정거장의 임대 한도"' : ''}>+1 구획 임대</button>
         <button class="btn mini" data-lease="${n - 1}" ${n <= 0 ? 'disabled' : ''}>1 구획 반납</button></div>
+      ${listed ? `<div class="dim small">매물 회수 공간 ${fmt(listed)} 예약 · 물품은 판매되거나 회수될 때까지 그대로 보존됩니다.</div>` : ''}
       ${over ? `<div class="warn small">한도를 넘었습니다 — 보관 중인 물품은 그대로지만 새로 들여올 수 없습니다 (하역분은 함선에 남고, 구매는 거부). 팔거나 옮기거나 구획을 임대하세요.</div>` : pct > 85 ? '<div class="warnish small">창고가 거의 찼습니다. 하역하지 못한 화물은 함선에 남아 채굴·운송이 멈춥니다.</div>' : ''}
       <div class="dim small">${esc(sv.note)} 공용 정비 능력 ${fmt(sv.repair)} 정비점/h (모든 회사 공유, 남은 ${fmt(dockCapacity(full(w), s))}) · 정비료 ×${sv.fee}</div>
       <div class="dim small">추가 구획은 첫 1시간 요금을 즉시 선납합니다. 구획별 선납 만료 후 사용 시간만 고정소수점으로 청구하며 60초마다 명세를 갱신합니다. 미납이 게임 시간 1시간 지속되면 모든 추가 구획이 자동 해지되고 이후 임대료는 중단됩니다. 미납금·보관 물품은 보존되며, 미납 정산 전에는 새 임대가 제한됩니다. 반납은 최근 추가 구획부터이며 선납 환불은 없습니다.</div>

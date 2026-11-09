@@ -61,7 +61,8 @@ describe('P8 production ships', () => {
     // This P8 fixture represents a pre-P9.6 saved yard, whose existing docks and assets retain
     // their legacy berth rules. New size and berth limits have separate P9.6 coverage.
     delete own.size;
-    addModules(own, 'power', 'power', 'power', 'power', 'yard_s', 'yard_m', 'hull_works', 'machine_shop', 'electronics_fab', 'dock', 'comms', 'fitting');
+    // Meridian is now a large-yard hull; keep the rest of the acquisition and fitting flow intact.
+    addModules(own, 'power', 'power', 'power', 'power', 'yard_s', 'yard_m', 'yard_l', 'hull_works', 'machine_shop', 'electronics_fab', 'armor_plant', 'hangar', 'dock', 'comms', 'fitting');
     for (const x of ships) {
       const h = CONTENT.hulls[x.hull];
       const cmd = { c: 'buildShip', station: own.id, classId: h.classId, loadoutId: '', hull: h.id, preset: x.preset } as const;

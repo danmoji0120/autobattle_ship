@@ -1,0 +1,27 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > returns 81,850 exactly once, blocks intake and exploits, survives restart, and resumes after physical outbound freight 982ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > allows a net-consuming production batch during overflow and holds output until physical space is available 10ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > does not bypass an overflowing warehouse through ship refitting or warehouse removal 13ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > keeps return space for sale listings so repeated listing and withdrawal cannot add outside cargo 3ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > does not refill construction stock hidden in the owner's sale listing 22ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > protects public-warehouse listing returns without charging another company for the space 3ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > preserves an unsized growth station and protects its existing overflow without changing its old capacity 3ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 1 yard, without charging rejections 54ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 2 yard, without charging rejections 14ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 3 yard, without charging rejections 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 4 yard, without charging rejections 16ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > separates XL yard research from ship-specific research, blueprints and industry 29ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old battleship_mk1 orders (battleship_std, tier 3) and launches each exactly once 30ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_l orders (miner_l_std, tier 2) and launches each exactly once 24ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_xl orders (miner_xl_std, tier 3) and launches each exactly once 29ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its unchanged parts 21ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered hauler_xl with its unchanged parts 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > still allows complete hulls to be bought without production rights, research or factories 5ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > lets another company buy a completed player-owned battleship and leave without its blueprint 7ms
+
+ Test Files  2 passed (2)
+      Tests  19 passed (19)
+   Start at  03:20:06
+   Duration  3.74s (transform 1.70s, setup 0ms, import 2.05s, tests 1.29s, environment 0ms)

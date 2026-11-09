@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "battleship catalog explains the required XL yard",
+    "battleship registration is disabled at an L yard",
+    "the real server command returns the matching yard error",
+    "XL yard detail shows its growth-world research requirement",
+    "XL yard does not demand dreadnought research",
+    "overflow screen states exact inventory, capacity and blocked intake",
+    "mobile storage screen shows the overflow warning",
+    "mobile station panel fits the viewport",
+    "browser emitted no runtime errors"
+  ],
+  "errors": [],
+  "fixture": {
+    "p": "p1",
+    "yard": "p9631_l",
+    "overflow": "p9631_xl"
+  },
+  "error": "초대형 이상 조선소가 필요합니다"
+}

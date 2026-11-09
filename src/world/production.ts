@@ -130,7 +130,9 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
       const sh = shortText(store, r.in);
       if (sh) { o.why = inflight(jobs, o) ? `가동 중 · 다음 배치 원료 부족: ${sh}` : `원료 부족: ${sh}`; break; }
       const outN = Object.values(r.out).reduce((a, b) => a + b, 0) - Object.values(r.in).reduce((a, b) => a + b, 0);
-      if (sized ? projected - space(r.in) + space(r.out) > cap + 1e-9 : cap > 0 && used + outN > cap) { o.why = `창고 가득 (${fmt(sized ? storeUsed(store) : used)}/${fmt(cap)})`; break; }
+      // During preserved overflow, consuming a net-reducing batch is safe even if that batch
+      // alone cannot clear the entire overflow. Completed output still waits for actual space.
+      if (sized ? projected - space(r.in) + space(r.out) > Math.max(cap, projected) + 1e-9 : cap > 0 && used + outN > cap) { o.why = `창고 가득 (${fmt(sized ? storeUsed(store) : used)}/${fmt(cap)})`; break; }
       for (const [k, n] of Object.entries(r.in)) { addc(store, k, -n); if (world) emit(world, { kind: 'consume', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
       if (sized) projected += space(r.out) - space(r.in);
       jobs.push({ id: `j${(st.seq = (st.seq ?? 0) + 1)}`, order: o.id, recipe: r.id, fac: r.fac, left: r.time, total: r.time });
@@ -172,7 +174,7 @@ export { hasAll, ITEMS };
 import type { ShipBuild } from './types';
 import { HULLS, loadoutEquipment, EQUIPMENT, TECHS } from './industry';
 import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
-import { hullBuild, hullEcon, berthFits } from './hullops';
+import { hullBuild, hullEcon, berthFits, PRE_P9631_YARD } from './hullops';
 import { CONTENT } from '../content/registry';
 
 export const YARD_NAME = ['', '소형', '중형', '대형', '초대형'];
@@ -197,7 +199,10 @@ export function buildWeapons(classId: string, loadoutId: string, preset?: string
   return out;
 }
 /** yard size / research / facilities of a queued build */
-export const buildSpec = (b: ShipBuild) => hullBuild(b.hull ?? `${b.classId}_mk1`, b.variant, !!b.hull);
+export const buildSpec = (b: ShipBuild) => {
+  const id = b.hull ?? `${b.classId}_mk1`;
+  return hullBuild(id, b.variant, !!b.hull, b.requiredYard ?? PRE_P9631_YARD[id]);
+};
 export const fitUnits = (fit: string[]) => fit.reduce((a, k) => a + (EQUIPMENT[k]?.size ?? 1), 0);
 export const hullName = (classId: string) => { const c = SHIP_CLASSES[classId]; return c ? `${c.name} ${c.type}` : classId; };
 

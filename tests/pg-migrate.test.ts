@@ -10,10 +10,14 @@ import path from 'node:path';
 import WebSocket from 'ws';
 import { makeC0World } from './support/oldSave';
 import { GameServer } from '../src/server/core';
-import { publicCap } from '../src/world/storage';
+import { publicCap, storeUsed } from '../src/world/storage';
 import { WorldSim } from '../src/world/sim';
+import { FACILITIES, TECHS } from '../src/world/industry';
+import { allocate } from '../src/world/construction';
+import { buildSpec } from '../src/world/production';
+import { grantBlueprint, hullBlueprint } from '../src/world/blueprints';
 import { census, compareCensus, CONTENT_VERSION } from '../src/world/migrate';
-import type { WorldState } from '../src/world/types';
+import type { Station, WorldState } from '../src/world/types';
 import { integrationFixture, integrationRun, startIntegrationIndustry, startIntegrationProjects } from './support/integration';
 
 const URL = process.env.PG_TEST_URL;
@@ -343,6 +347,38 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       expect(saved.size).toBe('S'); expect(saved.modules).toEqual(file.world.stations[site.id].modules);
       expect(saved.jobs).toEqual(jobs); expect(saved.storage[p].ore ?? 0).toBe(0);
       expect(world.ships[ship.id].cargo.alloy).toBe(120); expect(world.ships[ship.id].cargoWork).toEqual(work);
+      expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
+    }
+  }, 60_000);
+
+  it('preserves an old-tier ship plan, a new-tier snapshot and returned overflow across PostgreSQL restarts', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 9631), sim = local.sim;
+    const p = sim.addPlayer('PG 조선·초과 재고'), co = sim.st.companies[p]; co.credits = 50_000_000; co.tech = Object.keys(TECHS);
+    (sim as any).npcSlow = () => {};
+    const base = sim.st.stations.astra;
+    const site: Station = { ...structuredClone(base), id: 'pg_p9631', name: 'PG 초과 보관 기지', owner: p, public: false, size: 'XL', market: null,
+      storage: { [p]: { alloy: 70_000 } }, modules: ['core', 'yard_l', 'power', 'power', 'hull_works', 'machine_shop', 'armor_plant', 'electronics_fab', 'hangar', 'dock'].map((kind, slot) => ({ kind, slot, built: true, progress: 1 })) };
+    sim.st.stations[site.id] = site;
+    expect(sim.command(p, { c: 'queueModule', station: site.id, kind: 'yard_xl' })).toBeNull();
+    Object.assign(site.storage[p], { ...FACILITIES.yard_xl.mats, alloy: 0 }); allocate(site, site.storage[p]);
+    const plan = site.modules.find(m => m.kind === 'yard_xl')!;
+    expect(sim.command(p, { c: 'planOp', station: site.id, plan: plan.id!, op: 'cancel' })).toBeNull();
+    expect(storeUsed(site.storage[p])).toBe(81_850);
+    site.builds = [{ id: 'legacy-battleship', classId: 'battleship', loadoutId: 'std', hull: 'battleship_mk1', variant: 'battleship_mk1_std', preset: 'battleship_std', fit: [], left: 23040, total: 57600, started: true, paid: 433200 }];
+    expect(grantBlueprint(sim.st, co, hullBlueprint('miner_l')!, 'test', sim.time)).toBe(true);
+    expect(sim.command(p, { c: 'buildShip', station: site.id, classId: 'miner', loadoutId: '', hull: 'miner_l' })).toBeNull();
+    const current = site.builds.find(b => b.hull === 'miner_l')!; expect(current.requiredYard).toBe(3);
+    const file = local.snapshotFile();
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    for (const port of [8328, 8329]) {
+      const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(srv)).toBe(0);
+      const world = (await row())!.data.world, saved = world.stations[site.id];
+      expect(saved.storage[p]).toEqual(file.world.stations[site.id].storage[p]); expect(storeUsed(saved.storage[p])).toBe(81_850);
+      const legacy = saved.builds!.find(b => b.id === 'legacy-battleship')!, next = saved.builds!.find(b => b.id === current.id)!;
+      expect(legacy.requiredYard).toBeUndefined(); expect(buildSpec(legacy).yard).toBe(3); expect(legacy.left).toBe(23040);
+      expect(next.requiredYard).toBe(3); expect(next.paid).toBe(current.paid);
+      const restored = new WorldSim(structuredClone(world), { migrateContent: false });
+      expect(restored.room(restored.st.stations[site.id], p)).toBe(0);
       expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
     }
   }, 60_000);

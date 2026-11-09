@@ -1,0 +1,22 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > returns 81,850 exactly once, blocks intake and exploits, survives restart, and resumes after physical outbound freight 702ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > allows a net-consuming production batch during overflow and holds output until physical space is available 13ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > does not bypass an overflowing warehouse through ship refitting or warehouse removal 9ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 1 yard, without charging rejections 49ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 2 yard, without charging rejections 13ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 3 yard, without charging rejections 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 4 yard, without charging rejections 13ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > separates XL yard research from ship-specific research, blueprints and industry 15ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old battleship_mk1 orders (battleship_std, tier 3) and launches each exactly once 31ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_l orders (miner_l_std, tier 2) and launches each exactly once 15ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_xl orders (miner_xl_std, tier 3) and launches each exactly once 16ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its unchanged parts 10ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered hauler_xl with its unchanged parts 9ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > still allows complete hulls to be bought without production rights, research or factories 6ms
+
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+   Start at  03:04:17
+   Duration  2.75s (transform 1.20s, setup 0ms, import 1.50s, tests 920ms, environment 0ms)

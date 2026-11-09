@@ -1,0 +1,7 @@
+PASS battleship catalog explains the required XL yard
+PASS battleship registration is disabled at an L yard
+PASS the real server command returns the matching yard error
+PASS overflow screen states exact inventory, capacity and blocked intake
+PASS mobile storage screen shows the overflow warning
+PASS mobile station panel fits the viewport
+PASS browser emitted no runtime errors

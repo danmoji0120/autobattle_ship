@@ -1,0 +1,34 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive 13978ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > a failing migration rolls back completely: world, generation and backup rows untouched 378ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts 1188ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an in-flight managed route and its exact manifest through PostgreSQL process restarts 1149ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts 1265ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves P9.5 founding escrow, purchase receipts and a construction shipment through PostgreSQL restarts 1104ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a sized station, a running production batch and pending physical cargo handling through PostgreSQL restarts 1833ms
+ × tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an old-tier ship plan, a new-tier snapshot and returned overflow across PostgreSQL restarts 16ms
+   → expected '필요 시설: 하역시설' to be null
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an old-tier ship plan, a new-tier snapshot and returned overflow across PostgreSQL restarts
+AssertionError: expected '필요 시설: 하역시설' to be null
+
+- Expected:
+null
+
++ Received:
+"필요 시설: 하역시설"
+
+ ❯ tests/pg-migrate.test.ts:369:116
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  03:06:51
+   Duration  24.24s (transform 1.66s, setup 0ms, import 1.94s, tests 21.83s, environment 0ms)

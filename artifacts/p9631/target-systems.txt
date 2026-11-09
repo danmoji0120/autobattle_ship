@@ -1,0 +1,163 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting 9921ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives 2704ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored 1569ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production 3100ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work 8519ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item 17035ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods 5519ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > hauling: one item, everything, and automatic supply of what the destination lacks 10301ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > own warehouse capacity: unloading stops at the limit and keeps the rest aboard 5985ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > public markets trade the new goods; regional production restocks and pirate pressure slows it 8924ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > production state survives a restart exactly; old saves are upgraded in place 4817ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > player exchange: escrow, purchase, withdrawal, no duplication under competing buyers 3ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > hull classes span the agreed build times and grow in parts, slots and yard size 3ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting 9771ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls 1032ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > designs need research; cancel refunds in full before the keel, partially after (parts are not returned) 5650ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > own facilities never sell finished ships for credits; public yards still sell complete hulls 993ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitting moves modules between ship and storage all-or-nothing, within the hull slots 2510ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitted modules change the tactical ship (hp, armour, speed, accuracy, range, evasion) 4ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > builds survive a restart and finish identically 19784ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > new player ships carry a fitting equal to their preset; NPC ships stay on legacy loadouts 487ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > rejects wrong size, type, mount, power, mass, unknown slots/items, foreign or undocked ships — and changes nothing 10ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > mount styles are enforced (torpedo tubes do not go on spinal mounts) 0ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > every legacy module set still fits every legacy preset, and the bays never allow more than the old slots 522ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > fit and unfit move items between ship and storage, all or nothing, over many cycles 12ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > two ships cannot share one stored item 4ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > public stations sell missing items only when asked, at 1.2× price, and only researched ones 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > own facilities never sell items; they use storage only and charge nothing 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > legacy refit and fitShip commands translate to V2 fittings with the same conservation 4ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > company presets: save, overwrite by name, limit, delete; invalid fittings are not saved 4ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > ships launched from an own yard get a fitting with the built modules 2ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > for all 25 presets, the fitting spec builds the identical ship and the identical battle 434ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > a custom fitting changes the ship in battle (weapons, arcs, structure) 4ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > the world battle setup passes the fitting to the combat engine for player ships 4ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > 3D model turrets sit exactly on the fitted hardpoints 172ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > turns loadouts + modules into fittings, records conversions, conserves every item 210ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > a module with no bay (corrupt old save) goes to storage, never disappears 168ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > dry-run (migrateContent:false) on a contentV 0 save keeps the legacy path: no fittings, legacy commands work 148ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > rollback to older code and forward again: ships the old code refitted are rebuilt from their loadout 139ms
+ ✓ tests/fitting.test.ts > fitting V2: hostile input > prototype keys and junk are rejected without side effects 5ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > sells the real hulls at their declared yards and carries their fitted models into battle and saves 54ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > acquires blueprints, enforces research and builds the five hulls with real parts and presets 2065ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > keeps growth content out of c0 and retains industrial tradeoffs 2ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > fires the fitted weapons from each new combat hull in an actual battle simulation 59ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > ladder: small hulls affordable at the start, steep from destroyers up, differentiated within a class 9ms
+ × tests/econ-baseline.test.ts > economy baseline c4-b1 > NPC supply: capital hulls one at a time, slowly, for trusted companies; the largest never 13ms
+   → battleship_mk1: expected { stations: [], price: 2555900, …(3) } to be undefined
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > no recipe loop multiplies goods: every cycle in the recipe graph loses units 7ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > market: buying and selling the same goods back always loses money; nothing is created 37ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > ship trade conserves value: the buyer pays, the seller gets it less tax, the ship and its fit move intact 6ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > own builds pay labour + the yard fee; cancelling before the keel refunds exactly that and nothing more 1692ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > a c0 world keeps its old build rules (no growth industrial base for legacy builds) 2ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > manufactured goods never sell below their raw inputs (no value destroyed by industry) 1ms
+ × tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > returns 81,850 exactly once, blocks intake and exploits, survives restart, and resumes after physical outbound freight 72ms
+   → (0 , __vite_ssr_import_12__.listedSpace) is not a function
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > allows a net-consuming production batch during overflow and holds output until physical space is available 21ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > does not bypass an overflowing warehouse through ship refitting or warehouse removal 7ms
+ × tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > keeps return space for sale listings so repeated listing and withdrawal cannot add outside cargo 7ms
+   → expected 1000 to be +0 // Object.is equality
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates S with its exact paid foundation plan and capacity 48ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates M with its exact paid foundation plan and capacity 10ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates L with its exact paid foundation plan and capacity 11ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates XL with its exact paid foundation plan and capacity 9ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > changes foundation escrow by the price difference and refunds the actual paid amount exactly once 6ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > retains old stations and c0 as legacy and gates industrial tiers only on new stations 5ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > rejects inherited and malformed facility identifiers without altering credits or plans 6ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > defaults a new unsized founding command to S while leaving a saved legacy order unchanged 10ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > limits power, resumes production, and never duplicates a batch held by a full warehouse 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > suspends instant support and defense on a brownout, then restores them when power is added 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > charges only sized stations through the existing upkeep account 5ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > settles the station charge once and retains it over a save and restart 12ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > recovers half the materials once, requires room, and rejects foreign demolition 12ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > snapshots the materials committed to each new facility and recovers half of that cost 3ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > blocks berth overflow without moving or deleting existing ships 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > holds a completed ship build safely until a berth becomes free 5ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > keeps manually unloaded cargo aboard until physical handling finishes, including across restart 59ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > physically transports purchased construction materials across gates and resumes handling after restart 232ms
+ ✓ tests/storage-stability.test.ts > storage stability > prepaid first hour, independently added blocks, release and reload never bill twice 105ms
+ ✓ tests/storage-stability.test.ts > storage stability > legacy leases accrue without inventing prepayments; arrears and released inventory survive 29ms
+ ✓ tests/storage-stability.test.ts > storage stability > automatic delivery rejects full or unaffordable markets, retains cargo with one warning, resumes when space opens 19ms
+ ✓ tests/storage-stability.test.ts > storage stability > battle recovery overflow remains conserved and is deposited exactly once after save/reload 15ms
+ ✓ tests/storage-stability.test.ts > storage stability > unfinished cores accept only missing construction materials and preserve legacy overstock across completion 11ms
+ ✓ tests/storage-stability.test.ts > storage stability > preserves fractional sale leftovers and stores blueprint records without consuming warehouse space 16ms
+ ✓ tests/storage-stability.test.ts > storage stability > a new child mining order inspects the child cargo instead of an unrelated inherited parent operation 10ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 1 yard, without charging rejections 46ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 2 yard, without charging rejections 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 3 yard, without charging rejections 14ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 4 yard, without charging rejections 18ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > separates XL yard research from ship-specific research, blueprints and industry 15ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old battleship_mk1 orders (battleship_std, tier 3) and launches each exactly once 29ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_l orders (miner_l_std, tier 2) and launches each exactly once 18ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_xl orders (miner_xl_std, tier 3) and launches each exactly once 29ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its unchanged parts 10ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered hauler_xl with its unchanged parts 8ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > still allows complete hulls to be bought without production rights, research or factories 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/econ-baseline.test.ts > economy baseline c4-b1 > NPC supply: capital hulls one at a time, slowly, for trusted companies; the largest never
+AssertionError: battleship_mk1: expected { stations: [], price: 2555900, …(3) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+{
+  "price": 2555900,
+  "rep": 30,
+  "restock": 86400,
+  "stations": [],
+  "stock": 1,
+}
+
+ ❯ tests/econ-baseline.test.ts:40:40
+     38|     for (const h of Object.values(CONTENT.hulls)) {
+     39|       const b = hullBuild(h.id); const s = hullSale(h.id);
+     40|       if (b.yard >= 4) expect(s, h.id).toBeUndefined();
+       |                                        ^
+     41|       if (s && b.yard >= 3) { expect(s.stock, h.id).toBeLessThanOrEqua…
+     42|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > returns 81,850 exactly once, blocks intake and exploits, survives restart, and resumes after physical outbound freight
+TypeError: (0 , __vite_ssr_import_12__.listedSpace) is not a function
+ ❯ storeHtml src/client/strategic/industryUi.ts:45:51
+     43|   const used = growthOn(w as any) && own ? storeUsed(store) : cargoSum…
+     44|   const overflow = cap ? Math.max(0, used - cap) : 0;
+     45|   const held = own && s.size ? reservedSpace(s) + listedSpace(s, me) :…
+       |                                                   ^
+     46|   const ids = cargoKeys(store).filter(k => qty(store, k) >= 0.5);
+     47|   const reserved: Record<string, number> = {};
+ ❯ tests/p9631-cargo-safety.test.ts:43:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > keeps return space for sale listings so repeated listing and withdrawal cannot add outside cargo
+AssertionError: expected 1000 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1000
+
+ ❯ tests/p9631-cargo-safety.test.ts:117:118
+    115|     site.storage[p].alloy = 80_000;
+    116|     expect(sim.command(p, { c: 'list', station: site.id, item: 'alloy'…
+    117|     const listing = site.listings![0]; expect(qty(site.storage[p], 'al…
+       |                                                                                                                      ^
+    118|     const g = sim.newGroup(p, '매물 우회 검증'), ship = sim.spawnHull(p, 'ha…
+    119|     expect((sim as any).dockShip(ship, site)).toBe(true); ship.cargo.a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed | 7 passed (9)
+      Tests  3 failed | 89 passed (92)
+   Start at  03:08:23
+   Duration  130.30s (transform 1.78s, setup 0ms, import 3.17s, tests 125.44s, environment 2ms)

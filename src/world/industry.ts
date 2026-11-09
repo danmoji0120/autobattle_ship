@@ -119,6 +119,17 @@ export interface FacilityDef {
 export const facilityBuild = (f: FacilityDef, growth: boolean): { credits: number; mats: Record<string, number> } =>
   growth ? f : f.legacyBuild ?? f;
 
+/** Existing c0 worlds retain their original XL yard prerequisite. */
+export const facilityTech = (f: FacilityDef, growth: boolean): string | undefined =>
+  !growth && f.kind === 'yard_xl' ? 'dreadnought_program' : f.tech;
+
+/** Yard capabilities in c0 still follow the original hull tiers. */
+export function facilityDescription(f: FacilityDef, growth: boolean): string {
+  if (!growth && f.kind === 'yard_l') return '중순양함·순양전함·전함을 건조한다.';
+  if (!growth && f.kind === 'yard_xl') return '드레드노트급 초대형 함선 전용 건조 독.';
+  return f.desc;
+}
+
 const F = (f: FacilityDef) => f;
 export const FACILITIES: Record<string, FacilityDef> = Object.fromEntries([
   // ── 기반 시설
@@ -146,8 +157,8 @@ export const FACILITIES: Record<string, FacilityDef> = Object.fromEntries([
   // ── 조선 및 군사
   F({ kind: 'yard_s', name: '소형 조선소', cat: '조선', desc: '초계함·호위함과 채굴선·수송선을 건조한다. 증설할 때마다 건조 슬롯 +1.', credits: 55000, mats: { alloy: 1000, structure: 90, machinery: 35 }, minStation: 'S', legacyBuild: { credits: 15000, mats: { alloy: 400, structure: 20, machinery: 12 } }, work: 240, power: -20, lines: 1, yard: 1, requires: 'core', unlocks: '건조 슬롯 1 (소형 함선)' }),
   F({ kind: 'yard_m', name: '중형 조선소', cat: '조선', desc: '구축함·경순양함과 공작선까지 건조한다.', credits: 250000, mats: { alloy: 5500, structure: 350, machinery: 150, electronics: 60 }, minStation: 'M', legacyBuild: { credits: 40000, mats: { alloy: 900, structure: 60, machinery: 30, electronics: 10 } }, work: 600, power: -35, lines: 1, yard: 2, requires: 'yard_s', tech: 'medium_hulls', unlocks: '건조 슬롯 1 (중형 이하)' }),
-  F({ kind: 'yard_l', name: '대형 조선소', cat: '조선', desc: '중순양함·순양전함·전함을 건조한다.', credits: 1200000, mats: { alloy: 26000, structure: 2500, machinery: 850, composite: 300, electronics: 250 }, minStation: 'L', legacyBuild: { credits: 120000, mats: { alloy: 2400, structure: 200, machinery: 80, composite: 60, electronics: 30 } }, work: 1800, power: -60, lines: 1, yard: 3, requires: 'yard_m', tech: 'capital_hulls', unlocks: '건조 슬롯 1 (대형 이하)' }),
-  F({ kind: 'yard_xl', name: '초대형 건조 독', cat: '조선', desc: '드레드노트급 초대형 함선 전용 건조 독.', credits: 6000000, mats: { alloy: 70000, structure: 7000, machinery: 2200, composite: 1600, electronics: 700, precision: 350 }, minStation: 'XL', legacyBuild: { credits: 400000, mats: { alloy: 8000, structure: 800, composite: 300, electronics: 120, precision: 60 } }, work: 5400, power: -120, lines: 1, yard: 4, requires: 'yard_l', tech: 'dreadnought_program', max: 1, unlocks: '초대형 함선 건조' }),
+  F({ kind: 'yard_l', name: '대형 조선소', cat: '조선', desc: '중순양함·순양전함과 대형 산업선을 건조한다.', credits: 1200000, mats: { alloy: 26000, structure: 2500, machinery: 850, composite: 300, electronics: 250 }, minStation: 'L', legacyBuild: { credits: 120000, mats: { alloy: 2400, structure: 200, machinery: 80, composite: 60, electronics: 30 } }, work: 1800, power: -60, lines: 1, yard: 3, requires: 'yard_m', tech: 'capital_hulls', unlocks: '건조 슬롯 1 (대형 이하)' }),
+  F({ kind: 'yard_xl', name: '초대형 건조 독', cat: '조선', desc: '전함·드레드노트와 초대형 산업선을 건조한다.', credits: 6000000, mats: { alloy: 70000, structure: 7000, machinery: 2200, composite: 1600, electronics: 700, precision: 350 }, minStation: 'XL', legacyBuild: { credits: 400000, mats: { alloy: 8000, structure: 800, composite: 300, electronics: 120, precision: 60 } }, work: 5400, power: -120, lines: 1, yard: 4, requires: 'yard_l', tech: 'capital_hulls', max: 1, unlocks: '초대형 함선 건조' }),
   F({ kind: 'fitting', name: '피팅 시설', cat: '조선', desc: '함선의 무장 구성 변경과 모듈 장착.', credits: 22000, mats: { alloy: 400, machinery: 25 }, minStation: 'S', legacyBuild: { credits: 8000, mats: { alloy: 200, machinery: 10 } }, work: 120, power: -10, requires: 'core', max: 1, unlocks: '무장 구성 변경 · 장비 모듈 장착/해제' }),
   F({ kind: 'armory', name: '군수창고', cat: '군사', desc: '탄약·미사일 보급. 정박 함선의 미사일 탄창과 전투 지속력이 오른다.', credits: 35000, mats: { alloy: 650, chemicals: 100 }, minStation: 'S', legacyBuild: { credits: 9000, mats: { alloy: 220, chemicals: 30 } }, work: 140, power: -6, requires: 'core', max: 1, unlocks: '이 정거장 함선 미사일 탄창 +50%' }),
   F({ kind: 'defense', name: '방어시설', cat: '군사', desc: '정거장 주변 전투에 중포대로 참전한다.', credits: 40000, mats: { alloy: 900, weapon_parts: 20 }, minStation: 'S', legacyBuild: { credits: 9000, mats: { alloy: 300, weapon_parts: 4 } }, work: 160, power: -12, requires: 'core', max: 6, unlocks: '방어 포대 1기 · 주변 치안 상승' }),
@@ -328,16 +339,23 @@ export const TECHS: Record<string, TechDef> = Object.fromEntries([
   T({ id: 'frigate_design', name: '호위함 설계', field: 'shipeng', time: 3600, credits: 8000, cost: { structure: 10, electronics: 6 }, desc: '경량 호위함 설계.', unlocks: '함선: 호위함 건조', bp: 20000 }),
   T({ id: 'medium_hulls', name: '중형 선체', field: 'shipeng', time: 5400, credits: 14000, cost: { structure: 30, precision: 4, electronics: 8 }, pre: ['frigate_design'], desc: '중형 선체 골조.', unlocks: '시설: 중형 조선소', bp: 40000 }),
   T({ id: 'light_cruiser_design', name: '경순양함 설계', field: 'shipeng', time: 10800, credits: 24000, cost: { structure: 40, electronics: 16, precision: 8 }, pre: ['medium_hulls'], desc: '고속 순양함.', unlocks: '함선: 경순양함 건조' }),
-  T({ id: 'capital_hulls', name: '대형 선체', field: 'shipeng', time: 21600, credits: 50000, cost: { structure: 120, composite: 40, precision: 16, electronics: 24 }, pre: ['light_cruiser_design', 'composites'], desc: '대형 선체 골조.', unlocks: '시설: 대형 조선소 · 함선: 중순양함', bp: 150000 }),
+  T({ id: 'capital_hulls', name: '대형 선체', field: 'shipeng', time: 21600, credits: 50000, cost: { structure: 120, composite: 40, precision: 16, electronics: 24 }, pre: ['light_cruiser_design', 'composites'], desc: '대형 선체 골조.', unlocks: '시설: 대형 조선소 · 초대형 건조 독 · 함선: 중순양함', bp: 150000 }),
   T({ id: 'battlecruiser_design', name: '순양전함 설계', field: 'shipeng', time: 32400, credits: 70000, cost: { structure: 160, electronics: 40, precision: 20 }, pre: ['capital_hulls', 'heavy_ordnance'], desc: '전함의 화력, 순양함의 속도.', unlocks: '함선: 순양전함 건조' }),
   T({ id: 'battleship_design', name: '전함 설계', field: 'shipeng', time: 43200, credits: 100000, cost: { structure: 240, composite: 80, electronics: 60, precision: 30 }, pre: ['battlecruiser_design', 'reactive_armor'], desc: '전열함의 정점.', unlocks: '함선: 전함 건조' }),
-  T({ id: 'dreadnought_program', name: '드레드노트 계획', field: 'shipeng', time: 86400, credits: 300000, cost: { structure: 600, composite: 200, electronics: 160, rare_metal: 80, precision: 60 }, pre: ['battleship_design', 'automated_yards'], desc: '초대형 함선 계획.', unlocks: '시설: 초대형 건조 독 · 함선: 드레드노트' }),
+  T({ id: 'dreadnought_program', name: '드레드노트 계획', field: 'shipeng', time: 86400, credits: 300000, cost: { structure: 600, composite: 200, electronics: 160, rare_metal: 80, precision: 60 }, pre: ['battleship_design', 'automated_yards'], desc: '초대형 함선 계획.', unlocks: '함선: 드레드노트' }),
   T({ id: 'reactor_tuning', name: '반응로 출력 강화', field: 'shipeng', time: 7200, credits: 12000, cost: { reactor: 1, electronics: 8 }, pre: ['fusion_reactors'], desc: '과출력 운전.', unlocks: '장비: 고출력 반응로' }),
   // tactics
   T({ id: 'fleet_doctrine', name: '함대 교리', field: 'tactics', time: 3600, credits: 6000, cost: { electronics: 4 }, desc: '지휘 계통 표준화.', unlocks: '지휘관 경험 획득 +50%', fx: { skillGain: 1.5 } }),
   T({ id: 'combined_arms', name: '제병 협동', field: 'tactics', time: 7200, credits: 12000, cost: { electronics: 10, sensor: 1 }, pre: ['fleet_doctrine'], desc: '이종 함급 협동 전술.', unlocks: '전투 시 함대 명중률 +5% (모든 함선)' }),
   T({ id: 'salvage_ops', name: '전장 회수', field: 'tactics', time: 5400, credits: 8000, cost: { machinery: 10 }, pre: ['fleet_doctrine'], desc: '격침된 적함에서 부품 회수.', unlocks: '해적 격침 시 무장 부품·전자부품 노획 · 노획 장비 분석' }),
 ].map(t => [t.id, t]));
+
+/** Preserve the original c0 research messages as well as its unlock rules. */
+export function techUnlocks(id: string, growth: boolean): string {
+  if (!growth && id === 'capital_hulls') return '시설: 대형 조선소 · 함선: 중순양함';
+  if (!growth && id === 'dreadnought_program') return '시설: 초대형 건조 독 · 함선: 드레드노트';
+  return TECHS[id]?.unlocks ?? '';
+}
 
 /** combat effects of a ship's fitted modules plus company research */
 export function fitFx(fit: string[] | undefined, tech: string[] | undefined, armory = false) {

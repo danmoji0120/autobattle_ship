@@ -53,6 +53,17 @@ export const serviceOf = (st: Station): StationService => SERVICES[st.id] ?? DEF
 /** goods that take warehouse space (blueprint copies and fragments are records, not cargo) */
 export const takesSpace = (k: string) => !k.startsWith('bpf:') && !k.startsWith('bp:');
 export function storeUsed(S: Cargo | undefined): number { let n = 0; if (S) for (const k in S) if (takesSpace(k) && S[k] > 0) n += S[k]; return n; }
+/** Returnable construction reservations claim space for ordinary intake; they remain separate assets. */
+export function reservedSpace(st: Pick<Station, 'modules'>): number {
+  return st.modules.reduce((n, m) => n + (!m.built ? storeUsed(m.reserved) : 0), 0);
+}
+/** A seller can withdraw an unsold listing, so it also retains its return-space claim. */
+export function listedSpace(st: Pick<Station, 'listings'>, company: string): number {
+  return (st.listings ?? []).reduce((n, l) => n + (l.seller === company && takesSpace(l.item) ? Math.max(0, l.qty) : 0), 0);
+}
+export function listedItem(st: Pick<Station, 'listings'>, company: string, item: string): number {
+  return (st.listings ?? []).reduce((n, l) => n + (l.seller === company && l.item === item ? Math.max(0, l.qty) : 0), 0);
+}
 
 export const leasedAt = (co: Company | undefined, st: string) => co?.leases?.[st] ?? 0;
 /** a company's storage limit at a public station (free allowance + leased blocks) */
@@ -196,6 +207,8 @@ export function leaseAccrual(w: WorldState, co: Company, dt: number): number {
 
 /** Before the core is built only outstanding construction materials may enter.
  * Existing inventory and reservations remain untouched, including over-cap legacy stock. */
-export function constructionRoom(st: Station, item: string): number {
-  return Math.max(0, (queueShortfall(st)[item] ?? 0) - qty(st.storage[st.owner], item));
+export function constructionRoom(st: Station, item: string, protectListed = !!st.size): number {
+  // A sized station cannot repeatedly hide the same construction stock in sale escrow,
+  // bring it in again, and then withdraw the listing into unlimited overflow.
+  return Math.max(0, (queueShortfall(st)[item] ?? 0) - qty(st.storage[st.owner], item) - (protectListed ? listedItem(st, st.owner, item) : 0));
 }

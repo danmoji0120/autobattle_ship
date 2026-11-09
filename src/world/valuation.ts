@@ -33,7 +33,7 @@ export function valueOf(id: string): number {
 }
 
 /** yard operating fee of a build (credits): charged for real by an own yard, counted in the cost */
-export const yardFee = (b: { yard: number; time: number }) => Math.round(b.time * (YARD_FEE[b.yard] ?? 1));
+export const yardFee = (b: { yard: number; pricingYard?: number; time: number }) => Math.round(b.time * (YARD_FEE[b.pricingYard ?? b.yard] ?? 1));
 /** NPC licence multiple of a hull class (econConfig: class table, else by yard size) */
 export const saleMul = (classId: string, yard: number) => (Object.hasOwn(SALE_BY_CLASS, classId) ? SALE_BY_CLASS[classId] : SALE_BY_YARD[yard]) ?? 1;
 
@@ -54,7 +54,7 @@ export interface HullPrice extends HullCost { mul: number; grade: number; price:
 export function hullPrice(hullId: string, variantId?: string, presetId?: string): HullPrice {
   const c = hullCost(hullId, variantId, presetId);
   const b = hullBuild(hullId, variantId);
-  const mul = saleMul(CONTENT.hulls[hullId]?.classId ?? hullId.replace(/_mk1$/, ''), b.yard);
+  const mul = saleMul(CONTENT.hulls[hullId]?.classId ?? hullId.replace(/_mk1$/, ''), b.pricingYard ?? b.yard);
   const bp = Object.values(CONTENT.blueprints).find(x => x.target.kind === 'hull' && x.target.id === hullId);
   const grade = GRADE_MUL[bp?.grade ?? 'common'] ?? 1;
   return { ...c, mul, grade, price: Math.round(c.total * mul * grade / 100) * 100 };
@@ -69,7 +69,7 @@ export function yardRestockNeed(hullId: string, st: { market: Record<string, unk
   const hc = hullCost(hullId);
   const c = hc.parts + hc.labour + hc.equipment;          // the yard's own dock time is not a market good
   const b = hullBuild(hullId);
-  const shares: [string, number][] = [...YARD_RESTOCK_SHARE, ...(b.yard >= 2 ? YARD_RESTOCK_SHARE_WAR : [])];
+  const shares: [string, number][] = [...YARD_RESTOCK_SHARE, ...((b.pricingYard ?? b.yard) >= 2 ? YARD_RESTOCK_SHARE_WAR : [])];
   const out: Record<string, number> = {};
   for (const [k, sh] of shares) {
     const into = st.market?.[k] ? k : 'alloy';              // a yard without that good uses more alloy

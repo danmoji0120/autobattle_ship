@@ -34,11 +34,12 @@ describe(`economy baseline ${ECON_BASELINE_ID}`, () => {
     for (const h of war.slice(1)) expect(P(h), h).toBeGreaterThan(hullCost(h).total);
   });
 
-  it('NPC supply: capital hulls one at a time, slowly, for trusted companies; the largest never', () => {
+  it('NPC supply keeps its established economic tiers after yard requirements change', () => {
     for (const h of Object.values(CONTENT.hulls)) {
       const b = hullBuild(h.id); const s = hullSale(h.id);
-      if (b.yard >= 4) expect(s, h.id).toBeUndefined();
-      if (s && b.yard >= 3) { expect(s.stock, h.id).toBeLessThanOrEqual(1); expect(s.restock, h.id).toBeGreaterThanOrEqual(12_000); expect(s.rep ?? 0, h.id).toBeGreaterThanOrEqual(25); }
+      const economicTier = b.pricingYard ?? b.yard;
+      if (economicTier >= 4) expect(s, h.id).toBeUndefined();
+      if (s && economicTier >= 3) { expect(s.stock, h.id).toBeLessThanOrEqual(1); expect(s.restock, h.id).toBeGreaterThanOrEqual(12_000); expect(s.rep ?? 0, h.id).toBeGreaterThanOrEqual(25); }
     }
     // buying the stock empties it: a second battleship waits for the yard
     const sim = WorldSim.create(5); calm(sim);
@@ -115,7 +116,7 @@ describe(`economy baseline ${ECON_BASELINE_ID}`, () => {
     const own = Object.values(sim.st.stations).find(s => s.owner === p) as Station;
     for (const k of ['power', 'yard_m', 'hull_works', 'machine_shop']) own.modules.push({ kind: k, progress: 1, built: true, slot: own.modules.length + 1 });
     const b = hullBuild('destroyer_mk1');
-    expect(yardFee(b)).toBe(Math.round(b.time * YARD_FEE[b.yard]));
+    expect(yardFee(b)).toBe(Math.round(b.time * YARD_FEE[b.pricingYard ?? b.yard]));
     const c0 = co.credits;
     expect(sim.command(p, { c: 'buildShip', station: own.id, classId: 'destroyer', loadoutId: '', hull: 'destroyer_mk1', variant: 'destroyer_mk1_std' })).toBeNull();
     expect(c0 - co.credits).toBe(b.credits + yardFee(b));

@@ -51,19 +51,30 @@ export function hullEcon(hullId: string, variantId?: string): HullEcon {
 export const econOf = (s: { classId: string; hull?: string; variant?: string }): HullEcon =>
   s.hull ? hullEcon(hullIdOf(s), s.variant) : hullEcon(`${s.classId}_mk1`);
 
-/** own-yard build requirements of a hull (+ variant extra parts) */
-export function hullBuild(hullId: string, variantId?: string, growth = true): HullBuild {
+/** Historical yard tier: both a save-compatibility fallback and the unchanged pricing basis. */
+export const PRE_P9631_YARD: Readonly<Record<string, number>> = {
+  battleship_mk1: 3, miner_l: 2, hauler_l: 2, hauler_meridian: 2, constructor_l: 2,
+  miner_xl: 3, hauler_xl: 3, constructor_xl: 3,
+};
+/** The historical fee tier is calculated by the server, not set by content. */
+export type HullBuildTerms = HullBuild & { pricingYard?: number };
+
+/** own-yard build requirements of a hull (+ variant extra parts); an existing order may retain its yard. */
+export function hullBuild(hullId: string, variantId?: string, growth = true, yardOverride?: number): HullBuildTerms {
   const h = CONTENT.hulls[hullId];
   const legacy = HULLS[h?.classId ?? hullId.replace(/_mk1$/, '')];
   const b: HullBuild = h?.build ?? { yard: legacy?.yard ?? 1, time: legacy?.time ?? 1800, credits: legacy?.credits ?? 1500, parts: { ...(legacy?.parts ?? {}) }, ...(legacy?.tech ? { tech: [legacy.tech] } : {}) };
   const v = variantId ? CONTENT.variants[variantId] : undefined;
+  // The mk1 battleship uses the shared legacy class table: change its growth requirement without
+  // changing c0 rules, public stock classification, or unrelated classes.
+  const yard = yardOverride ?? (growth && hullId === 'battleship_mk1' ? 4 : b.yard);
   // the industrial base a yard of this size needs, plus the hull's and the variant's own facilities
   // (growth only: a legacy c0 build of a mk1 class keeps its old requirements — growth = false)
-  const facilities = [...new Set([...(growth ? TIER_BASE[b.yard] ?? [] : []), ...(b.facilities ?? []), ...(v?.needs?.facilities ?? [])])];
+  const facilities = [...new Set([...(growth ? TIER_BASE[yard] ?? [] : []), ...(b.facilities ?? []), ...(v?.needs?.facilities ?? [])])];
   const tech = [...new Set([...(b.tech ?? []), ...(v?.needs?.tech ?? [])])];
   const parts = { ...b.parts };
   for (const [k, n] of Object.entries(v?.parts ?? {})) parts[k] = (parts[k] ?? 0) + n;
-  return { ...b, parts, ...(facilities.length ? { facilities } : {}), ...(tech.length ? { tech } : {}) };
+  return { ...b, yard, parts, ...(growth && PRE_P9631_YARD[hullId] !== undefined ? { pricingYard: PRE_P9631_YARD[hullId] } : {}), ...(facilities.length ? { facilities } : {}), ...(tech.length ? { tech } : {}) };
 }
 
 /** industrial base an own yard of each size needs before it can lay down a hull (growth worlds):

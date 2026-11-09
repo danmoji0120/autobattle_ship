@@ -184,8 +184,8 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
       moved = result.sold; earned = result.value;
       if (moved) { takec(s.cargo, m.item, moved); record(r, h.time, { sold: moved, earned }); }
     } else {
-      const targetRoom = m.mode === 'supply' ? Math.max(0, (m.targetStock ?? 0) - qty(h.storage(st, r.owner), m.item)) : m.mode === 'construction' ? constructionRoom(st, m.item) : Infinity;
-      const desired = Math.max(0, Math.min(m.amount, h.intakeRoom(st, r.owner, m.item), targetRoom));
+      const targetRoom = m.mode === 'supply' ? Math.max(0, (m.targetStock ?? 0) - qty(h.storage(st, r.owner), m.item)) : m.mode === 'construction' ? constructionRoom(st, m.item, true) : Infinity;
+      const desired = Math.max(0, Math.min(m.amount, h.intakeRoom(st, r.owner, m.item, m.mode === 'construction'), targetRoom));
       const permit = h.cargoPermit(s, st, `route:${r.id}:unload`, desired);
       if (permit === null) { g.status = `${st.name}: 화물 하역 중`; return; }
       moved = Math.min(desired, permit);
@@ -205,7 +205,7 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
   if (r.config.mode === 'construction') {
     const dest = h.st.stations[r.config.to];
     if (!dest || dest.owner !== r.owner) { pause(h, r, '자사 건설 현장을 이용할 수 없습니다 — 설정을 확인하세요'); return; }
-    const outstanding = Math.max(0, constructionRoom(dest, r.config.item) - incoming(h, r.owner, dest.id, r.config.item));
+    const outstanding = Math.max(0, constructionRoom(dest, r.config.item, true) - incoming(h, r.owner, dest.id, r.config.item));
     if (outstanding <= 1e-9) { block(h, r, s, c, 'construction', '필요 자재 확보 또는 운송 중 — 추가 수요 대기', dest.id); return; }
     amount = Math.min(amount, outstanding);
   }

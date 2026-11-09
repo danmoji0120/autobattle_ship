@@ -1,0 +1,8 @@
+
+> siderarium@0.1.0 build:server
+> esbuild src/server/node.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outfile=dist-server/server.mjs
+
+
+  dist-server/server.mjs  794.4kb
+
+⚡ Done in 139ms

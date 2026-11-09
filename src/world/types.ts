@@ -311,6 +311,8 @@ export interface ShipListing { id: string; seller: string; ship: string; price: 
 export interface ShipBuild {
   id: string; classId: string; loadoutId: string;
   hull?: string; variant?: string;
+  /** Growth build's yard requirement at registration; absent on pre-P9.6.3.1 plans. */
+  requiredYard?: number;
   /** growth builds (contentV ≥ 3): hull preset whose weapons it mounts (else the legacy loadout's) */
   preset?: string;
   /** fitting modules installed at launch */

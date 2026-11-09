@@ -78,7 +78,7 @@ export const P8_HULLS: HullDef[] = [{
   mesh: { base: 'hauler_l', scale: 1.7, model: 'model.hauler_meridian' },
   desc: '양현 화물 모듈 여섯 개를 골조에 고정한 대형 수송선. 대량 운송에 적합하지만 큰 정박 시설과 높은 유지비가 필요하다.',
   ops: { cruise: 64, cargo: 3100, berth: 'L' },
-  build: { yard: 2, time: 6400, credits: 6400, tech: ['logistics_ai'], facilities: ['dock'], parts: { structure: 150, engine: 4, reactor: 2, machinery: 26, electronics: 6 } },
+  build: { yard: 3, time: 6400, credits: 6400, tech: ['logistics_ai'], facilities: ['dock'], parts: { structure: 150, engine: 4, reactor: 2, machinery: 26, electronics: 6 } },
   upkeep: { credits: 2200, supplies: { chemicals: 1.3 }, wear: 0.04 },
   sale: { stations: ['exchange'], rep: 10, stock: 1, restock: 6600 },
   internals: [{ id: 'bay1', kind: 'special', size: 'M' }, { id: 'bay2', kind: 'special', size: 'M' }, { id: 'eng1', kind: 'engine', size: 'S' }],
