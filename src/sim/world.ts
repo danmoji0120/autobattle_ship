@@ -630,7 +630,7 @@ export class World {
     const range = w.range * (w.kind === 'torpedo' ? this.torpRangeFactor(s) : 1);
     // prefer commander-assigned target
     const pri = this.shipById.get(s.ai.targetId);
-    if (pri && pri.state === 'alive' && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > 0.2) {
+    if (pri && pri.state === 'alive' && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > (w.kind === 'torpedo' ? 0 : 0.2)) {
       m.targetId = pri.id; return;
     }
     let best = -1, bestScore = 0;
@@ -638,7 +638,7 @@ export class World {
       if (t.team === s.team || t.state !== 'alive') continue;
       const d = muzzle.distTo(t.pos);
       if (d > range) continue;
-      if (w.kind === 'torpedo' && t.role !== 'line' && t.role !== 'civilian' && !(pri && pri.role === 'escort' && t === pri)) continue;
+      // Torpedoes strongly prefer large targets, but can engage escorts and raiders when needed.
       // don't waste missile salvos on distant agile craft
       if (w.kind === 'missile' && t.role === 'raider' && d > 650) continue;
       if (!inArc(t.pos)) continue;
@@ -656,12 +656,12 @@ export class World {
     let s = ratio >= 1 ? 1 : ratio < 0.55 ? 0.08 : Math.pow(ratio, 1.6);
     // P5 weapons declare what they are for (the built-in ones keep the rules below)
     if (w.role === 'anti-small') { if (t.role === 'raider' || t.role === 'escort') s *= 1.4; else s *= 0.7; }
-    else if (w.role === 'anti-capital') { if (t.role === 'raider') return s * 0.1; if (t.role === 'line') s *= 1.3; }
+    else if (w.role === 'anti-capital') { if (t.role === 'raider' && w.kind !== 'torpedo') return s * 0.1; if (t.role === 'line') s *= 1.3; }
     if (t.shield && t.maxShield && t.shield > t.maxShield * 0.25) s *= w.vsShield ?? 1;
     // heavy/guided weapons are wasted on small agile craft
     if (t.role === 'raider') {
       if (w.kind === 'missile') s *= 0.15;
-      else if (w.kind === 'torpedo') s = 0;
+      else if (w.kind === 'torpedo') s *= 0.15;
       else if (w.damage >= 250) s *= 0.25;
     } else if (t.role === 'escort' && w.kind === 'torpedo') s *= 0.6;
     return s;
