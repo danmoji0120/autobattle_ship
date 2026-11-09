@@ -1,0 +1,95 @@
+{
+  "baseline": "1ffbcebb4df473159deccd50d92c92caa1fcf48d",
+  "current": "b8f0596e4c1e1a07d22e4d13778088f79146b5c9",
+  "generation": {
+    "systems": 22,
+    "stations": 15,
+    "ships": 10,
+    "hash": "7fec9438be54fdc19fb67a1963522cc1e137fd1c78f124d8a0b9f52141ba13cd",
+    "serverHash": "e0b1b74000a0921e8b405d7e00e1a719bce6b4b4ba079a0c8cea8291f03a4f48"
+  },
+  "economy": {
+    "sellerCredits": 984420.55,
+    "buyerCredits": 999960,
+    "sellerOre": 86,
+    "buyerOre": 4,
+    "sellerAlloy": 50,
+    "marketOre": 3010,
+    "hash": "fc279d5efc1bcc260abb9eceb438e62dac3ae88e03e332943a14dfa845223721",
+    "serverHash": "e3d429e6fe42ad35821b5b9b7ea59db2cf4f8aad977cb8e86a0cba1761319e65"
+  },
+  "world": {
+    "seconds": 360,
+    "savedAtSeconds": 150,
+    "checkpoints": [
+      {
+        "seconds": 60,
+        "hash": "4d3832b6840e01f57912c859b4cb00ac9909589300ace6ccf50809726984c0af",
+        "serverHash": "cad9bc6623ba56326b5829568b11e4a2f13b6124375ae344f10c34ca01a1414b"
+      },
+      {
+        "seconds": 120,
+        "hash": "6df857022958eccdfbba3032660c93ca45d8661f61149bd65992556ded214d9c",
+        "serverHash": "3a07ecd3aa0ec37aa3afd001058aa4f27dcbf2a34686a2546239f8bc916db68f"
+      },
+      {
+        "seconds": 180,
+        "hash": "d9a4e37239cf14a3f1972395a1d7901b2d4def51faa6a0a14da2505e85ab05e9",
+        "serverHash": "3532012b9a39d6fe14744110d61d8b8d9a1d7222ef546927ecd48526f604449b"
+      },
+      {
+        "seconds": 240,
+        "hash": "408dec0cbf65fe3916c73e3b22c93c80e8059a9e26dbd3cd98599f003502d91b",
+        "serverHash": "19f64fd441b0be39cdf46e429cd8d108978bb0f14cc327676f93ed6d97375729"
+      },
+      {
+        "seconds": 300,
+        "hash": "100e4bb6fed43d4dd405c32300e5cb2c73332821e8638719837e626ee34390a0",
+        "serverHash": "0d25f562d8f0896516ce564adac29780e7c58a186109c44543f4401a38e94a2b"
+      },
+      {
+        "seconds": 360,
+        "hash": "19275735218fd49deda2c1b18439192b173585789c3dfd597273880ded6e9d47",
+        "serverHash": "c2984dba9c168d643ec695510aca1cd512ada61a0cf87a3adb3d4a8822217eeb"
+      }
+    ],
+    "station": {
+      "id": "st24",
+      "size": "S",
+      "built": true
+    }
+  },
+  "battle": [
+    {
+      "seed": 1,
+      "digest": "91de97b6",
+      "outcome": {
+        "winner": 0,
+        "reason": "적 함대 전멸",
+        "time": 201
+      },
+      "time": 201
+    },
+    {
+      "seed": 7,
+      "digest": "afe6192",
+      "outcome": {
+        "winner": 1,
+        "reason": "아군 함대 퇴각",
+        "time": 139.5
+      },
+      "time": 139.5
+    },
+    {
+      "seed": 23,
+      "digest": "1bcd1c4c",
+      "outcome": {
+        "winner": 0,
+        "reason": "적 함대 퇴각",
+        "time": 153
+      },
+      "time": 153
+    }
+  ],
+  "fixture": "two isolated companies, fixture credits and 600 alloy, normal regional security and lairs disabled; no production data"
+}
