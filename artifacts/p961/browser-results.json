@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "facility catalog contains the sensor and communications facility",
+    "facility detail states the actual shipbuilding requirement",
+    "facility detail contains no unsupported detection or alert claims",
+    "facility screen tooltips contain no unsupported claims",
+    "mobile facility management remains within the viewport",
+    "real facility completion event describes the existing build condition",
+    "completion event contains no unsupported detection or alert claims",
+    "completed facility appears in station management",
+    "browser emitted no runtime errors"
+  ],
+  "completed": {
+    "built": true,
+    "event": "통신시설 검증 기지: 센서·통신시설 완공 — 일부 지휘형 함선 구조의 건조 선행 조건"
+  },
+  "errors": []
+}

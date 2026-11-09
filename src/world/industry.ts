@@ -155,7 +155,7 @@ export const FACILITIES: Record<string, FacilityDef> = Object.fromEntries([
   // ── 물류
   F({ kind: 'logistics', name: '물류센터', cat: '물류', desc: '자동 보급: 수송선이 이 정거장의 생산에 부족한 원료를 다른 자사 정거장에서 실어 온다.', credits: 8000, mats: { alloy: 220, machinery: 10, electronics: 2 }, work: 140, power: -8, requires: 'core', max: 1, unlocks: '"자동 보급" 수송 명령 · 정거장 간 물류 현황' }),
   F({ kind: 'trade_hub', name: '거래시설', cat: '물류', desc: '이 정거장에 거래소를 연다: 다른 PMC가 매물을 사고팔 수 있다.', credits: 12000, mats: { alloy: 260, electronics: 6 }, work: 160, power: -8, requires: 'core', max: 1, unlocks: '정거장 거래소 (플레이어 간 매매)' }),
-  F({ kind: 'comms', name: '센서·통신시설', cat: '물류', desc: '주변 성계의 해적 접근을 조기 경보하고 지휘관의 위협 탐지 거리를 늘린다.', credits: 9000, mats: { alloy: 200, electronics: 8, sensor: 1 }, work: 160, power: -10, requires: 'core', max: 1, unlocks: '이 성계 자사 편대 위협 탐지 +2,000 · 해적 접근 경보' }),
+  F({ kind: 'comms', name: '센서·통신시설', cat: '물류', desc: '일부 지휘형 함선 구조를 건조하기 위한 통신 기반 시설이다.', credits: 9000, mats: { alloy: 200, electronics: 8, sensor: 1 }, work: 160, power: -10, requires: 'core', max: 1, unlocks: '일부 지휘형 함선 구조의 건조 선행 조건' }),
 ].map(f => [f.kind, f]));
 
 export const FAC_CATS: FacCat[] = ['기반', '정제', '부품', '조선', '군사', '연구', '물류'];
