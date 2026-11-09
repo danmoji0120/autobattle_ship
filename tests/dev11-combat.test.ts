@@ -7,7 +7,41 @@ import { battleSetup, configProblems, defaultConfig, defaultShip, labShipCount, 
 const group = (name: string, order: LabGroup['order'] = 'auto'): LabGroup => ({ name, commander: null, order, retreatAt: 0, ships: [], children: [] });
 
 describe('DEV-1.1 hierarchical local experiment', () => {
-  it('migrates a DEV-1 setting without losing its rows, fitting, quantities, commander or deterministic result', () => {
+  it('lets a lone raider be targeted and fired upon by torpedoes', () => {
+    const w = new World(battleSetup(defaultConfig()));
+    const attacker = w.ships.find(s => s.team === 1)!;
+    const raider = w.ships.find(s => s.team === 0)!;
+    const torpedo = attacker.mounts.find(m => m.weapon.kind === 'torpedo')!;
+    expect(torpedo).toBeDefined();
+    attacker.pos.set(0, 0, 0); attacker.yaw = 0;
+    raider.pos.set(0, 0, 360);
+    attacker.ai.targetId = -1;
+    torpedo.cooldown = 0; torpedo.retarget = 0;
+    expect(w.suitability(torpedo.weapon, raider)).toBeGreaterThan(0);
+    (w as any).updateWeapons(attacker);
+    expect(torpedo.targetId).toBe(raider.id);
+    expect(w.munitions.some(mu => mu.ownerId === attacker.id && mu.kind === 'torpedo')).toBe(true);
+  });
+
+  it('prefers line ships to raiders for torpedoes, except on explicit focus orders', () => {
+    const c = defaultConfig();
+    c.sides[0].root.children[0].ships.push(defaultShip('cruiser_mk1', 'line-ship'));
+    const w = new World(battleSetup(c));
+    const attacker = w.ships.find(s => s.team === 1)!;
+    const raider = w.ships.find(s => s.team === 0 && s.role === 'raider')!;
+    const line = w.ships.find(s => s.team === 0 && s.role === 'line')!;
+    const torpedo = attacker.mounts.find(m => m.weapon.kind === 'torpedo')!;
+    attacker.pos.set(0, 0, 0); attacker.yaw = 0;
+    raider.pos.set(30, 0, 350); line.pos.set(-30, 0, 350);
+    attacker.ai.targetId = -1;
+    (w as any).chooseMountTarget(attacker, torpedo);
+    expect(torpedo.targetId).toBe(line.id);
+    attacker.ai.targetId = raider.id;
+    (w as any).chooseMountTarget(attacker, torpedo);
+    expect(torpedo.targetId).toBe(raider.id);
+  });
+
+  it('migrates a DEV-1 setting without losing rows, fitting, quantities, commander or deterministic execution', () => {
     const baseline = JSON.parse(readFileSync('artifacts/dev1/default-experiment.json', 'utf8'));
     const imported = migrateConfig(baseline.config), original = baseline.config;
     expect(imported.schema).toBe('siderarium-combat-lab-2');
@@ -21,8 +55,10 @@ describe('DEV-1.1 hierarchical local experiment', () => {
         expect(child.ships[0]).toMatchObject({ id: row.id, hull: row.hull, variant: row.variant, fitting: row.fitting, count: row.count });
       });
     }
-    expect(runBattle(imported, 1, false)).toEqual(baseline.battles[0]);
-    expect(runBattle(imported, 1, true)).toEqual(baseline.battles[1]);
+    // Torpedo targeting was intentionally rebalanced; old DEV-1 battle digests are not the new baseline.
+    const roundTrip = migrateConfig(JSON.parse(JSON.stringify(imported)));
+    expect(runBattle(imported, 1, false)).toEqual(runBattle(roundTrip, 1, false));
+    expect(runBattle(imported, 1, true)).toEqual(runBattle(roundTrip, 1, true));
     expect(() => migrateConfig({ schema: 'siderarium-combat-results-1', config: baseline.config })).toThrow();
     expect(migrateConfig(JSON.parse(JSON.stringify(imported)))).toEqual(imported);
   });
