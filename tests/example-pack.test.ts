@@ -2,6 +2,7 @@
 // Codex-made pack must survive — validator → game tables/UI lists → research unlock → production →
 // fitting → combat effect → save/reload. Kept as the regression test the guide (§13) points to.
 import { describe, it, expect, vi } from 'vitest';
+import { addFoundationFreighter } from './helpers/foundation';
 vi.setConfig({ testTimeout: 300_000 });
 import { WorldSim } from '../src/world/sim';
 import { newWorld } from '../src/world/worldgen';
@@ -26,6 +27,7 @@ function station(sim: WorldSim, p: string) {
   const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
   const a = sim.st.stations.astra.pos;
   expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
+  addFoundationFreighter(sim, p, cg.id);
   sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: { x: a.x + 2600, y: 0, z: a.z + 2600 }, name: '예제 기지' } });
   run(sim, 200, 0.5);
   return Object.values(sim.st.stations).find(s => s.owner === p) as Station;

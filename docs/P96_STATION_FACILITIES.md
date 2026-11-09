@@ -1,5 +1,7 @@
 # P9.6 정거장·시설 체계
 
+> 이 문서는 P9.6 당시의 비용과 검증 이력을 보존한다. 신규 코어 비용은 [P9.6.2 후속 기록](P962_CORE_ECONOMY.md)을 따른다.
+
 ## 범위와 기준
 
 - 기준: `codex/p95-construction-logistics`, `cfc3717912a5da563eabe593d325ce77a3062035`.

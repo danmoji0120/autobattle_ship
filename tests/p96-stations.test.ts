@@ -14,7 +14,7 @@ import type { ShipBuild } from '../src/world/types';
 function fixture(size: Size = 'S') {
   const sim = WorldSim.create(961); (sim as any).npcSlow = () => {};
   for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e10; }
-  const p = sim.addPlayer('시설 시험'), co = sim.st.companies[p]; co.credits = 1_000_000;
+  const p = sim.addPlayer('시설 시험'), co = sim.st.companies[p]; co.credits = 5_000_000;
   const g = sim.newGroup(p, '공작반'), system = sim.st.systems.quiet;
   const at = { x: system.origin.x + 10000, y: 0, z: 0 };
   const ship = sim.spawnShip(p, 'constructor', 'std', g.id, at);

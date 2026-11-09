@@ -8,7 +8,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const dir = mkdtempSync(path.join(tmpdir(), 'siderarium-p95-mp-')), save = path.join(dir, 'world.json');
-const port = 8358, base = `http://127.0.0.1:${port}`, out = 'artifacts/p95', checks = [], sockets = [];
+const port = 8358, base = `http://127.0.0.1:${port}`, out = process.env.SIDERARIUM_ARTIFACT_DIR || 'artifacts/p95', checks = [], sockets = [];
 let server;
 const delay = ms => new Promise(r => setTimeout(r, ms));
 function check(ok, label) { if (!ok) throw Error(label); checks.push(label); console.log('PASS', label); }
@@ -74,10 +74,10 @@ try {
   await stop(); await start(); await a.connect(); await b.connect();
   const ar = await a.snap(m => !!m.state.logistics?.[route.id]), br = await b.snap(m => !!m.state.companies[b.id].foundingEscrow?.[buildB.id]);
   check(ar.state.logistics[route.id].manifests[ship.id].amount === 300 && ar.state.ships[ship.id].cargo.alloy === 300 && ar.state.logistics[route.id].stats.loaded === 300, 'file-backed process restart restores cargo and manifest without duplicate loading');
-  check(br.state.companies[b.id].foundingEscrow[buildB.id] === 8000, 'process restart restores the other company’s refundable prepayment');
+  check(br.state.companies[b.id].foundingEscrow[buildB.id] === 16000, 'process restart restores the other company’s refundable prepayment');
   check(!(await b.cmd({ c: 'setOp', group: buildB.id, op: { k: 'idle' } })).err, 'owner can cancel its own founding order after restart');
-  const refunded = await b.snap(m => !m.state.companies[b.id].foundingEscrow && m.state.companies[b.id].credits >= expectedB + 7999);
-  check(refunded.state.companies[b.id].credits <= expectedB + 8000, 'prepayment is returned once without credit duplication');
+  const refunded = await b.snap(m => !m.state.companies[b.id].foundingEscrow && m.state.companies[b.id].credits >= expectedB + 15999);
+  check(refunded.state.companies[b.id].credits <= expectedB + 16000, 'prepayment is returned once without credit duplication');
   check(!(await a.cmd({ c: 'routeControl', routes: [route.id], action: 'resume' })).err, 'owner can resume the preserved route after restart');
   const purchase = { c: 'buy', station: 'astra', res: 'alloy', amount: 20, request: { seq: 1, id: 'p95_mp_retry_1' } };
   check(!(await b.cmd(purchase)).err && !(await b.cmd(purchase)).err, 'duplicate WebSocket purchase request is acknowledged without a second trade');
@@ -88,9 +88,9 @@ try {
   check(purchaseSnap.state.stations.astra.storage[b.id]?.alloy === 20, 'restart and retry do not duplicate purchased material');
   await stop(); const final = JSON.parse(readFileSync(save, 'utf8'));
   const world = final.world, core = world.stations[site.id].modules[0];
-  const conserved = (world.stations.astra.storage[a.id].alloy || 0) + (world.ships[ship.id]?.cargo.alloy || 0) + (world.stations[site.id].storage[a.id].alloy || 0) + (core.reserved?.alloy || 0) + (core.used?.alloy || 0) + (core.built ? 300 : 0);
-  check(world.logistics[route.id].stats.loaded === 300 && Math.abs(conserved - 300) < 1e-6, 'saved resumed route conserves the purchased cargo exactly once');
-  mkdirSync(out, { recursive: true }); writeFileSync(`${out}/multiplayer-results.json`, JSON.stringify({ checks, passed: checks.length, processRestarts: 3, shipment: 300, escrowRefund: 8000 }, null, 2));
+  const conserved = (world.stations.astra.storage[a.id].alloy || 0) + (world.ships[ship.id]?.cargo.alloy || 0) + (world.stations[site.id].storage[a.id].alloy || 0) + (core.reserved?.alloy || 0) + (core.used?.alloy || 0) + (core.built ? 600 : 0);
+  check(!core.built && world.logistics[route.id].stats.loaded === 300 && Math.abs(conserved - 300) < 1e-6, 'partial supply leaves the core waiting and conserves the purchased cargo exactly once');
+  mkdirSync(out, { recursive: true }); writeFileSync(`${out}/multiplayer-results.json`, JSON.stringify({ checks, passed: checks.length, processRestarts: 3, shipment: 300, escrowRefund: 16000 }, null, 2));
   console.log(JSON.stringify({ passed: checks.length }));
 } catch (error) { console.error(error); process.exitCode = 1; }
 finally { await stop(); }

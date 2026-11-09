@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { WorldSim } from '../src/world/sim';
 import { qty } from '../src/world/types';
 import { jumps, sysAt } from '../src/world/geom';
+import { addFoundationFreighter } from './helpers/foundation';
 
 describe('P9.6 frontier industry', () => {
   it('founds an S station, supplies and builds its facilities, mines, refines and ships the product', () => {
@@ -18,6 +19,7 @@ describe('P9.6 frontier industry', () => {
     const builders = sim.newGroup(p, '실제 공작반'), constructor = sim.spawnShip(p, 'constructor', 'std', builders.id, source.pos);
     expect((sim as any).dockShip(constructor, source)).toBe(true);
     expect(sim.command(p, { c: 'buy', station: source.id, res: 'alloy', amount: 300, ship: constructor.id })).toBeNull();
+    addFoundationFreighter(sim, p, builders.id);
     expect(sim.command(p, { c: 'setOp', group: builders.id, op: { k: 'found', at, name: '앤빌 산업 거점', size: 'S' } })).toBeNull();
     until('foundation', () => Object.values(sim.st.stations).some(s => s.owner === p && s.modules[0].built));
     const station = Object.values(sim.st.stations).find(s => s.owner === p)!;

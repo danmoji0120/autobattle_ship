@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { addFoundationFreighter } from './helpers/foundation';
 import { WorldSim } from '../src/world/sim';
 import type { WGroup, Station } from '../src/world/types';
 import { ECON } from '../src/world/data';
@@ -12,11 +13,12 @@ function withStation(seed: number) {
   const sim = WorldSim.create(seed);
   const p = sim.addPlayer('채굴사');
   calm(sim);
-  sim.st.companies[p].credits = 60000;
+  sim.st.companies[p].credits = 150000;
   expect(sim.command(p, { c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })).toBeNull();
   const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
   const a = sim.st.stations.astra.pos;
   expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
+  addFoundationFreighter(sim, p, cg.id);
   expect(sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: { x: a.x + 2600, y: 0, z: a.z + 2600 }, name: '제1 PMC 정거장' } })).toBeNull();
   run(sim, 200);
   const own = Object.values(sim.st.stations).find(s => s.owner === p) as Station;

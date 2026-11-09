@@ -1,0 +1,14 @@
+PASS S: founding price and all materials are displayed
+PASS M: founding price and all materials are displayed
+PASS L: founding price and all materials are displayed
+PASS XL: founding price and all materials are displayed
+PASS UI founding command pre-pays the XL fee once
+PASS constructor establishes the site
+PASS 합금: required and missing values match the XL plan
+PASS 구조재: required and missing values match the XL plan
+PASS 기계부품: required and missing values match the XL plan
+PASS 전자부품: required and missing values match the XL plan
+PASS physical partial delivery is reserved and construction waits
+PASS UI shows the remaining shortage after delivery
+PASS mobile construction panel fits the viewport
+PASS browser emitted no runtime errors

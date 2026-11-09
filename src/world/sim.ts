@@ -36,7 +36,7 @@ import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } fr
 import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
 import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate, jumps } from './geom';
-import { STATION_SIZES, validStationSize, facilityProblem, moduleMaterials, moduleWork, moduleUnlocks, stationSize, stationBerths, occupiedBerths, stationCargoRate } from './stations';
+import { STATION_SIZES, foundingMaterials, validStationSize, facilityProblem, moduleMaterials, moduleWork, moduleUnlocks, stationSize, stationBerths, occupiedBerths, stationCargoRate } from './stations';
 
 export const STRAT_DT = 0.25;
 /** NPC-only battles share this much wall time per update (ms); beyond it they just run a bit slower */
@@ -548,7 +548,10 @@ export class WorldSim {
             cmd.op = { ...cmd.op, size: cmd.op.size ?? 'S' };
             const held = co.foundingEscrow?.[g.id] ?? 0;
             const spec = STATION_SIZES[cmd.op.size!];
-            const difference = spec.credits - held;
+            const prior = held > 0 && g.op.k === 'found' && g.op.escrowed && g.op.size === cmd.op.size ? g.op : undefined;
+            const price = prior ? held : spec.credits;
+            const materials = prior ? foundingMaterials(cmd.op.size!, held, prior.foundationMats) : spec.mats;
+            const difference = price - held;
             if (difference > 0 && co.credits < difference) return `${difference.toLocaleString()} cr 필요`;
             // Only the constructor's actual cargo and its current dock's free stock can travel
             // with it. A market elsewhere never moves resources into this hold.
@@ -556,14 +559,14 @@ export class WorldSim {
             const at = con.state === 'docked' && con.task.k === 'docked' ? this.st.stations[con.task.station] : undefined;
             if (at && this.canDock(at, company)) {
               let room = Math.max(0, Math.floor(econOf(con).cargo * techFx(co.tech).cargoMul - cargoSum(con.cargo)));
-              for (const [item, needed] of Object.entries(spec.mats)) {
+              for (const [item, needed] of Object.entries(materials)) {
                 const n = takec(this.storage(at, company), item, Math.min(room, Math.max(0, needed - qty(con.cargo, item))));
                 if (n > 0) { addc(con.cargo, item, n); room -= n; }
               }
             }
-            co.credits -= difference; (co.foundingEscrow ??= {})[g.id] = spec.credits;
-            // Never trust a client-supplied bookkeeping flag.
-            cmd.op = { ...cmd.op, escrowed: true };
+            co.credits -= difference; (co.foundingEscrow ??= {})[g.id] = price;
+            // Both the prepayment marker and the material terms are server-authoritative.
+            cmd.op = { ...cmd.op, escrowed: true, foundationMats: { ...materials } };
           } else {
             const e2 = this.prepareFound(company, g);
             if (e2) return e2;
@@ -2732,7 +2735,7 @@ export class WorldSim {
     const station: Station = {
       id, name: op.name.slice(0, 18) || `${co.name} 기지`, owner: g.owner, public: false, ...(op.size ? { size: op.size } : {}), style: 3, pos: { ...op.at, y: 0 }, radius: 180,
       market: null, services: { repair: false, shipyard: [], recruit: false, contracts: false, refit: false },
-      storage: {}, modules: [normPlan({ kind: 'core', progress: 0, built: false, slot: 0, paid, ...(op.size ? { materials: { ...STATION_SIZES[op.size].mats }, work: STATION_SIZES[op.size].work } : {}) }, () => this.id('pl'))], defenseHp: 1, founded: this.time,
+      storage: {}, modules: [normPlan({ kind: 'core', progress: 0, built: false, slot: 0, paid, ...(op.size ? { materials: { ...foundingMaterials(op.size, paid, op.foundationMats) }, work: STATION_SIZES[op.size].work } : {}) }, () => this.id('pl'))], defenseHp: 1, founded: this.time,
       desc: `${co.name}의 자체 정거장.`,
     };
     for (const cid of Object.keys(this.st.companies)) station.storage[cid] = emptyCargo();

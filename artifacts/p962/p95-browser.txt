@@ -1,0 +1,18 @@
+PASS founding through the game UI takes a refundable prepayment
+PASS constructor physically establishes an initially empty frontier site
+PASS construction panel explains the shortage before any purchase
+PASS market purchase stays at the source until physically shipped
+PASS construction panel opens a destination-prefilled supply editor
+PASS actual loaded carrier passes a jump gate with a tracked manifest
+PASS browser reload restores in-flight cargo, manifest and waiting plan
+PASS construction screen distinguishes shipment from on-site materials
+PASS construction screen fits 1920px
+PASS construction screen fits 1440px
+PASS construction screen fits 1024px
+PASS construction screen fits 390px
+PASS mobile shortage and shipment amounts are visible without horizontal scrolling
+PASS mobile construction-supply editor fits the viewport
+PASS real transport delivers and the constructor completes the core once
+PASS concurrent copies of one browser purchase debit and deliver only once
+PASS no browser runtime errors
+{"passed":17,"errors":[]}

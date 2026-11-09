@@ -1,5 +1,7 @@
 # P9.5 건설·원격 구매 물류
 
+> 이 문서의 비용은 P9.5 당시 기준이다. 현재 성장 월드의 신규 설립비는 [P9.6.2 후속 기록](P962_CORE_ECONOMY.md)을 따른다.
+
 기준 `codex/p9-world-expansion`의 `07b52c90b8ac2aa6fe66275805c0fd069068dfed`. 작업은 `codex/p95-construction-logistics`의 격리된 개발·테스트 월드에서 수행한다. 운영 서버·운영 DB·기존 운영 월드에는 적용하지 않는다.
 
 ## 설계와 플레이 흐름

@@ -1,0 +1,45 @@
+{
+  "checks": [
+    "S: founding price and all materials are displayed",
+    "M: founding price and all materials are displayed",
+    "L: founding price and all materials are displayed",
+    "XL: founding price and all materials are displayed",
+    "UI founding command pre-pays the XL fee once",
+    "constructor establishes the site",
+    "합금: required and missing values match the XL plan",
+    "구조재: required and missing values match the XL plan",
+    "기계부품: required and missing values match the XL plan",
+    "전자부품: required and missing values match the XL plan",
+    "physical partial delivery is reserved and construction waits",
+    "UI shows the remaining shortage after delivery",
+    "mobile construction panel fits the viewport",
+    "browser emitted no runtime errors"
+  ],
+  "order": {
+    "paid": 1200000,
+    "credits": 3800000,
+    "op": {
+      "k": "found",
+      "at": {
+        "x": 3760000,
+        "y": 0,
+        "z": 1.1368683772161603e-12
+      },
+      "name": "XL 비용 검증 현장",
+      "size": "XL",
+      "escrowed": true,
+      "foundationMats": {
+        "alloy": 30000,
+        "structure": 2000,
+        "machinery": 800,
+        "electronics": 300
+      }
+    }
+  },
+  "partial": {
+    "reserved": 3000,
+    "progress": 0,
+    "cargo": 0
+  },
+  "errors": []
+}

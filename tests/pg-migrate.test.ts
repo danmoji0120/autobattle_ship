@@ -259,7 +259,8 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     (sim as any).npcSlow = () => {};
     for (const lair of Object.values(sim.st.lairs)) { lair.alive = false; lair.respawnAt = 1e10; }
     const quiet = sim.st.systems.quiet, at = { x: quiet.origin.x + 10000, y: 0, z: 0 };
-    const builders = sim.newGroup(p, '공작반'); sim.spawnShip(p, 'constructor', 'std', builders.id, at);
+    const builders = sim.newGroup(p, '공작반'), builder = sim.spawnShip(p, 'constructor', 'std', builders.id, at);
+    builder.cargo.alloy = 100; // isolated fixture: a partial load already aboard the founding ship
     expect(sim.command(p, { c: 'setOp', group: builders.id, op: { k: 'found', at, name: 'PG 현장' } })).toBeNull();
     for (let i = 0; i < 20 && !Object.values(sim.st.stations).some(s => s.owner === p); i++) sim.update(.25);
     const site = Object.values(sim.st.stations).find(s => s.owner === p)!;
@@ -277,12 +278,20 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     const pending = sim.newGroup(p, '출발 공작반'); sim.spawnShip(p, 'constructor', 'std', pending.id, sim.st.stations.astra.pos);
     const rime = sim.st.systems.rime;
     expect(sim.command(p, { c: 'setOp', group: pending.id, op: { k: 'found', at: { x: rime.origin.x + 10000, y: 0, z: 0 }, name: '선납 검증' } })).toBeNull();
+    // A P9.6 in-flight order had no material snapshot; its prepayment identifies the old terms.
+    const legacy = sim.newGroup(p, '이전 XL 공작반'), legacyAt = { x: rime.origin.x + 12000, y: 0, z: 1000 };
+    const legacyShip = sim.spawnShip(p, 'constructor', 'std', legacy.id, sim.st.stations.astra.pos);
+    legacy.op = { k: 'found', at: legacyAt, name: '이전 XL 기지', size: 'XL', escrowed: true }; legacy.override = true;
+    sim.st.companies[p].credits -= 120_000; sim.st.companies[p].foundingEscrow![legacy.id] = 120_000;
     const file = local.snapshotFile(), receipt = structuredClone(sim.st.companies[p].lastPurchase);
     await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
     for (const port of [8324, 8325]) {
       const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(srv)).toBe(0);
       const world = (await row())!.data.world, saved = world.logistics![route.id];
-      expect(world.companies[p].foundingEscrow?.[pending.id]).toBe(8000);
+      expect(world.companies[p].foundingEscrow?.[pending.id]).toBe(16000);
+      expect(world.groups[pending.id].op).toMatchObject({ k: 'found', size: 'S', foundationMats: { alloy: 600 } });
+      expect(world.companies[p].foundingEscrow?.[legacy.id]).toBe(120_000);
+      expect(world.stations[site.id].modules[0]).toMatchObject({ paid: 16_000, materials: { alloy: 600 }, reserved: { alloy: 100 } });
       expect(world.companies[p].lastPurchase).toEqual(receipt);
       expect(saved.state).toBe('paused'); expect(saved.manifests[ship.id]?.amount).toBe(300);
       expect(world.ships[ship.id].cargo.alloy).toBe(300);
@@ -293,6 +302,9 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       expect(restored.st.companies[p].credits).toBe(credits);
       expect(restored.st.stations.astra.market!.alloy.stock).toBe(stock);
       expect(restored.st.ships[ship.id].cargo.alloy).toBe(300);
+      restored.st.ships[legacyShip.id].pos = { ...legacyAt }; restored.update(.25);
+      const legacySite = Object.values(restored.st.stations).find(s => s.owner === p && s.name === '이전 XL 기지');
+      expect(legacySite?.modules[0]).toMatchObject({ paid: 120_000, materials: { alloy: 3_000, structure: 200, machinery: 80, electronics: 30 } });
       expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
     }
   }, 60_000);
@@ -305,6 +317,7 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     const sys = sim.st.systems.quiet, at = { x: sys.origin.x + 10000, y: 0, z: 0 };
     const builders = sim.newGroup(p, '공작반'), builder = sim.spawnShip(p, 'constructor', 'std', builders.id, at);
     builder.cargo.alloy = 300;
+    const support = sim.spawnShip(p, 'hauler', 'std', builders.id, at); support.cargo.alloy = 300;
     expect(sim.command(p, { c: 'setOp', group: builders.id, op: { k: 'found', at, name: 'PG 소형 기지', size: 'S' } })).toBeNull();
     for (let i = 0; i < 800 && !Object.values(sim.st.stations).some(s => s.owner === p && s.modules[0].built); i++) sim.update(.25);
     const site = Object.values(sim.st.stations).find(s => s.owner === p)!;

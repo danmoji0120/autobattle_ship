@@ -1,6 +1,7 @@
 // Growth P3 / P4 / P6 (contentV 3): independent hulls, upkeep + arrears, finite markets, blueprints,
 // ship stock and the player ship market. Assets are never created, lost or duplicated.
 import { describe, it, expect, vi } from 'vitest';
+import { addFoundationFreighter } from './helpers/foundation';
 // several tests simulate hours of world time: allow for slow or loaded machines
 vi.setConfig({ testTimeout: 300_000 });
 import { WorldSim } from '../src/world/sim';
@@ -34,6 +35,7 @@ function withStation(seed = 62) {
   const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
   const a = sim.st.stations.astra.pos;
   expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
+  addFoundationFreighter(sim, p, cg.id);
   sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: { x: a.x + 2600, y: 0, z: a.z + 2600 }, name: '시험 기지' } });
   run(sim, 200);
   const own = Object.values(sim.st.stations).find(s => s.owner === p) as Station;

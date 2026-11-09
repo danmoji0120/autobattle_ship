@@ -1,6 +1,7 @@
 // Economy baseline c4-b1 (P5 stage 1): the frozen price ladder, NPC supply limits and the structural
 // anti-exploit checks — no duplication, no buy/sell loop, ship trade and builds conserve value.
 import { describe, it, expect, vi } from 'vitest';
+import { addFoundationFreighter } from './helpers/foundation';
 vi.setConfig({ testTimeout: 300_000 });
 import { WorldSim, START_CREDITS_GROWTH } from '../src/world/sim';
 import type { Station } from '../src/world/types';
@@ -108,6 +109,7 @@ describe(`economy baseline ${ECON_BASELINE_ID}`, () => {
     const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
     const at = sim.st.stations.astra.pos;
     expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
+    addFoundationFreighter(sim, p, cg.id);
     sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: { x: at.x + 2600, y: 0, z: at.z + 2600 }, name: '조선 기지' } });
     run(sim, 200);
     const own = Object.values(sim.st.stations).find(s => s.owner === p) as Station;

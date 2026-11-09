@@ -1,6 +1,7 @@
 // P5: weapon families and tiers, shields, the 13-area research additions, the ammunition and energy
 // factories, specialised labs — working in a growth world, absent from a c0 world.
 import { describe, it, expect, vi } from 'vitest';
+import { addFoundationFreighter } from './helpers/foundation';
 vi.setConfig({ testTimeout: 300_000 });
 import { WorldSim } from '../src/world/sim';
 import { newWorld } from '../src/world/worldgen';
@@ -26,6 +27,7 @@ function station(sim: WorldSim, p: string) {
   const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
   const a = sim.st.stations.astra.pos;
   expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
+  addFoundationFreighter(sim, p, cg.id);
   sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: { x: a.x + 2600, y: 0, z: a.z + 2600 }, name: 'P5 기지' } });
   run(sim, 200, 0.5);
   return Object.values(sim.st.stations).find(s => s.owner === p) as Station;

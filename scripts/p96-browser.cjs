@@ -2,7 +2,7 @@
 // founding, purchases, route configuration, travel, save/reload and construction use game paths.
 const { chromium } = require('playwright');
 const fs = require('node:fs');
-const out = 'artifacts/p96'; fs.mkdirSync(out, { recursive: true });
+const out = process.env.SIDERARIUM_ARTIFACT_DIR || 'artifacts/p96'; fs.mkdirSync(out, { recursive: true });
 const checks = [], errors = [];
 const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); console.log('PASS', label); };
 (async () => {
@@ -20,7 +20,7 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
       const sys = sim.st.systems.quiet, at = { x: sys.origin.x + 10000, y: 0, z: 0 };
       const builders = sim.newGroup(p, '변경 공작반'), freight = sim.newGroup(p, '변경 수송반');
       const builder = sim.spawnShip(p, 'constructor', 'std', builders.id, at);
-      const hauler = sim.spawnShip(p, 'hauler', 'std', freight.id, sim.st.stations.astra.pos); sim.dockShip(hauler, sim.st.stations.astra);
+      const hauler = sim.spawnHull(p, 'hauler_m', 'hauler_m_std', undefined, freight.id, sim.st.stations.astra.pos); sim.dockShip(hauler, sim.st.stations.astra);
       app.client.t.server.step(.6);
       return { p, at, builder: builder.id, builders: builders.id, freight: freight.id, hauler: hauler.id };
     });
@@ -35,7 +35,7 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
     check(await selector.locator('option').count() === 4, 'founding screen offers all four sizes');
     for (const size of ['S', 'M', 'L', 'XL']) {
       await selector.selectOption(size);
-      check((await page.locator('.station-found-choice').innerText()).includes(size === 'XL' ? '120,000' : size === 'L' ? '50,000' : size === 'M' ? '20,000' : '8,000'), `${size} shows its own founding cost`);
+      check((await page.locator('.station-found-choice').innerText()).includes(size === 'XL' ? '1,200,000' : size === 'L' ? '250,000' : size === 'M' ? '60,000' : '16,000'), `${size} shows its own founding cost`);
     }
     await selector.selectOption('S');
     await page.screenshot({ path: `${out}/founding-1440.png`, animations: 'disabled' });
@@ -43,7 +43,7 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
     page.once('dialog', dialog => dialog.accept('고요 개척 기지'));
     await page.mouse.click(center.x, center.y);
     await page.waitForFunction(({builders}) => window.siderarium.client.t.server.sim.st.groups[builders]?.op.k === 'found', fixture);
-    check(await page.evaluate(({p,builders}) => window.siderarium.client.t.server.sim.st.companies[p].foundingEscrow?.[builders] === 8000, fixture), 'founding through the game UI takes a refundable prepayment');
+    check(await page.evaluate(({p,builders}) => window.siderarium.client.t.server.sim.st.companies[p].foundingEscrow?.[builders] === 16000, fixture), 'founding through the game UI takes a refundable prepayment');
     const site = await page.evaluate(({p}) => {
       const app = window.siderarium, sim = app.client.t.server.sim; app.view.frame = () => {};
       for (let t = 0; t < 180 && !Object.values(sim.st.stations).some(s => s.owner === p); t += .25) sim.update(.25);
@@ -53,12 +53,12 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
     check(!!site, 'constructor physically establishes an initially empty frontier site');
     await page.waitForFunction(id => !!window.siderarium.client.state.stations[id], site);
     await page.evaluate(id => window.siderarium.hud.openStation(id, 'build'), site);
-    check((await page.locator('.construction-supply').innerText()).includes('300') && (await page.locator('.construction-supply').innerText()).includes('부족'), 'construction panel explains the shortage before any purchase');
+    check((await page.locator('.construction-supply').innerText()).includes('600') && (await page.locator('.construction-supply').innerText()).includes('부족'), 'construction panel explains the shortage before any purchase');
     await page.evaluate(() => window.siderarium.hud.openStation('astra', 'market'));
     const buyButton = page.locator('[data-trade^="buy:alloy:"]');
     const lot = Number((await buyButton.getAttribute('data-trade')).split(':')[2]);
     let purchased = 0;
-    while (purchased < 300) {
+    while (purchased < 600) {
       await buyButton.click(); purchased += lot;
       await page.evaluate(() => window.siderarium.client.t.server.step(.6));
       await page.waitForFunction(({p, purchased}) => (window.siderarium.client.state.stations.astra.storage[p]?.alloy ?? 0) >= purchased, { p: fixture.p, purchased });
@@ -81,7 +81,7 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
       app.client.t.server.step(.6);
       return { id: route.id, manifest: route.manifests[hauler], system: sim.sysOf(sim.st.ships[hauler].pos)?.id, source: sim.st.stations.astra.storage[app.client.company].alloy || 0 };
     }, fixture);
-    check(traveling.manifest?.amount === 300 && traveling.system !== 'astra', 'actual loaded carrier passes a jump gate with a tracked manifest');
+    check(traveling.manifest?.amount === 600 && traveling.system !== 'astra', 'actual loaded carrier passes a jump gate with a tracked manifest');
     await page.evaluate(() => window.siderarium.client.t.saveNow());
     await page.goto('http://127.0.0.1:5175/?sp=continue', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(({id, hauler}) => !!window.siderarium?.client?.state?.logistics?.[id]?.manifests?.[hauler], { id: traveling.id, hauler: fixture.hauler }, { timeout: 60000 });
@@ -90,8 +90,8 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
       const app = window.siderarium, w = app.client.t.server.sim.st; app.hud.openStation(site, 'build');
       return { manifest: w.logistics[id].manifests[hauler].amount, cargo: w.ships[hauler].cargo.alloy, progress: w.stations[site].modules[0].progress };
     }, { id: traveling.id, hauler: fixture.hauler, site });
-    check(restored.manifest === 300 && restored.cargo === 300 && restored.progress === 0, 'browser reload restores in-flight cargo, manifest and waiting plan');
-    check((await page.locator('.construction-supply').innerText()).includes('300') && (await page.locator('.construction-supply').innerText()).includes('노선 운송 중'), 'construction screen distinguishes shipment from on-site materials');
+    check(restored.manifest === 600 && restored.cargo === 600 && restored.progress === 0, 'browser reload restores in-flight cargo, manifest and waiting plan');
+    check((await page.locator('.construction-supply').innerText()).includes('600') && (await page.locator('.construction-supply').innerText()).includes('노선 운송 중'), 'construction screen distinguishes shipment from on-site materials');
     for (const size of [{width:1920,height:1080}, {width:1440,height:900}, {width:1024,height:768}, {width:390,height:844}]) {
       await page.setViewportSize(size);
       check(await page.evaluate(() => { const r = document.querySelector('.sbox').getBoundingClientRect(); return r.left >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; }), `construction screen fits ${size.width}px`);
@@ -109,7 +109,7 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
       app.client.t.server.step(.6);
       return { built: sim.st.stations[site].modules[0].built, route: sim.st.logistics[id].stats, held: sim.st.stations[site].storage[app.client.company].alloy || 0 };
     }, { site, id: traveling.id });
-    check(done.built && done.route.loaded === 300 && done.route.delivered === 300, 'real transport delivers and the constructor completes the core once');
+    check(done.built && done.route.loaded === 600 && done.route.delivered === 600, 'real transport delivers and the constructor completes the core once');
     await page.evaluate(id => window.siderarium.hud.openStation(id, 'build'), site);
     check((await page.locator('.station-facts').innerText()).includes('S급') && (await page.locator('.station-facts').innerText()).includes('시설 용량'), 'completed station displays size, capacity and operating limits');
     await page.locator('[data-bpick="refinery"]').click();
@@ -141,7 +141,7 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
       app.client.t.server.step(.6);
       return { built: sim.st.stations[site].modules.some(m => m.kind === 'refinery' && m.built), delivered: sim.st.logistics[id].stats.delivered };
     }, { site, id: traveling.id });
-    check(refinery.built && refinery.delivered >= 520, 'physical supply and construction complete the refinery');
+    check(refinery.built && refinery.delivered >= 820, 'physical supply and construction complete the refinery');
     await page.evaluate(id => window.siderarium.hud.openStation(id, 'build'), site);
     check((await page.locator('.station-installed').allInnerTexts()).some(t => t.includes('광석 정제소')), 'completed facility is visible in management');
     await page.screenshot({ path: `${out}/facilities-completed-1440.png`, animations: 'disabled' });

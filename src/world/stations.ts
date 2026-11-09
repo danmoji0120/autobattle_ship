@@ -9,14 +9,24 @@ export interface StationSizeDef {
   industrialTier: number; upkeep: number; cargoRate: number;
 }
 
-// S retains the existing foundation price and material requirement. The other tiers trade capital
-// and recurring costs for industrial footprint, logistics throughput and larger fleets.
+// Foundation costs apply to new orders; operating characteristics remain independent of price.
 export const STATION_SIZES: Record<Size, StationSizeDef> = {
-  S:  { name: '소형', credits: 8_000, mats: { alloy: 300 }, work: 60, power: 20, storage: 4_000, capacity: 8, berth: 'M', berths: 4, industrialTier: 1, upkeep: 100, cargoRate: 12 },
-  M:  { name: '중형', credits: 20_000, mats: { alloy: 600, structure: 20 }, work: 100, power: 40, storage: 12_000, capacity: 14, berth: 'L', berths: 8, industrialTier: 2, upkeep: 300, cargoRate: 20 },
-  L:  { name: '대형', credits: 50_000, mats: { alloy: 1_400, structure: 80, machinery: 30 }, work: 180, power: 80, storage: 30_000, capacity: 24, berth: 'L', berths: 14, industrialTier: 3, upkeep: 800, cargoRate: 35 },
-  XL: { name: '초대형', credits: 120_000, mats: { alloy: 3_000, structure: 200, machinery: 80, electronics: 30 }, work: 300, power: 160, storage: 80_000, capacity: 39, berth: 'XL', berths: 24, industrialTier: 4, upkeep: 2_000, cargoRate: 60 },
+  S:  { name: '소형', credits: 16_000, mats: { alloy: 600 }, work: 60, power: 20, storage: 4_000, capacity: 8, berth: 'M', berths: 4, industrialTier: 1, upkeep: 100, cargoRate: 12 },
+  M:  { name: '중형', credits: 60_000, mats: { alloy: 1_800, structure: 60 }, work: 100, power: 40, storage: 12_000, capacity: 14, berth: 'L', berths: 8, industrialTier: 2, upkeep: 300, cargoRate: 20 },
+  L:  { name: '대형', credits: 250_000, mats: { alloy: 7_000, structure: 400, machinery: 150 }, work: 180, power: 80, storage: 30_000, capacity: 24, berth: 'L', berths: 14, industrialTier: 3, upkeep: 800, cargoRate: 35 },
+  XL: { name: '초대형', credits: 1_200_000, mats: { alloy: 30_000, structure: 2_000, machinery: 800, electronics: 300 }, work: 300, power: 160, storage: 80_000, capacity: 39, berth: 'XL', berths: 24, industrialTier: 4, upkeep: 2_000, cargoRate: 60 },
 };
+
+// P9.6 orders already in transit did not save their material bill. Their saved prepayment
+// identifies the original terms without rewriting a save or charging the difference on load.
+const P96_FOUNDATION: Record<Size, { credits: number; mats: Record<string, number> }> = {
+  S: { credits: 8_000, mats: { alloy: 300 } },
+  M: { credits: 20_000, mats: { alloy: 600, structure: 20 } },
+  L: { credits: 50_000, mats: { alloy: 1_400, structure: 80, machinery: 30 } },
+  XL: { credits: 120_000, mats: { alloy: 3_000, structure: 200, machinery: 80, electronics: 30 } },
+};
+export const foundingMaterials = (size: Size, paid: number, snapshot?: Record<string, number>): Record<string, number> =>
+  paid === P96_FOUNDATION[size].credits ? P96_FOUNDATION[size].mats : snapshot ?? STATION_SIZES[size].mats;
 
 export const stationSize = (st: Pick<Station, 'size'>): StationSizeDef | undefined => st.size ? STATION_SIZES[st.size] : undefined;
 export const validStationSize = (v: unknown): v is Size => typeof v === 'string' && Object.hasOwn(STATION_SIZES, v);

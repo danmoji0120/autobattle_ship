@@ -1,0 +1,15 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > manufacturing adds value: every good is worth more than the inputs of its cheapest recipe 5ms
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > price rises steeply with class; small standard hulls stay cheap; the industrial base grows with the tier 5ms
+ ✓ tests/growth2.test.ts > rev 2: public storage > limit + leases: over the limit nothing new comes in, nothing stored is removed; ship holds and leases are the way out 297ms
+ ✓ tests/growth2.test.ts > rev 2: public storage > shared public docks: a crowd of ships is only partly maintained, and the dock recovers over the hour 30168ms
+ ✓ tests/growth2.test.ts > rev 2: exploration > sites are deterministic, found by survey, salvaged into the holds; deep sites can hold unsold blueprints 10725ms
+ ✓ tests/growth2.test.ts > rev 2: c3 → c4 migration > reprices markets, seeds sites, deletes nothing (even storage over the new limits), round-trips and is idempotent 252ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips 810ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands 2421ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > every growth hull is its own hull: own silhouette, a standard variant, presets that fit; mk1 hulls are unchanged 3ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > a growth ship maps to its hull + variant: stats multipliers and mesh reach the battle loadout 5ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > large industrial hulls do not dominate: lower efficiency on small fields, big berths, higher cost per throughput 6ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials 62020ms

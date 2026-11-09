@@ -8,6 +8,7 @@ import { FUNDS_INFLOW } from '../src/world/market';
 import { GameServer } from '../src/server/core';
 import type { RouteConfig } from '../src/world/logistics';
 import { storageCap } from '../src/world/production';
+import { STATION_SIZES, moduleMaterials } from '../src/world/stations';
 
 function quiet(sim: WorldSim) {
   (sim as any).npcSlow = () => {};
@@ -40,7 +41,7 @@ function routeTo(sim: WorldSim, p: string, site: string, amount = 150) {
 }
 function heldAlloy(sim: WorldSim, p: string, stationId: string) {
   const station = sim.st.stations[stationId], core = station.modules.find(m => m.kind === 'core')!;
-  return qty(sim.st.stations.astra.storage[p], 'alloy') + Object.values(sim.st.ships).filter(s => s.owner === p).reduce((n, s) => n + qty(s.cargo, 'alloy'), 0) + qty(station.storage[p], 'alloy') + (core.reserved?.alloy ?? 0) + (core.used?.alloy ?? 0) + (core.built ? MODULES.core.mats.alloy : 0);
+  return qty(sim.st.stations.astra.storage[p], 'alloy') + Object.values(sim.st.ships).filter(s => s.owner === p).reduce((n, s) => n + qty(s.cargo, 'alloy'), 0) + qty(station.storage[p], 'alloy') + (core.reserved?.alloy ?? 0) + (core.used?.alloy ?? 0) + (core.built ? moduleMaterials(core).alloy : 0);
 }
 
 describe('P9.5 construction logistics', () => {
@@ -49,14 +50,14 @@ describe('P9.5 construction logistics', () => {
     const stocks = Object.fromEntries(Object.values(f.sim.st.stations).filter(s => s.market?.alloy).map(s => [s.id, s.market!.alloy.stock]));
     f.sim.spawnShip(f.p, 'constructor', 'std', f.g.id, f.at);
     expect(f.sim.command(f.p, { c: 'setOp', group: f.g.id, op: { k: 'found', at: f.at, name: '취소할 명령' } })).toBeNull();
-    expect(co.credits).toBe(before - FOUND_COST.credits);
-    expect(co.foundingEscrow?.[f.g.id]).toBe(FOUND_COST.credits);
+    expect(co.credits).toBe(before - STATION_SIZES.S.credits);
+    expect(co.foundingEscrow?.[f.g.id]).toBe(STATION_SIZES.S.credits);
     for (const [id, stock] of Object.entries(stocks)) expect(f.sim.st.stations[id].market!.alloy.stock).toBe(stock);
     expect(f.sim.command(f.p, { c: 'setOp', group: f.g.id, op: { k: 'idle' } })).toBeNull();
     expect(co.credits).toBe(before); expect(co.foundingEscrow).toBeUndefined();
     const observations: Observation[] = []; const unobserve = observeWorld(f.sim.st, event => observations.push(event));
     const site = createSite(f);
-    expect(co.credits).toBe(before - FOUND_COST.credits);
+    expect(co.credits).toBe(before - STATION_SIZES.S.credits);
     expect(Object.values(f.sim.st.stations).filter(s => s.owner === f.p)).toHaveLength(1);
     expect(qty(f.constructor.cargo, 'alloy') + qty(site.storage[f.p], 'alloy')).toBe(0);
     expect(observations.filter(o => o.kind === 'market' && o.reason === 'buy' && o.company === f.p)).toHaveLength(0);
@@ -108,30 +109,30 @@ describe('P9.5 construction logistics', () => {
     expect(jumps(f.sim.st.systems, 'astra', 'quiet')).toBeGreaterThanOrEqual(2);
     const beforeCredits = f.sim.st.companies[f.p].credits, beforeFunds = market.funds!, stock = market.market!.alloy.stock, price = f.sim.price(market, 'alloy', 'buy');
     const observations: Observation[] = []; const unobserve = observeWorld(f.sim.st, event => observations.push(event));
-    expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull();
-    expect(f.sim.st.companies[f.p].credits).toBeCloseTo(beforeCredits - 300 * price, 8);
-    expect(market.funds).toBeCloseTo(Math.min(market.fundsMax! * 1.5, beforeFunds + 300 * price * FUNDS_INFLOW), 8);
-    expect(market.market!.alloy.stock).toBe(stock - 300);
-    expect(qty(market.storage[f.p], 'alloy')).toBe(300);
+    expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 600 })).toBeNull();
+    expect(f.sim.st.companies[f.p].credits).toBeCloseTo(beforeCredits - 600 * price, 8);
+    expect(market.funds).toBeCloseTo(Math.min(market.fundsMax! * 1.5, beforeFunds + 600 * price * FUNDS_INFLOW), 8);
+    expect(market.market!.alloy.stock).toBe(stock - 600);
+    expect(qty(market.storage[f.p], 'alloy')).toBe(600);
     expect(qty(site.storage[f.p], 'alloy')).toBe(0);
-    expect(observations.filter(o => o.kind === 'market' && o.reason === 'buy' && o.company === f.p).map(o => o.amount)).toEqual([300]);
+    expect(observations.filter(o => o.kind === 'market' && o.reason === 'buy' && o.company === f.p).map(o => o.amount)).toEqual([600]);
     unobserve();
-    const transport = routeTo(f.sim, f.p, site.id, 150);
+    const transport = routeTo(f.sim, f.p, site.id, 300);
     const second = f.sim.spawnShip(f.p, 'hauler', 'std', transport.g.id, market.pos);
     until(f.sim, () => Object.keys(transport.route.manifests).length === 2, 120);
-    expect(Object.values(transport.route.manifests).reduce((n, m) => n + m.amount, 0)).toBe(300);
-    expect(qty(transport.ship.cargo, 'alloy') + qty(second.cargo, 'alloy')).toBe(300);
-    expect(heldAlloy(f.sim, f.p, site.id)).toBeCloseTo(300, 7);
+    expect(Object.values(transport.route.manifests).reduce((n, m) => n + m.amount, 0)).toBe(600);
+    expect(qty(transport.ship.cargo, 'alloy') + qty(second.cargo, 'alloy')).toBe(600);
+    expect(heldAlloy(f.sim, f.p, site.id)).toBeCloseTo(600, 7);
     const restored = new WorldSim(JSON.parse(f.sim.serialize()), { migrateContent: false }); quiet(restored);
     const restoredRoute = restored.st.logistics![transport.route.id];
     expect(restoredRoute.manifests).toEqual(transport.route.manifests);
-    expect(heldAlloy(restored, f.p, site.id)).toBeCloseTo(300, 7);
+    expect(heldAlloy(restored, f.p, site.id)).toBeCloseTo(600, 7);
     const deliveries: { amount: number; system: string | undefined }[] = [];
     observeWorld(restored.st, e => { if (e.kind === 'logistics' && e.reason === 'unload' && e.route === restoredRoute.id && e.ship) deliveries.push({ amount: e.amount, system: sysAt(restored.st.systems, restored.st.ships[e.ship].pos)?.id }); });
     until(restored, () => restored.st.stations[site.id].modules[0].built, 1800);
-    expect(heldAlloy(restored, f.p, site.id)).toBeCloseTo(300, 5);
-    expect(restoredRoute.stats.loaded).toBe(300); expect(restoredRoute.stats.delivered).toBe(300);
-    expect(deliveries.reduce((n, d) => n + d.amount, 0)).toBe(300);
+    expect(heldAlloy(restored, f.p, site.id)).toBeCloseTo(600, 5);
+    expect(restoredRoute.stats.loaded).toBe(600); expect(restoredRoute.stats.delivered).toBe(600);
+    expect(deliveries.reduce((n, d) => n + d.amount, 0)).toBe(600);
     expect(deliveries.every(d => d.system === 'quiet')).toBe(true);
   }, 60_000);
 
@@ -169,15 +170,15 @@ describe('P9.5 construction logistics', () => {
   });
 
   it('delivers carried cargo directly, accepts only needed material, and refuses another company', () => {
-    const f = fixture(), site = createSite(f), g = f.sim.newGroup(f.p, '현장 수송'), ship = f.sim.spawnShip(f.p, 'hauler', 'std', g.id, f.at);
-    ship.cargo.alloy = 350; ship.cargo.ore = 11;
+    const f = fixture(), site = createSite(f), g = f.sim.newGroup(f.p, '현장 수송'), ship = f.sim.spawnHull(f.p, 'hauler_m', 'hauler_m_std', undefined, g.id, f.at);
+    ship.cargo.alloy = 650; ship.cargo.ore = 11;
     const other = f.sim.addPlayer('다른 회사'), foreign = f.sim.newGroup(other, '타사 수송'), intruder = f.sim.spawnShip(other, 'hauler', 'std', foreign.id, f.at); intruder.cargo.alloy = 100;
     expect(f.sim.command(other, { c: 'setOp', group: foreign.id, op: { k: 'build', station: site.id } })).toMatch(/자사/);
     expect(f.sim.command(f.p, { c: 'setOp', group: g.id, op: { k: 'build', station: site.id } })).toBeNull();
     until(f.sim, () => qty(ship.cargo, 'alloy') <= 50, 60);
     expect(qty(ship.cargo, 'alloy')).toBe(50); expect(qty(ship.cargo, 'ore')).toBe(11);
     expect(qty(intruder.cargo, 'alloy')).toBe(100); expect(qty(site.storage[other], 'alloy')).toBe(0);
-    expect((site.modules[0].reserved?.alloy ?? 0) + qty(site.storage[f.p], 'alloy')).toBeCloseTo(300, 6);
+    expect((site.modules[0].reserved?.alloy ?? 0) + qty(site.storage[f.p], 'alloy')).toBeCloseTo(600, 6);
   });
 
   it('does not accept a delivery order when its only cargo ship has an overriding child order', () => {
@@ -286,7 +287,7 @@ describe('P9.5 construction logistics', () => {
     until(f.sim, () => !!route.manifests[ship.id], 120);
     expect(qty(ship.cargo, 'alloy')).toBe(130); expect(route.manifests[ship.id].amount).toBe(100);
     // A competing delivery has already reserved all but 50 at the site.
-    site.modules[0].reserved!.alloy = 250;
+    site.modules[0].reserved!.alloy = 550;
     expect(f.sim.command(f.p, { c: 'setOp', group: g.id, op: { k: 'build', station: site.id } })).toBeNull();
     ship.pos = { ...site.pos }; f.sim.undock(ship);
     until(f.sim, () => qty(ship.cargo, 'alloy') === 80, 60);
@@ -360,31 +361,31 @@ describe('P9.5 construction logistics', () => {
   });
 
   it('persists prepayment, allows retargeting without a second debit, and refunds exactly once on cancellation', () => {
-    const f = fixture(), co = f.sim.st.companies[f.p]; co.credits = FOUND_COST.credits;
+    const f = fixture(), co = f.sim.st.companies[f.p]; co.credits = STATION_SIZES.S.credits;
     expect(f.sim.command(f.p, { c: 'setOp', group: f.g.id, op: { k: 'found', at: f.at, name: '변경 기지', escrowed: false } })).toBeNull();
-    expect(co.credits).toBe(0); expect(co.foundingEscrow?.[f.g.id]).toBe(FOUND_COST.credits);
+    expect(co.credits).toBe(0); expect(co.foundingEscrow?.[f.g.id]).toBe(STATION_SIZES.S.credits);
     const restored = new WorldSim(JSON.parse(f.sim.serialize()), { migrateContent: false }); quiet(restored);
-    expect(restored.st.companies[f.p].foundingEscrow?.[f.g.id]).toBe(FOUND_COST.credits);
+    expect(restored.st.companies[f.p].foundingEscrow?.[f.g.id]).toBe(STATION_SIZES.S.credits);
     expect(restored.command(f.p, { c: 'setOp', group: f.g.id, op: { k: 'found', at: f.at, name: '목표 변경' } })).toBeNull();
     expect(restored.st.companies[f.p].credits).toBe(0);
     expect(restored.command(f.p, { c: 'setOp', group: f.g.id, op: { k: 'idle' } })).toBeNull();
-    expect(restored.st.companies[f.p].credits).toBe(FOUND_COST.credits);
+    expect(restored.st.companies[f.p].credits).toBe(STATION_SIZES.S.credits);
     expect(restored.command(f.p, { c: 'setOp', group: f.g.id, op: { k: 'idle' } })).toBeNull();
-    expect(restored.st.companies[f.p].credits).toBe(FOUND_COST.credits);
+    expect(restored.st.companies[f.p].credits).toBe(STATION_SIZES.S.credits);
     expect(restored.st.companies[f.p].foundingEscrow).toBeUndefined();
   });
 
   it('refunds a destroyed constructor’s prepayment after restart without recreating its lost cargo', () => {
-    const f = fixture(), co = f.sim.st.companies[f.p]; co.credits = FOUND_COST.credits; f.constructor.cargo.alloy = 40;
+    const f = fixture(), co = f.sim.st.companies[f.p]; co.credits = STATION_SIZES.S.credits; f.constructor.cargo.alloy = 40;
     expect(f.sim.command(f.p, { c: 'setOp', group: f.g.id, op: { k: 'found', at: f.at, name: '상실' } })).toBeNull();
     delete f.sim.st.ships[f.constructor.id]; f.g.shipIds = [];
     const restored = new WorldSim(JSON.parse(f.sim.serialize()), { migrateContent: false }); quiet(restored);
-    until(restored, () => restored.st.companies[f.p].credits === FOUND_COST.credits, 5);
+    until(restored, () => restored.st.companies[f.p].credits === STATION_SIZES.S.credits, 5);
     expect(restored.st.companies[f.p].foundingEscrow).toBeUndefined();
     expect(restored.st.groups[f.g.id].op.k).toBe('idle');
     expect(restored.st.ships[f.constructor.id]).toBeUndefined();
     restored.update(2);
-    expect(restored.st.companies[f.p].credits).toBe(FOUND_COST.credits);
+    expect(restored.st.companies[f.p].credits).toBe(STATION_SIZES.S.credits);
   });
 
   it('keeps prepayment in assessed assets and reconciles the actual debit and refund in server analytics', () => {

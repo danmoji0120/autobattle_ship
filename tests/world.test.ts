@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { addFoundationFreighter } from './helpers/foundation';
 import { WorldSim } from '../src/world/sim';
 import { GameServer, type Conn } from '../src/server/core';
 import type { ServerMsg } from '../src/server/protocol';
@@ -45,10 +46,11 @@ describe('persistent world', () => {
   it('a constructor founds a station and builds its docking hub', () => {
     const sim = WorldSim.create(4);
     const p = sim.addPlayer('건설사');
-    sim.st.companies[p].credits = 60000;
+    sim.st.companies[p].credits = 150000;
     expect(sim.command(p, { c: 'buyShip', station: 'astra', classId: 'constructor', loadoutId: 'std' })).toBeNull();
     const cg = Object.values(sim.st.groups).find(g => g.owner === p && g.shipIds.some(id => sim.st.ships[id].classId === 'constructor'))!;
     expect(sim.command(p, { c: 'buy', station: 'astra', res: 'alloy', amount: 300 })).toBeNull(); // buy locally before loading the constructor
+    addFoundationFreighter(sim, p, cg.id);
     expect(sim.command(p, { c: 'setOp', group: cg.id, op: { k: 'found', at: near(sim, 2600, 2600), name: '시험기지' } })).toBeNull();
     // prevent pirates from interfering with this test
     for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e9; }

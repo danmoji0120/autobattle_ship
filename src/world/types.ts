@@ -101,8 +101,8 @@ export type Op =
   | { k: 'escort'; group: string }
   | { k: 'attack'; group?: string; lair?: string }
   | { k: 'build'; station: string }
-  /** The server marks growth-world orders backed by a saved foundation prepayment. */
-  | { k: 'found'; at: V; name: string; size?: Size; escrowed?: boolean }
+  /** The server records a growth-world prepayment and the material terms of that order. */
+  | { k: 'found'; at: V; name: string; size?: Size; escrowed?: boolean; foundationMats?: Cargo }
   /** growth: sweep a star system for hidden derelicts; salvage one the company has found */
   | { k: 'survey'; system: string }
   | { k: 'salvage'; site: string }

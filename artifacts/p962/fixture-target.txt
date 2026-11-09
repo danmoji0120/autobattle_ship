@@ -1,0 +1,97 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/growth.test.ts > growth: c2 → c3 save migration > grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips
+ ↓ tests/growth.test.ts > growth: c2 → c3 save migration > without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands
+ ↓ tests/growth.test.ts > growth: hulls and variants (P3) > every growth hull is its own hull: own silhouette, a standard variant, presets that fit; mk1 hulls are unchanged
+ ↓ tests/growth.test.ts > growth: hulls and variants (P3) > a growth ship maps to its hull + variant: stats multipliers and mesh reach the battle loadout
+ ↓ tests/growth.test.ts > growth: hulls and variants (P3) > large industrial hulls do not dominate: lower efficiency on small fields, big berths, higher cost per throughput
+ ↓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials
+ ↓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > a player-built ship sold on the exchange: ownership and equipment move, the buyer needs no blueprint or research
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > own builds check blueprint, research, yard, facilities and materials; the launched ship carries the preset 38893ms
+ ↓ tests/growth.test.ts > growth: blueprints and own builds (P6) > blueprints are bought with credits from their source; wreck fragments assemble into one; unique ones are limited
+ ↓ tests/growth.test.ts > growth: upkeep and arrears (P4) > overhead is flat per ship: splitting a fleet over accounts saves nothing (rev 2)
+ ↓ tests/growth.test.ts > growth: upkeep and arrears (P4) > unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve
+ ↓ tests/growth.test.ts > growth: upkeep and arrears (P4) > reserve and reactivation by command
+ ↓ tests/growth.test.ts > growth: finite market demand and station budgets (P4) > dumping ore: price falls to the floor, the budget caps payment, the rest stays stored, budgets recover
+ ↓ tests/growth.test.ts > growth: persistence and long automation > stock, listings, blueprints, upkeep and wear survive a restart exactly
+ ↓ tests/growth.test.ts > growth: persistence and long automation > a long unattended mining run stays sane: no negative stock or budgets, no NaN, positive net
+ ↓ tests/growth.test.ts > growth: persistence and long automation > miners that never dock (a hauler carries their ore) are still maintained: automation is not penalised
+ ↓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting
+ ↓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives
+ ✓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored 1600ms
+ ↓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production
+ ↓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work
+ ↓ tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item
+ ↓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods
+ ↓ tests/industry.test.ts > industry: multi-tier production > hauling: one item, everything, and automatic supply of what the destination lacks
+ ↓ tests/industry.test.ts > industry: multi-tier production > own warehouse capacity: unloading stops at the limit and keeps the rest aboard
+ ↓ tests/industry.test.ts > industry: multi-tier production > public markets trade the new goods; regional production restocks and pirate pressure slows it
+ ↓ tests/industry.test.ts > industry: multi-tier production > production state survives a restart exactly; old saves are upgraded in place
+ ↓ tests/industry.test.ts > industry: multi-tier production > player exchange: escrow, purchase, withdrawal, no duplication under competing buyers
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > nine fields, every lab facility covers some, the tree is acyclic and every prerequisite exists
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > needs a lab of the right field; credits at registration, materials consumed at start, then the tech is known
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > prerequisites: refused unless known or queued earlier; a queued follow-up waits, then starts by itself
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > parallel projects use separate slots; slot-limited projects queue; power and research techs change speed
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > pause, reorder and cancel (full refund before start, pro-rata after; materials are not returned)
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > unlocks are enforced: facility, recipe and hull design need the tech 1421ms
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > blueprints: bought from a broker, learned from storage; known techs can be copied into tradeable blueprints
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > projects survive a restart and finish identically
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > hull classes span the agreed build times and grow in parts, slots and yard size
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls 1274ms
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > designs need research; cancel refunds in full before the keel, partially after (parts are not returned)
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > own facilities never sell finished ships for credits; public yards still sell complete hulls
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitting moves modules between ship and storage all-or-nothing, within the hull slots
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitted modules change the tactical ship (hp, armour, speed, accuracy, range, evasion)
+ ↓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > builds survive a restart and finish identically
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately 1257ms
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > cancel returns reserved materials and refunds credits (in full before work starts)
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart
+ ↓ tests/construction.test.ts > station construction: plans, reservations, queue > old saves: an unbuilt module without plan data is migrated without losing paid progress
+ ↓ tests/mining.test.ts > mining unloading destination > own station + store: ore goes into the PMC storage there, then the miners go back and repeat
+ ✓ tests/mining.test.ts > mining unloading destination > refuses to sell at a station without a market (no silent fallback) 1407ms
+ ↓ tests/mining.test.ts > mining unloading destination > automatic destination + sale still works (the quick right-click order)
+ ↓ tests/mining.test.ts > mining unloading destination > a vanished destination: warns, holds the ore, never sells it elsewhere; re-targeting resumes
+ ↓ tests/mining.test.ts > mining unloading destination > another system’s station is a valid destination (warp + gate routing)
+ ↓ tests/mining.test.ts > mining unloading destination > settings survive save / restore
+ ↓ tests/p5.test.ts > P5 content is installed and gated > weapons, modules, techs, facilities and recipes are in the game tables, marked growth-only
+ ↓ tests/p5.test.ts > P5 content is installed and gated > a c0 world refuses P5 research, facilities and recipes; a growth world accepts them
+ ✓ tests/p5.test.ts > P5 gameplay chain: research → facility → production → fitting → combat effect → save > works end to end 14375ms
+ ↓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > shields absorb hits first; energy weapons strip them faster than kinetic ones; they regenerate
+ ↓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > target preference: anti-small weapons prefer escorts, anti-capital weapons ignore raiders
+ ↓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > research combat effects: family-scoped damage, global accuracy, shields
+ ↓ tests/example-pack.test.ts > example content pack (guide §13) > passes the validator, alone on top of its dependencies and in the full registry
+ ↓ tests/example-pack.test.ts > example content pack (guide §13) > is in the game tables, growth-only, and hidden from a legacy world
+ ✓ tests/example-pack.test.ts > example content pack (guide §13) > research → production → fitting → combat → save/reload 7499ms
+ ↓ tests/p8-ships.test.ts > P8 production ships > sells the real hulls at their declared yards and carries their fitted models into battle and saves
+ ✓ tests/p8-ships.test.ts > P8 production ships > acquires blueprints, enforces research and builds the five hulls with real parts and presets 1559ms
+ ↓ tests/p8-ships.test.ts > P8 production ships > keeps growth content out of c0 and retains industrial tradeoffs
+ ↓ tests/p8-ships.test.ts > P8 production ships > fires the fitted weapons from each new combat hull in an actual battle simulation
+ ↓ tests/econ-baseline.test.ts > economy baseline c4-b1 > ladder: small hulls affordable at the start, steep from destroyers up, differentiated within a class
+ ↓ tests/econ-baseline.test.ts > economy baseline c4-b1 > NPC supply: capital hulls one at a time, slowly, for trusted companies; the largest never
+ ↓ tests/econ-baseline.test.ts > economy baseline c4-b1 > no recipe loop multiplies goods: every cycle in the recipe graph loses units
+ ↓ tests/econ-baseline.test.ts > economy baseline c4-b1 > market: buying and selling the same goods back always loses money; nothing is created
+ ↓ tests/econ-baseline.test.ts > economy baseline c4-b1 > ship trade conserves value: the buyer pays, the seller gets it less tax, the ship and its fit move intact
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > own builds pay labour + the yard fee; cancelling before the keel refunds exactly that and nothing more 1305ms
+ ↓ tests/econ-baseline.test.ts > economy baseline c4-b1 > a c0 world keeps its old build rules (no growth industrial base for legacy builds)
+ ↓ tests/econ-baseline.test.ts > economy baseline c4-b1 > manufactured goods never sell below their raw inputs (no value destroyed by industry)
+ ↓ tests/world.test.ts > persistent world > a new PMC starts docked at the free port with a small fleet
+ ↓ tests/world.test.ts > persistent world > mining orders move ships into the field and turn ore into credits
+ ↓ tests/world.test.ts > persistent world > rejects commands on other companies’ assets and invalid orders
+ ✓ tests/world.test.ts > persistent world > a constructor founds a station and builds its docking hub 1092ms
+ ↓ tests/world.test.ts > persistent world > pirate encounters become battles whose results persist on the PMC
+ ↓ tests/world.test.ts > persistent world > save/load round-trips the world, including a battle in progress
+ ↓ tests/world.test.ts > authoritative server > two clients share one world, own separate PMCs and reconnect by token
+ ↓ tests/world.test.ts > authoritative server > battle orders are stamped ahead and replay deterministically on clients
+
+ Test Files  11 passed (11)
+      Tests  11 passed | 78 skipped (89)
+   Start at  00:57:23
+   Duration  77.14s (transform 1.99s, setup 0ms, import 3.60s, tests 71.71s, environment 2ms)
