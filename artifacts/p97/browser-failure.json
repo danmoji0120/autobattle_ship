@@ -1,0 +1,8 @@
+{
+  "checks": [
+    "galaxy map shows origin, mixture, reserves, regeneration and risk",
+    "field details explain the rare material and actual processing facility"
+  ],
+  "errors": [],
+  "failure": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-mf-start]')\u001b[22m\n\u001b[2m    - locator resolved to <button class=\"btn go\" data-mf-start=\"\">작업 시작</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m  - element was detached from the DOM, retrying\u001b[22m\n\u001b[2m    - waiting for \"http://127.0.0.1:5187/?sp=new&name=P97%EA%B2%80%EC%A6%9D\" navigation to finish...\u001b[22m\n\u001b[2m    - navigated to \"http://127.0.0.1:5187/?sp=new&name=P97%EA%B2%80%EC%A6%9D\"\u001b[22m\n"
+}

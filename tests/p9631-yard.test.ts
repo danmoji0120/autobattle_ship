@@ -6,6 +6,7 @@ import { grantBlueprint, hullBlueprint } from '../src/world/blueprints';
 import { hullBuild, TIER_BASE } from '../src/world/hullops';
 import { buildNeeds, buildSpeed, buildSpec } from '../src/world/production';
 import { yardFee } from '../src/world/valuation';
+import { regionalHullMaterials } from '../src/world/regional';
 import type { ShipBuild, Station } from '../src/world/types';
 
 const kinds = ['yard_s', 'yard_m', 'yard_l', 'yard_xl'];
@@ -126,10 +127,10 @@ describe('P9.6.3.1 yard tiers and historic build plans', () => {
     sim.tick(1); expect(Object.values(sim.st.ships).filter(s => s.owner === f.p && s.hull === hull)).toHaveLength(initialShips + 2);
   });
 
-  it.each(['dreadnought_mk1', 'hauler_xl'])('completes and launches a newly registered %s with its unchanged parts', hull => {
+  it.each(['dreadnought_mk1', 'hauler_xl'])('completes and launches a newly registered %s with its required parts', hull => {
     const f = fixture(4), h = CONTENT.hulls[hull], cmd = command(f.station, hull);
     const preset = Object.values(CONTENT.presets).find(p => p.hull === hull && p.variant === `${hull}_std`)!;
-    const need = buildNeeds(h.classId, '', [], { hull, variant: `${hull}_std`, preset: preset.id });
+    const need = buildNeeds(h.classId, '', [], { hull, variant: `${hull}_std`, preset: preset.id, regionalMaterials: regionalHullMaterials(f.sim.st, hull) });
     Object.assign(f.station.storage[f.p], need); const beforeShips = Object.values(f.sim.st.ships).filter(s => s.owner === f.p && s.hull === hull).length;
     expect(f.sim.command(f.p, cmd)).toBeNull(); const b = f.station.builds![0];
     expect(b.started).toBe(true); expect(b.requiredYard).toBe(4);

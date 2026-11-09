@@ -1,0 +1,22 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > every system carries influence that reflects its situation (lawless: pirates strong; core: Union strong)
+ ↓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > a lair falls: pirates lose their foothold, Union and guild gain, reconstruction boom and contracts, no rebuild without a foothold
+ ↓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > pirate raids push pirates up and the guild down; influence drifts back toward the situation
+ ✓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > delivery contracts ask for the new goods too, and influence survives a restart 32626ms
+ ↓ tests/world.test.ts > persistent world > a new PMC starts docked at the free port with a small fleet
+ ↓ tests/world.test.ts > persistent world > mining orders move ships into the field and turn ore into credits
+ ↓ tests/world.test.ts > persistent world > rejects commands on other companies’ assets and invalid orders
+ ✓ tests/world.test.ts > persistent world > a constructor founds a station and builds its docking hub 1919ms
+ ↓ tests/world.test.ts > persistent world > pirate encounters become battles whose results persist on the PMC
+ ↓ tests/world.test.ts > persistent world > save/load round-trips the world, including a battle in progress
+ ↓ tests/world.test.ts > authoritative server > two clients share one world, own separate PMCs and reconnect by token
+ ↓ tests/world.test.ts > authoritative server > battle orders are stamped ahead and replay deterministically on clients
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > requires a live allowlisted account, configured scrypt hash, correct password, and rate limits concurrent failures 4059ms
+ ↓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > revokes on logout, account-password change, lab-password change and removal from the admin allowlist
+
+ Test Files  3 passed (3)
+      Tests  3 passed | 11 skipped (14)
+   Start at  17:24:29
+   Duration  42.34s (transform 2.20s, setup 0ms, import 2.74s, tests 38.61s, environment 1ms)

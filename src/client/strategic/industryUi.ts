@@ -4,7 +4,8 @@
 import type { Station, Cargo } from '../../world/types';
 import type { WorldView as WorldState } from '../../server/protocol';
 import { qty, cargoKeys, cargoSum } from '../../world/types';
-import { ITEMS, ITEM_CAT_NAME, RECIPES, FACILITIES, FAC_CATS, TECHS, EQUIPMENT, facilityTech, techUnlocks, itemName, itemCat, type ItemCat, type RecipeDef } from '../../world/industry';
+import { ITEMS, ITEM_CAT_NAME, RECIPES, FACILITIES, FAC_CATS, TECHS, EQUIPMENT, facilityTech, techUnlocks, itemName, itemCat, recipeFor, type ItemCat, type RecipeDef } from '../../world/industry';
+import { REGIONAL_ORIGINS } from '../../world/regional';
 import { RES_COLOR } from '../../world/data';
 import { stationPower, storageCap, facLines, facilityLoad, prodSpeed, recipeOk, stationNeeds, builtCount, yardSlots, buildNeeds, buildSpec, fitUnits, buildSpeed, YARD_NAME, hullName } from '../../world/production';
 import { HULLS } from '../../world/industry';
@@ -16,6 +17,7 @@ import { WEAPONS } from '../../sim/data/weapons';
 import { weaponRole } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 import { storeUsed, reservedSpace, listedSpace } from '../../world/storage';
+import { regionalReferenceValue } from '../../world/valuation';
 
 export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
 export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', recQ: '', recSel: null, mkCat: 'all', mkQ: '', hull: null, fit: [], rField: 'all', tSel: null });
@@ -49,7 +51,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   for (const m of s.modules) for (const [k, n] of Object.entries(m.reserved ?? {})) if (n > 0.01) reserved[k] = (reserved[k] ?? 0) + n;
   const inJobs: Record<string, number> = {};
   for (const j of own ? s.jobs ?? [] : []) for (const [k, n] of Object.entries(RECIPES[j.recipe]?.out ?? {})) inJobs[k] = (inJobs[k] ?? 0) + n;
-  const needs = own ? stationNeeds(s) : {};
+  const needs = own ? stationNeeds(s, w) : {};
   const shown = ids.filter(k => (ui.invCat === 'all' || itemCat(k) === ui.invCat) && match(k, ui.invQ)).sort((a, b) => CATS.indexOf(itemCat(a)) - CATS.indexOf(itemCat(b)) || (ITEMS[a]?.tier ?? 9) - (ITEMS[b]?.tier ?? 9) || a.localeCompare(b));
   // logistics: own haul operations touching this station
   const hauls = Object.values(w.groups).filter(g => g.owner === me && g.op.k === 'haul' && ((g.op as any).to === s.id || (g.op as any).from === s.id));
@@ -94,7 +96,7 @@ export function prodHtml(w: WorldState, s: Station, me: string, ui: IndUi): stri
   }).join('')}</table>` : '<div class="dim small">생산 시설이 없습니다. 건설 탭에서 정제소·공장을 지으세요.</div>'}`;
   // order queue
   html += `<h3>생산 주문 (${orders.length})</h3>${orders.length ? `<div class="bq">${orders.map((o, i) => {
-    const r = RECIPES[o.recipe];
+    const r = recipeFor(w, o.recipe, o.legacyRecipe) ?? RECIPES[o.recipe];
     const running = jobs.filter(j => j.order === o.id);
     const prog = running.length ? Math.max(...running.map(j => 1 - j.left / j.total)) : 0;
     const ok = o.why === '가동 중' || o.why?.startsWith('가동 중');
@@ -107,14 +109,14 @@ export function prodHtml(w: WorldState, s: Station, me: string, ui: IndUi): stri
       ${o.paused ? `<button class="btn mini" data-oop="resume:${o.id}">▶</button>` : `<button class="btn mini" data-oop="pause:${o.id}">⏸</button>`}<button class="btn mini warnb" data-oop="cancel:${o.id}">✕</button></div></div>`;
   }).join('')}</div>` : '<div class="dim small">주문이 없습니다. 아래 레시피에서 생산 주문을 등록하세요.</div>'}`;
   // recipe catalog
-  const allRec = Object.values(RECIPES).filter(r => !r.growth || growthOn(w as any));
+  const allRec = Object.keys(RECIPES).map(id => recipeFor(w, id)).filter((r): r is RecipeDef => !!r && (!r.growth || growthOn(w as any)));
   const facKinds = [...new Set(allRec.map(r => r.fac))];
   const recs = allRec.filter(r => (ui.recFac === 'all' || ui.recFac === r.fac) && (!ui.recQ || r.name.includes(ui.recQ) || Object.keys(r.out).some(k => match(k, ui.recQ)) || Object.keys(r.in).some(k => match(k, ui.recQ))));
   html += `<h3>레시피</h3><div class="frow">${chips('rfac', ui.recFac, [['all', '전체'], ...facKinds.map(k => [k, FACILITIES[k].name] as [string, string])])}<input class="search" data-rq placeholder="레시피·품목 검색" value="${esc(ui.recQ)}"></div>
     <div class="bcols"><div class="rlist">${recs.map(r => {
       const have = builtCount(s, r.fac) > 0, known = recipeOk(r, co);
       return `<div class="bfac pick${ui.recSel === r.id ? ' sel' : ''}${have && known ? '' : ' locked'}" data-rsel="${r.id}"><b>${esc(r.name)}</b> <span class="dim small">${esc(FACILITIES[r.fac].name)}</span><div class="small">${itemList(r.out)}${known ? '' : ' · <span class="warn">연구 필요</span>'}${have ? '' : ' · <span class="dim">시설 없음</span>'}</div></div>`;
-    }).join('') || '<div class="dim small">결과 없음</div>'}</div><div class="bdet">${recipeDetail(s, me, w, ui.recSel ? RECIPES[ui.recSel] : undefined, speed)}</div></div>`;
+    }).join('') || '<div class="dim small">결과 없음</div>'}</div><div class="bdet">${recipeDetail(s, me, w, ui.recSel ? recipeFor(w, ui.recSel) : undefined, speed)}</div></div>`;
   return html;
 }
 
@@ -124,12 +126,13 @@ function recipeDetail(s: Station, me: string, w: WorldState, r: RecipeDef | unde
   const store: Cargo = s.storage[me] ?? {};
   const lines = facLines(s, r.fac);
   const known = recipeOk(r, co);
-  const rows = Object.entries(r.in).map(([k, n]) => `<tr><td>${iname(k)}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
+  const rows = Object.entries(r.in).map(([k, n]) => `<tr><td>${iname(k)}${REGIONAL_ORIGINS[k] ? `<div class="dim small">지역 소재 · ${esc(REGIONAL_ORIGINS[k])}</div>` : ''}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
   const batches = Math.floor(Math.min(...Object.entries(r.in).map(([k, n]) => qty(store, k) / n)));
   const perH = lines ? 3600 / (r.time / speed) * lines : 0;
   const why = !known ? `연구 필요: ${esc(TECHS[r.tech!]?.name ?? r.tech!)}` : !lines ? `${esc(FACILITIES[r.fac].name)}이(가) 이 정거장에 없습니다 (건설 탭)` : '';
   return `<div class="bdh"><b>${esc(r.name)}</b> <span class="dim">· ${esc(FACILITIES[r.fac].name)}</span></div>
     <table class="gt bmat"><tr><th>투입</th><th class="n">배치당</th><th class="n">창고</th><th class="n">상태</th></tr>${rows}</table>
+    ${Object.keys(r.in).some(k => REGIONAL_ORIGINS[k]) ? '<div class="dim small">지역 소재는 표시된 산지에서 채굴·가공하거나 플레이어 거래소에서 구할 수 있습니다.</div>' : ''}
     <div class="bdr">산출: <b>${itemList(r.out)}</b></div>
     <div class="bdr">배치 시간 ${dur(r.time)}${speed !== 1 ? ` (현재 속도로 ${dur(r.time / speed)})` : ''} · 라인 ${lines}개${perH ? ` · 최대 시간당 ${itemList(r.out, perH)}` : ''}</div>
     <div class="bdr dim small">지금 창고 재료로 ${batches}배치 가능</div>
@@ -153,7 +156,7 @@ function exchangeHtml(w: WorldState, s: Station, me: string, store: Cargo, ui: I
     const own = l.seller === me;
     return `<tr><td>${iname(l.item)}</td><td>${esc(w.companies[l.seller]?.name ?? '?')}</td><td class="n">${fmt(l.qty)}</td><td class="n">${fmt(l.price)}</td><td>${own ? `<button class="btn mini" data-delist="${l.id}">회수</button>` : `<button class="btn mini" data-buyl="${l.id}:1">1 구매</button><button class="btn mini" data-buyl="${l.id}:${l.qty}">전량 ${fmt(l.qty * l.price)} cr</button>`}</td></tr>`;
   }).join('')}</table>` : '<div class="dim small">올라온 매물이 없습니다.</div>'}
-  ${mine.length ? `<div class="yrow"><select data-lit data-keep>${mine.map(k => `<option value="${k}">${esc(itemName(k))} (보유 ${fmt(store[k])})</option>`).join('')}</select><input class="num" data-lq type="number" min="1" value="10" title="수량"><input class="num" data-lp type="number" min="1" value="100" title="개당 가격"><button class="btn go" data-list>매물 등록</button></div>
+  ${mine.length ? `<div class="yrow"><select data-lit data-keep>${mine.map(k => `<option value="${k}"${regionalReferenceValue(w, k) !== undefined ? ` data-region-value="${regionalReferenceValue(w, k)}"` : ''}>${esc(itemName(k))} (보유 ${fmt(store[k])})</option>`).join('')}</select><input class="num" data-lq type="number" min="1" value="10" title="수량"><input class="num" data-lp type="number" min="1" value="100" title="개당 가격"><button class="btn go" data-list>매물 등록</button></div><div class="dim small" data-list-reference></div>
   <div class="dim small">등록한 물건은 거래소에 보관(에스크로)되어 다른 PMC가 바로 살 수 있습니다. 판매 대금은 수수료를 뗀 뒤 자동 입금되고, 언제든 회수할 수 있습니다. 설계도·장비·부품도 거래할 수 있습니다.</div>` : ''}`;
 }
 
@@ -287,7 +290,7 @@ export function researchHtml(w: WorldState, s: Station, me: string, ui: IndUi): 
       for (const t of ts) (cols[depthIn(t.id, a)] ??= []).push(t);
       return `<div class="rarea"><div class="rah"><b>${AREA_NAME[a]}</b> <span class="dim small">${AREA_NOTE[a] ?? ''}</span>${labHave(a) ? '' : ' <span class="warn small">— 이 정거장에 연구소 없음</span>'}</div><div class="rtree">${cols.filter(Boolean).map(col => `<div class="rcol">${col.sort((x, y) => x.time - y.time).map(t => {
         const [k, label] = techState(co, t.id);
-        const tags = techTags(t.id).map(x => `<span class="rtag rt-${x[0]}">${x[1]}</span>`).join('');
+        const tags = techTags(t.id, w).map(x => `<span class="rtag rt-${x[0]}">${x[1]}</span>`).join('');
         return `<div class="rcard tst-${k}${ui.tSel === t.id ? ' sel' : ''}" data-tsel="${t.id}" title="${esc(t.unlocks)}"><b>${esc(t.name)}</b><div class="small dim">${dur(t.time)}${t.needLab ? ` · <span class="${s.modules.some(m => m.built && m.kind === t.needLab) ? 'good' : 'warn'}">${esc(FACILITIES[t.needLab]?.name ?? '')}</span>` : ''}</div><div class="rtags">${tags}</div><div class="small tst-l">${esc(label)}</div></div>`;
       }).join('')}</div>`).join('<div class="rarrow">›</div>')}</div></div>`;
     }).join('')}</div><div class="bdet">${ui.tSel && TECHS[ui.tSel] ? techDetail(w, s, me, ui.tSel, fields, store) : '<div class="dim" style="padding:12px">기술을 선택하면 선행 조건·비용·해금 내용을 볼 수 있습니다.</div>'}</div></div>`;
@@ -319,22 +322,22 @@ function depthIn(id: string, area: string): number {
   depthAreaMemo.set(k, d); return d;
 }
 /** what a tech does, as short tags: weapon / module / facility / recipe / hull / effect */
-export function techTags(id: string): [string, string][] {
+export function techTags(id: string, world?: { regionalV?: number }): [string, string][] {
   const t = TECHS[id]; const out: [string, string][] = [];
   const eq = Object.values(EQUIPMENT).filter(e => e.tech === id);
   for (const e of eq) out.push([e.kind === 'weapon' ? 'w' : 'm', e.kind === 'weapon' ? '무장' : '장비']);
   if (Object.values(FACILITIES).some(f => f.tech === id)) out.push(['f', '시설']);
-  if (Object.values(RECIPES).some(r => r.tech === id && !EQUIPMENT[Object.keys(r.out)[0]])) out.push(['r', '레시피']);
+  if (Object.keys(RECIPES).some(k => { const r = recipeFor(world, k); return r?.tech === id && !EQUIPMENT[Object.keys(r.out)[0]]; })) out.push(['r', '레시피']);
   if (/함선:/.test(t?.unlocks ?? '')) out.push(['h', '함선']);
   if (t?.fx || t?.cfx) out.push(['x', '효과']);
   if (t?.needLab) out.push(['l', '전문']);
   return out.filter((x, i) => out.findIndex(y => y[0] === x[0]) === i);
 }
 /** the content a tech unlocks, with the key numbers (weapons: role, size, power) */
-function unlockedList(id: string, growth: boolean): string {
+function unlockedList(id: string, w: WorldState): string {
   const eq = Object.values(EQUIPMENT).filter(e => e.tech === id);
-  const fac = Object.values(FACILITIES).filter(f => facilityTech(f, growth) === id);
-  const rec = Object.values(RECIPES).filter(r => r.tech === id && !EQUIPMENT[Object.keys(r.out)[0]]);
+  const fac = Object.values(FACILITIES).filter(f => facilityTech(f, growthOn(w)) === id);
+  const rec = Object.keys(RECIPES).map(k => recipeFor(w, k)).filter((r): r is RecipeDef => !!r && r.tech === id && !EQUIPMENT[Object.keys(r.out)[0]]);
   if (!eq.length && !fac.length && !rec.length) return '';
   const row = (icon: string, name: string, note: string) => `<div class="uline"><span class="uico">${icon}</span><b>${esc(name)}</b> <span class="dim small">${note}</span></div>`;
   return `<div class="bdr ulist">${[
@@ -362,7 +365,7 @@ function techDetail(w: WorldState, s: Station, me: string, id: string, fields: S
   const canSal = own && fields.has(t.field) && k === 'ok' && sal && qty(store, sal) >= 1;
   const canCopy = own && fields.has(t.field) && k === 'known' && !!t.bp;
   return `<div class="bdh"><b>${esc(t.name)}</b> <span class="dim">· ${FIELD_NAME[t.field]} · ${esc(t.desc)}</span></div>
-    <div class="bdr"><b>해금:</b> ${esc(techUnlocks(id, growthOn(w as any)))}</div>${unlockedList(id, growthOn(w as any))}
+    <div class="bdr"><b>해금:</b> ${esc(techUnlocks(id, growthOn(w as any)))}</div>${unlockedList(id, w)}
     ${t.needLab ? `<div class="bdr small">전문 연구소: <span class="${s.modules.some(m => m.built && m.kind === t.needLab) ? 'good' : 'warn'}">${esc(FACILITIES[t.needLab]?.name ?? t.needLab)}</span> (이 정거장에 건설되어 있어야 연구 가능)</div>` : ''}
     <div class="bdr small">선행: ${(t.pre ?? []).map(p => `<span class="${co.tech?.includes(p) ? 'good' : 'warn'}">${esc(TECHS[p].name)}</span>`).join(', ') || '없음'}${after.length ? ` · 후속: ${after.map(esc).join(', ')}` : ''}</div>
     <div class="bdr">연구 ${dur(t.time)} (슬롯 1개 기준) · 비용 <b class="money">${fmt(t.credits)} cr</b> (등록 시)${t.bp ? ` · 설계도 시세 ${fmt(t.bp)} cr` : ''}</div>

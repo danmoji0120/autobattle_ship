@@ -315,6 +315,8 @@ export interface ShipBuild {
   hull?: string; variant?: string;
   /** Growth build's yard requirement at registration; absent on pre-P9.6.3.1 plans. */
   requiredYard?: number;
+  /** P9.7 regional materials fixed when the build was registered; absent on older plans. */
+  regionalMaterials?: Cargo;
   /** growth builds (contentV ≥ 3): hull preset whose weapons it mounts (else the legacy loadout's) */
   preset?: string;
   /** fitting modules installed at launch */
@@ -488,6 +490,8 @@ export interface WorldState {
   contentV?: number;
   /** Layout of a freshly created world. Existing saves are never implicitly expanded. */
   worldLayout?: 'p9';
+  /** Explicit regional-resource rules; absent on older worlds until separately activated. */
+  regionalV?: 1;
   /** items created by migrations (asset conservation ledger) */
   grants?: import('./migrate').GrantRecord[];
   /** existing items that changed form during migrations (not new) */

@@ -1,0 +1,11 @@
+Starting disposable PostgreSQL bound only to loopback.
+Disposable PostgreSQL ready; running isolated tests.
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/dev1-pg.test.ts > DEV-1 disposable PostgreSQL account authentication > uses existing PostgreSQL account sessions without persisting lab grants; restart and password change revoke access 3012ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  17:26:47
+   Duration  3.78s (transform 233ms, setup 0ms, import 372ms, tests 3.02s, environment 0ms)

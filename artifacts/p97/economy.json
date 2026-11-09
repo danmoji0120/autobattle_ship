@@ -1,0 +1,172 @@
+{
+  "starter": {
+    "credits": 12000,
+    "expectedCredits": 12000,
+    "fleet": [
+      "miner",
+      "miner",
+      "destroyer",
+      "corvette",
+      "corvette"
+    ],
+    "basicMinerCapacity": 140
+  },
+  "fields": [
+    {
+      "id": "p97_anvil_dense",
+      "system": "anvil",
+      "resource": "dense_titanium_ore",
+      "initialRare": 2400,
+      "rarePerDayAtFullUse": 518.4,
+      "security": 57,
+      "jumpsToAstra": 2,
+      "rawReferenceValue": 100
+    },
+    {
+      "id": "p97_shard_resonance",
+      "system": "shard",
+      "resource": "resonant_crystal",
+      "initialRare": 1350,
+      "rarePerDayAtFullUse": 466.55999999999995,
+      "security": 28,
+      "jumpsToAstra": 3,
+      "rawReferenceValue": 150
+    },
+    {
+      "id": "p97_dusk_isotope",
+      "system": "dusk",
+      "resource": "unstable_isotope",
+      "initialRare": 1575,
+      "rarePerDayAtFullUse": 544.3199999999999,
+      "security": 16,
+      "jumpsToAstra": 3,
+      "rawReferenceValue": 130
+    },
+    {
+      "id": "p97_blackgate_singular",
+      "system": "blackgate",
+      "resource": "singular_ore",
+      "initialRare": 1500,
+      "rarePerDayAtFullUse": 388.79999999999995,
+      "security": 6,
+      "jumpsToAstra": 5,
+      "rawReferenceValue": 220
+    }
+  ],
+  "outputs": [
+    {
+      "recipe": "dense_alloy",
+      "input": {
+        "dense_titanium_ore": 40,
+        "titanium": 10,
+        "metal": 10
+      },
+      "output": {
+        "dense_alloy": 12
+      },
+      "seconds": 180,
+      "inputReference": 4753,
+      "outputReference": 5298
+    },
+    {
+      "recipe": "resonant_optics",
+      "input": {
+        "resonant_crystal": 30,
+        "silicon": 12,
+        "crystal": 4
+      },
+      "output": {
+        "resonant_optics": 8
+      },
+      "seconds": 240,
+      "inputReference": 5182,
+      "outputReference": 5792.8
+    },
+    {
+      "recipe": "stabilized_isotope",
+      "input": {
+        "unstable_isotope": 30,
+        "chemicals": 16,
+        "electronics": 4
+      },
+      "output": {
+        "stabilized_isotope": 8
+      },
+      "seconds": 240,
+      "inputReference": 5042.4,
+      "outputReference": 5639.2
+    },
+    {
+      "recipe": "singular_alloy",
+      "input": {
+        "singular_ore": 40,
+        "dense_alloy": 8,
+        "rare_metal": 4
+      },
+      "output": {
+        "singular_alloy": 10
+      },
+      "seconds": 360,
+      "inputReference": 13103.2,
+      "outputReference": 14552
+    }
+  ],
+  "advanced": [
+    {
+      "recipe": "eq_rail_cannon",
+      "input": {
+        "weapon_parts": 10,
+        "electronics": 8,
+        "rare_metal": 6,
+        "precision": 4,
+        "dense_alloy": 6
+      },
+      "inputReference": 11561.4,
+      "legacyOutputReference": 10958.6,
+      "listingReference": 13872.5
+    },
+    {
+      "recipe": "eq_lance",
+      "input": {
+        "weapon_parts": 8,
+        "electronics": 12,
+        "crystal": 16,
+        "rare_metal": 6,
+        "resonant_optics": 6,
+        "singular_alloy": 2
+      },
+      "inputReference": 15991,
+      "legacyOutputReference": 10995.6,
+      "listingReference": 18976.1
+    },
+    {
+      "recipe": "mod_armor2",
+      "input": {
+        "armor_plate": 6,
+        "composite": 8,
+        "chemicals": 6,
+        "dense_alloy": 4
+      },
+      "inputReference": 4344.6,
+      "legacyOutputReference": 3183,
+      "listingReference": 5125.6
+    },
+    {
+      "recipe": "mod_reactor",
+      "input": {
+        "reactor": 1,
+        "electronics": 2,
+        "stabilized_isotope": 3
+      },
+      "inputReference": 6611.8,
+      "legacyOutputReference": 5293.3,
+      "listingReference": 7619.5
+    }
+  ],
+  "dreadMaterials": {
+    "dense_alloy": 20,
+    "singular_alloy": 40
+  },
+  "sustainedDreadnoughtsPerDayUpperBound": 2.4299999999999997,
+  "assumptions": "Reference values are production valuation, not executable NPC bids; regional goods have no seeded NPC market. Throughput assumes every regenerated unit is immediately harvested and inputs, facilities, hauling and safety are free; concurrent equipment competes for the same supply."
+}

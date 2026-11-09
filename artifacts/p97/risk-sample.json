@@ -1,0 +1,66 @@
+{
+  "seed": 9701,
+  "gameSeconds": 3600,
+  "cpuWallMs": 74950,
+  "creditChange": 1526.0826388710411,
+  "lost": 2,
+  "fleets": [
+    {
+      "field": "p97_anvil_dense",
+      "system": "anvil",
+      "item": "dense_titanium_ore",
+      "destination": "p9_anvil_port",
+      "group": "g10",
+      "ship": "s11",
+      "shipAlive": true,
+      "shipState": "space",
+      "status": "하역지 사용 불가 — 화물 보관 중, 목적지 재지정 필요",
+      "inHold": 23.49766656,
+      "delivered": 617.831484768,
+      "depositLeft": 5933.996162241579
+    },
+    {
+      "field": "p97_shard_resonance",
+      "system": "shard",
+      "item": "resonant_crystal",
+      "destination": "drakeout",
+      "group": "g12",
+      "ship": "s13",
+      "shipAlive": true,
+      "shipState": "space",
+      "status": "하역지 사용 불가 — 화물 보관 중, 목적지 재지정 필요",
+      "inHold": 51.32115821303412,
+      "delivered": 548.7141512274796,
+      "depositLeft": 2564.5878018650574
+    },
+    {
+      "field": "p97_dusk_isotope",
+      "system": "dusk",
+      "item": "unstable_isotope",
+      "destination": "rustport",
+      "group": "g14",
+      "ship": "s15",
+      "shipAlive": false,
+      "shipState": "lost",
+      "status": "해적 회피 — 대피 중",
+      "inHold": 0,
+      "delivered": 96.75096479999999,
+      "depositLeft": 4288.206672000101
+    },
+    {
+      "field": "p97_blackgate_singular",
+      "system": "blackgate",
+      "item": "singular_ore",
+      "destination": "drakeout",
+      "group": "g16",
+      "ship": "s17",
+      "shipAlive": false,
+      "shipState": "lost",
+      "status": "해적 회피 — 대피 중",
+      "inHold": 0,
+      "delivered": 41.305297968000005,
+      "depositLeft": 4916.143173437911
+    }
+  ],
+  "assumptions": "One seeded miner per origin starts at the field with fixture capital; no escorts; NPCs and normal upkeep enabled. Starter fleet is included in upkeep. Goods are stored, not sold; price and realised profit are not measured."
+}

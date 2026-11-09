@@ -1,0 +1,62 @@
+{
+  "baseline": "b041dedc2da59d34492233f4eee07bd36778ff8d",
+  "results": [
+    {
+      "mode": "c0",
+      "systems": 5,
+      "oldFields": 13,
+      "hashes": [
+        {
+          "seconds": 60,
+          "hash": "bb0b7d48b4c5ffcd6548cb898e22b2f4e1b2c00b493eaab35b9ff0de5af79e38"
+        },
+        {
+          "seconds": 120,
+          "hash": "87c1d499ffa6ef29610901ab3cb745bcb4e1d528fa871505c3ebc0a54c6e6d2c"
+        },
+        {
+          "seconds": 180,
+          "hash": "5cee6ae8df8335cef388305f68809e83e87848f0b625d7e4b412eb4af7931a53"
+        },
+        {
+          "seconds": 240,
+          "hash": "408199b16e935406735301131f9b8a9adfa4c8f98b355a109fc5754df78e56db"
+        },
+        {
+          "seconds": 300,
+          "hash": "2a7fa06801e5624762bbc0aaaf94fda3771daf4ac76df8a64529986598b44776"
+        }
+      ],
+      "restoredAtSeconds": 150
+    },
+    {
+      "mode": "p9",
+      "systems": 22,
+      "oldFields": 19,
+      "hashes": [
+        {
+          "seconds": 60,
+          "hash": "84a7c357d19bbfde394ee33bb9f012be9b4cf76df80eb8fc704144db43b31c94"
+        },
+        {
+          "seconds": 120,
+          "hash": "22916ec7773bf5436dbd1f54e08cbd1077cb7a3c650b806a77e145b4965af46e"
+        },
+        {
+          "seconds": 180,
+          "hash": "86c31166808c30dd6114a9998fe8dcf7bcc3c2364766ba6397c28d24872b0525"
+        },
+        {
+          "seconds": 240,
+          "hash": "5dcda5ebb58d25d36e4615741bd9edd95314bbca5ee7b60656798be08ad52bea"
+        },
+        {
+          "seconds": 300,
+          "hash": "f63149d15382f03bf90ee3067da843be56beea3126fea67607aaa17527e646d0"
+        }
+      ],
+      "restoredAtSeconds": 150
+    }
+  ],
+  "note": "Synthetic companies and credits; no regional activation and no production data."
+}

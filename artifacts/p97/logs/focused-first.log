@@ -1,0 +1,93 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > manufacturing adds value: every good is worth more than the inputs of its cheapest recipe 8ms
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > price rises steeply with class; small standard hulls stay cheap; the industrial base grows with the tier 7ms
+ ✓ tests/growth2.test.ts > rev 2: public storage > limit + leases: over the limit nothing new comes in, nothing stored is removed; ship holds and leases are the way out 487ms
+ ✓ tests/growth2.test.ts > rev 2: public storage > shared public docks: a crowd of ships is only partly maintained, and the dock recovers over the hour 32842ms
+ ✓ tests/growth2.test.ts > rev 2: exploration > sites are deterministic, found by survey, salvaged into the holds; deep sites can hold unsold blueprints 13802ms
+ ✓ tests/growth2.test.ts > rev 2: c3 → c4 migration > reprices markets, seeds sites, deletes nothing (even storage over the new limits), round-trips and is idempotent 366ms
+ ✓ tests/p9-world.test.ts > P9 authored world > creates a unique connected 22-system graph with matching reciprocal gates and spatial ownership 75ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps system lookup correct after records are added, removed, replaced or reindexed 9ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps the five original systems and assets, and never expands an existing c0 or growth save 18ms
+ ✓ tests/p9-world.test.ts > P9 authored world > is deterministic and persists surveyed sites and player assets without recreating or moving them 20ms
+ ✓ tests/p9-world.test.ts > P9 authored world > continues the same seeded P9 simulation after saving and restoring 894ms
+ ✓ tests/p9-world.test.ts > P9 authored world > creates regional demand, finite mining budgets and real industrial conversion without changing legacy prices 6ms
+ ✓ tests/p9-world.test.ts > P9 authored world > chooses actual nearby jump routes and a market that buys the mined goods 8ms
+ ✓ tests/p9-world.test.ts > P9 authored world > replicates the same expanded world to two independent multiplayer clients and restores it 46ms
+ ✓ tests/p9-world.test.ts > P9 authored world > permits a real station foundation in an initially empty frontier system 19ms
+ ✓ tests/p9-world.test.ts > P9 authored world > runs the existing bounded pirate and trader AI in the new regions 69ms
+ ✓ tests/p9-world.test.ts > P9 authored world > does not populate empty and frontier systems with settled-lane rogues when security is raised 3ms
+ ✓ tests/p9-world.test.ts > P9 authored world > moves an actual fleet to the distant lawless endpoint and back through eight gates 542ms
+ ✓ tests/p9-world.test.ts > P9 authored world > repeats a four-jump freight route, recovers after a gate outage and reloads the in-flight manifest 845ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > creates four exclusive origins with stable fields, unchanged geography and finite replenishment 146ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > keeps old worlds untouched on load and preserves old orders when explicitly activated 87ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > rejects a conflicting explicit migration before modifying old fields or orders 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > actually mines every authored rare material without inventing or losing mixed cargo 23ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > requires the four regional inputs in the server recipe and snapshots capital build materials 10ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses real NPC market stock atomically for restricted refits in regional worlds only 13ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not generate restricted weapons through public-yard presets in regional worlds 13ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not start a dreadnought without the actual regional materials, then launches one after restore 42ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > mines Anvil, hauls through gates, processes an alloy and fits a produced armor module 2359ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle 706ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > new player ships carry a fitting equal to their preset; NPC ships stay on legacy loadouts 618ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > rejects wrong size, type, mount, power, mass, unknown slots/items, foreign or undocked ships — and changes nothing 12ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > mount styles are enforced (torpedo tubes do not go on spinal mounts) 0ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > every legacy module set still fits every legacy preset, and the bays never allow more than the old slots 776ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > fit and unfit move items between ship and storage, all or nothing, over many cycles 12ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > two ships cannot share one stored item 4ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > public stations sell missing items only when asked, at 1.2× price, and only researched ones 6ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > own facilities never sell items; they use storage only and charge nothing 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > legacy refit and fitShip commands translate to V2 fittings with the same conservation 6ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > company presets: save, overwrite by name, limit, delete; invalid fittings are not saved 5ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > ships launched from an own yard get a fitting with the built modules 2ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > for all 25 presets, the fitting spec builds the identical ship and the identical battle 527ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > a custom fitting changes the ship in battle (weapons, arcs, structure) 8ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > the world battle setup passes the fitting to the combat engine for player ships 5ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > 3D model turrets sit exactly on the fitted hardpoints 295ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > turns loadouts + modules into fittings, records conversions, conserves every item 216ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > a module with no bay (corrupt old save) goes to storage, never disappears 224ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > dry-run (migrateContent:false) on a contentV 0 save keeps the legacy path: no fittings, legacy commands work 187ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > rollback to older code and forward again: ships the old code refitted are rebuilt from their loadout 194ms
+ ✓ tests/fitting.test.ts > fitting V2: hostile input > prototype keys and junk are rejected without side effects 4ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 1 yard, without charging rejections 58ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 2 yard, without charging rejections 15ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 3 yard, without charging rejections 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 4 yard, without charging rejections 16ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > separates XL yard research from ship-specific research, blueprints and industry 23ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > retains the original c0 XL yard prerequisite and its research descriptions 7ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old battleship_mk1 orders (battleship_std, tier 3) and launches each exactly once 32ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_l orders (miner_l_std, tier 2) and launches each exactly once 20ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_xl orders (miner_xl_std, tier 3) and launches each exactly once 22ms
+ × tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its unchanged parts 22ms
+   → expected false to be true // Object.is equality
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered hauler_xl with its unchanged parts 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > still allows complete hulls to be bought without production rights, research or factories 6ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > lets another company buy a completed player-owned battleship and leave without its blueprint 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its unchanged parts
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/p9631-yard.test.ts:135:23
+    133|     Object.assign(f.station.storage[f.p], need); const beforeShips = O…
+    134|     expect(f.sim.command(f.p, cmd)).toBeNull(); const b = f.station.bu…
+    135|     expect(b.started).toBe(true); expect(b.requiredYard).toBe(4);
+       |                       ^
+    136|     for (const item of Object.keys(need)) expect(f.station.storage[f.p…
+    137|     const restored = new WorldSim(JSON.parse(f.sim.serialize()), { mig…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  1 failed | 61 passed (62)
+   Start at  16:28:23
+   Duration  62.28s (transform 3.17s, setup 0ms, import 4.18s, tests 56.86s, environment 1ms)

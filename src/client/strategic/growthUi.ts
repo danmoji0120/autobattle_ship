@@ -21,6 +21,7 @@ import { hullPrice } from '../../world/valuation';
 import { serviceOf, publicCap, storeUsed, reservedSpace, listedSpace, leasedAt, LEASE_BLOCK, leaseRate, ownRepairCap, OWN_REPAIR, dockCapacity, SERVICES } from '../../world/storage';
 import { sitesIn, knows, surveyLeft, SCAN_NEED } from '../../world/explore';
 import { storageCap } from '../../world/production';
+import { regionalHullMaterials, regionalMarketRequired, regionalOn, REGIONAL_ORIGINS } from '../../world/regional';
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => Math.round(n).toLocaleString();
@@ -50,15 +51,15 @@ export function pubYardHtml(w: WorldState, s: Station, me: string, groups: { id:
   const co = w.companies[me];
   const hulls = yardHulls(s);
   if (!hulls.length) return '<div class="dim">이 정거장은 함선을 팔지 않습니다.</div>';
-  return `<div class="dim small">공영 조선소는 재고만큼만 팝니다. 재고가 줄수록 값이 오르고, 이 지역 시장의 합금·전자부품으로 다음 함선을 건조해 재고를 채웁니다. 표준 구조만 판매하며, 특수 변형은 설계도를 얻어 직접 건조해야 합니다.</div>
+  return `<div class="dim small">공영 조선소는 재고만큼만 팝니다. 재고가 줄수록 값이 오르고, 이 지역 시장의 합금·전자부품으로 다음 함선을 건조해 재고를 채웁니다. 표준 구조만 판매하며, 특수 변형은 설계도를 얻어 직접 건조해야 합니다.${regionalOn(w) ? ' 지역 희귀 소재가 필요한 장비는 함선 구매 후 별도로 피팅합니다.' : ''}</div>
   <div class="yard">${hulls.map(id => {
     const h = CONTENT.hulls[id]; const sale = hullSale(id)!;
     const k = s.shipStock?.[id]; const n = k?.n ?? sale.stock;
     const price = Math.round(sale.price * (1.25 - 0.25 * Math.min(1, n / Math.max(1, sale.stock))) / 10) * 10;
     const locked = co.rep < (sale.rep ?? 0);
     const berthOk = berthFits(s, hullEcon(id).berth);
-    const ps = presetsOf(id, true);
-    const why = locked ? `연합 평판 ${sale.rep} 필요 (현재 ${Math.floor(co.rep)})` : n < 1 ? `재고 없음 — 다음 함선 건조 ${Math.round(100 * (k?.t ?? 0) / sale.restock)}%${k?.why ? ` (${esc(k.why)})` : ''}` : co.credits < price ? `자금 부족 — ${fmt(price - co.credits)} cr 더 필요` : '';
+    const ps = presetsOf(id, true).filter(p => !Object.values(p.weapons).some(item => regionalMarketRequired(w, item)));
+    const why = !ps.length ? '공영 판매 가능한 기본 무장 구성이 없습니다' : locked ? `연합 평판 ${sale.rep} 필요 (현재 ${Math.floor(co.rep)})` : n < 1 ? `재고 없음 — 다음 함선 건조 ${Math.round(100 * (k?.t ?? 0) / sale.restock)}%${k?.why ? ` (${esc(k.why)})` : ''}` : co.credits < price ? `자금 부족 — ${fmt(price - co.credits)} cr 더 필요` : '';
     return `<div class="ycard${locked ? ' locked' : ''}"><div class="yn"><b>${esc(hullTitle(id))}</b> <span class="dim small">${h.size} · ${GRADE[h.blueprint]}</span><span class="money">${fmt(price)} cr</span></div>
       <div class="dim">${esc(h.desc)}</div>
       <div class="ys small">${hullStats(id)}</div>
@@ -119,8 +120,8 @@ function ownHullDetail(w: WorldState, s: Station, me: string, ui: GrowthYardUi, 
   const b = hullBuild(id, variant);
   const store: Cargo = s.storage[me] ?? {};
   const fit = ui.fit.filter(k => EQUIPMENT[k]?.kind === 'module');
-  const need = buildNeeds(h.classId, '', fit, { hull: id, variant, preset: p?.id });
-  const rows = Object.entries(need).map(([k, n]) => `<tr><td>${iname(k)}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
+  const need = buildNeeds(h.classId, '', fit, { hull: id, variant, preset: p?.id, regionalMaterials: regionalHullMaterials(w, id) });
+  const rows = Object.entries(need).map(([k, n]) => `<tr><td>${iname(k)}${REGIONAL_ORIGINS[k] ? `<div class="dim small">주요 산지: ${esc(REGIONAL_ORIGINS[k])}</div>` : ''}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
   const why = buildWhy(w, s, me, id, variant) || (co.credits < b.credits ? `자금 부족 — ${fmt(b.credits - co.credits)} cr` : '');
   const vb = variantBlueprint(variant);
   const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module' && qty(store, x.id) >= 1);

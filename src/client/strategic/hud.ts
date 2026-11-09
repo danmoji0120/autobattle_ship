@@ -3,7 +3,7 @@ import { AnalyticsPanel } from './analyticsUi';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
 import type { StrategicView, Pick } from './view';
-import type { WGroup, WShip, Op, Station, Res, WorldEvent, V } from '../../world/types';
+import type { WGroup, WShip, Op, Station, Res, WorldEvent, V, Field } from '../../world/types';
 import { RES, cargoSum, qty, cargoKeys } from '../../world/types';
 import type { WorldView } from '../../server/protocol';
 import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
@@ -18,7 +18,8 @@ import { CHART_HEIGHT, CHART_STARS, CHART_WIDTH, chartPoint, chartRoute, edgeKey
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, planMats, type Mat } from '../../world/construction';
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
-import { TECHS, ITEMS, EQUIPMENT, itemName, facilityBuild, facilityTech, facilityDescription } from '../../world/industry';
+import { TECHS, ITEMS, EQUIPMENT, RECIPES, FACILITIES, itemName, recipeFor, facilityBuild, facilityTech, facilityDescription } from '../../world/industry';
+import { REGIONAL_ORIGINS } from '../../world/regional';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
@@ -38,6 +39,8 @@ const h = (tag: string, cls = '', html = '') => { const e = document.createEleme
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => Math.round(n).toLocaleString();
 const cargoNum = (n: number) => n > 0 && n < .001 ? '&lt;0.001' : n.toLocaleString(undefined, { maximumFractionDigits: 3 });
+const fieldMix = (f: Field) => Object.entries(f.mix ?? { [f.res]: 1 }).filter(([, share]) => share > 0);
+const fieldUses = (w: { regionalV?: number }, item: string) => [...new Set(Object.keys(RECIPES).map(id => recipeFor(w, id)).filter(r => r && (r.in[item] ?? 0) > 0).map(r => FACILITIES[r!.fac]?.name).filter(Boolean))];
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
 
@@ -395,7 +398,7 @@ export class PmcHud {
     const key = JSON.stringify({ zoom, layout: st.worldLayout, selected: sel?.id, here: this.v.sys?.id, group: g && [g.id, g.name, g.owner, gSys], ownedShips, ownedStations,
       systems: Object.values(st.systems).map(s => [s.id, s.name, s.map.x, s.map.y, s.star.color, Math.round(effSec(s)), secBand(effSec(s)).min, s.gates.map(gt => gt.to)]),
       detail: sel && [sel.desc, sel.security, Math.round(sel.heat), sel.heat > 1, sel.stats, sel.inf && [Math.round(sel.inf.union), Math.round(sel.inf.pirates), Math.round(sel.inf.guild), sel.inf.pirates < LAIR_FOOTHOLD], (sel.recoverUntil ?? 0) > st.time,
-        stations.map(s => [s.id, s.name, s.tax, s.owner, !!s.market, s.services.shipyard.length]), fields.map(f => [f.id, f.name, f.res, f.mix, f.rich]), lairs.map(l => [l.id, l.name, l.alive])] });
+        stations.map(s => [s.id, s.name, s.tax, s.owner, !!s.market, s.services.shipyard.length]), fields.map(f => [f.id, f.name, f.res, f.mix, f.rich, Math.round(f.amount), f.regen, f.danger]), lairs.map(l => [l.id, l.name, l.alive])] });
     if (!force && key === this.galRenderKey) return;
     this.galRenderKey = key;
     const route = g?.owner === this.me ? chartRoute(st.systems, gSys, sel?.id) : new Set<string>();
@@ -443,7 +446,7 @@ export class PmcHud {
         const kind = s.owner === this.me ? '자사 정거장' : [s.market ? '시장' : '', s.services.shipyard.length ? '조선소' : ''].filter(Boolean).join(' · ') || '정거장';
         return `<button class="gal-object" data-gal-station="${esc(s.id)}"><span class="gal-object-icon">◈</span><span><b>${esc(s.name)}</b><small>${kind}${s.tax ? ` · 세금 ${Math.round(s.tax * 100)}%` : ''}</small></span><span class="gal-object-arrow">↗</span></button>`;
       }).join('') || '<p class="gal-empty">등록된 정거장이 없습니다.</p>';
-      const fieldRows = fields.map(f => `<button class="gal-object" data-gal-field="${esc(f.id)}"><span class="gal-object-icon resource">◇</span><span><b>${esc(f.name)}</b><small>${Object.keys(f.mix ?? { [f.res]: 1 }).map(r => esc(RES_NAME[r])).join(' · ')}${(f.rich ?? 1) !== 1 ? ` · 효율 ×${(f.rich ?? 1).toFixed(2)}` : ''}</small></span><span class="gal-object-arrow">↗</span></button>`).join('') || '<p class="gal-empty">확인된 자원 지대가 없습니다.</p>';
+      const fieldRows = fields.map(f => `<button class="gal-object" data-gal-field="${esc(f.id)}"><span class="gal-object-icon resource">◇</span><span><b>${esc(f.name)}${fieldMix(f).some(([r]) => REGIONAL_ORIGINS[r]) ? ' · 지역 희귀' : ''}</b><small>${fieldMix(f).map(([r, share]) => `${esc(RES_NAME[r])} ${Math.round(share * 100)}%`).join(' · ')}<br>매장 ${fmt(f.amount)} / ${fmt(f.max)} · ${f.regen > 0 ? `재생 ${cargoNum(f.regen)}/초` : '재생 없음'} · 위험 ${f.danger} · 효율 ×${(f.rich ?? 1).toFixed(2)}</small></span><span class="gal-object-arrow">↗</span></button>`).join('') || '<p class="gal-empty">확인된 자원 지대가 없습니다.</p>';
       info = `<div class="galinfo-main"><div class="gal-detail-kicker">선택한 성계</div>
         <div class="gal-detail-title"><h2>${esc(sel.name)}</h2><span class="gal-detail-dot" style="background:${band.color}"></span></div>
         <div class="gal-security"><span style="color:${band.color}">${band.name}</span><b>치안 ${Math.round(eff)}</b><div class="gal-security-bar"><i style="width:${Math.max(0, Math.min(100, eff))}%;background:${band.color}"></i></div></div>
@@ -808,7 +811,8 @@ export class PmcHud {
     // drop a mining edit once the server reflects it (or after a few seconds)
     if (this.mineForm?.live && g && (g.id !== this.mineForm.group || performance.now() - this.mineForm.t > 4000 || (g.op.k === 'mine' && this.sameMine(g.op, this.mineForm)))) this.mineForm = null;
     if (this.mineForm && !this.mineForm.live && this.mineForm.group !== this.group) this.mineForm = null;
-    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.parentId, g?.override, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, s?.kind === 'field' ? Math.round((this.st.fields[s.id]?.amount ?? 0) / 20) : 0, Math.round(this.st.companies[this.me]?.credits / 100)]);
+    const selectedField = s?.kind === 'field' ? this.st.fields[s.id] : undefined;
+    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.parentId, g?.override, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, selectedField && [Math.round(selectedField.amount), selectedField.danger, selectedField.regen], Math.round(this.st.companies[this.me]?.credits / 100)]);
     if (!force && selKey === this.lastSelKey) return;
     this.lastSelKey = selKey;
     if (!s && !g) { el.classList.add('hidden'); return; }
@@ -851,10 +855,15 @@ export class PmcHud {
     }
     if (s.kind === 'field') {
       const f = st.fields[s.id]; if (!f) return '';
+      const parts = fieldMix(f).map(([id, share]) => {
+        const uses = fieldUses(st, id);
+        return `<div><b>${esc(RES_NAME[id])} ${Math.round(share * 100)}%</b>${REGIONAL_ORIGINS[id] ? ` <span class="warn">지역 희귀 · ${esc(REGIONAL_ORIGINS[id])}</span>` : ''}${uses.length ? `<span class="dim"> · 활용 ${uses.slice(0, 3).map(esc).join(' · ')}${uses.length > 3 ? ` 외 ${uses.length - 3}` : ''}</span>` : ''}</div>`;
+      }).join('');
       return `<div class="info"><div class="ih"><b>${esc(f.name)}</b> <span style="color:${RES_COLOR[f.res]}">${RES_NAME[f.res]}</span>${f.salvage ? ' <span class="tag">전투 잔해</span>' : ''}</div>
-        <div class="bar2"><i style="width:${f.amount / f.max * 100}%;background:${RES_COLOR[f.res]}"></i></div>
-        <div class="dim">매장량 ${fmt(f.amount)} / ${fmt(f.max)}${f.regen ? ` · 재생 ${f.regen}/s` : ` · ${Math.max(0, Math.round((f.expires - st.time) / 60))}분 후 소멸`}${(f.rich ?? 1) !== 1 ? ` · 채굴 효율 ×${(f.rich ?? 1).toFixed(2)}` : ''}</div>
-        <div class="svc">${this.secLine(f.pos)}</div>
+        <div class="bar2"><i style="width:${f.max > 0 ? Math.max(0, Math.min(100, f.amount / f.max * 100)) : 0}%;background:${RES_COLOR[f.res]}"></i></div>
+        <div class="dim">총 매장량 ${fmt(f.amount)} / ${fmt(f.max)} · ${f.regen > 0 ? `총 재생 ${cargoNum(f.regen)}/초` : f.expires > 0 ? `재생 없음 · ${Math.max(0, Math.round((f.expires - st.time) / 60))}분 후 소멸` : '재생 없음'} · 채굴 효율 ×${(f.rich ?? 1).toFixed(2)}</div>
+        <div class="svc">위험 지표 ${f.danger} · ${this.secLine(f.pos)}</div>
+        <div class="small">${parts}</div><div class="dim small">혼합비는 채굴물과 재생량에 적용됩니다. 실제 위협은 치안과 해적 활동에 따라 달라집니다.</div>
         ${this.group ? `<button class="btn" data-minehere="${f.id}">이 지대 채굴 설정…</button><button class="btn" data-quick='${JSON.stringify({ k: 'patrol', at: f.pos, radius: f.radius + 400 })}'>이 지역 순찰</button>` : '<div class="dim">편대를 선택하고 우클릭하면 채굴을 지시합니다.</div>'}</div>`;
     }
     if (s.kind === 'lair') {
@@ -995,6 +1004,7 @@ export class PmcHud {
       <div class="mstat">${f ? `채굴 구역: <b>${esc(f.name)}</b> <span class="dim">(${sysName(f.pos)})</span>` : '<span class="warn">채굴 구역 없음</span>'}
         · 하역 목적지: <b>${form.deliver === 'auto' ? `자동${dest ? ` → ${esc(dest.name)}` : ''}` : esc(st.stations[form.deliver]?.name ?? '(소멸)')}</b>
         · 하역 방식: <b>${form.sell ? '자동 판매' : '창고 보관'}</b>${form.live ? ` · 현재 작업: <b>${esc(g.status)}</b>` : ''}</div>
+      ${f && form.sell && fieldMix(f).some(([id]) => REGIONAL_ORIGINS[id]) ? '<div class="dim small">지역 희귀 자원을 시장이 매입하지 않으면 해당 정거장의 자사 창고에 보관합니다. 공간이 부족하면 남은 화물은 함선에 유지됩니다.</div>' : ''}
       ${problem ? `<div class="warn small">⚠ 하역지 문제: ${problem}. 화물은 판매되지 않고 보관됩니다 — 목적지를 다시 지정하세요.</div>` : ''}
       ${form.live ? '' : `<div class="row"><button class="btn go" data-mf-start ${why || !f ? 'disabled' : ''}>작업 시작</button><button class="btn" data-mf-cancel>취소</button></div>`}
     </div>`;
@@ -1243,6 +1253,16 @@ export class PmcHud {
     m.querySelectorAll<HTMLButtonElement>('[data-buyl]').forEach(b => b.onclick = () => { const [l, n] = b.dataset.buyl!.split(':'); this.cmd({ c: 'buyListing', station: s.id, listing: l, qty: Number(n) }); });
     const lb = m.querySelector<HTMLButtonElement>('[data-list]');
     if (lb) lb.onclick = () => this.cmd({ c: 'list', station: s.id, item: m.querySelector<HTMLSelectElement>('[data-lit]')!.value, qty: Number(m.querySelector<HTMLInputElement>('[data-lq]')!.value), price: Number(m.querySelector<HTMLInputElement>('[data-lp]')!.value) });
+    const listedItem = m.querySelector<HTMLSelectElement>('[data-lit]'), reference = m.querySelector<HTMLElement>('[data-list-reference]');
+    if (listedItem && reference) {
+      const showReference = () => {
+        const v = Number(listedItem.selectedOptions[0]?.dataset.regionValue);
+        reference.innerHTML = Number.isFinite(v) && v > 0 ? `지역 소재 참고 가치 ${fmt(v)} cr · 실제 거래가는 직접 정합니다. <button class="btn mini" data-use-reference>참고가 입력</button>` : '';
+        const use = reference.querySelector<HTMLButtonElement>('[data-use-reference]');
+        if (use) use.onclick = () => { const input = m.querySelector<HTMLInputElement>('[data-lp]'); if (input) input.value = String(Math.ceil(v)); };
+      };
+      listedItem.onchange = showReference; showReference();
+    }
     m.querySelectorAll<HTMLButtonElement>('[data-oop]').forEach(b => b.onclick = async () => {
       const [op, order] = b.dataset.oop!.split(':');
       if (op === 'cancel' && !confirm('생산 주문을 취소할까요? 이미 시작된 배치는 끝까지 생산됩니다 (투입된 재료는 돌아오지 않음).')) return;

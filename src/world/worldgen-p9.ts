@@ -9,6 +9,7 @@ import { ITEMS, itemPrice } from './industry';
 import { RAW_PRICE_V4 } from './econConfig';
 import { valueOf } from './valuation';
 import { targetFor } from './economy';
+import { activateRegionalResources } from './regional';
 
 type Def = { id: string; name: string; sec: number; x: number; y: number; desc: string; slots: number; tier: 1 | 2 | 3; color: string; planet?: boolean };
 const DEFS: Def[] = [
@@ -107,4 +108,5 @@ export function expandFreshWorld(w: WorldState): void {
   }
   w.worldLayout = 'p9';
   seedSites(w);
+  activateRegionalResources(w);
 }

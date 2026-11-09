@@ -15,11 +15,11 @@
 import { emit } from './observe';
 import type { Station, Cargo, Company, WorldState } from './types';
 import { qty, addc, cargoSum, hasAll } from './types';
-import { FACILITIES, RECIPES, ITEMS, itemName, techFx, type RecipeDef } from './industry';
+import { FACILITIES, RECIPES, ITEMS, itemName, recipeFor, techFx, type RecipeDef } from './industry';
 import { stationSize, stationBerths, occupiedBerths } from './stations';
 import { storeUsed, takesSpace } from './storage';
 
-export interface ProdOrder { id: string; recipe: string; mode: 'count' | 'stock'; n: number; done: number; paused?: boolean; why?: string }
+export interface ProdOrder { id: string; recipe: string; mode: 'count' | 'stock'; n: number; done: number; paused?: boolean; why?: string; /** Existing order preserved when regional resources are explicitly activated. */ legacyRecipe?: true }
 export interface ProdJob { id: string; order: string; recipe: string; fac: string; left: number; total: number }
 
 export const builtCount = (st: Station, kind: string) => st.modules.filter(m => m.kind === kind && m.built).length;
@@ -114,7 +114,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   const busy: Record<string, number> = {};
   for (const j of jobs) busy[j.fac] = (busy[j.fac] ?? 0) + 1;
   for (const o of orders) {
-    const r = RECIPES[o.recipe];
+    const r = recipeFor(world, o.recipe, o.legacyRecipe);
     if (!r) { o.why = '알 수 없는 레시피'; continue; }
     if (o.paused) { o.why = '일시 정지'; continue; }
     if (!recipeOk(r, co)) { o.why = `연구 필요`; continue; }
@@ -154,12 +154,12 @@ export function facilityLoad(st: Station) {
 }
 
 /** items the station's waiting orders lack right now (for auto supply hauling) */
-export function stationNeeds(st: Station): Record<string, number> {
+export function stationNeeds(st: Station, world?: { regionalV?: number }): Record<string, number> {
   const store = st.storage[st.owner] ?? {};
   const need: Record<string, number> = {};
   for (const o of st.orders ?? []) {
     if (o.paused) continue;
-    const r = RECIPES[o.recipe]; if (!r) continue;
+    const r = recipeFor(world, o.recipe, o.legacyRecipe); if (!r) continue;
     if (orderWants(o, store, st.jobs ?? [])) continue;
     // aim for two batches of each input
     for (const [k, n] of Object.entries(r.in)) { const lack = n * 2 - qty(store, k); if (lack > 0) need[k] = Math.max(need[k] ?? 0, lack); }
@@ -184,8 +184,9 @@ export function yardSlots(st: Station): { kind: string; size: number }[] {
 }
 /** everything a hull build consumes when it starts: hull parts (+ variant parts) + the preset's or
  *  loadout's weapons + fitted modules */
-export function buildNeeds(classId: string, loadoutId: string, fit: string[], b?: { hull?: string; variant?: string; preset?: string }): Record<string, number> {
+export function buildNeeds(classId: string, loadoutId: string, fit: string[], b?: { hull?: string; variant?: string; preset?: string; regionalMaterials?: Cargo }): Record<string, number> {
   const need: Record<string, number> = { ...(b?.hull ? hullBuild(b.hull, b.variant).parts : HULLS[classId]?.parts ?? {}) };
+  for (const [k, n] of Object.entries(b?.regionalMaterials ?? {})) need[k] = (need[k] ?? 0) + n;
   for (const [k, n] of Object.entries(buildWeapons(classId, loadoutId, b?.preset))) need[k] = (need[k] ?? 0) + n;
   for (const k of fit) need[k] = (need[k] ?? 0) + 1;
   return need;

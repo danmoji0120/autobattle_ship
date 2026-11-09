@@ -1,6 +1,7 @@
 import type { GameClient } from '../net';
 import type { LogisticsRoute, RouteConfig } from '../../world/logistics';
 import { routeShips, routeLabel, supplyBatch } from '../../world/logistics';
+import { regionalOn } from '../../world/regional';
 import { ITEMS, EQUIPMENT, itemName, techFx } from '../../world/industry';
 import { cargoKeys, cargoSum, qty } from '../../world/types';
 import { econOf } from '../../world/hullops';
@@ -92,14 +93,15 @@ export class LogisticsPanel {
       <div class="lg-card-actions"><button class="btn mini" data-lg-edit="${esc(r.id)}">설정</button><button class="btn mini" data-lg-map="${esc(r.id)}" ${!ships.length ? 'disabled' : ''}>현재 위치</button><button class="btn mini" data-lg-control="${esc(r.id)}:${r.state === 'running' ? 'pause' : 'resume'}" ${this.busy ? 'disabled' : ''}>${r.state === 'running' ? '일시정지' : r.state === 'complete' ? '다시 운송' : '재개'}</button><button class="btn mini warnb" data-lg-cancel="${esc(r.id)}">취소</button></div>
     </article>`;
   }
-  private suggestSupply() { const n = supplyBatch(this.c.state?.stations[this.draft.to], this.draft.item); if (n > 0) { this.draft.minStock = n; this.draft.targetStock = Math.max(n * 2, this.draft.amount); } }
+  private suggestSupply() { const n = supplyBatch(this.c.state?.stations[this.draft.to], this.draft.item, this.c.state ?? undefined); if (n > 0) { this.draft.minStock = n; this.draft.targetStock = Math.max(n * 2, this.draft.amount); } }
   private form() {
     const w = this.c.state!, d = this.draft;
     const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company || this.hasExternalSource(s.id));
     const options = (value: string, destination = false) => `<option value="">정거장 선택</option>${stations.filter(s => destination ? (d.mode === 'construction' ? s.owner === this.c.company : s.public || s.owner === this.c.company && s.modules.some(m => m.kind === 'core' && m.built)) : s.public || s.owner === this.c.company && s.modules.some(m => m.kind === 'core' && m.built) || s.owner !== this.c.company && this.hasExternalSource(s.id)).map(s => `<option value="${esc(s.id)}" ${s.id === value ? 'selected' : ''}>${esc(s.name)} · ${esc(sysAt(w.systems, s.pos)?.name ?? '')}${s.owner === this.c.company && !s.modules.some(m => m.kind === 'core' && m.built) ? ' · 건설 현장' : ''}</option>`).join('')}`;
     const groups = Object.values(w.groups).filter(g => g.owner === this.c.company && routeShips(w, { group: g.id, owner: g.owner }).length);
-    const items = [...new Set([...Object.keys(ITEMS), ...Object.keys(EQUIPMENT), ...Object.keys(w.stations[d.from]?.storage[this.c.company] ?? {})])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
-    const batch = supplyBatch(w.stations[d.to], d.item);
+    const stock = w.stations[d.from]?.storage[this.c.company] ?? {};
+    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT), ...Object.keys(stock)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
+    const batch = supplyBatch(w.stations[d.to], d.item, w);
     const shipments = this.editId ? Object.values(w.logistics?.[this.editId]?.manifests ?? {}).reduce((n, m) => n + m.amount, 0) : 0;
     const available = qty(w.stations[d.from]?.storage[this.c.company], d.item), destination = qty(w.stations[d.to]?.storage[this.c.company], d.item);
     return `<aside class="lg-editor" data-lg-draft="${this.editKey}"><form data-lg-form><div class="lg-editor-head"><h3>${this.editId ? '노선 설정' : '새 운송 노선'}</h3><button class="btn mini" type="button" data-lg-form-close aria-label="노선 설정 닫기">✕</button></div>

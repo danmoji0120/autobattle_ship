@@ -7,7 +7,8 @@
 // tier-dependent multiple of that. Raw goods keep their base price. Pure and deterministic — used by
 // the server (markets, yards, upkeep) and the client (price breakdowns). contentV < 3 never calls it.
 import { CONTENT } from '../content/registry';
-import { ITEMS, RECIPES, EQUIPMENT, TECHS, itemPrice } from './industry';
+import { ITEMS, RECIPES, EQUIPMENT, TECHS, itemPrice, recipeFor } from './industry';
+import { regionalOn } from './regional';
 import { hullBuild } from './hullops';
 import { STEP_MARGIN, LABOUR_PER_S, YARD_FEE, SALE_BY_YARD, SALE_BY_CLASS, GRADE_MUL, YARD_RESTOCK_SHARE, YARD_RESTOCK_SHARE_WAR } from './econConfig';
 export { STEP_MARGIN, LABOUR_PER_S, GRADE_MUL };
@@ -30,6 +31,16 @@ export function valueOf(id: string): number {
   v = Math.round(v * 10) / 10;
   cache.set(id, v);
   return v;
+}
+
+/** An informational P9.7 production reference for player listings, never an NPC market price. */
+export function regionalReferenceValue(w: { regionalV?: number }, id: string): number | undefined {
+  if (!regionalOn(w)) return undefined;
+  if (ITEMS[id]?.regional) return valueOf(id);
+  const r = recipeFor(w, id), n = r?.out[id] ?? 0;
+  if (!r || n <= 0 || !Object.keys(r.in).some(k => ITEMS[k]?.regional)) return undefined;
+  const cost = (Object.entries(r.in).reduce((sum, [k, amount]) => sum + valueOf(k) * amount, 0) + r.time * LABOUR_PER_S) / n;
+  return Math.round(Math.max(valueOf(id), cost * STEP_MARGIN) * 10) / 10;
 }
 
 /** yard operating fee of a build (credits): charged for real by an own yard, counted in the cost */

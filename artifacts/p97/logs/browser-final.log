@@ -1,0 +1,14 @@
+PASS galaxy map shows origin, mixture, reserves, regeneration and risk
+PASS field details explain the rare material and actual processing facility
+PASS UI mining command produces regional ore at the selected source station
+PASS production details show server materials, origin and shortage
+PASS mobile station tabs remain readable inside the viewport
+PASS managed route physically delivers exactly one refining batch
+PASS advanced equipment shows its regional input and origin
+PASS production consumes refined regional material and creates the armor module
+PASS player exchange explains the regional production reference without fixing a market price
+PASS listing reference can be explicitly entered as a starting price
+PASS fitting consumes the produced module exactly once
+PASS browser save/reload preserves the regional world, inventory, route and fitting
+PASS browser reports no runtime errors
+{"passed":13,"errors":[]}

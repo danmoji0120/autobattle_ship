@@ -3,7 +3,7 @@ import type { WorldSim } from './sim';
 import type { WorldState, WShip, WGroup, Gate } from './types';
 import { cargoSum, qty, takec, addc } from './types';
 import { econOf, growthOn, berthFits } from './hullops';
-import { ITEMS, EQUIPMENT, RECIPES, techFx } from './industry';
+import { ITEMS, EQUIPMENT, recipeFor, techFx } from './industry';
 import { orderWants } from './production';
 import { nextGate } from './geom';
 import { departureHeld } from './upkeep';
@@ -57,9 +57,9 @@ function bind(h: Host, r: LogisticsRoute) {
   const g = h.st.groups[r.group]; g.op = { k: 'haul', from: r.config.from, to: r.config.to, res: r.config.item, route: r.id }; g.override = true; g.fleeing = false; delete g.march;
 }
 /** Largest current batch input, respecting paused, finished and already satisfied orders. */
-export function supplyBatch(st: import('./types').Station | undefined, item: string): number {
+export function supplyBatch(st: import('./types').Station | undefined, item: string, world?: { regionalV?: number }): number {
   if (!st) return 0; let need = 0;
-  for (const order of st.orders ?? []) { const recipe = RECIPES[order.recipe]; if (!order.paused && recipe && !orderWants(order, st.storage[st.owner] ?? {}, st.jobs ?? [])) need = Math.max(need, recipe.in[item] ?? 0); }
+  for (const order of st.orders ?? []) { const recipe = recipeFor(world, order.recipe, order.legacyRecipe); if (!order.paused && recipe && !orderWants(order, st.storage[st.owner] ?? {}, st.jobs ?? [])) need = Math.max(need, recipe.in[item] ?? 0); }
   return need;
 }
 /** External collection exposes only the requesting company's already-owned stock. */
@@ -223,7 +223,7 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
   if (r.config.mode === 'supply') {
     const dest = h.st.stations[r.config.to];
     if (!dest || !h.canDock(dest, r.owner)) { pause(h, r, '생산 목적지를 이용할 수 없습니다 — 설정을 확인하세요'); return; }
-    const batch = supplyBatch(dest, r.config.item), needs = batch > 0;
+    const batch = supplyBatch(dest, r.config.item, h.st), needs = batch > 0;
     const current = qty(h.storage(dest, r.owner), r.config.item), onWay = incoming(h, r.owner, dest.id, r.config.item);
     if (current <= r.config.minStock!) r.replenishing = true;
     if (current + onWay >= r.config.targetStock!) r.replenishing = false;

@@ -1,0 +1,20 @@
+Starting disposable PostgreSQL bound only to loopback.
+Disposable PostgreSQL ready; running isolated tests.
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive 13173ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > a failing migration rolls back completely: world, generation and backup rows untouched 537ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts 1769ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an in-flight managed route and its exact manifest through PostgreSQL process restarts 1631ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts 1882ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves P9.5 founding escrow, purchase receipts and a construction shipment through PostgreSQL restarts 1808ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a sized station, a running production batch and pending physical cargo handling through PostgreSQL restarts 2717ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an old-tier ship plan, a new-tier snapshot and returned overflow across PostgreSQL restarts 1449ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves committed trade identity and inventory across PostgreSQL process restarts 1551ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves regional deposits, company inventories and running special production across PostgreSQL restarts 1551ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  16:50:18
+   Duration  38.77s (transform 6.12s, setup 0ms, import 7.07s, tests 31.11s, environment 0ms)

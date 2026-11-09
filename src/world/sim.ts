@@ -19,7 +19,8 @@ import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules,
 import { CONTENT, legacyOf, contentAvail } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
 import { stepProduction, storageCap, stationPower, stationSupportOnline, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
-import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, facilityTech, techUnlocks, techFx, fitFx, growthFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
+import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, facilityTech, techUnlocks, techFx, fitFx, growthFx, loadoutEquipment, recipeFor, itemPrice as itemPriceOf } from './industry';
+import { regionalHullMaterials, regionalMarketRequired } from './regional';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
 import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInfluence } from './factions';
 import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot, unlockSummary } from './research';
@@ -385,7 +386,7 @@ export class WorldSim {
     if (rep.errors.length) return rep.errors[0] + (rep.errors.length > 1 ? ` 외 ${rep.errors.length - 1}건` : '');
     const delta = itemDelta(fittingItems(s.fitting), fittingItems(nf));
     const store = this.storage(st, company);
-    const buyList: [string, number][] = [];
+    const buyList: [string, number, number, boolean][] = [];
     for (const [k, n] of Object.entries(delta)) {
       if (n <= 0) continue;
       const short = n - Math.floor(qty(store, k) + 1e-9);
@@ -393,9 +394,15 @@ export class WorldSim {
       const e = EQUIPMENT[k];
       if (!o.buy || !pub) return `${e?.name ?? k} ${short}개 부족 (보관함에 ${Math.floor(qty(store, k))})${pub ? '' : ' — 자사 시설은 장비를 판매하지 않음'}`;
       if (e?.tech && !co.tech?.includes(e.tech)) return `${e.name}: 연구 필요 (${techName(e.tech)}) — 구매 불가`;
-      buyList.push([k, short]);
+      const actualMarket = regionalMarketRequired(this.st, k);
+      const m = actualMarket && st.market && Object.hasOwn(st.market, k) ? st.market[k] : undefined;
+      if (actualMarket && (!m || !Number.isFinite(m.stock) || m.stock < short)) return `${e?.name ?? k}: 시장 재고 부족 — 실제 재고가 있는 시장이나 플레이어 거래소를 이용하세요`;
+      const unit = actualMarket ? this.price(st, k, 'buy') : itemPriceOf(k) * 1.2;
+      if (!Number.isFinite(unit) || unit <= 0) return `${e?.name ?? k}: 유효하지 않은 시장 가격`;
+      buyList.push([k, short, unit, actualMarket]);
     }
-    const buyCost = Math.round(buyList.reduce((a, [k, n]) => a + n * itemPriceOf(k) * 1.2, 0));
+    const buyCost = Math.round(buyList.reduce((a, [, n, unit, market]) => a + (market ? 0 : n * unit), 0))
+      + buyList.reduce((a, [, n, unit, market]) => a + (market ? n * unit : 0), 0);
     const changed = Object.keys(delta).length;
     const varFee = variant !== s.variant && !ownFit ? Math.round(shipWorth(this.st, s) * 0.15) : 0;
     const fee = ownFit ? 0 : (changed ? 400 + changed * 300 : 0) + varFee;
@@ -406,7 +413,10 @@ export class WorldSim {
     if (growthOn(this.st) && extra > 0 && this.overCap(st, company, extra)) return '창고 용량 부족 — 해제할 장비를 보관할 공간을 확보하세요';
     // all checks passed: from here nothing can fail
     co.credits -= fee + buyCost;
-    for (const [k, n] of buyList) addc(store, k, n);
+    for (const [k, n, unit, market] of buyList) {
+      if (market) { st.market![k].stock -= n; fundsIn(st, n * unit); emit(this.st, { kind: 'market', reason: 'buy', amount: n, value: n * unit, company, station: st.id, item: k }); }
+      addc(store, k, n);
+    }
     for (const [k, n] of Object.entries(delta)) addc(store, k, -n);
     const pid = o.preset ?? matchingPreset(variant, nf);
     s.variant = variant;
@@ -444,7 +454,7 @@ export class WorldSim {
     if (op.res === '*all') return cargoKeys(store).map(k => [k, store[k]] as [string, number]);
     if (op.res === '*auto') {
       // what the destination's production orders and construction plans are short of
-      const need = stationNeeds(b);
+      const need = stationNeeds(b, this.st);
       for (const m of plans(b)) if (!m.paused) for (const r of planMats(m)) { const x = missing(m, r) - qty(this.storage(b, b.owner), r); if (x > 0) need[r] = Math.max(need[r] ?? 0, x); }
       return Object.entries(need).filter(([k]) => qty(store, k) >= 1).sort((x, y) => y[1] * (ITEMS[y[0]]?.price ?? 50) - x[1] * (ITEMS[x[0]]?.price ?? 50));
     }
@@ -886,7 +896,7 @@ export class WorldSim {
         return null;
       }
       case 'prodOrder': {
-        const st = S(cmd.station); const r = RECIPES[cmd.recipe];
+        const st = S(cmd.station); const r = recipeFor(this.st, cmd.recipe);
         if (!st || st.owner !== company) return '자사 정거장이 아님';
         if (!r || (r.growth && !growthOn(this.st))) return '알 수 없는 레시피';
         if (r.tech && !co.tech?.includes(r.tech)) return `연구 필요: ${techName(r.tech)}`;
@@ -1359,6 +1369,8 @@ export class WorldSim {
     if (!yardHulls(st).includes(ch.hull)) return '이 조선소에서 판매하지 않는 선체';
     // NPC yards sell standard builds: common variants only (special structures are built from blueprints)
     if (CONTENT.variants[ch.variant]?.blueprint !== 'common') return '공영 조선소는 표준 구조만 판매합니다 — 특수 변형은 설계도로 건조';
+    const preset = ch.preset ? CONTENT.presets[ch.preset] : Object.values(CONTENT.presets).find(p => p.variant === ch.variant);
+    if (preset && Object.values(preset.weapons).some(id => regionalMarketRequired(this.st, id))) return '지역 희귀 소재가 필요한 장비 프리셋은 공영 조선소에서 판매하지 않습니다 — 일반 함선 구매 후 피팅하세요';
     const sale = hullSale(ch.hull)!;
     // a hull that joined the yard's list after the c3 seeding (content update) starts at its base stock
     const stock = (st.shipStock ??= {})[ch.hull] ??= { n: sale.stock, t: 0 };
@@ -1406,7 +1418,8 @@ export class WorldSim {
     useRun(co, hullBlueprint(ch.hull));
     st.seq = (st.seq ?? 0) + 1;
     const label = p ? loadoutLabel(h.classId, ch.variant, { hp: p.weapons, bay: {} }) : getLoadout(h.classId, '').id;
-    const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: h.classId, loadoutId: label, hull: ch.hull, variant: ch.variant, preset: p?.id, fit, group: g?.id, left: b.time, total: b.time, started: false, paid: pay, requiredYard: b.yard };
+    const regionalMaterials = regionalHullMaterials(this.st, ch.hull);
+    const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: h.classId, loadoutId: label, hull: ch.hull, variant: ch.variant, preset: p?.id, fit, group: g?.id, left: b.time, total: b.time, started: false, paid: pay, requiredYard: b.yard, ...(regionalMaterials ? { regionalMaterials } : {}) };
     (st.builds ??= []).push(nb);
     stepBuilds(st, co, 0, this.st);
     this.ev('info', `${st.name}: ${h.name} 건조 등록 (${CONTENT.variants[ch.variant]?.name ?? ''}${p ? ` · ${p.name}` : ''})`, { company: co.id, pos: st.pos, tag: 'build_plan' });

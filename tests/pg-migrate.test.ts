@@ -14,7 +14,7 @@ import { publicCap, storeUsed } from '../src/world/storage';
 import { WorldSim } from '../src/world/sim';
 import { FACILITIES, TECHS } from '../src/world/industry';
 import { allocate } from '../src/world/construction';
-import { buildSpec } from '../src/world/production';
+import { buildSpec, stepProduction } from '../src/world/production';
 import { grantBlueprint, hullBlueprint } from '../src/world/blueprints';
 import { census, compareCensus, CONTENT_VERSION } from '../src/world/migrate';
 import type { Station, WorldState } from '../src/world/types';
@@ -402,6 +402,36 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       expect(restored.command(p, command)).toBeNull();
       expect(restored.st.companies[p].credits).toBe(credits); expect(restored.st.stations.astra.storage[p].ore).toBe(20);
       expect(restored.st.stations.astra.market!.ore.stock).toBe(stock);
+      expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
+    }
+  }, 60_000);
+
+  it('preserves regional deposits, company inventories and running special production across PostgreSQL restarts', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 970), sim = local.sim;
+    const p = sim.addPlayer('PG 지역 생산'), q = sim.addPlayer('PG 다른 회사');
+    sim.st.companies[p].tech = ['rare_processing'];
+    const base = sim.st.stations.astra;
+    const site: Station = { ...structuredClone(base), id: 'pg_p97', name: 'PG 지역 생산 시험', owner: p, public: false, size: 'L', market: null,
+      storage: { [p]: { dense_titanium_ore: 40, titanium: 10, metal: 10 }, [q]: { resonant_crystal: 7 } },
+      modules: ['core', 'power', 'smelter'].map((kind, slot) => ({ kind, slot, built: true, progress: 1 })), orders: [], jobs: [] };
+    sim.st.stations[site.id] = site;
+    expect(sim.command(p, { c: 'prodOrder', station: site.id, recipe: 'dense_alloy', mode: 'count', n: 1 })).toBeNull();
+    expect(site.jobs).toHaveLength(1); expect(site.storage[p].dense_titanium_ore ?? 0).toBe(0);
+    const group = sim.newGroup(p, 'PG 지역 운송'), ship = sim.spawnShip(p, 'hauler', 'std', group.id, site.pos);
+    ship.cargo.unstable_isotope = 11;
+    sim.st.fields.p97_anvil_dense.amount = 1234.5;
+    const file = local.snapshotFile(), jobs = structuredClone(site.jobs);
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    for (const port of [8332, 8333]) {
+      const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(srv)).toBe(0);
+      const world = (await row())!.data.world, saved = world.stations[site.id];
+      expect(world.regionalV).toBe(1); expect(world.fields.p97_anvil_dense.amount).toBe(1234.5);
+      expect(saved.jobs).toEqual(jobs); expect(saved.storage[q].resonant_crystal).toBe(7);
+      expect(world.ships[ship.id].cargo.unstable_isotope).toBe(11);
+      const restored = new WorldSim(structuredClone(world), { migrateContent: false });
+      stepProduction(restored.st.stations[site.id], restored.st.companies[p], 180, restored.st);
+      expect(restored.st.stations[site.id].storage[p].dense_alloy).toBe(12);
+      expect(restored.st.stations[site.id].storage[q].resonant_crystal).toBe(7);
       expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
     }
   }, 60_000);

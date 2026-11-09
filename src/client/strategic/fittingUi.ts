@@ -16,6 +16,8 @@ import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arc
 import type { HardpointDef, InternalSlotDef } from '../../content/schema';
 import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bayModules, type ShipFitting } from '../../world/fitting';
 import { EQUIPMENT, fitFx, itemPrice, TECHS } from '../../world/industry';
+import { regionalMarketRequired, regionalOn } from '../../world/regional';
+import { priceOf } from '../../world/market';
 import { WEAPONS, type WeaponDef } from '../../sim/data/weapons';
 import { SHIP_CLASSES } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
@@ -118,7 +120,14 @@ export class FittingScreen {
       const miss = n - Math.floor(qty(store, k) + 1e-9); if (miss > 0) short.push([k, miss]);
     }
     const locked = short.filter(([k]) => EQUIPMENT[k]?.tech && !co.tech?.includes(EQUIPMENT[k].tech!));
-    const buyCost = Math.round(short.reduce((a, [k, n]) => a + n * itemPrice(k) * 1.2, 0));
+    const marketShort = short.filter(([k, n]) => {
+      if (!regionalMarketRequired(this.st, k)) return false;
+      const m = st?.market && Object.hasOwn(st.market, k) ? st.market[k] : undefined;
+      const price = priceOf(m, 'buy', true);
+      return !m || !Number.isFinite(m.stock) || m.stock < n || !Number.isFinite(price) || price <= 0;
+    });
+    const buyCost = Math.round(short.reduce((a, [k, n]) => a + (regionalMarketRequired(this.st, k) ? 0 : n * itemPrice(k) * 1.2), 0))
+      + short.reduce((a, [k, n]) => a + (regionalMarketRequired(this.st, k) ? n * priceOf(st?.market?.[k], 'buy', true) : 0), 0);
     const changed = Object.keys(delta).length;
     const varFee = this.draft.variant !== s.variant && !ownFit ? Math.round(econOf(s).price * 0.15) : 0;
     const fee = ownFit ? 0 : (changed ? 400 + changed * 300 : 0) + varFee;
@@ -126,9 +135,10 @@ export class FittingScreen {
       : rep.errors.length ? rep.errors[0]
       : short.length && (!pub || !this.buy) ? `보관함에 없는 장비 ${short.reduce((a, x) => a + x[1], 0)}개${pub ? ' — "부족분 구매"를 켜면 이 정거장에서 삽니다' : ' — 자사 시설은 장비를 판매하지 않음'}`
       : locked.length ? `${EQUIPMENT[locked[0][0]].name}: 연구 필요 (${TECHS[EQUIPMENT[locked[0][0]].tech!]?.name ?? ''})`
+      : marketShort.length ? `${EQUIPMENT[marketShort[0][0]]?.name ?? marketShort[0][0]}: 시장 재고 부족 — 플레이어 거래소 또는 실제 재고가 있는 시장 이용`
       : co.credits < fee + (this.buy ? buyCost : 0) ? '자금 부족'
       : !changed && this.draft.variant === s.variant ? '변경 사항 없음' : null;
-    return { rep, take, back, short, buyCost: this.buy && pub ? buyCost : 0, fullBuy: buyCost, fee, block, ownFit, pub };
+    return { rep, take, back, short, marketShort, buyCost: this.buy && pub ? buyCost : 0, fullBuy: buyCost, fee, block, ownFit, pub };
   }
 
   /** combat summary of a fitting (what the engine will build) */
@@ -231,11 +241,11 @@ export class FittingScreen {
       </div>
       <div class="ffoot">
         <div class="fchg">
-          ${p.take.length || p.back.length ? `${p.take.length ? `<div><b class="dn">장착</b> ${items(p.take)} <span class="dim">(보관함에서)</span></div>` : ''}${p.back.length ? `<div><b class="up">해제</b> ${items(p.back)} <span class="dim">(보관함으로)</span></div>` : ''}${p.short.length ? `<div class="warn">부족 ${items(p.short)}${p.pub ? ` · 구매 시 ${fmt(p.fullBuy)} cr` : ''}</div>` : ''}` : '<div class="dim">변경 사항 없음 — 슬롯을 고르고 오른쪽 목록에서 장비를 선택하세요</div>'}
+          ${p.take.length || p.back.length ? `${p.take.length ? `<div><b class="dn">장착</b> ${items(p.take)} <span class="dim">(보관함에서)</span></div>` : ''}${p.back.length ? `<div><b class="up">해제</b> ${items(p.back)} <span class="dim">(보관함으로)</span></div>` : ''}${p.short.length ? `<div class="warn">부족 ${items(p.short)}${p.pub ? p.marketShort.length ? ' · 시장 재고 부족' : ` · 구매 시 ${fmt(p.fullBuy)} cr` : ''}</div>` : ''}` : '<div class="dim">변경 사항 없음 — 슬롯을 고르고 오른쪽 목록에서 장비를 선택하세요</div>'}
           ${this.msg ? `<div class="${this.msg.warn ? 'warn' : 'good'}">${esc(this.msg.t)}</div>` : p.block && this.dirty ? `<div class="warn">${esc(p.block)}</div>` : ''}
         </div>
         <div class="fact">
-          ${p.pub ? `<label class="fbuy"><input type="checkbox" data-fbuy ${this.buy ? 'checked' : ''}> 부족분 구매 (시가 ×1.2)</label>` : ''}
+          ${p.pub ? `<label class="fbuy"><input type="checkbox" data-fbuy ${this.buy ? 'checked' : ''}> 부족분 구매 ${regionalOn(this.st) ? '(지역 고급 장비는 실제 시장 재고 사용)' : '(시가 ×1.2)'}</label>` : ''}
           <span class="money">${p.fee + p.buyCost ? `${fmt(p.fee + p.buyCost)} cr` : '무료'}</span>
           <button class="btn" data-fundo ${this.undo.length ? '' : 'disabled'}>되돌리기</button>
           <button class="btn" data-freset ${this.dirty ? '' : 'disabled'}>초기화</button>

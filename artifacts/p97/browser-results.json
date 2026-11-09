@@ -1,0 +1,51 @@
+{
+  "checks": [
+    "galaxy map shows origin, mixture, reserves, regeneration and risk",
+    "field details explain the rare material and actual processing facility",
+    "UI mining command produces regional ore at the selected source station",
+    "production details show server materials, origin and shortage",
+    "mobile station tabs remain readable inside the viewport",
+    "managed route physically delivers exactly one refining batch",
+    "advanced equipment shows its regional input and origin",
+    "production consumes refined regional material and creates the armor module",
+    "player exchange explains the regional production reference without fixing a market price",
+    "listing reference can be explicitly entered as a starting price",
+    "fitting consumes the produced module exactly once",
+    "browser save/reload preserves the regional world, inventory, route and fitting",
+    "browser reports no runtime errors"
+  ],
+  "fixture": {
+    "p": "p1",
+    "field": "p97_anvil_dense",
+    "source": "p9_anvil_port",
+    "factory": "p97_browser_factory",
+    "miners": "g10",
+    "miner": "s11",
+    "carriers": "g12",
+    "carrier": "s13",
+    "ship": "s15"
+  },
+  "mined": 41.19032764800001,
+  "delivered": {
+    "loaded": 40,
+    "delivered": 40,
+    "alloy": 12,
+    "cargo": 0
+  },
+  "saved": {
+    "region": 1,
+    "fitted": true,
+    "alloy": 8,
+    "route": {
+      "loaded": 40,
+      "delivered": 40,
+      "sold": 0,
+      "earned": 0,
+      "trips": 1,
+      "lost": 0,
+      "withdrawn": 0
+    }
+  },
+  "errors": [],
+  "seeded": "capital, ordinary inputs, research, ships and facilities; NPC threats disabled"
+}

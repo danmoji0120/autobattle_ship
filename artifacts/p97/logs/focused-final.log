@@ -1,0 +1,33 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > creates four exclusive origins with stable fields, unchanged geography and finite replenishment 369ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > retains a usable starting fleet, basic hull purchase and ordinary mining without rare materials 13837ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > keeps old worlds untouched on load and preserves old orders when explicitly activated 35ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > rejects a conflicting explicit migration before modifying old fields or orders 10ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > actually mines every authored rare material without inventing or losing mixed cargo 122ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > preserves a running rare-material batch and a paused second batch over save and resume 13ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > requires the four regional inputs in the server recipe and snapshots capital build materials 13ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses real NPC market stock atomically for restricted refits in regional worlds only 32ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not generate restricted weapons through public-yard presets in regional worlds 17ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not start a dreadnought without the actual regional materials, then launches one after restore 4828ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > mines Anvil, hauls through gates, processes an alloy and fits a produced armor module 2758ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle 751ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 1 yard, without charging rejections 70ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 2 yard, without charging rejections 17ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 3 yard, without charging rejections 13ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 4 yard, without charging rejections 16ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > separates XL yard research from ship-specific research, blueprints and industry 25ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > retains the original c0 XL yard prerequisite and its research descriptions 7ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old battleship_mk1 orders (battleship_std, tier 3) and launches each exactly once 36ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_l orders (miner_l_std, tier 2) and launches each exactly once 32ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_xl orders (miner_xl_std, tier 3) and launches each exactly once 43ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its required parts 19ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered hauler_xl with its required parts 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > still allows complete hulls to be bought without production rights, research or factories 6ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > lets another company buy a completed player-owned battleship and leave without its blueprint 7ms
+
+ Test Files  2 passed (2)
+      Tests  25 passed (25)
+   Start at  16:40:31
+   Duration  29.39s (transform 4.62s, setup 0ms, import 5.42s, tests 23.20s, environment 0ms)

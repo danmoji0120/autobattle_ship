@@ -2,11 +2,12 @@
 // Everything here is plain data; the server-side engine (production.ts / research.ts) interprets it
 // and the client renders it. Adding content = adding rows.
 import type { Size } from '../content/schema';
+import { REGIONAL_RECIPE_INPUTS, regionalOn } from './regional';
 
 // ─────────────────────────────────────────────────────────────── items
 
 export type ItemCat = 'raw' | 'refined' | 'part' | 'shippart' | 'equip' | 'blueprint';
-export interface ItemDef { id: string; name: string; cat: ItemCat; tier: number; price: number; color: string; desc: string; /** growth-only content (contentV ≥ 3) */ growth?: boolean }
+export interface ItemDef { id: string; name: string; cat: ItemCat; tier: number; price: number; color: string; desc: string; /** growth-only content (contentV ≥ 3) */ growth?: boolean; /** available through P9.7 regional industry */ regional?: boolean }
 
 export const ITEM_CAT_NAME: Record<ItemCat, string> = { raw: '원자재', refined: '정제 소재', part: '산업 부품', shippart: '함선 부품', equip: '장비·무장', blueprint: '설계도' };
 
@@ -20,6 +21,10 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries([
   it('rare_ore', '희토류광', 'raw', 1, 45, '#c890ff', '전자부품과 반응로에 필요한 희귀 광물.'),
   it('gas', '수소 가스', 'raw', 1, 12, '#9fe7d0', '가스 구름·빙결대에서 채취. 화학소재의 원료.'),
   it('crystal', '크리스탈', 'raw', 1, 100, '#7fd8ff', '희귀 결정. 센서·반응로·고급 전자장비에 쓰인다.'),
+  { ...it('dense_titanium_ore', '고밀도 티타늄 원광', 'raw', 3, 100, '#b6d5e3', '앤빌 광구의 고밀도 원광. 특수 합금의 원료.'), regional: true },
+  { ...it('resonant_crystal', '공명 결정', 'raw', 3, 150, '#b6a4ff', '파편 항로의 결정. 공명 광학 소재의 원료.'), regional: true },
+  { ...it('unstable_isotope', '불안정 동위원소', 'raw', 3, 130, '#f3b779', '황혼 광맥에서 채취하는 동력 소재.'), regional: true },
+  { ...it('singular_ore', '특이 광석', 'raw', 3, 220, '#de99f3', '검은 관문의 특수 광석. 최상위 선체의 원료.'), regional: true },
   // refined
   it('metal', '정련 금속', 'refined', 2, 24, '#c0a890', '철광석을 정련한 기본 금속.'),
   it('alloy', '합금', 'refined', 2, 32, '#b8c8d8', '금속과 티타늄의 고강도 합금. 건설과 조선의 기본 소재.'),
@@ -28,6 +33,10 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries([
   it('chemicals', '화학소재', 'refined', 2, 30, '#80e0b0', '연료, 폭약, 수지의 원료.'),
   it('composite', '복합소재', 'refined', 2, 70, '#e8c070', '실리콘·화학소재·금속을 결합한 장갑·구조용 소재.'),
   it('rare_metal', '희토류 금속', 'refined', 2, 120, '#d8a8ff', '정제된 희토류. 고급 부품의 핵심.'),
+  { ...it('dense_alloy', '고강도 특수 합금', 'refined', 3, 300, '#c2e3ee', '고밀도 원광을 제련한 고급 장갑·무장 소재.'), regional: true },
+  { ...it('resonant_optics', '공명 광학 소재', 'refined', 3, 650, '#cdbbff', '공명 결정을 정제한 고출력 광학 소재.'), regional: true },
+  { ...it('stabilized_isotope', '안정화 동위원소', 'refined', 3, 600, '#ffcba0', '고출력 동력 장치에 사용하는 안정화 소재.'), regional: true },
+  { ...it('singular_alloy', '특이 합금', 'refined', 4, 1800, '#e9bcf5', '특이 광석과 고밀도 합금을 결합한 최상위 소재.'), regional: true },
   // industrial parts
   it('machinery', '기계부품', 'part', 3, 90, '#c8b090', '모터, 기어, 유압장치.'),
   it('electronics', '전자부품', 'part', 3, 150, '#80c8ff', '회로, 프로세서, 배선.'),
@@ -182,7 +191,7 @@ export const FAC_CATS: FacCat[] = ['기반', '정제', '부품', '조선', '군�
 
 // ─────────────────────────────────────────────────────────────── recipes
 
-export interface RecipeDef { id: string; name: string; fac: string; time: number; in: Record<string, number>; out: Record<string, number>; tech?: string; /** growth-only */ growth?: boolean }
+export interface RecipeDef { id: string; name: string; fac: string; time: number; in: Record<string, number>; out: Record<string, number>; tech?: string; /** growth-only */ growth?: boolean; /** P9.7 only */ regional?: boolean }
 const R = (id: string, name: string, fac: string, time: number, inp: Record<string, number>, out: Record<string, number>, tech?: string): RecipeDef => ({ id, name, fac, time, in: inp, out, tech });
 
 export const RECIPES: Record<string, RecipeDef> = Object.fromEntries([
@@ -197,6 +206,10 @@ export const RECIPES: Record<string, RecipeDef> = Object.fromEntries([
   R('rare_metal', '희토류 정제', 'rare_refinery', 150, { rare_ore: 30 }, { rare_metal: 8 }),
   R('chemicals', '화학 합성', 'gas_plant', 80, { gas: 40 }, { chemicals: 16 }),
   R('composite', '복합소재 적층', 'composite_plant', 140, { silicon: 10, chemicals: 8, metal: 10 }, { composite: 10 }),
+  { ...R('dense_alloy', '고강도 합금 제련', 'smelter', 180, { dense_titanium_ore: 40, titanium: 10, metal: 10 }, { dense_alloy: 12 }, 'rare_processing'), regional: true },
+  { ...R('resonant_optics', '공명 광학 소재 정제', 'rare_refinery', 240, { resonant_crystal: 30, silicon: 12, crystal: 4 }, { resonant_optics: 8 }, 'rare_processing'), regional: true },
+  { ...R('stabilized_isotope', '동위원소 안정화', 'rare_refinery', 240, { unstable_isotope: 30, chemicals: 16, electronics: 4 }, { stabilized_isotope: 8 }, 'rare_processing'), regional: true },
+  { ...R('singular_alloy', '특이 합금 정제', 'rare_refinery', 360, { singular_ore: 40, dense_alloy: 8, rare_metal: 4 }, { singular_alloy: 10 }, 'rare_processing'), regional: true },
   // parts
   R('machinery', '기계부품 가공', 'machine_shop', 120, { metal: 16, alloy: 6 }, { machinery: 6 }),
   R('precision', '정밀 가공', 'machine_shop', 200, { titanium: 8, alloy: 4, machinery: 2 }, { precision: 3 }),
@@ -231,6 +244,18 @@ export const RECIPES: Record<string, RecipeDef> = Object.fromEntries([
   R('mod_reactor', '고출력 반응로 개조', 'reactor_plant', 900, { reactor: 1, electronics: 2 }, { mod_reactor: 1 }, 'reactor_tuning'),
   R('mod_pd', '요격 통제 컴퓨터 조립', 'electronics_fab', 600, { electronics: 4, sensor: 1 }, { mod_pd: 1 }, 'pd_network'),
 ].map(r => [r.id, r]));
+
+const REGIONAL_RECIPES: Record<string, RecipeDef> = Object.fromEntries(Object.entries(REGIONAL_RECIPE_INPUTS).map(([id, extra]) => {
+  const r = RECIPES[id];
+  return [id, { ...r, in: { ...r.in, ...extra } }];
+}));
+
+/** One shared source of truth for simulation, logistics and UI; old orders can retain old inputs. */
+export function recipeFor(w: { regionalV?: number } | undefined, id: string, legacy = false): RecipeDef | undefined {
+  const r = Object.hasOwn(RECIPES, id) ? RECIPES[id] : undefined;
+  if (!r || (r.regional && !regionalOn(w))) return undefined;
+  return regionalOn(w) && !legacy ? REGIONAL_RECIPES[id] ?? r : r;
+}
 
 // ─────────────────────────────────────────────────────────────── hull production
 
