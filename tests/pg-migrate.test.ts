@@ -322,7 +322,8 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     for (let i = 0; i < 800 && !Object.values(sim.st.stations).some(s => s.owner === p && s.modules[0].built); i++) sim.update(.25);
     const site = Object.values(sim.st.stations).find(s => s.owner === p)!;
     expect(site.modules[0].built).toBe(true); expect(site.size).toBe('S');
-    site.storage[p].alloy = 220;
+    site.storage[p].alloy = 500;
+    site.storage[p].machinery = 10;
     expect(sim.command(p, { c: 'queueModule', station: site.id, kind: 'refinery' })).toBeNull();
     for (let i = 0; i < 1200 && !site.modules.some(m => m.kind === 'refinery' && m.built); i++) sim.update(.25);
     expect(site.modules.some(m => m.kind === 'refinery' && m.built)).toBe(true);

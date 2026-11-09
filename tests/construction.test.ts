@@ -41,23 +41,23 @@ const total = (st: Station, p: string) => {
 describe('station construction: plans, reservations, queue', () => {
   it('3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds', () => {
     const { sim, p, own } = withStation();
-    own.storage[p].alloy = 3000; own.storage[p].machinery = 20;
+    own.storage[p].alloy = 3000; own.storage[p].machinery = 50;
     expect(sim.command(p, { c: 'queueModule', station: own.id, kind: 'yard_s' })).toBeNull();
     const m = plan(own, 'yard_s')!;
-    expect(m.reserved!.alloy).toBe(400);               // alloy is secured…
-    expect(m.reserved!.machinery).toBe(12);
+    expect(m.reserved!.alloy).toBe(1000);               // alloy is secured…
+    expect(m.reserved!.machinery).toBe(35);
     expect(planState(own, m)).toBe('materials');        // …it waits for structure only
     const log = sim.st.events.filter(e => e.company === p).map(e => e.text).join('\n');
-    expect(log).toMatch(/구조재 20 부족/);
+    expect(log).toMatch(/구조재 90 부족/);
     expect(log).not.toMatch(/합금 \d+ 부족/);
-    own.storage[p].structure = 50;                        // structure arrives
+    own.storage[p].structure = 120;                       // structure arrives
     run(sim, 2);
     expect(planState(own, m)).toBe('building');
     run(sim, MODULES.yard_s.work / 0.5 + 10);
     expect(own.modules.some(x => x.kind === 'yard_s' && x.built)).toBe(true);
-    expect(own.storage[p].alloy).toBeCloseTo(2600, 3);   // exactly 400 used
+    expect(own.storage[p].alloy).toBeCloseTo(2000, 3);   // exactly 1,000 used
     expect(own.storage[p].structure).toBeCloseTo(30, 3);
-    expect(own.storage[p].machinery).toBeCloseTo(8, 3);
+    expect(own.storage[p].machinery).toBeCloseTo(15, 3);
   });
 
   it('a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive', () => {
@@ -72,8 +72,8 @@ describe('station construction: plans, reservations, queue', () => {
     expect(m.progress).toBe(0);
     own.storage[p].alloy = 150; run(sim, 1);
     expect(m.reserved!.alloy).toBe(150); expect(own.storage[p].alloy).toBe(0); // partial reservation, held aside
-    own.storage[p].alloy = 500; run(sim, 1);
-    expect(m.reserved!.alloy).toBeCloseTo(220 - (m.used!.alloy), 6);
+    own.storage[p].alloy = 500; own.storage[p].machinery = 10; run(sim, 1);
+    expect(m.reserved!.alloy).toBeCloseTo(500 - (m.used!.alloy), 6);
     run(sim, MODULES.refinery.work / 0.5 + 5);
     expect(own.modules.some(x => x.kind === 'refinery' && x.built)).toBe(true);
   });
@@ -81,36 +81,36 @@ describe('station construction: plans, reservations, queue', () => {
   it('credit and material shortfalls are reported separately', () => {
     const { sim, p, own } = withStation();
     sim.st.companies[p].credits = 1000;
-    expect(sim.command(p, { c: 'queueModule', station: own.id, kind: 'yard_s' })).toMatch(/자금 부족 — 14,000 cr 더 필요/);
+    expect(sim.command(p, { c: 'queueModule', station: own.id, kind: 'yard_s' })).toMatch(/자금 부족 — 54,000 cr 더 필요/);
   });
 
   it('several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold', () => {
     const { sim, p, own } = withStation();
-    own.storage[p].alloy = 500; own.storage[p].machinery = 6; own.storage[p].structure = 10;
+    own.storage[p].alloy = 1000; own.storage[p].machinery = 34; own.storage[p].structure = 15;
     const before = total(own, p);
     for (const k of ['refinery', 'repair', 'warehouse']) expect(sim.command(p, { c: 'queueModule', station: own.id, kind: k })).toBeNull();
     const [a, b, c] = ['refinery', 'repair', 'warehouse'].map(k => plan(own, k)!);
-    expect(a.reserved!.alloy).toBe(220); expect(b.reserved!.alloy).toBe(180); expect(c.reserved!.alloy).toBe(100);
+    expect(a.reserved!.alloy).toBe(500); expect(b.reserved!.alloy).toBe(400); expect(c.reserved!.alloy).toBe(100);
     expect(own.storage[p].alloy).toBe(0);
     // nothing left to sell or to spend elsewhere
     expect(sim.command(p, { c: 'sell', station: own.id, res: 'alloy', amount: 100 })).not.toBeNull();
     for (let i = 0; i < 20; i++) { run(sim, 5); const t = total(own, p); for (const k of Object.keys(before)) expect(t[k]).toBeCloseTo(before[k], 4); }
     expect(planState(own, c)).toBe('materials');
-    own.storage[p].alloy += 50;
+    own.storage[p].alloy += 140;
     run(sim, 700);
     for (const k of ['refinery', 'repair', 'warehouse']) expect(own.modules.some(x => x.kind === k && x.built)).toBe(true);
-    expect(total(own, p).alloy).toBeCloseTo(before.alloy + 50, 3);
+    expect(total(own, p).alloy).toBeCloseTo(before.alloy + 140, 3);
   });
 
   it('pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first', () => {
     const { sim, p, own } = withStation();
-    own.storage[p].alloy = 0; own.storage[p].machinery = 6;
+    own.storage[p].alloy = 0; own.storage[p].machinery = 34;
     sim.command(p, { c: 'queueModule', station: own.id, kind: 'refinery' });
     sim.command(p, { c: 'queueModule', station: own.id, kind: 'repair' });
     const a = plan(own, 'refinery')!, b = plan(own, 'repair')!;
     expect(sim.command(p, { c: 'planOp', station: own.id, plan: b.id!, op: 'up' })).toBeNull();
-    own.storage[p].alloy = 180; run(sim, 1);
-    expect(b.reserved!.alloy + b.used!.alloy).toBeCloseTo(180, 6); expect(a.reserved!.alloy ?? 0).toBe(0);  // repair is first now
+    own.storage[p].alloy = 400; run(sim, 1);
+    expect(b.reserved!.alloy + b.used!.alloy).toBeCloseTo(400, 6); expect(a.reserved!.alloy ?? 0).toBe(0);  // repair is first now
     run(sim, 10);
     const prog = b.progress;
     expect(prog).toBeGreaterThan(0);
@@ -140,10 +140,10 @@ describe('station construction: plans, reservations, queue', () => {
     const { sim, p, own } = withStation();
     own.storage[p].alloy = 0; own.storage[p].ore = 0;
     sim.command(p, { c: 'queueModule', station: own.id, kind: 'refinery' });
-    own.storage[p].alloy = 220; run(sim, 240);                           // refinery first (bought alloy)
+    own.storage[p].alloy = 500; own.storage[p].machinery = 10; run(sim, 240); // refinery first (bought inputs)
     expect(own.modules.some(x => x.kind === 'refinery' && x.built)).toBe(true);
     // now a plan with no alloy: only mined ore refined at this station (a standing production order) can pay for it
-    own.storage[p].structure = 10;
+    own.storage[p].structure = 15;
     expect(sim.command(p, { c: 'queueModule', station: own.id, kind: 'warehouse' })).toBeNull();
     expect(sim.command(p, { c: 'prodOrder', station: own.id, recipe: 'alloy_direct', mode: 'stock', n: 500 })).toBeNull();
     const d = plan(own, 'warehouse')!;
@@ -156,7 +156,7 @@ describe('station construction: plans, reservations, queue', () => {
 
   it('plans, reservations and progress survive a restart', () => {
     const { sim, p, own } = withStation();
-    own.storage[p].alloy = 300; own.storage[p].crystal = 0;
+    own.storage[p].alloy = 500; own.storage[p].machinery = 10; own.storage[p].crystal = 0;
     sim.command(p, { c: 'queueModule', station: own.id, kind: 'refinery' });
     sim.command(p, { c: 'queueModule', station: own.id, kind: 'defense' });
     run(sim, 20);

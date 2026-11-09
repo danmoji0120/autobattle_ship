@@ -1,0 +1,9 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p96-industrial-flow.test.ts > P9.6 frontier industry > founds an S station, supplies and builds its facilities, mines, refines and ships the product 4327ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  02:12:18
+   Duration  6.13s (transform 1.34s, setup 0ms, import 1.56s, tests 4.33s, environment 0ms)

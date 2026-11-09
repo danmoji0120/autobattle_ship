@@ -18,11 +18,12 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
       for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e10; }
       sim.npcSlow = () => {};
       const sys = sim.st.systems.quiet, at = { x: sys.origin.x + 10000, y: 0, z: 0 };
-      const builders = sim.newGroup(p, '변경 공작반'), freight = sim.newGroup(p, '변경 수송반');
+      const builders = sim.newGroup(p, '변경 공작반'), freight = sim.newGroup(p, '변경 수송반'), machineryFreight = sim.newGroup(p, '기계부품 수송반');
       const builder = sim.spawnShip(p, 'constructor', 'std', builders.id, at);
       const hauler = sim.spawnHull(p, 'hauler_m', 'hauler_m_std', undefined, freight.id, sim.st.stations.astra.pos); sim.dockShip(hauler, sim.st.stations.astra);
+      const machineryHauler = sim.spawnHull(p, 'hauler_m', 'hauler_m_std', undefined, machineryFreight.id, sim.st.stations.astra.pos); sim.dockShip(machineryHauler, sim.st.stations.astra);
       app.client.t.server.step(.6);
-      return { p, at, builder: builder.id, builders: builders.id, freight: freight.id, hauler: hauler.id };
+      return { p, at, builder: builder.id, builders: builders.id, freight: freight.id, hauler: hauler.id, machineryFreight: machineryFreight.id };
     });
     await page.waitForFunction(({builders}) => !!window.siderarium.client.state.groups[builders], fixture);
     const center = await page.evaluate(({builders, at}) => {
@@ -113,7 +114,7 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
     await page.evaluate(id => window.siderarium.hud.openStation(id, 'build'), site);
     check((await page.locator('.station-facts').innerText()).includes('S급') && (await page.locator('.station-facts').innerText()).includes('시설 용량'), 'completed station displays size, capacity and operating limits');
     await page.locator('[data-bpick="refinery"]').click();
-    check((await page.locator('.bdet').innerText()).includes('220') && (await page.locator('.bdet').innerText()).includes('부족'), 'facility details explain cost and local shortage');
+    check((await page.locator('.bdet').innerText()).includes('500') && (await page.locator('.bdet').innerText()).includes('기계부품') && (await page.locator('.bdet').innerText()).includes('부족'), 'facility details explain cost and local shortage');
     await page.locator('[data-module="refinery"]').click();
     await page.evaluate(() => window.siderarium.client.t.server.step(.6));
     check(await page.evaluate(site => window.siderarium.client.t.server.sim.st.stations[site].modules.some(m => m.kind === 'refinery' && !m.built), site), 'facility plan is registered through the UI');
@@ -130,18 +131,29 @@ const check = (ok, label) => { if (!ok) throw Error(label); checks.push(label); 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.evaluate(() => window.siderarium.hud.openStation('astra', 'market'));
     let facilityPurchase = 0;
-    while (facilityPurchase < 220) {
+    while (facilityPurchase < 500) {
       await page.locator('[data-trade^="buy:alloy:"]').click(); facilityPurchase += lot;
       await page.evaluate(() => window.siderarium.client.t.server.step(.6));
       await page.waitForFunction(({p, facilityPurchase}) => (window.siderarium.client.state.stations.astra.storage[p]?.alloy ?? 0) >= facilityPurchase, { p: fixture.p, facilityPurchase });
     }
-    const refinery = await page.evaluate(({site, id}) => {
+    const machineryButton = page.locator('[data-trade^="buy:machinery:"]');
+    const machineryLot = Number((await machineryButton.getAttribute('data-trade')).split(':')[2]);
+    let machineryPurchased = 0;
+    while (machineryPurchased < 10) {
+      await machineryButton.click(); machineryPurchased += machineryLot;
+      await page.evaluate(() => window.siderarium.client.t.server.step(.6));
+      await page.waitForFunction(({p, machineryPurchased}) => (window.siderarium.client.state.stations.astra.storage[p]?.machinery ?? 0) >= machineryPurchased, { p: fixture.p, machineryPurchased });
+    }
+    const refinery = await page.evaluate(({site, id, machineryFreight, p}) => {
       const app = window.siderarium, sim = app.client.t.server.sim;
+      const error = sim.command(p, { c: 'putRoute', group: machineryFreight, config: { name: '기계부품 건설 공급', from: 'astra', to: site, item: 'machinery', amount: 10, mode: 'construction', repeat: true } });
+      if (error) throw Error(error);
+      const machinery = Object.values(sim.st.logistics).find(r => r.group === machineryFreight);
       for (let t = 0; t < 2400 && !sim.st.stations[site].modules.some(m => m.kind === 'refinery' && m.built); t += .25) sim.update(.25);
       app.client.t.server.step(.6);
-      return { built: sim.st.stations[site].modules.some(m => m.kind === 'refinery' && m.built), delivered: sim.st.logistics[id].stats.delivered };
-    }, { site, id: traveling.id });
-    check(refinery.built && refinery.delivered >= 820, 'physical supply and construction complete the refinery');
+      return { built: sim.st.stations[site].modules.some(m => m.kind === 'refinery' && m.built), delivered: sim.st.logistics[id].stats.delivered, machineryDelivered: machinery.stats.delivered };
+    }, { site, id: traveling.id, machineryFreight: fixture.machineryFreight, p: fixture.p });
+    check(refinery.built && refinery.delivered >= 1100 && refinery.machineryDelivered === 10, 'physical supply and construction complete the refinery');
     await page.evaluate(id => window.siderarium.hud.openStation(id, 'build'), site);
     check((await page.locator('.station-installed').allInnerTexts()).some(t => t.includes('광석 정제소')), 'completed facility is visible in management');
     await page.screenshot({ path: `${out}/facilities-completed-1440.png`, animations: 'disabled' });

@@ -523,7 +523,8 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .bfac { border: 1px solid rgba(120,170,220,.18); border-radius: 4px; padding: 5px 8px; margin-bottom: 4px; font-size: 13px; }
 .bfac.own { background: rgba(60,140,90,.12); } .bfac.pick { cursor: pointer; } .bfac.pick:hover { background: rgba(80,160,220,.1); } .bfac.locked { opacity: .55; }
 .bfac .money { float: right; }
-.bdet { border: 1px solid rgba(120,170,220,.25); border-radius: 4px; padding: 10px 12px; background: rgba(8,16,28,.6); display: grid; gap: 6px; align-content: start; }
+.bdet { border: 1px solid rgba(120,170,220,.25); border-radius: 4px; padding: 10px 12px; background: rgba(8,16,28,.96); display: grid; gap: 6px; align-content: start; position: sticky; top: 0; align-self: start; max-height: 65vh; overflow-y: auto; }
+@media (max-width: 760px) { .bdet { position: static; max-height: none; overflow: visible; } }
 .bdet .bdh { font-size: 15px; } .bdet .bmat td, .bdet .bmat th { padding: 3px 6px; }
 .bdet .btn.go { padding: 7px 18px !important; font-size: 14px !important; letter-spacing: .1em; }
 .strength .lbl span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }

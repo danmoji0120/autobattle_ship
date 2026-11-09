@@ -334,6 +334,10 @@ export interface FacilityContent {
   credits: number; mats: Record<string, number>; work: number; power: number;
   lines?: number; storage?: number; requires?: string; tech?: string; max?: number; unlocks: string;
   lab?: string[]; yard?: number;
+  /** Minimum station size for a new installation, separate from the yard's ship class. */
+  minStation?: Size;
+  /** Historical terms for old saves and legacy worlds. */
+  legacyBuild?: { credits: number; mats: Record<string, number> };
 }
 export interface RecipeContent { id: string; name: string; fac: string; time: number; in: Record<string, number>; out: Record<string, number>; tech?: string }
 

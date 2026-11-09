@@ -1,0 +1,18 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > matches the complete facility price, material and minimum-size table 11ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at S without charging rejected commands 51ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at M without charging rejected commands 8ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at L without charging rejected commands 8ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at XL without charging rejected commands 16ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps yard class separate from minimum size and retains research and prerequisites 10ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > preserves old unsnapshotted plans, their refund and material reservations 37ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > allows an existing S communication facility plan to finish but blocks new ones 1271ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > recovers materials from each facility's actual cost basis, once, and blocks other companies 249ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps c0 pricing and uses the new snapshot for new plans on an unsized growth station 4ms
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  01:54:27
+   Duration  4.46s (transform 2.30s, setup 0ms, import 2.53s, tests 1.67s, environment 0ms)

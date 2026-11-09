@@ -1,0 +1,249 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ × tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds 1221ms
+   → expected 1000 to be 400 // Object.is equality
+ × tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive 1081ms
+   → expected 500 to be close to 220, received difference is 280, but expected 5e-7
+ × tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately 890ms
+   → expected '자금 부족 — 54,000 cr 더 필요' to match /자금 부족 — 14,000 cr 더 필요/
+ × tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold 899ms
+   → expected 500 to be 220 // Object.is equality
+ × tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first 947ms
+   → expected 0 to be greater than 0
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > cancel returns reserved materials and refunds credits (in full before work starts) 883ms
+ × tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself 2095ms
+   → expected false to be true // Object.is equality
+ × tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart 1849ms
+   → expected false to be true // Object.is equality
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > old saves: an unbuilt module without plan data is migrated without losing paid progress 951ms
+ ✓ tests/p5.test.ts > P5 content is installed and gated > weapons, modules, techs, facilities and recipes are in the game tables, marked growth-only 170ms
+ ✓ tests/p5.test.ts > P5 content is installed and gated > a c0 world refuses P5 research, facilities and recipes; a growth world accepts them 2527ms
+ × tests/p5.test.ts > P5 gameplay chain: research → facility → production → fitting → combat effect → save > works end to end 6444ms
+   → expected 0 to be greater than or equal to 2
+ ✓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > shields absorb hits first; energy weapons strip them faster than kinetic ones; they regenerate 17ms
+ ✓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > target preference: anti-small weapons prefer escorts, anti-capital weapons ignore raiders 1ms
+ ✓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > research combat effects: family-scoped damage, global accuracy, shields 2ms
+ × tests/p96-industrial-flow.test.ts > P9.6 frontier industry > founds an S station, supplies and builds its facilities, mines, refines and ships the product 11892ms
+   → facilities: {"time":6196.75,"groups":[{"name":"제1 채굴반","op":"idle","status":"정박 대기"},{"name":"경비대","op":"idle","status":"정박 대기"},{"name":"실제 공작반","op":"build","status":"앤빌 산업 거점로 이동 중 (건설)"},{"name":"alloy 공급","op":"haul","status":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음"},{"name":"structure 공급","op":"haul","status":"포지 구조재 공장의 자유 재고 부족 — 예약 자재는 사용하지 않음"},{"name":"machinery 공급","op":"haul","status":"하버 정거장의 자유 재고 부족 — 예약 자재는 사용하지 않음"}],"routes":[{"state":"running","stats":{"loaded":490,"delivered":490,"sold":0,"earned":0,"trips":2,"lost":0,"withdrawn":0},"cursors":{"s70":{"phase":"waiting","lastAction":454.75,"since":6196.75,"attempts":1,"code":"source","reason":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"astra","retryAt":6200.75}}},{"state":"running","stats":{"loaded":10,"delivered":10,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s73":{"phase":"waiting","lastAction":285.5,"since":6194.75,"attempts":1,"code":"source","reason":"포지 구조재 공장의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"p9_forge_works","retryAt":6198.75}}},{"state":"running","stats":{"loaded":8,"delivered":8,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s76":{"phase":"waiting","lastAction":313.25,"since":6194.5,"attempts":1,"code":"source","reason":"하버 정거장의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"p9_harbor_port","retryAt":6198.5}}}]}
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > matches the complete facility price, material and minimum-size table 6ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at S without charging rejected commands 59ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at M without charging rejected commands 17ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at L without charging rejected commands 9ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at XL without charging rejected commands 7ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps yard class separate from minimum size and retains research and prerequisites 4ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > preserves old unsnapshotted plans, their refund and material reservations 24ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > allows an existing S communication facility plan to finish but blocks new ones 1646ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > recovers materials from each facility's actual cost basis, once, and blocks other companies 225ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps c0 pricing and uses the new snapshot for new plans on an unsized growth station 4ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > pre-pays once, refunds an interrupted order, and never buys remotely or charges twice for multiple constructors 48ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > rejects malformed founding names and coordinates before prepayment or cargo changes 8ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > uses actual docked stock within hold capacity, and restores an old already-paid founding order 9ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds a previously paid but already delegated legacy founding order once 17ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > buys at the market, carries a reserved multi-gate shipment through restart, and consumes exactly once 545ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > deduplicates the same purchase request across save/restart and rejects stale or conflicting retries 6ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > rejects non-finite or inherited market items without corrupting credits or stock 5ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > delivers carried cargo directly, accepts only needed material, and refuses another company 22ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > does not accept a delivery order when its only cargo ship has an overriding child order 6ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > retains a shipment when its destination disappears and when its route is cancelled 13ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > returns the plan prepayment and keeps an in-flight shipment when its construction plan is cancelled 155ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds only unused reservations and the remaining paid fraction after work has begun 11ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > uses the existing combat cargo-loss path when a construction carrier is destroyed 21ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > waits with cargo aboard when a completed station is full and resumes once space is freed 222ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > manual site delivery respects a completed station warehouse cap and retains excess aboard 96ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > partial manual delivery immediately withdraws the tracked manifest before a same-tick save and resume 27ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > founding unloads tracked constructor cargo from the paused route immediately 10ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > ordinary partial unloading also withdraws tracked cargo before a paused route can resume 19ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > allocates one partial unload only once across old and new route manifests on the same ship 16ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > persists prepayment, allows retargeting without a second debit, and refunds exactly once on cancellation 5ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds a destroyed constructor’s prepayment after restart without recreating its lost cargo 7ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > keeps prepayment in assessed assets and reconciles the actual debit and refund in server analytics 19ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > keeps company stock and construction reservations separate, and refunds only unworked materials on cancellation 4ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates S with its exact paid foundation plan and capacity 53ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates M with its exact paid foundation plan and capacity 9ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates L with its exact paid foundation plan and capacity 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates XL with its exact paid foundation plan and capacity 14ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > changes foundation escrow by the price difference and refunds the actual paid amount exactly once 5ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > retains old stations and c0 as legacy and gates industrial tiers only on new stations 5ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > rejects inherited and malformed facility identifiers without altering credits or plans 5ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > defaults a new unsized founding command to S while leaving a saved legacy order unchanged 8ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > limits power, resumes production, and never duplicates a batch held by a full warehouse 10ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > suspends instant support and defense on a brownout, then restores them when power is added 13ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > charges only sized stations through the existing upkeep account 9ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > settles the station charge once and retains it over a save and restart 9ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > recovers half the materials once, requires room, and rejects foreign demolition 15ms
+ × tests/p96-stations.test.ts > P9.6 sized stations > snapshots the materials committed to each new facility and recovers half of that cost 20ms
+   → expected { alloy: 500, machinery: 10 } to deeply equal { alloy: 220 }
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > blocks berth overflow without moving or deleting existing ships 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > holds a completed ship build safely until a berth becomes free 4ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > keeps manually unloaded cargo aboard until physical handling finishes, including across restart 98ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > physically transports purchased construction materials across gates and resumes handling after restart 264ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds
+AssertionError: expected 1000 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 1000
+
+ ❯ tests/construction.test.ts:47:31
+     45|     expect(sim.command(p, { c: 'queueModule', station: own.id, kind: '…
+     46|     const m = plan(own, 'yard_s')!;
+     47|     expect(m.reserved!.alloy).toBe(400);               // alloy is sec…
+       |                               ^
+     48|     expect(m.reserved!.machinery).toBe(12);
+     49|     expect(planState(own, m)).toBe('materials');        // …it waits f…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive
+AssertionError: expected 500 to be close to 220, received difference is 280, but expected 5e-7
+ ❯ tests/construction.test.ts:76:31
+     74|     expect(m.reserved!.alloy).toBe(150); expect(own.storage[p].alloy).…
+     75|     own.storage[p].alloy = 500; run(sim, 1);
+     76|     expect(m.reserved!.alloy).toBeCloseTo(220 - (m.used!.alloy), 6);
+       |                               ^
+     77|     run(sim, MODULES.refinery.work / 0.5 + 5);
+     78|     expect(own.modules.some(x => x.kind === 'refinery' && x.built)).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately
+AssertionError: expected '자금 부족 — 54,000 cr 더 필요' to match /자금 부족 — 14,000 cr 더 필요/
+
+- Expected:
+/자금 부족 — 14,000 cr 더 필요/
+
++ Received:
+"자금 부족 — 54,000 cr 더 필요"
+
+ ❯ tests/construction.test.ts:84:83
+     82|     const { sim, p, own } = withStation();
+     83|     sim.st.companies[p].credits = 1000;
+     84|     expect(sim.command(p, { c: 'queueModule', station: own.id, kind: '…
+       |                                                                                   ^
+     85|   });
+     86|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold
+AssertionError: expected 500 to be 220 // Object.is equality
+
+- Expected
++ Received
+
+- 220
++ 500
+
+ ❯ tests/construction.test.ts:93:31
+     91|     for (const k of ['refinery', 'repair', 'warehouse']) expect(sim.co…
+     92|     const [a, b, c] = ['refinery', 'repair', 'warehouse'].map(k => pla…
+     93|     expect(a.reserved!.alloy).toBe(220); expect(b.reserved!.alloy).toB…
+       |                               ^
+     94|     expect(own.storage[p].alloy).toBe(0);
+     95|     // nothing left to sell or to spend elsewhere
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first
+AssertionError: expected 0 to be greater than 0
+ ❯ tests/construction.test.ts:116:18
+    114|     run(sim, 10);
+    115|     const prog = b.progress;
+    116|     expect(prog).toBeGreaterThan(0);
+       |                  ^
+    117|     expect(sim.command(p, { c: 'planOp', station: own.id, plan: b.id!,…
+    118|     own.storage[p].alloy = 100; run(sim, 20);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/construction.test.ts:144:69
+    142|     sim.command(p, { c: 'queueModule', station: own.id, kind: 'refiner…
+    143|     own.storage[p].alloy = 220; run(sim, 240);                        …
+    144|     expect(own.modules.some(x => x.kind === 'refinery' && x.built)).to…
+       |                                                                     ^
+    145|     // now a plan with no alloy: only mined ore refined at this statio…
+    146|     own.storage[p].structure = 10;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/construction.test.ts:167:68
+    165|     expect(o2.modules.map(m => [m.kind, m.id, m.progress, m.reserved?.…
+    166|     run(sim2, 200);
+    167|     expect(o2.modules.some(x => x.kind === 'refinery' && x.built)).toB…
+       |                                                                    ^
+    168|     expect(planState(o2, plan(o2, 'defense')!)).toBe('materials');
+    169|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  tests/p5.test.ts > P5 gameplay chain: research → facility → production → fitting → combat effect → save > works end to end
+AssertionError: expected 0 to be greater than or equal to 2
+ ❯ tests/p5.test.ts:108:43
+    106|     expect(sim.command(p, { c: 'prodOrder', station: own.id, recipe: '…
+    107|     run(sim, 600);
+    108|     expect(qty(own.storage[p], 'optics')).toBeGreaterThanOrEqual(2);
+       |                                           ^
+    109|     expect(sim.command(p, { c: 'prodOrder', station: own.id, recipe: '…
+    110|     expect(sim.command(p, { c: 'prodOrder', station: own.id, recipe: '…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  tests/p96-industrial-flow.test.ts > P9.6 frontier industry > founds an S station, supplies and builds its facilities, mines, refines and ships the product
+Error: facilities: {"time":6196.75,"groups":[{"name":"제1 채굴반","op":"idle","status":"정박 대기"},{"name":"경비대","op":"idle","status":"정박 대기"},{"name":"실제 공작반","op":"build","status":"앤빌 산업 거점로 이동 중 (건설)"},{"name":"alloy 공급","op":"haul","status":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음"},{"name":"structure 공급","op":"haul","status":"포지 구조재 공장의 자유 재고 부족 — 예약 자재는 사용하지 않음"},{"name":"machinery 공급","op":"haul","status":"하버 정거장의 자유 재고 부족 — 예약 자재는 사용하지 않음"}],"routes":[{"state":"running","stats":{"loaded":490,"delivered":490,"sold":0,"earned":0,"trips":2,"lost":0,"withdrawn":0},"cursors":{"s70":{"phase":"waiting","lastAction":454.75,"since":6196.75,"attempts":1,"code":"source","reason":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"astra","retryAt":6200.75}}},{"state":"running","stats":{"loaded":10,"delivered":10,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s73":{"phase":"waiting","lastAction":285.5,"since":6194.75,"attempts":1,"code":"source","reason":"포지 구조재 공장의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"p9_forge_works","retryAt":6198.75}}},{"state":"running","stats":{"loaded":8,"delivered":8,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s76":{"phase":"waiting","lastAction":313.25,"since":6194.5,"attempts":1,"code":"source","reason":"하버 정거장의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"p9_harbor_port","retryAt":6198.5}}}]}
+ ❯ until tests/p96-industrial-flow.test.ts:17:31
+
+ ❯ tests/p96-industrial-flow.test.ts:41:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  tests/p96-stations.test.ts > P9.6 sized stations > snapshots the materials committed to each new facility and recovers half of that cost
+AssertionError: expected { alloy: 500, machinery: 10 } to deeply equal { alloy: 220 }
+
+- Expected
++ Received
+
+  {
+-   "alloy": 220,
++   "alloy": 500,
++   "machinery": 10,
+  }
+
+ ❯ tests/p96-stations.test.ts:170:32
+    168|     expect(f.sim.command(f.p, { c: 'queueModule', station: f.st.id, ki…
+    169|     const facility = f.st.modules.find(m => m.kind === 'refinery')!;
+    170|     expect(facility.materials).toEqual({ alloy: 220 });
+       |                                ^
+    171|     // A facility built under an older cost still returns its own mate…
+    172|     facility.materials = { alloy: 100 }; facility.built = true; facili…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  4 failed | 2 passed (6)
+      Tests  10 failed | 57 passed (67)
+   Start at  01:55:03
+   Duration  39.63s (transform 1.68s, setup 0ms, import 2.65s, tests 35.73s, environment 1ms)

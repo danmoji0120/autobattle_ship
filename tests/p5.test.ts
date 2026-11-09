@@ -85,7 +85,7 @@ describe('P5 gameplay chain: research → facility → production → fitting �
     own.size = 'M';
     give(own, 'power', 'power', 'lab_weapons', 'lab_basic', 'lab_materials', 'lab_electronics', 'fitting', 'reactor_plant', 'yard_s');
     co.tech = [...(co.tech ?? []), 'fire_control', 'research_methods'];
-    stock(own, p, { electronics: 200, crystal: 200, machinery: 100, chemicals: 200, metal: 200, precision: 40, silicon: 100, weapon_parts: 40, alloy: 2000, optics: 0 });
+    stock(own, p, { electronics: 400, crystal: 400, machinery: 100, chemicals: 200, metal: 200, precision: 100, silicon: 100, weapon_parts: 40, alloy: 3500, optics: 0 });
     // research: materials are consumed when it starts; a specialised lab is required for advanced work
     const e0 = qty(own.storage[p], 'electronics');
     expect(sim.command(p, { c: 'research', station: own.id, tech: 'optical_lasers' })).toBeNull();

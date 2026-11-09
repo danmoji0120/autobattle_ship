@@ -1,0 +1,74 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > nine fields, every lab facility covers some, the tree is acyclic and every prerequisite exists 11ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > needs a lab of the right field; credits at registration, materials consumed at start, then the tech is known 11477ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > prerequisites: refused unless known or queued earlier; a queued follow-up waits, then starts by itself 10433ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > parallel projects use separate slots; slot-limited projects queue; power and research techs change speed 1938ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > pause, reorder and cancel (full refund before start, pro-rata after; materials are not returned) 6990ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > unlocks are enforced: facility, recipe and hull design need the tech 1240ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > blueprints: bought from a broker, learned from storage; known techs can be copied into tradeable blueprints 4226ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster 24599ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > projects survive a restart and finish identically 16641ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting 8976ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives 3027ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored 1389ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production 1754ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work 8035ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item 33397ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods 6030ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > hauling: one item, everything, and automatic supply of what the destination lacks 10852ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > own warehouse capacity: unloading stops at the limit and keeps the rest aboard 5852ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > public markets trade the new goods; regional production restocks and pirate pressure slows it 9443ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > production state survives a restart exactly; old saves are upgraded in place 5267ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > player exchange: escrow, purchase, withdrawal, no duplication under competing buyers 3ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > hull classes span the agreed build times and grow in parts, slots and yard size 5ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting 9725ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls 1123ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > designs need research; cancel refunds in full before the keel, partially after (parts are not returned) 5088ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > own facilities never sell finished ships for credits; public yards still sell complete hulls 959ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitting moves modules between ship and storage all-or-nothing, within the hull slots 2648ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitted modules change the tactical ship (hp, armour, speed, accuracy, range, evasion) 7ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > builds survive a restart and finish identically 21543ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice 1394ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard 807ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > full destination and lost leased capacity hold cargo with bounded retries and resume when space returns 767ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo 395ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial market fills conserve currency, survive reload and cannot sell a shipment twice 573ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > construction-reserved inputs stay unavailable until an explicit plan cancellation releases them 523ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply requires existing logistics infrastructure and reserves incoming shipments across fleets 655ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely 2322ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual orders take priority, active state survives reload, and destruction pauses an empty fleet 242ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery 354ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial manual unloading atomically withdraws manifest cargo before same-tick resume and reload 42ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply reservations count only the same company even at a shared public destination 5ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > moving a ship between route fleets pauses both and mixed-ownership bulk requests are atomic 3ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > owns settings on the server, rejects cross-company batches atomically, redacts snapshots and gates c0 10ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts budget-backed trade and player payments as transfers; records only actual money creation/destruction 112ms
+ ✓ tests/analytics.test.ts > authoritative analytics > persists buckets and in-flight research across restart without re-emitting records 81ms
+ ✓ tests/analytics.test.ts > authoritative analytics > compacts old intervals, bounds bytes and metadata, and explicitly reports retention loss 2510ms
+ ✓ tests/analytics.test.ts > authoritative analytics > enforces admin identity and filters all private company data before transmission 15ms
+ ✓ tests/analytics.test.ts > authoritative analytics > collecting statistics does not change c0 or growth simulation state or RNG 1250ms
+ ✓ tests/analytics.test.ts > authoritative analytics > records real research start/pause/completion and actual industry input/output, with no shortened test conditions 28ms
+ ✓ tests/analytics.test.ts > authoritative analytics > does not duplicate player-exchange volume and records seller receipts without exposing the buyer history 17ms
+ ✓ tests/analytics.test.ts > authoritative analytics > retains history while collection is disabled and explicitly reports the unobserved interval on resume 31ms
+ ✓ tests/analytics.test.ts > authoritative analytics > keeps asset assessment unchanged for cargo transfers and listing escrow; analysis queries are read-only 9ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts online time once per company across simultaneous authenticated tabs 42ms
+ ✓ tests/analytics.test.ts > authoritative analytics > separates starting capital from earned cash profit without hiding the real cash balance 5ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > does not alter operating, power, capacity, berth or processing limits 2ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'S' only after the exact on-site materials are delivered 329ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'M' only after the exact on-site materials are delivered 350ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'L' only after the exact on-site materials are delivered 585ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'XL' only after the exact on-site materials are delivered 901ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'S' terms for a saved order before the constructor arrives 13ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'M' terms for a saved order before the constructor arrives 10ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'L' terms for a saved order before the constructor arrives 11ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'XL' terms for a saved order before the constructor arrives 8ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > rejects XL with insufficient funds and settles each change using only the difference 4ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > settles only the difference when a restored old order changes size and refunds it once 4ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > keeps a partially reserved legacy site and its paid amount intact after restore 5ms
+
+ Test Files  6 passed (6)
+      Tests  66 passed (66)
+   Start at  02:07:02
+   Duration  231.28s (transform 1.84s, setup 0ms, import 2.93s, tests 227.13s, environment 1ms)

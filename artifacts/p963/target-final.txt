@@ -1,0 +1,19 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > matches the complete facility price, material and minimum-size table 6ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at S without charging rejected commands 27ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at M without charging rejected commands 11ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at L without charging rejected commands 12ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at XL without charging rejected commands 10ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps yard class separate from minimum size and retains research and prerequisites 4ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > preserves old unsnapshotted plans, their refund and material reservations 23ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > allows an existing S communication facility plan to finish but blocks new ones 1303ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > recovers materials from each facility's actual cost basis, once, and blocks other companies 207ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > assesses existing and newly built facilities on their own cost basis 6ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps c0 pricing and uses the new snapshot for new plans on an unsized growth station 6ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  02:14:50
+   Duration  3.04s (transform 1.04s, setup 0ms, import 1.21s, tests 1.62s, environment 0ms)

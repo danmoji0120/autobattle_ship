@@ -1,7 +1,7 @@
 // A missing size identifies a pre-P9.6 station and keeps its old rules.
 import type { Size } from '../content/schema';
 import type { Module, Station, WorldState } from './types';
-import { FACILITIES } from './industry';
+import { FACILITIES, facilityBuild } from './industry';
 
 export interface StationSizeDef {
   name: string; credits: number; mats: Record<string, number>; work: number;
@@ -33,14 +33,19 @@ export const validStationSize = (v: unknown): v is Size => typeof v === 'string'
 /** A larger slip occupies more of the finite structural footprint. */
 export const facilityCapacity = (kind: string) => kind === 'core' ? 0 : Math.max(1, FACILITIES[kind]?.yard ?? 1);
 export const occupiedCapacity = (st: Pick<Station, 'modules'>) => st.modules.reduce((n, m) => n + facilityCapacity(m.kind), 0);
-export const facilityTier = (kind: string) => FACILITIES[kind]?.yard ?? (['rare_refinery', 'composite_plant', 'engine_plant', 'reactor_plant'].includes(kind) ? 2 : 1);
-export function facilityProblem(st: Station, kind: string): string | null {
-  const size = stationSize(st); if (!size) return null;
-  if (facilityTier(kind) > size.industrialTier) return `${st.size}급 정거장에는 이 규모의 산업 시설을 설치할 수 없습니다`;
+const STATION_RANK: Record<Size, number> = { S: 1, M: 2, L: 3, XL: 4 };
+export const facilityMinStation = (kind: string): Size => FACILITIES[kind]?.minStation ?? 'S';
+export const facilityTier = (kind: string) => STATION_RANK[facilityMinStation(kind)];
+export function facilityProblems(st: Station, kind: string): string[] {
+  const size = stationSize(st); if (!size) return [];
+  const problems: string[] = [];
+  const min = facilityMinStation(kind);
+  if (facilityTier(kind) > size.industrialTier) problems.push(`정거장 규모 부족 — ${STATION_SIZES[min].name}(${min})급 이상 필요`);
   const used = occupiedCapacity(st), need = facilityCapacity(kind);
-  if (used + need > size.capacity) return `시설 용량 부족 (${used}+${need}/${size.capacity})`;
-  return null;
+  if (used + need > size.capacity) problems.push(`시설 용량 부족 (${used}+${need}/${size.capacity})`);
+  return problems;
 }
+export const facilityProblem = (st: Station, kind: string): string | null => facilityProblems(st, kind)[0] ?? null;
 export function stationBerths(st: Station): number | undefined {
   const size = stationSize(st); if (!size) return undefined;
   return Math.min(28, size.berths + st.modules.filter(m => m.built && (m.kind === 'dock' || m.kind === 'hangar')).length * 2);
@@ -58,7 +63,7 @@ export function stationCargoRate(st: Station): number | undefined {
   const docks = st.modules.filter(m => m.built && m.kind === 'dock').length;
   return size.cargoRate * (1 + docks * 0.5);
 }
-export const moduleMaterials = (m: Module): Record<string, number> => m.materials ?? FACILITIES[m.kind]?.mats ?? {};
+export const moduleMaterials = (m: Module): Record<string, number> => m.materials ?? (FACILITIES[m.kind] ? facilityBuild(FACILITIES[m.kind], false).mats : {});
 export const moduleWork = (m: Module): number => m.work ?? FACILITIES[m.kind]?.work ?? 1;
 export function moduleUnlocks(st: Station, kind: string): string {
   const size = stationSize(st);

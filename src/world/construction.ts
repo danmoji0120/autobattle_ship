@@ -17,6 +17,7 @@
 import type { Station, Module, Cargo } from './types';
 import { qty, addc } from './types';
 import { MODULES } from './data';
+import { facilityBuild } from './industry';
 import { moduleMaterials } from './stations';
 
 export type Mat = string;
@@ -32,7 +33,7 @@ export function normPlan(m: Module, id: () => string): Module {
   m.id ??= id();
   m.used ??= Object.fromEntries(Object.entries(moduleMaterials(m)).map(([k, n]) => [k, n * m.progress]));
   m.reserved ??= {};
-  m.paid ??= md.credits;
+  m.paid ??= facilityBuild(md, false).credits;
   m.paused ??= false;
   return m;
 }

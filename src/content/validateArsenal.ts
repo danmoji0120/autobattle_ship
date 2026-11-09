@@ -200,8 +200,13 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     if (!FAC_CATS.includes(f.cat)) err(at, `cat "${f.cat}"`);
     if (f.requires && !fac(f.requires)) err(at, `requires "${f.requires}" 없음`);
     if (f.tech && !tech(f.tech)) err(at, `tech "${f.tech}" 없음`);
+    if (f.minStation !== undefined && !['S', 'M', 'L', 'XL'].includes(f.minStation)) err(at, `minStation "${f.minStation}" 은 S/M/L/XL이어야 함`);
     if (!(f.credits >= 0 && f.work > 0)) err(at, 'credits ≥ 0, work > 0');
     goods(at, f.mats, 'mats', g);
+    if (f.legacyBuild) {
+      if (!(f.legacyBuild.credits >= 0)) err(at, 'legacyBuild.credits ≥ 0');
+      goods(at, f.legacyBuild.mats, 'legacyBuild.mats', g);
+    }
     if (!Object.keys(f.mats).length) err(at, '건설 자재가 없음 (생산시설은 실제 자재가 필요)');
     const makes = [...Object.values(RECIPES), ...Object.values(reg.recipes)].some(r => r.fac === f.kind) || Object.values(reg.arms).some(a => a.recipe.fac === f.kind) || Object.values(reg.modules).some(m => m.recipe.fac === f.kind);
     if (!makes && !f.lab && !f.yard && !f.storage) warn(at, '생산·연구·조선·저장 어느 역할도 없는 시설');

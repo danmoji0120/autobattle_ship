@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "refinery appears in the facility catalog",
+    "refinery price, materials, shortage, size and power match server data",
+    "a shortage leaves registration available",
+    "ineligible medium yard remains visible",
+    "medium yard shows all cost and blocking requirements",
+    "server-ineligible yard action is disabled",
+    "desktop detail stays visible after selecting a lower catalog entry",
+    "mobile details show the M-only communications facility and price",
+    "mobile selection scrolls its details into view",
+    "mobile station screen fits the viewport",
+    "browser emitted no runtime errors"
+  ],
+  "errors": [],
+  "fixture": {
+    "p": "p1",
+    "station": "p963_ui"
+  }
+}

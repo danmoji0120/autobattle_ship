@@ -1,0 +1,11 @@
+PASS refinery appears in the facility catalog
+PASS refinery price, materials, shortage, size and power match server data
+PASS a shortage leaves registration available
+PASS ineligible medium yard remains visible
+PASS medium yard shows all cost and blocking requirements
+PASS server-ineligible yard action is disabled
+PASS desktop detail stays visible after selecting a lower catalog entry
+PASS mobile details show the M-only communications facility and price
+PASS mobile selection scrolls its details into view
+PASS mobile station screen fits the viewport
+PASS browser emitted no runtime errors

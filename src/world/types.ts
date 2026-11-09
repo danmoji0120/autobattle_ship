@@ -224,9 +224,11 @@ export interface WCommander extends Omit<CommanderDef, 'team'> {
 
 export interface Module {
   kind: string; progress: number; built: boolean; slot: number;
-  /** Original inputs for sized-station plans and optional core work. Old plans use facility defaults. */
+  /** Original inputs for new plans and optional core work. Old plans use historical defaults. */
   materials?: Record<string, number>;
   work?: number;
+  /** Identifies a P9.6.3 facility investment for asset valuation. */
+  economy?: 'p963';
   // ── construction plan (unbuilt modules). Queue order = order in Station.modules. ──
   /** stable id for queue commands */
   id?: string;

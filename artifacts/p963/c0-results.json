@@ -1,0 +1,15 @@
+{
+  "baseline": "e55c0f77ce0d3b8904c7a040083aad39a282ecf6",
+  "contentV": 0,
+  "systems": 5,
+  "companies": 2,
+  "constructionCommands": [
+    "refinery",
+    "yard_s"
+  ],
+  "seconds": 1800,
+  "minuteHashesMatched": 30,
+  "hash": "46ae5714fd4f1f0a6a5932fbd569b48d90a99dd139353b3d8bf871159d283dcf",
+  "analyticsActive": true,
+  "reconciliation": 0
+}

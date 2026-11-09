@@ -167,7 +167,7 @@ describe('P9.6 sized stations', () => {
     const f = fixture(); completeCore(f);
     expect(f.sim.command(f.p, { c: 'queueModule', station: f.st.id, kind: 'refinery' })).toBeNull();
     const facility = f.st.modules.find(m => m.kind === 'refinery')!;
-    expect(facility.materials).toEqual({ alloy: 220 });
+    expect(facility.materials).toEqual({ alloy: 500, machinery: 10 });
     // A facility built under an older cost still returns its own materials, not a later definition.
     facility.materials = { alloy: 100 }; facility.built = true; facility.progress = 1;
     expect(f.sim.command(f.p, { c: 'removeModule', station: f.st.id, slot: facility.slot })).toBeNull();

@@ -17,9 +17,9 @@ import { expandFreshWorld } from './worldgen-p9';
 import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from './migrate';
 import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, type ShipFitting } from './fitting';
 import { CONTENT, legacyOf, contentAvail } from '../content/registry';
-import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, matsOf, planMats } from './construction';
+import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
 import { stepProduction, storageCap, stationPower, stationSupportOnline, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
-import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, techFx, fitFx, growthFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
+import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, techFx, fitFx, growthFx, loadoutEquipment, itemPrice as itemPriceOf } from './industry';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
 import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInfluence } from './factions';
 import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot, unlockSummary } from './research';
@@ -762,6 +762,7 @@ export class WorldSim {
       case 'queueModule': {
         const st = S(cmd.station); const md = typeof cmd.kind === 'string' && Object.hasOwn(MODULES, cmd.kind) ? MODULES[cmd.kind] : undefined;
         if (!st || st.owner !== company || !md || (md.growth && !growthOn(this.st))) return '건설 불가';
+        const growth = growthOn(this.st), cost = facilityBuild(md, growth);
         if (md.kind === 'core') return '도킹 허브는 정거장 설립 시 함께 건설됨';
         if (st.modules.length >= MAX_MODULES) return `시설 슬롯 부족 (${st.modules.length}/${MAX_MODULES})`;
         if (md.requires && !st.modules.some(m => m.kind === md.requires)) return `${MODULES[md.requires].name} 필요`;
@@ -769,13 +770,13 @@ export class WorldSim {
         const problem = facilityProblem(st, md.kind); if (problem) return problem;
         if (md.max !== undefined && st.modules.filter(m => m.kind === md.kind).length >= md.max) return md.max === 1 ? '이미 보유하거나 계획된 시설 (정거장당 1개)' : `정거장당 최대 ${md.max}개`;
         // credits are paid now; materials may arrive later — the plan waits for them
-        if (co.credits < md.credits) return `자금 부족 — ${Math.ceil(md.credits - co.credits).toLocaleString()} cr 더 필요`;
-        co.credits -= md.credits;
-        const m = normPlan({ kind: md.kind, progress: 0, built: false, slot: this.freeSlot(st), paid: md.credits, ...(stationSize(st) ? { materials: { ...md.mats } } : {}) }, () => this.id('pl'));
+        if (co.credits < cost.credits) return `자금 부족 — ${Math.ceil(cost.credits - co.credits).toLocaleString()} cr 더 필요`;
+        co.credits -= cost.credits;
+        const m = normPlan({ kind: md.kind, progress: 0, built: false, slot: this.freeSlot(st), paid: cost.credits, ...(growth ? { materials: { ...cost.mats }, economy: 'p963' as const } : {}) }, () => this.id('pl'));
         st.modules.push(m);
         // take what is already in storage right away so the panel shows it immediately
         allocate(st, this.storage(st, company));
-        const short = matsOf(m.kind).filter(r => missing(m, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(m, r))}`);
+        const short = planMats(m).filter(r => missing(m, r) > 1e-6).map(r => `${RES_NAME[r]} ${Math.ceil(missing(m, r))}`);
         this.ev('info', `${st.name}: ${md.name} 건설 계획 등록 — ${short.length ? `자재 대기 (${short.join(', ')} 부족)` : '자재 확보 완료'}`, { company, pos: st.pos, tag: 'build_plan' });
         return null;
       }
@@ -3470,7 +3471,10 @@ export class WorldSim {
     for (const s of Object.values(this.st.ships)) if (s.owner === company) v += shipWorth(this.st, s) * (0.5 + 0.5 * s.hp);
     for (const s of Object.values(this.st.stations)) {
       const store = s.storage[company]; if (store) for (const k of cargoKeys(store)) v += store[k] * itemPriceOf(k);
-      if (s.owner === company) for (const m of s.modules) if (m.built) v += MODULES[m.kind].credits + Object.entries(MODULES[m.kind].mats).reduce((a, [k, n]) => a + n * itemPriceOf(k), 0);
+      if (s.owner === company) for (const m of s.modules) if (m.built) {
+        const md = MODULES[m.kind], cost = m.economy === 'p963' ? { credits: m.paid ?? md.credits, mats: moduleMaterials(m) } : facilityBuild(md, false);
+        v += cost.credits + Object.entries(cost.mats).reduce((a, [k, n]) => a + n * itemPriceOf(k), 0);
+      }
     }
     return Math.round(v);
   }

@@ -1,0 +1,91 @@
+{
+  "seed": 963,
+  "startingCredits": 12000,
+  "stages": {
+    "S": {
+      "size": "S",
+      "facilities": [
+        "warehouse",
+        "refinery"
+      ],
+      "research": [],
+      "credits": 42000,
+      "materials": {
+        "alloy": 1340,
+        "structure": 15,
+        "machinery": 10
+      },
+      "materialsAtBasePrices": 44830
+    },
+    "M": {
+      "size": "M",
+      "facilities": [
+        "lab_basic",
+        "lab_materials",
+        "yard_s",
+        "yard_m"
+      ],
+      "research": [
+        "frigate_design",
+        "medium_hulls"
+      ],
+      "credits": 527000,
+      "materials": {
+        "alloy": 10500,
+        "structure": 540,
+        "electronics": 159,
+        "composite": 50,
+        "machinery": 185,
+        "precision": 4
+      },
+      "materialsAtBasePrices": 418640
+    },
+    "L": {
+      "size": "L",
+      "facilities": [
+        "yard_s",
+        "yard_m",
+        "yard_l"
+      ],
+      "research": [],
+      "credits": 1755000,
+      "materials": {
+        "alloy": 39500,
+        "structure": 3340,
+        "machinery": 1185,
+        "electronics": 310,
+        "composite": 300
+      },
+      "materialsAtBasePrices": 1671950
+    },
+    "XL": {
+      "size": "XL",
+      "facilities": [
+        "yard_s",
+        "yard_m",
+        "yard_l",
+        "yard_xl"
+      ],
+      "research": [],
+      "credits": 8705000,
+      "materials": {
+        "alloy": 132500,
+        "structure": 11940,
+        "machinery": 4035,
+        "electronics": 1310,
+        "composite": 1900,
+        "precision": 350
+      },
+      "materialsAtBasePrices": 5841950
+    }
+  },
+  "freshMarketStock": {
+    "alloy": 18400,
+    "structure": 915,
+    "machinery": 2928,
+    "electronics": 990,
+    "composite": 572,
+    "precision": 285
+  },
+  "marketCaveat": "A single fresh-world stock snapshot, not restock, reachable supply, transaction price or a completion guarantee."
+}

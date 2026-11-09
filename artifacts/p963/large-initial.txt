@@ -1,0 +1,16 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+stdout | tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a L station and its complete yard chain with multi-gate deliveries
+{"size":"L","simulatedSeconds":4674,"needs":{"alloy":39500,"structure":3340,"machinery":1185,"electronics":310,"composite":300},"trips":{"alloy":6,"structure":4,"machinery":4,"electronics":2,"composite":1}}
+
+ ✓ tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a L station and its complete yard chain with multi-gate deliveries 10811ms
+stdout | tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a XL station and its complete yard chain with multi-gate deliveries
+{"size":"XL","simulatedSeconds":13600.5,"needs":{"alloy":132500,"structure":11940,"machinery":4035,"electronics":1310,"composite":1900,"precision":350},"trips":{"alloy":17,"structure":5,"machinery":5,"electronics":4,"composite":2,"precision":1}}
+
+ ✓ tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a XL station and its complete yard chain with multi-gate deliveries 32327ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  02:01:28
+   Duration  45.32s (transform 1.66s, setup 0ms, import 1.92s, tests 43.14s, environment 0ms)

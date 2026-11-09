@@ -1,0 +1,25 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ × tests/p96-industrial-flow.test.ts > P9.6 frontier industry > founds an S station, supplies and builds its facilities, mines, refines and ships the product 23238ms
+   → basic production facilities: {"time":13143.5,"groups":[{"name":"제1 채굴반","op":"idle","status":"정박 대기"},{"name":"경비대","op":"idle","status":"정박 대기"},{"name":"실제 공작반","op":"build","status":"합금 공장 — 자재 대기 (합금 95 부족)"},{"name":"alloy 공급","op":"haul","status":"편도 운송 완료"},{"name":"structure 공급","op":"idle","status":"정박 대기"},{"name":"machinery 공급","op":"idle","status":"정박 대기"},{"name":"기존 자동 채굴선","op":"mine","status":"앤빌 철광대로 이동"},{"name":"alloy 산업 확장 운송","op":"haul","status":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음"},{"name":"machinery 산업 확장 운송","op":"haul","status":"필요 자재 확보 또는 운송 중 — 추가 수요 대기"}],"routes":[{"state":"complete","stats":{"loaded":20,"delivered":20,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s70":{"phase":"complete","lastAction":1143.5}}},{"state":"running","stats":{"loaded":1355,"delivered":1355,"sold":0,"earned":0,"trips":2,"lost":0,"withdrawn":0},"cursors":{"s116":{"phase":"waiting","lastAction":1451.25,"since":13143,"attempts":1,"code":"source","reason":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"astra","retryAt":13147}}},{"state":"running","stats":{"loaded":115,"delivered":115,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s119":{"phase":"waiting","lastAction":1270,"since":13142.25,"attempts":1,"code":"construction","reason":"필요 자재 확보 또는 운송 중 — 추가 수요 대기","station":"st57","retryAt":13146.25}}}]}
+stdout | tests/p963-industrial-progression.test.ts > P9.6.3 medium industrial progression > physically supplies an M station, researches hulls, produces electronics and builds a medium yard
+{"size":"M","simulatedSeconds":14042.5,"sourceFixture":{"alloy":16640,"structure":555,"machinery":395,"electronics":159,"composite":50,"silicon":180,"precision":4,"ore":40,"silicate":40,"crystal":1},"mediumResearch":["frigate_design","medium_hulls"]}
+
+ ✓ tests/p963-industrial-progression.test.ts > P9.6.3 medium industrial progression > physically supplies an M station, researches hulls, produces electronics and builds a medium yard 25109ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p96-industrial-flow.test.ts > P9.6 frontier industry > founds an S station, supplies and builds its facilities, mines, refines and ships the product
+Error: basic production facilities: {"time":13143.5,"groups":[{"name":"제1 채굴반","op":"idle","status":"정박 대기"},{"name":"경비대","op":"idle","status":"정박 대기"},{"name":"실제 공작반","op":"build","status":"합금 공장 — 자재 대기 (합금 95 부족)"},{"name":"alloy 공급","op":"haul","status":"편도 운송 완료"},{"name":"structure 공급","op":"idle","status":"정박 대기"},{"name":"machinery 공급","op":"idle","status":"정박 대기"},{"name":"기존 자동 채굴선","op":"mine","status":"앤빌 철광대로 이동"},{"name":"alloy 산업 확장 운송","op":"haul","status":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음"},{"name":"machinery 산업 확장 운송","op":"haul","status":"필요 자재 확보 또는 운송 중 — 추가 수요 대기"}],"routes":[{"state":"complete","stats":{"loaded":20,"delivered":20,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s70":{"phase":"complete","lastAction":1143.5}}},{"state":"running","stats":{"loaded":1355,"delivered":1355,"sold":0,"earned":0,"trips":2,"lost":0,"withdrawn":0},"cursors":{"s116":{"phase":"waiting","lastAction":1451.25,"since":13143,"attempts":1,"code":"source","reason":"아스트라 자유항의 자유 재고 부족 — 예약 자재는 사용하지 않음","station":"astra","retryAt":13147}}},{"state":"running","stats":{"loaded":115,"delivered":115,"sold":0,"earned":0,"trips":1,"lost":0,"withdrawn":0},"cursors":{"s119":{"phase":"waiting","lastAction":1270,"since":13142.25,"attempts":1,"code":"construction","reason":"필요 자재 확보 또는 운송 중 — 추가 수요 대기","station":"st57","retryAt":13146.25}}}]}
+ ❯ until tests/p96-industrial-flow.test.ts:17:31
+
+ ❯ tests/p96-industrial-flow.test.ts:71:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 1 passed (2)
+   Start at  02:11:02
+   Duration  50.34s (transform 1.27s, setup 0ms, import 1.61s, tests 48.35s, environment 0ms)

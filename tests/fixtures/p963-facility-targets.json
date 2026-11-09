@@ -1,0 +1,381 @@
+{
+  "power": {
+    "credits": 18000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 450,
+      "machinery": 20
+    }
+  },
+  "warehouse": {
+    "credits": 6000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 240,
+      "structure": 15
+    }
+  },
+  "dock": {
+    "credits": 10000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 350,
+      "machinery": 20
+    }
+  },
+  "repair": {
+    "credits": 15000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 400,
+      "machinery": 24
+    }
+  },
+  "habitat": {
+    "credits": 25000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 450,
+      "composite": 30,
+      "electronics": 10
+    }
+  },
+  "refinery": {
+    "credits": 20000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 500,
+      "machinery": 10
+    }
+  },
+  "smelter": {
+    "credits": 30000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 650,
+      "machinery": 25
+    }
+  },
+  "gas_plant": {
+    "credits": 30000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 650,
+      "machinery": 30
+    }
+  },
+  "alloy_plant": {
+    "credits": 50000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 1000,
+      "machinery": 50
+    }
+  },
+  "composite_plant": {
+    "credits": 150000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2000,
+      "machinery": 110,
+      "electronics": 35,
+      "chemicals": 100
+    }
+  },
+  "rare_refinery": {
+    "credits": 200000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2200,
+      "machinery": 120,
+      "electronics": 35,
+      "precision": 12
+    }
+  },
+  "machine_shop": {
+    "credits": 65000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 1200
+    }
+  },
+  "hull_works": {
+    "credits": 80000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 1300,
+      "machinery": 45
+    }
+  },
+  "armor_plant": {
+    "credits": 90000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1600,
+      "machinery": 90
+    }
+  },
+  "electronics_fab": {
+    "credits": 120000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1800,
+      "machinery": 110,
+      "silicon": 180
+    }
+  },
+  "weapons_factory": {
+    "credits": 180000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2400,
+      "machinery": 160,
+      "precision": 40
+    }
+  },
+  "engine_plant": {
+    "credits": 250000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 3000,
+      "machinery": 200,
+      "precision": 60
+    }
+  },
+  "reactor_plant": {
+    "credits": 450000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 5200,
+      "machinery": 260,
+      "electronics": 130
+    }
+  },
+  "yard_s": {
+    "credits": 55000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 1000,
+      "structure": 90,
+      "machinery": 35
+    }
+  },
+  "yard_m": {
+    "credits": 250000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 5500,
+      "structure": 350,
+      "machinery": 150,
+      "electronics": 60
+    }
+  },
+  "yard_l": {
+    "credits": 1200000,
+    "minStation": "L",
+    "mats": {
+      "alloy": 26000,
+      "structure": 2500,
+      "machinery": 850,
+      "composite": 300,
+      "electronics": 250
+    }
+  },
+  "yard_xl": {
+    "credits": 6000000,
+    "minStation": "XL",
+    "mats": {
+      "alloy": 70000,
+      "structure": 7000,
+      "machinery": 2200,
+      "composite": 1600,
+      "electronics": 700,
+      "precision": 350
+    }
+  },
+  "fitting": {
+    "credits": 22000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 400,
+      "machinery": 25
+    }
+  },
+  "hangar": {
+    "credits": 30000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 800,
+      "structure": 70,
+      "machinery": 25
+    }
+  },
+  "armory": {
+    "credits": 35000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 650,
+      "chemicals": 100
+    }
+  },
+  "defense": {
+    "credits": 40000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 900,
+      "weapon_parts": 20
+    }
+  },
+  "lab_basic": {
+    "credits": 30000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 600,
+      "electronics": 20
+    }
+  },
+  "lab_industry": {
+    "credits": 80000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1400,
+      "machinery": 100
+    }
+  },
+  "lab_tactics": {
+    "credits": 85000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1300,
+      "electronics": 50
+    }
+  },
+  "lab_materials": {
+    "credits": 110000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1600,
+      "electronics": 65,
+      "composite": 50
+    }
+  },
+  "lab_propulsion": {
+    "credits": 110000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1500,
+      "electronics": 70,
+      "machinery": 120
+    }
+  },
+  "lab_electronics": {
+    "credits": 130000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1600,
+      "electronics": 120,
+      "silicon": 80
+    }
+  },
+  "lab_weapons": {
+    "credits": 150000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2000,
+      "weapon_parts": 50,
+      "electronics": 80
+    }
+  },
+  "design_bureau": {
+    "credits": 300000,
+    "minStation": "L",
+    "mats": {
+      "alloy": 3200,
+      "electronics": 200,
+      "precision": 80,
+      "composite": 100
+    }
+  },
+  "logistics": {
+    "credits": 24000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 450,
+      "machinery": 25,
+      "electronics": 8
+    }
+  },
+  "trade_hub": {
+    "credits": 30000,
+    "minStation": "S",
+    "mats": {
+      "alloy": 600,
+      "electronics": 30
+    }
+  },
+  "comms": {
+    "credits": 35000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 500,
+      "electronics": 35,
+      "sensor": 2
+    }
+  },
+  "ammo_plant": {
+    "credits": 160000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2000,
+      "machinery": 130,
+      "chemicals": 160
+    }
+  },
+  "energy_fab": {
+    "credits": 240000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2600,
+      "electronics": 120,
+      "precision": 45,
+      "crystal": 60
+    }
+  },
+  "lab_power": {
+    "credits": 170000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2000,
+      "electronics": 100,
+      "crystal": 40
+    }
+  },
+  "lab_ballistics": {
+    "credits": 150000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2000,
+      "weapon_parts": 40,
+      "electronics": 80
+    }
+  },
+  "lab_energy": {
+    "credits": 200000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 2200,
+      "electronics": 120,
+      "crystal": 80,
+      "precision": 30
+    }
+  },
+  "lab_logistics": {
+    "credits": 85000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 1400,
+      "machinery": 70,
+      "electronics": 30
+    }
+  }
+}
