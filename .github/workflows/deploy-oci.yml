@@ -29,6 +29,21 @@ jobs:
           npm run typecheck
           npx vite build
           npm run build:server
+      - name: Verify production DB fail-closed behavior
+        run: |
+          set +e
+          timeout 10s env DATABASE_URL='' SIDERARIUM_REQUIRE_DB=1 \
+            node dist-server/server.mjs > "$RUNNER_TEMP/db-required.log" 2>&1
+          missing_db_exit=$?
+          timeout 10s env DATABASE_URL='postgresql://invalid:invalid@127.0.0.1:1/invalid' \
+            SIDERARIUM_REQUIRE_DB=1 node dist-server/server.mjs \
+            > "$RUNNER_TEMP/db-unavailable.log" 2>&1
+          unavailable_db_exit=$?
+          set -e
+          test "$missing_db_exit" -eq 1
+          test "$unavailable_db_exit" -eq 1
+          grep -Fq 'SIDERARIUM_REQUIRE_DB=1' "$RUNNER_TEMP/db-required.log"
+          grep -Fq '운영 서버 시작 중단' "$RUNNER_TEMP/db-unavailable.log"
       - name: Pack production runtime (not development dependencies)
         run: |
           npm prune --omit=dev
