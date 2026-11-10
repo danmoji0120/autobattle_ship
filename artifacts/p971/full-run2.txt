@@ -1,0 +1,445 @@
+
+> siderarium@0.1.0 test
+> vitest run --maxWorkers=1 --reporter=verbose
+
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips 962ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands 2581ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > every growth hull is its own hull: own silhouette, a standard variant, presets that fit; mk1 hulls are unchanged 3ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > a growth ship maps to its hull + variant: stats multipliers and mesh reach the battle loadout 5ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > large industrial hulls do not dominate: lower efficiency on small fields, big berths, higher cost per throughput 5ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials 65068ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > a player-built ship sold on the exchange: ownership and equipment move, the buyer needs no blueprint or research 30ms
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > own builds check blueprint, research, yard, facilities and materials; the launched ship carries the preset 36528ms
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > blueprints are bought with credits from their source; wreck fragments assemble into one; unique ones are limited 5ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > overhead is flat per ship: splitting a fleet over accounts saves nothing (rev 2) 6ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve 47024ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > reserve and reactivation by command 2965ms
+ ✓ tests/growth.test.ts > growth: finite market demand and station budgets (P4) > dumping ore: price falls to the floor, the budget caps payment, the rest stays stored, budgets recover 16016ms
+ ✓ tests/growth.test.ts > growth: persistence and long automation > stock, listings, blueprints, upkeep and wear survive a restart exactly 3370ms
+ ✓ tests/growth.test.ts > growth: persistence and long automation > a long unattended mining run stays sane: no negative stock or budgets, no NaN, positive net 75303ms
+ ✓ tests/growth.test.ts > growth: persistence and long automation > miners that never dock (a hauler carries their ore) are still maintained: automation is not penalised 65671ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting 8286ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > an order waits with the exact missing input, then starts on its own when it arrives 1789ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > no facility / research / storage full are reported, never silently ignored 1015ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > more instances = more parallel lines; low power slows production 1646ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > stock-target orders keep a level, pause/resume/reorder/cancel work 6576ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > nothing is created or destroyed except by recipes: long mixed run conserves every item 17545ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > fields yield their mixture; miners deliver several goods 6148ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > hauling: one item, everything, and automatic supply of what the destination lacks 10718ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > own warehouse capacity: unloading stops at the limit and keeps the rest aboard 6061ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > public markets trade the new goods; regional production restocks and pirate pressure slows it 9159ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > production state survives a restart exactly; old saves are upgraded in place 4632ms
+ ✓ tests/industry.test.ts > industry: multi-tier production > player exchange: escrow, purchase, withdrawal, no duplication under competing buyers 6ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > nine fields, every lab facility covers some, the tree is acyclic and every prerequisite exists 11ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > needs a lab of the right field; credits at registration, materials consumed at start, then the tech is known 12130ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > prerequisites: refused unless known or queued earlier; a queued follow-up waits, then starts by itself 9870ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > parallel projects use separate slots; slot-limited projects queue; power and research techs change speed 1977ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > pause, reorder and cancel (full refund before start, pro-rata after; materials are not returned) 5433ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > unlocks are enforced: facility, recipe and hull design need the tech 896ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > blueprints: bought from a broker, learned from storage; known techs can be copied into tradeable blueprints 3516ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster 24572ms
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > projects survive a restart and finish identically 16075ms
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > manufacturing adds value: every good is worth more than the inputs of its cheapest recipe 4ms
+ ✓ tests/growth2.test.ts > rev 2: hull prices and production difficulty > price rises steeply with class; small standard hulls stay cheap; the industrial base grows with the tier 5ms
+ ✓ tests/growth2.test.ts > rev 2: public storage > limit + leases: over the limit nothing new comes in, nothing stored is removed; ship holds and leases are the way out 237ms
+ ✓ tests/growth2.test.ts > rev 2: public storage > shared public docks: a crowd of ships is only partly maintained, and the dock recovers over the hour 28361ms
+ ✓ tests/growth2.test.ts > rev 2: exploration > sites are deterministic, found by survey, salvaged into the holds; deep sites can hold unsold blueprints 11861ms
+ ✓ tests/growth2.test.ts > rev 2: c3 → c4 migration > reprices markets, seeds sites, deletes nothing (even storage over the new limits), round-trips and is idempotent 284ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > hull classes span the agreed build times and grow in parts, slots and yard size 3ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting 9183ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls 1011ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > designs need research; cancel refunds in full before the keel, partially after (parts are not returned) 4878ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > own facilities never sell finished ships for credits; public yards still sell complete hulls 914ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitting moves modules between ship and storage all-or-nothing, within the hull slots 2656ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > fitted modules change the tactical ship (hp, armour, speed, accuracy, range, evasion) 3ms
+ ✓ tests/shipyard.test.ts > shipbuilding from parts, yards and fitting > builds survive a restart and finish identically 19279ms
+stdout | tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a L station and its complete yard chain with multi-gate deliveries
+{"size":"L","simulatedSeconds":4674,"needs":{"alloy":39500,"structure":3340,"machinery":1185,"electronics":310,"composite":300},"trips":{"alloy":6,"structure":4,"machinery":4,"electronics":2,"composite":1}}
+
+ ✓ tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a L station and its complete yard chain with multi-gate deliveries 9379ms
+stdout | tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a XL station and its complete yard chain with multi-gate deliveries
+{"size":"XL","simulatedSeconds":13600.5,"needs":{"alloy":132500,"structure":11940,"machinery":4035,"electronics":1310,"composite":1900,"precision":350},"trips":{"alloy":17,"structure":5,"machinery":5,"electronics":4,"composite":2,"precision":1}}
+
+ ✓ tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a XL station and its complete yard chain with multi-gate deliveries 27811ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds 3841ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive 2240ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > credit and material shortfalls are reported separately 898ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold 5035ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first 2040ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > cancel returns reserved materials and refunds credits (in full before work starts) 893ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > miners unloading at the station feed the waiting plan, which then builds itself 15446ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > plans, reservations and progress survive a restart 1704ms
+ ✓ tests/construction.test.ts > station construction: plans, reservations, queue > old saves: an unbuilt module without plan data is migrated without losing paid progress 891ms
+ ✓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > every system carries influence that reflects its situation (lawless: pirates strong; core: Union strong) 71ms
+ ✓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > a lair falls: pirates lose their foothold, Union and guild gain, reconstruction boom and contracts, no rebuild without a foothold 84ms
+ ✓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > pirate raids push pirates up and the guild down; influence drifts back toward the situation 6831ms
+ ✓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > delivery contracts ask for the new goods too, and influence survives a restart 22654ms
+ ✓ tests/mining.test.ts > mining unloading destination > own station + store: ore goes into the PMC storage there, then the miners go back and repeat 10197ms
+ ✓ tests/mining.test.ts > mining unloading destination > refuses to sell at a station without a market (no silent fallback) 1042ms
+ ✓ tests/mining.test.ts > mining unloading destination > automatic destination + sale still works (the quick right-click order) 3052ms
+ ✓ tests/mining.test.ts > mining unloading destination > a vanished destination: warns, holds the ore, never sells it elsewhere; re-targeting resumes 5777ms
+ ✓ tests/mining.test.ts > mining unloading destination > another system’s station is a valid destination (warp + gate routing) 7895ms
+ ✓ tests/mining.test.ts > mining unloading destination > settings survive save / restore 5ms
+stdout | tests/p963-industrial-progression.test.ts > P9.6.3 medium industrial progression > physically supplies an M station, researches hulls, produces electronics and builds a medium yard
+{"size":"M","simulatedSeconds":14042.5,"sourceFixture":{"alloy":16640,"structure":555,"machinery":395,"electronics":159,"composite":50,"silicon":180,"precision":4,"ore":40,"silicate":40,"crystal":1},"mediumResearch":["frigate_design","medium_hulls"]}
+
+ ✓ tests/p963-industrial-progression.test.ts > P9.6.3 medium industrial progression > physically supplies an M station, researches hulls, produces electronics and builds a medium yard 21808ms
+ ✓ tests/p5.test.ts > P5 content is installed and gated > weapons, modules, techs, facilities and recipes are in the game tables, marked growth-only 107ms
+ ✓ tests/p5.test.ts > P5 content is installed and gated > a c0 world refuses P5 research, facilities and recipes; a growth world accepts them 2089ms
+ ✓ tests/p5.test.ts > P5 gameplay chain: research → facility → production → fitting → combat effect → save > works end to end 11265ms
+ ✓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > shields absorb hits first; energy weapons strip them faster than kinetic ones; they regenerate 11ms
+ ✓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > target preference: anti-small weapons prefer escorts, anti-capital weapons ignore raiders 1ms
+ ✓ tests/p5.test.ts > P5 combat: shields, weapon roles, family research > research combat effects: family-scoped damage, global accuracy, shields 1ms
+ ✓ tests/integration-p8-logistics.test.ts > integrated P8, logistics and analytics > runs actual P8 mining with a separate P8 hauler, sells and records real income without currency drift 10086ms
+ ✓ tests/integration-p8-logistics.test.ts > integrated P8, logistics and analytics > supplies real production and exports it with L-berth P8 hulls, preserving ownership and analytics 3834ms
+ ✓ tests/integration-p8-logistics.test.ts > integrated P8, logistics and analytics > round-trips research, construction, P8 build, fitted ships and live route manifests without resubmission 479ms
+ ✓ tests/integration-p8-logistics.test.ts > integrated P8, logistics and analytics > dry-runs a synthetic c0 copy without touching its source and conserves its migration census 683ms
+ ✓ tests/example-pack.test.ts > example content pack (guide §13) > passes the validator, alone on top of its dependencies and in the full registry 257ms
+ ✓ tests/example-pack.test.ts > example content pack (guide §13) > is in the game tables, growth-only, and hidden from a legacy world 1043ms
+ ✓ tests/example-pack.test.ts > example content pack (guide §13) > research → production → fitting → combat → save/reload 7136ms
+ ✓ tests/sim.test.ts > determinism & replay > same seed produces identical state 1090ms
+ ✓ tests/sim.test.ts > determinism & replay > different seeds diverge 620ms
+ ✓ tests/sim.test.ts > determinism & replay > recorded player orders replay exactly 839ms
+ ✓ tests/sim.test.ts > battle flow > scenario kestrel ends with an outcome 499ms
+ ✓ tests/sim.test.ts > battle flow > scenario bastion ends with an outcome 572ms
+ ✓ tests/sim.test.ts > battle flow > scenario wolfpack ends with an outcome 437ms
+ ✓ tests/sim.test.ts > battle flow > default fleet fits the budget and validates 1ms
+ ✓ tests/sim.test.ts > commanders matter > named commanders beat acting captains with identical ships 3808ms
+ ✓ tests/sim.test.ts > commanders matter > a skilled admiral coordinates hammer & anvil (raiders wait for the line) 386ms
+ ✓ tests/sim.test.ts > commanders matter > player orders override delegation and can be released 39ms
+ ✓ tests/sim.test.ts > commanders matter > retreating groups leave the battlefield 288ms
+ ✓ tests/sim.test.ts > damage model > heavy shells penetrate, light rounds ricochet off battleship armor 1ms
+ ✓ tests/sim.test.ts > damage model > rear armor is weaker than the bow 1ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > passwords are stored only as salted scrypt hashes and verified in constant time 1004ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > sign-up validates the login ID and password, rejects duplicates case-insensitively 242ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > login: wrong password and unknown IDs give the same error; throttled after repeated failures 3132ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > sessions expire, slide while used, and end on logout 507ms
+ ✓ tests/accounts.test.ts > accounts: passwords, sessions, recovery > password change signs out every other session; recovery code resets the password once 2265ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > no account → no game: hello asks for login, commands and battle joins are refused 13ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > signed-in account without a PMC creates one exactly once, even with duplicate / concurrent requests 14ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > A and B are fully separated; A cannot touch B by sending B's ids 13ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > restart keeps the account links and every asset; a world reset keeps accounts but asks for a new PMC 146ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > a link whose company does not exist in this world (restored older backup) asks for a PMC instead of failing 4ms
+ ✓ tests/accounts.test.ts > server: accounts own PMCs > legacy browser token carries an old PMC over once, never one that is already linked 14ms
+ ✓ tests/accounts.test.ts > accounts: long-lived game connections > an open connection keeps its session alive past the idle lifetime 364ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice 1404ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard 774ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > full destination and lost leased capacity hold cargo with bounded retries and resume when space returns 755ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo 367ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial market fills conserve currency, survive reload and cannot sell a shipment twice 531ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > construction-reserved inputs stay unavailable until an explicit plan cancellation releases them 478ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply requires existing logistics infrastructure and reserves incoming shipments across fleets 585ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely 1634ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual orders take priority, active state survives reload, and destruction pauses an empty fleet 117ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery 247ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial manual unloading atomically withdraws manifest cargo before same-tick resume and reload 10ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply reservations count only the same company even at a shared public destination 3ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > moving a ship between route fleets pauses both and mixed-ownership bulk requests are atomic 5ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > owns settings on the server, rejects cross-company batches atomically, redacts snapshots and gates c0 11ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > creates four exclusive origins with stable fields, unchanged geography and finite replenishment 73ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > retains a usable starting fleet, basic hull purchase and ordinary mining without rare materials 711ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > finishes already paid batches but requires regional inputs for every new batch after activation 12ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not let already activated development saves use legacyRecipe for stock replenishment 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > rejects a conflicting explicit migration before modifying old fields or orders 3ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > actually mines every authored rare material without inventing or losing mixed cargo 6ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shares one finite deposit between two companies without duplicating rare cargo, including after restore 39ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets four companies independently mine the four different origins in one shared world 11ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > applies cargo compression to miners and their support haulers in regional mining operations only 27ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > preserves a running rare-material batch and a paused second batch over save and resume 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > requires the four regional inputs in the server recipe and snapshots capital build materials 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shows estimated input value separately from old references and executable prices 8ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > values regional assets and fitted materials for assessment without changing old worlds 3ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses the same regional asset reference in storage, cargo and player listings 8ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses real NPC market stock atomically for restricted refits in regional worlds only 7ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not generate restricted weapons through public-yard presets in regional worlds 8ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not start a dreadnought without the actual regional materials, then launches one after restore 36ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > mines Anvil, hauls through gates, processes an alloy and fits a produced armor module 1720ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets a company that mines nothing buy a processed regional material, haul it and manufacture equipment 1787ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle 463ms
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > requires a live allowlisted account, configured scrypt hash, correct password, and rate limits concurrent failures 2153ms
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > revokes on logout, account-password change, lab-password change and removal from the admin allowlist 2815ms
+ ✓ tests/world.test.ts > persistent world > a new PMC starts docked at the free port with a small fleet 11ms
+ ✓ tests/world.test.ts > persistent world > mining orders move ships into the field and turn ore into credits 2070ms
+ ✓ tests/world.test.ts > persistent world > rejects commands on other companies’ assets and invalid orders 4ms
+ ✓ tests/world.test.ts > persistent world > a constructor founds a station and builds its docking hub 942ms
+ ✓ tests/world.test.ts > persistent world > pirate encounters become battles whose results persist on the PMC 501ms
+ ✓ tests/world.test.ts > persistent world > save/load round-trips the world, including a battle in progress 482ms
+ ✓ tests/world.test.ts > authoritative server > two clients share one world, own separate PMCs and reconnect by token 39ms
+ ✓ tests/world.test.ts > authoritative server > battle orders are stamped ahead and replay deterministically on clients 735ms
+ ✓ tests/content.test.ts > content registry (P1) > the shipped packs and public/assets/content validate without errors or warnings 126ms
+ ✓ tests/content.test.ts > content registry (P1) > every old class/loadout maps to a hull, variant and preset that rebuild exactly the same ship 3ms
+ ✓ tests/content.test.ts > content registry (P1) > hardpoint compatibility rules 1ms
+ ✓ tests/content.test.ts > content registry (P1) > variant layouts add and remove hardpoints without touching the hull 81ms
+ ✓ tests/content.test.ts > content registry (P1) > the validator rejects broken content 906ms
+ ✓ tests/content.test.ts > content registry (P1) > asset registration: directory, extension, target, size, missing and unregistered files 137ms
+ ✓ tests/content.test.ts > content save migration (P1) > fills hull + variant on every ship, conserves every asset, is idempotent and round-trips 723ms
+ ✓ tests/content.test.ts > content save migration (P1) > census catches duplicated or lost equipment unless the migration recorded it as granted 526ms
+ ✓ tests/content.test.ts > content save migration (P1) > dry-run mode leaves an old save untouched; new ships stay unmarked until the migration is applied 473ms
+ ✓ tests/content.test.ts > content save migration (P1) > rollback and roll forward: ships created by the previous code version are repaired on load 462ms
+ ✓ tests/content.test.ts > content save migration (P1) > refits and new builds keep hull/variant in step with the loadout 5ms
+ ✓ tests/content.test.ts > Codex content guide (docs/CODEX_CONTENT_GUIDE.md §3) > the example pack in the guide validates, and is usable by the fitting rules 89ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts budget-backed trade and player payments as transfers; records only actual money creation/destruction 65ms
+ ✓ tests/analytics.test.ts > authoritative analytics > persists buckets and in-flight research across restart without re-emitting records 20ms
+ ✓ tests/analytics.test.ts > authoritative analytics > compacts old intervals, bounds bytes and metadata, and explicitly reports retention loss 1890ms
+ ✓ tests/analytics.test.ts > authoritative analytics > enforces admin identity and filters all private company data before transmission 16ms
+ ✓ tests/analytics.test.ts > authoritative analytics > collecting statistics does not change c0 or growth simulation state or RNG 1358ms
+ ✓ tests/analytics.test.ts > authoritative analytics > records real research start/pause/completion and actual industry input/output, with no shortened test conditions 24ms
+ ✓ tests/analytics.test.ts > authoritative analytics > does not duplicate player-exchange volume and records seller receipts without exposing the buyer history 12ms
+ ✓ tests/analytics.test.ts > authoritative analytics > retains history while collection is disabled and explicitly reports the unobserved interval on resume 35ms
+ ✓ tests/analytics.test.ts > authoritative analytics > keeps asset assessment unchanged for cargo transfers and listing escrow; analysis queries are read-only 8ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts online time once per company across simultaneous authenticated tabs 51ms
+ ✓ tests/analytics.test.ts > authoritative analytics > separates starting capital from earned cash profit without hiding the real cash balance 6ms
+ ✓ tests/p96-industrial-flow.test.ts > P9.6 frontier industry > founds an S station, supplies and builds its facilities, mines, refines and ships the product 4064ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > exposes all usable hulls and variants and excludes developer fixtures 9ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > uses the requested standard ships, equal commanders, no bonuses and full starting hull 18ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > applies real fitting validation and each side’s separate weapons and internal equipment 26ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > rejects invalid imports, developer hulls, wrong content identity and invalid research 9ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > is deterministic per seed, supports swapped placement and aggregates the real outcomes 99ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > aggregates 1,000 real engine runs without a fleet budget 3165ms
+ ✓ tests/dev1-combat.test.ts > DEV-1 local combat experiments > enforces a custom engine time limit and preserves the separate PMC world 26ms
+ ✓ tests/p9-world.test.ts > P9 authored world > creates a unique connected 22-system graph with matching reciprocal gates and spatial ownership 48ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps system lookup correct after records are added, removed, replaced or reindexed 5ms
+ ✓ tests/p9-world.test.ts > P9 authored world > keeps the five original systems and assets, and never expands an existing c0 or growth save 15ms
+ ✓ tests/p9-world.test.ts > P9 authored world > is deterministic and persists surveyed sites and player assets without recreating or moving them 17ms
+ ✓ tests/p9-world.test.ts > P9 authored world > continues the same seeded P9 simulation after saving and restoring 638ms
+ ✓ tests/p9-world.test.ts > P9 authored world > creates regional demand, finite mining budgets and real industrial conversion without changing legacy prices 5ms
+ ✓ tests/p9-world.test.ts > P9 authored world > chooses actual nearby jump routes and a market that buys the mined goods 6ms
+ ✓ tests/p9-world.test.ts > P9 authored world > replicates the same expanded world to two independent multiplayer clients and restores it 30ms
+ ✓ tests/p9-world.test.ts > P9 authored world > permits a real station foundation in an initially empty frontier system 15ms
+ ✓ tests/p9-world.test.ts > P9 authored world > runs the existing bounded pirate and trader AI in the new regions 35ms
+ ✓ tests/p9-world.test.ts > P9 authored world > does not populate empty and frontier systems with settled-lane rogues when security is raised 2ms
+ ✓ tests/p9-world.test.ts > P9 authored world > moves an actual fleet to the distant lawless endpoint and back through eight gates 320ms
+ ✓ tests/p9-world.test.ts > P9 authored world > repeats a four-jump freight route, recovers after a gate outage and reloads the in-flight manifest 713ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > new player ships carry a fitting equal to their preset; NPC ships stay on legacy loadouts 572ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > rejects wrong size, type, mount, power, mass, unknown slots/items, foreign or undocked ships — and changes nothing 11ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > mount styles are enforced (torpedo tubes do not go on spinal mounts) 0ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > every legacy module set still fits every legacy preset, and the bays never allow more than the old slots 514ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > fit and unfit move items between ship and storage, all or nothing, over many cycles 12ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > two ships cannot share one stored item 4ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > public stations sell missing items only when asked, at 1.2× price, and only researched ones 5ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > own facilities never sell items; they use storage only and charge nothing 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > legacy refit and fitShip commands translate to V2 fittings with the same conservation 4ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > company presets: save, overwrite by name, limit, delete; invalid fittings are not saved 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > ships launched from an own yard get a fitting with the built modules 3ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > for all 25 presets, the fitting spec builds the identical ship and the identical battle 454ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > a custom fitting changes the ship in battle (weapons, arcs, structure) 8ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > the world battle setup passes the fitting to the combat engine for player ships 5ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > 3D model turrets sit exactly on the fitted hardpoints 283ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > turns loadouts + modules into fittings, records conversions, conserves every item 331ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > a module with no bay (corrupt old save) goes to storage, never disappears 319ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > dry-run (migrateContent:false) on a contentV 0 save keeps the legacy path: no fittings, legacy commands work 222ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > rollback to older code and forward again: ships the old code refitted are rebuilt from their loadout 233ms
+ ✓ tests/fitting.test.ts > fitting V2: hostile input > prototype keys and junk are rejected without side effects 6ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > does not alter operating, power, capacity, berth or processing limits 8ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'S' only after the exact on-site materials are delivered 462ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'M' only after the exact on-site materials are delivered 441ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'L' only after the exact on-site materials are delivered 446ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > pre-pays and completes 'XL' only after the exact on-site materials are delivered 761ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'S' terms for a saved order before the constructor arrives 14ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'M' terms for a saved order before the constructor arrives 9ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'L' terms for a saved order before the constructor arrives 8ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > preserves P9.6 'XL' terms for a saved order before the constructor arrives 8ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > rejects XL with insufficient funds and settles each change using only the difference 3ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > settles only the difference when a restored old order changes size and refunds it once 4ms
+ ✓ tests/p962-core-economy.test.ts > P9.6.2 station foundation terms > keeps a partially reserved legacy site and its paid amount intact after restore 4ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > sells the real hulls at their declared yards and carries their fitted models into battle and saves 76ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > acquires blueprints, enforces research and builds the five hulls with real parts and presets 2158ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > keeps growth content out of c0 and retains industrial tradeoffs 6ms
+ ✓ tests/p8-ships.test.ts > P8 production ships > fires the fitted weapons from each new combat hull in an actual battle simulation 83ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > inspects the fixture GLBs: structure, size, markers 10ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > the shipped content (with the fixtures) validates clean, hashes pinned 148ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > reports missing files, changed files, broken files and bad axes 421ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > checks hp_ markers against the hardpoint data 64ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > keeps test fixtures off real hulls and models off the legacy (core) hulls 184ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > carries the model id to both renderers (render-only) 106ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > dev hulls cannot be bought, built or listed 8ms
+ ✓ tests/model-pipeline.test.ts > model pipeline (P8) > a legacy (c0) world never meets a model 362ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > ladder: small hulls affordable at the start, steep from destroyers up, differentiated within a class 8ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > NPC supply keeps its established economic tiers after yard requirements change 35ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > no recipe loop multiplies goods: every cycle in the recipe graph loses units 3ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > market: buying and selling the same goods back always loses money; nothing is created 12ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > ship trade conserves value: the buyer pays, the seller gets it less tax, the ship and its fit move intact 4ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > own builds pay labour + the yard fee; cancelling before the keel refunds exactly that and nothing more 1633ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > a c0 world keeps its old build rules (no growth industrial base for legacy builds) 5ms
+ ✓ tests/econ-baseline.test.ts > economy baseline c4-b1 > manufactured goods never sell below their raw inputs (no value destroyed by industry) 1ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > matches the complete facility price, material and minimum-size table 12ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at S without charging rejected commands 54ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at M without charging rejected commands 11ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at L without charging rejected commands 10ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > enforces every facility minimum at XL without charging rejected commands 10ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps yard class separate from minimum size and retains research and prerequisites 6ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > preserves old unsnapshotted plans, their refund and material reservations 37ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > allows an existing S communication facility plan to finish but blocks new ones 1622ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > recovers materials from each facility's actual cost basis, once, and blocks other companies 231ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > assesses existing and newly built facilities on their own cost basis 6ms
+ ✓ tests/p963-facility-economy.test.ts > P9.6.3 facility costs and installation rules > keeps c0 pricing and uses the new snapshot for new plans on an unsized growth station 5ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > pre-pays once, refunds an interrupted order, and never buys remotely or charges twice for multiple constructors 48ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > rejects malformed founding names and coordinates before prepayment or cargo changes 7ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > uses actual docked stock within hold capacity, and restores an old already-paid founding order 8ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds a previously paid but already delegated legacy founding order once 16ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > buys at the market, carries a reserved multi-gate shipment through restart, and consumes exactly once 450ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > deduplicates the same purchase request across save/restart and rejects stale or conflicting retries 6ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > rejects non-finite or inherited market items without corrupting credits or stock 2ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > delivers carried cargo directly, accepts only needed material, and refuses another company 13ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > does not accept a delivery order when its only cargo ship has an overriding child order 3ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > retains a shipment when its destination disappears and when its route is cancelled 11ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > returns the plan prepayment and keeps an in-flight shipment when its construction plan is cancelled 147ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds only unused reservations and the remaining paid fraction after work has begun 14ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > uses the existing combat cargo-loss path when a construction carrier is destroyed 19ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > waits with cargo aboard when a completed station is full and resumes once space is freed 187ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > manual site delivery respects a completed station warehouse cap and retains excess aboard 69ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > partial manual delivery immediately withdraws the tracked manifest before a same-tick save and resume 16ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > founding unloads tracked constructor cargo from the paused route immediately 7ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > ordinary partial unloading also withdraws tracked cargo before a paused route can resume 18ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > allocates one partial unload only once across old and new route manifests on the same ship 17ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > persists prepayment, allows retargeting without a second debit, and refunds exactly once on cancellation 4ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > refunds a destroyed constructor’s prepayment after restart without recreating its lost cargo 8ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > keeps prepayment in assessed assets and reconciles the actual debit and refund in server analytics 16ms
+ ✓ tests/p95-construction-logistics.test.ts > P9.5 construction logistics > keeps company stock and construction reservations separate, and refunds only unworked materials on cancellation 4ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > shipless zero-credit 45cr/h accounts owe exactly 45 after one hour for every caller interval, then stop charging without losing goods 484ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > retains sub-credit debt, never overdraws, and partial payment does not reset the grace period 122ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > complete mid-period payment clears the old grace period; a later unpaid interval starts a new one 82ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > first-hour prepayment is charged once; the next unpaid hour terminates at 7200 and survives reload 95ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > independent prepayments, mid-period returns and changes flush only actual elapsed usage 66ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > rational remainders persist across repeated serialization and mixed tick lengths without changing total charges 70ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > legacy known accrued rent and fractional debt migrate exactly once without retroactive prepay assumptions 8ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > over-cap stored goods can be sold; proceeds repay debt first with gross transfer and repayment recorded separately 64ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > player goods and ship sales also prioritize arrears without charging the buyer twice 7ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > sale repayment and rent preserve identical state with collection disabled/enabled and reconcile real cash 293ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > records payment of the smallest fixed-point obligation instead of filtering it as rounding noise 3ms
+ ✓ tests/lease-policy.test.ts > approved exact warehouse arrears policy > c0 upkeep and arrears commands leave legacy gameplay unchanged 4ms
+stdout | tests/fleetmarch.test.ts > fleet moves as one > 17-ship mixed fleet crosses two jump gates and arrives together (no ship runs ahead)
+arrival window 0 s, max in-flight spread 597 u, total 61 s
+
+ ✓ tests/fleetmarch.test.ts > fleet moves as one > 17-ship mixed fleet crosses two jump gates and arrives together (no ship runs ahead) 455ms
+stdout | tests/fleetmarch.test.ts > fleet moves as one > attack: the fleet stages, assembles, then the whole fleet enters the battle together
+phases transit→ready→engage ships in the first battle: 17
+
+ ✓ tests/fleetmarch.test.ts > fleet moves as one > attack: the fleet stages, assembles, then the whole fleet enters the battle together 511ms
+stdout | tests/fleetmarch.test.ts > fleet moves as one > an explicitly detached vanguard moves on its own, ahead of the main body
+vanguard 39 s, main body 60 s
+
+ ✓ tests/fleetmarch.test.ts > fleet moves as one > an explicitly detached vanguard moves on its own, ahead of the main body 351ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > fights are resolved by the tactical engine, not a coin flip 2ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > a spectator replay reproduces the server result exactly: winner and every ship lost 145ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > two spectators get identical simulations (same tick, same positions) 71ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > battle ships move on the strategic map while fighting (mirrored from the engine) 738ms
+ ✓ tests/npcbattle.test.ts > NPC battles: live, deterministic, replayable > the battle record survives a save/restore 41ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > returns 81,850 exactly once, blocks intake and exploits, survives restart, and resumes after physical outbound freight 529ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > allows a net-consuming production batch during overflow and holds output until physical space is available 8ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > does not bypass an overflowing warehouse through ship refitting or warehouse removal 6ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > keeps return space for sale listings so repeated listing and withdrawal cannot add outside cargo 3ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > does not refill construction stock hidden in the owner's sale listing 21ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > protects public-warehouse listing returns without charging another company for the space 3ms
+ ✓ tests/p9631-cargo-safety.test.ts > P9.6.3.1 construction overflow safety > preserves an unsized growth station and protects its existing overflow without changing its old capacity 2ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates S with its exact paid foundation plan and capacity 48ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates M with its exact paid foundation plan and capacity 14ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates L with its exact paid foundation plan and capacity 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > creates XL with its exact paid foundation plan and capacity 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > changes foundation escrow by the price difference and refunds the actual paid amount exactly once 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > retains old stations and c0 as legacy and gates industrial tiers only on new stations 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > rejects inherited and malformed facility identifiers without altering credits or plans 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > defaults a new unsized founding command to S while leaving a saved legacy order unchanged 6ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > limits power, resumes production, and never duplicates a batch held by a full warehouse 6ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > suspends instant support and defense on a brownout, then restores them when power is added 6ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > charges only sized stations through the existing upkeep account 5ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > settles the station charge once and retains it over a save and restart 6ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > recovers half the materials once, requires room, and rejects foreign demolition 7ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > snapshots the materials committed to each new facility and recovers half of that cost 3ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > blocks berth overflow without moving or deleting existing ships 4ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > holds a completed ship build safely until a berth becomes free 6ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > keeps manually unloaded cargo aboard until physical handling finishes, including across restart 59ms
+ ✓ tests/p96-stations.test.ts > P9.6 sized stations > physically transports purchased construction materials across gates and resumes handling after restart 228ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings 20ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently sells a confirmed request even across reload, without selling a second lot 22ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > records only successful sale requests, isolates companies and rejects conflicts and stale sequences 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > preserves the unsold portion and retries an idempotent partial sale at the actual station budget 3ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently purchases a partial player listing without charging or delivering twice 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not buy another NPC ship when the same successful request is retried 6ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > replays a ship handoff acknowledgement and rejects an orphan sale before charging 8ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not transfer a seller’s fractional cargo with a newly listed or legacy listed ship 7ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects a corrupt ship-listing price without paying a buyer or taking the seller’s ship 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > registers and withdraws the same escrow request only once, including after save and restore 7ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects invalid legacy listings before money or goods move 3ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal 5ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > preserves credits, market stock and goods for a failed purchase and makes normal trades exactly once 5ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not charge for a full warehouse or hold, and only delivers to an owned ship at the market 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > acknowledges authoritative trades and sends each company only its own inventory and receipts 23ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > partially unloads only available warehouse room and never takes another company’s cargo 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > never loads past a ship’s remaining capacity when it already contains fractional cargo 9ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > transports owned blueprint fragments without inventing or losing records 85ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > physically collects the buyer-owned goods from a private exchange without general docking access 110ms
+ ✓ tests/dev11-combat.test.ts > DEV-1.1 hierarchical local experiment > lets a lone raider be targeted and fired upon by torpedoes 15ms
+ ✓ tests/dev11-combat.test.ts > DEV-1.1 hierarchical local experiment > prefers line ships to raiders for torpedoes, except on explicit focus orders 6ms
+ ✓ tests/dev11-combat.test.ts > DEV-1.1 hierarchical local experiment > migrates a DEV-1 setting without losing rows, fitting, quantities, commander or deterministic execution 138ms
+ ✓ tests/dev11-combat.test.ts > DEV-1.1 hierarchical local experiment > migrates several legacy rows and preserves quantities, fitted modules, research and custom commander stats 5ms
+ ✓ tests/dev11-combat.test.ts > DEV-1.1 hierarchical local experiment > passes independent commanders, commands and retreat thresholds through every actual engine group 48ms
+ ✓ tests/dev11-combat.test.ts > DEV-1.1 hierarchical local experiment > isolates copied sides and rejects excessive fleets, cycles, and malformed imports 10ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > scalar fast path preserves every quantity and event count across snapshots and restart 56ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > byte pressure compresses old frames before expiring their flow history 143ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > fallback observers receive independent immutable scalar events 6ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 1 yard, without charging rejections 55ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 2 yard, without charging rejections 11ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 3 yard, without charging rejections 17ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 4 yard, without charging rejections 14ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > separates XL yard research from ship-specific research, blueprints and industry 13ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > retains the original c0 XL yard prerequisite and its research descriptions 5ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old battleship_mk1 orders (battleship_std, tier 3) and launches each exactly once 30ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_l orders (miner_l_std, tier 2) and launches each exactly once 17ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_xl orders (miner_xl_std, tier 3) and launches each exactly once 28ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its required parts 10ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered hauler_xl with its required parts 7ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > still allows complete hulls to be bought without production rights, research or factories 6ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > lets another company buy a completed player-owned battleship and leave without its blueprint 7ms
+ ✓ tests/storage-stability.test.ts > storage stability > prepaid first hour, independently added blocks, release and reload never bill twice 106ms
+ ✓ tests/storage-stability.test.ts > storage stability > legacy leases accrue without inventing prepayments; arrears and released inventory survive 25ms
+ ✓ tests/storage-stability.test.ts > storage stability > automatic delivery rejects full or unaffordable markets, retains cargo with one warning, resumes when space opens 12ms
+ ✓ tests/storage-stability.test.ts > storage stability > battle recovery overflow remains conserved and is deposited exactly once after save/reload 8ms
+ ✓ tests/storage-stability.test.ts > storage stability > unfinished cores accept only missing construction materials and preserve legacy overstock across completion 6ms
+ ✓ tests/storage-stability.test.ts > storage stability > preserves fractional sale leftovers and stores blueprint records without consuming warehouse space 5ms
+ ✓ tests/storage-stability.test.ts > storage stability > a new child mining order inspects the child cargo instead of an unrelated inherited parent operation 5ms
+ ✓ tests/security.test.ts > security map field > matches secAt everywhere in every system (heat, dead lair, player defences) 140ms
+ ✓ tests/p9632-trade-client.test.ts > retry-safe trade client > reuses an unacknowledged sell after browser and server restart 42ms
+ ✓ tests/p9632-trade-client.test.ts > retry-safe trade client > reuses an unacknowledged buyListing after browser and server restart 13ms
+ ✓ tests/p9632-trade-client.test.ts > retry-safe trade client > coalesces double-clicked listings and safely retries a lost withdrawal acknowledgement 10ms
+ ✓ tests/p9632-trade-client.test.ts > retry-safe trade client > retries an unacknowledged buyShip without buying another ship 9ms
+ ✓ tests/p9632-trade-client.test.ts > retry-safe trade client > retries an unacknowledged buyShipListing without buying another ship 7ms
+ ✓ tests/p95-purchase-client.test.ts > construction-material market purchase retries > reuses an unacknowledged purchase after a browser reload without a second debit or delivery 46ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > gives each P9 system a stable distinct point without changing saved maps or gates 21ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > uses saved coordinates for legacy and unknown systems rather than forcing the P9 projection 5ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > highlights only a real shortest gate path and clears it when a choke is disconnected 4ms
+ ✓ tests/galaxy-map.test.ts > galaxy chart projection > keeps unrelated gate lines from crossing like an unmarked interchange 7ms
+ ✓ tests/p961-comms.test.ts > sensor and communications facility > remains a completed-facility requirement for 'destroyer_picket_cmd' 47ms
+ ✓ tests/p961-comms.test.ts > sensor and communications facility > remains a completed-facility requirement for 'cruiser_vigil_command' 7ms
+stdout | tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.2s)
+interval 0.2s: backwards frames old=169 new=0
+
+stdout | tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.5s)
+interval 0.5s: backwards frames old=84 new=0
+
+ ✓ tests/interp.test.ts > client interpolation > the recorded path really exercises sublight, warp and drop-out 2ms
+ ✓ tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.2s) 30ms
+ ✓ tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.5s) 8ms
+ ✓ tests/interp.test.ts > client interpolation > stays close to the true path (bounded lag, no drift) 3ms
+ ✓ tests/p95-yard-equivalence.test.ts > public yard restocking does not calculate unrelated prices > keeps the same eligible hulls, stock limits and restock periods as the full sale definitions 20ms
+ ✓ tests/p95-yard-equivalence.test.ts > public yard restocking does not calculate unrelated prices > reads current content values instead of caching mutable stock limits 0ms
+ ↓ tests/dev1-pg.test.ts > DEV-1 disposable PostgreSQL account authentication > uses existing PostgreSQL account sessions without persisting lab grants; restart and password change revoke access
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > a failing migration rolls back completely: world, generation and backup rows untouched
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an in-flight managed route and its exact manifest through PostgreSQL process restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves P9.5 founding escrow, purchase receipts and a construction shipment through PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a sized station, a running production batch and pending physical cargo handling through PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an old-tier ship plan, a new-tier snapshot and returned overflow across PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves committed trade identity and inventory across PostgreSQL process restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves regional deposits, company inventories and running special production across PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a paid legacy batch but applies regional inputs to the next stock batch
+
+ Test Files  48 passed | 2 skipped (50)
+      Tests  397 passed | 12 skipped (409)
+   Start at  02:03:42
+   Duration  825.08s (transform 2.74s, setup 0ms, import 14.10s, tests 803.02s, environment 7ms)

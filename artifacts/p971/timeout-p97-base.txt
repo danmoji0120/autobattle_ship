@@ -1,0 +1,31 @@
+
+ RUN  v4.0.18 /workspace/scratch/siderarium-p97-original
+
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > nine fields, every lab facility covers some, the tree is acyclic and every prerequisite exists
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > needs a lab of the right field; credits at registration, materials consumed at start, then the tech is known
+ ✓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > prerequisites: refused unless known or queued earlier; a queued follow-up waits, then starts by itself 9879ms
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > parallel projects use separate slots; slot-limited projects queue; power and research techs change speed
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > pause, reorder and cancel (full refund before start, pro-rata after; materials are not returned)
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > unlocks are enforced: facility, recipe and hull design need the tech
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > blueprints: bought from a broker, learned from storage; known techs can be copied into tradeable blueprints
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster
+ ↓ tests/research.test.ts > research: labs, prerequisites, consumption, parallel projects, unlocks, blueprints, salvage > projects survive a restart and finish identically
+ ↓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > every system carries influence that reflects its situation (lawless: pirates strong; core: Union strong)
+ ↓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > a lair falls: pirates lose their foothold, Union and guild gain, reconstruction boom and contracts, no rebuild without a foothold
+ ↓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > pirate raids push pirates up and the guild down; influence drifts back toward the situation
+ ✓ tests/factions.test.ts > persistent NPC world: faction influence, lair destruction changes the region > delivery contracts ask for the new goods too, and influence survives a restart 22074ms
+ ✓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > requires a live allowlisted account, configured scrypt hash, correct password, and rate limits concurrent failures 2290ms
+ ↓ tests/dev1-auth.test.ts > DEV-1 server-side developer grants > revokes on logout, account-password change, lab-password change and removal from the admin allowlist
+ ↓ tests/world.test.ts > persistent world > a new PMC starts docked at the free port with a small fleet
+ ↓ tests/world.test.ts > persistent world > mining orders move ships into the field and turn ore into credits
+ ↓ tests/world.test.ts > persistent world > rejects commands on other companies’ assets and invalid orders
+ ✓ tests/world.test.ts > persistent world > a constructor founds a station and builds its docking hub 1014ms
+ ↓ tests/world.test.ts > persistent world > pirate encounters become battles whose results persist on the PMC
+ ↓ tests/world.test.ts > persistent world > save/load round-trips the world, including a battle in progress
+ ↓ tests/world.test.ts > authoritative server > two clients share one world, own separate PMCs and reconnect by token
+ ↓ tests/world.test.ts > authoritative server > battle orders are stamped ahead and replay deterministically on clients
+
+ Test Files  4 passed (4)
+      Tests  4 passed | 19 skipped (23)
+   Start at  02:18:03
+   Duration  37.45s (transform 1.12s, setup 0ms, import 1.54s, tests 35.27s, environment 0ms)
