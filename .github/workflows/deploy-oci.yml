@@ -56,9 +56,40 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  preflight:
+    name: Validate Oracle SSH, DB, and HTTPS (read-only)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      OCI_HOST: ${{ vars.OCI_HOST }}
+      OCI_SSH_USER: ${{ vars.OCI_SSH_USER }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure strictly verified SSH
+        env:
+          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
+        run: |
+          test -n "$OCI_HOST"
+          test -n "$OCI_SSH_USER"
+          test -n "$OCI_SSH_PRIVATE_KEY"
+          test -n "$OCI_SSH_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/oci_deploy_key"
+          chmod 600 "$HOME/.ssh/oci_deploy_key"
+          printf '%s\n' "$OCI_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+      - name: Read-only Oracle checks
+        run: |
+          ssh -i "$HOME/.ssh/oci_deploy_key" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o ConnectTimeout=15 \
+            "${OCI_SSH_USER}@${OCI_HOST}" 'bash -se' \
+            < deploy/oci/preflight.sh
+
   deploy:
     name: Activate release on Oracle
-    needs: build
+    needs: [build, preflight]
     if: ${{ vars.OCI_DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
