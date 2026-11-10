@@ -1,0 +1,84 @@
+name: SIDERARIUM - Oracle production
+
+on:
+  push:
+    branches:
+      - deploy/production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: siderarium-oci-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build release on GitHub
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Build the client and server
+        run: |
+          npm ci
+          npm run typecheck
+          npx vite build
+          npm run build:server
+      - name: Pack production runtime (not development dependencies)
+        run: |
+          npm prune --omit=dev
+          tar -czf "$RUNNER_TEMP/siderarium-release.tar.gz" \
+            dist dist-server node_modules package.json package-lock.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: siderarium-release
+          path: ${{ runner.temp }}/siderarium-release.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Activate release on Oracle
+    needs: build
+    if: ${{ vars.OCI_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      OCI_HOST: ${{ vars.OCI_HOST }}
+      OCI_SSH_USER: ${{ vars.OCI_SSH_USER }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: siderarium-release
+          path: ${{ runner.temp }}/siderarium-artifact
+      - name: Configure strictly verified SSH
+        env:
+          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
+        run: |
+          test -n "$OCI_HOST"
+          test -n "$OCI_SSH_USER"
+          test -n "$OCI_SSH_PRIVATE_KEY"
+          test -n "$OCI_SSH_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/oci_deploy_key"
+          chmod 600 "$HOME/.ssh/oci_deploy_key"
+          printf '%s\n' "$OCI_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+      - name: Transfer release to Oracle
+        run: |
+          scp -i "$HOME/.ssh/oci_deploy_key" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes \
+            "$RUNNER_TEMP/siderarium-artifact/siderarium-release.tar.gz" \
+            "${OCI_SSH_USER}@${OCI_HOST}:/tmp/siderarium-${GITHUB_SHA}.tar.gz"
+      - name: Stop, save, activate, and health-check
+        run: |
+          ssh -i "$HOME/.ssh/oci_deploy_key" \
+            -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes \
+            "${OCI_SSH_USER}@${OCI_HOST}" "bash -s -- '${GITHUB_SHA}'" \
+            < deploy/oci/activate.sh
