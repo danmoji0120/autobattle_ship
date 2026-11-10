@@ -1,6 +1,7 @@
 // SIDERARIUM multiplayer server: serves the built client and runs the authoritative world.
 //   PORT          http port (default 8080)
 //   DATABASE_URL  Postgres connection string → world persisted in table `siderarium_world`
+//   SIDERARIUM_REQUIRE_DB  '1' means fail startup if PostgreSQL is unavailable (production safety)
 //   SAVE_FILE     otherwise the world is saved to this JSON file (default ./data/world.json)
 //   WORLD_SEED    seed for a brand-new world
 //   WORLD_RESET   token: replace the world with a fresh one once per token (accounts are kept)
@@ -175,6 +176,9 @@ async function pgStorage({ pool, host }: Awaited<ReturnType<typeof pgPool>>): Pr
 const MIME: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.ico': 'image/x-icon', '.glb': 'model/gltf-binary', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ktx2': 'image/ktx2' };
 
 async function main() {
+  if (process.env.SIDERARIUM_REQUIRE_DB === '1' && !process.env.DATABASE_URL) {
+    throw new Error('SIDERARIUM_REQUIRE_DB=1 이지만 DATABASE_URL이 없습니다. 월드 파일 모드로 시작하지 않습니다.');
+  }
   let storage: Storage = fileStorage();
   let saved: SaveFile | null = null;
   let accountStore: AccountStore | null = null;
@@ -186,6 +190,10 @@ async function main() {
       accountStore = await pgAccountStore(pool.pool);
       storage = pgS;
     } catch (e) {
+      if (process.env.SIDERARIUM_REQUIRE_DB === '1') {
+        console.error('[siderarium] !!! DATABASE_URL 연결 실패 — 운영 서버 시작 중단:', (e as Error).message);
+        throw e;
+      }
       accountStore = null;
       console.error('[siderarium] !!! DATABASE_URL 연결 실패 — 파일 저장으로 대체합니다 (재시작 시 세계가 사라질 수 있음):', (e as Error).message);
     }
