@@ -1,0 +1,57 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+···········································-------------stdout | tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a L station and its complete yard chain with multi-gate deliveries
+{"size":"L","simulatedSeconds":4674,"needs":{"alloy":39500,"structure":3340,"machinery":1185,"electronics":310,"composite":300},"trips":{"alloy":6,"structure":4,"machinery":4,"electronics":2,"composite":1}}
+
+·stdout | tests/p963-large-logistics.test.ts > P9.6.3 large construction with physical logistics > builds a XL station and its complete yard chain with multi-gate deliveries
+{"size":"XL","simulatedSeconds":13600.5,"needs":{"alloy":132500,"structure":11940,"machinery":4035,"electronics":1310,"composite":1900,"precision":350},"trips":{"alloy":17,"structure":5,"machinery":5,"electronics":4,"composite":2,"precision":1}}
+
+··············································x····stdout | tests/p963-industrial-progression.test.ts > P9.6.3 medium industrial progression > physically supplies an M station, researches hulls, produces electronics and builds a medium yard
+{"size":"M","simulatedSeconds":14042.5,"sourceFixture":{"alloy":16640,"structure":555,"machinery":395,"electronics":159,"composite":50,"silicon":180,"precision":4,"ore":40,"silicate":40,"crystal":1},"mediumResearch":["frigate_design","medium_hulls"]}
+
+·······································································································································-················································································stdout | tests/fleetmarch.test.ts > fleet moves as one > 17-ship mixed fleet crosses two jump gates and arrives together (no ship runs ahead)
+arrival window 0 s, max in-flight spread 597 u, total 61 s
+
+·stdout | tests/fleetmarch.test.ts > fleet moves as one > attack: the fleet stages, assembles, then the whole fleet enters the battle together
+phases transit→ready→engage ships in the first battle: 17
+
+·stdout | tests/fleetmarch.test.ts > fleet moves as one > an explicitly detached vanguard moves on its own, ahead of the main body
+vanguard 39 s, main body 60 s
+
+······················································································································stdout | tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.2s)
+interval 0.2s: backwards frames old=169 new=0
+
+stdout | tests/interp.test.ts > client interpolation > never draws a ship moving backwards under jitter and stalls (packets every 0.5s)
+interval 0.5s: backwards frames old=84 new=0
+
+···········
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/p982-procurement.test.ts > P9.8.2 procurement planner > resumes already loaded cargo even if its external source becomes empty or disappears
+AssertionError: expected 'paused' to be 'active' // Object.is equality
+
+Expected: "active"
+Received: "paused"
+
+ ❯ tests/p982-procurement.test.ts:220:47
+    218|     f.dst.storage[f.p].crystal = storageCap(f.dst); until(f.sim, () =>…
+    219|     expect(qty(ship.cargo, 'ore')).toBe(cargo); expect(job.delivered).…
+    220|     delete f.dst.storage[f.p].crystal; until(f.sim, () => f.dst.orders…
+       |                                               ^
+    221|     expect(qty(f.dst.storage[f.p], 'alloy')).toBe(14); expect(job.deli…
+    222|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 49 passed | 2 skipped (52)
+      Tests  1 failed | 440 passed | 14 skipped (455)
+   Start at  12:00:49
+   Duration  873.39s (transform 3.57s, setup 0ms, import 12.95s, tests 853.20s, environment 5ms)
+
+
+real	14m34.479s
+user	11m57.588s
+sys	0m10.232s

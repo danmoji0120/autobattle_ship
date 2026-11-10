@@ -51,6 +51,8 @@ export interface Company {
   lastPurchase?: { seq: number; id: string; signature: string };
   /** Last sequenced sale or player-exchange action, for retry-safe trade. */
   lastTrade?: { seq: number; id: string; signature: string };
+  /** Optional company procurement policy; absent means transport enabled and purchasing disabled. */
+  procurement?: import('./procurement').ProcurementPolicy;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -481,6 +483,7 @@ export interface WorldState {
   /** Growth-only managed routes. Authority owns execution; replicas receive only their own routes. */
   logistics?: Record<string, import('./logistics').LogisticsRoute>;
   logisticsJobs?: Record<string, import('./autonomousLogistics').LogisticsJob>;
+  procurementPlans?: Record<string, import('./procurement').ProcurementPlan>;
   contracts: Record<string, Contract>;
   engagements: Record<string, Engagement>;
   /** finished tactical battles, replayable from setup + seed + orders (newest last) */

@@ -1,0 +1,90 @@
+// Local isolated Chromium evidence: fixture assets are preloaded, all commands and transport use the real client/server.
+const { chromium } = require('playwright');
+const { spawn } = require('node:child_process');
+const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+const out = 'artifacts/p982'; fs.mkdirSync(out, { recursive: true });
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'siderarium-p982-browser-'));
+const srv = spawn('node', ['dist-server/server.mjs'], { env: { ...process.env, DATABASE_URL: '', PORT: '8368', SAVE_FILE: path.join(temp, 'world.json') } });
+let browser, log = ''; const errors = [], checks = [];
+const check = (ok, text) => { if (!ok) throw Error(text); checks.push(text); console.log('PASS', text); };
+(async () => {
+  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(Error(log)), 20000); srv.stdout.on('data', d => { log += d; if (log.includes('listening on')) { clearTimeout(timer); resolve(); } }); srv.stderr.on('data', d => log += d); srv.on('exit', () => reject(Error(log))); });
+  browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } }); page.on('pageerror', e => errors.push(String(e)));
+  await page.goto('http://localhost:8368/?sp=new&name=조달검증');
+  await page.waitForFunction(() => window.siderarium?.client?.state && window.siderarium?.hud);
+  await page.evaluate(() => window.siderarium.client.setSpeed(0));
+  const fixture = await page.evaluate(() => {
+    const { client } = window.siderarium, server = client.t.server, sim = server.sim, p = client.company, a = sim.st.stations.astra;
+    for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e10; }
+    for (const system of Object.values(sim.st.systems)) system.security = 100;
+    sim.st.companies[p].credits = 1e7; a.storage[p] = { alloy: 120, structure: 8 };
+    const station = (id, name, dx, modules) => ({ ...structuredClone(a), id, name, public: false, owner: p, pos: { ...a.pos, x: a.pos.x + dx }, market: null, funds: undefined, fundsMax: undefined, shipStock: undefined, storage: { [p]: {} }, builds: [], orders: [], jobs: [], listings: [], modules: modules.map((kind, slot) => ({ kind, slot, progress: 1, built: true })) });
+    const target = station('proc_browser_target', '오리온 건설항', 600, ['core', 'power', 'refinery']);
+    const source = station('proc_browser_source', '세레스 보관항', -500, ['core']); source.storage[p] = { alloy: 125, structure: 7 };
+    sim.st.stations[target.id] = target; sim.st.stations[source.id] = source;
+    const g = sim.newGroup(p, '오리온 공용 수송'); const ships = [];
+    for (let i = 0; i < 3; i++) { const s = sim.spawnShip(p, 'hauler', 'std', g.id, a.pos, `조달 수송선 ${i + 1}`); sim.dockShip(s, a); ships.push(s.id); }
+    server.step(1); return { group: g.id, ships, target: target.id, source: source.id };
+  });
+  await page.waitForFunction(id => !!window.siderarium.client.state.groups[id], fixture.group);
+  await page.getByRole('button', { name: '물류 관리', exact: true }).click();
+  check((await page.locator('.proc-policy-status').innerText()).includes('자동 구매 꺼짐'), 'automatic purchase defaults off in logistics');
+  await page.locator(`[data-pool-group="${fixture.group}"][data-pool-on="true"]`).click();
+  await page.waitForFunction(ids => ids.every(id => window.siderarium.client.state.ships[id].logisticsPool), fixture.ships);
+  check(true, 'three ships join the shared pool via the UI');
+  await page.evaluate(id => window.siderarium.hud.openStation(id, 'build'), fixture.target);
+  await page.locator('[data-bpick="warehouse"]').click(); await page.locator('[data-module="warehouse"]').click();
+  await page.waitForFunction(id => window.siderarium.client.state.stations[id].modules.some(m => m.kind === 'warehouse' && !m.built), fixture.target);
+  await page.evaluate(() => { const s = window.siderarium.client.t.server; for (let i = 0; i < 8; i++) s.sim.update(.25); s.step(1); });
+  await page.waitForFunction(() => Object.values(window.siderarium.client.state.logisticsJobs ?? {}).some(j => !!j.procurement));
+  await page.evaluate(() => window.siderarium.hud.refresh(true));
+  await page.waitForFunction(() => document.querySelector('.proc-source')?.textContent.includes('운송 중'));
+  check((await page.locator('.proc-source').innerText()).includes('운송 중'), 'construction row exposes server-side procurement quantities');
+  await page.screenshot({ path: `${out}/construction-desktop.png`, animations: 'disabled' });
+  await page.locator('[data-proc-priority]').first().selectOption('9');
+  await page.waitForFunction(() => Object.values(window.siderarium.client.state.companies[window.siderarium.client.company].procurement.priority).includes(9));
+  check(true, 'source priority can be changed through the construction screen');
+  await page.locator('[data-proc-toggle]').first().click();
+  await page.waitForFunction(() => Object.values(window.siderarium.client.state.procurementPlans ?? {}).some(p => p.state === 'paused'));
+  check((await page.locator('.proc-source').innerText()).includes('이 작업 정지'), 'source-level pause is visible and authoritative');
+  await page.locator('[data-proc-toggle]').first().click();
+  await page.waitForFunction(() => !Object.values(window.siderarium.client.state.companies[window.siderarium.client.company].procurement.disabled).some(Boolean));
+  await page.evaluate(() => { const s = window.siderarium.client.t.server; for (let i = 0; i < 8; i++) s.sim.update(.25); s.step(1); window.siderarium.hud.openLogistics(); });
+  await page.waitForSelector('.proc-plan');
+  check((await page.locator('.pool-main').innerText()).includes('자동 조달'), 'automatically generated transport is distinguished from direct work');
+  await page.locator('[data-proc-policy-open]').click();
+  await page.locator('[name="budget"]').fill('3000'); await page.locator('[name="minCredits"]').fill('1000');
+  await page.locator('[name="priceItem"]').selectOption('alloy'); await page.locator('[name="maxUnitPrice"]').fill('12');
+  await page.locator('[name="protectStation"]').selectOption(fixture.source); await page.locator('[name="protectItem"]').selectOption('alloy'); await page.locator('[name="protectAmount"]').fill('5');
+  await page.locator('[data-proc-policy-form] button[type="submit"]').click();
+  await page.waitForFunction(id => { const p = window.siderarium.client.state.companies[window.siderarium.client.company].procurement; return p?.budget === 3000 && p.maxPrice.alloy === 12 && p.protectedStock[id]?.alloy === 5 && !p.autoBuy; }, fixture.source);
+  check(true, 'budget, unit price and protected stock save without permitting purchases');
+  await page.locator('[data-proc-policy-open]').click();
+  for (const size of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size); await page.screenshot({ path: `${out}/policy-${size.width}.png`, animations: 'disabled' });
+    check(await page.evaluate(() => { const r = document.querySelector('.lg-box').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }), `logistics modal fits viewport ${size.width}`);
+    check(await page.evaluate(() => { const el = document.querySelector('.pool-main'); return el.scrollWidth <= el.clientWidth + 1; }), `procurement content does not overflow at ${size.width}`);
+  }
+  await page.locator('[name="autoBuy"]').check(); await page.locator('[data-proc-policy-form] button[type="submit"]').click();
+  await page.waitForFunction(() => window.siderarium.client.state.companies[window.siderarium.client.company].procurement.autoBuy);
+  check(true, 'explicit mobile automatic purchase approval reaches the server');
+  await page.locator('[data-proc-policy-open]').click(); await page.locator('[name="autoBuy"]').uncheck(); await page.locator('[data-proc-policy-form] button[type="submit"]').click();
+  await page.waitForFunction(() => !window.siderarium.client.state.companies[window.siderarium.client.company].procurement.autoBuy);
+  await page.locator('[data-proc-open]').first().click();
+  check(await page.locator('.proc-source').count() > 0, 'automatic task links back to the source construction screen');
+  await page.locator('.proc-source').scrollIntoViewIfNeeded();
+  check(await page.locator('.proc-source').evaluate(el => el.getBoundingClientRect().width >= 200), 'mobile procurement details have usable reading width');
+  check(await page.locator('.sbody2').evaluate(el => el.scrollWidth <= el.clientWidth + 1), 'mobile construction screen has no horizontal overflow');
+  await page.screenshot({ path: `${out}/construction-mobile.png`, animations: 'disabled' });
+  const result = await page.evaluate(({ target }) => {
+    const server = window.siderarium.client.t.server, sim = server.sim;
+    for (let i = 0; i < 7000 && !sim.st.stations[target].modules.find(m => m.kind === 'warehouse')?.built; i++) sim.update(.25);
+    server.step(1);
+    return { built: sim.st.stations[target].modules.find(m => m.kind === 'warehouse')?.built, jobs: Object.values(sim.st.logisticsJobs ?? {}).filter(j => j.procurement).map(j => ({ from: j.from, state: j.state, delivered: j.delivered })), spent: sim.st.companies[window.siderarium.client.company].procurement.spent };
+  }, fixture);
+  check(result.built, 'real transport and construction complete without manual route setup');
+  check(result.spent === 0, 'no automatic purchases occurred in the transport scenario');
+  check(errors.length === 0, `no browser page errors (${errors.join('; ')})`);
+  fs.writeFileSync(`${out}/browser.json`, JSON.stringify({ checks, result, errors }, null, 2));
+})().catch(e => { console.error(e); process.exitCode = 1; }).finally(async () => { if (browser) await browser.close(); srv.kill('SIGTERM'); fs.rmSync(temp, { recursive: true, force: true }); });

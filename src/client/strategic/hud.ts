@@ -1,4 +1,5 @@
 import { LogisticsPanel } from './logisticsUi';
+import { procurementSourceHtml } from './procurementUi';
 import { AnalyticsPanel } from './analyticsUi';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
@@ -1123,7 +1124,7 @@ export class PmcHud {
     if (!s || !this.modal) return;
     const co = this.st.companies[this.me];
     const inbound = this.modalTab === 'build' ? Object.values(this.st.logistics ?? {}).filter(r => r.owner === this.me && Object.values(r.manifests).some(m => m.to === s.id)).map(r => [r.id, r.state, r.manifests, Object.keys(r.manifests).map(id => this.st.ships[id]?.cargo)]) : null;
-    const key = JSON.stringify([this.modalTab, this.ind, co.leases, co.upkeep?.debt, co.upkeep?.rent?.cancelled, co.upkeep?.rent?.sinceMs !== undefined ? Math.floor(this.st.time) : null, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit, x.variant, x.fitting]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length, this.gy, s.shipStock, s.shipListings, co.blueprints, Math.round((s.funds ?? 0) / 500), inbound]);
+    const key = JSON.stringify([this.modalTab, this.ind, co.leases, co.procurement, Object.values(this.st.procurementPlans ?? {}).filter(p => p.owner === this.me && p.station === s.id), Object.values(this.st.logisticsJobs ?? {}).filter(j => j.owner === this.me && j.to === s.id && j.procurement).map(j => [j.id, j.state, j.ship, j.amount, j.reserved, j.carried]), co.upkeep?.debt, co.upkeep?.rent?.cancelled, co.upkeep?.rent?.sinceMs !== undefined ? Math.floor(this.st.time) : null, Math.round(co.credits), co.rep, co.tech, (co.research ?? []).map(r => [r.id, r.why, r.paused, Math.round(r.left / 10)]), this.myGroups().map(g => g.id + g.name + g.status), s.storage[this.me], s.market, s.modules, s.orders, s.listings, (s.jobs ?? []).map(j => Math.round(j.left)), (s.builds ?? []).map(b => [b.id, b.why, b.paused, Math.round(b.left / 10)]), Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id).map(x => [x.id, x.hp, x.loadoutId, x.fit, x.variant, x.fitting]), Object.values(this.st.contracts).filter(k => k.stationId === s.id).map(k => [k.id, k.takenBy, k.done]), Object.values(this.st.commanders).filter(c => c.stationId === s.id && !c.owner).length, this.gy, s.shipStock, s.shipListings, co.blueprints, Math.round((s.funds ?? 0) / 500), inbound]);
     if (!force && key === this.modalKey) return;
     this.modalKey = key;
     const own = s.owner === this.me;
@@ -1172,6 +1173,9 @@ export class PmcHud {
     });
     m.querySelectorAll<HTMLButtonElement>('[data-logistics-station]').forEach(b => b.onclick = () => this.openLogistics({ station: b.dataset.logisticsStation }));
     m.querySelectorAll<HTMLButtonElement>('[data-logistics-build]').forEach(b => b.onclick = () => this.openLogistics({ station: b.dataset.logisticsBuild, construction: true, create: true }));
+    m.querySelectorAll<HTMLElement>('.proc-source').forEach(row => row.onclick = e => e.stopPropagation());
+    m.querySelectorAll<HTMLButtonElement>('[data-proc-toggle]').forEach(b => b.onclick = async e => { e.stopPropagation(); await this.cmd({ c: 'procSource', station: s.id, kind: b.dataset.procKind as 'construction' | 'production' | 'ship', source: b.dataset.procSource!, enabled: b.dataset.procEnabled === 'true' }); this.renderModal(true); });
+    m.querySelectorAll<HTMLSelectElement>('[data-proc-priority]').forEach(b => b.onchange = async e => { e.stopPropagation(); await this.cmd({ c: 'procSource', station: s.id, kind: b.dataset.procKind as 'construction' | 'production' | 'ship', source: b.dataset.procSource!, enabled: b.dataset.procEnabled === 'true', priority: Number(b.value) }); this.renderModal(true); });
     m.querySelectorAll<HTMLButtonElement>('[data-build-market]').forEach(b => b.onclick = () => this.openStation(b.dataset.buildMarket!, 'market'));
     m.querySelectorAll<HTMLButtonElement>('[data-lease]').forEach(b => b.onclick = () => this.cmd({ c: 'lease', station: s.id, blocks: Number(b.dataset.lease) }));
     m.querySelectorAll<HTMLButtonElement>('[data-buyship]').forEach(b => b.onclick = () => {
@@ -1455,7 +1459,7 @@ export class PmcHud {
       const waitingCrew = ps === 'building' && m.kind === 'core' && !cons.length;
       return `<div class="bqrow ps-${waitingCrew ? 'materials' : ps}${sel ? ' sel' : ''}" data-bplan="${m.id}"><span class="bqn">${i + 1}</span>
         <div class="bqm"><div><b>${md.name}</b> <span class="pst">${waitingCrew ? '공작선 대기' : PLAN_STATE_NAME[ps]}${ps === 'building' && !waitingCrew ? ` ${Math.round(m.progress * 100)}%` : ''}</span></div>
-        <div class="bar"><i style="width:${Math.round(m.progress * 100)}%"></i></div><div class="small">${mats}</div></div>
+        <div class="bar"><i style="width:${Math.round(m.progress * 100)}%"></i></div><div class="small">${mats}</div>${procurementSourceHtml(this.st as any, this.me, s.id, 'construction', m.id ?? '')}</div>
         <div class="bqa"><button class="btn mini" data-pop="up:${m.id}" title="위로" ${i === 0 ? 'disabled' : ''}>▲</button><button class="btn mini" data-pop="down:${m.id}" title="아래로" ${i === plans.length - 1 ? 'disabled' : ''}>▼</button>
         ${m.paused ? `<button class="btn mini" data-pop="resume:${m.id}">▶ 재개</button>` : `<button class="btn mini" data-pop="pause:${m.id}">⏸ 정지</button>`}
         ${m.kind === 'core' ? '' : `<button class="btn mini warnb" data-pop="cancel:${m.id}">✕ 취소</button>`}</div></div>`;

@@ -1,0 +1,29 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p982-procurement.test.ts (25 tests) 9315ms
+     ✓ automatically combines multiple company warehouses and completes construction  714ms
+     ✓ delivers the registered hull, preset and equipment needs and launches the real ship  4945ms
+     ✓ transports a fractional construction shortfall without rounding it away or fabricating stock  491ms
+     ✓ resumes an origin-paused shipment with its original loaded cargo and completes construction  501ms
+     ✓ uses only the company-owned stock at an external private warehouse  391ms
+     ✓ resumes already loaded cargo even if its external source becomes empty or disappears  380ms
+ ✓ tests/p981-autonomous-logistics.test.ts (21 tests) 8423ms
+     ✓ dispatches three ships of one group independently to different jobs  548ms
+     ✓ runs transfer, production supply and construction supply independently in the same group  441ms
+     ✓ automatically assigns the next job to one ship and respects priority  600ms
+     ✓ competing requests never take more than the same physical stock, including restore  340ms
+     ✓ holds cargo when a destination is full and resumes when space returns  512ms
+     ✓ pause and cancellation do not teleport loaded goods; restored in-flight jobs complete once  483ms
+     ✓ keeps legacy routes and their manifests intact and rejects mining ships and foreign commands  409ms
+     ✓ sells only this job’s cargo, waits for market funds, and repeats only when explicitly requested  873ms
+     ✓ restores a sized station’s in-progress physical loading without moving the same goods twice  459ms
+     ✓ loads the actual base-commit P9.7 in-flight save idempotently and runs new pool jobs beside it  472ms
+     ✓ returns a destroyed ship’s uncollected reservation before assigning another ship  534ms
+     ✓ keeps the source stock unreserved when a gate is unavailable and recovers after reconnection  2165ms
+     ✓ reports a full dock and resumes its loaded shipment when a berth opens  428ms
+
+ Test Files  2 passed (2)
+      Tests  46 passed (46)
+   Start at  12:15:41
+   Duration  19.00s (transform 826ms, setup 0ms, import 1.06s, tests 17.74s, environment 0ms)

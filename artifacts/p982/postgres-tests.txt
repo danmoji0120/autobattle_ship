@@ -1,0 +1,32 @@
+Running PostgreSQL migration, restart and DEV-1 authentication against separate disposable local databases.
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive 14156ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > a failing migration rolls back completely: world, generation and backup rows untouched 1026ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts 3605ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an in-flight managed route and its exact manifest through PostgreSQL process restarts 1863ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts 2513ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves P9.5 founding escrow, purchase receipts and a construction shipment through PostgreSQL restarts 3005ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a sized station, a running production batch and pending physical cargo handling through PostgreSQL restarts 4437ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an old-tier ship plan, a new-tier snapshot and returned overflow across PostgreSQL restarts 3340ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves committed trade identity and inventory across PostgreSQL process restarts 3129ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves regional deposits, company inventories and running special production across PostgreSQL restarts 3026ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves concurrent P9.8 dispatch reservations and cargo through PostgreSQL server restarts 5356ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores purchased procurement plans, reserved stock and physical cargo through PostgreSQL restarts 6171ms
+ ✓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a paid legacy batch but applies regional inputs to the next stock batch 3118ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  12:17:51
+   Duration  61.11s (transform 3.28s, setup 0ms, import 3.94s, tests 56.59s, environment 0ms)
+
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/dev1-pg.test.ts > DEV-1 disposable PostgreSQL account authentication > uses existing PostgreSQL account sessions without persisting lab grants; restart and password change revoke access 7416ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  12:18:54
+   Duration  8.41s (transform 320ms, setup 0ms, import 480ms, tests 7.46s, environment 0ms)

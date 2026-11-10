@@ -4,6 +4,7 @@
 import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
 import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
 import { createPoolJob, controlPoolJob, setPoolShips, interruptPoolShips, dispatchPool, maintainPool, stepPoolShip, type PoolRequest } from './autonomousLogistics';
+import { planProcurement, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -111,7 +112,9 @@ export type Cmd =
   | { c: 'routeControl'; routes: string[]; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'poolShips'; ships: string[]; on: boolean }
   | { c: 'poolCreate'; request: PoolRequest }
-  | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' };
+  | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' }
+  | { c: 'procPolicy'; settings: ProcurementSettings }
+  | { c: 'procSource'; station: string; kind: ProcurementKind; source: string; enabled: boolean; priority?: number };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
 /** "창살급 구축함" */
@@ -150,6 +153,7 @@ export class WorldSim {
   private acc = 0;
   private slow = 0;
   private poolDispatchAt = 0;
+  private procurementAt = 0;
   /** what the content migration did on load (null = not run) */
   contentReport: MigrationReport | null = null;
   /** hooks for the server */
@@ -555,7 +559,24 @@ export class WorldSim {
         const r = this.st.logistics?.[id], g = r && this.st.groups[r.group]; if (r?.owner === company && g) poolManual.push(...this.subtreeShipsInOp(g, true));
       }
     }
-    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && manual.length) pauseManualRoutes(this, manual); if (!err && poolManual.length) interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존'); if (!err && growthOn(this.st)) this.reconcileFoundEscrows(company); if (!err && ['poolCreate', 'poolControl', 'poolShips'].includes(cmd.c)) this.poolDispatchAt = 0; if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
+    return watchMoney(this.st, cmd.c, meta, () => {
+      const err = this.executeCommand(company, cmd);
+      if (!err && manual.length) pauseManualRoutes(this, manual);
+      if (!err && poolManual.length) interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존');
+      if (!err && growthOn(this.st)) {
+        this.reconcileFoundEscrows(company);
+        if (['queueModule', 'prodOrder', 'buildShip'].includes(cmd.c)) this.st.companies[company].procurement ??= defaultProcurementPolicy();
+        if (cmd.c === 'procPolicy' && !cmd.settings.enabled) stopProcurement(this, company, 'paused');
+        if (cmd.c === 'procSource' && !cmd.enabled) stopProcurement(this, company, 'paused', cmd.station, cmd.kind, cmd.source);
+        if (cmd.c === 'planOp' && (cmd.op === 'pause' || cmd.op === 'cancel')) stopProcurement(this, company, cmd.op === 'pause' ? 'paused' : 'closed', cmd.station, 'construction', cmd.plan);
+        if (cmd.c === 'prodOp' && (cmd.op === 'pause' || cmd.op === 'cancel')) stopProcurement(this, company, cmd.op === 'pause' ? 'paused' : 'closed', cmd.station, 'production', cmd.order);
+        if (cmd.c === 'buildOp' && (cmd.op === 'pause' || cmd.op === 'cancel')) stopProcurement(this, company, cmd.op === 'pause' ? 'paused' : 'closed', cmd.station, 'ship', cmd.build);
+      }
+      if (!err && ['poolCreate', 'poolControl', 'poolShips'].includes(cmd.c)) this.poolDispatchAt = 0;
+      if (!err && ['poolCreate', 'poolControl', 'poolShips', 'procPolicy', 'procSource', 'queueModule', 'planOp', 'prodOrder', 'prodOp', 'buildShip', 'buildOp'].includes(cmd.c)) this.procurementAt = 0;
+      if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group });
+      return err;
+    });
   }
 
   private executeCommand(company: string, cmd: Cmd): string | null {
@@ -1312,6 +1333,8 @@ export class WorldSim {
       case 'poolShips': return setPoolShips(this, company, cmd.ships, cmd.on);
       case 'poolCreate': return createPoolJob(this, company, cmd.request);
       case 'poolControl': return controlPoolJob(this, company, cmd.job, cmd.action);
+      case 'procPolicy': return setProcurementPolicy(this, company, cmd.settings);
+      case 'procSource': return setProcurementSource(this, company, cmd.station, cmd.kind, cmd.source, cmd.enabled, cmd.priority);
       case 'payArrears': {
         if (!growthOn(this.st)) return '이 월드에는 운영비 미납금이 없습니다';
         const paid = payDebt(this.st, co, 'manual');
@@ -1715,7 +1738,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) { maintainPool(this); if (this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } } }
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if (st.logisticsJobs && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } }
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
       this.runGroup(g, dt);
@@ -2313,7 +2336,9 @@ export class WorldSim {
     if (s.state === 'docked') this.undock(s);
     const here = this.sysOf(s.pos), there = this.sysOf(to);
     if (here && there && here.id !== there.id) {
-      const gate = nextGate(this.st.systems, here.id, there.id, managed ? gate => usableRouteGate(this.st, gate) : undefined);
+      const job = s.logisticsJob ? this.st.logisticsJobs?.[s.logisticsJob] : undefined;
+      const maxRisk = managed && job?.procurement ? this.st.companies[s.owner]?.procurement?.maxRisk ?? 100 : undefined;
+      const gate = nextGate(this.st.systems, here.id, there.id, managed ? gate => usableRouteGate(this.st, gate) && (maxRisk === undefined || 100 - effSec(this.st.systems[gate.to]) <= maxRisk) : undefined);
       if (!gate) { s.vel.x *= 0.9; s.vel.z *= 0.9; return false; }
       if (!s.warp && dist(s.pos, gate.pos) < 180) { this.jump(s, gate); return false; }
       this.fly(s, gate.pos, speed, dt, 10);

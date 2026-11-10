@@ -19,6 +19,8 @@ import { grantBlueprint, hullBlueprint } from '../src/world/blueprints';
 import { census, compareCensus, CONTENT_VERSION } from '../src/world/migrate';
 import type { Station, WorldState } from '../src/world/types';
 import { integrationFixture, integrationRun, startIntegrationIndustry, startIntegrationProjects } from './support/integration';
+import { planProcurement } from '../src/world/procurement';
+import { dispatchPool } from '../src/world/autonomousLogistics';
 
 const URL = process.env.PG_TEST_URL;
 const BIN = path.resolve(process.env.SERVER_BIN ?? 'dist-server/server.mjs');
@@ -460,6 +462,35 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     const next = { ...file, world: JSON.parse(restored.serialize()) }; await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(next)]);
     const second = await start(8337, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(second)).toBe(0);
     world = (await row())!.data.world; expect(Object.values(world.logisticsJobs!).map(j => j.delivered)).toEqual([20, 20]); expect(world.stations[target.id].storage[p].ore).toBe(40);
+  }, 60_000);
+
+  it('restores purchased procurement plans, reserved stock and physical cargo through PostgreSQL restarts', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 982), sim = local.sim, p = sim.addPlayer('PG 자율 조달');
+    sim.st.companies[p].credits = 1e7;
+    for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e10; }
+    for (const system of Object.values(sim.st.systems)) system.security = 100;
+    const source = sim.st.stations.astra; source.storage[p] = {};
+    const target = (id: string, x: number): Station => ({ ...structuredClone(source), id, name: id, owner: p, public: false, pos: { ...source.pos, x: source.pos.x + x }, market: null, storage: { [p]: {} }, modules: ['core', 'power', 'refinery', 'logistics'].map((kind, slot) => ({ kind, slot, built: true, progress: 1 })), builds: [], orders: [], jobs: [], listings: [] });
+    const a = target('pg982_a', 600), b = target('pg982_b', 3000); sim.st.stations[a.id] = a; sim.st.stations[b.id] = b;
+    const g = sim.newGroup(p, 'PG 조달 수송'), s1 = sim.spawnShip(p, 'hauler', 'std', g.id, source.pos), s2 = sim.spawnShip(p, 'hauler', 'std', g.id, b.pos); (sim as any).dockShip(s1, source);
+    expect(sim.command(p, { c: 'poolShips', ships: [s1.id, s2.id], on: true })).toBeNull();
+    for (const station of [a, b]) expect(sim.command(p, { c: 'prodOrder', station: station.id, recipe: 'alloy_direct', mode: 'count', n: 1 })).toBeNull();
+    const price = sim.price(source, 'ore', 'buy'), before = sim.st.companies[p].credits, market = source.market!.ore.stock;
+    expect(sim.command(p, { c: 'procPolicy', settings: { enabled: true, autoBuy: true, budget: price * 240, minCredits: 0, maxRisk: 100, priceItem: 'ore', maxUnitPrice: price * 2 } })).toBeNull();
+    planProcurement(sim); const spent = sim.st.companies[p].procurement!.spent; expect(spent).toBeGreaterThan(0); expect(source.market!.ore.stock).toBe(market - 120); expect(sim.st.companies[p].credits).toBeCloseTo(before - spent);
+    dispatchPool(sim); for (let i = 0; i < 5; i++) sim.update(.25);
+    const jobs = Object.values(sim.st.logisticsJobs!).filter(j => !!j.procurement); expect(jobs.some(j => j.carried > 0)).toBe(true); expect(jobs.some(j => j.reserved > 0)).toBe(true);
+    const file = local.snapshotFile(); await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    const first = await start(8338, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(first)).toBe(0);
+    let world = (await row())!.data.world;
+    expect(world.procurementPlans).toEqual(file.world.procurementPlans); expect(world.logisticsJobs).toEqual(file.world.logisticsJobs); expect(world.companies[p].procurement).toEqual(file.world.companies[p].procurement);
+    const restored = new WorldSim(structuredClone(world), { migrateContent: false });
+    for (let i = 0; i < 10000 && (restored.st.stations[a.id].orders!.length || restored.st.stations[b.id].orders!.length); i++) restored.update(.25);
+    expect(restored.st.stations[a.id].storage[p].alloy).toBe(14); expect(restored.st.stations[b.id].storage[p].alloy).toBe(14);
+    expect(restored.st.companies[p].procurement!.spent).toBeCloseTo(spent); expect(Object.values(restored.st.logisticsJobs!).filter(j => !!j.procurement)).toHaveLength(2);
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify({ ...file, world: JSON.parse(restored.serialize()) })]);
+    const second = await start(8339, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(second)).toBe(0);
+    world = (await row())!.data.world; expect(world.companies[p].procurement!.spent).toBeCloseTo(spent); expect(world.stations[a.id].storage[p].alloy + world.stations[b.id].storage[p].alloy).toBe(28);
   }, 60_000);
 
   it('restores a paid legacy batch but applies regional inputs to the next stock batch', async () => {

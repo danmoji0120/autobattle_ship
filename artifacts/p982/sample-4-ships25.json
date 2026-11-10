@@ -1,0 +1,31 @@
+[
+  {
+    "companies": 4,
+    "shipsPerCompany": 25,
+    "seconds": 600,
+    "sustained": false,
+    "goalSuccess": 8,
+    "goals": 12,
+    "procurementJobs": 84,
+    "completedJobs": 80,
+    "activeOrWaiting": 0,
+    "possibleDuplicateOutstanding": 0,
+    "lost": 0,
+    "purchaseSpend": 0,
+    "meanFirstDispatchWaitSeconds": 1.5,
+    "meanFirstMaterialReadySeconds": 25.75,
+    "readinessSamples": 12,
+    "idleShipSeconds": 58789,
+    "emptyTravelShipSeconds": 369,
+    "firstPlanMs": 27.01998700000013,
+    "firstDispatchMs": 21.174964999999702,
+    "tickMeanMs": 3.836589383333186,
+    "tickP95Ms": 5.306741000000329,
+    "tickMaxMs": 55.444214999999986,
+    "elapsedMs": 11551.615053,
+    "heapUsedBytes": 98215648,
+    "hourly": [],
+    "itemConservationErrors": {},
+    "currencySupplyError": -2.6775524020195007e-9
+  }
+]

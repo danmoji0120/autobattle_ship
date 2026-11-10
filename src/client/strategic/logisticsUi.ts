@@ -4,7 +4,7 @@ import { routeShips, routeLabel, supplyBatch } from '../../world/logistics';
 import { regionalOn } from '../../world/regional';
 import { ITEMS, EQUIPMENT, itemName, techFx } from '../../world/industry';
 import { cargoKeys, cargoSum, qty } from '../../world/types';
-import { econOf } from '../../world/hullops';
+import { econOf, growthOn } from '../../world/hullops';
 import { sysAt } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
 import { queueShortfall } from '../../world/construction';
@@ -14,7 +14,7 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&a
 const num = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const modes = { transfer: '창고 운송', sell: '자동 판매', supply: '생산 공급', construction: '건설 공급' };
 interface Options { station?: string; group?: string; create?: boolean; construction?: boolean }
-interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build'): void; fleet(group: string, ship?: string): void; analytics(): void; close(): void }
+interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard'): void; fleet(group: string, ship?: string): void; analytics(): void; close(): void }
 export class LogisticsPanel {
   private el = document.createElement('div');
   private editing = false; private editId = ''; private editKey = 0; private group = '';
@@ -23,6 +23,7 @@ export class LogisticsPanel {
   private draft: RouteConfig = { name: '', from: '', to: '', item: 'ore', mode: 'transfer', amount: 100, repeat: true, minStock: 20, targetStock: 100 };
   private selected = new Set<string>(); private expanded = new Set<string>(); private station = ''; private filter = 'all'; private search = '';
   private error = ''; private notice = ''; private busy = false; private saleConsent = false; private closed = false;
+  private policyEditing = false;
   private onSnap = () => this.render();
   private key = (e: KeyboardEvent) => { if (e.code === 'Escape') { e.stopImmediatePropagation(); this.close(); } };
   constructor(private root: HTMLElement, private c: GameClient, private actions: Actions, options: Options = {}) {
@@ -98,6 +99,7 @@ export class LogisticsPanel {
     const rank = (j: LogisticsJob) => j.state === 'active' || j.state === 'waiting' || j.state === 'queued' ? 0 : j.state === 'paused' ? 1 : 2;
     const sorted = [...jobs].sort((a, b) => rank(a) - rank(b) || b.created - a.created || b.id.localeCompare(a.id));
     return `<div class="lg-layout ${this.editing ? 'editing' : ''}"><main class="lg-list pool-main">
+      ${growthOn(w) ? this.procurementPanel() : ''}
       <section class="pool-section"><div class="pool-section-head"><div><h3>작업 대기열</h3><p>우선순위가 높은 요청부터 가용 함선에 배정합니다. 완료한 함선은 다음 작업을 받습니다.</p></div><span>${jobs.length}개 요청</span></div>
       <div class="lg-cards">${sorted.map(j => this.poolCard(j)).join('') || `<div class="lg-empty"><div class="lg-orbit" aria-hidden="true">◉ ─── ◉</div><h3>운송 작업을 요청하세요</h3><p>출발지와 목적지를 정하고 아래에서 수송선을 공용 배차에 참여시키세요.</p><button class="btn go" data-pool-new>작업 요청</button></div>`}</div></section>
       <section class="pool-section pool-participants"><div class="pool-section-head"><div><h3>참여 수송선</h3><p>대기 중인 수송선만 참여할 수 있습니다. 직접 명령이나 편제 변경은 공용 배차보다 우선합니다.</p></div><span>${groups.length}개 편대</span></div>
@@ -107,13 +109,33 @@ export class LogisticsPanel {
   private poolCard(j: LogisticsJob) {
     const w = this.c.state!, status = { queued: '대기', active: '수행 중', waiting: '조건 대기', paused: '일시정지', complete: '완료', cancelled: '취소' }[j.state];
     const ship = j.ship ? w.ships[j.ship] : undefined, done = j.state === 'complete' || j.state === 'cancelled';
-    return `<article class="lg-card ${j.state === 'waiting' ? 'waiting' : j.state === 'paused' ? 'paused' : j.state === 'complete' ? 'complete' : ''}" data-pool-job="${esc(j.id)}"><div class="lg-card-top"><b>${esc(modes[j.kind])} · ${esc(itemName(j.item))}</b><span class="lg-badge ${j.state}">${status}</span></div>
+    const plan = j.procurement ? w.procurementPlans?.[j.procurement] : undefined;
+    return `<article class="lg-card ${j.state === 'waiting' ? 'waiting' : j.state === 'paused' ? 'paused' : j.state === 'complete' ? 'complete' : ''}" data-pool-job="${esc(j.id)}"><div class="lg-card-top"><b>${j.procurement ? '자동 조달' : '직접 요청'} · ${esc(modes[j.kind])} · ${esc(itemName(j.item))}</b><span class="lg-badge ${j.state}">${status}</span></div>
       <div class="lg-path"><button class="an-link" data-lg-open="${esc(j.from)}">${esc(w.stations[j.from]?.name ?? j.from)}</button><span>→</span><button class="an-link" data-lg-open="${esc(j.to)}">${esc(w.stations[j.to]?.name ?? j.to)}</button></div>
       <div class="lg-cargo"><span>우선순위 ${j.priority} · ${j.repeat ? '반복 · 정지 또는 취소까지' : '단발'} · 요청 ${num(j.amount)}</span></div>
       <div class="lg-route-status ${j.reason ? 'warn' : 'dim'}">${esc(j.reason ?? (ship ? `${ship.name} 배정 · ${j.carried > 0 ? '목적지로 운송' : '출발지 이동·적재'}` : j.state === 'complete' ? '요청 수량 운송 완료 · 함선은 다음 작업을 받습니다' : '가용 함선 배정 대기'))}</div>
       <div class="lg-metrics"><span>완료 <b>${num(j.delivered)}</b></span><span>운송 중 <b>${num(j.carried)}</b></span><span>출발지 예약 <b>${num(j.reserved)}</b></span></div>
       ${j.lost || j.withdrawn ? `<p class="dim small">손실 ${num(j.lost)} · 작업에서 회수 ${num(j.withdrawn)} (생존 함선 화물 보존)</p>` : ''}
-      <div class="lg-card-actions">${done ? '' : `<button class="btn mini" data-pool-control="${esc(j.id)}" data-pool-action="${j.state === 'paused' ? 'resume' : 'pause'}" ${this.busy ? 'disabled' : ''}>${j.state === 'paused' ? '재개' : '일시정지'}</button><button class="btn mini warnb" data-pool-control="${esc(j.id)}" data-pool-action="cancel" ${this.busy ? 'disabled' : ''}>취소</button>`}</div></article>`;
+      <div class="lg-card-actions">${plan ? `<button class="btn mini" data-proc-open="${esc(plan.station)}" data-proc-tab="${plan.sourceKind === 'construction' ? 'build' : plan.sourceKind === 'production' ? 'prod' : 'yard'}">원본 작업 →</button>` : ''}${done ? '' : `<button class="btn mini" data-pool-control="${esc(j.id)}" data-pool-action="${j.state === 'paused' ? 'resume' : 'pause'}" ${this.busy ? 'disabled' : ''}>${j.state === 'paused' ? '재개' : '일시정지'}</button><button class="btn mini warnb" data-pool-control="${esc(j.id)}" data-pool-action="cancel" ${this.busy ? 'disabled' : ''}>취소</button>`}</div>${j.procurement && !done ? '<p class="dim small">이 운송만 취소하면 원본 수요에 따라 다시 생성될 수 있습니다. 조달 전체 정지는 원본 작업에서 설정하세요.</p>' : ''}</article>`;
+  }
+  private procurementPanel() {
+    const w = this.c.state!, policy = w.companies[this.c.company]?.procurement;
+    const plans = Object.values(w.procurementPlans ?? {}).filter(p => p.owner === this.c.company && p.state !== 'closed').sort((a, b) => b.priority - a.priority || a.created - b.created || a.id.localeCompare(b.id));
+    const kinds = { construction: '시설 건설', production: '생산', ship: '함선 건조' };
+    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
+    const stations = Object.values(w.stations).filter(s => s.owner === this.c.company || s.public || this.hasExternalSource(s.id));
+    const caps = Object.entries(policy?.maxPrice ?? {}).map(([item, price]) => `${esc(itemName(item))} ${num(price)} cr`).join(' · ');
+    const protectedItems = Object.entries(policy?.protectedStock ?? {}).flatMap(([station, stock]) => Object.entries(stock).map(([item, amount]) => `${esc(w.stations[station]?.name ?? station)} / ${esc(itemName(item))} ${num(amount)}`)).join(' · ');
+    return `<section class="pool-section proc-policy"><div class="pool-section-head"><div><h3>자율 자재 조달</h3><p>건설·생산·조선의 부족 자재를 자사 보관함에서 찾아 공용 수송선으로 운반합니다.</p></div><button class="btn mini" data-proc-policy-open>${this.policyEditing ? '설정 닫기' : '조달 설정'}</button></div>
+      <div class="proc-policy-status"><span>자사 재고 운송 <b>${policy?.enabled === false ? '정지' : '켜짐'}</b></span><span>자동 구매 <b>${policy?.autoBuy ? '허용' : '꺼짐'}</b></span><span>구매 예산 사용 <b>${num(policy?.spent ?? 0)} / ${num(policy?.budget ?? 0)} cr</b></span></div>
+      <p class="dim small">최대 단가: ${caps || '설정 없음'} · 보호 재고: ${protectedItems || '설정 없음'}</p>
+      ${this.policyEditing ? `<form class="proc-policy-form" data-proc-policy-form><div class="proc-policy-switches"><label><input type="checkbox" name="enabled" ${policy?.enabled !== false ? 'checked' : ''}> 자사 재고 자동 운송</label><label><input type="checkbox" name="autoBuy" ${policy?.autoBuy ? 'checked' : ''}> 실제 시장 자동 구매 허용</label></div>
+        <div class="proc-policy-grid"><label>누적 구매 예산 한도 (cr)<input name="budget" type="number" min="0" max="1000000000000" step="any" value="${policy?.budget ?? 0}" required></label><label>최소 보유 크레딧<input name="minCredits" type="number" min="0" max="1000000000000" step="any" value="${policy?.minCredits ?? 0}" required></label><label>경로 최대 위험 (0–100)<input name="maxRisk" type="number" min="0" max="100" step="any" value="${policy?.maxRisk ?? 100}" required></label></div>
+        <p class="dim small">구매하려면 허용, 충분한 누적 예산과 해당 품목의 최대 단가가 모두 필요합니다. 예산은 지금까지의 자동 구매 지출을 포함합니다.</p>
+        <div class="proc-policy-grid"><label>최대 단가를 변경할 품목<select name="priceItem" data-keep><option value="">변경 안 함</option>${items.map(id => `<option value="${esc(id)}">${esc(itemName(id))}</option>`).join('')}</select></label><label>최대 단가 (0이면 해제)<input name="maxUnitPrice" type="number" min="0" max="1000000000000" step="any" placeholder="변경 안 함"></label></div>
+        <div class="proc-policy-grid"><label>보호할 보관함<select name="protectStation" data-keep><option value="">변경 안 함</option>${stations.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select></label><label>보호 품목<select name="protectItem" data-keep><option value="">품목 선택</option>${items.map(id => `<option value="${esc(id)}">${esc(itemName(id))}</option>`).join('')}</select></label><label>남겨 둘 수량 (0이면 해제)<input name="protectAmount" type="number" min="0" max="1000000000000" step="any" placeholder="변경 안 함"></label></div><p class="dim small">보호 수량은 이 보관함에서 출발하는 자동 조달에 적용됩니다. 현장의 생산·건설과 직접 명령은 기존 규칙대로 처리됩니다.</p>
+        <button class="btn go" type="submit" ${this.busy ? 'disabled' : ''}>조달 설정 저장</button></form>` : ''}
+      ${plans.length ? `<div class="proc-plans"><h4>원본 작업별 조달</h4>${plans.map(p => `<article class="proc-plan"><div><b>${kinds[p.sourceKind]} · ${esc(itemName(p.item))}</b> <span>${esc(w.stations[p.station]?.name ?? p.station)} · 우선순위 ${p.priority}</span></div><p>필요 ${num(p.required)} · 투입 ${num(p.used)} · 원본 예약 ${num(p.secured)} · 현장 ${num(p.local)} · 기존 운송 ${num(p.otherIncoming)} · 계획 ${num(p.planned)} · 출발지 예약 ${num(p.reserved)} · 운송 중 ${num(p.inTransit)} · 미확보 ${num(p.shortage)}</p><p class="${p.state === 'waiting' ? 'warn' : 'dim'}">${esc(p.reason)}</p><button class="an-link" data-proc-open="${esc(p.station)}" data-proc-tab="${p.sourceKind === 'construction' ? 'build' : p.sourceKind === 'production' ? 'prod' : 'yard'}">원본 작업 확인 →</button></article>`).join('')}</div>` : '<p class="dim small">현재 표시할 조달 수요가 없습니다.</p>'}</section>`;
   }
   private poolForm() {
     const w = this.c.state!, d = this.poolDraft;
@@ -184,6 +206,16 @@ export class LogisticsPanel {
     const on = (selector: string, event: string, handler: (e: Event) => void) => { const target = this.el.querySelector(selector); if (target) Reflect.set(target, `on${event}`, handler); };
     this.el.querySelectorAll<HTMLElement>('[data-lg-view]').forEach(b => b.onclick = () => { this.view = b.dataset.lgView as 'pool' | 'routes'; this.editing = false; this.error = ''; this.notice = ''; this.render(); });
     this.el.querySelectorAll<HTMLElement>('[data-pool-new]').forEach(b => b.onclick = () => this.newPoolJob());
+    on('[data-proc-policy-open]', 'click', () => { this.policyEditing = !this.policyEditing; this.render(); });
+    this.el.querySelectorAll<HTMLElement>('[data-proc-open]').forEach(b => b.onclick = () => { const id = b.dataset.procOpen!, tab = b.dataset.procTab as 'build' | 'prod' | 'yard'; this.close(); this.actions.station(id, tab); });
+    on('[data-proc-policy-form]', 'submit', e => {
+      e.preventDefault(); const f = e.target as HTMLFormElement, data = new FormData(f);
+      const priceItem = String(data.get('priceItem') ?? ''), price = String(data.get('maxUnitPrice') ?? '');
+      const protectStation = String(data.get('protectStation') ?? ''), protectItem = String(data.get('protectItem') ?? ''), protect = String(data.get('protectAmount') ?? '');
+      if (!!priceItem !== !!price || (!!protectStation || !!protectItem || !!protect) && !(protectStation && protectItem && protect)) { this.error = '최대 단가 또는 보호 재고를 변경하려면 품목과 수량을 모두 입력하세요'; this.render(); return; }
+      const settings = { enabled: data.has('enabled'), autoBuy: data.has('autoBuy'), budget: Number(data.get('budget')), minCredits: Number(data.get('minCredits')), maxRisk: Number(data.get('maxRisk')), ...(priceItem ? { priceItem, maxUnitPrice: Number(price) } : {}), ...(protectStation ? { protectStation, protectItem, protectAmount: Number(protect) } : {}) };
+      void this.send({ c: 'procPolicy', settings }, '조달 설정을 저장했습니다', () => { this.policyEditing = false; });
+    });
     on('[data-pool-form-close]', 'click', () => { this.editing = false; this.render(); });
     this.el.querySelectorAll<HTMLElement>('[data-pool-ship]').forEach(b => b.onclick = () => void this.send({ c: 'poolShips', ships: [b.dataset.poolShip!], on: b.dataset.poolOn === 'true' }, b.dataset.poolOn === 'true' ? '함선이 공용 배차에 참여합니다' : '함선을 제외했습니다. 적재된 화물은 보존됩니다'));
     this.el.querySelectorAll<HTMLElement>('[data-pool-group]').forEach(b => b.onclick = () => { const on = b.dataset.poolOn === 'true', g = this.c.state?.groups[b.dataset.poolGroup!]; const ships = (g?.shipIds ?? []).map(id => this.c.state?.ships[id]).filter(s => s?.classId === 'hauler' && !!s.logisticsPool !== on).map(s => s!.id); if (ships.length) void this.send({ c: 'poolShips', ships, on }, on ? '편대 수송선이 공용 배차에 참여합니다' : '편대 수송선을 제외했습니다. 적재된 화물은 보존됩니다'); });

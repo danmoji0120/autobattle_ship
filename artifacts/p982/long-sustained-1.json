@@ -1,0 +1,80 @@
+[
+  {
+    "companies": 1,
+    "shipsPerCompany": 3,
+    "seconds": 28800,
+    "sustained": true,
+    "goalSuccess": 3,
+    "goals": 3,
+    "procurementJobs": 522,
+    "completedJobs": 522,
+    "activeOrWaiting": 0,
+    "possibleDuplicateOutstanding": 0,
+    "lost": 0,
+    "purchaseSpend": 0,
+    "meanFirstDispatchWaitSeconds": 7.545019157088123,
+    "meanFirstMaterialReadySeconds": 124.25,
+    "readinessSamples": 3,
+    "idleShipSeconds": 71032,
+    "emptyTravelShipSeconds": 7597,
+    "firstPlanMs": 6.849148000000241,
+    "firstDispatchMs": 1.421342999999979,
+    "tickMeanMs": 1.97063506909743,
+    "tickP95Ms": 5.013988000002428,
+    "tickMaxMs": 45.28987899999993,
+    "elapsedMs": 256226.85378200002,
+    "heapUsedBytes": 100447648,
+    "hourly": [
+      {
+        "hour": 1,
+        "procurementJobs": 95,
+        "producedAlloy": 1008,
+        "heapUsedBytes": 78759192
+      },
+      {
+        "hour": 2,
+        "procurementJobs": 170,
+        "producedAlloy": 2072,
+        "heapUsedBytes": 54067040
+      },
+      {
+        "hour": 3,
+        "procurementJobs": 246,
+        "producedAlloy": 3122,
+        "heapUsedBytes": 85351160
+      },
+      {
+        "hour": 4,
+        "procurementJobs": 321,
+        "producedAlloy": 4158,
+        "heapUsedBytes": 79257864
+      },
+      {
+        "hour": 5,
+        "procurementJobs": 393,
+        "producedAlloy": 5166,
+        "heapUsedBytes": 93359296
+      },
+      {
+        "hour": 6,
+        "procurementJobs": 465,
+        "producedAlloy": 6174,
+        "heapUsedBytes": 66667088
+      },
+      {
+        "hour": 7,
+        "procurementJobs": 522,
+        "producedAlloy": 7000,
+        "heapUsedBytes": 101089712
+      },
+      {
+        "hour": 8,
+        "procurementJobs": 522,
+        "producedAlloy": 7000,
+        "heapUsedBytes": 99492320
+      }
+    ],
+    "itemConservationErrors": {},
+    "currencySupplyError": 9.941286407411098e-7
+  }
+]

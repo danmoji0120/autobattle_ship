@@ -1,0 +1,18 @@
+PASS automatic purchase defaults off in logistics
+PASS three ships join the shared pool via the UI
+PASS construction row exposes server-side procurement quantities
+PASS source priority can be changed through the construction screen
+PASS source-level pause is visible and authoritative
+PASS automatically generated transport is distinguished from direct work
+PASS budget, unit price and protected stock save without permitting purchases
+PASS logistics modal fits viewport 1440
+PASS procurement content does not overflow at 1440
+PASS logistics modal fits viewport 390
+PASS procurement content does not overflow at 390
+PASS explicit mobile automatic purchase approval reaches the server
+PASS automatic task links back to the source construction screen
+PASS mobile procurement details have usable reading width
+PASS mobile construction screen has no horizontal overflow
+PASS real transport and construction complete without manual route setup
+PASS no automatic purchases occurred in the transport scenario
+PASS no browser page errors ()

@@ -17,6 +17,7 @@ import { WEAPONS } from '../../sim/data/weapons';
 import { weaponRole } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 import { storeUsed, reservedSpace, listedSpace, logisticsReservedSpace } from '../../world/storage';
+import { procurementSourceHtml } from './procurementUi';
 import { materialReferenceCost, regionalReferenceValue, valueOf } from '../../world/valuation';
 
 export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
@@ -106,7 +107,7 @@ export function prodHtml(w: WorldState, s: Station, me: string, ui: IndUi): stri
     return `<div class="bqrow${o.paused ? ' ps-paused' : ok ? ' ps-building' : ' ps-materials'}"><span class="bqn">${i + 1}</span>
       <div class="bqm"><div><b>${esc(r.name)}</b> <span class="dim">· ${esc(FACILITIES[r.fac]?.name ?? '')}</span> <span class="pst">${esc(o.why ?? '대기')}</span></div>
       <div class="bar"><i style="width:${Math.round(prog * 100)}%"></i></div>
-      <div class="small">${itemList(r.in)} → ${itemList(r.out)} · ${target}${running.length > 1 ? ` · 라인 ${running.length}개 가동` : ''}</div></div>
+      <div class="small">${itemList(r.in)} → ${itemList(r.out)} · ${target}${running.length > 1 ? ` · 라인 ${running.length}개 가동` : ''}</div>${procurementSourceHtml(w, me, s.id, 'production', o.id)}</div>
       <div class="bqa"><button class="btn mini" data-oop="up:${o.id}" ${i === 0 ? 'disabled' : ''}>▲</button><button class="btn mini" data-oop="down:${o.id}" ${i === orders.length - 1 ? 'disabled' : ''}>▼</button>
       ${o.paused ? `<button class="btn mini" data-oop="resume:${o.id}">▶</button>` : `<button class="btn mini" data-oop="pause:${o.id}">⏸</button>`}<button class="btn mini warnb" data-oop="cancel:${o.id}">✕</button></div></div>`;
   }).join('')}</div>` : '<div class="dim small">주문이 없습니다. 아래 레시피에서 생산 주문을 등록하세요.</div>'}`;
@@ -200,7 +201,7 @@ export function yardOwnHtml(w: WorldState, s: Station, me: string, ui: IndUi, gr
   html += `<h3>건조 대기열 (${q.length})</h3>${q.length ? `<div class="bq">${q.map((b, i) => `<div class="bqrow${b.started ? ' ps-building' : b.paused ? ' ps-paused' : ' ps-materials'}"><span class="bqn">${i + 1}</span>
     <div class="bqm"><div><b>${esc(hullName(b.classId))}</b> <span class="dim">· ${esc(getLoadout(b.classId, b.loadoutId).name)}${b.fit.length ? ` · ${b.fit.map(k => esc(EQUIPMENT[k]?.name ?? k)).join(', ')}` : ''}</span> <span class="pst">${esc(b.why ?? '대기')}</span></div>
     <div class="bar"><i style="width:${Math.round((1 - b.left / b.total) * 100)}%"></i></div>
-    <div class="small">${b.started ? `남은 시간 ${dur(b.left / Math.max(0.01, speed))}` : `필요: ${itemList(buildNeeds(b.classId, b.loadoutId, b.fit))}`}</div></div>
+    <div class="small">${b.started ? `남은 시간 ${dur(b.left / Math.max(0.01, speed))}` : `필요: ${itemList(buildNeeds(b.classId, b.loadoutId, b.fit, b))}`}</div>${!b.started ? procurementSourceHtml(w, me, s.id, 'ship', b.id) : ''}</div>
     <div class="bqa"><button class="btn mini" data-bop="up:${b.id}" ${i === 0 ? 'disabled' : ''}>▲</button><button class="btn mini" data-bop="down:${b.id}" ${i === q.length - 1 ? 'disabled' : ''}>▼</button>
     ${b.paused ? `<button class="btn mini" data-bop="resume:${b.id}">▶</button>` : `<button class="btn mini" data-bop="pause:${b.id}">⏸</button>`}<button class="btn mini warnb" data-bop="cancel:${b.id}">✕</button></div></div>`).join('')}</div>` : '<div class="dim small">건조 중인 함선이 없습니다.</div>'}`;
   // hull catalog

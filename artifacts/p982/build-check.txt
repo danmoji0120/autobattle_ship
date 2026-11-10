@@ -1,0 +1,14 @@
+Excerpt from the successful npm run build output (font assets omitted).
+> siderarium@0.1.0 build
+> tsc --noEmit && vite build && npm run build:server
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 122 modules transformed.
+dist/index.html                                                    0.43 kB │ gzip:   0.30 kB
+dist/assets/index-DeGGWG7K.css                                   316.78 kB │ gzip:  93.85 kB
+dist/assets/index-DTGXP-be.js                                  1,700.83 kB │ gzip: 502.89 kB
+✓ built in 14.73s
+> siderarium@0.1.0 build:server
+> esbuild src/server/node.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outfile=dist-server/server.mjs
+  dist-server/server.mjs  871.5kb
+⚡ Done in 212ms

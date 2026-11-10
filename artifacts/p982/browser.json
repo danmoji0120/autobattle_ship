@@ -1,0 +1,59 @@
+{
+  "checks": [
+    "automatic purchase defaults off in logistics",
+    "three ships join the shared pool via the UI",
+    "construction row exposes server-side procurement quantities",
+    "source priority can be changed through the construction screen",
+    "source-level pause is visible and authoritative",
+    "automatically generated transport is distinguished from direct work",
+    "budget, unit price and protected stock save without permitting purchases",
+    "logistics modal fits viewport 1440",
+    "procurement content does not overflow at 1440",
+    "logistics modal fits viewport 390",
+    "procurement content does not overflow at 390",
+    "explicit mobile automatic purchase approval reaches the server",
+    "automatic task links back to the source construction screen",
+    "mobile procurement details have usable reading width",
+    "mobile construction screen has no horizontal overflow",
+    "real transport and construction complete without manual route setup",
+    "no automatic purchases occurred in the transport scenario",
+    "no browser page errors ()"
+  ],
+  "result": {
+    "built": true,
+    "jobs": [
+      {
+        "from": "astra",
+        "state": "complete",
+        "delivered": 120
+      },
+      {
+        "from": "proc_browser_source",
+        "state": "cancelled",
+        "delivered": 0
+      },
+      {
+        "from": "astra",
+        "state": "complete",
+        "delivered": 8
+      },
+      {
+        "from": "proc_browser_source",
+        "state": "cancelled",
+        "delivered": 0
+      },
+      {
+        "from": "proc_browser_source",
+        "state": "complete",
+        "delivered": 120
+      },
+      {
+        "from": "proc_browser_source",
+        "state": "complete",
+        "delivered": 7
+      }
+    ],
+    "spent": 0
+  },
+  "errors": []
+}

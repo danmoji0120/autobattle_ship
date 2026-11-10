@@ -772,3 +772,26 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .pool-ship { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 13px; font-size:12px; }
 .pool-ship + .pool-ship { border-top:1px solid var(--line); }.pool-ship small { display:block; margin-top:5px; line-height:1.5; color:var(--dim); }
 @media(max-width:760px) { .pool-tabs { padding:0 12px; }.pool-tabs button { padding:10px; }.pool-section-head { flex-wrap:wrap; }.pool-group-head strong { flex-basis:100%; }.pool-group-head span { margin-right:auto; } }
+
+/* P9.8.2: server-provided procurement status and policy. */
+.proc-policy-status { display:flex; flex-wrap:wrap; gap:8px 20px; padding:12px; background:rgba(42,82,110,.12); color:var(--dim); font-size:11px; }
+.proc-policy-status b { color:#c5e7fa; margin-left:4px; }
+.proc-policy>p, .proc-policy-form p { line-height:1.7; }
+.proc-policy-form { margin:14px 0; padding:16px; border:1px solid var(--line); background:rgba(10,25,38,.4); }
+.proc-policy-switches { display:flex; flex-wrap:wrap; gap:12px 24px; margin-bottom:15px; font-size:12px; }
+.proc-policy-switches label { display:flex; align-items:center; gap:7px; }
+.proc-policy-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr)); gap:10px; margin:12px 0; }
+.proc-policy-grid label { display:flex; flex-direction:column; gap:6px; font-size:11px; color:var(--dim); }
+.proc-plans { margin-top:18px; }.proc-plans h4 { font-size:12px; color:#c8eaff; margin:0 0 8px; }
+.proc-plan { padding:10px 0; border-top:1px solid var(--line); font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
+.proc-plan span { color:var(--dim); }.proc-plan p { margin:4px 0; }.proc-plan .an-link { font-size:11px; }
+.proc-source { margin:10px 0; padding:10px 12px; border-left:2px solid #497994; background:rgba(42,82,110,.12); font-size:11px; line-height:1.7; overflow-wrap:anywhere; }
+.proc-source-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }.proc-source-head strong { color:#c8eaff; }.proc-source-head span { color:var(--dim); margin-right:auto; }
+.proc-source-head label { display:flex; align-items:center; gap:5px; color:var(--dim); }.proc-source-head select { width:auto; min-width:48px; }
+.proc-source-item { padding-top:6px; }.proc-source-item small { display:block; color:var(--dim); font-size:11px; }
+@media (max-width: 760px) {
+  .bqrow { display:grid; grid-template-columns:16px minmax(0,1fr); align-items:start; }
+  .bqrow .bqm, .bqrow > .bqa { grid-column:2; min-width:0; }
+  .bqrow > .bqa { justify-content:flex-start; }
+  .proc-source-head span { margin-right:0; }
+}
