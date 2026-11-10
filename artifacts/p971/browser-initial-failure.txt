@@ -1,0 +1,16 @@
+PASS galaxy map shows origin, mixture, reserves, regeneration and risk
+PASS field details explain the rare material and actual processing facility
+PASS UI mining command produces regional ore at the selected source station
+PASS production details show server materials, origin and shortage
+PASS mobile station tabs remain readable inside the viewport
+PASS managed route physically delivers exactly one refining batch
+PASS advanced equipment shows its regional input and origin
+PASS production distinguishes input estimate, old reference and actual transaction prices
+PASS production consumes refined regional material and creates the armor module
+page.evaluate: Error: 무기 공장이(가) 없습니다 — 먼저 건설하세요
+    at eval (eval at evaluate (:370:30), <anonymous>:5:24)
+    at UtilityScript.evaluate (<anonymous>:372:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at /workspace/autobattle_ship/scripts/p97-browser.cjs:124:16 {
+  log: []
+}

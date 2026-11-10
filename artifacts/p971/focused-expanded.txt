@@ -1,0 +1,74 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > creates four exclusive origins with stable fields, unchanged geography and finite replenishment 499ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > retains a usable starting fleet, basic hull purchase and ordinary mining without rare materials 2310ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > finishes already paid batches but requires regional inputs for every new batch after activation 28ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not let already activated development saves use legacyRecipe for stock replenishment 49ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > rejects a conflicting explicit migration before modifying old fields or orders 7ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > actually mines every authored rare material without inventing or losing mixed cargo 13ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shares one finite deposit between two companies without duplicating rare cargo, including after restore 173ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets four companies independently mine the four different origins in one shared world 12ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > applies cargo compression to miners and their support haulers in regional mining operations only 41ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > preserves a running rare-material batch and a paused second batch over save and resume 10ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > requires the four regional inputs in the server recipe and snapshots capital build materials 7ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shows estimated input value separately from old references and executable prices 35ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > values regional assets and fitted materials for assessment without changing old worlds 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses the same regional asset reference in storage, cargo and player listings 12ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses real NPC market stock atomically for restricted refits in regional worlds only 10ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not generate restricted weapons through public-yard presets in regional worlds 12ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not start a dreadnought without the actual regional materials, then launches one after restore 80ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > mines Anvil, hauls through gates, processes an alloy and fits a produced armor module 5606ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets a company that mines nothing buy a processed regional material, haul it and manufacture equipment 4602ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle 904ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings 30ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently sells a confirmed request even across reload, without selling a second lot 36ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > records only successful sale requests, isolates companies and rejects conflicts and stale sequences 7ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > preserves the unsold portion and retries an idempotent partial sale at the actual station budget 11ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently purchases a partial player listing without charging or delivering twice 19ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not buy another NPC ship when the same successful request is retried 22ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > replays a ship handoff acknowledgement and rejects an orphan sale before charging 12ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not transfer a seller’s fractional cargo with a newly listed or legacy listed ship 28ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects a corrupt ship-listing price without paying a buyer or taking the seller’s ship 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > registers and withdraws the same escrow request only once, including after save and restore 40ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects invalid legacy listings before money or goods move 5ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal 23ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > preserves credits, market stock and goods for a failed purchase and makes normal trades exactly once 10ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not charge for a full warehouse or hold, and only delivers to an owned ship at the market 40ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > acknowledges authoritative trades and sends each company only its own inventory and receipts 35ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > partially unloads only available warehouse room and never takes another company’s cargo 24ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > never loads past a ship’s remaining capacity when it already contains fractional cargo 67ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > transports owned blueprint fragments without inventing or losing records 232ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > physically collects the buyer-owned goods from a private exchange without general docking access 298ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts budget-backed trade and player payments as transfers; records only actual money creation/destruction 100ms
+ ✓ tests/analytics.test.ts > authoritative analytics > persists buckets and in-flight research across restart without re-emitting records 49ms
+ ✓ tests/analytics.test.ts > authoritative analytics > compacts old intervals, bounds bytes and metadata, and explicitly reports retention loss 4950ms
+ ✓ tests/analytics.test.ts > authoritative analytics > enforces admin identity and filters all private company data before transmission 57ms
+ ✓ tests/analytics.test.ts > authoritative analytics > collecting statistics does not change c0 or growth simulation state or RNG 2746ms
+ ✓ tests/analytics.test.ts > authoritative analytics > records real research start/pause/completion and actual industry input/output, with no shortened test conditions 56ms
+ ✓ tests/analytics.test.ts > authoritative analytics > does not duplicate player-exchange volume and records seller receipts without exposing the buyer history 7ms
+ ✓ tests/analytics.test.ts > authoritative analytics > retains history while collection is disabled and explicitly reports the unobserved interval on resume 76ms
+ ✓ tests/analytics.test.ts > authoritative analytics > keeps asset assessment unchanged for cargo transfers and listing escrow; analysis queries are read-only 7ms
+ ✓ tests/analytics.test.ts > authoritative analytics > counts online time once per company across simultaneous authenticated tabs 87ms
+ ✓ tests/analytics.test.ts > authoritative analytics > separates starting capital from earned cash profit without hiding the real cash balance 4ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 1 yard, without charging rejections 106ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 2 yard, without charging rejections 17ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 3 yard, without charging rejections 53ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > enforces each new hull requirement at a tier 4 yard, without charging rejections 20ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > separates XL yard research from ship-specific research, blueprints and industry 19ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > retains the original c0 XL yard prerequisite and its research descriptions 6ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old battleship_mk1 orders (battleship_std, tier 3) and launches each exactly once 80ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_l orders (miner_l_std, tier 2) and launches each exactly once 64ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > restores started and waiting old miner_xl orders (miner_xl_std, tier 3) and launches each exactly once 32ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered dreadnought_mk1 with its required parts 19ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > completes and launches a newly registered hauler_xl with its required parts 48ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > still allows complete hulls to be bought without production rights, research or factories 20ms
+ ✓ tests/p9631-yard.test.ts > P9.6.3.1 yard tiers and historic build plans > lets another company buy a completed player-owned battleship and leave without its blueprint 16ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > scalar fast path preserves every quantity and event count across snapshots and restart 190ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > byte pressure compresses old frames before expiring their flow history 359ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > fallback observers receive independent immutable scalar events 3ms
+
+ Test Files  5 passed (5)
+      Tests  66 passed (66)
+   Start at  01:33:40
+   Duration  33.58s (transform 4.54s, setup 0ms, import 6.76s, tests 24.58s, environment 1ms)
