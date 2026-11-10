@@ -17,7 +17,7 @@ import { WEAPONS } from '../../sim/data/weapons';
 import { weaponRole } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 import { storeUsed, reservedSpace, listedSpace } from '../../world/storage';
-import { regionalReferenceValue } from '../../world/valuation';
+import { materialReferenceCost, regionalReferenceValue, valueOf } from '../../world/valuation';
 
 export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
 export const newIndUi = (): IndUi => ({ invCat: 'all', invQ: '', recFac: 'all', recQ: '', recSel: null, mkCat: 'all', mkQ: '', hull: null, fit: [], rField: 'all', tSel: null });
@@ -64,8 +64,8 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
     ${Object.keys(needs).length ? `<div class="small"><span class="warn">생산 원료 부족</span>: ${itemList(needs)}</div>` : ''}
     </div>`;
   html += `<div class="frow">${chips('icat', ui.invCat, [['all', '전체'], ...CATS.map(c => [c, ITEM_CAT_NAME[c]] as [string, string])])}<input class="search" data-iq placeholder="품목 검색" value="${esc(ui.invQ)}"></div>`;
-  html += shown.length ? `<table class="gt inv"><tr><th>품목</th><th>분류</th><th class="n">수량</th><th class="n">기준가</th><th class="n">가치</th></tr>${shown.map(k => {
-    const p = ITEMS[k]?.price ?? (EQUIPMENT[k] ? 0 : 0);
+  html += shown.length ? `<table class="gt inv"><tr><th>품목</th><th>분류</th><th class="n">수량</th><th class="n">참고 가치</th><th class="n">가치</th></tr>${shown.map(k => {
+    const p = regionalReferenceValue(w, k) ?? ITEMS[k]?.price ?? 0;
     return `<tr><td>${iname(k)}</td><td class="dim">${ITEM_CAT_NAME[itemCat(k)]}</td><td class="n"><b>${stockFmt(qty(store, k))}</b></td><td class="n dim">${p ? fmt(p) : '—'}</td><td class="n dim">${p ? fmt(p * qty(store, k)) : '—'}</td></tr>`;
   }).join('')}</table>` : `<div class="dim small" style="padding:8px">${ids.length ? '조건에 맞는 품목이 없습니다.' : '보관 중인 품목이 없습니다.'}</div>`;
   html += `<h3>물류</h3>${hauls.length ? `<table class="gt"><tr><th>편대</th><th>경로</th><th>품목</th><th>상태</th></tr>${hauls.map(g => {
@@ -96,7 +96,7 @@ export function prodHtml(w: WorldState, s: Station, me: string, ui: IndUi): stri
   }).join('')}</table>` : '<div class="dim small">생산 시설이 없습니다. 건설 탭에서 정제소·공장을 지으세요.</div>'}`;
   // order queue
   html += `<h3>생산 주문 (${orders.length})</h3>${orders.length ? `<div class="bq">${orders.map((o, i) => {
-    const r = recipeFor(w, o.recipe, o.legacyRecipe) ?? RECIPES[o.recipe];
+    const r = recipeFor(w, o.recipe) ?? RECIPES[o.recipe];
     const running = jobs.filter(j => j.order === o.id);
     const prog = running.length ? Math.max(...running.map(j => 1 - j.left / j.total)) : 0;
     const ok = o.why === '가동 중' || o.why?.startsWith('가동 중');
@@ -130,10 +130,12 @@ function recipeDetail(s: Station, me: string, w: WorldState, r: RecipeDef | unde
   const batches = Math.floor(Math.min(...Object.entries(r.in).map(([k, n]) => qty(store, k) / n)));
   const perH = lines ? 3600 / (r.time / speed) * lines : 0;
   const why = !known ? `연구 필요: ${esc(TECHS[r.tech!]?.name ?? r.tech!)}` : !lines ? `${esc(FACILITIES[r.fac].name)}이(가) 이 정거장에 없습니다 (건설 탭)` : '';
+  const regional = Object.keys(r.out).some(id => regionalReferenceValue(w, id) !== undefined);
   return `<div class="bdh"><b>${esc(r.name)}</b> <span class="dim">· ${esc(FACILITIES[r.fac].name)}</span></div>
     <table class="gt bmat"><tr><th>투입</th><th class="n">배치당</th><th class="n">창고</th><th class="n">상태</th></tr>${rows}</table>
     ${Object.keys(r.in).some(k => REGIONAL_ORIGINS[k]) ? '<div class="dim small">지역 소재는 표시된 산지에서 채굴·가공하거나 플레이어 거래소에서 구할 수 있습니다.</div>' : ''}
     <div class="bdr">산출: <b>${itemList(r.out)}</b></div>
+    ${regional ? `<div class="bdr small">예상 재료 원가 (배치당): <b>${fmt(materialReferenceCost(w, r.in))} cr</b> · 기존 참고 가치 (산출물): ${fmt(Object.entries(r.out).reduce((n, [id, amount]) => n + valueOf(id) * amount, 0))} cr · 지역 소재 반영 참고 가치: ${fmt(Object.entries(r.out).reduce((n, [id, amount]) => n + (regionalReferenceValue(w, id) ?? valueOf(id)) * amount, 0))} cr</div><div class="dim small">재료별 참고 가치로 계산한 추정치이며 실제 지불액·실제 거래 가능 가격이 아닙니다. 생산 시간과 시설 운영비는 재료 원가에 포함되지 않습니다.</div>` : ''}
     <div class="bdr">배치 시간 ${dur(r.time)}${speed !== 1 ? ` (현재 속도로 ${dur(r.time / speed)})` : ''} · 라인 ${lines}개${perH ? ` · 최대 시간당 ${itemList(r.out, perH)}` : ''}</div>
     <div class="bdr dim small">지금 창고 재료로 ${batches}배치 가능</div>
     ${why ? `<div class="warn">${why}</div>` : ''}

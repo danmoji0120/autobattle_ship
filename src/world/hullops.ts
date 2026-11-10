@@ -6,7 +6,8 @@ import { CONTENT } from '../content/registry';
 import type { HullBuild, HullDef, HullSale, HullUpkeep, Size } from '../content/schema';
 import { sizeRank } from '../content/schema';
 import { ECON, type ShipEcon } from './data';
-import { HULLS, FACILITIES } from './industry';
+import { HULLS, FACILITIES, techFx } from './industry';
+import { regionalOn } from './regional';
 import { hullPrice } from './valuation';
 import { MK1_STOCK, MK1_RESTOCK, MK1_MIL_REP } from './econConfig';
 import type { Station, WShip, WorldState } from './types';
@@ -50,6 +51,10 @@ export function hullEcon(hullId: string, variantId?: string): HullEcon {
 /** strategic econ of a ship (its hull + variant). Wear is applied by the callers that move or mine. */
 export const econOf = (s: { classId: string; hull?: string; variant?: string }): HullEcon =>
   s.hull ? hullEcon(hullIdOf(s), s.variant) : hullEcon(`${s.classId}_mk1`);
+
+/** Capacity used by a regional mining operation; pre-regional worlds keep the original limit. */
+export const miningCargoCapacity = (w: { regionalV?: number }, s: { classId: string; hull?: string; variant?: string }, tech?: string[]) =>
+  econOf(s).cargo * (regionalOn(w) ? techFx(tech).cargoMul : 1);
 
 /** Historical yard tier: both a save-compatibility fallback and the unchanged pricing basis. */
 export const PRE_P9631_YARD: Readonly<Record<string, number>> = {

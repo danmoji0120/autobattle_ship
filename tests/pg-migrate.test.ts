@@ -12,7 +12,7 @@ import { makeC0World } from './support/oldSave';
 import { GameServer } from '../src/server/core';
 import { publicCap, storeUsed } from '../src/world/storage';
 import { WorldSim } from '../src/world/sim';
-import { FACILITIES, TECHS } from '../src/world/industry';
+import { FACILITIES, RECIPES, TECHS } from '../src/world/industry';
 import { allocate } from '../src/world/construction';
 import { buildSpec, stepProduction } from '../src/world/production';
 import { grantBlueprint, hullBlueprint } from '../src/world/blueprints';
@@ -433,6 +433,32 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       expect(restored.st.stations[site.id].storage[p].dense_alloy).toBe(12);
       expect(restored.st.stations[site.id].storage[q].resonant_crystal).toBe(7);
       expect(srv.log()).not.toMatch(/save failed|마이그레이션 실패/);
+    }
+  }, 60_000);
+
+  it('restores a paid legacy batch but applies regional inputs to the next stock batch', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 971), sim = local.sim;
+    const p = sim.addPlayer('PG 구형 주문'); sim.st.companies[p].tech = ['railguns'];
+    const base = sim.st.stations.astra;
+    const site: Station = { ...structuredClone(base), id: 'pg_p971', name: 'PG 주문 전환', owner: p, public: false, size: 'L', market: null,
+      storage: { [p]: Object.fromEntries(Object.entries(RECIPES.eq_rail_cannon.in).map(([k, n]) => [k, n * 3])) },
+      modules: ['core', 'power', 'weapons_factory'].map((kind, slot) => ({ kind, slot, built: true, progress: 1 })), orders: [], jobs: [] };
+    sim.st.stations[site.id] = site;
+    delete sim.st.regionalV;
+    expect(sim.command(p, { c: 'prodOrder', station: site.id, recipe: 'eq_rail_cannon', mode: 'stock', n: 2 })).toBeNull();
+    sim.st.regionalV = 1; site.orders![0].legacyRecipe = true;
+    const file = local.snapshotFile(), paid = structuredClone(site.storage[p]), job = structuredClone(site.jobs);
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    for (const port of [8334, 8335]) {
+      const srv = await start(port, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(srv)).toBe(0);
+      const world = (await row())!.data.world, saved = world.stations[site.id];
+      expect(saved.storage[p]).toEqual(paid); expect(saved.jobs).toEqual(job);
+      expect(saved.orders![0].legacyRecipe).toBeUndefined(); expect(saved.orders![0].n).toBe(2);
+      const restored = new WorldSim(structuredClone(world), { migrateContent: false });
+      const current = restored.st.stations[site.id];
+      stepProduction(current, restored.st.companies[p], 3000, restored.st);
+      expect(current.storage[p].eq_rail_cannon).toBe(1); expect(current.jobs).toHaveLength(0);
+      expect(current.orders![0].done).toBe(1); expect(current.orders![0].why).toContain('고강도 특수 합금');
     }
   }, 60_000);
 });

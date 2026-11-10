@@ -17,7 +17,7 @@ import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFit
 import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBlueprints, bpName, SRC_NAME, FRAG_PREFIX, fragmentsNeeded } from '../../world/blueprints';
 import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld } from '../../world/upkeep';
 import { iname, itemList } from './industryUi';
-import { hullPrice } from '../../world/valuation';
+import { hullPrice, materialReferenceCost, yardFee } from '../../world/valuation';
 import { serviceOf, publicCap, storeUsed, reservedSpace, listedSpace, leasedAt, LEASE_BLOCK, leaseRate, ownRepairCap, OWN_REPAIR, dockCapacity, SERVICES } from '../../world/storage';
 import { sitesIn, knows, surveyLeft, SCAN_NEED } from '../../world/explore';
 import { storageCap } from '../../world/production';
@@ -122,15 +122,17 @@ function ownHullDetail(w: WorldState, s: Station, me: string, ui: GrowthYardUi, 
   const fit = ui.fit.filter(k => EQUIPMENT[k]?.kind === 'module');
   const need = buildNeeds(h.classId, '', fit, { hull: id, variant, preset: p?.id, regionalMaterials: regionalHullMaterials(w, id) });
   const rows = Object.entries(need).map(([k, n]) => `<tr><td>${iname(k)}${REGIONAL_ORIGINS[k] ? `<div class="dim small">주요 산지: ${esc(REGIONAL_ORIGINS[k])}</div>` : ''}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
-  const why = buildWhy(w, s, me, id, variant) || (co.credits < b.credits ? `자금 부족 — ${fmt(b.credits - co.credits)} cr` : '');
+  const pay = b.credits + yardFee(b);
+  const why = buildWhy(w, s, me, id, variant) || (co.credits < pay ? `자금 부족 — ${fmt(pay - co.credits)} cr` : '');
   const vb = variantBlueprint(variant);
   const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module' && qty(store, x.id) >= 1);
   return `<div class="bdh"><b>${esc(hullTitle(id))}</b> <span class="dim">· ${esc(h.maker ?? '')} · ${GRADE[h.blueprint]} 설계</span></div>
     <div class="dim small">${esc(h.desc)}</div>
     <div class="bdr small">${hullStats(id, variant)}</div>
     ${baseChecklist(w, s, me, id, variant)}
-    ${priceWhy(id, variant)}
-    <div class="bdr">조선소 <b>${YARD_NAME[b.yard]}</b> 이상 · 건조 ${dur(b.time)} · 공임 <b class="money">${fmt(b.credits)} cr</b>${b.facilities?.length ? ` · 시설 ${b.facilities.map(f => esc(MODULES[f]?.name ?? f)).join(', ')}` : ''}${b.tech?.length ? ` · 연구 ${b.tech.map(t => esc(TECHS[t]?.name ?? t)).join(', ')}` : ''}</div>
+    <div class="bdr small">예상 재료 원가 <b>${fmt(materialReferenceCost(w, need))} cr</b> · 등록 시 공임 및 조선소 비용 <b>${fmt(pay)} cr</b> · 합계 약 <b>${fmt(materialReferenceCost(w, need) + pay)} cr</b></div>
+    <div class="dim small">선택한 부품·무장·지역 소재의 참고 가치로 계산한 추정치입니다. 실제 거래 가격이나 판매 수익을 보장하지 않습니다.</div>
+    <div class="bdr">조선소 <b>${YARD_NAME[b.yard]}</b> 이상 · 건조 ${dur(b.time)} · 공임 및 조선소 비용 <b class="money">${fmt(pay)} cr</b>${b.facilities?.length ? ` · 시설 ${b.facilities.map(f => esc(MODULES[f]?.name ?? f)).join(', ')}` : ''}${b.tech?.length ? ` · 연구 ${b.tech.map(t => esc(TECHS[t]?.name ?? t)).join(', ')}` : ''}</div>
     <div class="yrow"><select data-gpre data-keep>${ps.map(x => `<option value="${x.id}"${x.id === p?.id ? ' selected' : ''}>${esc(x.name)} — ${esc(CONTENT.variants[x.variant]?.name ?? '')}${CONTENT.variants[x.variant]?.blueprint !== 'common' ? ' (변형 설계도)' : ''}</option>`).join('')}</select>
     <select data-ggrp data-keep><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select></div>
     ${p ? `<div class="dim small">${esc(p.desc)}${vb ? ` · 변형 설계도 ${holds(co, vb) ? '<span class="good">보유</span>' : '<span class="warn">미보유</span>'}` : ''}</div>` : ''}

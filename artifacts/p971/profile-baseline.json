@@ -1,0 +1,40 @@
+{
+  "seconds": 600,
+  "wallMs": 4811.808643,
+  "cpu": {
+    "user": 6340174,
+    "system": 235530
+  },
+  "rss": 311427072,
+  "timings": {
+    "economy": {
+      "calls": 2400,
+      "ms": 737.2129770000056
+    },
+    "npcs": {
+      "calls": 2400,
+      "ms": 4.30224200000157
+    },
+    "npcSlow": {
+      "calls": 600,
+      "ms": 147.5576220000064
+    },
+    "detectEngagements": {
+      "calls": 600,
+      "ms": 196.29727900001103
+    },
+    "contracts": {
+      "calls": 600,
+      "ms": 152.95792599999731
+    },
+    "milestones": {
+      "calls": 600,
+      "ms": 126.4448550000086
+    },
+    "netWorth": {
+      "calls": 600,
+      "ms": 103.69522699999311
+    }
+  },
+  "notes": "Inclusive timings overlap; instrumentation adds overhead and can affect the wall-time-limited NPC battle scheduler. No players receive orders."
+}

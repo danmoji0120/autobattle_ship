@@ -45,6 +45,14 @@ server.stdout.on('data', d => serverLog += d); server.stderr.on('data', d => ser
       return { p, field: field.id, source: source.id, factory: factory.id, miners: miners.id, miner: miner.id, carriers: carriers.id, carrier: carrier.id, ship: ship.id };
     });
     await page.waitForFunction(x => !!window.siderarium.client.state.groups[x.miners], fixture);
+    await page.evaluate(x => {
+      const app = window.siderarium;
+      app.client.t.server.sim.st.companies[x.p].tech.push('cargo_compression');
+      app.client.t.server.step(.6);
+    }, fixture);
+    await page.waitForFunction(x => window.siderarium.client.state.companies[x.p].tech.includes('cargo_compression'), fixture);
+    await page.evaluate(x => { const h = window.siderarium.hud; h.select({ kind: 'group', id: x.miners }); h.select({ kind: 'ship', id: x.miner }); }, fixture);
+    check((await page.locator('#sel .shipd').innerText()).includes('/ 175') && (await page.locator('#sel .shipd').innerText()).includes('채굴·운송 기준'), 'ship details reflect cargo compression used by regional mining');
     await page.evaluate(x => { const a = window.siderarium; a.hud.select({ kind: 'group', id: x.miners }); a.hud.toggleGalaxy(); }, fixture);
     await page.locator('[data-sys="anvil"]').click();
     const fieldRow = page.locator(`[data-gal-field="${fixture.field}"]`);
@@ -110,6 +118,8 @@ server.stdout.on('data', d => serverLog += d); server.stderr.on('data', d => ser
     await page.evaluate(x => window.siderarium.hud.openStation(x.factory, 'prod'), fixture);
     await page.locator('[data-rsel="mod_armor2"]').click();
     check((await page.locator('.bdet').innerText()).includes('고강도 특수 합금') && (await page.locator('.bdet').innerText()).includes('앤빌 광구'), 'advanced equipment shows its regional input and origin');
+    const costs = await page.locator('.bdet').innerText();
+    check(costs.includes('예상 재료 원가') && costs.includes('기존 참고 가치') && costs.includes('실제 거래 가능 가격이 아닙니다'), 'production distinguishes input estimate, old reference and actual transaction prices');
     await page.locator('[data-pn]').fill('1');
     await page.locator('[data-porder="mod_armor2"]').click();
     await page.waitForFunction(x => window.siderarium.client.t.server.sim.st.stations[x.factory].jobs.some(j => j.recipe === 'mod_armor2'), fixture);
@@ -119,6 +129,18 @@ server.stdout.on('data', d => serverLog += d); server.stderr.on('data', d => ser
       app.client.t.server.step(.6); return sim.st.stations[x.factory].storage[x.p]?.mod_armor2 ?? 0;
     }, fixture);
     check(made === 1, 'production consumes refined regional material and creates the armor module');
+    await page.evaluate(x => {
+      const app = window.siderarium, sim = app.client.t.server.sim;
+      sim.st.companies[x.p].tech.push('railguns');
+      const station = sim.st.stations[x.factory];
+      station.modules.push({ kind: 'weapons_factory', slot: station.modules.length, built: true, progress: 1 });
+      const error = sim.command(x.p, { c: 'prodOrder', station: x.factory, recipe: 'eq_rail_cannon', mode: 'stock', n: 2 });
+      if (error) throw Error(error);
+      sim.st.stations[x.factory].orders.find(o => o.recipe === 'eq_rail_cannon').legacyRecipe = true;
+      app.client.t.server.step(.6);
+    }, fixture);
+    await page.evaluate(x => window.siderarium.hud.openStation(x.factory, 'prod'), fixture);
+    check((await page.locator('.bq').innerText()).includes('고강도 특수 합금'), 'legacy stock order shows regional inputs in the production queue');
     await page.waitForFunction(x => window.siderarium.client.state.stations[x.factory].storage[x.p]?.mod_armor2 === 1, fixture);
     await page.evaluate(x => window.siderarium.hud.openStation(x.factory, 'market'), fixture);
     await page.locator('[data-lit]').selectOption('mod_armor2');

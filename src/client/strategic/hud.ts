@@ -23,7 +23,7 @@ import { REGIONAL_ORIGINS } from '../../world/regional';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
-import { growthOn, econOf } from '../../world/hullops';
+import { growthOn, econOf, miningCargoCapacity } from '../../world/hullops';
 import { priceOf } from '../../world/market';
 import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml, storageGrowthHtml, sitesHtml } from './growthUi';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
@@ -759,7 +759,7 @@ export class PmcHud {
   private orgKey = '';
   private renderOrg() {
     const groups = this.myGroups();
-    const key = JSON.stringify(groups.map(g => [g.id, g.name, g.parentId, g.shipIds, g.status, g.commanderId, g.op.k, g.override, g.fleeing, this.groupSys(g)])) + [...this.expanded].join() + this.group + this.v.sys?.id + JSON.stringify(Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [Math.round(s.hp * 50), s.state, Math.round(cargoSum(s.cargo) / 10)]));
+    const key = JSON.stringify(groups.map(g => [g.id, g.name, g.parentId, g.shipIds, g.status, g.commanderId, g.op.k, g.override, g.fleeing, this.groupSys(g)])) + [...this.expanded].join() + this.group + this.v.sys?.id + JSON.stringify(this.st.companies[this.me]?.tech) + JSON.stringify(Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [Math.round(s.hp * 50), s.state, Math.round(cargoSum(s.cargo) / 10)]));
     if (key === this.orgKey) return;
     this.orgKey = key;
     const body = document.getElementById('orgBody')!;
@@ -789,7 +789,7 @@ export class PmcHud {
         const r = h('div', `shiprow${this.sel?.kind === 'ship' && this.sel.id === s.id ? ' selS' : ''}`);
         r.style.paddingLeft = `${26 + depth * 14}px`;
         const cs = cargoSum(s.cargo);
-        const cap = econOf(s).cargo;
+        const cap = miningCargoCapacity(this.st, s, this.st.companies[s.owner]?.tech);
         r.innerHTML = `<span>${esc(s.name)} <span style="opacity:.6">${SHIP_CLASSES[s.classId].type}</span>${s.state === 'docked' ? ' ⚓' : s.state === 'battle' ? ' ⚔' : ''}${cap ? ` <span style="color:var(--warn)">${Math.round(cs)}/${cap}</span>` : ''}</span><span class="hp"><i style="width:${s.hp * 100}%;background:${hpCol(s.hp)}"></i></span>`;
         r.onclick = () => { this.group = g.id; this.select({ kind: 'ship', id: s.id }); };
         r.ondblclick = () => { const v = this.v.ships.get(s.id); if (v) this.v.focusOn(v.pos, 500); };
@@ -812,7 +812,7 @@ export class PmcHud {
     if (this.mineForm?.live && g && (g.id !== this.mineForm.group || performance.now() - this.mineForm.t > 4000 || (g.op.k === 'mine' && this.sameMine(g.op, this.mineForm)))) this.mineForm = null;
     if (this.mineForm && !this.mineForm.live && this.mineForm.group !== this.group) this.mineForm = null;
     const selectedField = s?.kind === 'field' ? this.st.fields[s.id] : undefined;
-    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.parentId, g?.override, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, selectedField && [Math.round(selectedField.amount), selectedField.danger, selectedField.regen], Math.round(this.st.companies[this.me]?.credits / 100)]);
+    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.parentId, g?.override, this.st.companies[this.me]?.tech, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, selectedField && [Math.round(selectedField.amount), selectedField.danger, selectedField.regen], Math.round(this.st.companies[this.me]?.credits / 100)]);
     if (!force && selKey === this.lastSelKey) return;
     this.lastSelKey = selKey;
     if (!s && !g) { el.classList.add('hidden'); return; }
@@ -1040,10 +1040,10 @@ export class PmcHud {
 
   private shipDetail(s: WShip): string {
     const groups = this.myGroups();
-    const cap = econOf(s).cargo;
+    const cap = miningCargoCapacity(this.st, s, this.st.companies[s.owner]?.tech);
     const docked = s.task.k === 'docked' ? this.st.stations[(s.task as any).station] : null;
     return `<div class="shipd"><b>${esc(s.name)}</b> <span class="dim">${SHIP_CLASSES[s.classId].name} ${SHIP_CLASSES[s.classId].type} · ${esc(getLoadout(s.classId, s.loadoutId).name)}</span>
-      · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${cargoKeys(s.cargo).map(r => `${esc(itemName(r))} ${cargoNum(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}` : ''}
+      · 선체 <b style="color:${hpCol(s.hp)}">${Math.round(s.hp * 100)}%</b>${cap ? ` · 화물 ${cargoKeys(s.cargo).map(r => `${esc(itemName(r))} ${cargoNum(s.cargo[r])}`).join(', ') || '비어 있음'} / ${cap}${cap !== econOf(s).cargo ? ' <span class="dim small">(채굴·운송 기준)</span>' : ''}` : ''}
       ${growthOn(this.st) && docked && cargoSum(s.cargo) > 0 ? `<button class="btn mini" data-unloadship="${s.id}">창고로 하역</button>` : ''}
       ${docked ? ` · ⚓ ${esc(docked.name)} <button class="btn mini" data-open="${docked.id}">수리·개조</button>` : ''}
       <select data-mvship="${s.id}"><option value="">편대 이동…</option><option value="__new">→ 새 편대로 분리</option>${groups.filter(g => g.id !== s.groupId).map(g => `<option value="${g.id}">→ ${esc(g.name)}</option>`).join('')}</select></div>`;

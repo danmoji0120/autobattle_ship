@@ -20,14 +20,14 @@ import { CONTENT, legacyOf, contentAvail } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
 import { stepProduction, storageCap, stationPower, stationSupportOnline, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, facilityTech, techUnlocks, techFx, fitFx, growthFx, loadoutEquipment, recipeFor, itemPrice as itemPriceOf } from './industry';
-import { regionalHullMaterials, regionalMarketRequired } from './regional';
+import { normalizeRegionalOrders, regionalHullMaterials, regionalMarketRequired } from './regional';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
 import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInfluence } from './factions';
 import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot, unlockSummary } from './research';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
-import { econOf, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
-import { yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
+import { econOf, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
+import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale } from './money';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
@@ -159,6 +159,7 @@ export class WorldSim {
     if (opts.migrateContent !== false) this.contentReport = migrateContent(st);
     else if ((st.contentV ?? 0) >= 1) this.contentReport = migrateContent(st, st.contentV);
     this.st = st;
+    normalizeRegionalOrders(st);
     // Before P9.5 every player founding order was charged on issue. Preserve that already-paid
     // amount as a refundable prepayment when an old in-flight order is restored.
     if (growthOn(st)) for (const g of Object.values(st.groups)) {
@@ -2604,7 +2605,7 @@ export class WorldSim {
     const groupShips = this.subtreeShipsInOp(g);
     const haulers = groupShips.filter(x => x.classId === 'hauler' && x.state !== 'battle');
     if (ec.mine > 0) {
-      const cap = ec.cargo;
+      const cap = miningCargoCapacity(st, s, st.companies[s.owner]?.tech);
       if (s.state === 'docked') {
         if (cargoSum(s.cargo) > 0 && dock && s.task.k === 'docked' && s.task.station === dock.id && !this.unloadWhenReady(s, dock, op.sell)) { g.status = `${dock.name}: 화물 하역 중`; return; }
         this.undock(s);
@@ -2652,7 +2653,7 @@ export class WorldSim {
       return;
     }
     if (ec.cargo > 0 && s.classId === 'hauler') {
-      const cap = ec.cargo;
+      const cap = miningCargoCapacity(st, s, st.companies[s.owner]?.tech);
       if (s.state === 'docked') { if (cargoSum(s.cargo) > 0 && dock && s.task.k === 'docked' && s.task.station === dock.id && !this.unloadWhenReady(s, dock, op.sell)) { g.status = `${dock.name}: 화물 하역 중`; return; } this.undock(s); }
       const miners = groupShips.filter(x => econOf(x).mine > 0 && x.state === 'space');
       const load = cargoSum(s.cargo);
@@ -3566,10 +3567,10 @@ export class WorldSim {
   netWorth(company: string): number {
     const co = this.st.companies[company];
     let v = co.credits;
-    for (const cargo of Object.values(co.pendingLoot ?? {})) for (const k of cargoKeys(cargo)) v += cargo[k] * itemPriceOf(k);
-    for (const s of Object.values(this.st.ships)) if (s.owner === company) v += shipWorth(this.st, s) * (0.5 + 0.5 * s.hp);
+    for (const cargo of Object.values(co.pendingLoot ?? {})) for (const k of cargoKeys(cargo)) v += cargo[k] * assetReferenceValue(this.st, k);
+    for (const s of Object.values(this.st.ships)) if (s.owner === company) v += (shipWorth(this.st, s) + regionalShipValueAdjustment(this.st, s)) * (0.5 + 0.5 * s.hp);
     for (const s of Object.values(this.st.stations)) {
-      const store = s.storage[company]; if (store) for (const k of cargoKeys(store)) v += store[k] * itemPriceOf(k);
+      const store = s.storage[company]; if (store) for (const k of cargoKeys(store)) v += store[k] * assetReferenceValue(this.st, k);
       if (s.owner === company) for (const m of s.modules) if (m.built) {
         const md = MODULES[m.kind], cost = m.economy === 'p963' ? { credits: m.paid ?? md.credits, mats: moduleMaterials(m) } : facilityBuild(md, false);
         v += cost.credits + Object.entries(cost.mats).reduce((a, [k, n]) => a + n * itemPriceOf(k), 0);

@@ -1,0 +1,267 @@
+{
+  "assumptions": "Materials are valued at reference figures, not actual procurement transactions. Equipment/hull sell price is set by players; NPC quotes only exist where actual market entries exist and buying budgets are finite.",
+  "recipes": [
+    {
+      "id": "dense_alloy",
+      "inputs": {
+        "dense_titanium_ore": 40,
+        "titanium": 10,
+        "metal": 10
+      },
+      "outputs": {
+        "dense_alloy": 12
+      },
+      "inputReferenceValue": 4753,
+      "oldOutputReference": 441.5,
+      "regionalOutputReference": 441.5
+    },
+    {
+      "id": "resonant_optics",
+      "inputs": {
+        "resonant_crystal": 30,
+        "silicon": 12,
+        "crystal": 4
+      },
+      "outputs": {
+        "resonant_optics": 8
+      },
+      "inputReferenceValue": 5182,
+      "oldOutputReference": 724.1,
+      "regionalOutputReference": 724.1
+    },
+    {
+      "id": "stabilized_isotope",
+      "inputs": {
+        "unstable_isotope": 30,
+        "chemicals": 16,
+        "electronics": 4
+      },
+      "outputs": {
+        "stabilized_isotope": 8
+      },
+      "inputReferenceValue": 5042.4,
+      "oldOutputReference": 704.9,
+      "regionalOutputReference": 704.9
+    },
+    {
+      "id": "singular_alloy",
+      "inputs": {
+        "singular_ore": 40,
+        "dense_alloy": 8,
+        "rare_metal": 4
+      },
+      "outputs": {
+        "singular_alloy": 10
+      },
+      "inputReferenceValue": 13103.2,
+      "oldOutputReference": 1455.2,
+      "regionalOutputReference": 1455.2
+    },
+    {
+      "id": "eq_rail_cannon",
+      "inputs": {
+        "weapon_parts": 10,
+        "electronics": 8,
+        "rare_metal": 6,
+        "precision": 4,
+        "dense_alloy": 6
+      },
+      "outputs": {
+        "eq_rail_cannon": 1
+      },
+      "inputReferenceValue": 11561.4,
+      "oldOutputReference": 10958.6,
+      "regionalOutputReference": 13872.5
+    },
+    {
+      "id": "eq_lance",
+      "inputs": {
+        "weapon_parts": 8,
+        "electronics": 12,
+        "crystal": 16,
+        "rare_metal": 6,
+        "resonant_optics": 6,
+        "singular_alloy": 2
+      },
+      "outputs": {
+        "eq_lance": 1
+      },
+      "inputReferenceValue": 15991,
+      "oldOutputReference": 10995.6,
+      "regionalOutputReference": 18976.1
+    },
+    {
+      "id": "mod_armor2",
+      "inputs": {
+        "armor_plate": 6,
+        "composite": 8,
+        "chemicals": 6,
+        "dense_alloy": 4
+      },
+      "outputs": {
+        "mod_armor2": 1
+      },
+      "inputReferenceValue": 4344.6,
+      "oldOutputReference": 3183,
+      "regionalOutputReference": 5125.6
+    },
+    {
+      "id": "mod_reactor",
+      "inputs": {
+        "reactor": 1,
+        "electronics": 2,
+        "stabilized_isotope": 3
+      },
+      "outputs": {
+        "mod_reactor": 1
+      },
+      "inputReferenceValue": 6611.8,
+      "oldOutputReference": 5293.3,
+      "regionalOutputReference": 7619.5
+    }
+  ],
+  "builds": [
+    {
+      "preset": "dreadnought_std",
+      "need": {
+        "structure": 900,
+        "armor_plate": 520,
+        "engine": 30,
+        "reactor": 20,
+        "sensor": 12,
+        "electronics": 100,
+        "composite": 240,
+        "precision": 40,
+        "dense_alloy": 20,
+        "singular_alloy": 40,
+        "eq_heavy_cannon": 5,
+        "eq_medium_gun": 6,
+        "eq_missile_rack": 2,
+        "eq_pd_gun": 8
+      },
+      "materials": 677000.4,
+      "credits": 90000,
+      "yardFee": 1728000,
+      "estimatedTotal": 2495000.4
+    },
+    {
+      "preset": "dreadnought_lance",
+      "need": {
+        "structure": 900,
+        "armor_plate": 520,
+        "engine": 30,
+        "reactor": 20,
+        "sensor": 12,
+        "electronics": 100,
+        "composite": 240,
+        "precision": 40,
+        "dense_alloy": 20,
+        "singular_alloy": 40,
+        "eq_lance": 3,
+        "eq_heavy_cannon": 2,
+        "eq_medium_gun": 4,
+        "eq_pd_gun": 8
+      },
+      "materials": 690336.9,
+      "credits": 90000,
+      "yardFee": 1728000,
+      "estimatedTotal": 2508336.9
+    }
+  ],
+  "quotes": [
+    {
+      "id": "dense_titanium_ore",
+      "itemBase": 100,
+      "reference": 100,
+      "npcMarkets": []
+    },
+    {
+      "id": "resonant_crystal",
+      "itemBase": 150,
+      "reference": 150,
+      "npcMarkets": []
+    },
+    {
+      "id": "unstable_isotope",
+      "itemBase": 130,
+      "reference": 130,
+      "npcMarkets": []
+    },
+    {
+      "id": "singular_ore",
+      "itemBase": 220,
+      "reference": 220,
+      "npcMarkets": []
+    },
+    {
+      "id": "dense_alloy",
+      "itemBase": 300,
+      "reference": 441.5,
+      "npcMarkets": []
+    },
+    {
+      "id": "resonant_optics",
+      "itemBase": 650,
+      "reference": 724.1,
+      "npcMarkets": []
+    },
+    {
+      "id": "stabilized_isotope",
+      "itemBase": 600,
+      "reference": 704.9,
+      "npcMarkets": []
+    },
+    {
+      "id": "singular_alloy",
+      "itemBase": 1800,
+      "reference": 1455.2,
+      "npcMarkets": []
+    },
+    {
+      "id": "eq_rail_cannon",
+      "itemBase": 11244,
+      "reference": 13872.5,
+      "npcMarkets": []
+    },
+    {
+      "id": "eq_lance",
+      "itemBase": 12272,
+      "reference": 18976.1,
+      "npcMarkets": []
+    },
+    {
+      "id": "mod_armor2",
+      "itemBase": 3670,
+      "reference": 5125.6,
+      "npcMarkets": []
+    },
+    {
+      "id": "mod_reactor",
+      "itemBase": 4510,
+      "reference": 7619.5,
+      "npcMarkets": []
+    }
+  ],
+  "raw": [
+    {
+      "id": "dense_titanium_ore",
+      "reference": 100,
+      "base": 100
+    },
+    {
+      "id": "resonant_crystal",
+      "reference": 150,
+      "base": 150
+    },
+    {
+      "id": "unstable_isotope",
+      "reference": 130,
+      "base": 130
+    },
+    {
+      "id": "singular_ore",
+      "reference": 220,
+      "base": 220
+    }
+  ]
+}

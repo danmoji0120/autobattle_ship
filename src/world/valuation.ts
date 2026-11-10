@@ -8,7 +8,7 @@
 // the server (markets, yards, upkeep) and the client (price breakdowns). contentV < 3 never calls it.
 import { CONTENT } from '../content/registry';
 import { ITEMS, RECIPES, EQUIPMENT, TECHS, itemPrice, recipeFor } from './industry';
-import { regionalOn } from './regional';
+import { REGIONAL_RECIPE_INPUTS, regionalHullMaterials, regionalOn } from './regional';
 import { hullBuild } from './hullops';
 import { STEP_MARGIN, LABOUR_PER_S, YARD_FEE, SALE_BY_YARD, SALE_BY_CLASS, GRADE_MUL, YARD_RESTOCK_SHARE, YARD_RESTOCK_SHARE_WAR } from './econConfig';
 export { STEP_MARGIN, LABOUR_PER_S, GRADE_MUL };
@@ -41,6 +41,36 @@ export function regionalReferenceValue(w: { regionalV?: number }, id: string): n
   if (!r || n <= 0 || !Object.keys(r.in).some(k => ITEMS[k]?.regional)) return undefined;
   const cost = (Object.entries(r.in).reduce((sum, [k, amount]) => sum + valueOf(k) * amount, 0) + r.time * LABOUR_PER_S) / n;
   return Math.round(Math.max(valueOf(id), cost * STEP_MARGIN) * 10) / 10;
+}
+
+/** Opportunity cost of the actual required items at reference values, not cash paid or a bid. */
+export function materialReferenceCost(w: { regionalV?: number }, materials: Record<string, number>): number {
+  return Object.entries(materials).reduce((sum, [id, amount]) => sum + amount * (regionalReferenceValue(w, id) ?? valueOf(id)), 0);
+}
+
+/** Asset assessment only: does not alter executable market prices or upkeep. */
+export function assetReferenceValue(w: { regionalV?: number }, id: string): number {
+  return regionalOn(w) && (ITEMS[id]?.regional || Object.hasOwn(REGIONAL_RECIPE_INPUTS, id))
+    ? regionalReferenceValue(w, id) ?? itemPrice(id) : itemPrice(id);
+}
+
+/** The additional regional material value not represented in the old hull-price calculation. */
+export function regionalShipValueAdjustment(w: { regionalV?: number }, ship: { hull?: string; classId?: string; fitting?: { hp: Record<string, string>; bay: Record<string, string> }; fit?: string[] }): number {
+  if (!regionalOn(w)) return 0;
+  const hull = ship.hull ?? (ship.classId ? `${ship.classId}_mk1` : '');
+  const hullMaterials = regionalHullMaterials(w, hull);
+  let extra = hullMaterials ? materialReferenceCost(w, hullMaterials) : 0;
+  const specialWeapons = Object.entries(ship.fitting?.hp ?? {}).filter(([, id]) => Object.hasOwn(REGIONAL_RECIPE_INPUTS, id));
+  if (specialWeapons.length) {
+    // shipWorth already includes the standard preset. Account for the displaced standard weapon
+    // at the same hardpoint, rather than counting both it and the actually fitted rare weapon.
+    const standard = Object.values(CONTENT.presets).find(p => p.hull === hull && p.variant === `${hull}_std`);
+    for (const [slot, id] of specialWeapons) extra += (regionalReferenceValue(w, id) ?? valueOf(id)) - (standard?.weapons[slot] ? valueOf(standard.weapons[slot]) : 0);
+  }
+  // Standard hull valuation does not include optional internal modules.
+  for (const id of ship.fitting ? Object.values(ship.fitting.bay) : ship.fit ?? [])
+    if (Object.hasOwn(REGIONAL_RECIPE_INPUTS, id)) extra += regionalReferenceValue(w, id) ?? valueOf(id);
+  return extra;
 }
 
 /** yard operating fee of a build (credits): charged for real by an own yard, counted in the cost */

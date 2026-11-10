@@ -37,13 +37,21 @@ export const REGIONAL_FIELDS: readonly RegionalFieldDef[] = [
   { sys: 'blackgate', id: 'p97_blackgate_singular', name: '검은 관문 특이 광맥', res: 'singular_ore', mix: { singular_ore: .3, rare_ore: .4, ore: .3 }, amount: 5000, regen: .015, rich: 1.1, danger: 3, angle: 1.9 },
 ];
 
+/** Retire the P9.7 development flag without touching orders or already-paid running jobs. */
+export function normalizeRegionalOrders(w: WorldState): void {
+  if (!regionalOn(w)) return;
+  for (const st of Object.values(w.stations)) for (const order of st.orders ?? []) {
+    if (order.legacyRecipe) { delete order.legacyRecipe; delete order.why; }
+  }
+}
+
 /**
  * Explicitly activate on a P9 growth world. Called during fresh world creation; it is never called
  * by save loading. An offline caller may apply it to a copy after reviewing its effects. Validate
  * everything before mutation, preserve old queues, and refuse ID/resource collisions.
  */
 export function activateRegionalResources(w: WorldState): void {
-  if (regionalOn(w)) return;
+  if (regionalOn(w)) { normalizeRegionalOrders(w); return; }
   if (w.regionalV !== undefined || w.worldLayout !== 'p9' || (w.contentV ?? 0) < 4) throw new Error('P9.7 requires a P9 growth world');
   const raw = new Set(REGIONAL_FIELDS.map(f => f.res));
   const fields: Field[] = REGIONAL_FIELDS.map(d => {
@@ -56,12 +64,9 @@ export function activateRegionalResources(w: WorldState): void {
   for (const f of Object.values(w.fields)) {
     if (raw.has(f.res) || Object.keys(f.mix ?? {}).some(k => raw.has(k))) throw new Error(`P9.7 regional resource already present: ${f.id}`);
   }
-  // A queued pre-activation order keeps its original recipe for all remaining batches. Running
-  // jobs already consumed their inputs, and their output is unchanged. Existing builds have no
-  // regionalMaterials snapshot; only subsequently registered builds receive one.
-  for (const st of Object.values(w.stations)) for (const order of st.orders ?? []) {
-    if (REGIONAL_RECIPE_INPUTS[order.recipe]) order.legacyRecipe = true;
-  }
+  // Running jobs have already consumed their inputs; P9.7 changes no output quantities.
+  // Their order's next batch uses regional inputs. Existing ship plans keep their snapshot.
   for (const f of fields) w.fields[f.id] = f;
   w.regionalV = 1;
+  normalizeRegionalOrders(w);
 }

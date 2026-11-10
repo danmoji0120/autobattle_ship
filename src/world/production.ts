@@ -19,7 +19,7 @@ import { FACILITIES, RECIPES, ITEMS, itemName, recipeFor, techFx, type RecipeDef
 import { stationSize, stationBerths, occupiedBerths } from './stations';
 import { storeUsed, takesSpace } from './storage';
 
-export interface ProdOrder { id: string; recipe: string; mode: 'count' | 'stock'; n: number; done: number; paused?: boolean; why?: string; /** Existing order preserved when regional resources are explicitly activated. */ legacyRecipe?: true }
+export interface ProdOrder { id: string; recipe: string; mode: 'count' | 'stock'; n: number; done: number; paused?: boolean; why?: string; /** Obsolete P9.7 development-save field; never changes a new batch's inputs. */ legacyRecipe?: true }
 export interface ProdJob { id: string; order: string; recipe: string; fac: string; left: number; total: number }
 
 export const builtCount = (st: Station, kind: string) => st.modules.filter(m => m.kind === kind && m.built).length;
@@ -114,7 +114,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   const busy: Record<string, number> = {};
   for (const j of jobs) busy[j.fac] = (busy[j.fac] ?? 0) + 1;
   for (const o of orders) {
-    const r = recipeFor(world, o.recipe, o.legacyRecipe);
+    const r = recipeFor(world, o.recipe);
     if (!r) { o.why = '알 수 없는 레시피'; continue; }
     if (o.paused) { o.why = '일시 정지'; continue; }
     if (!recipeOk(r, co)) { o.why = `연구 필요`; continue; }
@@ -159,7 +159,7 @@ export function stationNeeds(st: Station, world?: { regionalV?: number }): Recor
   const need: Record<string, number> = {};
   for (const o of st.orders ?? []) {
     if (o.paused) continue;
-    const r = recipeFor(world, o.recipe, o.legacyRecipe); if (!r) continue;
+    const r = recipeFor(world, o.recipe); if (!r) continue;
     if (orderWants(o, store, st.jobs ?? [])) continue;
     // aim for two batches of each input
     for (const [k, n] of Object.entries(r.in)) { const lack = n * 2 - qty(store, k); if (lack > 0) need[k] = Math.max(need[k] ?? 0, lack); }

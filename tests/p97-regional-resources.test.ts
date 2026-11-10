@@ -8,15 +8,17 @@ import { activateRegionalResources, REGIONAL_FIELDS, regionalHullMaterials } fro
 import { buildNeeds, buildSpeed, prodSpeed, stationNeeds, stepProduction } from '../src/world/production';
 import { supplyBatch } from '../src/world/logistics';
 import { grantBlueprint, hullBlueprint } from '../src/world/blueprints';
-import { TIER_BASE } from '../src/world/hullops';
+import { TIER_BASE, miningCargoCapacity } from '../src/world/hullops';
 import { checkFitting } from '../src/world/fitting';
 import { World } from '../src/sim/world';
 import { defaultPlayerFleet } from '../src/sim/fleet';
 import { getScenario } from '../src/sim/data/scenarios';
 import { priceOf } from '../src/world/market';
 import { pubYardHtml } from '../src/client/strategic/growthUi';
-import { regionalReferenceValue, valueOf } from '../src/world/valuation';
-import { marketHtml, newIndUi } from '../src/client/strategic/industryUi';
+import { materialReferenceCost, regionalReferenceValue, regionalShipValueAdjustment, valueOf } from '../src/world/valuation';
+import { marketHtml, newIndUi, prodHtml } from '../src/client/strategic/industryUi';
+import { newGrowthYardUi, ownYardGrowthHtml } from '../src/client/strategic/growthUi';
+import { Analytics } from '../src/server/analytics';
 
 // These integration fixtures deliberately supply capital, facilities, ordinary inputs and research;
 // they do not claim that a new company reached the late game without assistance.
@@ -83,7 +85,7 @@ describe('P9.7 regional resources', () => {
     expect(co.tech ?? []).toEqual([]);
   });
 
-  it('keeps old worlds untouched on load and preserves old orders when explicitly activated', () => {
+  it('finishes already paid batches but requires regional inputs for every new batch after activation', () => {
     let sim = WorldSim.create(971); quiet(sim);
     for (const def of REGIONAL_FIELDS) delete sim.st.fields[def.id];
     delete sim.st.regionalV;
@@ -100,22 +102,60 @@ describe('P9.7 regional resources', () => {
     expect(sim.st.fields.p97_anvil_dense).toBeUndefined();
     activateRegionalResources(sim.st);
     const restored = sim.st.stations[st.id];
-    expect(restored.orders![0].legacyRecipe).toBe(true);
+    expect(restored.orders![0].done).toBe(0);
     const before = JSON.stringify(sim.st);
     activateRegionalResources(sim.st);
     expect(JSON.stringify(sim.st)).toBe(before);
     stepProduction(restored, sim.st.companies[p], 3000, sim.st);
-    expect(restored.jobs).toHaveLength(1); // the second legacy batch starts without regional inputs
-    stepProduction(restored, sim.st.companies[p], 3000, sim.st);
-    expect(qty(restored.storage[p], 'eq_rail_cannon')).toBe(2);
-    expect(sim.command(p, { c: 'prodOrder', station: st.id, recipe: 'eq_rail_cannon', mode: 'count', n: 1 })).toBeNull();
     expect(restored.jobs).toHaveLength(0);
+    expect(qty(restored.storage[p], 'eq_rail_cannon')).toBe(1);
+    expect(restored.orders![0].done).toBe(1);
     expect(restored.orders![0].why).toContain('고강도 특수 합금');
     expect(stationNeeds(restored, sim.st).dense_alloy).toBe(12);
     expect(supplyBatch(restored, 'dense_alloy', sim.st)).toBe(6);
-    const again = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: false });
+    let again = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: false });
     expect(again.st.fields.kestrel.amount).toBe(oldAmount);
     expect(again.st.stations[st.id].orders![0].why).toContain('고강도 특수 합금');
+    again.st.stations[st.id].storage[p].dense_alloy = 6;
+    stepProduction(again.st.stations[st.id], again.st.companies[p], 1, again.st);
+    expect(qty(again.st.stations[st.id].storage[p], 'dense_alloy')).toBe(0);
+    again = new WorldSim(JSON.parse(again.serialize()), { migrateContent: false });
+    stepProduction(again.st.stations[st.id], again.st.companies[p], 3000, again.st);
+    expect(qty(again.st.stations[st.id].storage[p], 'eq_rail_cannon')).toBe(2);
+    expect(again.st.stations[st.id].orders).toHaveLength(0);
+  });
+
+  it('does not let already activated development saves use legacyRecipe for stock replenishment', () => {
+    let sim = WorldSim.create(982), p = sim.addPlayer('구형 재고 주문');
+    sim.st.companies[p].tech = ['railguns'];
+    const st = factory(sim, p, ['weapons_factory']);
+    for (const [item, n] of Object.entries(RECIPES.eq_rail_cannon.in)) st.storage[p][item] = n * 4;
+    // A saved P9.7 development world can already have this flag and an in-flight paid batch.
+    delete sim.st.regionalV;
+    expect(sim.command(p, { c: 'prodOrder', station: st.id, recipe: 'eq_rail_cannon', mode: 'stock', n: 2 })).toBeNull();
+    sim.st.regionalV = 1;
+    st.orders![0].legacyRecipe = true;
+    const paid = structuredClone(st.storage[p]);
+    sim = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: false });
+    const restored = sim.st.stations[st.id];
+    expect(restored.storage[p]).toEqual(paid);
+    expect(stationNeeds(restored, sim.st).dense_alloy).toBe(12);
+    expect(supplyBatch(restored, 'dense_alloy', sim.st)).toBe(6);
+    stepProduction(restored, sim.st.companies[p], 3000, sim.st);
+    expect(qty(restored.storage[p], 'eq_rail_cannon')).toBe(1);
+    expect(restored.jobs).toHaveLength(0);
+    expect(restored.orders![0].n).toBe(2);
+    expect(restored.orders![0].done).toBe(1);
+    expect(restored.orders![0].why).toContain('고강도 특수 합금');
+    restored.storage[p].dense_alloy = 6;
+    stepProduction(restored, sim.st.companies[p], 1, sim.st);
+    stepProduction(restored, sim.st.companies[p], 3000, sim.st);
+    expect(qty(restored.storage[p], 'eq_rail_cannon')).toBe(2);
+    expect(restored.orders![0].done).toBe(2);
+    restored.storage[p].eq_rail_cannon = 0;
+    stepProduction(restored, sim.st.companies[p], 1, sim.st);
+    expect(restored.jobs).toHaveLength(0);
+    expect(restored.orders![0].why).toContain('고강도 특수 합금');
   });
 
   it('rejects a conflicting explicit migration before modifying old fields or orders', () => {
@@ -140,6 +180,73 @@ describe('P9.7 regional resources', () => {
       expect(cargoSum(ship.cargo)).toBeCloseTo(extracted, 6);
       expect(qty(ship.cargo, def.res)).toBeCloseTo(extracted * def.mix[def.res], 6);
     }
+  });
+
+  it('shares one finite deposit between two companies without duplicating rare cargo, including after restore', () => {
+    let sim = WorldSim.create(984); quiet(sim); (sim as any).npcs = () => {};
+    const owners = [sim.addPlayer('경쟁사 A'), sim.addPlayer('경쟁사 B')];
+    const field = sim.st.fields.p97_anvil_dense;
+    field.amount = 120; field.regen = 0;
+    const ids = owners.map(owner => {
+      const group = sim.newGroup(owner, '공유 광상');
+      const ship = sim.spawnShip(owner, 'miner', 'std', group.id, field.pos);
+      ship.pos = miningSpot(field, hashId(ship.id) % field.rocks);
+      expect(sim.command(owner, { c: 'setOp', group: group.id, op: { k: 'mine', field: field.id, deliver: 'p9_anvil_port', sell: false } })).toBeNull();
+      return ship.id;
+    });
+    until(sim, 'shared deposit exhausted', () => field.amount < 1, 120);
+    const mined = 120 - field.amount;
+    const cargo = ids.map(id => sim.st.ships[id].cargo);
+    expect(cargo.every(c => qty(c, 'dense_titanium_ore') > 0)).toBe(true);
+    expect(cargo.reduce((n, c) => n + cargoSum(c), 0)).toBeCloseTo(mined, 6);
+    expect(cargo.reduce((n, c) => n + qty(c, 'dense_titanium_ore'), 0)).toBeCloseTo(mined * .3, 6);
+    const saved = structuredClone(cargo);
+    sim = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: false });
+    expect(ids.map(id => sim.st.ships[id].cargo)).toEqual(saved);
+    expect(sim.st.fields[field.id].amount).toBeCloseTo(120 - mined, 8);
+  });
+
+  it('lets four companies independently mine the four different origins in one shared world', () => {
+    const sim = WorldSim.create(985); quiet(sim); (sim as any).npcs = () => {};
+    const miners = REGIONAL_FIELDS.map(def => {
+      const owner = sim.addPlayer(def.sys), f = sim.st.fields[def.id];
+      const g = sim.newGroup(owner, def.sys), ship = sim.spawnShip(owner, 'miner', 'std', g.id, f.pos);
+      ship.pos = miningSpot(f, hashId(ship.id) % f.rocks);
+      expect(sim.command(owner, { c: 'setOp', group: g.id, op: { k: 'mine', field: f.id, deliver: 'drakeout', sell: false } })).toBeNull();
+      return { def, ship, initial: f.amount };
+    });
+    until(sim, 'four independent origins', () => miners.every(({ def, ship }) => qty(ship.cargo, def.res) > 1), 120);
+    for (const { def, ship, initial } of miners) {
+      const f = sim.st.fields[def.id];
+      // Initial field is full; account for its simultaneous regeneration.
+      expect(qty(ship.cargo, def.res)).toBeGreaterThan(1);
+      expect(initial - f.amount).toBeLessThanOrEqual(cargoSum(ship.cargo) + 1e-6);
+      expect(qty(ship.cargo, def.res)).toBeCloseTo(cargoSum(ship.cargo) * def.mix[def.res], 6);
+    }
+  });
+
+  it('applies cargo compression to miners and their support haulers in regional mining operations only', () => {
+    const sim = WorldSim.create(987); quiet(sim); (sim as any).npcs = () => {};
+    const p = sim.addPlayer('압축 연구'); sim.st.companies[p].tech = ['cargo_compression'];
+    const f = sim.st.fields.p97_anvil_dense;
+    const g = sim.newGroup(p, '압축 채굴'), miner = sim.spawnShip(p, 'miner', 'std', g.id, f.pos);
+    expect(miningCargoCapacity(sim.st, miner, sim.st.companies[p].tech)).toBe(175);
+    expect(miningCargoCapacity({}, miner, sim.st.companies[p].tech)).toBe(140);
+    miner.pos = miningSpot(f, hashId(miner.id) % f.rocks); miner.cargo.ore = 138;
+    expect(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'mine', field: f.id, deliver: 'p9_anvil_port', sell: false } })).toBeNull();
+    until(sim, 'compressed miner', () => cargoSum(miner.cargo) > 140, 20);
+    expect(cargoSum(miner.cargo)).toBeLessThanOrEqual(175);
+    const h = sim.newGroup(p, '압축 수송 지원'), donor = sim.spawnShip(p, 'miner', 'std', h.id, f.pos), hauler = sim.spawnShip(p, 'hauler', 'std', h.id, f.pos);
+    donor.pos = miningSpot(f, hashId(donor.id) % f.rocks); donor.cargo.ore = 100;
+    hauler.pos = { ...donor.pos, y: donor.pos.y + 26 }; hauler.cargo.ore = 440;
+    expect(sim.command(p, { c: 'setOp', group: h.id, op: { k: 'mine', field: f.id, deliver: 'p9_anvil_port', sell: false } })).toBeNull();
+    until(sim, 'compressed mining support hauler', () => cargoSum(hauler.cargo) > 450, 20);
+    expect(cargoSum(hauler.cargo)).toBeLessThanOrEqual(562.5);
+
+    const old = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: false }); delete old.st.regionalV;
+    const legacyMiner = old.st.ships[miner.id]; legacyMiner.cargo = { ore: 138 }; legacyMiner.pos = miningSpot(old.st.fields[f.id], hashId(legacyMiner.id) % f.rocks);
+    for (let i = 0; i < 8; i++) old.update(.25);
+    expect(cargoSum(legacyMiner.cargo)).toBe(138);
   });
 
   it('preserves a running rare-material batch and a paused second batch over save and resume', () => {
@@ -190,6 +297,62 @@ describe('P9.7 regional resources', () => {
     expect(regionalReferenceValue({}, 'mod_armor2')).toBeUndefined();
     st.storage[p].mod_armor2 = 1;
     expect(marketHtml(sim.st as any, st, p, newIndUi(), () => 0)).toContain('data-region-value=');
+  });
+
+  it('shows estimated input value separately from old references and executable prices', () => {
+    const sim = WorldSim.create(983), p = sim.addPlayer('원가 검증');
+    const st = factory(sim, p, ['weapons_factory']);
+    const ui = newIndUi(); ui.recSel = 'eq_rail_cannon';
+    const recipe = recipeFor(sim.st, ui.recSel)!;
+    expect(materialReferenceCost(sim.st, recipe.in)).toBeCloseTo(11561.4, 1);
+    const html = prodHtml(sim.st as any, st, p, ui);
+    expect(html).toContain('예상 재료 원가');
+    expect(html).toContain('기존 참고 가치');
+    expect(html).toContain('11,561');
+    expect(html).toContain('실제 거래');
+    const need = buildNeeds('dreadnought', '', [], { hull: 'dreadnought_mk1', preset: 'dreadnought_std', regionalMaterials: regionalHullMaterials(sim.st, 'dreadnought_mk1') });
+    const before = { ...need }; delete before.dense_alloy; delete before.singular_alloy;
+    expect(materialReferenceCost(sim.st, need) - materialReferenceCost(sim.st, before)).toBeCloseTo(20 * valueOf('dense_alloy') + 40 * valueOf('singular_alloy'), 5);
+    const yui = newGrowthYardUi(); yui.hull = 'dreadnought_mk1';
+    const yard = ownYardGrowthHtml(sim.st as any, st, p, yui, []);
+    expect(yard).toContain('예상 재료 원가');
+    expect(yard).toContain('고강도 특수 합금');
+    expect(yard).toContain('특이 합금');
+  });
+
+  it('values regional assets and fitted materials for assessment without changing old worlds', () => {
+    const sim = WorldSim.create(986), p = sim.addPlayer('자산 평가');
+    const st = sim.st.stations.astra;
+    const base = sim.netWorth(p);
+    st.storage[p].eq_lance = 1;
+    expect(sim.netWorth(p) - base).toBeCloseTo(regionalReferenceValue(sim.st, 'eq_lance')!, 0);
+    const ship = { hull: 'dreadnought_mk1', fitting: { hp: { a: 'eq_lance' }, bay: { a: 'mod_armor2' } } };
+    const expected = 20 * valueOf('dense_alloy') + 40 * valueOf('singular_alloy') +
+      regionalReferenceValue(sim.st, 'eq_lance')! + regionalReferenceValue(sim.st, 'mod_armor2')!;
+    expect(regionalShipValueAdjustment(sim.st, ship)).toBeCloseTo(expected, 6);
+    expect(regionalShipValueAdjustment({}, ship)).toBe(0);
+    const replaced = { hull: 'dreadnought_mk1', fitting: { hp: { hp01: 'eq_lance' }, bay: {} } };
+    expect(regionalShipValueAdjustment(sim.st, replaced)).toBeCloseTo(20 * valueOf('dense_alloy') + 40 * valueOf('singular_alloy') + regionalReferenceValue(sim.st, 'eq_lance')! - valueOf('eq_heavy_cannon'), 6);
+    const fleet = sim.newGroup(p, '함선 평가'), dread = sim.spawnShip(p, 'dreadnought', 'std', fleet.id, st.pos);
+    const beforeFit = sim.netWorth(p);
+    expect(dread.fitting!.hp.hp01).toBe('eq_heavy_cannon');
+    dread.fitting!.hp.hp01 = 'eq_lance';
+    expect(sim.netWorth(p) - beforeFit).toBeCloseTo(regionalReferenceValue(sim.st, 'eq_lance')! - valueOf('eq_heavy_cannon'), 0);
+  });
+
+  it('uses the same regional asset reference in storage, cargo and player listings', () => {
+    const sim = WorldSim.create(988), p = sim.addPlayer('자산 위치');
+    const analytics = new Analytics(sim), st = sim.st.stations.astra;
+    const ship = Object.values(sim.st.ships).find(s => s.owner === p)!;
+    const assets = () => analytics.sample().companies.find(c => c.id === p)!.assets;
+    st.storage[p].eq_lance = 1;
+    const inStorage = assets();
+    delete st.storage[p].eq_lance; ship.cargo.eq_lance = 1;
+    const inCargo = assets();
+    expect(inCargo).toBeCloseTo(inStorage, 0);
+    delete ship.cargo.eq_lance; st.storage[p].eq_lance = 1;
+    expect(sim.command(p, { c: 'list', station: st.id, item: 'eq_lance', qty: 1, price: 1 })).toBeNull();
+    expect(assets()).toBeCloseTo(inStorage, 0);
   });
 
   it('uses real NPC market stock atomically for restricted refits in regional worlds only', () => {
@@ -320,6 +483,43 @@ describe('P9.7 regional resources', () => {
     expect(sim.command(p, { c: 'fitShip', ship: warship.id, fit: ['mod_armor2'] })).toBeNull();
     expect(Object.values(warship.fitting!.bay)).toContain('mod_armor2');
     expect(qty(dst.storage[p], 'mod_armor2')).toBe(0);
+  }, 60_000);
+
+  it('lets a company that mines nothing buy a processed regional material, haul it and manufacture equipment', () => {
+    const sim = WorldSim.create(989); quiet(sim); (sim as any).npcs = () => {};
+    const seller = sim.addPlayer('소재 생산사'), buyer = sim.addPlayer('비채굴 제조사');
+    sim.st.companies[seller].credits = sim.st.companies[buyer].credits = 1e7;
+    sim.st.companies[seller].tech = ['rare_processing']; sim.st.companies[buyer].tech = ['reactive_armor'];
+    const producer = factory(sim, seller, ['smelter', 'trade_hub', 'logistics']);
+    Object.assign(producer.storage[seller], { titanium: 10, metal: 10 });
+    const buyerSite: Station = { ...structuredClone(producer), id: 'p971_buyer_factory', name: '구매사 공장', owner: buyer,
+      pos: { ...producer.pos, x: producer.pos.x + 5000 }, storage: { [buyer]: { armor_plate: 6, composite: 8, chemicals: 6 } },
+      modules: ['core', 'power', 'armor_plant', 'logistics'].map((kind, slot) => ({ kind, slot, built: true, progress: 1 })), orders: [], jobs: [], builds: [], listings: [], seq: 0 };
+    sim.st.stations[buyerSite.id] = buyerSite;
+    const field = sim.st.fields.p97_anvil_dense; field.regen = 0;
+    const g = sim.newGroup(seller, '판매사 광부'), miner = sim.spawnShip(seller, 'miner', 'std', g.id, field.pos);
+    miner.pos = miningSpot(field, hashId(miner.id) % field.rocks);
+    expect(sim.command(seller, { c: 'setOp', group: g.id, op: { k: 'mine', field: field.id, deliver: 'p9_anvil_port', sell: false } })).toBeNull();
+    until(sim, 'seller mines rare ore', () => qty(sim.st.stations.p9_anvil_port.storage[seller], 'dense_titanium_ore') >= 40, 4000);
+    expect(sim.command(seller, { c: 'setOp', group: g.id, op: { k: 'idle' } })).toBeNull();
+    expect(sim.command(seller, { c: 'prodOrder', station: producer.id, recipe: 'dense_alloy', mode: 'count', n: 1 })).toBeNull();
+    const freight = sim.newGroup(seller, '원광 운송'); sim.spawnShip(seller, 'hauler', 'std', freight.id, sim.st.stations.p9_anvil_port.pos);
+    expect(sim.command(seller, { c: 'putRoute', group: freight.id, config: { name: '원광', from: 'p9_anvil_port', to: producer.id, item: 'dense_titanium_ore', amount: 40, mode: 'transfer', repeat: false } })).toBeNull();
+    until(sim, 'seller processes alloy', () => qty(producer.storage[seller], 'dense_alloy') === 12, 6000);
+    expect(sim.command(seller, { c: 'list', station: producer.id, item: 'dense_alloy', qty: 12, price: 500 })).toBeNull();
+    const listing = producer.listings![0], sellerBefore = sim.st.companies[seller].credits, buyerBefore = sim.st.companies[buyer].credits;
+    expect(sim.command(buyer, { c: 'buyListing', station: producer.id, listing: listing.id, qty: 12 })).toBeNull();
+    expect(sim.st.companies[buyer].credits).toBe(buyerBefore - 6000);
+    expect(sim.st.companies[seller].credits).toBeCloseTo(sellerBefore + 6000 * (1 - (producer.tax ?? .02)), 6);
+    expect(producer.listings).toHaveLength(0); expect(qty(producer.storage[buyer], 'dense_alloy')).toBe(12);
+    const haul = sim.newGroup(buyer, '구입 소재 운송'), carrier = sim.spawnShip(buyer, 'hauler', 'std', haul.id, producer.pos);
+    expect(sim.command(buyer, { c: 'putRoute', group: haul.id, config: { name: '구매 소재', from: producer.id, to: buyerSite.id, item: 'dense_alloy', amount: 12, mode: 'transfer', repeat: false } })).toBeNull();
+    until(sim, 'buyer takes delivery', () => qty(buyerSite.storage[buyer], 'dense_alloy') === 12, 2000);
+    expect(qty(producer.storage[buyer], 'dense_alloy')).toBe(0); expect(qty(carrier.cargo, 'dense_alloy')).toBe(0);
+    expect(sim.command(buyer, { c: 'prodOrder', station: buyerSite.id, recipe: 'mod_armor2', mode: 'count', n: 1 })).toBeNull();
+    until(sim, 'buyer makes armor', () => qty(buyerSite.storage[buyer], 'mod_armor2') === 1, 3000);
+    expect(qty(buyerSite.storage[buyer], 'dense_alloy')).toBe(8);
+    expect(sim.st.companies[buyer].stats.mined).toBe(0);
   }, 60_000);
 
   it('physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle', () => {

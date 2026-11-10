@@ -250,11 +250,11 @@ const REGIONAL_RECIPES: Record<string, RecipeDef> = Object.fromEntries(Object.en
   return [id, { ...r, in: { ...r.in, ...extra } }];
 }));
 
-/** One shared source of truth for simulation, logistics and UI; old orders can retain old inputs. */
-export function recipeFor(w: { regionalV?: number } | undefined, id: string, legacy = false): RecipeDef | undefined {
+/** One shared source of truth for new batches, logistics and the UI. */
+export function recipeFor(w: { regionalV?: number } | undefined, id: string): RecipeDef | undefined {
   const r = Object.hasOwn(RECIPES, id) ? RECIPES[id] : undefined;
   if (!r || (r.regional && !regionalOn(w))) return undefined;
-  return regionalOn(w) && !legacy ? REGIONAL_RECIPES[id] ?? r : r;
+  return regionalOn(w) ? REGIONAL_RECIPES[id] ?? r : r;
 }
 
 // ─────────────────────────────────────────────────────────────── hull production

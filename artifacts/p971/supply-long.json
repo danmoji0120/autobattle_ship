@@ -1,0 +1,130 @@
+{
+  "assumptions": "Real WorldSim mining, same seed, four independent companies, field-side starting positions, starter fleet and fixture capital. Three fleet sizes on separate worlds. One sample starts at full stock, the other at zero stock. NPC raids are disabled; warehouse capacity, routing, cargo, upkeep and station handling stay enabled. Resource extraction is reconstructed from field stock plus regeneration in one-second samples; at max stock the cap can create a tiny approximation error. Duration is a short observation, not a projection or guarantee of daily supply.",
+  "duration": 86400,
+  "processing": [
+    {
+      "id": "dense_alloy",
+      "inputs": {
+        "dense_titanium_ore": 40,
+        "titanium": 10,
+        "metal": 10
+      },
+      "outputs": {
+        "dense_alloy": 12
+      },
+      "seconds": 180,
+      "linesPerFacility": 1,
+      "theoreticalBatchesPerDayPerFacilityAtFullPower": 480
+    },
+    {
+      "id": "resonant_optics",
+      "inputs": {
+        "resonant_crystal": 30,
+        "silicon": 12,
+        "crystal": 4
+      },
+      "outputs": {
+        "resonant_optics": 8
+      },
+      "seconds": 240,
+      "linesPerFacility": 1,
+      "theoreticalBatchesPerDayPerFacilityAtFullPower": 360
+    },
+    {
+      "id": "stabilized_isotope",
+      "inputs": {
+        "unstable_isotope": 30,
+        "chemicals": 16,
+        "electronics": 4
+      },
+      "outputs": {
+        "stabilized_isotope": 8
+      },
+      "seconds": 240,
+      "linesPerFacility": 1,
+      "theoreticalBatchesPerDayPerFacilityAtFullPower": 360
+    },
+    {
+      "id": "singular_alloy",
+      "inputs": {
+        "singular_ore": 40,
+        "dense_alloy": 8,
+        "rare_metal": 4
+      },
+      "outputs": {
+        "singular_alloy": 10
+      },
+      "seconds": 360,
+      "linesPerFacility": 1,
+      "theoreticalBatchesPerDayPerFacilityAtFullPower": 240
+    }
+  ],
+  "baselineSpeed": 1,
+  "researchMultipliers": {
+    "mining": 1.5,
+    "cargo": 1.4375,
+    "production": 1.265
+  },
+  "results": [
+    {
+      "start": "depleted",
+      "miners": 1,
+      "duration": 86400,
+      "field": "p97_anvil_dense",
+      "resource": "dense_titanium_ore",
+      "resourceExtractedApprox": 518.0771295359752,
+      "rareStored": 518.0771295359863,
+      "rareOnboard": 0,
+      "totalCargoOnboard": 0,
+      "fieldRemaining": 1.0762348799833392,
+      "theoreticalRareRegen": 518.4,
+      "destination": "p9_anvil_port",
+      "status": "앤빌 고밀도 광맥로 이동"
+    },
+    {
+      "start": "depleted",
+      "miners": 1,
+      "duration": 86400,
+      "field": "p97_shard_resonance",
+      "resource": "resonant_crystal",
+      "resourceExtractedApprox": 466.27608203999694,
+      "rareStored": 454.2012597599963,
+      "rareOnboard": 12.074822280000001,
+      "totalCargoOnboard": 40.24940760000001,
+      "fieldRemaining": 0.9463931999989131,
+      "theoreticalRareRegen": 466.55999999999995,
+      "destination": "drakeout",
+      "status": "파편 공명 결정대 고갈 — 재생 대기"
+    },
+    {
+      "start": "depleted",
+      "miners": 1,
+      "duration": 86400,
+      "field": "p97_dusk_isotope",
+      "resource": "unstable_isotope",
+      "resourceExtractedApprox": 544.0090660199999,
+      "rareStored": 536.7688170600009,
+      "rareOnboard": 7.240248960000001,
+      "totalCargoOnboard": 20.6864256,
+      "fieldRemaining": 0.8883827999817278,
+      "theoreticalRareRegen": 544.3199999999999,
+      "destination": "rustport",
+      "status": "황혼 동위원소 구름 고갈 — 재생 대기"
+    },
+    {
+      "start": "depleted",
+      "miners": 1,
+      "duration": 86400,
+      "field": "p97_blackgate_singular",
+      "resource": "singular_ore",
+      "resourceExtractedApprox": 388.3676520240007,
+      "rareStored": 371.51248569600074,
+      "rareOnboard": 16.855166328000006,
+      "totalCargoOnboard": 56.18388776000002,
+      "fieldRemaining": 1.4411599199864338,
+      "theoreticalRareRegen": 388.79999999999995,
+      "destination": "drakeout",
+      "status": "검은 관문 특이 광맥로 이동"
+    }
+  ]
+}

@@ -7,7 +7,8 @@ import { publicCap, storeUsed } from '../world/storage';
 import { storageCap, buildNeeds } from '../world/production';
 import { effSec } from '../world/security';
 import { WEAPONS } from '../sim/data/weapons';
-import { TECHS, itemPrice } from '../world/industry';
+import { TECHS } from '../world/industry';
+import { assetReferenceValue } from '../world/valuation';
 
 export interface Metric extends Observation { count: number; value: number }
 export interface CompanySample { id: string; name: string; credits: number; assets: number; liabilities: number; rep: number; ships: number; classes: Record<string, number>; stations: number; research: number; age: number; played: number }
@@ -208,11 +209,11 @@ export class Analytics {
   snapshot(): AnalyticsStore { this.enforceLimit(); return JSON.parse(JSON.stringify(this.data)); }
   private assessedAssets(company: string): { assets: number; liabilities: number } {
     const w = this.sim.st, co = w.companies[company];
-    const value = (cargo: Record<string, number>) => Object.entries(cargo).reduce((n, [k, qty]) => n + qty * itemPrice(k), 0);
+    const value = (cargo: Record<string, number>) => Object.entries(cargo).reduce((n, [k, qty]) => n + qty * assetReferenceValue(w, k), 0);
     let assets = this.sim.netWorth(company) + Object.values(co.foundingEscrow ?? {}).reduce((n, amount) => n + amount, 0);
     for (const ship of Object.values(w.ships)) if (ship.owner === company) assets += value(ship.cargo);
     for (const station of Object.values(w.stations)) {
-      for (const listing of station.listings ?? []) if (listing.seller === company) assets += listing.qty * itemPrice(listing.item);
+      for (const listing of station.listings ?? []) if (listing.seller === company) assets += listing.qty * assetReferenceValue(w, listing.item);
       if (station.owner !== company) continue;
       for (const plan of station.modules) if (!plan.built) assets += (plan.paid ?? 0) + value(plan.reserved ?? {}) + value(plan.used ?? {});
       for (const build of station.builds ?? []) assets += build.paid + (build.started ? value(buildNeeds(build.classId, build.loadoutId, build.fit, build)) : 0);

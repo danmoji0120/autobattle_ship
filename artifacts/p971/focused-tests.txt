@@ -1,0 +1,28 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > creates four exclusive origins with stable fields, unchanged geography and finite replenishment 330ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > retains a usable starting fleet, basic hull purchase and ordinary mining without rare materials 2560ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > finishes already paid batches but requires regional inputs for every new batch after activation 24ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not let already activated development saves use legacyRecipe for stock replenishment 13ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > rejects a conflicting explicit migration before modifying old fields or orders 15ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > actually mines every authored rare material without inventing or losing mixed cargo 50ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shares one finite deposit between two companies without duplicating rare cargo, including after restore 100ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets four companies independently mine the four different origins in one shared world 12ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > applies cargo compression to miners and their support haulers in regional mining operations only 90ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > preserves a running rare-material batch and a paused second batch over save and resume 10ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > requires the four regional inputs in the server recipe and snapshots capital build materials 9ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shows estimated input value separately from old references and executable prices 18ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > values regional assets and fitted materials for assessment without changing old worlds 9ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses the same regional asset reference in storage, cargo and player listings 46ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses real NPC market stock atomically for restricted refits in regional worlds only 12ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not generate restricted weapons through public-yard presets in regional worlds 14ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not start a dreadnought without the actual regional materials, then launches one after restore 75ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > mines Anvil, hauls through gates, processes an alloy and fits a produced armor module 4509ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets a company that mines nothing buy a processed regional material, haul it and manufacture equipment 3145ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle 762ms
+
+ Test Files  1 passed (1)
+      Tests  20 passed (20)
+   Start at  01:38:57
+   Duration  17.12s (transform 4.03s, setup 0ms, import 4.72s, tests 11.82s, environment 0ms)
