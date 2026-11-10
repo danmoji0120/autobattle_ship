@@ -1,0 +1,6 @@
+# Replace game.example.com with a real DNS name pointing to the OCI public IP.
+# Open TCP 80 and 443 in OCI VCN ingress rules and the VM firewall.
+game.example.com {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8080
+}
