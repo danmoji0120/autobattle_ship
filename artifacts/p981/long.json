@@ -1,0 +1,30 @@
+[
+  {
+    "companies": 1,
+    "ships": 3,
+    "seconds": 28800,
+    "long": true,
+    "jobs": 6,
+    "completedOneOff": 4,
+    "oneOff": 4,
+    "repeatCycles": 295,
+    "delivered": 5980,
+    "meanFirstWaitSeconds": 5.75,
+    "assignedJobs": 6,
+    "meanCompletionSeconds": 11.5,
+    "idleShipSeconds": 53741,
+    "emptyTravelShipSeconds": 1782,
+    "observedBlocks": 5,
+    "observedRecoveries": 3,
+    "lost": 0,
+    "withdrawn": 0,
+    "conservationDelta": {
+      "p1": 0
+    },
+    "initialDispatchMs": 6.445648000000006,
+    "tickSampleMeanMs": 0.7378021197918103,
+    "tickSampleP95Ms": 1.0007489999989048,
+    "tickSampleMaxMs": 23.60417600000801,
+    "elapsedMs": 91717.699152
+  }
+]

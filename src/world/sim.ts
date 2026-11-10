@@ -3,6 +3,7 @@
 
 import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
 import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
+import { createPoolJob, controlPoolJob, setPoolShips, interruptPoolShips, dispatchPool, maintainPool, stepPoolShip, type PoolRequest } from './autonomousLogistics';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -32,7 +33,7 @@ import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, varia
 import { payDebt, payFromSale } from './money';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
 import { priceOf, driftV3, fundsStep, fundsIn, seedFunds } from './market';
-import { publicCap, storeUsed, reservedSpace, listedSpace, setLease, takesSpace, constructionRoom, serviceOf } from './storage';
+import { publicCap, storeUsed, reservedSpace, listedSpace, logisticsReservedSpace, setLease, takesSpace, constructionRoom, serviceOf } from './storage';
 import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } from './explore';
 import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
@@ -107,7 +108,10 @@ export type Cmd =
   | { c: 'payArrears' }
   | { c: 'unloadCargo'; ship: string }
   | { c: 'putRoute'; group: string; config: RouteConfig; route?: string }
-  | { c: 'routeControl'; routes: string[]; action: 'pause' | 'resume' | 'cancel' };
+  | { c: 'routeControl'; routes: string[]; action: 'pause' | 'resume' | 'cancel' }
+  | { c: 'poolShips'; ships: string[]; on: boolean }
+  | { c: 'poolCreate'; request: PoolRequest }
+  | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
 /** "창살급 구축함" */
@@ -145,6 +149,7 @@ export class WorldSim {
   npcBattleMs = 0;
   private acc = 0;
   private slow = 0;
+  private poolDispatchAt = 0;
   /** what the content migration did on load (null = not run) */
   contentReport: MigrationReport | null = null;
   /** hooks for the server */
@@ -290,7 +295,7 @@ export class WorldSim {
     if (growthOn(this.st) && st.owner === company && !this.hasModule(st, 'core')) return constructionRoom(st, item, true);
     if (construction && growthOn(this.st) && st.owner === company && takesSpace(item)) {
       const cap = storageCap(st);
-      return Math.min(constructionRoom(st, item, true), cap > 0 ? Math.max(0, cap - storeUsed(st.storage[company])) : Infinity);
+      return Math.min(constructionRoom(st, item, true), cap > 0 ? Math.max(0, cap - storeUsed(st.storage[company]) - logisticsReservedSpace(this.st, st.id, company)) : Infinity);
     }
     return takesSpace(item) ? this.room(st, company) : Infinity;
   }
@@ -433,11 +438,11 @@ export class WorldSim {
   /** free warehouse space for a company at a station (public stations: unlimited) */
   room(st: Station, company: string): number {
     // growth: a public station gives each company a limited allowance (+ leased blocks)
-    if (st.public && growthOn(this.st)) return Math.max(0, publicCap(this.st.companies[company], st) - storeUsed(st.storage[company]) - listedSpace(st, company));
+    if (st.public && growthOn(this.st)) return Math.max(0, publicCap(this.st.companies[company], st) - storeUsed(st.storage[company]) - listedSpace(st, company) - logisticsReservedSpace(this.st, st.id, company));
     if (st.owner !== company) return Infinity;
     const cap = storageCap(st);
     if (growthOn(this.st) && !this.hasModule(st, 'core')) return Object.keys(queueShortfall(st)).reduce((n, k) => n + constructionRoom(st, k, true), 0);
-    const held = growthOn(this.st) ? reservedSpace(st) + listedSpace(st, company) : 0;
+    const held = growthOn(this.st) ? reservedSpace(st) + listedSpace(st, company) + logisticsReservedSpace(this.st, st.id, company) : 0;
     return cap > 0 ? Math.max(0, cap - (growthOn(this.st) ? storeUsed(st.storage[company]) + held : cargoSum(this.storage(st, company)))) : Infinity;
   }
   overCap(st: Station, company: string, add: number) { return this.room(st, company) < add; }
@@ -538,7 +543,19 @@ export class WorldSim {
     const meta = { company, ...('station' in cmd ? { station: cmd.station } : {}), ...('group' in cmd && typeof cmd.group === 'string' ? { group: cmd.group } : {}), ...('ship' in cmd && typeof cmd.ship === 'string' ? { ship: cmd.ship, group: this.st.ships[cmd.ship]?.groupId } : {}) };
     const manual = growthOn(this.st) && ['setOp', 'release', 'setParent', 'deleteGroup', 'moveShip', 'listShip', 'unloadCargo'].includes(cmd.c) ? manualRoutes(this, company, 'group' in cmd ? cmd.group : undefined, 'ship' in cmd ? cmd.ship : undefined) : [];
     if (cmd.c === 'setParent' && cmd.parent && growthOn(this.st)) manual.push(...manualRoutes(this, company, cmd.parent));
-    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && manual.length) pauseManualRoutes(this, manual); if (!err && growthOn(this.st)) this.reconcileFoundEscrows(company); if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
+    const poolManual: WShip[] = [];
+    if (growthOn(this.st)) {
+      if (['setOp', 'release', 'setParent', 'setDetached', 'deleteGroup', 'putRoute'].includes(cmd.c) && 'group' in cmd && typeof cmd.group === 'string') {
+        const g = this.st.groups[cmd.group]; if (g?.owner === company) poolManual.push(...this.subtreeShipsInOp(g, true));
+      }
+      if (['moveShip', 'listShip', 'unloadCargo', 'reserve', 'fit', 'fitShip', 'refit', 'buy'].includes(cmd.c) && 'ship' in cmd && typeof cmd.ship === 'string') {
+        const s = this.st.ships[cmd.ship]; if (s?.owner === company) poolManual.push(s);
+      }
+      if (cmd.c === 'routeControl' && cmd.action === 'resume' && Array.isArray(cmd.routes)) for (const id of cmd.routes) {
+        const r = this.st.logistics?.[id], g = r && this.st.groups[r.group]; if (r?.owner === company && g) poolManual.push(...this.subtreeShipsInOp(g, true));
+      }
+    }
+    return watchMoney(this.st, cmd.c, meta, () => { const err = this.executeCommand(company, cmd); if (!err && manual.length) pauseManualRoutes(this, manual); if (!err && poolManual.length) interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존'); if (!err && growthOn(this.st)) this.reconcileFoundEscrows(company); if (!err && ['poolCreate', 'poolControl', 'poolShips'].includes(cmd.c)) this.poolDispatchAt = 0; if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group }); return err; });
   }
 
   private executeCommand(company: string, cmd: Cmd): string | null {
@@ -851,7 +868,7 @@ export class WorldSim {
         const limit = stationBerths(after);
         if (limit !== undefined && occupiedBerths(this.st, st.id) > limit) return '정박 함선이 많습니다 — 출항 후 철거하세요';
         const recovered = Object.fromEntries(Object.entries(moduleMaterials(m)).map(([item, n]) => [item, Math.floor(n * 0.5)] as const).filter(([, n]) => n > 0));
-        const store = this.storage(st, company), room = storageCap(after) - storeUsed(store) - reservedSpace(after) - listedSpace(after, company);
+        const store = this.storage(st, company), room = storageCap(after) - storeUsed(store) - reservedSpace(after) - listedSpace(after, company) - logisticsReservedSpace(this.st, st.id, company);
         if (Object.entries(recovered).reduce((n, [item, amount]) => n + (takesSpace(item) ? amount : 0), 0) > room + 1e-9) return '회수 자재를 보관할 공간이 부족합니다 — 먼저 재고를 옮기세요';
         st.modules = remaining;
         for (const [item, amount] of Object.entries(recovered)) {
@@ -1292,6 +1309,9 @@ export class WorldSim {
       }
       case 'putRoute': return putRoute(this, company, cmd.group, cmd.config, cmd.route);
       case 'routeControl': return controlRoutes(this, company, cmd.routes, cmd.action);
+      case 'poolShips': return setPoolShips(this, company, cmd.ships, cmd.on);
+      case 'poolCreate': return createPoolJob(this, company, cmd.request);
+      case 'poolControl': return controlPoolJob(this, company, cmd.job, cmd.action);
       case 'payArrears': {
         if (!growthOn(this.st)) return '이 월드에는 운영비 미납금이 없습니다';
         const paid = payDebt(this.st, co, 'manual');
@@ -1695,7 +1715,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); }
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) { maintainPool(this); if (this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } } }
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
       this.runGroup(g, dt);
@@ -2421,10 +2441,10 @@ export class WorldSim {
   }
 
   /** returns true once docked */
-  goDock(s: WShip, st: Station, dt: number, speed: number, managed = false): boolean {
+  goDock(s: WShip, st: Station, dt: number, speed: number, managed = false, berthChecked = false): boolean {
     if (s.state === 'docked' && s.task.k === 'docked' && s.task.station === st.id) return true;
     const limit = stationBerths(st);
-    if (limit !== undefined && (!berthFits(st, econOf(s).berth) || occupiedBerths(this.st, st.id, s.id) >= limit)) {
+    if (!berthChecked && limit !== undefined && (!berthFits(st, econOf(s).berth) || occupiedBerths(this.st, st.id, s.id) >= limit)) {
       const g = this.st.groups[s.groupId];
       if (g) g.status = !berthFits(st, econOf(s).berth) ? `${st.name}: 정박 규격 부족` : `${st.name}: 정박 공간 대기`;
       return false;
@@ -2459,6 +2479,7 @@ export class WorldSim {
     if (ec.cruise <= 0) return;
     const speed = this.cruiseOf(s) * (0.6 + 0.4 * s.hp) * (c.specialty === 'maneuver' ? 1.08 : 1);
     const st = this.st;
+    if (s.logisticsJob && stepPoolShip(this, s, g, dt, speed)) return;
     switch (op.k) {
       case 'idle': {
         if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; s.pos = vadd(s.pos, s.vel, dt); }
@@ -3567,6 +3588,7 @@ export class WorldSim {
   netWorth(company: string): number {
     const co = this.st.companies[company];
     let v = co.credits;
+    for (const j of Object.values(this.st.logisticsJobs ?? {})) if (j.owner === company) v += j.reserved * assetReferenceValue(this.st, j.item);
     for (const cargo of Object.values(co.pendingLoot ?? {})) for (const k of cargoKeys(cargo)) v += cargo[k] * assetReferenceValue(this.st, k);
     for (const s of Object.values(this.st.ships)) if (s.owner === company) v += (shipWorth(this.st, s) + regionalShipValueAdjustment(this.st, s)) * (0.5 + 0.5 * s.hp);
     for (const s of Object.values(this.st.stations)) {

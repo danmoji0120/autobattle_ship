@@ -1,0 +1,15 @@
+PASS pool is discoverable on opening logistics
+PASS whole group opts in through authoritative command
+PASS two independent jobs are created through the visible form
+PASS ships in the same group were assigned different jobs
+PASS both jobs physically delivered once
+PASS pool fits viewport 1440
+PASS pool fits viewport 390
+PASS mobile task editor is visible
+PASS mobile task can be created, paused and resumed
+PASS full warehouse reason is visible on the task
+PASS full warehouse task recovers after space is freed
+PASS task cancellation works on mobile
+PASS individual ship exclusion and re-enrollment work on mobile
+PASS legacy route management remains accessible
+PASS no browser page errors ()

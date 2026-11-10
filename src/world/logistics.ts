@@ -9,6 +9,7 @@ import { nextGate } from './geom';
 import { departureHeld } from './upkeep';
 import { emit, watchMoney } from './observe';
 import { constructionRoom } from './storage';
+import { incomingPool } from './autonomousLogistics';
 
 export interface RouteConfig {
   name: string; from: string; to: string; item: string;
@@ -148,7 +149,7 @@ export function withdrawRouteCargo(h: Host, owner: string, ship: string, item: s
     if (m.amount <= 0) delete r.manifests[ship];
   }
 }
-function incoming(h: Host, owner: string, to: string, item: string) {
+export function incomingRoutes(h: Host, owner: string, to: string, item: string) {
   let n = 0;
   for (const r of Object.values(h.st.logistics ?? {})) if (r.owner === owner) for (const [id, m] of Object.entries(r.manifests)) { const ship = h.st.ships[id], group = ship && h.st.groups[ship.groupId]; if (ship?.owner === r.owner && group && h.opOwner(group).op.k === 'haul' && (h.opOwner(group).op as { route?: string }).route === r.id && m.mode !== 'sell' && m.to === to && m.item === item) n += Math.min(m.amount, qty(ship.cargo, item)); }
   return n;
@@ -216,7 +217,7 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
   if (r.config.mode === 'construction') {
     const dest = h.st.stations[r.config.to];
     if (!dest || dest.owner !== r.owner) { pause(h, r, '자사 건설 현장을 이용할 수 없습니다 — 설정을 확인하세요'); return; }
-    const outstanding = Math.max(0, constructionRoom(dest, r.config.item, true) - incoming(h, r.owner, dest.id, r.config.item));
+    const outstanding = Math.max(0, constructionRoom(dest, r.config.item, true) - incomingRoutes(h, r.owner, dest.id, r.config.item) - incomingPool(h.st, r.owner, dest.id, r.config.item));
     if (outstanding <= 1e-9) { block(h, r, s, c, 'construction', '필요 자재 확보 또는 운송 중 — 추가 수요 대기', dest.id); return; }
     amount = Math.min(amount, outstanding);
   }
@@ -224,7 +225,7 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
     const dest = h.st.stations[r.config.to];
     if (!dest || !h.canDock(dest, r.owner)) { pause(h, r, '생산 목적지를 이용할 수 없습니다 — 설정을 확인하세요'); return; }
     const batch = supplyBatch(dest, r.config.item, h.st), needs = batch > 0;
-    const current = qty(h.storage(dest, r.owner), r.config.item), onWay = incoming(h, r.owner, dest.id, r.config.item);
+    const current = qty(h.storage(dest, r.owner), r.config.item), onWay = incomingRoutes(h, r.owner, dest.id, r.config.item) + incomingPool(h.st, r.owner, dest.id, r.config.item);
     if (current <= r.config.minStock!) r.replenishing = true;
     if (current + onWay >= r.config.targetStock!) r.replenishing = false;
     if (!needs || !r.replenishing) { const threshold = needs && current < batch && onWay === 0; block(h, r, s, c, threshold ? 'threshold' : 'supply', !needs ? '이 원료를 사용하는 생산 주문 대기' : threshold ? `생산 원료 ${current}/${batch} — 보충 시작 재고 ${r.config.minStock}. 노선 재고 기준을 조정하세요` : '공급 재고 충족 — 소비 후 자동 보충 (운송 중 물량 포함)', dest.id); return; }

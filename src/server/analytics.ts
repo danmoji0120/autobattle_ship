@@ -3,7 +3,7 @@ import type { WorldSim } from '../world/sim';
 import { sysIndexAt } from '../world/geom';
 import { cargoSum } from '../world/types';
 import { priceOf } from '../world/market';
-import { publicCap, storeUsed } from '../world/storage';
+import { publicCap, storeUsed, logisticsReservedSpace } from '../world/storage';
 import { storageCap, buildNeeds } from '../world/production';
 import { effSec } from '../world/security';
 import { WEAPONS } from '../sim/data/weapons';
@@ -136,6 +136,7 @@ export class Analytics {
     }
     if (e.kind === 'logistics' && e.reason?.startsWith('blocked:')) { if (!this.data.waits[ref]) this.boundedPut(this.data.waits, ref, { company: e.company!, group: e.group!, since: time, reason: e.reason.slice(8) }); else this.data.waits[ref].reason = e.reason.slice(8); }
     if (e.kind === 'logistics' && e.reason === 'resumed') delete this.data.waits[ref];
+    if (e.kind === 'logistics' && e.reason === 'aborted') { delete this.data.waits[ref]; delete this.data.journeys[ref]; }
   }
   private boundedPut<T>(map: Record<string, T>, id: string, value: T) {
     if (!Object.hasOwn(map, id) && Object.keys(map).length >= 4096) { delete map[Object.keys(map)[0]]; this.data.dropped++; }
@@ -230,7 +231,7 @@ export class Analytics {
       return { id: co.id, name: co.name, credits: co.credits, ...this.assessedAssets(co.id), rep: co.rep, ships: ships.length, classes, stations: Object.values(w.stations).filter(s => s.owner === co.id).length, research: co.tech?.length ?? 0, age: w.time - co.createdAt, played: this.data.onlineSeconds?.[co.id] ?? 0 };
     });
     const markets = bounded(Object.values(w.stations).filter(s => s.public && s.market)).map(st => ({ id: st.id, name: st.name, system: this.sim.sysOf(st.pos)?.id ?? '', funds: st.funds ?? 0, goods: Object.fromEntries(Object.entries(st.market!).map(([k, m]) => [k, { price: priceOf(m, 'sell', (w.contentV ?? 0) >= 3) * (1 - (st.tax ?? 0)), buy: priceOf(m, 'buy', (w.contentV ?? 0) >= 3), stock: m.stock, target: m.target }])) }));
-    const warehouses = bounded(Object.values(w.stations).flatMap(st => Object.entries(st.storage).filter(([co, c]) => w.companies[co]?.kind === 'player' && (!viewer || co === viewer) && (storeUsed(c) > 0 || st.owner === co || w.companies[co].pendingLoot?.[st.id] || (w.companies[co].leases?.[st.id] ?? 0) > 0)).map(([company, c]) => ({ company, station: st.id, used: storeUsed(c), cap: st.public ? ((w.contentV ?? 0) >= 3 ? publicCap(w.companies[company], st) : 0) : storageCap(st), mode: ((w.contentV ?? 0) >= 3 && !st.public && !st.modules.some(m => m.kind === 'core' && m.built) ? 'construction' : st.public && (w.contentV ?? 0) < 3 || !st.public && storageCap(st) === 0 ? 'unlimited' : 'capacity') as 'capacity' | 'construction' | 'unlimited', pending: cargoSum(w.companies[company].pendingLoot?.[st.id] ?? {}) }))));
+    const warehouses = bounded(Object.values(w.stations).flatMap(st => Object.entries(st.storage).filter(([co, c]) => w.companies[co]?.kind === 'player' && (!viewer || co === viewer) && (storeUsed(c) > 0 || logisticsReservedSpace(w, st.id, co) > 0 || st.owner === co || w.companies[co].pendingLoot?.[st.id] || (w.companies[co].leases?.[st.id] ?? 0) > 0)).map(([company, c]) => ({ company, station: st.id, used: storeUsed(c) + logisticsReservedSpace(w, st.id, company), cap: st.public ? ((w.contentV ?? 0) >= 3 ? publicCap(w.companies[company], st) : 0) : storageCap(st), mode: ((w.contentV ?? 0) >= 3 && !st.public && !st.modules.some(m => m.kind === 'core' && m.built) ? 'construction' : st.public && (w.contentV ?? 0) < 3 || !st.public && storageCap(st) === 0 ? 'unlimited' : 'capacity') as 'capacity' | 'construction' | 'unlimited', pending: cargoSum(w.companies[company].pendingLoot?.[st.id] ?? {}) }))));
     return { time: w.time, supply: moneySupply(w), companyCredits: Object.values(w.companies).reduce((n, co) => n + co.credits, 0), budgets: Object.values(w.stations).reduce((n, st) => n + (st.funds ?? 0), 0), companies, markets, warehouses, waits: bounded(Object.values(this.data.waits)), systems: Object.values(w.systems).map(s => ({ id: s.id, name: s.name, security: effSec(s), heat: s.heat, influence: { ...s.inf }, raids: s.stats.raids })) };
   }
   query(scope: 'admin' | 'player', viewer: string, query: AnalyticsQuery = {}): AnalyticsResult {

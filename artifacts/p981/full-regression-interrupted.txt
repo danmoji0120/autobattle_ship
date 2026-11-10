@@ -1,0 +1,88 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > A cannot write c0 over the migrated c2 world; companies, ships, equipment and account links survive
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > a failing migration rolls back completely: world, generation and backup rows untouched
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > persists analytics, prepaid leases and recovery assets through real PostgreSQL server restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an in-flight managed route and its exact manifest through PostgreSQL process restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores combined P8 fittings, research, construction and live logistics through two PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves P9.5 founding escrow, purchase receipts and a construction shipment through PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a sized station, a running production batch and pending physical cargo handling through PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves an old-tier ship plan, a new-tier snapshot and returned overflow across PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves committed trade identity and inventory across PostgreSQL process restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves regional deposits, company inventories and running special production across PostgreSQL restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > preserves concurrent P9.8 dispatch reservations and cargo through PostgreSQL server restarts
+ ↓ tests/pg-migrate.test.ts > content migration against a live old instance (real Postgres) > restores a paid legacy batch but applies regional inputs to the next stock batch
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > creates four exclusive origins with stable fields, unchanged geography and finite replenishment 52ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > retains a usable starting fleet, basic hull purchase and ordinary mining without rare materials 588ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > finishes already paid batches but requires regional inputs for every new batch after activation 10ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not let already activated development saves use legacyRecipe for stock replenishment 4ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > rejects a conflicting explicit migration before modifying old fields or orders 3ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > actually mines every authored rare material without inventing or losing mixed cargo 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shares one finite deposit between two companies without duplicating rare cargo, including after restore 30ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets four companies independently mine the four different origins in one shared world 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > applies cargo compression to miners and their support haulers in regional mining operations only 20ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > preserves a running rare-material batch and a paused second batch over save and resume 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > requires the four regional inputs in the server recipe and snapshots capital build materials 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > shows estimated input value separately from old references and executable prices 6ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > values regional assets and fitted materials for assessment without changing old worlds 3ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses the same regional asset reference in storage, cargo and player listings 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > uses real NPC market stock atomically for restricted refits in regional worlds only 5ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not generate restricted weapons through public-yard presets in regional worlds 6ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > does not start a dreadnought without the actual regional materials, then launches one after restore 22ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > mines Anvil, hauls through gates, processes an alloy and fits a produced armor module 1278ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > lets a company that mines nothing buy a processed regional material, haul it and manufacture equipment 1259ms
+ ✓ tests/p97-regional-resources.test.ts > P9.7 regional resources > physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle 324ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects inherited or non-numeric warehouse properties instead of creating fake exchange listings 13ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently sells a confirmed request even across reload, without selling a second lot 19ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > records only successful sale requests, isolates companies and rejects conflicts and stale sequences 3ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > preserves the unsold portion and retries an idempotent partial sale at the actual station budget 2ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > idempotently purchases a partial player listing without charging or delivering twice 2ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not buy another NPC ship when the same successful request is retried 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > replays a ship handoff acknowledgement and rejects an orphan sale before charging 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not transfer a seller’s fractional cargo with a newly listed or legacy listed ship 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects a corrupt ship-listing price without paying a buyer or taking the seller’s ship 2ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > registers and withdraws the same escrow request only once, including after save and restore 4ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > rejects invalid legacy listings before money or goods move 3ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > keeps an invalid legacy escrow record unchanged instead of silently destroying it on withdrawal 2ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > preserves credits, market stock and goods for a failed purchase and makes normal trades exactly once 2ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > does not charge for a full warehouse or hold, and only delivers to an owned ship at the market 3ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > acknowledges authoritative trades and sends each company only its own inventory and receipts 16ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > partially unloads only available warehouse room and never takes another company’s cargo 3ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > never loads past a ship’s remaining capacity when it already contains fractional cargo 7ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > transports owned blueprint fragments without inventing or losing records 57ms
+ ✓ tests/p9632-trade-cargo.test.ts > P9.6.3.2 trade and physical cargo handoff > physically collects the buyer-owned goods from a private exchange without general docking access 78ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > new player ships carry a fitting equal to their preset; NPC ships stay on legacy loadouts 288ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > rejects wrong size, type, mount, power, mass, unknown slots/items, foreign or undocked ships — and changes nothing 5ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > mount styles are enforced (torpedo tubes do not go on spinal mounts) 0ms
+ ✓ tests/fitting.test.ts > fitting V2: rules enforced by the server > every legacy module set still fits every legacy preset, and the bays never allow more than the old slots 333ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > fit and unfit move items between ship and storage, all or nothing, over many cycles 7ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > two ships cannot share one stored item 2ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > public stations sell missing items only when asked, at 1.2× price, and only researched ones 2ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > own facilities never sell items; they use storage only and charge nothing 2ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > legacy refit and fitShip commands translate to V2 fittings with the same conservation 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > company presets: save, overwrite by name, limit, delete; invalid fittings are not saved 3ms
+ ✓ tests/fitting.test.ts > fitting V2: items are conserved > ships launched from an own yard get a fitting with the built modules 2ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > for all 25 presets, the fitting spec builds the identical ship and the identical battle 254ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > a custom fitting changes the ship in battle (weapons, arcs, structure) 3ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > the world battle setup passes the fitting to the combat engine for player ships 2ms
+ ✓ tests/fitting.test.ts > fitting V2: combat engine and renderer use exactly the fitted equipment > 3D model turrets sit exactly on the fitted hardpoints 108ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > turns loadouts + modules into fittings, records conversions, conserves every item 101ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > a module with no bay (corrupt old save) goes to storage, never disappears 98ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > dry-run (migrateContent:false) on a contentV 0 save keeps the legacy path: no fittings, legacy commands work 96ms
+ ✓ tests/fitting.test.ts > fitting V2: save migration (contentV 1 → 2) and rollback > rollback to older code and forward again: ships the old code refitted are rebuilt from their loadout 104ms
+ ✓ tests/fitting.test.ts > fitting V2: hostile input > prototype keys and junk are rejected without side effects 2ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips 542ms
+ ✓ tests/growth.test.ts > growth: c2 → c3 save migration > without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands 1673ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > every growth hull is its own hull: own silhouette, a standard variant, presets that fit; mk1 hulls are unchanged 2ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > a growth ship maps to its hull + variant: stats multipliers and mesh reach the battle loadout 3ms
+ ✓ tests/growth.test.ts > growth: hulls and variants (P3) > large industrial hulls do not dominate: lower efficiency on small fields, big berths, higher cost per throughput 3ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials 46446ms
+ ✓ tests/growth.test.ts > growth: ship stock and the player ship market (P6) > a player-built ship sold on the exchange: ownership and equipment move, the buyer needs no blueprint or research 15ms
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > own builds check blueprint, research, yard, facilities and materials; the launched ship carries the preset 26269ms
+ ✓ tests/growth.test.ts > growth: blueprints and own builds (P6) > blueprints are bought with credits from their source; wreck fragments assemble into one; unique ones are limited 2ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > overhead is flat per ship: splitting a fleet over accounts saves nothing (rev 2) 4ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve 33923ms
+ ✓ tests/growth.test.ts > growth: upkeep and arrears (P4) > reserve and reactivation by command 2199ms
+ ✓ tests/growth.test.ts > growth: finite market demand and station budgets (P4) > dumping ore: price falls to the floor, the budget caps payment, the rest stays stored, budgets recover 12306ms
+ ✓ tests/growth.test.ts > growth: persistence and long automation > stock, listings, blueprints, upkeep and wear survive a restart exactly 2770ms

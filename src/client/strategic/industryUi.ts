@@ -16,7 +16,7 @@ import { growthOn } from '../../world/hullops';
 import { WEAPONS } from '../../sim/data/weapons';
 import { weaponRole } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
-import { storeUsed, reservedSpace, listedSpace } from '../../world/storage';
+import { storeUsed, reservedSpace, listedSpace, logisticsReservedSpace } from '../../world/storage';
 import { materialReferenceCost, regionalReferenceValue, valueOf } from '../../world/valuation';
 
 export interface IndUi { invCat: string; invQ: string; recFac: string; recQ: string; recSel: string | null; mkCat: string; mkQ: string; hull: string | null; fit: string[]; rField: string; tSel: string | null }
@@ -45,7 +45,8 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   const cap = own ? storageCap(s) : 0;
   const used = growthOn(w as any) && own ? storeUsed(store) : cargoSum(store);
   const overflow = cap ? Math.max(0, used - cap) : 0;
-  const held = own && growthOn(w as any) ? reservedSpace(s) + listedSpace(s, me) : 0;
+  const poolHeld = logisticsReservedSpace(w, s.id, me);
+  const held = own && growthOn(w as any) ? reservedSpace(s) + listedSpace(s, me) + poolHeld : poolHeld;
   const ids = cargoKeys(store);
   const reserved: Record<string, number> = {};
   for (const m of s.modules) for (const [k, n] of Object.entries(m.reserved ?? {})) if (n > 0.01) reserved[k] = (reserved[k] ?? 0) + n;
@@ -60,6 +61,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
     ${cap ? `<div class="bar"><i style="width:${Math.min(100, used / cap * 100)}%;${used > cap * 0.9 ? 'background:var(--warn)' : ''}"></i></div>` : ''}
     ${overflow > 0 ? `<div class="warn" role="status">초과 보관 ${fmt(overflow)} — 신규 입고 불가 · 자재 이동·소비 또는 창고 증설</div>` : held > 0 && used + held >= cap ? '<div class="warnish small">건설 예약·매물의 반환 공간 확보 중 — 일반 입고 대기</div>' : ''}
     ${Object.keys(reserved).length ? `<div class="dim small">건설 예약(창고에서 빠짐): ${itemList(reserved)}</div>` : ''}
+    ${poolHeld ? `<div class="dim small">공용 물류 예약 ${fmt(poolHeld)} · 출발지에 보관 중이며 취소 시 자유 재고로 반환</div>` : ''}
     ${Object.keys(inJobs).length ? `<div class="dim small">생산 중 (완료 시 입고): ${itemList(inJobs)}</div>` : ''}
     ${Object.keys(needs).length ? `<div class="small"><span class="warn">생산 원료 부족</span>: ${itemList(needs)}</div>` : ''}
     </div>`;

@@ -436,6 +436,32 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
     }
   }, 60_000);
 
+  it('preserves concurrent P9.8 dispatch reservations and cargo through PostgreSQL server restarts', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 981), sim = local.sim;
+    const p = sim.addPlayer('PG 공용 물류'); sim.st.companies[p].credits = 1e7;
+    for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e10; }
+    for (const system of Object.values(sim.st.systems)) system.security = 100;
+    const source = sim.st.stations.astra; source.storage[p].ore = 100;
+    const target: Station = { ...structuredClone(source), id: 'pg_p981', name: 'PG 물류항', owner: p, public: false, pos: { ...source.pos, x: source.pos.x + 4000 }, market: null, storage: { [p]: {} }, modules: ['core', 'power', 'logistics'].map((kind, slot) => ({ kind, slot, built: true, progress: 1 })) };
+    sim.st.stations[target.id] = target;
+    const g = sim.newGroup(p, 'PG 공용 수송'), s1 = sim.spawnShip(p, 'hauler', 'std', g.id, source.pos), s2 = sim.spawnShip(p, 'hauler', 'std', g.id, target.pos);
+    (sim as any).dockShip(s1, source);
+    expect(sim.command(p, { c: 'poolShips', ships: [s1.id, s2.id], on: true })).toBeNull();
+    for (let i = 0; i < 2; i++) expect(sim.command(p, { c: 'poolCreate', request: { from: source.id, to: target.id, item: 'ore', kind: 'transfer', amount: 20, priority: 5, repeat: false } })).toBeNull();
+    for (let i = 0; i < 5; i++) sim.update(.25);
+    const jobs = Object.values(sim.st.logisticsJobs!); expect(jobs.reduce((n, j) => n + j.reserved, 0)).toBe(20); expect(jobs.reduce((n, j) => n + j.carried, 0)).toBe(20);
+    const file = local.snapshotFile(); await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    const first = await start(8336, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(first)).toBe(0);
+    let world = (await row())!.data.world; expect(world.logisticsJobs).toEqual(file.world.logisticsJobs);
+    const restored = new WorldSim(structuredClone(world), { migrateContent: false });
+    for (let i = 0; i < 3000 && Object.values(restored.st.logisticsJobs!).some(j => j.state !== 'complete'); i++) restored.update(.25);
+    expect(Object.values(restored.st.logisticsJobs!).map(j => j.delivered)).toEqual([20, 20]);
+    expect((restored.st.stations[source.id].storage[p].ore ?? 0) + (restored.st.stations[target.id].storage[p].ore ?? 0) + (restored.st.ships[s1.id].cargo.ore ?? 0) + (restored.st.ships[s2.id].cargo.ore ?? 0)).toBe(100);
+    const next = { ...file, world: JSON.parse(restored.serialize()) }; await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(next)]);
+    const second = await start(8337, { CONTENT_MIGRATE: '', SAVE_INTERVAL_S: '60' }); expect(await stop(second)).toBe(0);
+    world = (await row())!.data.world; expect(Object.values(world.logisticsJobs!).map(j => j.delivered)).toEqual([20, 20]); expect(world.stations[target.id].storage[p].ore).toBe(40);
+  }, 60_000);
+
   it('restores a paid legacy batch but applies regional inputs to the next stock batch', async () => {
     const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 971), sim = local.sim;
     const p = sim.addPlayer('PG 구형 주문'); sim.st.companies[p].tech = ['railguns'];

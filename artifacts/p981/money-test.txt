@@ -1,0 +1,29 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > dispatches three ships of one group independently to different jobs
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > runs transfer, production supply and construction supply independently in the same group
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > automatically assigns the next job to one ship and respects priority
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > competing requests never take more than the same physical stock, including restore
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > holds cargo when a destination is full and resumes when space returns
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > manual command, exclusion and destruction retain surviving cargo and account for loss
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > pause and cancellation do not teleport loaded goods; restored in-flight jobs complete once
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > keeps legacy routes and their manifests intact and rejects mining ships and foreign commands
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > filters company jobs and ship pool metadata from other players snapshots
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > sells only this job’s cargo, waits for market funds, and repeats only when explicitly requested 848ms
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > restores a sized station’s in-progress physical loading without moving the same goods twice
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > suspends individual dispatch on direct group orders and on explicit pool exclusion
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > reserves real source stock, protects its warehouse space, restores and returns it on cancel
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > retains a source reservation if the station disappears and releases it only once after recovery
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > prevents legacy logistics and production from consuming dispatch-reserved stock
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > dispatches concurrent companies only to their own ships and their own source stock
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > loads the actual base-commit P9.7 in-flight save idempotently and runs new pool jobs beside it
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > returns a destroyed ship’s uncollected reservation before assigning another ship
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > keeps the source stock unreserved when a gate is unavailable and recovers after reconnection
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > reproduces the legacy one-route constraint and empty return trip for the audit
+ ↓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > reports a full dock and resumes its loaded shipment when a berth opens
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 20 skipped (21)
+   Start at  11:05:29
+   Duration  1.81s (transform 726ms, setup 0ms, import 846ms, tests 850ms, environment 0ms)

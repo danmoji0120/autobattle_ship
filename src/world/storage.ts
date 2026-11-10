@@ -53,6 +53,11 @@ export const serviceOf = (st: Station): StationService => SERVICES[st.id] ?? DEF
 /** goods that take warehouse space (blueprint copies and fragments are records, not cargo) */
 export const takesSpace = (k: string) => !k.startsWith('bpf:') && !k.startsWith('bp:');
 export function storeUsed(S: Cargo | undefined): number { let n = 0; if (S) for (const k in S) if (takesSpace(k) && S[k] > 0) n += S[k]; return n; }
+/** Dispatch reservations are still physically at the source and keep their warehouse space. */
+export function logisticsReservedSpace(w: Pick<WorldState, 'logisticsJobs'> | undefined, station: string, company: string): number {
+  let n = 0; for (const j of Object.values(w?.logisticsJobs ?? {})) if (j.owner === company && j.from === station && takesSpace(j.item)) n += j.reserved;
+  return n;
+}
 /** Returnable construction reservations claim space for ordinary intake; they remain separate assets. */
 export function reservedSpace(st: Pick<Station, 'modules'>): number {
   return st.modules.reduce((n, m) => n + (!m.built ? storeUsed(m.reserved) : 0), 0);

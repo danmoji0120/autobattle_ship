@@ -8,6 +8,7 @@ import { econOf } from '../../world/hullops';
 import { sysAt } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
 import { queueShortfall } from '../../world/construction';
+import type { PoolRequest, LogisticsJob } from '../../world/autonomousLogistics';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const num = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -17,6 +18,8 @@ interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'bui
 export class LogisticsPanel {
   private el = document.createElement('div');
   private editing = false; private editId = ''; private editKey = 0; private group = '';
+  private view: 'pool' | 'routes' = 'pool';
+  private poolDraft: PoolRequest = { from: '', to: '', item: 'ore', kind: 'transfer', amount: 100, priority: 5, repeat: false };
   private draft: RouteConfig = { name: '', from: '', to: '', item: 'ore', mode: 'transfer', amount: 100, repeat: true, minStock: 20, targetStock: 100 };
   private selected = new Set<string>(); private expanded = new Set<string>(); private station = ''; private filter = 'all'; private search = '';
   private error = ''; private notice = ''; private busy = false; private saleConsent = false; private closed = false;
@@ -28,6 +31,7 @@ export class LogisticsPanel {
     this.el.onkeydown = e => e.stopPropagation(); this.el.onclick = e => { if (e.target === this.el) this.close(); };
     root.appendChild(this.el); trackSelects(this.el); c.onSnap.push(this.onSnap); window.addEventListener('keydown', this.key, true); this.el.focus();
     if (options.create || options.group) {
+      this.view = 'routes';
       const r = Object.values(c.state?.logistics ?? {}).find(r => r.group === options.group && r.owner === c.company);
       if (r) this.edit(r); else this.newRoute(options.group, options.construction);
     } else this.render();
@@ -59,6 +63,8 @@ export class LogisticsPanel {
     if (this.closed) return;
     const w = this.c.state; if (!w) { this.el.innerHTML = '<div class="panel lg-box"><p>서버의 물류 상태를 기다리는 중…</p></div>'; return; }
     const routes = this.routes, now = w.time;
+    const jobs = Object.values(w.logisticsJobs ?? {}).filter(j => j.owner === this.c.company);
+    const poolShips = Object.values(w.ships).filter(s => s.owner === this.c.company && s.logisticsPool);
     const active = routes.filter(r => r.state === 'running').length, waiting = routes.filter(r => routeLabel(r).state === 'waiting').length;
     const recent = routes.reduce((n, r) => n + r.recent.filter(b => b.t >= now - 3600).reduce((sum, b) => sum + b.delivered, 0), 0);
     const list = routes.filter(r => (!this.station || r.config.from === this.station || r.config.to === this.station) && (this.filter === 'all' || this.filter === 'issues' && ['waiting', 'paused'].includes(routeLabel(r).state) || routeLabel(r).state === this.filter) && (!this.search || `${r.config.name} ${w.groups[r.group]?.name ?? ''} ${itemName(r.config.item)}`.toLowerCase().includes(this.search.toLowerCase())));
@@ -66,17 +72,65 @@ export class LogisticsPanel {
     for (const id of this.selected) if (!routes.some(r => r.id === id)) this.selected.delete(id);
     const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company || this.hasExternalSource(s.id));
     const choose = (items: { id: string; name: string }[], value: string, first: string) => `<option value="">${first}</option>${items.map(i => `<option value="${esc(i.id)}" ${i.id === value ? 'selected' : ''}>${esc(i.name)}</option>`).join('')}`;
-    morph(this.el, `<div class="panel lg-box"><header class="lg-head"><div><div class="an-eyebrow">SIDERARIUM / LOGISTICS</div><h2>물류 관리 <span>자사 노선 · 서버 자동 운용</span></h2></div><div class="lg-actions"><button class="btn go" data-lg-new>+ 운송 노선</button><button class="btn" data-lg-close aria-label="물류 닫기">✕</button></div></header>
-      <div class="lg-summary"><div><span>운용 노선</span><b>${active}</b></div><div><span>조건 회복 대기</span><b class="${waiting ? 'warn' : ''}">${waiting}</b></div><div><span>최근 1시간 하역량</span><b>${num(recent)}</b></div><div><span>누적 판매 수입</span><b class="money">${num(routes.reduce((n, r) => n + r.stats.earned, 0))} <small>cr</small></b></div></div>
+    morph(this.el, `<div class="panel lg-box"><header class="lg-head"><div><div class="an-eyebrow">SIDERARIUM / LOGISTICS</div><h2>물류 관리 <span>자사 운송 · 서버 자동 운용</span></h2></div><div class="lg-actions"><button class="btn go" ${this.view === 'pool' ? 'data-pool-new' : 'data-lg-new'}>+ ${this.view === 'pool' ? '작업 요청' : '운송 노선'}</button><button class="btn" data-lg-close aria-label="물류 닫기">✕</button></div></header>
+      <nav class="pool-tabs" aria-label="물류 관리 보기"><button class="${this.view === 'pool' ? 'on' : ''}" data-lg-view="pool" aria-pressed="${this.view === 'pool'}">공용 배차</button><button class="${this.view === 'routes' ? 'on' : ''}" data-lg-view="routes" aria-pressed="${this.view === 'routes'}">기존 운송 노선</button></nav>
+      ${this.view === 'pool' ? `<div class="lg-summary"><div><span>참여 함선</span><b>${poolShips.length}</b></div><div><span>대기 작업</span><b>${jobs.filter(j => j.state === 'queued' || j.state === 'waiting').length}</b></div><div><span>수행 중</span><b>${jobs.filter(j => !!j.ship && j.state !== 'paused').length}</b></div><div><span>완료 작업</span><b>${jobs.filter(j => j.state === 'complete').length}</b></div></div>` : `<div class="lg-summary"><div><span>운용 노선</span><b>${active}</b></div><div><span>조건 회복 대기</span><b class="${waiting ? 'warn' : ''}">${waiting}</b></div><div><span>최근 1시간 하역량</span><b>${num(recent)}</b></div><div><span>누적 판매 수입</span><b class="money">${num(routes.reduce((n, r) => n + r.stats.earned, 0))} <small>cr</small></b></div></div>`}
       ${this.error ? `<div class="lg-feedback warn" role="alert">${esc(this.error)}</div>` : this.notice ? `<div class="lg-feedback good" role="status">${esc(this.notice)}</div>` : ''}
+      ${this.view === 'pool' ? this.poolPage(jobs) : `
       <div class="lg-layout ${this.editing ? 'editing' : ''}"><main class="lg-list">
         <div class="lg-filters"><label>정거장<select data-lg-station data-keep>${choose(stations, this.station, '모든 정거장')}</select></label><label>상태<select data-lg-filter data-keep>${[['all', '모든 상태'], ['issues', '대기·일시정지'], ['running', '정상 운용'], ['complete', '편도 완료']].map(([v, text]) => `<option value="${v}" ${this.filter === v ? 'selected' : ''}>${text}</option>`).join('')}</select></label><label class="lg-search">노선 찾기<input data-lg-search type="search" value="${esc(this.search)}" placeholder="노선·편대·품목"></label></div>
         <div class="lg-bulk"><span>${this.selected.size ? `${this.selected.size}개 선택` : `${list.length}개 노선`}</span><button class="btn mini" data-lg-all ${!list.length ? 'disabled' : ''}>모두 선택</button><button class="btn mini" data-lg-bulk="pause" ${!this.selected.size || this.busy ? 'disabled' : ''}>선택 정지</button><button class="btn mini" data-lg-bulk="resume" ${!this.selected.size || this.busy ? 'disabled' : ''}>선택 재개</button></div>
         <div class="lg-cards">${list.map(r => this.card(r)).join('') || `<div class="lg-empty"><div class="lg-orbit" aria-hidden="true">◉ ─── ◉</div><h3>${routes.length ? '조건에 맞는 노선이 없습니다' : '반복 운송을 시작하세요'}</h3><p>${routes.length ? '정거장·상태 필터를 바꿔 확인하세요.' : '운송 편대, 두 정거장, 물품을 선택하면 적재부터 하역까지 서버가 반복합니다.'}</p><button class="btn go" data-lg-new>운송 노선 설정</button></div>`}</div>
         ${this.mining()}
-      </main>${this.editing ? this.form() : ''}</div>
+      </main>${this.editing ? this.form() : ''}</div>`}
       <footer class="lg-foot"><span>화물 소유권 유지 · 미판매 화물 보존 · 로그아웃 후에도 운용</span><button class="an-link" data-lg-analytics>수입·운영비 분석 →</button></footer></div>`);
     this.bind(list);
+  }
+  private newPoolJob() {
+    const w = this.c.state!, home = w.companies[this.c.company]?.homeStation;
+    const from = this.station || home || '', to = Object.values(w.stations).find(s => s.id !== from && s.owner === this.c.company)?.id ?? Object.values(w.stations).find(s => s.id !== from && s.public)?.id ?? '';
+    this.poolDraft = { from, to, item: 'ore', kind: 'transfer', amount: 100, priority: 5, repeat: false };
+    this.editing = true; this.saleConsent = false; this.error = ''; this.render();
+  }
+  private poolPage(jobs: LogisticsJob[]) {
+    const w = this.c.state!;
+    const groups = Object.values(w.groups).filter(g => g.owner === this.c.company && g.shipIds.some(id => w.ships[id]?.classId === 'hauler'));
+    const rank = (j: LogisticsJob) => j.state === 'active' || j.state === 'waiting' || j.state === 'queued' ? 0 : j.state === 'paused' ? 1 : 2;
+    const sorted = [...jobs].sort((a, b) => rank(a) - rank(b) || b.created - a.created || b.id.localeCompare(a.id));
+    return `<div class="lg-layout ${this.editing ? 'editing' : ''}"><main class="lg-list pool-main">
+      <section class="pool-section"><div class="pool-section-head"><div><h3>작업 대기열</h3><p>우선순위가 높은 요청부터 가용 함선에 배정합니다. 완료한 함선은 다음 작업을 받습니다.</p></div><span>${jobs.length}개 요청</span></div>
+      <div class="lg-cards">${sorted.map(j => this.poolCard(j)).join('') || `<div class="lg-empty"><div class="lg-orbit" aria-hidden="true">◉ ─── ◉</div><h3>운송 작업을 요청하세요</h3><p>출발지와 목적지를 정하고 아래에서 수송선을 공용 배차에 참여시키세요.</p><button class="btn go" data-pool-new>작업 요청</button></div>`}</div></section>
+      <section class="pool-section pool-participants"><div class="pool-section-head"><div><h3>참여 수송선</h3><p>대기 중인 수송선만 참여할 수 있습니다. 직접 명령이나 편제 변경은 공용 배차보다 우선합니다.</p></div><span>${groups.length}개 편대</span></div>
+      ${groups.map(g => { const ships = g.shipIds.map(id => w.ships[id]).filter(s => s?.classId === 'hauler'); return `<div class="pool-group"><div class="pool-group-head"><strong>${esc(g.name)}</strong><span>${ships.filter(s => s.logisticsPool).length}/${ships.length}척 참여</span><button class="btn mini" data-pool-group="${esc(g.id)}" data-pool-on="true">편대 참여</button><button class="btn mini" data-pool-group="${esc(g.id)}" data-pool-on="false">편대 제외</button></div>${ships.map(s => { const j = s.logisticsJob && w.logisticsJobs?.[s.logisticsJob]; return `<div class="pool-ship"><div><b>${esc(s.name)}</b><small>${s.logisticsPool ? j ? `수행 중 · ${esc(itemName(j.item))} → ${esc(w.stations[j.to]?.name ?? j.to)}` : '참여 중 · 다음 작업 대기' : '공용 배차 제외'} · 화물 ${num(cargoSum(s.cargo))}/${num(econOf(s).cargo * techFx(w.companies[s.owner]?.tech).cargoMul)}</small></div><button class="btn mini" data-pool-ship="${esc(s.id)}" data-pool-on="${!s.logisticsPool}" ${this.busy ? 'disabled' : ''}>${s.logisticsPool ? '제외' : '참여'}</button></div>`; }).join('')}</div>`; }).join('') || '<p class="dim small">수송선이 없습니다. 조선소에서 수송선을 확보한 뒤 참여시킬 수 있습니다.</p>'}</section>
+      </main>${this.editing ? this.poolForm() : ''}</div>`;
+  }
+  private poolCard(j: LogisticsJob) {
+    const w = this.c.state!, status = { queued: '대기', active: '수행 중', waiting: '조건 대기', paused: '일시정지', complete: '완료', cancelled: '취소' }[j.state];
+    const ship = j.ship ? w.ships[j.ship] : undefined, done = j.state === 'complete' || j.state === 'cancelled';
+    return `<article class="lg-card ${j.state === 'waiting' ? 'waiting' : j.state === 'paused' ? 'paused' : j.state === 'complete' ? 'complete' : ''}" data-pool-job="${esc(j.id)}"><div class="lg-card-top"><b>${esc(modes[j.kind])} · ${esc(itemName(j.item))}</b><span class="lg-badge ${j.state}">${status}</span></div>
+      <div class="lg-path"><button class="an-link" data-lg-open="${esc(j.from)}">${esc(w.stations[j.from]?.name ?? j.from)}</button><span>→</span><button class="an-link" data-lg-open="${esc(j.to)}">${esc(w.stations[j.to]?.name ?? j.to)}</button></div>
+      <div class="lg-cargo"><span>우선순위 ${j.priority} · ${j.repeat ? '반복 · 정지 또는 취소까지' : '단발'} · 요청 ${num(j.amount)}</span></div>
+      <div class="lg-route-status ${j.reason ? 'warn' : 'dim'}">${esc(j.reason ?? (ship ? `${ship.name} 배정 · ${j.carried > 0 ? '목적지로 운송' : '출발지 이동·적재'}` : j.state === 'complete' ? '요청 수량 운송 완료 · 함선은 다음 작업을 받습니다' : '가용 함선 배정 대기'))}</div>
+      <div class="lg-metrics"><span>완료 <b>${num(j.delivered)}</b></span><span>운송 중 <b>${num(j.carried)}</b></span><span>출발지 예약 <b>${num(j.reserved)}</b></span></div>
+      ${j.lost || j.withdrawn ? `<p class="dim small">손실 ${num(j.lost)} · 작업에서 회수 ${num(j.withdrawn)} (생존 함선 화물 보존)</p>` : ''}
+      <div class="lg-card-actions">${done ? '' : `<button class="btn mini" data-pool-control="${esc(j.id)}" data-pool-action="${j.state === 'paused' ? 'resume' : 'pause'}" ${this.busy ? 'disabled' : ''}>${j.state === 'paused' ? '재개' : '일시정지'}</button><button class="btn mini warnb" data-pool-control="${esc(j.id)}" data-pool-action="cancel" ${this.busy ? 'disabled' : ''}>취소</button>`}</div></article>`;
+  }
+  private poolForm() {
+    const w = this.c.state!, d = this.poolDraft;
+    const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company);
+    const options = (value: string) => `<option value="">정거장 선택</option>${stations.map(s => `<option value="${esc(s.id)}" ${s.id === value ? 'selected' : ''}>${esc(s.name)} · ${esc(sysAt(w.systems, s.pos)?.name ?? '')}</option>`).join('')}`;
+    const stock = w.stations[d.from]?.storage[this.c.company] ?? {};
+    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT), ...Object.keys(stock)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
+    return `<aside class="lg-editor"><form data-pool-form><div class="lg-editor-head"><h3>새 작업 요청</h3><button class="btn mini" type="button" data-pool-form-close aria-label="작업 요청 닫기">✕</button></div>
+      <label>출발지<select data-pool-field="from" data-keep>${options(d.from)}</select></label><label>목적지<select data-pool-field="to" data-keep>${options(d.to)}</select></label>
+      <label>작업 종류<select data-pool-field="kind" data-keep>${Object.entries(modes).map(([v, text]) => `<option value="${v}" ${v === d.kind ? 'selected' : ''}>${text}</option>`).join('')}</select></label>
+      <label>운송 품목<select data-pool-field="item" data-keep>${items.map(id => `<option value="${esc(id)}" ${id === d.item ? 'selected' : ''}>${esc(itemName(id))}</option>`).join('')}</select></label>
+      <div class="lg-stock"><span>출발지 자유 재고 <b>${num(qty(stock, d.item))}</b></span></div>
+      <label>요청 수량<input data-pool-field="amount" type="number" min="1" step="1" required value="${d.amount}"></label><label>우선순위 (0–9, 높을수록 먼저)<input data-pool-field="priority" type="number" min="0" max="9" step="1" required value="${d.priority}"></label>
+      <label class="lg-toggle"><input data-pool-field="repeat" type="checkbox" ${d.repeat ? 'checked' : ''}> 완료 후 같은 수량을 반복 요청</label>
+      ${d.kind === 'sell' ? `<label class="lg-consent"><input data-pool-sale type="checkbox" ${this.saleConsent ? 'checked' : ''}><span>이 작업이 새로 적재한 <b>${esc(itemName(d.item))}</b>을 목적지 시장에서 자동 판매합니다.</span></label>` : '<p class="dim small">자유 재고만 실제 적재하며 기존 함선 화물과 건설 예약은 사용하지 않습니다.</p>'}
+      ${d.kind === 'construction' ? '<p class="dim small">자사 현장의 실제 부족량까지만 반입합니다.</p>' : d.kind === 'supply' ? '<p class="dim small">자사 생산 정거장과 출발지 또는 목적지의 물류센터가 필요합니다.</p>' : ''}
+      <button class="btn go lg-submit" type="submit" ${this.busy || d.kind === 'sell' && !this.saleConsent ? 'disabled' : ''}>${this.busy ? '서버에 저장 중…' : '작업 요청'}</button></form></aside>`;
   }
   private card(r: LogisticsRoute) {
     const w = this.c.state!, state = routeLabel(r), ships = routeShips(w, r), first = ships[0];
@@ -128,6 +182,15 @@ export class LogisticsPanel {
   }
   private bind(list: LogisticsRoute[]) {
     const on = (selector: string, event: string, handler: (e: Event) => void) => { const target = this.el.querySelector(selector); if (target) Reflect.set(target, `on${event}`, handler); };
+    this.el.querySelectorAll<HTMLElement>('[data-lg-view]').forEach(b => b.onclick = () => { this.view = b.dataset.lgView as 'pool' | 'routes'; this.editing = false; this.error = ''; this.notice = ''; this.render(); });
+    this.el.querySelectorAll<HTMLElement>('[data-pool-new]').forEach(b => b.onclick = () => this.newPoolJob());
+    on('[data-pool-form-close]', 'click', () => { this.editing = false; this.render(); });
+    this.el.querySelectorAll<HTMLElement>('[data-pool-ship]').forEach(b => b.onclick = () => void this.send({ c: 'poolShips', ships: [b.dataset.poolShip!], on: b.dataset.poolOn === 'true' }, b.dataset.poolOn === 'true' ? '함선이 공용 배차에 참여합니다' : '함선을 제외했습니다. 적재된 화물은 보존됩니다'));
+    this.el.querySelectorAll<HTMLElement>('[data-pool-group]').forEach(b => b.onclick = () => { const on = b.dataset.poolOn === 'true', g = this.c.state?.groups[b.dataset.poolGroup!]; const ships = (g?.shipIds ?? []).map(id => this.c.state?.ships[id]).filter(s => s?.classId === 'hauler' && !!s.logisticsPool !== on).map(s => s!.id); if (ships.length) void this.send({ c: 'poolShips', ships, on }, on ? '편대 수송선이 공용 배차에 참여합니다' : '편대 수송선을 제외했습니다. 적재된 화물은 보존됩니다'); });
+    this.el.querySelectorAll<HTMLElement>('[data-pool-control]').forEach(b => b.onclick = () => void this.send({ c: 'poolControl', job: b.dataset.poolControl!, action: b.dataset.poolAction as 'pause' | 'resume' | 'cancel' }, '작업 상태를 변경했습니다. 적재된 화물은 함선에 보존됩니다'));
+    this.el.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-pool-field]').forEach(input => { const update = () => { const key = input.dataset.poolField!; if (input instanceof HTMLInputElement && input.type === 'checkbox') this.poolDraft.repeat = input.checked; else if (key === 'amount' || key === 'priority') (this.poolDraft as unknown as Record<string, unknown>)[key] = Number(input.value); else (this.poolDraft as unknown as Record<string, unknown>)[key] = input.value; if (key === 'item' || key === 'kind') this.saleConsent = false; if (input instanceof HTMLSelectElement || input instanceof HTMLInputElement && input.type === 'checkbox') this.render(); }; input.oninput = update; input.onchange = update; });
+    on('[data-pool-sale]', 'change', e => { this.saleConsent = (e.target as HTMLInputElement).checked; this.render(); });
+    on('[data-pool-form]', 'submit', e => { e.preventDefault(); if (this.poolDraft.kind === 'sell' && !this.saleConsent) return; void this.send({ c: 'poolCreate', request: { ...this.poolDraft } }, '공용 작업을 대기열에 등록했습니다', () => { this.editing = false; }); });
     this.el.querySelectorAll<HTMLElement>('[data-lg-unload]').forEach(b => b.onclick = () => void this.send({ c: 'unloadCargo', ship: b.dataset.lgUnload! }, '하역 명령을 접수했습니다. 노선은 일시정지되며 처리 중이거나 남은 화물은 함선에 보존됩니다'));
     this.el.querySelectorAll<HTMLElement>('[data-lg-close]').forEach(b => b.onclick = () => this.close());
     this.el.querySelectorAll<HTMLElement>('[data-lg-new]').forEach(b => b.onclick = () => this.newRoute());

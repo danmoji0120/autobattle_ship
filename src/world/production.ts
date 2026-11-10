@@ -17,7 +17,7 @@ import type { Station, Cargo, Company, WorldState } from './types';
 import { qty, addc, cargoSum, hasAll } from './types';
 import { FACILITIES, RECIPES, ITEMS, itemName, recipeFor, techFx, type RecipeDef } from './industry';
 import { stationSize, stationBerths, occupiedBerths } from './stations';
-import { storeUsed, takesSpace } from './storage';
+import { storeUsed, takesSpace, logisticsReservedSpace } from './storage';
 
 export interface ProdOrder { id: string; recipe: string; mode: 'count' | 'stock'; n: number; done: number; paused?: boolean; why?: string; /** Obsolete P9.7 development-save field; never changes a new batch's inputs. */ legacyRecipe?: true }
 export interface ProdJob { id: string; order: string; recipe: string; fac: string; left: number; total: number }
@@ -86,6 +86,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   const store = (st.storage[st.owner] ??= { ore: 0, alloy: 0, crystal: 0 });
   const speed = prodSpeed(st, co);
   const sized = !!stationSize(st);
+  const logisticsHeld = logisticsReservedSpace(world, st.id, st.owner);
   const capacity = sized ? storageCap(st) : 0;
   const space = (cargo: Record<string, number>) => Object.entries(cargo).reduce((n, [item, amount]) => n + (takesSpace(item) ? amount : 0), 0);
   // 1) running jobs
@@ -94,7 +95,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
     j.left -= dt * speed;
     if (j.left > 0) continue;
     const r = RECIPES[j.recipe];
-    if (sized && (speed <= 0 || storeUsed(store) + space(r.out) > capacity + 1e-9)) {
+    if (sized && (speed <= 0 || storeUsed(store) + logisticsHeld + space(r.out) > capacity + 1e-9)) {
       j.left = 0;
       continue; // The completed batch remains in its job until power and output space return.
     }
@@ -109,8 +110,8 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   }
   // 2) free lines take the first order they can serve
   const cap = storageCap(st);
-  const used = cargoSum(store);
-  let projected = sized ? storeUsed(store) + jobs.reduce((n, j) => n + space(RECIPES[j.recipe]?.out ?? {}), 0) : 0;
+  const used = cargoSum(store) + logisticsHeld;
+  let projected = sized ? storeUsed(store) + logisticsHeld + jobs.reduce((n, j) => n + space(RECIPES[j.recipe]?.out ?? {}), 0) : 0;
   const busy: Record<string, number> = {};
   for (const j of jobs) busy[j.fac] = (busy[j.fac] ?? 0) + 1;
   for (const o of orders) {

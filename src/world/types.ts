@@ -159,6 +159,9 @@ export interface WShip {
   dockWait?: number;
   /** P9.6: in-progress physical cargo handling; the goods remain in their original location. */
   cargoWork?: { station: string; key: string; amount: number; done: number; time: number };
+  /** Explicit opt-in and current individual assignment for company-wide logistics. */
+  logisticsPool?: boolean;
+  logisticsJob?: string;
   /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
@@ -477,6 +480,7 @@ export interface WorldState {
   systems: Record<string, StarSystem>;
   /** Growth-only managed routes. Authority owns execution; replicas receive only their own routes. */
   logistics?: Record<string, import('./logistics').LogisticsRoute>;
+  logisticsJobs?: Record<string, import('./autonomousLogistics').LogisticsJob>;
   contracts: Record<string, Contract>;
   engagements: Record<string, Engagement>;
   /** finished tactical battles, replayable from setup + seed + orders (newest last) */

@@ -1,0 +1,40 @@
+{
+  "checks": [
+    "pool is discoverable on opening logistics",
+    "whole group opts in through authoritative command",
+    "two independent jobs are created through the visible form",
+    "ships in the same group were assigned different jobs",
+    "both jobs physically delivered once",
+    "pool fits viewport 1440",
+    "pool fits viewport 390",
+    "mobile task editor is visible",
+    "mobile task can be created, paused and resumed",
+    "full warehouse reason is visible on the task",
+    "full warehouse task recovers after space is freed",
+    "task cancellation works on mobile",
+    "individual ship exclusion and re-enrollment work on mobile",
+    "legacy route management remains accessible",
+    "no browser page errors ()"
+  ],
+  "result": {
+    "assigned": [
+      "s13",
+      "s12"
+    ],
+    "jobs": [
+      {
+        "state": "complete",
+        "delivered": 20
+      },
+      {
+        "state": "complete",
+        "delivered": 20
+      }
+    ],
+    "delivered": [
+      20,
+      20
+    ]
+  },
+  "errors": []
+}

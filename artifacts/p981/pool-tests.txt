@@ -1,0 +1,45 @@
+
+ RUN  v4.0.18 /workspace/autobattle_ship
+
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > dispatches three ships of one group independently to different jobs 659ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > automatically assigns the next job to one ship and respects priority 781ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > competing requests never take more than the same physical stock, including restore 357ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > holds cargo when a destination is full and resumes when space returns 519ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > manual command, exclusion and destruction retain surviving cargo and account for loss 43ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > pause and cancellation do not teleport loaded goods; restored in-flight jobs complete once 521ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > keeps legacy routes and their manifests intact and rejects mining ships and foreign commands 405ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > filters company jobs and ship pool metadata from other players snapshots 14ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > sells only this job’s cargo, waits for market funds, and repeats only when explicitly requested 824ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > restores a sized station’s in-progress physical loading without moving the same goods twice 497ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > suspends individual dispatch on direct group orders and on explicit pool exclusion 33ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > reserves real source stock, protects its warehouse space, restores and returns it on cancel 4ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > retains a source reservation if the station disappears and releases it only once after recovery 18ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > prevents legacy logistics and production from consuming dispatch-reserved stock 13ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > dispatches concurrent companies only to their own ships and their own source stock 12ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > loads the actual base-commit P9.7 in-flight save idempotently and runs new pool jobs beside it 515ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > returns a destroyed ship’s uncollected reservation before assigning another ship 602ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > keeps the source stock unreserved when a gate is unavailable and recovers after reconnection 2320ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > reproduces the legacy one-route constraint and empty return trip for the audit 30ms
+ ✓ tests/p981-autonomous-logistics.test.ts > P9.8.1 autonomous company logistics > reports a full dock and resumes its loaded shipment when a berth opens 372ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice 910ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard 503ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > full destination and lost leased capacity hold cargo with bounded retries and resume when space returns 544ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo 298ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial market fills conserve currency, survive reload and cannot sell a shipment twice 354ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > construction-reserved inputs stay unavailable until an explicit plan cancellation releases them 373ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply requires existing logistics infrastructure and reserves incoming shipments across fleets 453ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely 1233ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual orders take priority, active state survives reload, and destruction pauses an empty fleet 89ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery 180ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > partial manual unloading atomically withdraws manifest cargo before same-tick resume and reload 9ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > supply reservations count only the same company even at a shared public destination 3ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > moving a ship between route fleets pauses both and mixed-ownership bulk requests are atomic 3ms
+ ✓ tests/logistics-p2.test.ts > managed authoritative logistics > owns settings on the server, rejects cross-company batches atomically, redacts snapshots and gates c0 10ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > scalar fast path preserves every quantity and event count across snapshots and restart 43ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > byte pressure compresses old frames before expiring their flow history 139ms
+ ✓ tests/analytics-p2.test.ts > analytics optimization retains actual data > fallback observers receive independent immutable scalar events 2ms
+
+ Test Files  3 passed (3)
+      Tests  37 passed (37)
+   Start at  10:40:42
+   Duration  15.39s (transform 984ms, setup 0ms, import 1.34s, tests 13.70s, environment 0ms)
