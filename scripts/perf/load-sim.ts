@@ -81,14 +81,16 @@ for (let i = 0; i < steps; i++) {
 const wall = performance.now() - w0, cpu = process.cpuUsage(cpu0);
 const pct = (a: number[], p: number) => { const s = [...a].sort((x, y) => x - y); return +s[Math.min(s.length - 1, Math.floor(s.length * p))].toFixed(3); };
 const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
+// no spread: long runs have hundreds of thousands of samples (Math.max(...a) overflows the call stack)
+const amax = (a: number[]) => a.reduce((x, y) => (y > x ? y : x), -Infinity);
 const clients = Object.values(acc);
 const secs = H * 3600;
 const out = {
   tree: path.basename(TREE), players: P, hours: H, mode: MODE,
   ships: Object.keys(st.ships).length, groups: Object.keys(st.groups).length, battlesDone: st.battleLog?.length ?? 0,
-  step_ms: { p50: pct(total, .5), p95: pct(total, .95), p99: pct(total, .99), max: +Math.max(...total).toFixed(1), mean: +(sum(total) / total.length).toFixed(3) },
-  sim_ms: { p95: pct(simT, .95), p99: pct(simT, .99), max: +Math.max(...simT).toFixed(1), share: +(sum(simT) / sum(total)).toFixed(3) },
-  net_ms: { p95: pct(netT, .95), p99: pct(netT, .99), max: +Math.max(...netT).toFixed(1), share: +(sum(netT) / sum(total)).toFixed(3) },
+  step_ms: { p50: pct(total, .5), p95: pct(total, .95), p99: pct(total, .99), max: +amax(total).toFixed(1), mean: +(sum(total) / total.length).toFixed(3) },
+  sim_ms: { p95: pct(simT, .95), p99: pct(simT, .99), max: +amax(simT).toFixed(1), share: +(sum(simT) / sum(total)).toFixed(3) },
+  net_ms: { p95: pct(netT, .95), p99: pct(netT, .99), max: +amax(netT).toFixed(1), share: +(sum(netT) / sum(total)).toFixed(3) },
   cpu_pct_of_one_core: +((cpu.user + cpu.system) / 1000 / wall * 100).toFixed(1), harness_zip_s: +(zipMs / 1000).toFixed(1),
   busy_pct_of_realtime: +(sum(total) / (secs * 1000) * 100).toFixed(2),
   per_client_KBps: +(sum(clients.map(c => c.bytes)) / clients.length / secs / 1024).toFixed(2),
