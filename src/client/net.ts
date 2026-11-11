@@ -8,8 +8,11 @@ import type { WorldEvent } from '../world/types';
 import type { Order, OrderRecord } from '../sim/types';
 import { NetClock, MotionTrack } from './interp';
 import { growthOn } from '../world/hullops';
+import { applySync, SYNC_PROTO } from '../server/sync';
 
-export interface Transport { send(m: ClientMsg): void; onMessage: (m: ServerMsg) => void; close(): void; readonly kind: 'local' | 'remote' }
+export interface Transport { send(m: ClientMsg): void; onMessage: (m: ServerMsg) => void; close(): void; readonly kind: 'local' | 'remote';
+  /** size of the last received message as sent (diagnostics) */
+  lastBytes?: number }
 
 const SP_KEY = 'siderarium.sp.v1';
 type BuyRequest = { seq: number; id: string };
@@ -34,7 +37,9 @@ export class LocalTransport implements Transport {
       save: d => { try { localStorage.setItem(SP_KEY, JSON.stringify(d)); } catch (e) { console.warn('save failed', e); } },
     }, (Date.now() & 0xffff) + 1);
     // deliver asynchronously like a real socket so the client never aliases server objects mid-call
-    this.conn = { id: 'local', lastEvent: 0, battles: new Set(), send: m => queueMicrotask(() => this.onMessage(m)) };
+    this.conn = { id: 'local', lastEvent: 0, battles: new Set(), send: m => queueMicrotask(() => this.onMessage(m)),
+      // protocol 2: the server hands over JSON text; parsing it here also keeps the client from aliasing server objects
+      sendText: s => queueMicrotask(() => this.onMessage(JSON.parse(s))) };
     this.server.connect(this.conn);
     this.timer = window.setInterval(() => {
       const now = performance.now();
@@ -57,6 +62,7 @@ export class WsTransport implements Transport {
   private closed = false;
   private hello: ClientMsg | null = null;
   private tries = 0;
+  lastBytes = 0;
   /** decides after a drop whether to reconnect (false: the session is gone — stop and re-authenticate).
    *  Close code 4401 = the server ended the session (logout, password change, expiry). */
   shouldRetry: (code: number, reason: string) => Promise<boolean> = async () => true;
@@ -72,7 +78,7 @@ export class WsTransport implements Transport {
       for (const m of this.queue) ws.send(JSON.stringify(m));
       this.queue = [];
     };
-    ws.onmessage = ev => { try { this.onMessage(JSON.parse(ev.data)); } catch (e) { console.error(e); } };
+    ws.onmessage = ev => { try { this.lastBytes = ev.data.length; this.onMessage(JSON.parse(ev.data)); } catch (e) { console.error(e); } };
     ws.onclose = ev => {
       this.onStatus('closed');
       if (this.closed) return;
@@ -126,19 +132,20 @@ export class GameClient {
     t.onMessage = m => this.receive(m);
   }
 
-  join(name: string, token?: string) { this.t.send({ t: 'hello', name, token }); }
+  join(name: string, token?: string) { this.t.send({ t: 'hello', name, token, proto: SYNC_PROTO }); }
   createPmc(name: string, legacy?: string) { this.t.send({ t: 'createPmc', name, legacy }); }
 
   private receive(m: ServerMsg) {
     switch (m.t) {
       case 'analytics': this.analyticsAcks.get(m.id)?.(m); this.analyticsAcks.delete(m.id); break;
       case 'welcome': this.company = m.company; this.token = m.token; this.sp = m.sp; this.onWelcome.forEach(f => f()); break;
-      case 'snap': {
-        this.state = m.state; this.speed = m.speed; this.snapAt = performance.now();
-        if (this.t.kind === 'remote') this.net.snapBytes = JSON.stringify(m).length;
+      case 'snap': case 'sd': {
+        this.state = m.t === 'snap' ? m.state : applySync(this.state, m); this.speed = m.speed; this.snapAt = performance.now();
+        if (this.t.kind === 'remote') this.net.snapBytes = this.t.lastBytes ?? 0;
         // ships not in space (docked, in battle) are drawn from the snapshot directly
-        for (const [id, tr] of this.tracks) { const s = m.state.ships[id]; if (!s || (s.state !== 'space' && s.state !== 'battle')) { tr.clear(); if (!s) this.tracks.delete(id); } }
-        this.ingest(m.at, Object.values(m.state.ships).filter(s => s.state === 'space' || (s.state === 'battle' && s.hp > 0)).map(s => [s.id, s.pos.x, s.pos.y, s.pos.z, s.vel.x, s.vel.y, s.vel.z, s.heading, s.warp ? (s.warp.phase === 'warp' ? 2 : 1) : 0]));
+        const ships = this.state.ships;
+        for (const [id, tr] of this.tracks) { const s = ships[id]; if (!s || (s.state !== 'space' && s.state !== 'battle')) { tr.clear(); if (!s) this.tracks.delete(id); } }
+        this.ingest(m.at, Object.values(ships).filter(s => s.state === 'space' || (s.state === 'battle' && s.hp > 0)).map(s => [s.id, s.pos.x, s.pos.y, s.pos.z, s.vel.x, s.vel.y, s.vel.z, s.heading, s.warp ? (s.warp.phase === 'warp' ? 2 : 1) : 0]));
         this.onSnap.forEach(f => f());
         break;
       }

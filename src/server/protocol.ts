@@ -5,7 +5,7 @@ import type { BattleSetup } from '../sim/world';
 
 export type ClientMsg =
   /** multiplayer: identity comes from the authenticated session, never from this message */
-  | { t: 'hello'; name: string; token?: string }
+  | { t: 'hello'; name: string; token?: string; /** 2 = the client applies state deltas ('sd'); absent = full snapshots */ proto?: number }
   /** create the account's PMC (once); `legacy` = an old browser token to carry over an unclaimed PMC */
   | { t: 'createPmc'; name: string; legacy?: string }
   | { t: 'cmd'; id: number; cmd: Cmd }
@@ -24,6 +24,8 @@ export type WorldView = Omit<WorldState, 'events' | 'rng' | 'battleLog'> & { bat
 export type ServerMsg =
   | { t: 'welcome'; company: string; token: string; sp: boolean; serverTime: number }
   | { t: 'snap'; at: number; speed: number; state: WorldView }
+  /** protocol 2: state changes since the previous message (see server/sync.ts) */
+  | import('./sync').SyncMsg
   | { t: 'events'; list: WorldEvent[] }
   | { t: 'ack'; id: number; err: string | null }
   | { t: 'binit'; eng: string; setup: BattleSetup; orders: OrderRecord[]; tick: number; /** finished: play it back as a replay */ replay?: boolean; names?: [string, string] }

@@ -12,6 +12,7 @@
 // Accounts (login ID + password, see accounts.ts) live in siderarium_accounts / siderarium_sessions
 // (or data/accounts.json without a database). The WebSocket only opens for a valid session cookie.
 import http from 'node:http';
+import { monitorEventLoopDelay } from 'node:perf_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
@@ -23,12 +24,22 @@ import { WORLD_VERSION } from '../world/worldgen';
 import { CONTENT_VERSION, census, compareCensus, migrateContent } from '../world/migrate';
 import { AuthService, AuthError, memoryStore, pgAccountStore, type AccountStore } from './accounts';
 import { DevCombatAuth } from './devCombatAuth';
+import { ConnGuard, limitsFromEnv, parseClientMsg } from './wsguard';
+import { Saver, pickAnalytics, type AnalyticsRecord } from './saver';
 
 const PORT = Number(process.env.PORT ?? 8080);
 const ROOT = path.resolve(process.env.STATIC_DIR ?? 'dist');
 const SAVE_FILE = path.resolve(process.env.SAVE_FILE ?? 'data/world.json');
+const ANALYTICS_FILE = SAVE_FILE.replace(/\.json$/, '') + '.analytics.json';
+/** ANALYTICS_SEPARATE=0 keeps the analytics history inside every world save (the previous behaviour) */
+const ANALYTICS_SEPARATE = process.env.ANALYTICS_SEPARATE !== '0';
 
-interface Storage { load(): Promise<SaveFile | null>; save(d: SaveFile): Promise<void>; name: string;
+interface Storage { load(): Promise<SaveFile | null>; name: string;
+  /** write the world save (JSON text built once by GameServer.saveText) */
+  save(text: string): Promise<void>;
+  /** the analytics history, stored apart from the world and written less often (see saver.ts) */
+  saveAnalytics?(text: string): Promise<void>;
+  loadAnalytics?(): Promise<AnalyticsRecord | null>;
   /** world reset requested by token (WORLD_RESET): back up the current world, replace it with `fresh`,
    *  fence off every instance still holding the old one. Idempotent per token. */
   reset(token: string, fresh: () => SaveFile): Promise<{ done: boolean; backup?: string; why?: string }>;
@@ -58,6 +69,8 @@ function fileStorage(): Storage {
       if (fs.existsSync(SAVE_FILE) && fs.readFileSync(f, 'utf8') !== fs.readFileSync(SAVE_FILE, 'utf8')) return { done: false, why: '백업 검증 실패' };
       fs.mkdirSync(path.dirname(SAVE_FILE), { recursive: true });
       fs.writeFileSync(SAVE_FILE, JSON.stringify(fresh()));
+      // the separately stored analytics belong to the old world: kept next to its backup
+      if (fs.existsSync(ANALYTICS_FILE)) fs.renameSync(ANALYTICS_FILE, SAVE_FILE.replace(/\.json$/, '') + `.${key}.analytics.json`);
       fs.writeFileSync(mark, tokenId);
       return { done: true, backup: key };
     },
@@ -77,12 +90,18 @@ function fileStorage(): Storage {
       fs.writeFileSync(tmp, JSON.stringify(out)); fs.renameSync(tmp, SAVE_FILE);
       return { data: out, applied: true, backup, reused };
     },
-    async save(d) {
+    async save(text) {
       fs.mkdirSync(path.dirname(SAVE_FILE), { recursive: true });
       const tmp = SAVE_FILE + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify(d));
-      fs.renameSync(tmp, SAVE_FILE);
+      await fs.promises.writeFile(tmp, text);
+      await fs.promises.rename(tmp, SAVE_FILE);
     },
+    async saveAnalytics(text) {
+      const f = ANALYTICS_FILE, tmp = f + '.tmp';
+      await fs.promises.writeFile(tmp, text);
+      await fs.promises.rename(tmp, f);
+    },
+    async loadAnalytics() { try { return JSON.parse(await fs.promises.readFile(ANALYTICS_FILE, 'utf8')); } catch { return null; } },
   };
 }
 
@@ -160,15 +179,24 @@ async function pgStorage({ pool, host }: Awaited<ReturnType<typeof pgPool>>): Pr
         return { data: out, applied: true, backup, reused, gen: next };
       } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
     },
-    async save(d) {
+    async save(text) {
       if (st.fenced) return;
-      const r = await pool.query('UPDATE siderarium_world SET data = $2, updated = now() WHERE id = $1 AND gen = $3', ['main', JSON.stringify(d), gen]);
+      const r = await pool.query('UPDATE siderarium_world SET data = $2, updated = now() WHERE id = $1 AND gen = $3', ['main', text, gen]);
       if (r.rowCount) return;
-      const ins = await pool.query('INSERT INTO siderarium_world (id, data, updated, gen) VALUES ($1, $2, now(), $3) ON CONFLICT (id) DO NOTHING', ['main', JSON.stringify(d), gen]);
+      const ins = await pool.query('INSERT INTO siderarium_world (id, data, updated, gen) VALUES ($1, $2, now(), $3) ON CONFLICT (id) DO NOTHING', ['main', text, gen]);
       if (ins.rowCount) return;
       st.fenced = true;
       console.error(`[siderarium] !!! 저장 거부: 더 새로운 월드 세대가 있습니다 (이 인스턴스 gen=${gen}). 이 인스턴스는 더 이상 저장하지 않습니다.`);
     },
+    // row 'analytics' in the same table; written only while this instance's world generation is current
+    async saveAnalytics(text) {
+      if (st.fenced) return;
+      const u = await pool.query("UPDATE siderarium_world SET data = $1, updated = now(), gen = $2 WHERE id = 'analytics' AND (SELECT gen FROM siderarium_world WHERE id = 'main') = $2", [text, gen]);
+      if (u.rowCount) return;
+      const i = await pool.query("INSERT INTO siderarium_world (id, data, updated, gen) SELECT 'analytics', $1, now(), $2 WHERE (SELECT gen FROM siderarium_world WHERE id = 'main') = $2 ON CONFLICT (id) DO NOTHING", [text, gen]);
+      if (!i.rowCount) throw new Error('분석 기록 저장 거부 (월드 세대 불일치 또는 동시 기록)');
+    },
+    async loadAnalytics() { const r = await pool.query("SELECT data FROM siderarium_world WHERE id = 'analytics'"); return r.rows[0]?.data ?? null; },
   };
   return st;
 }
@@ -199,6 +227,7 @@ async function main() {
     }
   }
   if (storage.name.startsWith('file')) saved = await storage.load();
+  if (!ANALYTICS_SEPARATE) { delete storage.saveAnalytics; delete storage.loadAnalytics; }
   // operator-requested world reset (env WORLD_RESET=<token>): applied once per token
   const resetTok = (process.env.WORLD_RESET ?? '').trim();
   if (resetTok) {
@@ -269,14 +298,24 @@ async function main() {
   console.log(`[siderarium] accounts: ${accountStore.name} · ${Object.keys(saved?.accounts ?? {}).length} linked PMCs · ${Object.keys(saved?.auth ?? {}).length} legacy tokens`);
   let alertConfig: import('./analytics').AnalyticsOptions['alerts'];
   try { alertConfig = JSON.parse(process.env.ANALYTICS_ALERTS_JSON ?? '{}'); } catch { console.warn('[siderarium] invalid ANALYTICS_ALERTS_JSON; using defaults'); }
-  let saving = false;
   const adminAccounts = (process.env.ANALYTICS_ADMIN_ACCOUNTS ?? '').split(',').map(s => s.trim()).filter(Boolean);
+  // analytics history: the separate record when it belongs to this world and is the newest copy
+  if (saved && storage.loadAnalytics) {
+    try {
+      const pick = pickAnalytics(saved, await storage.loadAnalytics());
+      if (pick.from === 'separate') saved = { ...saved, analytics: pick.store };
+      console.log(`[siderarium] analytics history: ${pick.from === 'separate' ? '별도 기록' : pick.from === 'world' ? '월드 저장 내 기록' : '없음 (새로 시작)'}${pick.why ? ` (${pick.why})` : ''}`);
+    } catch (e) { console.error('[siderarium] !!! 분석 기록을 읽지 못했습니다 — 월드 저장 내 기록을 사용합니다:', (e as Error).message); }
+  }
+  let saver: Saver | null = null;
   const game = new GameServer(saved, {
     singleplayer: false, accounts: true, migrateContent: applyContent,
     adminAccounts,
     analytics: { enabled: process.env.ANALYTICS_ENABLED !== '0', snapshotSeconds: Number(process.env.ANALYTICS_INTERVAL_S ?? 600), maxBytes: Number(process.env.ANALYTICS_MAX_BYTES ?? 8388608), alerts: alertConfig }, snapInterval: 1.0, movInterval: 0.2, saveInterval: Number(process.env.SAVE_INTERVAL_S ?? 30),
-    save: d => { if (saving) return; saving = true; storage.save(d).catch(e => console.error('save failed', e)).finally(() => { saving = false; }); },
+    onSaveDue: () => saver?.due(),
+    ...(Number(process.env.LOGISTICS_JOB_RETAIN) > 0 ? { logisticsJobRetain: Math.floor(Number(process.env.LOGISTICS_JOB_RETAIN)) } : {}),
   }, Number(process.env.WORLD_SEED ?? 1));
+  saver = new Saver(storage, game, { analyticsEveryS: Math.max(30, Number(process.env.ANALYTICS_SAVE_INTERVAL_S ?? 300) || 300) });
   console.log(`[siderarium] world ${saved ? 'restored' : 'created'} (t=${game.sim.time.toFixed(0)}s) storage=${storage.name}`);
   if (before) {
     const after = census(game.sim.st);
@@ -414,9 +453,66 @@ async function main() {
     }
   }
 
+  // ── observability: /health (unchanged), /ready (public, coarse), /status (operator only) ──
+  const loopDelay = monitorEventLoopDelay({ resolution: 20 });
+  loopDelay.enable();
+  const started = Date.now();
+  let cpuMark = { at: performance.now(), usage: process.cpuUsage() }, cpuPct = 0;
+  const saveEveryMs = Number(process.env.SAVE_INTERVAL_S ?? 30) * 1000;
+  const health = () => {
+    const st = game.status(), sv = saver!.stats;
+    const saveState = sv.fenced ? 'fenced' : sv.consecutiveFailures >= 2 ? 'failing' : sv.lastOkAt && Date.now() - sv.lastOkAt > 4 * saveEveryMs ? 'stale' : 'ok';
+    const lag = loopDelay.percentile(99) / 1e6;
+    const overload = st.tick.p95 > 50 || lag > 250 || (game.speed > 0 && st.tick.samples >= 200 && st.tick.simRate < 0.9 * game.speed);
+    return { st, sv, saveState, lag, overload };
+  };
+  // the full status is for the operator: from this machine directly (not through the reverse proxy, which
+  // always adds forwarding headers), or for an administrator account signed in to the game
+  const viaProxy = (req: http.IncomingMessage) => !!(req.headers['x-forwarded-for'] || req.headers['x-forwarded-proto'] || req.headers['x-forwarded-host'] || req.headers.forwarded || req.headers.via || req.headers['x-real-ip']);
+  const loopback = (req: http.IncomingMessage) => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '');
+  const statusAllowed = async (req: http.IncomingMessage) => {
+    if (loopback(req) && !viaProxy(req)) return true;
+    if (!adminAccounts.length) return false;
+    const r = await auth.resolve(getSid(req)).catch(() => null);
+    return !!r && adminAccounts.includes(r.account.id);
+  };
+  const statusBody = () => {
+    const h = health(), m = process.memoryUsage();
+    return {
+      ok: !h.overload && h.saveState === 'ok', overload: h.overload, uptimeS: Math.round((Date.now() - started) / 1000), node: process.version,
+      memory: { rssMB: +(m.rss / 1048576).toFixed(1), heapUsedMB: +(m.heapUsed / 1048576).toFixed(1), heapTotalMB: +(m.heapTotal / 1048576).toFixed(1), externalMB: +(m.external / 1048576).toFixed(1), arrayBuffersMB: +(m.arrayBuffers / 1048576).toFixed(1) },
+      cpuPct: +cpuPct.toFixed(1),
+      eventLoop: { p50ms: +(loopDelay.percentile(50) / 1e6).toFixed(1), p99ms: +h.lag.toFixed(1), maxMs: +(loopDelay.max / 1e6).toFixed(1) },
+      ...h.st,
+      save: { state: h.saveState, storage: storage.name.replace(/\(.*\)/, '(…)'), ...h.sv, lastOkAgoS: h.sv.lastOkAt ? Math.round((Date.now() - h.sv.lastOkAt) / 1000) : null },
+      limits,
+    };
+  };
+  const statusLogS = Number(process.env.STATUS_LOG_S ?? 60);
+  if (statusLogS > 0) setInterval(() => {
+    const now = performance.now(), u = process.cpuUsage(cpuMark.usage);
+    cpuPct = (u.user + u.system) / 1000 / (now - cpuMark.at) * 100; cpuMark = { at: now, usage: process.cpuUsage() };
+    const h = health(), m = process.memoryUsage();
+    console.log(`[siderarium] status tick p50/p95/p99/max ${h.st.tick.p50}/${h.st.tick.p95}/${h.st.tick.p99}/${h.st.tick.max}ms rate ${h.st.tick.simRate} · loop p99 ${h.lag.toFixed(0)}ms · cpu ${cpuPct.toFixed(0)}% · rss ${(m.rss / 1048576).toFixed(0)}MB heap ${(m.heapUsed / 1048576).toFixed(0)}MB · conns ${h.st.conns.total} · out ${(game.wsNet.outBytes / 1048576).toFixed(1)}MB · save ${h.saveState} ${h.sv.lastBytes ? (h.sv.lastBytes / 1048576).toFixed(2) + 'MB' : '-'} ${h.sv.lastSerializeMs.toFixed(0)}+${h.sv.lastWriteMs.toFixed(0)}ms${h.overload ? ' · OVERLOAD' : ''}`);
+    loopDelay.reset();
+  }, statusLogS * 1000).unref();
+
   const server = http.createServer((req, res) => {
     const url = (req.url ?? '/').split('?')[0];
     if (url === '/health') { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, time: game.sim.time, players: game.conns.size })); return; }
+    if (url === '/ready') {
+      // public and coarse: enough for an uptime monitor, nothing about players or infrastructure
+      const h = health(), ok = !h.overload && h.saveState === 'ok';
+      res.writeHead(ok ? 200 : 503, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      res.end(JSON.stringify({ ok, save: h.saveState, overload: h.overload })); return;
+    }
+    if (url === '/status') {
+      void statusAllowed(req).then(ok => {
+        if (!ok) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('not found'); return; }
+        res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(statusBody()));
+      }, () => { res.writeHead(500); res.end(); });
+      return;
+    }
     if (url.startsWith('/api/')) { void api(req, res, url); return; }
     let decoded: string;
     try { decoded = decodeURIComponent(url); } catch { res.writeHead(400); res.end(); return; }
@@ -443,46 +539,107 @@ async function main() {
   });
 
   // the WebSocket handshake itself is authenticated: no valid session cookie → 401, no game data at all
-  const wss = new WebSocketServer({ noServer: true, perMessageDeflate: { threshold: 1024 } });
+  const limits = limitsFromEnv();
+  const wss = new WebSocketServer({ noServer: true, perMessageDeflate: { threshold: 1024 }, maxPayload: limits.maxPayload });
   server.on('upgrade', (req, socket, head) => {
     const deny = (code: number, text: string) => { socket.write(`HTTP/1.1 ${code} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`); socket.destroy(); };
+    // a socket error during the handshake must not reach the process (no listener = crash)
+    socket.on('error', () => {});
     if ((req.url ?? '').split('?')[0] !== '/ws') return deny(404, 'Not Found');
     if (!originOk(req)) return deny(403, 'Forbidden');
     auth.resolve(getSid(req)).then(s => {
       if (!s) return deny(401, 'Unauthorized');
+      if (socket.destroyed) return;
       wss.handleUpgrade(req, socket, head, ws => onSocket(ws, s.account.id, s.idHash));
     }, e => { console.error('[siderarium] ws auth error', (e as Error).message); deny(503, 'Service Unavailable'); });
   });
   let nextConn = 1;
+  const socketsByAccount = new Map<string, Set<WebSocket>>();
+  const alive = new WeakMap<WebSocket, boolean>();
   function onSocket(ws: WebSocket, account: string, idHash: string) {
     const id = `c${nextConn++}`;
-    const conn: Conn = { id, account, lastEvent: 0, battles: new Set(), bytes: 0, send: m => { if (ws.readyState !== ws.OPEN) return; const j = JSON.stringify(m); conn.bytes! += j.length; ws.send(j); } };
+    const guard = new ConnGuard(limits);
+    const wsNet = game.wsNet;
+    wsNet.opened++;
+    const out = (j: string) => { if (ws.readyState !== ws.OPEN) return; conn.bytes! += j.length; wsNet.outBytes += j.length; wsNet.outMsgs++; ws.send(j); };
+    const conn: Conn = {
+      id, account, lastEvent: 0, battles: new Set(), bytes: 0,
+      send: m => out(JSON.stringify(m)),
+      // protocol 2 hands over the already serialized text (shared fragments, no second stringify)
+      sendText: out,
+      congested: () => {
+        const s = guard.sendState(ws.bufferedAmount);
+        if (s === 'terminate') { wsNet.slowTerminated++; console.warn(`[siderarium] ws ${id}: 전송 버퍼 ${(ws.bufferedAmount / 1048576).toFixed(1)}MB — 느린 연결 종료`); ws.terminate(); return true; }
+        return s === 'congested';
+      },
+    };
+    // several tabs are fine; a runaway number of sockets for one account is not (the oldest goes)
+    let mine = socketsByAccount.get(account); if (!mine) socketsByAccount.set(account, mine = new Set());
+    if (mine.size >= limits.socketsPerAccount) { const oldest = mine.values().next().value; if (oldest) { mine.delete(oldest); oldest.close(4409, 'too many connections'); } }
+    mine.add(ws);
     let set = socketsBySession.get(idHash); if (!set) socketsBySession.set(idHash, set = new Set());
     set.add(ws);
+    alive.set(ws, true);
+    ws.on('pong', () => alive.set(ws, true));
     game.connect(conn);
-    ws.on('message', raw => {
-      let msg: ClientMsg;
-      try { msg = JSON.parse(String(raw)); } catch { return; }
-      try { game.handle(id, msg); } catch (e) { console.error('handle error', e); }
+    let closing = false;
+    ws.on('message', (raw, isBinary) => {
+      if (closing) return;
+      const text = isBinary ? '' : String(raw);
+      wsNet.inMsgs++; wsNet.inBytes += (raw as Buffer).length ?? text.length;
+      const msg = parseClientMsg(text);
+      const v = msg ? guard.admit(msg.t) : guard.bad();
+      if (v === 'close') { wsNet.floodClosed++; console.warn(`[siderarium] ws ${id}: 요청 폭주 — 연결 종료 (drop ${guard.dropped}, malformed ${guard.malformed})`); closing = true; ws.close(1008, 'rate limit'); setTimeout(() => ws.terminate(), 2000).unref(); return; }
+      if (v === 'drop' || !msg) {
+        wsNet.dropped++;
+        // a refused command still gets its answer, so the client never waits forever
+        if (msg?.t === 'cmd' && typeof (msg as { id?: unknown }).id === 'number') conn.send({ t: 'ack', id: (msg as unknown as { id: number }).id, err: '요청이 너무 많습니다 — 잠시 후 다시 시도하세요' });
+        return;
+      }
+      try { game.handle(id, msg as ClientMsg); } catch (e) { wsNet.handleErrors++; console.error('handle error', (e as Error).message); }
     });
-    ws.on('close', () => { game.disconnect(id); set!.delete(ws); if (!set!.size) socketsBySession.delete(idHash); });
+    // protocol errors (oversized or invalid frames) close this socket only; without a listener they would crash the process
+    ws.on('error', e => { wsNet.errors++; console.warn(`[siderarium] ws ${id} error: ${(e as Error).message}`); });
+    ws.on('close', () => {
+      wsNet.closed++;
+      game.disconnect(id);
+      set!.delete(ws); if (!set!.size) socketsBySession.delete(idHash);
+      mine!.delete(ws); if (!mine!.size) socketsByAccount.delete(account);
+    });
   }
+  // dead peers (closed laptop, lost mobile network) never send a close: ping them and drop the silent ones
+  setInterval(() => {
+    for (const ws of wss.clients) {
+      if (alive.get(ws) === false) { game.wsNet.heartbeatTerminated++; ws.terminate(); continue; }
+      alive.set(ws, false);
+      try { ws.ping(); } catch { /* closing */ }
+    }
+  }, limits.heartbeatS * 1000).unref();
   // long-lived sockets re-check their session: an expired or revoked one is closed (client re-authenticates)
   setInterval(() => {
     for (const h of [...socketsBySession.keys()]) auth.alive(h).then(ok => { if (!ok) closeSessions([h], 'expired'); }, () => {});
   }, 30_000);
 
   let last = performance.now();
-  setInterval(() => {
+  const loop = setInterval(() => {
     const now = performance.now();
     game.step((now - last) / 1000);
     last = now;
   }, 50);
 
+  let stopping = false;
   const shutdown = async () => {
+    if (stopping) return; stopping = true;
+    // freeze the world first: no tick or command may change it after the final snapshot
+    clearInterval(loop);
+    server.close();
+    for (const ws of wss.clients) ws.close(1012, 'server restart');
     console.log('[siderarium] saving before exit…');
     if (storage.fenced) console.log('[siderarium] 새 월드 세대가 있어 종료 저장을 건너뜁니다');
-    else try { await storage.save(game.snapshotFile()); } catch (e) { console.error(e); }
+    else {
+      const ok = await saver!.flush(Number(process.env.SHUTDOWN_SAVE_TIMEOUT_S ?? 60) * 1000);
+      console.log(ok ? `[siderarium] 종료 저장 완료 (${(saver!.stats.lastBytes / 1048576).toFixed(2)} MB)` : `[siderarium] !!! 종료 저장 실패: ${saver!.stats.lastError ?? '시간 초과'}`);
+    }
     process.exit(0);
   };
   process.on('SIGTERM', shutdown);

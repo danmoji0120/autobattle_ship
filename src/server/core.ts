@@ -2,13 +2,24 @@
 // and by the in-browser LocalTransport (single player) — the same code path in both modes.
 
 import { Analytics, type AnalyticsOptions } from './analytics';
+import { pruneLogisticsJobs } from '../world/retention';
 import { WorldSim } from '../world/sim';
 import type { ClientMsg, ServerMsg, SaveFile, WorldView } from './protocol';
-import type { WorldEvent } from '../world/types';
+import type { WorldEvent, WShip } from '../world/types';
+import { ClientSync, SyncHub, SYNC_PROTO, legacyView, shipVisible, syncMessage, viewSystem, type SyncFrame } from './sync';
 
 export interface Conn { id: string; send(msg: ServerMsg): void; company?: string; lastEvent: number; battles: Set<string>; view?: string; bytes?: number;
   /** account UUID, set by the transport after it verified the session (never taken from a message) */
-  account?: string }
+  account?: string;
+  /** transports that can take pre-serialized JSON text (enables protocol 2 replication) */
+  sendText?(json: string): void;
+  /** replication protocol the client asked for in `hello` (1 = full snapshots, 2 = deltas) */
+  proto?: number;
+  sync?: ClientSync;
+  /** send this client its state changes at the next step (after its own command, a view change, a resync) */
+  prompt?: boolean;
+  /** transport back-pressure: true while the client is too far behind to receive state updates */
+  congested?(): boolean }
 
 export interface ServerOptions {
   singleplayer: boolean;
@@ -17,11 +28,15 @@ export interface ServerOptions {
   snapInterval: number;           // seconds of real time between full snapshots
   movInterval?: number;           // seconds between compact ship-motion packets (default 0.2)
   save?: (data: SaveFile) => void;
+  /** called instead of `save` when the autosave is due; the host serializes with saveText()/analyticsText() */
+  onSaveDue?: () => void;
   saveInterval?: number;
   /** apply the content-model migration to an older save (default true; the production server keeps it
    *  off until approved and only dry-runs it — see node.ts CONTENT_MIGRATE) */
   migrateContent?: boolean;
   analytics?: AnalyticsOptions;
+  /** keep only this many finished logistics jobs per company (see world/retention.ts); unset = keep all */
+  logisticsJobRetain?: number;
   /** Verified account UUIDs, configured only by the server administrator. Empty = disabled. */
   adminAccounts?: string[];
 }
@@ -50,6 +65,21 @@ export class GameServer {
   private statAcc = 0;
   private tickCost: number[] = [];
   private rateMark = { clock: 0, time: 0 };
+  private hub = new SyncHub();
+  /** an old (protocol 1) client's command succeeded: broadcast at the next step, as before */
+  private legacyPrompt = false;
+  private promptAt = -1;
+  private pruneAcc = 0;
+  /** finished logistics jobs removed by the retention policy since start */
+  pruned = 0;
+  /** replication cost and volume since start (see status()) */
+  readonly net = { frames: 0, frameMs: 0, sendMs: 0, msgs: 0, bytes: 0, skippedCongested: 0, entities: 0 };
+  /** transport counters, filled by the Node WebSocket layer (node.ts) */
+  /** whole-step durations (simulation + analytics + replication) of the last minute, for status() */
+  private stepMs = new Float64Array(1200);
+  private stepN = 0;
+  private lastRate = 1;
+  readonly wsNet = { opened: 0, closed: 0, inMsgs: 0, inBytes: 0, outMsgs: 0, outBytes: 0, dropped: 0, floodClosed: 0, slowTerminated: 0, heartbeatTerminated: 0, errors: 0, handleErrors: 0 };
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
@@ -62,6 +92,34 @@ export class GameServer {
     this.sim.onBattleOrder = (eng, rec) => {
       for (const c of this.conns.values()) if (c.battles.has(eng)) c.send({ t: 'border', eng, rec });
     };
+  }
+
+  /**
+   * The save as JSON text, built once: equal to JSON.stringify(snapshotFile()) when analytics are included,
+   * without parsing the world back into objects and serializing it again.
+   * `analytics: false` leaves the analytics history out (it is then saved separately, see analyticsText).
+   */
+  saveText(opts: { analytics?: boolean } = {}): string {
+    const parts = [`"v":1`, `"world":${this.sim.serialize()}`];
+    const auth = JSON.stringify(this.auth), accounts = JSON.stringify(this.accounts);
+    if (auth !== undefined) parts.push(`"auth":${auth}`);
+    if (accounts !== undefined) parts.push(`"accounts":${accounts}`);
+    if (opts.analytics !== false) {
+      const a = this.analytics ? this.analytics.snapshotText() : this.inactiveAnalytics ? JSON.stringify(this.inactiveAnalytics) : undefined;
+      if (a !== undefined) parts.push(`"analytics":${a}`);
+    }
+    return '{' + parts.join(',') + '}';
+  }
+  /**
+   * The analytics history on its own (saved less often than the world). It is stamped as paused at this
+   * moment: if the world is restored from a later save, the analytics record the unobserved interval as a
+   * gap (the same mechanism as a server running with analytics disabled) instead of mixing periods.
+   */
+  analyticsText(): string | null {
+    const a = this.analytics ? this.analytics.snapshotText() : this.inactiveAnalytics ? JSON.stringify(this.inactiveAnalytics) : null;
+    if (a === null || a[0] !== '{') return a;
+    const inner = a.slice(1, -1);
+    return this.analytics ? `{${inner}${inner ? ',' : ''}"pausedAt":${JSON.stringify(this.sim.time)}}` : a;
   }
 
   snapshotFile(): SaveFile { return { v: 1, world: JSON.parse(this.sim.serialize()), auth: this.auth, accounts: this.accounts, ...(this.analytics ? { analytics: this.analytics.snapshot() } : this.inactiveAnalytics ? { analytics: structuredClone(this.inactiveAnalytics) } : {}) }; }
@@ -82,7 +140,8 @@ export class GameServer {
     // only tell this client about recent events
     c.lastEvent = Math.max(0, this.sim.st.eventSeq - 40);
     c.send({ t: 'welcome', company, token: tok, sp: this.opts.singleplayer, serverTime: this.sim.time });
-    this.sendSnap(c, this.snapBase());
+    if (c.proto === SYNC_PROTO) { (c.sync ??= new ClientSync()).reset(); this.syncNow(c); }
+    else this.sendSnap(c, this.snapBase());
     this.flushEvents(c);
     this.broadcastPlayers();
   }
@@ -147,6 +206,7 @@ export class GameServer {
         return c.send({ t: 'analytics', id: msg.id, data: this.analytics.query(msg.scope, c.company, query), admin });
       }
       case 'hello': {
+        c.proto = msg.proto === SYNC_PROTO && c.sendText ? SYNC_PROTO : 1;
         if (this.opts.accounts) {
           // identity is the verified account only; tokens and names in the message are ignored
           if (!c.account) return c.send({ t: 'auth', need: 'login' });
@@ -174,7 +234,8 @@ export class GameServer {
         let err: string | null;
         try { err = this.sim.command(c.company, msg.cmd); } catch (e) { err = '서버 오류: ' + (e as Error).message; }
         c.send({ t: 'ack', id: msg.id, err });
-        if (!err) this.snapAcc = this.opts.snapInterval; // push the result promptly
+        // push the result promptly to the commanding client (everyone else sees it with the next broadcast)
+        if (!err) { if (c.proto === SYNC_PROTO) c.prompt = true; else this.legacyPrompt = true; }
         return;
       }
       case 'bjoin': {
@@ -200,7 +261,7 @@ export class GameServer {
         return;
       }
       case 'ping': c.send({ t: 'pong', at: msg.at, serverTime: this.sim.time }); return;
-      case 'view': if (c.company && this.sim.st.systems[msg.sys]) { const changed = c.view !== msg.sys; c.view = msg.sys; if (changed) this.sendSnap(c, this.snapBase()); } return;
+      case 'view': if (c.company && typeof msg.sys === 'string' && Object.hasOwn(this.sim.st.systems, msg.sys)) { const changed = c.view !== msg.sys; c.view = msg.sys; if (changed) { if (c.proto === SYNC_PROTO) c.prompt = true; else this.sendSnap(c, this.snapBase()); } } return;
     }
   }
 
@@ -216,17 +277,38 @@ export class GameServer {
     this.snapAcc += realDt;
     this.movAcc += realDt;
     this.statAcc += realDt;
-    if (this.snapAcc >= this.opts.snapInterval) {
+    const legacyPrompt = this.legacyPrompt; this.legacyPrompt = false;
+    const n0 = performance.now();
+    if (this.snapAcc >= this.opts.snapInterval || legacyPrompt) {
       this.snapAcc = 0; this.movAcc = 0;
-      const base = this.snapBase();
-      for (const c of this.conns.values()) if (c.company) { this.sendSnap(c, base); this.flushEvents(c); }
-    } else if (this.movAcc >= (this.opts.movInterval ?? 0.2)) {
-      this.movAcc = 0;
-      for (const c of this.conns.values()) if (c.company) c.send(this.buildMov(c));
+      let frame: SyncFrame | undefined;
+      for (const c of this.conns.values()) if (c.company) {
+        if (c.congested?.()) { this.net.skippedCongested++; continue; }
+        if (c.proto === SYNC_PROTO) this.syncTo(c, frame ??= this.makeFrame(), true);
+        else this.sendSnap(c);
+        this.flushEvents(c);
+      }
+      if (frame) this.retire(frame);
+    } else {
+      // command results reach the commanding client within ~0.1 s; prompt frames are batched (at most 10/s)
+      let frame: SyncFrame | undefined;
+      if (this.clock - this.promptAt >= 0.1) for (const c of this.conns.values()) if (c.prompt && c.company && c.proto === SYNC_PROTO && !c.congested?.()) this.syncTo(c, frame ??= this.makeFrame());
+      if (frame) { this.retire(frame); this.promptAt = this.clock; }
+      if (this.movAcc >= (this.opts.movInterval ?? 0.2)) {
+        this.movAcc = 0;
+        this.movRows.clear(); this.movSys.clear(); this.movOwn = null;
+        for (const c of this.conns.values()) if (c.company) {
+          if (c.congested?.()) { this.net.skippedCongested++; continue; }
+          if (c.sendText) { const m = this.movText(c); c.sendText(m); this.net.msgs++; this.net.bytes += m.length; }
+          else c.send(this.buildMov(c));
+        }
+      }
     }
+    this.net.sendMs += performance.now() - n0;
     if (this.statAcc >= 2) {
       const span = this.clock - this.rateMark.clock;
       const rate = span > 0 ? (this.sim.time - this.rateMark.time) / span : 0;
+      this.lastRate = rate;
       this.rateMark = { clock: this.clock, time: this.sim.time };
       const avg = this.tickCost.reduce((a, b) => a + b, 0) / Math.max(1, this.tickCost.length);
       const max = Math.max(0, ...this.tickCost);
@@ -237,9 +319,15 @@ export class GameServer {
       }
       this.statAcc = 0;
     }
+    if (this.opts.logisticsJobRetain !== undefined && (this.pruneAcc += realDt) >= 60) { this.pruneAcc = 0; this.pruned += pruneLogisticsJobs(this.sim.st, this.opts.logisticsJobRetain); }
+    const ms = performance.now() - t0;
+    this.stepMs[this.stepN++ % this.stepMs.length] = ms;
     if (this.opts.save) {
       this.saveAcc += realDt;
       if (this.saveAcc >= (this.opts.saveInterval ?? 30)) { this.saveAcc = 0; this.saveNow(); }
+    } else if (this.opts.onSaveDue) {
+      this.saveAcc += realDt;
+      if (this.saveAcc >= (this.opts.saveInterval ?? 30)) { this.saveAcc = 0; this.opts.onSaveDue(); }
     }
   }
 
@@ -256,31 +344,81 @@ export class GameServer {
   }
 
   /** the system a client is looking at (defaults to where its company is based) */
-  private viewOf(c: Conn): string {
-    if (c.view) return c.view;
-    const co = c.company ? this.sim.st.companies[c.company] : null;
-    const home = co ? this.sim.st.stations[co.homeStation] : null;
-    return (home && this.sim.sysOf(home.pos)?.id) || 'astra';
-  }
+  private viewOf(c: Conn): string { return viewSystem(this.sim.st, c, p => this.sim.sysOf(p)); }
 
   /** interest management: your own ships anywhere + everything in the system you are viewing */
   private visibleShips(c: Conn): WorldView['ships'] {
-    const view = this.sim.st.systems[this.viewOf(c)];
+    const origin = this.sim.st.systems[this.viewOf(c)]?.origin;
     const out: WorldView['ships'] = {};
-    for (const s of Object.values(this.sim.st.ships)) {
-      if (s.owner === c.company || (view && Math.round((s.pos.x - view.origin.x) / 250000) === 0)) out[s.id] = s;
-    }
+    for (const s of Object.values(this.sim.st.ships)) if (shipVisible(s, c.company, origin)) out[s.id] = s;
     return out;
   }
 
-  private sendSnap(c: Conn, base: Omit<WorldView, 'ships'>) {
-    const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, id === c.company || co.kind !== 'player' ? co : { id, name: co.name, kind: co.kind, color: co.color, online: co.online, createdAt: co.createdAt, homeStation: co.homeStation, credits: 0, rep: 0, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [] }]));
-    const stations = Object.fromEntries(Object.entries(base.stations).map(([id, st]) => [id, { ...st, storage: { ...(c.company && st.storage[c.company] ? { [c.company]: st.storage[c.company] } : {}) }, ...(st.owner === c.company ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
-    const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, g.owner === c.company || base.companies[g.owner]?.kind !== 'player' ? g : { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined }]));
-    const ships = Object.fromEntries(Object.entries(this.visibleShips(c)).map(([id, s]) => [id, s.owner === c.company ? s : { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, fitting: undefined, fit: undefined }]));
-    const state = { ...base, companies, stations, ships, groups, logistics: base.logistics ? Object.fromEntries(Object.entries(base.logistics).filter(([, r]) => r.owner === c.company)) : undefined, logisticsJobs: base.logisticsJobs ? Object.fromEntries(Object.entries(base.logisticsJobs).filter(([, j]) => j.owner === c.company)) : undefined, procurementPlans: base.procurementPlans ? Object.fromEntries(Object.entries(base.procurementPlans).filter(([, p]) => p.owner === c.company)) : undefined, grants: undefined, conversions: undefined, sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c.company && s.seen.includes(c.company)).map(([id, s]) => [id, { ...s, scan: c.company && s.scan[c.company] !== undefined ? { [c.company]: s.scan[c.company] } : {}, seen: c.company ? [c.company] : [] }])) : undefined } as WorldView;
+  // ── protocol 2 replication (see sync.ts)
+  private makeFrame(): SyncFrame { this.net.frames++; return this.hub.frame(this.sim.st, this.sim.time, this.speed); }
+  private retire(f: SyncFrame) { this.net.entities += f.stringified; this.hub.done(f); }
+  private syncTo(c: Conn, f: SyncFrame, broadcast = false) {
+    const t = performance.now();
+    const msg = syncMessage(f, c.sync ??= new ClientSync(), c, this.viewOf(c), broadcast);
+    c.prompt = false;
+    if (msg) { c.sendText!(msg); this.net.msgs++; this.net.bytes += msg.length; }
+    this.net.frameMs += performance.now() - t;
+  }
+  /** bring one protocol-2 client up to date right now (on entering the world) */
+  private syncNow(c: Conn) { const f = this.makeFrame(); this.syncTo(c, f, true); this.retire(f); }
+  /** operator status (no player data): tick cost percentiles over the last minute, simulation rate, replication */
+  status() {
+    const n = Math.min(this.stepN, this.stepMs.length), a = Array.from(this.stepMs.subarray(0, n)).sort((x, y) => x - y);
+    const q = (p: number) => n ? +a[Math.min(n - 1, Math.floor(n * p))].toFixed(2) : 0;
+    let players = 0, proto2 = 0;
+    for (const c of this.conns.values()) { if (c.company) players++; if (c.proto === SYNC_PROTO) proto2++; }
+    return {
+      time: +this.sim.time.toFixed(1), speed: this.speed,
+      tick: { samples: n, p50: q(.5), p95: q(.95), p99: q(.99), max: n ? +a[n - 1].toFixed(1) : 0, budgetMs: 50, over50: a.filter(x => x > 50).length, simRate: +this.lastRate.toFixed(3), npcBattleMs: +(this.sim.npcBattleMs ?? 0).toFixed(2) },
+      world: { ships: Object.keys(this.sim.st.ships).length, companies: Object.keys(this.sim.st.companies).length, battles: this.sim.battles.size, logisticsJobs: Object.keys(this.sim.st.logisticsJobs ?? {}).length, logisticsJobsPruned: this.pruned },
+      conns: { total: this.conns.size, inWorld: players, proto2 },
+      net: { ...this.net, frameMs: +this.net.frameMs.toFixed(1), sendMs: +this.net.sendMs.toFixed(1) },
+      ws: { ...this.wsNet },
+      analytics: this.analytics ? { cpuMs: +this.analytics.cpuMs.toFixed(0) } : null,
+    };
+  }
+  /** resend everything to a client on its next update (e.g. after its transport dropped messages) */
+  resync(connId: string) { const c = this.conns.get(connId); if (c?.sync) { c.sync.reset(); c.prompt = true; } }
+
+  /** protocol 1: the whole visible world (old clients, tests) */
+  private sendSnap(c: Conn, _base?: Omit<WorldView, 'ships'>) {
+    const state = legacyView(this.sim.st, c, this.viewOf(c));
     // local clients must not alias server state; remote ones get JSON anyway
     c.send({ t: 'snap', at: this.sim.time, speed: this.speed, state: this.opts.singleplayer ? JSON.parse(JSON.stringify(state)) : state });
+  }
+
+  /** per mov tick: one serialized row per ship, and one joined block per viewed system, shared by every client */
+  private movRows = new Map<string, string>();
+  private movSys = new Map<string, { text: string; ids: Set<string> }>();
+  private movOwn: Map<string, WShip[]> | null = null;
+  private movRow(s: WShip): string {
+    let r = this.movRows.get(s.id);
+    if (r === undefined) {
+      const r1 = (n: number) => Math.round(n * 10) / 10;
+      this.movRows.set(s.id, r = JSON.stringify([s.id, r1(s.pos.x), r1(s.pos.y), r1(s.pos.z), r1(s.vel.x), r1(s.vel.y), r1(s.vel.z), Math.round(s.heading * 1000) / 1000, s.warp ? (s.warp.phase === 'warp' ? 2 : 1) : 0]));
+    }
+    return r;
+  }
+  private movText(c: Conn): string {
+    // battle ships too: their positions mirror the server's tactical sim, so the map shows the fight
+    const moving = (s: WShip) => s.state === 'space' || (s.state === 'battle' && s.hp > 0);
+    const sysId = this.viewOf(c);
+    let sys = this.movSys.get(sysId);
+    if (!sys) {
+      const origin = this.sim.st.systems[sysId]?.origin, rows: string[] = [], ids = new Set<string>();
+      if (origin) for (const s of Object.values(this.sim.st.ships)) if (shipVisible(s, undefined, origin) && moving(s)) { rows.push(this.movRow(s)); ids.add(s.id); }
+      this.movSys.set(sysId, sys = { text: rows.join(','), ids });
+    }
+    // own ships elsewhere (the same visibility rule as snapshots: your ships anywhere + everything in view)
+    if (!this.movOwn) { this.movOwn = new Map(); for (const s of Object.values(this.sim.st.ships)) { let l = this.movOwn.get(s.owner); if (!l) this.movOwn.set(s.owner, l = []); l.push(s); } }
+    let extra = '';
+    if (c.company) for (const s of this.movOwn.get(c.company) ?? []) if (!sys.ids.has(s.id) && moving(s)) extra += (extra || sys.text ? ',' : '') + this.movRow(s);
+    return `{"t":"mov","at":${JSON.stringify(this.sim.time)},"s":[${sys.text}${extra}]}`;
   }
 
   private buildMov(c: Conn): ServerMsg {

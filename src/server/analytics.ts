@@ -39,6 +39,14 @@ export interface AnalyticsResult { cash: CashSummary; scope: 'admin' | 'player';
 // Length-prefixed fields are unambiguous even for user supplied IDs, without allocating a JSON array.
 const fieldKey = (v: string | number | undefined) => v === undefined ? ';' : `${String(v).length}:${v}`;
 const key = (e: Observation) => fieldKey(e.kind) + fieldKey(e.company) + fieldKey(e.group) + fieldKey(e.ship) + fieldKey(e.station) + fieldKey(e.system) + fieldKey(e.item) + fieldKey(e.reason) + fieldKey(e.from) + fieldKey(e.to) + fieldKey(e.ref) + fieldKey(e.method) + fieldKey(e.baseline) + fieldKey(e.route);
+/** UTF-8 size of a string without allocating its encoding (Node: native; browser: one pass) */
+function utf8Bytes(s: string): number {
+  const B = (globalThis as { Buffer?: { byteLength(s: string): number } }).Buffer;
+  if (B) return B.byteLength(s);
+  let n = 0;
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); if (c < 0x80) n++; else if (c < 0x800) n += 2; else if (c >= 0xd800 && c <= 0xdbff && i + 1 < s.length) { n += 4; i++; } else n += 3; }
+  return n;
+}
 const clamp = (n: number | undefined, def: number, lo: number, hi: number) => Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.floor(n!))) : def;
 
 export class Analytics {
@@ -188,8 +196,11 @@ export class Analytics {
     }
     this.cpuMs += performance.now() - at;
   }
-  private enforceLimit() {
-    this.bytes = new TextEncoder().encode(JSON.stringify(this.data)).byteLength;
+  /** the store as JSON text, within maxBytes (one serialization when nothing has to be trimmed) */
+  snapshotText(): string { return this.enforceLimit(); }
+  private enforceLimit(): string {
+    let json = JSON.stringify(this.data);
+    this.bytes = utf8Bytes(json);
     // Keep current and newest data. Retention loss is explicit in every response.
     while (this.bytes > this.maxBytes) {
       if (this.data.fine.length > 1) { this.fold(this.data.fine, this.data.hourly, this.data.fine.length - 1, 3600); this.fold(this.data.hourly, this.data.daily, this.limits[1], 86400); }
@@ -200,14 +211,15 @@ export class Analytics {
         if (this.data.current.rows.length) { const n = Math.min(this.data.current.rows.length, Math.max(64, Math.ceil(this.data.current.rows.length / 4))); this.data.current.rows.splice(-n); this.scalarRows = new WeakMap(); this.data.dropped += n - 1; this.index = new Map(this.data.current.rows.map(r => [key(r), r])); }
         else if (this.data.current.frame) delete this.data.current.frame;
         else { const map = [this.data.journeys, this.data.projects, this.data.waits, this.data.onlineSeconds ?? {}].find(m => Object.keys(m).length); if (!map) break; delete map[Object.keys(map)[0]]; }
-        this.data.dropped++; this.bytes = new TextEncoder().encode(JSON.stringify(this.data)).byteLength; continue;
+        this.data.dropped++; json = JSON.stringify(this.data); this.bytes = utf8Bytes(json); continue;
       }
       this.data.truncatedBefore = source.shift()!.end;
       }
-      this.bytes = new TextEncoder().encode(JSON.stringify(this.data)).byteLength;
+      json = JSON.stringify(this.data); this.bytes = utf8Bytes(json);
     }
+    return json;
   }
-  snapshot(): AnalyticsStore { this.enforceLimit(); return JSON.parse(JSON.stringify(this.data)); }
+  snapshot(): AnalyticsStore { return JSON.parse(this.enforceLimit()); }
   private assessedAssets(company: string): { assets: number; liabilities: number } {
     const w = this.sim.st, co = w.companies[company];
     const value = (cargo: Record<string, number>) => Object.entries(cargo).reduce((n, [k, qty]) => n + qty * assetReferenceValue(w, k), 0);
