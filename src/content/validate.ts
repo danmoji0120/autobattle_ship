@@ -5,7 +5,7 @@ import { isExtraMeshBase } from './meshBases';
 import { PUBLIC_BERTH } from '../world/hullops';
 import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
 import { COMMANDERS } from '../sim/data/commanders';
-import { EQUIPMENT, ITEMS, FACILITIES, HULLS, TECHS } from '../world/industry';
+import { EQUIPMENT, ITEMS, FACILITIES, HULLS, TECHS, RECIPES } from '../world/industry';
 import { placeModules } from '../world/fitting';
 import { ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_STYLES, SIZES, type AssetKind, type HardpointDef } from './schema';
 import { presetMounts, variantLayout, INSTALLED_EQUIPMENT, type Registry } from './registry';
@@ -119,13 +119,21 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
 
   // ── equipment fitting rules: every equipment item needs exactly one spec
   // built-in equipment needs a spec in this registry; pack equipment is checked with its own pack
-  for (const e of Object.values(EQUIPMENT)) if (!reg.equipment[e.id] && !(INSTALLED_EQUIPMENT.has(e.id) && !reg.arms[e.id] && !reg.modules[e.id])) err(`equipment ${e.id}`, '피팅 규격(EquipSpec) 없음');
+  for (const e of Object.values(EQUIPMENT)) if (!reg.equipment[e.id] && !(INSTALLED_EQUIPMENT.has(e.id) && !reg.arms[e.id] && !reg.modules[e.id] && !reg.exArms[e.id] && !reg.exModules[e.id])) err(`equipment ${e.id}`, '피팅 규격(EquipSpec) 없음');
+  for (const id of reg.exclusive) if ((reg.exArms[id] || reg.exModules[id]) && (reg.packs.find(p => p.id === packOf(reg.exArms[id] ? 'arm' : 'module', id))?.minContentV ?? 0) < 3) err(`equipment ${id}`, '계정 전용 장비는 minContentV 3 팩에만');
   for (const e of Object.values(reg.equipment)) {
     const at = `equipment ${e.id}`, item = EQUIPMENT[e.id];
     if (!item) { err(at, 'EQUIPMENT 에 없는 장비'); continue; }
     if (!SIZES.includes(e.size)) err(at, `size "${e.size}"`);
     if (item.kind === 'weapon' && e.slot !== 'hardpoint') err(at, '무장은 slot: hardpoint');
     if (item.kind === 'module' && !INTERNAL_KINDS.includes(e.slot as any)) err(at, `모듈의 slot "${e.slot}" 은 내부 베이 종류여야 함`);
+    if (reg.exclusive.has(e.id)) {
+      // nothing may produce, unlock or consume exclusive equipment
+      if (RECIPES[e.id] || Object.values(RECIPES).some(r => r.out[e.id] || r.in[e.id]) || Object.values(reg.recipes).some(r => r.out[e.id] || r.in[e.id])) err(at, '계정 전용 장비에는 생산·소모 레시피가 없어야 함');
+      if (item.tech) err(at, '계정 전용 장비에는 해금 연구가 없어야 함');
+      if (Object.values(reg.hulls).some(h => h.build?.parts[e.id]) || Object.values(reg.variants).some(v => v.parts?.[e.id])) err(at, '계정 전용 장비를 건조 부품으로 쓸 수 없음');
+      if (Object.values(reg.blueprints).some(b => b.target.id === e.id)) err(at, '계정 전용 장비에는 설계도를 두지 않음');
+    }
     if (!(e.mass >= 0 && e.mass <= 200)) err(at, `mass ${e.mass} (0~200)`);
     if (!(e.power >= -200 && e.power <= 200)) err(at, `power ${e.power} (-200~200)`);
     if (e.power < 0 && e.slot !== 'reactor') warn(at, '전력 공급(음수 power)은 보통 reactor 장비');
@@ -154,7 +162,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       for (const k of Object.keys(b.parts)) if (!known(k)) err(at, `build.parts "${k}" 는 ITEMS/EQUIPMENT 에 없음`);
       for (const t of b.tech ?? []) if (!TECHS[t]) err(at, `build.tech "${t}" 없음`);
       for (const f of b.facilities ?? []) if (!FACILITIES[f]) err(at, `build.facilities "${f}" 없음`);
-    } else if (!h.id.endsWith('_mk1')) err(at, 'mk1 이 아닌 선체는 build 필수');
+    } else if (!h.id.endsWith('_mk1') && !h.exclusive) err(at, 'mk1 이 아닌 선체는 build 필수');
     if (h.upkeep) for (const k of Object.keys(h.upkeep.supplies ?? {})) if (!known(k)) err(at, `upkeep.supplies "${k}" 없음`);
     if (h.sale) {
       for (const sid of h.sale.stations) if (!STATIONS.includes(sid)) err(at, `sale.stations "${sid}" 는 공영 정거장 id 가 아님`);
@@ -162,7 +170,15 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       const berth = h.ops?.berth;
       if (berth) for (const sid of h.sale.stations) if (PUBLIC_BERTH[sid] && SIZES.indexOf(PUBLIC_BERTH[sid]) < SIZES.indexOf(berth)) err(at, `sale.stations "${sid}" 의 정박 등급(${PUBLIC_BERTH[sid]})이 선체(${berth})보다 작음`);
     }
-    if (h.dev) {
+    if (h.exclusive) {
+      // account-exclusive: no way into the economy may exist, not even an unobtainable placeholder
+      if (h.sale) err(at, '계정 전용 선체는 판매(sale)할 수 없음');
+      if (h.build) err(at, '계정 전용 선체에는 건조 조건(build)을 두지 않음');
+      if (h.dev) err(at, '계정 전용 선체는 dev 선체가 아님');
+      if (Object.values(reg.blueprints).some(b => b.target.id === h.id || reg.variants[b.target.id]?.hull === h.id)) err(at, '계정 전용 선체·변형에는 설계도를 두지 않음');
+      if (Object.values(reg.legacy).some(l => l.hull === h.id)) err(at, '계정 전용 선체는 legacy 매핑에 넣지 않음');
+      for (const v of Object.values(reg.variants)) if (v.hull === h.id && (v.parts || v.needs)) err(`variant ${v.id}`, '계정 전용 선체의 변형에는 건조 부품·조건을 두지 않음');
+    } else if (h.dev) {
       if (h.sale) err(at, 'dev 선체는 판매(sale)할 수 없음');
       if (Object.values(reg.blueprints).some(b => b.target.kind === 'hull' && b.target.id === h.id)) err(at, 'dev 선체에는 설계도를 두지 않음 (획득 불가여야 함)');
       if ((reg.packs.find(p => p.id === packOf('hull', h.id))?.minContentV ?? 0) < 3) err(at, 'dev 선체는 minContentV 3 팩에만');
@@ -230,6 +246,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     for (const [hpId, eq] of Object.entries(p.weapons)) {
       const hp = lay.hardpoints.find(x => x.id === hpId);
       if (!hp) { err(`${at}/${hpId}`, '변형에 없는 하드포인트'); continue; }
+      if (reg.exclusive.has(eq) && !reg.exclusive.has(p.hull)) err(`${at}/${hpId}`, `계정 전용 장비 "${eq}" 는 전용 선체에만 장착`);
       const why = hpAccepts(hp, eq, reg); if (why) err(`${at}/${hpId}`, why);
     }
     const st = fitTotals(reg, p.hull, p.weapons, {});

@@ -195,6 +195,7 @@ export function idleDocked(w: WorldState, s: WShip): boolean {
 
 /** docked ships that must not depart: reserve, sale listings, or stage-3 arrears */
 export function departureHeld(w: WorldState, s: WShip): string | null {
+  if (s.recover) return w.time < s.recover.until ? `자율 재구성 중 — ${Math.ceil((s.recover.until - w.time) / 60)}분 후 출항 가능` : null;
   if (!growthOn(w)) return null;
   if (s.listed) return '거래소 매물 — 출항 불가';
   if (s.reserve) return s.reserve.until ? '재취역 준비 중' : '예비역 — 출항하려면 재취역';

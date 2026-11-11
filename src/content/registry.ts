@@ -1,6 +1,6 @@
 // Content registry: merges every pack into id-indexed tables. Game code reads hulls, variants,
 // presets and assets only through here. Pure data — safe on server and client.
-import type { AssetDef, BlueprintDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef, ArmContent, ModuleContent, ItemContent, TechContent, FacilityContent, RecipeContent, WeaponFamily } from './schema';
+import type { AssetDef, BlueprintDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef, ArmContent, ModuleContent, ItemContent, TechContent, FacilityContent, RecipeContent, WeaponFamily, ExclusiveArm, ExclusiveModule } from './schema';
 import { PACKS } from './packs';
 import { EQUIPMENT, ITEMS, RECIPES, TECHS, FACILITIES } from '../world/industry';
 import { WEAPONS } from '../sim/data/weapons';
@@ -30,16 +30,20 @@ export interface Registry {
   recipes: Record<string, RecipeContent>;
   /** ids (items, equipment, techs, facility kinds, recipes) that exist only at contentV ≥ 3 */
   growthOnly: Set<string>;
+  /** account-exclusive ids (hulls and equipment): outside every catalogue */
+  exclusive: Set<string>;
+  exArms: Record<string, ExclusiveArm>;
+  exModules: Record<string, ExclusiveModule>;
 }
 
 export function buildRegistry(packs: ContentPack[]): Registry {
-  const r: Registry = { packs, hulls: {}, variants: {}, presets: {}, equipment: {}, assets: {}, blueprints: {}, legacy: {}, origin: {}, dupes: [], arms: {}, modules: {}, items: {}, techs: {}, facilities: {}, recipes: {}, growthOnly: new Set() };
+  const r: Registry = { packs, hulls: {}, variants: {}, presets: {}, equipment: {}, assets: {}, blueprints: {}, legacy: {}, origin: {}, dupes: [], arms: {}, modules: {}, items: {}, techs: {}, facilities: {}, recipes: {}, growthOnly: new Set(), exclusive: new Set(), exArms: {}, exModules: {} };
   const put = <T extends { id: string }>(tab: Record<string, T>, kind: string, x: T, pack: string) => {
     const k = `${kind}:${x.id}`;
     if (r.origin[k]) r.dupes.push(`${kind} "${x.id}" (${r.origin[k]} · ${pack})`); else { tab[x.id] = x; r.origin[k] = pack; }
   };
   for (const p of packs) {
-    for (const h of p.hulls ?? []) put(r.hulls, 'hull', h, p.id);
+    for (const h of p.hulls ?? []) { put(r.hulls, 'hull', h, p.id); if (h.exclusive) r.exclusive.add(h.id); }
     for (const v of p.variants ?? []) { put(r.variants, 'variant', v, p.id); if ((p.minContentV ?? 0) >= 3) r.growthOnly.add(v.id); }
     for (const x of p.presets ?? []) { put(r.presets, 'preset', x, p.id); if ((p.minContentV ?? 0) >= 3) r.growthOnly.add(x.id); }
     for (const e of p.equipment ?? []) put(r.equipment, 'equipment', e, p.id);
@@ -57,6 +61,15 @@ export function buildRegistry(packs: ContentPack[]): Registry {
       put(r.modules, 'module', m, p.id); mark(m.id);
       put(r.equipment, 'equipment', { id: m.id, slot: m.slot, size: m.size, mass: m.mass, power: m.power }, p.id);
     }
+    // account-exclusive equipment: a fitting rule and nothing else (no recipe, research or market row)
+    for (const a of p.exclusive?.arms ?? []) {
+      put(r.exArms, 'arm', a, p.id); mark(a.id); r.exclusive.add(a.id);
+      put(r.equipment, 'equipment', { id: a.id, slot: 'hardpoint', size: a.size, mass: a.mass, power: a.power, ...(a.mounts ? { mounts: a.mounts } : {}) }, p.id);
+    }
+    for (const m of p.exclusive?.modules ?? []) {
+      put(r.exModules, 'module', m, p.id); mark(m.id); r.exclusive.add(m.id);
+      put(r.equipment, 'equipment', { id: m.id, slot: m.slot, size: m.size, mass: m.mass, power: m.power }, p.id);
+    }
     for (const t of p.techs ?? []) { put(r.techs, 'tech', t, p.id); mark(t.id); }
     for (const f of p.facilities ?? []) { put(r.facilities, 'facility', { ...f, id: f.kind }, p.id); mark(f.kind); }
     for (const x of p.recipes ?? []) { put(r.recipes, 'recipe', x, p.id); mark(x.id); }
@@ -71,6 +84,13 @@ export const familyHp = (f: WeaponFamily | string): 'ballistic' | 'energy' | 'mi
   f === 'laser' || f === 'plasma' || f === 'particle' ? 'energy' : f === 'missile' || f === 'torpedo' ? 'missile' : f === 'pd' ? 'pd' : 'ballistic';
 const hex = (c: string) => parseInt(c.replace('#', ''), 16);
 const sizeNum = (s: string): 1 | 2 | 3 => s === 'S' ? 1 : s === 'M' ? 2 : 3;
+/** account-exclusive content (hull, variant of one, preset of one, or equipment)? */
+export const isExclusive = (id: string | undefined, reg: Registry = CONTENT): boolean => {
+  if (!id) return false;
+  if (reg.exclusive.has(id)) return true;
+  const v = reg.variants[id]; if (v && reg.exclusive.has(v.hull)) return true;
+  const p = reg.presets[id]; return !!p && reg.exclusive.has(p.hull);
+};
 
 /** writes the packs' P5 content into the game tables (WEAPONS, EQUIPMENT, ITEMS, RECIPES, TECHS,
  *  FACILITIES). New rows are appended after the built-in ones, so every lookup the c0 game makes
@@ -79,7 +99,13 @@ const sizeNum = (s: string): 1 | 2 | 3 => s === 'S' ? 1 : s === 'M' ? 2 : 3;
 /** EQUIPMENT ids written by installContent (pack content, not built-in rows) */
 export const INSTALLED_EQUIPMENT = new Set<string>();
 export function installContent(r: Registry) {
-  for (const id of [...Object.keys(r.arms), ...Object.keys(r.modules)]) INSTALLED_EQUIPMENT.add(id);
+  for (const id of [...Object.keys(r.arms), ...Object.keys(r.modules), ...Object.keys(r.exArms), ...Object.keys(r.exModules)]) INSTALLED_EQUIPMENT.add(id);
+  for (const a of Object.values(r.exArms)) {
+    const wid = armWeaponId(a.id), c = a.combat;
+    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
+    EQUIPMENT[a.id] ??= { id: a.id, name: a.name, kind: 'weapon', weapon: wid, size: sizeNum(a.size), desc: a.desc, growth: true, exclusive: true };
+  }
+  for (const m of Object.values(r.exModules)) EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, growth: true, exclusive: true };
   for (const x of Object.values(r.items)) ITEMS[x.id] ??= { ...x, ...(r.growthOnly.has(x.id) ? { growth: true } : {}) };
   for (const a of Object.values(r.arms)) {
     const wid = armWeaponId(a.id), g = r.growthOnly.has(a.id);

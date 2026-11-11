@@ -222,7 +222,7 @@ function hullDetail(w: WorldState, s: Station, me: string, ui: IndUi, groups: { 
   const fit = ui.fit.filter(k => EQUIPMENT[k]);
   const need = buildNeeds(id, lo.id, fit);
   const rows = Object.entries(need).map(([k, n]) => `<tr><td>${iname(k)}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
-  const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module');
+  const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module' && !x.exclusive);
   const known = !h.tech || co.tech?.includes(h.tech);
   const yardOk = yardSlots(s).some(y => y.size >= h.yard);
   const why = !known ? `설계 연구 필요: ${esc(TECHS[h.tech!]?.name ?? '')}` : !yardOk ? `${YARD_NAME[h.yard]} 이상 조선소가 필요합니다` : co.credits < h.credits ? `자금 부족 — ${fmt(h.credits - co.credits)} cr` : fitUnits(fit) > h.slots ? '피팅 슬롯 초과' : '';

@@ -299,6 +299,11 @@ async function main() {
   let alertConfig: import('./analytics').AnalyticsOptions['alerts'];
   try { alertConfig = JSON.parse(process.env.ANALYTICS_ALERTS_JSON ?? '{}'); } catch { console.warn('[siderarium] invalid ANALYTICS_ALERTS_JSON; using defaults'); }
   const adminAccounts = (process.env.ANALYTICS_ADMIN_ACCOUNTS ?? '').split(',').map(s => s.trim()).filter(Boolean);
+  // account-exclusive content (BB / BB-EX): the one verified account UUID that owns it. Anything that
+  // is not a UUID is ignored — the content then stays ungranted ("설정 필요") rather than going to a guess.
+  const bbOwnerRaw = (process.env.SIDERARIUM_BB_OWNER_ACCOUNT ?? '').trim().toLowerCase();
+  const bbOwner = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(bbOwnerRaw) ? bbOwnerRaw : undefined;
+  if (bbOwnerRaw && !bbOwner) console.warn('[siderarium] SIDERARIUM_BB_OWNER_ACCOUNT 는 계정 UUID 여야 합니다 — BB/BB-EX 미지급 상태로 시작합니다.');
   // analytics history: the separate record when it belongs to this world and is the newest copy
   if (saved && storage.loadAnalytics) {
     try {
@@ -310,7 +315,7 @@ async function main() {
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
     singleplayer: false, accounts: true, migrateContent: applyContent,
-    adminAccounts,
+    adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),
     analytics: { enabled: process.env.ANALYTICS_ENABLED !== '0', snapshotSeconds: Number(process.env.ANALYTICS_INTERVAL_S ?? 600), maxBytes: Number(process.env.ANALYTICS_MAX_BYTES ?? 8388608), alerts: alertConfig }, snapInterval: 1.0, movInterval: 0.2, saveInterval: Number(process.env.SAVE_INTERVAL_S ?? 30),
     onSaveDue: () => saver?.due(),
     ...(Number(process.env.LOGISTICS_JOB_RETAIN) > 0 ? { logisticsJobRetain: Math.floor(Number(process.env.LOGISTICS_JOB_RETAIN)) } : {}),

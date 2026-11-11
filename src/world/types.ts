@@ -168,6 +168,8 @@ export interface WShip {
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
   listed?: string;
+  /** account-exclusive hull reconstituting after it was destroyed: docked, cannot depart until then */
+  recover?: { until: number };
 }
 
 export interface WGroup {
@@ -219,6 +221,7 @@ export interface NpcInfo {
   homePos?: V;                 // rogue bands without a lair
 }
 
+/** `causal` (inherited from CommanderDef) marks the account-exclusive commander BB */
 export interface WCommander extends Omit<CommanderDef, 'team'> {
   owner: string | null;       // null → available for hire
   stationId: string | null;   // where available for hire
@@ -507,6 +510,8 @@ export interface WorldState {
   uniques?: Record<string, string[]>;
   /** exploration sites (growth): derelicts and wreck fields, hidden until a company surveys them */
   sites?: Record<string, Site>;
+  /** account-exclusive content ledger (world/exclusive.ts): which verified account holds BB / BB-EX */
+  exclusive?: { bbex?: import('./exclusive').ExclusiveLedger };
 }
 
 export const emptyCargo = (): Cargo => ({ ore: 0, alloy: 0, crystal: 0 });

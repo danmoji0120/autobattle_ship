@@ -25,7 +25,7 @@ const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
-const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions']);
+const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive']);
 const OWNED = new Set<string>(['logistics', 'logisticsJobs', 'procurementPlans']);
 
 // ───────────────────────────────────────────────────────────── visibility rules (shared by both paths)
@@ -73,7 +73,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   return {
     ...base, engagements: eng, battleLog: log, companies, stations, ships, groups,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
-    grants: undefined, conversions: undefined,
+    grants: undefined, conversions: undefined, exclusive: undefined,
     sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c && s.seen.includes(c)).map(([id, s]) => [id, siteFor(s, c!)])) : undefined,
   } as WorldView;
 }

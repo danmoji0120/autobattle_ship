@@ -39,6 +39,9 @@ export interface ServerOptions {
   logisticsJobRetain?: number;
   /** Verified account UUIDs, configured only by the server administrator. Empty = disabled. */
   adminAccounts?: string[];
+  /** Verified account UUID that owns the account-exclusive content (commander BB, ship BB-EX).
+   *  Set only by the server operator (SIDERARIUM_BB_OWNER_ACCOUNT). Unset = nobody is granted it. */
+  exclusiveOwner?: string;
 }
 
 function token(): string {
@@ -89,6 +92,7 @@ export class GameServer {
     this.auth = save?.auth ?? {};
     this.accounts = save?.accounts ?? {};
     for (const c of Object.values(this.sim.st.companies)) c.online = false;
+    this.grantExclusive();
     this.sim.onBattleOrder = (eng, rec) => {
       for (const c of this.conns.values()) if (c.battles.has(eng)) c.send({ t: 'border', eng, rec });
     };
@@ -123,6 +127,25 @@ export class GameServer {
   }
 
   snapshotFile(): SaveFile { return { v: 1, world: JSON.parse(this.sim.serialize()), auth: this.auth, accounts: this.accounts, ...(this.analytics ? { analytics: this.analytics.snapshot() } : this.inactiveAnalytics ? { analytics: structuredClone(this.inactiveAnalytics) } : {}) }; }
+
+  /** Bind BB / BB-EX to the configured owner account's PMC. Called at start, when that account's PMC
+   *  is created and whenever it enters; idempotent (world/exclusive.ts) — never a second copy, never
+   *  another account. Returns what happened, for the operator's log and the tests. */
+  grantExclusive(): string {
+    const owner = this.opts.exclusiveOwner;
+    if (!owner) return 'unconfigured';
+    if (!this.opts.accounts && !this.opts.singleplayer) return 'unconfigured';
+    const company = this.opts.singleplayer ? this.localCompany() : this.companyOf(owner);
+    if (!company) return 'no-company';
+    const r = this.sim.grantExclusive(owner, company);
+    if (r === 'granted' || r === 'repaired') this.saveNow();
+    if (r === 'bound-elsewhere') console.warn('[siderarium] BB/BB-EX는 이미 다른 계정에 귀속되어 있습니다 — 소유권은 이전되지 않습니다 (SIDERARIUM_BB_OWNER_ACCOUNT 확인 필요).');
+    return r;
+  }
+  /** single-player worlds have one PMC and no accounts: an explicit `exclusiveOwner` binds to it (dev / local play only) */
+  private localCompany(): string | null {
+    return Object.values(this.sim.st.companies).find(c => c.kind === 'player')?.id ?? null;
+  }
 
   /** the company an account controls in this world (null: none yet, or its PMC is gone) */
   companyOf(account: string): string | null {
@@ -170,6 +193,7 @@ export class GameServer {
       company = this.sim.addPlayer(n);
     }
     this.accounts[c.account] = company;
+    if (c.account === this.opts.exclusiveOwner) this.grantExclusive();
     this.saveNow(); // the link and the starting assets are persisted together right away
     // every open tab of this account enters with the same PMC
     for (const o of this.conns.values()) if (o.account === c.account && !o.company) this.enter(o, company, '');
@@ -212,6 +236,7 @@ export class GameServer {
           if (!c.account) return c.send({ t: 'auth', need: 'login' });
           const company = this.companyOf(c.account);
           if (!company) return c.send({ t: 'needPmc' });
+          if (c.account === this.opts.exclusiveOwner) this.grantExclusive();
           return this.enter(c, company, '');
         }
         let company = msg.token ? this.auth[msg.token] : undefined;
@@ -221,6 +246,7 @@ export class GameServer {
           tok = token();
           this.auth[tok] = company;
         }
+        if (this.opts.singleplayer && this.opts.exclusiveOwner) this.grantExclusive();
         return this.enter(c, company, tok!);
       }
       case 'createPmc': {
@@ -335,8 +361,8 @@ export class GameServer {
 
   /** everything except ships (filtered per client); battles without their heavy setup/orders */
   private snapBase(): Omit<WorldView, 'ships'> {
-    const { events: _e, rng: _r, ships: _s, engagements, battleLog, ...rest } = this.sim.st;
-    void _e; void _r; void _s;
+    const { events: _e, rng: _r, ships: _s, engagements, battleLog, exclusive: _x0, ...rest } = this.sim.st;
+    void _e; void _r; void _s; void _x0;   // the exclusive ledger holds an account id: server-only
     const eng: Record<string, any> = {};
     for (const [id, e] of Object.entries(engagements)) { const { setup: _x, orders: _o, ...lite } = e; void _x; void _o; eng[id] = lite; }
     const log = (battleLog ?? []).map(({ setup: _x, orders: _o, ...lite }) => { void _x; void _o; return lite; });

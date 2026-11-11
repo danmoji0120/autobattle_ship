@@ -32,7 +32,7 @@ export function contentIdentity(): LabConfig['content'] {
   return { version: CONTENT_VERSION, fingerprint: `fnv1a32-${(h >>> 0).toString(16).padStart(8, '0')}`, packs: CONTENT.packs.map(p => p.id) };
 }
 
-export const availableHulls = () => Object.values(CONTENT.hulls).filter(h => !h.dev && !!SHIP_CLASSES[h.classId]);
+export const availableHulls = () => Object.values(CONTENT.hulls).filter(h => !h.dev && !h.exclusive && !!SHIP_CLASSES[h.classId]);
 export function defaultShip(hull: string, id: string, variant?: string): LabShip {
   const h = CONTENT.hulls[hull];
   if (!h || h.dev) throw new Error('사용할 수 없는 선체입니다');
