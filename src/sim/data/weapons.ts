@@ -32,6 +32,15 @@ export interface WeaponDef {
   vsShield?: number;
   /** combat visual: tracer/beam colour (0xRRGGBB) and size */
   vis?: { color: number; len: number; wid: number; beam?: boolean };
+  // ── exotic behaviours (BB-EX exclusive weapons; absent everywhere else)
+  /** a shell that keeps flying through this many extra hulls after its first hit */
+  pierce?: number;
+  /** a shell that steers toward its target (rad/s) */
+  seek?: number;
+  /** a guided munition that skips ahead through space once, past the outer point-defence envelope */
+  phase?: boolean;
+  /** not fired by the ordinary mount logic: driven by its own system (sim/bbex/system.ts) */
+  special?: 'dcp';
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {
