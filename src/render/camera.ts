@@ -5,8 +5,10 @@ export type CamMode = 'tactical' | 'follow' | 'director';
 export interface FollowTarget { pos: THREE.Vector3; fwd: THREE.Vector3; length: number; alive: boolean; vel?: THREE.Vector3 }
 
 export interface ShotRequest {
-  kind: 'chase' | 'orbit' | 'flyby' | 'low' | 'wide' | 'impact';
+  kind: 'chase' | 'orbit' | 'flyby' | 'low' | 'wide' | 'impact' | 'vista';
   subject: () => FollowTarget | null;
+  /** 'vista': where the camera stands (a fixed vantage chosen by whoever asks for the shot) */
+  at?: () => THREE.Vector3;
   look?: () => THREE.Vector3 | null;
   duration: number;
   priority: number;
@@ -179,6 +181,13 @@ export class CameraRig {
       case 'flyby': case 'impact': {
         want.copy(sh.anchor);
         lookAt.copy(s.pos);
+        break;
+      }
+      case 'vista': {
+        // a slow drift around the vantage so the picture is never frozen
+        const p = sh.at ? sh.at() : s.pos;
+        want.copy(p).add(tmp.set(Math.sin(sh.t * 0.22) * L * 0.25, sh.t * L * 0.03, Math.cos(sh.t * 0.22) * L * 0.25));
+        lookAt.copy(look ?? s.pos);
         break;
       }
       case 'wide': {
