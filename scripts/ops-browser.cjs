@@ -35,6 +35,10 @@ const assert = (ok, label) => { if (!ok) throw Error(label); console.log('PASS',
   await page.screenshot({ animations: 'disabled', path: out + '/works-1440.png' });
   const works = await page.evaluate(() => Object.values(window.siderarium.client.state.works).map(w => ({ kind: w.kind, state: w.state, reason: w.reason })));
   assert(works.some(w => w.kind === 'buy' && w.state === 'done'), 'the purchase is recorded as a finished work');
+  await page.waitForFunction(() => Object.values(window.siderarium.client.state.approvals ?? {}).some(a => a.state === 'open'), undefined, { timeout: 15000 });
+  await page.waitForSelector('.ops-fix [data-a="goto"][data-id="finance"]', { timeout: 10000 });
+  assert(true, 'a waiting goal shows why and a direct fix (go to the approval)');
+  await page.screenshot({ animations: 'disabled', path: out + '/works-fix-1440.png' });
   // finance tab: approval document with options; approve for this goal
   await page.getByRole('button', { name: /재무·결재/ }).click();
   await page.waitForSelector('.ops-approval', { timeout: 10000 }).catch(async e => { console.log(JSON.stringify(await page.evaluate(() => ({ works: Object.values(window.siderarium.client.state.works).map(w => [w.kind, w.state, w.reason]), aps: window.siderarium.client.state.approvals })))); throw e; });
@@ -56,7 +60,21 @@ const assert = (ok, label) => { if (!ok) throw Error(label); console.log('PASS',
     await page.waitForTimeout(150);
     await page.screenshot({ animations: 'disabled', path: `${out}/${file}-1440.png` });
   }
+  // company-wide stockpile from the form
+  await page.getByRole('button', { name: '업무', exact: true }).click();
+  if (!(await page.locator('[name="g-scope"]').count())) await page.locator('[data-a="form"]').click();
+  await page.locator('[name="g-scope"]').selectOption('company');
+  await page.locator('[name="g-station"]').selectOption('astra');
+  await page.locator('[name="g-item"]').selectOption('metal');
+  await page.locator('[name="g-n"]').fill('50');
+  await page.getByRole('button', { name: '목표 등록' }).click();
+  await page.waitForFunction(() => Object.values(window.siderarium.client.state.works ?? {}).some(w => w.goal?.k === 'stockpile' && w.goal.scope === 'company' && w.goal.item === 'metal'), undefined, { timeout: 10000 });
+  assert(await page.locator('.ops-work b', { hasText: '회사 전체' }).count() >= 1, 'a company-wide stockpile goal can be ordered from the form');
+  await page.getByRole('button', { name: '물류', exact: true }).click();
+  assert(await page.locator('.ops-h3', { hasText: '함대 작전' }).count() === 1, 'logistics tab lists continuous fleet operations');
   await page.getByRole('button', { name: '재고', exact: true }).click();
+  const heads = await page.locator('.ops-table thead th').allInnerTexts();
+  assert(['회사 총량', '위치', '가용', '예약', '운송 중', '비축 목표'].every(h => heads.includes(h)), 'inventory separates total, location, available, reserved, in transit and target');
   await page.locator('.ops-table tr[data-a="item"]').first().click();
   assert(await page.locator('.ops-inv-detail').count() === 1, 'inventory row expands to locations, transport and actions');
   await page.screenshot({ animations: 'disabled', path: out + '/stock-detail-1440.png' });

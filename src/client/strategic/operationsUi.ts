@@ -13,7 +13,7 @@ import { priceOf } from '../../world/market';
 
 type Tab = 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'finance';
 const TABS: [Tab, string][] = [['hq', '본부'], ['works', '업무'], ['stock', '재고'], ['industry', '산업'], ['research', '연구'], ['logistics', '물류'], ['build', '건설·조선'], ['finance', '재무·결재']];
-interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard'): void; logistics(): void; analytics(): void; close(): void }
+interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard' | 'research'): void; logistics(): void; analytics(): void; close(): void }
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const n0 = (v: number) => Math.round(v).toLocaleString();
@@ -67,6 +67,18 @@ export class OperationsPanel {
       case 'toggle': if (this.open.has(id)) this.open.delete(id); else this.open.add(id); return this.render();
       case 'item': this.item = this.item === id ? '' : id; return this.render();
       case 'station': return this.actions.station(id, (b.dataset.tab as 'build') || undefined);
+      case 'goto': this.tab = id as Tab; if (b.dataset.item) this.item = b.dataset.item; this.error = ''; this.notice = ''; return this.render();
+      case 'quick-stock': {
+        const st = b.dataset.st ?? '', item = id; const v = Number(prompt(`${this.stationName(st)}에 ${itemName(item)}을(를) 몇 개 비축할까요? (부족하면 이송·생산·구매로 채웁니다)`, b.dataset.v ?? '100'));
+        if (!(v > 0) || !st) return;
+        return void this.send({ c: 'workCreate', goal: { k: 'stockpile', station: st, item, target: v, maintain: true, buy: true, produce: true } }, '비축 목표를 등록했습니다');
+      }
+      case 'quick-fac': {
+        const st = b.dataset.st ?? '', kind = id;
+        if (!st || !confirm(`${this.stationName(st)}에 ${MODULES[kind]?.name ?? kind}을(를) 1개 더 짓는 목표를 등록할까요? 건설비는 결재 또는 예산으로 승인합니다.`)) return;
+        const count = (this.w.stations[st]?.modules ?? []).filter(m => m.kind === kind).length + 1;
+        return void this.send({ c: 'workCreate', goal: { k: 'facilities', station: st, kind, count } }, '시설 목표를 등록했습니다');
+      }
       case 'logistics': return this.actions.logistics();
       case 'analytics': return this.actions.analytics();
       case 'pause': case 'resume': case 'cancel':
@@ -106,7 +118,7 @@ export class OperationsPanel {
     const k = this.goalKind; let goal: GoalSpec;
     const budget = this.numv('g-budget'), maxPrice = this.numv('g-price');
     switch (k) {
-      case 'stockpile': goal = { k, station: this.val('g-station'), item: this.val('g-item'), target: this.numv('g-n'), maintain: this.checked('g-maintain'), buy: this.checked('g-buy'), produce: this.checked('g-produce') }; break;
+      case 'stockpile': goal = { k, station: this.val('g-station'), item: this.val('g-item'), target: this.numv('g-n'), maintain: this.checked('g-maintain'), buy: this.checked('g-buy'), produce: this.checked('g-produce'), ...(this.val('g-scope') === 'company' ? { scope: 'company' as const } : {}) }; break;
       case 'trade': goal = { k, item: this.val('g-item'), from: this.val('g-from'), to: this.val('g-station'), amount: this.numv('g-n'), maxBuy: this.numv('g-maxbuy'), minSell: this.numv('g-minsell'), minProfit: this.numv('g-minprofit') || 0, cycles: Math.floor(this.numv('g-cycles') || 0) }; break;
       case 'fleet': goal = { k, station: this.val('g-station'), hull: this.val('g-hull'), count: Math.floor(this.numv('g-n')) }; break;
       case 'facilities': goal = { k, station: this.val('g-station'), kind: this.val('g-fac'), count: Math.floor(this.numv('g-n')) }; break;
@@ -155,8 +167,31 @@ export class OperationsPanel {
       <div class="ops-progress" role="progressbar" aria-valuenow="${Math.round(bar)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${bar}%"></i></div>
       <div class="ops-meta">${p.total > 0 ? `<span>${n0(p.done)} / ${n0(p.total)} ${esc(p.unit ?? '')}</span>` : ''}${x.reason ? `<span class="ops-why">${esc(x.reason)}</span>` : ''}${x.result ? `<span class="good">${esc(x.result)}</span>` : ''}${x.cost ? `<span>지출 ${n0(x.cost)} cr</span>` : ''}${x.income ? `<span>수입 ${n0(x.income)} cr</span>` : ''}${x.budget ? `<span>예산 ${x.budget.open ? '목표 전체 승인' : `${n0(x.budget.spent)} / ${n0(x.budget.limit)} cr`}${x.budget.maxPrice ? ` · 단가 ≤ ${n0(x.budget.maxPrice)}` : ''}</span>` : ''}<span>${ago(this.w.time, x.updated)}</span>${st && this.w.stations[st] ? `<button class="an-link" data-a="station" data-id="${st}" data-tab="${x.kind === 'production' ? 'prod' : x.kind === 'ship' ? 'yard' : x.kind === 'facility' ? 'build' : 'store'}">${esc(this.stationName(st))} 열기</button>` : ''}</div>
       ${x.log.length && open ? `<ol class="ops-log">${x.log.slice(-6).map(l => `<li><span>${ago(this.w.time, l.t)}</span> ${esc(l.text)}</li>`).join('')}</ol>` : ''}
+      ${!terminal(x) && x.state !== 'running' ? this.fixes(x) : ''}
       ${ctrl ? `<div class="lg-card-actions">${ctrl}</div>` : ''}
       ${open ? kids.sort((a, b) => b.created - a.created).slice(0, 30).map(k => this.workRow(k, depth + 1)).join('') : ''}</div>`;
+  }
+
+  /** what the player can do about a waiting work, derived from its reason */
+  private fixes(x: Work): string {
+    const why = x.reason ?? '', st = x.ref.station ?? (x.goal && 'station' in x.goal ? x.goal.station : undefined), out: string[] = [];
+    const ap = this.approvals().find(a => a.work === x.id && a.state === 'open');
+    if (ap || /결재/.test(why)) out.push(`<button class="btn go" data-a="goto" data-id="finance">결재함에서 결정</button>`);
+    if (/수송선|배차|함선을 참여/.test(why)) out.push(`<button class="btn" data-a="logistics">물류 관리 — 수송선 참여</button>`);
+    const fac = /(\S+) 필요\)/.exec(why) ?? /(\S+) 없음/.exec(why);
+    const facKind = fac ? Object.values(MODULES).find(m => why.includes(m.name))?.kind : undefined;
+    if (facKind && st && this.w.stations[st]?.owner === this.me) out.push(`<button class="btn" data-a="quick-fac" data-id="${facKind}" data-st="${st}">${esc(MODULES[facKind].name)} 건설 목표</button>`);
+    const short = /(?:원료 부족|자재 확보 중|부품 부족|조달)[: ]+([^·;]+)/.exec(why);
+    if (short && st) {
+      const item = Object.keys(ITEMS).find(i => short[1].includes(ITEMS[i].name));
+      if (item) out.push(`<button class="btn" data-a="quick-stock" data-id="${item}" data-st="${st}">${esc(ITEMS[item].name)} 비축 목표</button><button class="btn" data-a="goto" data-id="stock" data-item="${item}">재고 위치 보기</button>`);
+    }
+    if (/공간|창고 가득|보관/.test(why) && st) out.push(`<button class="btn" data-a="station" data-id="${st}" data-tab="${this.w.stations[st]?.owner === this.me ? 'build' : 'store'}">${this.w.stations[st]?.owner === this.me ? '창고 증설' : '보관함 정리'}</button>`);
+    if (/전력/.test(why) && st) out.push(`<button class="btn" data-a="station" data-id="${st}" data-tab="build">발전소 건설</button>`);
+    if (/연구 필요|설계 연구/.test(why)) out.push(`<button class="btn" data-a="goto" data-id="research">연구 현황</button>`);
+    if (/자금 부족|최소 잔액|최소 보유/.test(why)) out.push(`<button class="btn" data-a="goto" data-id="finance">재무·정책 확인</button>`);
+    if (x.kind === 'operation' && /배속된 함선 없음/.test(why)) out.push('<span class="dim">함대 패널에서 이 부대에 함선을 배속하세요</span>');
+    return out.length ? `<div class="lg-card-actions ops-fix"><span class="dim">해결</span>${out.join('')}</div>` : '';
   }
 
   private hq() {
@@ -190,7 +225,7 @@ export class OperationsPanel {
     const num = (name: string, v = '') => `<input type="number" min="0" name="${name}" value="${v}">`;
     const kinds: [GoalSpec['k'], string][] = [['stockpile', '재고 비축'], ['trade', '반복 무역'], ['fleet', '함선 N척 건조'], ['facilities', '시설 N개 확보'], ['condition', '가격 조건 거래']];
     let f = '';
-    if (k === 'stockpile') f = field('정거장', opt(usable, 'g-station')) + field('품목', opt(items, 'g-item')) + field('목표 수량', num('g-n', '3000')) + `<label class="ops-check"><input type="checkbox" name="g-maintain" checked> 계속 유지</label><label class="ops-check"><input type="checkbox" name="g-produce" checked> 자체 생산 우선</label><label class="ops-check"><input type="checkbox" name="g-buy" checked> 부족분 구매 허용</label>`;
+    if (k === 'stockpile') f = field('범위', '<select data-keep name="g-scope"><option value="station">특정 정거장에 비축</option><option value="company">회사 전체 합계로 비축</option></select>') + field('정거장 (회사 전체: 구매품 입고지)', opt(usable, 'g-station')) + field('품목', opt(items, 'g-item')) + field('목표 수량', num('g-n', '3000')) + `<label class="ops-check"><input type="checkbox" name="g-maintain" checked> 계속 유지</label><label class="ops-check"><input type="checkbox" name="g-produce" checked> 자체 생산 우선</label><label class="ops-check"><input type="checkbox" name="g-buy" checked> 부족분 구매 허용</label>`;
     else if (k === 'trade') f = field('품목', opt(items, 'g-item')) + field('매입 시장', opt(markets, 'g-from')) + field('판매 시장', opt(markets, 'g-station')) + field('회당 수량', num('g-n', '400')) + field('최대 매입가', num('g-maxbuy')) + field('최소 판매가', num('g-minsell')) + field('회당 최소 이익', num('g-minprofit', '0')) + field('반복 횟수 (0=계속)', num('g-cycles', '0'));
     else if (k === 'fleet') f = field('조선소', opt(own, 'g-station')) + field('선체', opt(Object.entries(CONTENT.hulls).filter(([, h]) => !h.dev && !h.exclusive && h.classId !== 'platform').map(([id, h]) => ({ id, name: h.name })), 'g-hull')) + field('척수', num('g-n', '2'));
     else if (k === 'facilities') f = field('정거장', opt(own, 'g-station')) + field('시설', opt(Object.values(MODULES).filter(m => m.kind !== 'core').map(m => ({ id: m.kind, name: m.name })), 'g-fac')) + field('개수', num('g-n', '2'));
@@ -214,15 +249,16 @@ export class OperationsPanel {
     const w = this.w, rows = companyInventory(w as never, this.me).filter(r => r.total > 0.5 || r.target > 0 || r.planned > 0 || r.consumption > 0.5);
     const usable = Object.values(w.stations).filter(s => s.owner === this.me || s.public), markets = Object.values(w.stations).filter(s => s.public && s.market);
     const sel = (name: string, list: typeof usable, pick?: string) => `<select data-keep name="${name}">${list.map(s => `<option value="${s.id}" ${s.id === pick ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>`;
-    const detail = (r: InventoryRow) => `<tr class="ops-detail"><td colspan="9"><div class="ops-inv-detail">
+    const detail = (r: InventoryRow) => `<tr class="ops-detail"><td colspan="10"><div class="ops-inv-detail">
       <div><h4>보관 위치</h4>${r.stations.map(s => `<p><button class="an-link" data-a="station" data-id="${s.station}" data-tab="store">${esc(this.stationName(s.station))}</button> 보관 ${n0(s.stored)} · 예약 ${n0(s.reserved)} · 가용 ${n0(s.available)}${s.protected ? ` · 보호 ${n0(s.protected)}` : ''}</p>`).join('') || '<p class="dim">없음</p>'}</div>
-      <div><h4>운송 중</h4>${r.ships.map(s => `<p>${esc(w.ships[s.ship]?.name ?? s.ship)} ${n0(s.amount)}${s.to ? ` → ${esc(this.stationName(s.to))}` : ''}</p>`).join('') || '<p class="dim">없음</p>'}
-        <h4>관련 업무</h4>${r.works.map(id => w.works?.[id]).filter(Boolean).map(x => `<p>${esc(x!.title)} — ${STATE_NAME[x!.state]}</p>`).join('') || '<p class="dim">없음</p>'}</div>
+      <div><h4>비축 목표</h4>${r.works.map(id => w.works?.[id]).filter(x => x?.goal?.k === 'stockpile').map(x => `<p>${esc(x!.title)} — ${STATE_NAME[x!.state]}${x!.reason ? ` · ${esc(x!.reason)}` : ''}</p>`).join('') || '<p class="dim">없음 — 아래에서 정할 수 있습니다</p>'}
+        <h4>운송 중</h4>${r.ships.map(s => `<p>${esc(w.ships[s.ship]?.name ?? s.ship)} ${n0(s.amount)}${s.to ? ` → ${esc(this.stationName(s.to))}` : ''}</p>`).join('') || '<p class="dim">없음</p>'}
+        <h4>관련 업무</h4>${r.works.map(id => w.works?.[id]).filter(x => x && x.goal?.k !== 'stockpile').map(x => `<p>${esc(x!.title)} — ${STATE_NAME[x!.state]}</p>`).join('') || '<p class="dim">없음</p>'}</div>
       <div><h4>처리</h4><div class="proc-policy-grid"><label>정거장${sel('inv-station', usable, r.stations[0]?.station)}</label><label>출발 (운송)${sel('inv-from', usable, r.stations.find(s => s.available > 0)?.station)}</label><label>시장${sel('inv-market', markets)}</label><label>수량<input type="number" name="inv-amount" min="1" value="100"></label><label>비축 목표<input type="number" name="inv-target" min="1" value="${Math.max(r.target, Math.ceil(r.total))}"></label></div>
         <div class="lg-card-actions"><button class="btn" data-a="inv-buy" data-id="${r.item}">구매</button><button class="btn" data-a="inv-sell" data-id="${r.item}">판매</button><button class="btn" data-a="inv-move" data-id="${r.item}">운송 요청</button><button class="btn go" data-a="inv-stock" data-id="${r.item}">비축 목표 설정</button></div></div></div></td></tr>`;
-    return `<p class="dim ops-note">각 수량은 한 곳에만 집계됩니다 — 보관(자유 재고) · 예약(운송·건설에 묶임) · 운송 중(함선 화물) · 거래소 등록. 총량 = 보관 + 예약 + 운송 중 + 등록.</p>
-      <div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>품목</th><th>총량</th><th>가용</th><th>예약</th><th>운송 중</th><th>생산 예정</th><th>소비 예정</th><th>목표</th><th>부족·잉여</th></tr></thead><tbody>
-      ${rows.map(r => `<tr class="${r.shortage > 0 ? 'warn' : ''}" data-a="item" data-id="${r.item}"><td><button class="an-link">${esc(itemName(r.item))}</button></td><td>${n0(r.total)}</td><td>${n0(r.available)}</td><td>${n0(r.reserved)}</td><td>${n0(r.inTransit)}</td><td>${n0(r.planned)}</td><td>${n0(r.consumption)}</td><td>${r.target ? n0(r.target) : '—'}</td><td>${r.shortage > 0 ? `<b class="warn">−${n0(r.shortage)}</b>` : r.surplus > 0 ? `<span class="good">+${n0(r.surplus)}</span>` : '—'}</td></tr>${this.item === r.item ? detail(r) : ''}`).join('') || '<tr><td colspan="9" class="dim">보유 재고가 없습니다</td></tr>'}</tbody></table></div>`;
+    return `<p class="dim ops-note">각 수량은 한 곳에만 집계됩니다 — 보관(자유 재고) · 예약(운송·건설에 묶임) · 운송 중(함선 화물) · 거래소 등록. 회사 총량 = 보관 + 예약 + 운송 중 + 등록. 가용 = 보관 중 보호·출고 예정분을 뺀 양. 생산·소비 예정과 비축 목표는 총량에 더하지 않습니다.</p>
+      <div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>품목</th><th>회사 총량</th><th>위치</th><th>가용</th><th>예약</th><th>운송 중</th><th>생산 예정</th><th>소비 예정</th><th>비축 목표</th><th>부족·잉여</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r.shortage > 0 ? 'warn' : ''}" data-a="item" data-id="${r.item}"><td><button class="an-link">${esc(itemName(r.item))}</button></td><td>${n0(r.total)}</td><td>${r.stations.filter(s => s.stored + s.reserved > 0.5).length ? `${esc(this.stationName([...r.stations].sort((a, b) => b.stored - a.stored)[0].station))}${r.stations.filter(s => s.stored + s.reserved > 0.5).length > 1 ? ` 외 ${r.stations.filter(s => s.stored + s.reserved > 0.5).length - 1}곳` : ''}` : r.inTransit ? '운송 중' : '—'}</td><td>${n0(r.available)}</td><td>${n0(r.reserved)}</td><td>${n0(r.inTransit)}</td><td>${n0(r.planned)}</td><td>${n0(r.consumption)}</td><td>${r.target ? n0(r.target) : '—'}</td><td>${r.shortage > 0 ? `<b class="warn">−${n0(r.shortage)}</b>` : r.surplus > 0 ? `<span class="good">+${n0(r.surplus)}</span>` : '—'}</td></tr>${this.item === r.item ? detail(r) : ''}`).join('') || '<tr><td colspan="10" class="dim">보유 재고가 없습니다</td></tr>'}</tbody></table></div>`;
   }
 
   private industryTab() {
@@ -237,17 +273,23 @@ export class OperationsPanel {
     const industrySales = Object.entries(sales).filter(([i]) => prodItems.has(i)).reduce((a, [, v]) => a + v, 0);
     const purchases = led.reduce((n, h) => n + (h.exp.purchase ?? 0), 0);
     return `<div class="lg-summary"><div><span>보관된 시간 동안 가공품 판매</span><b class="good">${cr(industrySales)}</b></div><div><span>같은 기간 구매 지출</span><b>${cr(purchases)}</b></div><div><span>운영 유지비 (함대 포함) / 시간</span><b class="warn">${cr(upkeep)}</b></div><div><span>장부 기간</span><b>${hours}시간</b></div></div>
+      ${(() => { const plans = this.works().filter(x => x.goal?.k === 'stockpile' && !terminal(x)); return plans.length ? `<section class="pool-section"><div class="pool-section-head"><div><h3>회사 생산 계획</h3><p>비축 목표가 회사 전체 생산 라인에 나눠 둔 주문 (중간재 포함)</p></div></div>${plans.map(g => { const kids = this.works().filter(k => k.parent === g.id && k.kind === 'production' && !terminal(k)); return `<div class="proc-plan"><b>${esc(g.title)}</b> <span>${STATE_NAME[g.state]}</span><p>${kids.map(k => `${esc(this.stationName(k.ref.station))}: ${esc(k.title.split(' · ').slice(1).join(' · '))} ${n0(k.progress.done)}/${n0(k.progress.total)}${k.state === 'waiting' ? ` <span class="warn">(${esc(k.reason)})</span>` : ''}`).join(' · ') || esc(g.reason)}</p></div>`; }).join('')}</section>` : ''; })()}
       <p class="dim ops-note">수익성은 실제 판매 대금과 실제 지출로만 계산합니다. 장부가치나 예상가는 이익으로 보지 않으며, 아래 단위 부가가치는 현재 최저 매입가·최고 매도가 기준 추정입니다.</p>
       ${own.map(st => { const orders = st.orders ?? [], jobs = st.jobs ?? [];
         const facs = [...new Set(st.modules.filter(m => m.built).map(m => m.kind))].filter(k => Object.values(RECIPES).some(r => r.fac === k));
         return `<section class="pool-section"><div class="pool-section-head"><div><h3>${esc(st.name)}</h3><p>${facs.map(k => `${MODULES[k]?.name ?? k} ${jobs.filter(j => j.fac === k).length}/${facLines(st, k)} 가동`).join(' · ') || '생산 시설 없음'}</p></div><button class="btn" data-a="station" data-id="${st.id}" data-tab="prod">생산 화면</button></div>
           ${orders.map(o => { const r = recipeFor(w, o.recipe); if (!r) return ''; const out = Object.keys(r.out)[0]; const value = r.out[out] * best(out, 'sell') - Object.entries(r.in).reduce((n, [i, q]) => n + q * best(i, 'buy'), 0);
-            return `<div class="proc-plan"><b>${esc(r.name)}</b> <span>${o.mode === 'stock' ? `재고 ${n0(qty(st.storage[me], out))}/${n0(o.n)} 유지` : `${o.done}/${o.n}회`}${o.paused ? ' · 일시정지' : ''}</span><p>${o.why ? `<span class="warn">병목: ${esc(o.why)}</span>` : jobs.some(j => j.order === o.id) ? '가동 중' : '대기'} · 배치당 부가가치 추정 ${Number.isFinite(value) ? `${value >= 0 ? '+' : '−'}${n0(Math.abs(value))} cr` : '시장가 없음'} · 기록된 판매 ${n0(sales[out] ?? 0)} cr</p></div>`; }).join('') || '<p class="dim">생산 주문 없음</p>'}</section>`; }).join('') || '<p class="lg-empty">자사 정거장이 없습니다.</p>'}`;
+            const wk = this.works().find(x => x.ref.order === o.id && x.ref.station === st.id && !terminal(x)), busy = jobs.some(j => j.order === o.id);
+            const blocked = o.why && !busy && o.why !== '가동 중' && !/목표 재고 도달|완료/.test(o.why);
+            const lack = blocked ? Object.keys(r.in).find(i => o.why!.includes(itemName(i))) : undefined;
+            return `<div class="proc-plan"><b>${esc(r.name)}</b> <span>${o.mode === 'stock' ? `재고 ${n0(qty(st.storage[me], out))}/${n0(o.n)} 유지` : `${o.done}/${o.n}회`}${o.paused ? ' · 일시정지' : ''}${wk?.parent ? ` · ${esc(this.w.works?.[wk.parent]?.title ?? '')}의 계획` : ''}</span><p>${blocked ? `<span class="warn">병목: ${esc(o.why)}</span>` : busy ? '가동 중' : esc(o.why ?? '대기')} · 배치당 부가가치 추정 ${Number.isFinite(value) ? `${value >= 0 ? '+' : '−'}${n0(Math.abs(value))} cr` : '시장가 없음'} · 기록된 판매 ${n0(sales[out] ?? 0)} cr</p>
+              ${blocked ? `<div class="lg-card-actions ops-fix"><span class="dim">해결</span>${lack ? `<button class="btn" data-a="quick-stock" data-id="${lack}" data-st="${st.id}" data-v="${r.in[lack] * 4}">${esc(itemName(lack))} 비축 목표</button><button class="btn" data-a="goto" data-id="stock" data-item="${lack}">재고 위치 보기</button>` : ''}${/라인 사용 중/.test(o.why!) ? `<button class="btn" data-a="quick-fac" data-id="${r.fac}" data-st="${st.id}">${esc(MODULES[r.fac]?.name ?? r.fac)} 추가</button>` : ''}${/창고|전력/.test(o.why!) ? `<button class="btn" data-a="station" data-id="${st.id}" data-tab="build">시설 화면</button>` : ''}${wk && o.paused ? `<button class="btn" data-a="resume" data-id="${wk.id}">재개</button>` : ''}${/조달|구매/.test(wk?.reason ?? '') ? '<button class="btn" data-a="goto" data-id="finance">결재함</button>' : ''}</div>` : ''}</div>`; }).join('') || '<p class="dim">생산 주문 없음</p>'}</section>`; }).join('') || '<p class="lg-empty">자사 정거장이 없습니다.</p>'}`;
   }
 
   private researchTab() {
     const co = this.w.companies[this.me], q = co.research ?? [];
     return `<div class="lg-summary"><div><span>보유 기술</span><b>${co.tech?.length ?? 0}</b></div><div><span>연구 대기열</span><b>${q.length}</b></div><div><span>진행 중</span><b>${q.filter(p => p.started && !p.paused).length}</b></div><div><span>대기 사유 있음</span><b class="warn">${q.filter(p => p.why).length}</b></div></div>
+      ${q.some(p => p.why) ? `<div class="lg-card-actions ops-fix"><span class="dim">해결</span>${[...new Set(q.filter(p => p.why && p.station).map(p => p.station!))].map(id => `<button class="btn" data-a="station" data-id="${id}" data-tab="research">${esc(this.stationName(id))} 연구 화면</button>`).join('')}</div>` : ''}
       ${q.map(p => { const x = this.works().find(k => k.ref.research === p.id && !terminal(k)); return x ? this.workRow(x) : `<div class="ops-work"><div class="ops-work-top"><b>${esc(TECHS[p.tech]?.name ?? p.tech)}</b></div><div class="ops-progress"><i style="width:${pct(p.total - p.left, p.total)}%"></i></div><div class="ops-meta">${esc(p.why ?? '')}</div></div>`; }).join('') || '<p class="lg-empty">진행 중인 연구가 없습니다 — 정거장의 연구 화면에서 등록하면 이곳에 업무로 나타납니다.</p>'}`;
   }
 
@@ -257,17 +299,20 @@ export class OperationsPanel {
     const transport = this.works().filter(x => (x.kind === 'transport' || x.kind === 'route') && !terminal(x));
     return `<div class="lg-summary"><div><span>공용 배차 함선</span><b>${pool.length}</b></div><div><span>진행 운송</span><b>${live.length}</b></div><div><span>배차 대기</span><b class="warn">${live.filter(j => !j.ship).length}</b></div><div><span>운송 중 화물</span><b>${n0(live.reduce((n, j) => n + j.carried, 0))}</b></div></div>
       <p class="dim ops-note">모든 운송은 하나의 공용 배차가 처리합니다. 노선 편집·함선 참여는 <button class="an-link" data-a="logistics">물류 관리</button>에서 합니다.</p>
+      ${!pool.length && (live.length || this.works().some(x => !terminal(x) && /수송선/.test(x.reason))) ? `<div class="lg-feedback warn">공용 배차에 참여한 수송선이 없어 운송·구매품 이동이 멈춰 있습니다. <button class="btn go" data-a="logistics">물류 관리에서 함선 참여</button></div>` : ''}
       ${transport.map(x => this.workRow(x)).join('') || '<p class="dim">운송 업무가 없습니다.</p>'}
+      ${(() => { const opsW = this.works().filter(x => x.kind === 'operation' && !terminal(x)); return `<h3 class="ops-h3">함대 작전 <small>${opsW.length}</small></h3><p class="dim">채굴·순찰·호위처럼 끝나는 시점이 없는 작전은 지속 운영 업무로 표시됩니다. 일시정지하면 부대가 대기하고, 재개하면 같은 명령으로 돌아갑니다.</p>${opsW.map(x => this.workRow(x)).join('') || '<p class="dim">진행 중인 함대 작전이 없습니다 — 전략 지도에서 부대에 명령하면 여기에 나타납니다.</p>'}`; })()}
       ${live.filter(j => j.procurement).length ? `<h3 class="ops-h3">자동 조달 운송</h3>${live.filter(j => j.procurement).slice(0, 30).map(j => `<div class="proc-plan"><b>${esc(itemName(j.item))} ${n0(j.amount)}</b> <span>${esc(this.stationName(j.from))} → ${esc(this.stationName(j.to))} · ${j.ship ? '수행 중' : '대기'}</span><p>${esc(j.reason ?? '')}</p></div>`).join('')}` : ''}`;
   }
 
   private buildTab() {
     const w = this.w, me = this.me, own = Object.values(w.stations).filter(s => s.owner === me);
     const items = this.works().filter(x => ['station', 'facility', 'ship', 'fleet', 'facilities'].includes(x.kind) && !terminal(x));
+    // anything not yet adopted (the server adopts engine work every few seconds) is still listed, never hidden
     const unregistered = own.flatMap(s => [...s.modules.filter(m => !m.built && !items.some(x => x.ref.module === m.id)).map(m => `<div class="proc-plan"><b>${esc(s.name)} · ${esc(MODULES[m.kind]?.name ?? m.kind)}</b> <span>${Math.round(m.progress * 100)}%${m.paused ? ' · 일시정지' : ''}</span></div>`), ...(s.builds ?? []).filter(b => !items.some(x => x.ref.build === b.id)).map(b => `<div class="proc-plan"><b>${esc(s.name)} · ${esc(b.hull ? CONTENT.hulls[b.hull]?.name : b.classId)}</b> <span>${b.started ? '건조 중' : esc(b.why ?? '대기')}</span></div>`)]);
     return `<div class="lg-summary"><div><span>정거장</span><b>${own.length}</b></div><div><span>시설 건설</span><b>${own.reduce((n, s) => n + s.modules.filter(m => !m.built).length, 0)}</b></div><div><span>함선 건조</span><b>${own.reduce((n, s) => n + (s.builds ?? []).length, 0)}</b></div><div><span>설립 이동</span><b>${items.filter(x => x.kind === 'station').length}</b></div></div>
       ${items.sort((a, b) => b.priority - a.priority || a.created - b.created).map(x => this.workRow(x)).join('') || '<p class="dim">건설·조선 업무가 없습니다.</p>'}
-      ${unregistered.length ? `<h3 class="ops-h3">이전에 등록된 계획</h3><p class="dim">업무 시스템 도입 전 주문 — 정거장 화면에서 관리합니다.</p>${unregistered.join('')}` : ''}`;
+      ${unregistered.length ? `<h3 class="ops-h3">업무 편입 대기</h3><p class="dim">방금 시작되었거나 이전 저장의 작업 — 몇 초 안에 업무로 편입됩니다.</p>${unregistered.join('')}` : ''}`;
   }
 
   private financeTab() {

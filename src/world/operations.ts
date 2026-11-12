@@ -8,9 +8,9 @@
 // original systems still applies. Approvals (결재) are raised only where automatic work would
 // spend money without authority or take a risk the company has not accepted.
 import type { WorldSim, Cmd } from './sim';
-import type { Company, Station, WorldState } from './types';
+import type { Company, Station, WorldState, Op, WGroup } from './types';
 import { qty, cargoSum } from './types';
-import { ITEMS, EQUIPMENT, RECIPES, TECHS, recipeFor, facilityBuild } from './industry';
+import { ITEMS, EQUIPMENT, RECIPES, TECHS, FACILITIES, recipeFor, facilityBuild } from './industry';
 import { MODULES, RES_NAME } from './data';
 import { missing, planMats, prereqBuilt } from './construction';
 import { recipeOk, facLines } from './production';
@@ -25,15 +25,17 @@ import { dist } from './geom';
 
 export type WorkKind =
   | 'buy' | 'sell' | 'transport' | 'route' | 'station' | 'facility' | 'ship' | 'research' | 'production'
-  | 'repair' | 'refit' | 'purchase_ship' | 'exchange' | 'contract'
+  | 'repair' | 'refit' | 'purchase_ship' | 'exchange' | 'contract' | 'operation'
   | 'stockpile' | 'trade' | 'fleet' | 'facilities' | 'condition';
-export type WorkMode = 'once' | 'maintain' | 'repeat' | 'condition';
+/** continuous: an open-ended operation (mining, patrol, escort …) — it runs until the player stops or changes it */
+export type WorkMode = 'once' | 'maintain' | 'repeat' | 'condition' | 'continuous';
 export type WorkState = 'running' | 'waiting' | 'paused' | 'done' | 'failed' | 'cancelled';
 export const GOAL_KINDS: WorkKind[] = ['stockpile', 'trade', 'fleet', 'facilities', 'condition'];
 
 export type GoalSpec =
-  /** keep (maintain) or reach (once) `target` units of `item` in the company store at `station` */
-  | { k: 'stockpile'; station: string; item: string; target: number; maintain: boolean; buy: boolean; produce: boolean }
+  /** keep (maintain) or reach (once) `target` units of `item`: at `station` (scope 'station', default), or
+   *  across the whole company (scope 'company' — every own store and shipment counts; `station` receives purchases) */
+  | { k: 'stockpile'; station: string; item: string; target: number; maintain: boolean; buy: boolean; produce: boolean; scope?: 'station' | 'company' }
   /** buy at `from`, carry and sell at `to`; one cycle moves `amount`; `cycles` 0 = until stopped */
   | { k: 'trade'; item: string; from: string; to: string; amount: number; maxBuy: number; minSell: number; minProfit: number; cycles: number }
   /** have `count` new hulls of this design built at `station` */
@@ -46,6 +48,8 @@ export type GoalSpec =
 export interface WorkRef {
   station?: string; module?: string; order?: string; build?: string; research?: string; job?: string; route?: string;
   group?: string; contract?: string; ship?: string; item?: string; at?: { x: number; y: number; z: number }; tech?: string;
+  /** fleet operation kind (group op) */
+  op?: string;
 }
 export interface Work {
   id: string; owner: string; kind: WorkKind; mode: WorkMode; title: string;
@@ -55,6 +59,8 @@ export interface Work {
   parent?: string;
   /** created by a goal or the planner, not directly by the player */
   auto?: boolean;
+  /** found already running in the engines (older save or engine-initiated) and taken under management */
+  adopted?: boolean;
   ref: WorkRef;
   goal?: GoalSpec;
   progress: { done: number; total: number; unit?: string };
@@ -71,8 +77,14 @@ export interface Work {
     order?: string; launched?: number; cycles?: number; losses?: number; profit?: number; phase?: 'buy' | 'move';
     cycleCost?: number; cycleJob?: string; sellQuote?: number; sellRatio?: number; bought?: number; riskOk?: number; noBuyUntil?: number; creditsOk?: number;
     rejected?: Record<string, { t: number; amount: number }>; lastRun?: number; triggered?: number;
+    /** last observed progress per production order of this goal (`station:order` → done, time) — stall detection */
+    prod?: Record<string, { done: number; t: number }>;
     /** a cancel/pause was issued by the player on the underlying object */
     cancelled?: boolean;
+    /** market chosen by the player in an approval (overrides the cheapest-market choice) */
+    market?: string;
+    /** fleet operation held while paused (restored on resume) */
+    heldOp?: Op;
   };
 }
 
@@ -171,7 +183,7 @@ function setState(h: WorldSim, w: Work, state: WorkState, reason: string) {
 export const STATE_NAME: Record<WorkState, string> = { running: '진행', waiting: '대기', paused: '일시정지', done: '완료', failed: '실패', cancelled: '취소' };
 export const KIND_NAME: Record<WorkKind, string> = {
   buy: '구매', sell: '판매', transport: '운송', route: '정기 운송', station: '정거장 건설', facility: '시설 건설', ship: '함선 건조', research: '연구', production: '생산',
-  repair: '수리', refit: '개장', purchase_ship: '함선 구매', exchange: '거래소', contract: '계약',
+  repair: '수리', refit: '개장', purchase_ship: '함선 구매', exchange: '거래소', contract: '계약', operation: '함대 작전',
   stockpile: '비축 목표', trade: '반복 무역', fleet: '함대 목표', facilities: '시설 목표', condition: '조건 거래',
 };
 const children = (h: WorldSim, w: Work) => Object.values(h.st.works ?? {}).filter(c => c.parent === w.id);
@@ -237,7 +249,8 @@ export function registerCommand(h: WorldSim, company: string, cmd: Cmd, before: 
       return;
     }
     case 'prodOrder': {
-      if (!st) return; const id = `o${st.seq}`, o = st.orders?.find(x => x.id === id); if (!o) return;
+      // the new order is the last one (its id cannot be derived from st.seq: a batch started at once also takes a sequence number)
+      if (!st) return; const o = st.orders?.at(-1); if (!o || findWork(h, company, x => x.ref.station === st.id && x.ref.order === o.id)) return; const id = o.id;
       const r = recipeFor(h.st, o.recipe);
       addWork(h, company, 'production', `${st.name} · ${r?.name ?? o.recipe} ${o.mode === 'stock' ? `재고 ${fmt(o.n)} 유지` : `${fmt(o.n)}회`}`, { station: st.id, order: id }, { mode: o.mode === 'stock' ? 'maintain' : 'once', progress: { done: 0, total: o.n } });
       return;
@@ -269,7 +282,7 @@ export function registerCommand(h: WorldSim, company: string, cmd: Cmd, before: 
       return;
     }
     case 'setOp': {
-      if (cmd.op.k !== 'found') return;
+      if (cmd.op.k !== 'found') { if (!opControl) opWork(h, company, cmd.group, h.st.groups[cmd.group]?.op ?? cmd.op); return; }
       const prior = findWork(h, company, w => w.kind === 'station' && w.ref.group === cmd.group && !terminal(w) && !w.ref.station);
       if (prior) { prior.ref.at = { ...cmd.op.at }; prior.title = `정거장 설립 · ${cmd.op.name}`; return; }
       const w = addWork(h, company, 'station', `정거장 설립 · ${cmd.op.name}`, { group: cmd.group, at: { ...cmd.op.at } }, { progress: { done: 0, total: 1 } });
@@ -288,6 +301,58 @@ export function registerCommand(h: WorldSim, company: string, cmd: Cmd, before: 
     }
   }
 }
+// ───────────────────────────────────────────────────────── fleet operations
+
+export const OP_NAME: Record<string, string> = {
+  mine: '채굴', haul: '수송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설 지원', survey: '탐사', salvage: '인양', move: '이동', dock: '정박', found: '정거장 설립',
+};
+/** operations without a natural end: they run until the player stops or changes them */
+const CONTINUOUS_OPS = new Set(['mine', 'haul', 'patrol', 'escort', 'build']);
+/** set while workOp itself issues the order, so pausing/resuming does not open or close a work */
+let opControl = false;
+function opTarget(h: WorldSim, op: Op): string {
+  const stn = (id?: string) => (id && h.st.stations[id]?.name) || '';
+  switch (op.k) {
+    case 'mine': return `${h.st.fields[op.field]?.name ?? '광구'}${op.deliver ? ` → ${stn(op.deliver)}${op.sell ? ' 판매' : ''}` : ''}`;
+    case 'haul': return `${stn(op.from)} → ${stn(op.to)} ${op.res.startsWith('*') ? (op.res === '*auto' ? '자동 보급' : '전체') : itemName(op.res)}`;
+    case 'patrol': return `${h.sysOf(op.at)?.name ?? ''} 반경 ${Math.round(op.radius)}`;
+    case 'escort': return h.st.groups[op.group]?.name ?? '';
+    case 'attack': return op.group ? h.st.groups[op.group]?.name ?? '목표 함대' : '해적 거점';
+    case 'build': case 'dock': return stn(op.station);
+    case 'survey': return h.st.systems[op.system]?.name ?? '';
+    case 'salvage': return '인양 지점';
+    case 'move': return h.sysOf(op.to)?.name ?? '';
+    default: return '';
+  }
+}
+/** A group order became the group's operation: end its previous operation work and open one for the new order. */
+function opWork(h: WorldSim, owner: string, groupId: string, op: Op, adopted = false): Work | undefined {
+  const g = h.st.groups[groupId]; if (!g || g.owner !== owner) return;
+  for (const w of Object.values(h.st.works ?? {})) if (w.owner === owner && w.kind === 'operation' && w.ref.group === groupId && !terminal(w)) {
+    w.result = op.k === 'idle' ? '대기 명령으로 종료' : `${OP_NAME[op.k] ?? op.k} 명령으로 전환`;
+    setState(h, w, w.mode === 'continuous' ? 'done' : 'cancelled', '');
+  }
+  if (op.k === 'idle' || op.k === 'found' || !OP_NAME[op.k]) return;
+  const w = addWork(h, owner, 'operation', `${g.name} · ${OP_NAME[op.k]}${opTarget(h, op) ? ` · ${opTarget(h, op)}` : ''}`, { group: groupId, op: op.k, ...('station' in op ? { station: op.station } : op.k === 'mine' && op.deliver ? { station: op.deliver } : {}) },
+    { mode: CONTINUOUS_OPS.has(op.k) ? 'continuous' : 'once', progress: { done: 0, total: CONTINUOUS_OPS.has(op.k) ? 0 : 1 }, ...(adopted ? { adopted: true } : {}) });
+  if (adopted) { delete w.parent; delete w.auto; }
+  projectWork(h, w); return w;
+}
+function projectOperation(h: WorldSim, w: Work) {
+  const g = h.st.groups[w.ref.group ?? ''];
+  if (!g || g.owner !== w.owner) { w.result = '부대 해산·소실'; return setState(h, w, w.mode === 'continuous' ? 'done' : 'failed', '부대 소실'); }
+  if (w.rt?.heldOp) return setState(h, w, 'paused', '일시정지 — 부대 대기 중, 재개하면 같은 명령으로 복귀');
+  const ships = h.subtreeShips(g).filter(s => s.hp > 0).length;
+  if (g.op.k !== w.ref.op) {
+    if (w.mode === 'continuous') { w.result = `운영 종료 — ${g.status || '명령 변경'}`; return setState(h, w, 'done', ''); }
+    w.progress.done = 1; w.result = g.status || '임무 종료'; return setState(h, w, 'done', '');
+  }
+  if (!ships) return setState(h, w, 'waiting', '배속된 함선 없음 — 함대 화면에서 함선을 배속하세요');
+  if ((w.ref.op === 'move' && /도착/.test(g.status)) || (w.ref.op === 'dock' && / 정박$/.test(g.status))) { w.progress.done = 1; w.result = g.status; return setState(h, w, 'done', ''); }
+  const blocked = /없음|불가|부족|소실|오류|대기/.test(g.status);
+  return setState(h, w, blocked ? 'waiting' : 'running', `${g.status || '수행 중'} · 함선 ${ships}척`);
+}
+
 function chargeParent(h: WorldSim, w: Work, amount: number) {
   if (!w.parent || amount <= EPS) return;
   const holder = budgetHolder(h, h.st.works?.[w.parent] ?? w);
@@ -365,6 +430,7 @@ export function projectWork(h: WorldSim, w: Work) {
       if (w.ref.station) {
         const s = h.st.stations[w.ref.station]; if (!s) return setState(h, w, 'failed', '정거장 소실');
         const core = s.modules.find(m => m.kind === 'core');
+        if (core?.id) w.ref.module ??= core.id;
         w.progress = { done: core?.built ? 1 : core?.progress ?? 0, total: 1 };
         if (core?.built) { w.result = `${s.name} 설립 완료`; return setState(h, w, 'done', ''); }
         const short = core ? planMats(core).filter(r => missing(core, r) > EPS) : [];
@@ -378,6 +444,7 @@ export function projectWork(h: WorldSim, w: Work) {
       if (g.op.k !== 'found') return setState(h, w, 'cancelled', '부대 명령이 변경되어 설립 취소 — 선불금은 원래 규칙대로 정산');
       return setState(h, w, 'running', '건설선 부지로 이동 중');
     }
+    case 'operation': return projectOperation(h, w);
     case 'contract': {
       const c = h.st.contracts[w.ref.contract ?? ''];
       if (!c) { w.result = '계약 종료'; return setState(h, w, 'done', ''); }
@@ -457,10 +524,10 @@ function resolveOpen(h: WorldSim, w: Work, key: string, why: string) {
 }
 const openApproval = (h: WorldSim, w: Work, key: string) => Object.values(h.st.approvals ?? {}).find(x => x.work === w.id && x.key === key && x.state === 'open');
 
-function purchaseApproval(h: WorldSim, w: Work, auth: AuthResult, items: Approval['items'], extra: { risk?: Approval['risk']; alt?: Approval['alt']; context: string }) {
+function purchaseApproval(h: WorldSim, w: Work, auth: AuthResult, items: Approval['items'], extra: { risk?: Approval['risk']; alt?: Approval['alt']; context: string; key?: string }) {
   const co = h.st.companies[w.owner], pol = opsOf(co).policy;
   const cost = items.reduce((n, x) => n + x.amount * x.price, 0), unit = items.length === 1 ? items[0].price : undefined;
-  const holder = budgetHolder(h, w), key = `${auth.kind}`;
+  const holder = budgetHolder(h, w), key = extra.key ?? `${auth.kind}`;
   const label = items.map(x => `${itemName(x.item)} ${fmt(x.amount)}`).join(', ');
   const station = items[0] ? h.st.stations[items[0].station]?.name ?? '' : '';
   const options: ApprovalOption[] = [];
@@ -470,7 +537,8 @@ function purchaseApproval(h: WorldSim, w: Work, auth: AuthResult, items: Approva
   } else {
     const cap = items.reduce((n, x) => n + x.amount * Math.ceil(x.price * 1.15), 0);
     options.push({ id: 'approve', label: holder.budget ? '예산 증액 후 구매' : '구매 승인', detail: `${station}에서 ${label} — 추정 ${fmt(cost)} cr, 최대 ${fmt(cap)} cr (단가 상한 +15%)`, cost, recommended: !extra.risk, scopes: ['once', 'work', 'policy'], input: 'budget' });
-    options.push({ id: 'wait', label: '구매 없이 자사 재고·생산으로만 진행', detail: '내부 이송과 생산으로 가능한 만큼 진행하고 6시간 동안 같은 구매를 묻지 않습니다', scopes: ['once'] });
+    options.push(...alternatives(h, w, items));
+    options.push({ id: 'wait', label: '구매 없이 자사 재고·생산으로만 진행', detail: `내부 이송과 생산으로 가능한 만큼 진행하고 6시간 동안 같은 구매를 묻지 않습니다 — 영향: ${label} 부족이 이어지고 이 목표는 대기${children(h, w).filter(c => !terminal(c)).length ? `, 진행 중인 하위 업무 ${children(h, w).filter(c => !terminal(c)).length}건은 계속` : ''}`, scopes: ['once'] });
   }
   if (extra.alt) options.push({ id: 'safe', label: '안전 경로 시장 이용', detail: `${h.st.stations[extra.alt.station]?.name ?? ''} — 추정 ${fmt(extra.alt.cost)} cr · ${extra.alt.hops}점프 · 최대 위험 ${Math.round(extra.alt.risk)} (추정)`, cost: extra.alt.cost, recommended: true, scopes: ['once', 'work'] });
   options.push({ id: 'pause', label: '이 목표 일시정지', detail: '진행 중인 운송 화물은 그대로 도착합니다', scopes: ['once'] });
@@ -482,6 +550,63 @@ function purchaseApproval(h: WorldSim, w: Work, auth: AuthResult, items: Approva
     risk: extra.risk, alt: extra.alt, options,
     rejectEffect: '구매 없이 내부 재고·생산으로 가능한 만큼만 진행하고, 부족분은 업무 대기 사유로 표시됩니다',
     scopeNote: '이번만: 이 금액까지 · 이 목표: 같은 품목·단가 이내라면 이 목표 끝까지 · 정책 위임: 회사 전체 같은 품목·단가 이내 자동 구매 (위임 예산 한도 내)',
+  });
+}
+
+/** rough travel time of a pool haul over `hops` gate jumps (display only — always labelled as an estimate) */
+const etaText = (hops: number) => hops <= 0 ? '현장 즉시' : `도착 약 ${Math.round(4 + hops * 3)}분 (추정)`;
+/**
+ * Real alternatives to a proposed purchase, each with its expected effect: other markets (price, route,
+ * risk, time), making the item instead (own lines that the goal does not use yet, or a facility to build).
+ */
+function alternatives(h: WorldSim, w: Work, items: Approval['items']): ApprovalOption[] {
+  if (items.length !== 1 || !safeItem(items[0].item)) return [];
+  const x = items[0], co = h.st.companies[w.owner], out: ApprovalOption[] = [];
+  const target = h.st.stations[(w.goal && 'station' in w.goal ? w.goal.station : undefined) ?? w.ref.station ?? x.station] ?? h.st.stations[x.station];
+  const chosen = x.amount * x.price;
+  const markets = Object.values(h.st.stations).filter(s => s.id !== x.station && s.public && s.market?.[x.item] && s.market[x.item].stock >= 1 && h.canDock(s, w.owner) && h.price(s, x.item, 'buy') > 0)
+    .map(s => ({ s, price: h.price(s, x.item, 'buy'), r: s.id === target?.id ? { hops: 0, risk: 0 } : target ? routeRisk(h, s, target, 100) : null })).filter(m => m.r)
+    .sort((a, b) => a.price * (1 + a.r!.hops * 0.01) - b.price * (1 + b.r!.hops * 0.01) || a.s.id.localeCompare(b.s.id)).slice(0, 2);
+  for (const m of markets) {
+    const n = Math.min(x.amount, Math.floor(m.s.market![x.item].stock)), cost = n * m.price, diff = cost - chosen;
+    out.push({ id: `market:${m.s.id}`, label: `${m.s.name}에서 구매`, detail: `단가 ${fmt(m.price)} cr · ${fmt(n)}개 ${fmt(cost)} cr (추정, 제안안보다 ${diff >= 0 ? `${fmt(diff)} cr 비쌈` : `${fmt(-diff)} cr 저렴`}) · ${m.r!.hops}점프 · 경로 위험 ${Math.round(m.r!.risk)} · ${etaText(m.r!.hops)}${n < x.amount ? ` · 시장 재고 부족으로 ${fmt(x.amount - n)} 미충족` : ''}`, cost, eta: etaText(m.r!.hops), risk: `경로 위험 ${Math.round(m.r!.risk)} (추정)`, scopes: ['once', 'work'] });
+  }
+  if (w.goal?.k === 'stockpile') {
+    const recipes = producible(h, w.owner, x.item), own = Object.values(h.st.stations).filter(s => s.owner === w.owner);
+    const unit = (r: (typeof recipes)[number]) => Object.entries(r.in).reduce((n, [i, k]) => n + k * (cheapestPrice(h, w.owner, i) ?? Infinity), 0) / r.out[x.item];
+    const withLines = recipes.filter(r => own.some(s => facLines(s, r.fac) > 0));
+    if (withLines.length && (!w.goal.produce || !opsOf(co).policy.preferProduce)) {
+      const r = withLines[0], u = unit(r);
+      out.push({ id: 'produce', label: '자체 생산으로 전환', detail: `${r.name} — 원료 시장가 기준 약 ${Number.isFinite(u) ? fmt(u) : '?'} cr/개 vs 구매 ${fmt(x.price)} cr/개 (추정, 설비 유지비 제외) · 생산 라인 대기열에 따라 지연`, scopes: ['once'] });
+    } else if (!withLines.length && recipes.length && target?.owner === w.owner) {
+      const r = [...recipes].sort((a, b) => unit(a) - unit(b))[0], fac = FACILITIES[r.fac], mod = MODULES[r.fac];
+      if (fac && mod) {
+        const est = facilityBuild(mod, true).credits, u = unit(r);
+        out.push({ id: `facility:${r.fac}`, label: `${fac.name} 건설 후 자체 생산`, detail: `${target.name}에 ${fac.name} 착공 — 건설비 약 ${fmt(est)} cr + 자재(조달) · 완공까지 이 목표 구매 보류 · 완공 후 원료비 약 ${Number.isFinite(u) ? fmt(u) : '?'} cr/개 vs 구매 ${fmt(x.price)} cr/개 (추정, 유지비 별도)`, cost: est, scopes: ['once'] });
+      }
+    }
+  }
+  return out;
+}
+function cheapestPrice(h: WorldSim, owner: string, item: string) {
+  let best: number | undefined;
+  for (const s of Object.values(h.st.stations)) if (s.public && s.market?.[item] && h.canDock(s, owner)) { const p = h.price(s, item, 'buy'); if (p > 0 && (best === undefined || p < best)) best = p; }
+  return best;
+}
+/** after a rejection: look at the real alternatives once; anything that needs no new money is applied, the rest is offered once */
+function reviewAfterReject(h: WorldSim, w: Work, a: Approval) {
+  if (a.key === 'alt') { note(w, h.time, '대안도 거절 — 6시간 동안 구매를 제안하지 않고 내부 재고·생산만 사용'); return; }
+  const alts = a.options.filter(o => /^(market:|facility:|produce$)/.test(o.id));
+  const free = Object.values(h.st.stations).filter(s => s.storage[w.owner] && a.items[0] && s.id !== (w.goal && 'station' in w.goal ? w.goal.station : '')).reduce((n, s) => n + (a.items[0] && safeItem(a.items[0].item) ? freeStock(h, w.owner, s, a.items[0].item, w.id) : 0), 0);
+  const summary = [`자사 다른 정거장 여유 재고 ${fmt(free)}`, ...alts.map(o => `${o.label}: ${o.detail}`)];
+  if (!alts.length) summary.push('다른 시장·생산 대안 없음');
+  note(w, h.time, `거절 후 대안 검토 — ${summary.join(' / ')}`);
+  if (!alts.length) return;
+  raise(h, w, a.kind === 'risk' ? 'risk' : 'purchase', 'alt', {
+    title: `${w.title} — 거절 후 대안`, reason: '제안한 구매가 거절되어 다른 방법을 검토했습니다', situation: summary.join(' · '), items: a.items,
+    estimate: { cost: Math.min(...alts.map(o => o.cost ?? Infinity).filter(Number.isFinite), a.estimate.cost), note: '각 대안의 금액·시간은 현재 시세와 경로 기준 추정' },
+    options: [...alts, { id: 'wait', label: '대안도 보류', detail: '6시간 동안 구매를 제안하지 않고 내부 재고·생산만 사용합니다', recommended: true, scopes: ['once'] }, { id: 'reject', label: '거절', detail: '6시간 동안 다시 묻지 않습니다', scopes: ['once'] }],
+    rejectEffect: '이 목표는 내부 재고·생산으로 가능한 만큼만 진행하고 부족분은 대기 사유로 남습니다', scopeNote: '이번만: 이 금액까지 · 이 목표: 같은 시장·단가 이내라면 이 목표 끝까지',
   });
 }
 
@@ -518,17 +643,37 @@ export function decideApproval(h: WorldSim, owner: string, id: string, option: s
       if (w.rt?.noBuyUntil) delete w.rt.noBuyUntil;
       break;
     }
+    default: {
+      if (option.startsWith('market:')) {
+        const sid = option.slice(7), price = h.st.stations[sid] && a.items[0] ? h.price(h.st.stations[sid], a.items[0].item, 'buy') : 0;
+        (w.rt ??= {}).market = sid; delete w.rt.noBuyUntil;
+        const target = holder.budget ? holder : budgetHolder(h, w), b = target.budget ??= { limit: 0, spent: 0 }, cap = Math.ceil(price * 1.15);
+        if (scope === 'work') { b.open = true; b.maxPrice = Math.max(b.maxPrice ?? 0, cap); } else { b.limit = Math.max(b.limit, b.spent) + (value ?? (opt.cost ?? 0) * 1.15); b.maxPrice = Math.max(b.maxPrice ?? 0, cap); }
+        break;
+      }
+      if (option.startsWith('facility:')) {
+        const kind = option.slice(9), st = h.st.stations[(w.goal && 'station' in w.goal ? w.goal.station : w.ref.station) ?? ''];
+        if (!st || st.owner !== owner) return '자사 정거장이 아닙니다';
+        const count = st.modules.filter(m => m.kind === kind).length + 1;
+        const err = createGoal(h, owner, { k: 'facilities', station: st.id, kind, count }, { budget: value ?? opt.cost ?? 0, priority: w.priority });
+        if (err) return err;
+        (w.rt ??= {}).noBuyUntil = h.time + 24 * 3600; note(w, h.time, `${FACILITIES[kind]?.name ?? kind} 건설 목표 등록 — 완공 후 자체 생산`);
+        break;
+      }
+      if (option === 'produce' && w.goal?.k === 'stockpile') { w.goal.produce = true; if (!pol.preferProduce) pol.preferProduce = true; delete (w.rt ??= {}).noBuyUntil; (w.rt.rejected ??= {})[a.key] = { t: h.time, amount: a.estimate.cost }; break; }
+      return '선택지를 확인하세요';
+    }
     case 'safe': (w.rt ??= {}).riskOk = -1; if (scope === 'work') { const b = (holder.budget ??= { limit: 0, spent: 0 }); b.limit = Math.max(b.limit, b.spent) + (a.alt?.cost ?? amount); } else { const b = (holder.budget ??= { limit: 0, spent: 0 }); b.limit = Math.max(b.limit, b.spent) + (a.alt?.cost ?? amount); } break;
     case 'wait': (w.rt ??= {}).noBuyUntil = h.time + REJECT_HOLD; ((w.rt.rejected ??= {})[a.key] = { t: h.time, amount: a.estimate.cost }); break;
     case 'pause': workOp(h, owner, w.id, 'pause'); break;
     case 'cancel': workOp(h, owner, w.id, 'cancel'); break;
     case 'reject': ((w.rt ??= {}).rejected ??= {})[a.key] = { t: h.time, amount: a.estimate.cost }; w.rt.noBuyUntil = h.time + REJECT_HOLD; break;
-    default: return '선택지를 확인하세요';
   }
   a.state = option === 'reject' ? 'rejected' : 'approved'; a.choice = option; a.scope = scope; a.decided = h.time; a.updated = h.time;
+  if (option === 'reject' && (a.kind === 'purchase' || a.kind === 'budget' || a.kind === 'risk')) reviewAfterReject(h, w, a);
   note(w, h.time, `결재 ${option === 'reject' ? '거절' : '처리'}: ${opt.label}${scope !== 'once' ? ` (${scope === 'work' ? '이 목표 전체' : '정책 위임'})` : ''}`);
   // related open approvals of the same work become moot when a budget/authority was granted
-  if (option === 'approve' || option === 'safe') for (const x of Object.values(h.st.approvals ?? {})) if (x !== a && x.work === a.work && x.state === 'open' && x.kind !== 'loss') { x.state = 'resolved'; x.note = '같은 업무의 다른 결재로 해결'; x.updated = h.time; }
+  if (option === 'approve' || option === 'safe' || option.startsWith('market:') || option === 'produce') for (const x of Object.values(h.st.approvals ?? {})) if (x !== a && x.work === a.work && x.state === 'open' && x.kind !== 'loss') { x.state = 'resolved'; x.note = '같은 업무의 다른 결재로 해결'; x.updated = h.time; }
   return null;
 }
 
@@ -568,7 +713,7 @@ function outboundClaims(h: WorldSim, owner: string, station: string, item: strin
 export function freeStock(h: WorldSim, owner: string, station: Station, item: string, exceptGoal?: string) {
   const co = h.st.companies[owner];
   const protectedN = co.procurement?.protectedStock[station.id]?.[item] ?? 0;
-  const goalHold = Object.values(h.st.works ?? {}).filter(w => w.owner === owner && w.id !== exceptGoal && !terminal(w) && w.goal?.k === 'stockpile' && w.goal.station === station.id && w.goal.item === item).reduce((n, w) => n + (w.goal as Extract<GoalSpec, { k: 'stockpile' }>).target, 0);
+  const goalHold = Object.values(h.st.works ?? {}).filter(w => w.owner === owner && w.id !== exceptGoal && !terminal(w) && w.goal?.k === 'stockpile' && (w.goal.scope ?? 'station') === 'station' && w.goal.station === station.id && w.goal.item === item).reduce((n, w) => n + (w.goal as Extract<GoalSpec, { k: 'stockpile' }>).target, 0);
   return Math.max(0, qty(station.storage[owner], item) - protectedN - goalHold - outboundClaims(h, owner, station.id, item));
 }
 
@@ -591,9 +736,12 @@ export function createGoal(h: WorldSim, owner: string, spec: GoalSpec, opts: { t
       if (!safeItem(spec.item)) return '품목을 확인하세요';
       if (!finite(spec.target, 1e7) || spec.target < 1) return '목표 수량을 확인하세요';
       const sp = spec;
-      if (live.some(w => w.goal?.k === 'stockpile' && w.goal.station === sp.station && w.goal.item === sp.item)) return '같은 정거장·품목의 비축 목표가 이미 있습니다 — 기존 목표의 수량을 바꾸세요';
-      spec = { k: 'stockpile', station: st.id, item: spec.item, target: Math.floor(spec.target), maintain: !!spec.maintain, buy: spec.buy !== false, produce: spec.produce !== false };
-      title ??= `${st.name} · ${itemName(spec.item)} ${fmt(spec.target)} ${spec.maintain ? '비축 유지' : '확보'}`; mode = spec.maintain ? 'maintain' : 'once'; total = spec.target; unit = itemName(spec.item);
+      const scope = sp.scope === 'company' ? 'company' : 'station';
+      if (sp.scope !== undefined && sp.scope !== 'company' && sp.scope !== 'station') return '비축 범위를 확인하세요';
+      if (live.some(w => w.goal?.k === 'stockpile' && (w.goal.scope ?? 'station') === scope && w.goal.item === sp.item && (scope === 'company' || w.goal.station === sp.station)))
+        return scope === 'company' ? '같은 품목의 회사 전체 비축 목표가 이미 있습니다 — 기존 목표의 수량을 바꾸세요' : '같은 정거장·품목의 비축 목표가 이미 있습니다 — 기존 목표의 수량을 바꾸세요';
+      spec = { k: 'stockpile', station: st.id, item: spec.item, target: Math.floor(spec.target), maintain: !!spec.maintain, buy: spec.buy !== false, produce: spec.produce !== false, ...(scope === 'company' ? { scope } : {}) };
+      title ??= scope === 'company' ? `회사 전체 · ${itemName(spec.item)} ${fmt(spec.target)} ${spec.maintain ? '비축 유지' : '확보'}` : `${st.name} · ${itemName(spec.item)} ${fmt(spec.target)} ${spec.maintain ? '비축 유지' : '확보'}`; mode = spec.maintain ? 'maintain' : 'once'; total = spec.target; unit = itemName(spec.item);
       break;
     }
     case 'trade': {
@@ -653,28 +801,129 @@ function runGoal(h: WorldSim, w: Work) {
 const liveChildren = (h: WorldSim, w: Work, kind?: WorkKind) => children(h, w).filter(c => !terminal(c) && (!kind || c.kind === kind));
 function cmd(h: WorldSim, w: Work, c: Cmd): string | null { return withParent(w.id, () => h.command(w.owner, c)); }
 
+/** units of `item` the company holds anywhere: every store plus own shipments (reserved at a source or on board); sales shipments excluded */
+export function companyHolding(h: Pick<WorldSim, 'st'>, owner: string, item: string) {
+  let n = 0;
+  for (const st of Object.values(h.st.stations)) n += qty(st.storage[owner], item);
+  for (const j of Object.values(h.st.logisticsJobs ?? {})) if (j.owner === owner && j.item === item && j.kind !== 'sell' && liveJob(j)) n += j.reserved + j.carried;
+  return n;
+}
+/** free company stock of `item` over every store (protections, outbound promises and other goals' targets removed) */
+function freeCompany(h: WorldSim, owner: string, item: string, exceptGoal?: string) {
+  let n = 0; for (const st of Object.values(h.st.stations)) if (st.storage[owner]) n += freeStock(h, owner, st, item, exceptGoal);
+  return n;
+}
+const STALL = 900;
+interface GoalOrder { w: Work; st: Station; o: NonNullable<Station['orders']>[number]; r: NonNullable<ReturnType<typeof recipeFor>>; out: string; per: number; inflight: number; stalled: boolean }
+/** live production orders this goal planned (final product and intermediates), with stall detection */
+function goalOrders(h: WorldSim, w: Work): GoalOrder[] {
+  const rt = (w.rt ??= {}), seenP = (rt.prod ??= {}), out: GoalOrder[] = [], keep = new Set<string>();
+  for (const c of liveChildren(h, w, 'production')) {
+    const st = h.st.stations[c.ref.station ?? '']; const o = st?.orders?.find(x => x.id === c.ref.order); if (!st || !o) continue;
+    const r = recipeFor(h.st, o.recipe); if (!r) continue;
+    const item = Object.keys(r.out)[0], inflight = (st.jobs ?? []).filter(j => j.order === o.id).length, key = `${st.id}:${o.id}`;
+    const prev = seenP[key];
+    if (!prev || prev.done !== o.done || inflight > 0 || o.paused) seenP[key] = { done: o.done, t: h.time };
+    keep.add(key);
+    out.push({ w: c, st, o, r, out: item, per: r.out[item], inflight, stalled: !o.paused && inflight === 0 && h.time - seenP[key].t >= STALL });
+  }
+  for (const k of Object.keys(seenP)) if (!keep.has(k)) delete seenP[k];
+  return out;
+}
+const remainingOut = (g: GoalOrder) => g.o.mode === 'count' ? Math.max(0, g.o.n - g.o.done) * g.per : 0;
+const batchesToFeed = (g: GoalOrder) => g.o.mode === 'count' ? Math.max(0, g.o.n - g.o.done - g.inflight) : 0;
+function producible(h: WorldSim, owner: string, item: string) {
+  const co = h.st.companies[owner];
+  return Object.values(RECIPES).map(r => recipeFor(h.st, r.id)!).filter(r => r && (r.out[item] ?? 0) > 0 && recipeOk(r, co) && (!r.growth || growthOn(h.st)));
+}
+/**
+ * Plan `need` more units of `item` from the company's own production lines, at any own station that has them.
+ * Extends this goal's existing order of the same recipe at a station before opening a new one, so repeated
+ * passes never stack orders. Returns the units newly planned.
+ */
+function planProduce(h: WorldSim, w: Work, item: string, need: number, target: Station, orders: GoalOrder[], notes: string[]): number {
+  if (need < 1) return 0;
+  const recipes = producible(h, w.owner, item);
+  if (!recipes.length) { notes.push(`${itemName(item)}: 생산 레시피 없음 또는 연구 필요`); return 0; }
+  const own = Object.values(h.st.stations).filter(s => s.owner === w.owner);
+  const stalledAt = new Set(orders.filter(g => g.stalled).map(g => `${g.st.id}:${g.r.id}`));
+  type Opt = { r: (typeof recipes)[number]; st: Station; lines: number; load: number; hops: number; inputs: number };
+  const opts: Opt[] = [];
+  for (const r of recipes) for (const st of own) {
+    const lines = facLines(st, r.fac); if (lines < 1 || stalledAt.has(`${st.id}:${r.id}`)) continue;
+    const queued = (st.orders ?? []).filter(o => recipeFor(h.st, o.recipe)?.fac === r.fac && !o.paused).reduce((n, o) => n + (o.mode === 'count' ? Math.max(0, o.n - o.done) : 1), 0);
+    // inputs: 0 all in company stock, 1 producible by the company, 2 must be bought
+    const inputs = Math.max(0, ...Object.entries(r.in).map(([x, n]) => freeCompany(h, w.owner, x, w.id) >= n ? 0 : producible(h, w.owner, x).some(rr => own.some(s => facLines(s, rr.fac) > 0)) ? 1 : 2));
+    opts.push({ r, st, lines, load: queued / lines, hops: st.id === target.id ? 0 : routeRisk(h, st, target, 100)?.hops ?? 99, inputs });
+  }
+  if (!opts.length) {
+    const facs = [...new Set(recipes.map(r => FACILITIES[r.fac]?.name ?? r.fac))];
+    notes.push(`${itemName(item)}: 자사 정거장에 생산 시설 없음 (${facs.join(' 또는 ')} 필요)`); return 0;
+  }
+  // one recipe per pass: the one whose inputs the company can supply itself, then the most output per batch
+  opts.sort((a, b) => a.inputs - b.inputs || b.r.out[item] / b.r.time - a.r.out[item] / a.r.time || a.load - b.load || a.hops - b.hops || a.st.id.localeCompare(b.st.id));
+  const r = opts[0].r, per = r.out[item], places = opts.filter(o => o.r.id === r.id).slice(0, 3);
+  let batches = Math.ceil(need / per - EPS);
+  // spread over the stations that have these lines, weighted by free capacity (a small job stays in one place)
+  const weight = places.map(o => o.lines / (1 + o.load)), total = weight.reduce((a, b) => a + b, 0);
+  const share = batches <= places[0].lines * 2 ? [batches] : places.map((_, i) => Math.floor(batches * weight[i] / total));
+  if (share.length > 1) share[0] += batches - share.reduce((a, b) => a + b, 0);
+  let planned = 0;
+  share.forEach((b, i) => {
+    if (b < 1) return; const st = places[i].st;
+    const mine = orders.find(g => g.st.id === st.id && g.r.id === r.id && g.o.mode === 'count' && !g.o.paused);
+    if (mine) {
+      const err = cmd(h, w, { c: 'prodOp', station: st.id, order: mine.o.id, op: 'set', n: mine.o.n + b });
+      if (!err) { mine.w.progress.total = mine.o.n; planned += b * per; }
+      return;
+    }
+    const err = cmd(h, w, { c: 'prodOrder', station: st.id, recipe: r.id, mode: 'count', n: b });
+    if (err) { notes.push(`${st.name} 생산 불가: ${err}`); return; }
+    const o = st.orders!.at(-1)!, c = findWork(h, w.owner, x => x.ref.station === st.id && x.ref.order === o.id);
+    if (c) { c.ref.item = item; orders.push({ w: c, st, o, r, out: item, per, inflight: 0, stalled: false }); }
+    planned += b * per;
+  });
+  if (planned) notes.push(`${r.name} ${fmt(planned)} 생산 계획 (${share.filter(b => b > 0).map((b, i) => `${places[i].st.name} ${b}회`).join(', ')})`);
+  return planned;
+}
+/** intermediate products: make what the goal's own orders still need and the company neither holds nor already plans */
+function planInputs(h: WorldSim, w: Work, target: Station, orders: GoalOrder[], notes: string[]) {
+  for (let depth = 0; depth < 3; depth++) {
+    let added = 0;
+    const need = new Map<string, number>();
+    for (const g of orders) if (!g.stalled) for (const [x, n] of Object.entries(g.r.in)) need.set(x, (need.get(x) ?? 0) + n * batchesToFeed(g));
+    for (const [x, req] of [...need].sort((a, b) => a[0].localeCompare(b[0]))) {
+      const planned = orders.filter(g => g.out === x && !g.stalled).reduce((n, g) => n + remainingOut(g), 0);
+      // input already on its way to one of this goal's production stations is covered too
+      const consumers = new Set(orders.filter(g => (g.r.in[x] ?? 0) > 0).map(g => g.st.id));
+      const moving = Object.values(h.st.logisticsJobs ?? {}).filter(j => j.owner === w.owner && j.item === x && j.kind !== 'sell' && liveJob(j) && consumers.has(j.to)).reduce((n, j) => n + outstanding(j), 0);
+      const short = req - freeCompany(h, w.owner, x, w.id) - planned - moving;
+      if (short >= 1 && producible(h, w.owner, x).length) added += planProduce(h, w, x, short, target, orders, notes);
+    }
+    if (!added) break;
+  }
+}
+
 function runStockpile(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'stockpile' }>) {
   const st = h.st.stations[g.station]; if (!st) return setState(h, w, 'failed', '목표 정거장 소실');
-  const co = h.st.companies[w.owner], pol = opsOf(co).policy;
-  const have = qty(st.storage[w.owner], g.item), incoming = incomingTo(h, w.owner, st.id, g.item);
+  const co = h.st.companies[w.owner], pol = opsOf(co).policy, company = g.scope === 'company';
+  const have = company ? companyHolding(h, w.owner, g.item) : qty(st.storage[w.owner], g.item), incoming = company ? 0 : incomingTo(h, w.owner, st.id, g.item);
   w.progress = { done: Math.min(have, g.target), total: g.target, unit: itemName(g.item) };
-  const prod = w.rt?.order ? st.orders?.find(o => o.id === w.rt!.order) : undefined;
+  const orders = goalOrders(h, w);
   if (!g.maintain && have >= g.target - EPS) {
-    if (prod) cmd(h, w, { c: 'prodOp', station: st.id, order: prod.id, op: 'cancel' });
+    for (const o of orders) cmd(h, w, { c: 'prodOp', station: o.st.id, order: o.o.id, op: 'cancel' });
     for (const c of liveChildren(h, w, 'transport')) { const j = h.st.logisticsJobs?.[c.ref.job ?? '']; if (j && !j.ship && j.reserved <= EPS) cmd(h, w, { c: 'poolControl', job: j.id, action: 'cancel' }); }
-    w.result = `${itemName(g.item)} ${fmt(have)} 확보`; resolveOpen(h, w, 'purchase', '목표 달성'); resolveOpen(h, w, 'budget', '목표 달성');
+    w.result = `${itemName(g.item)} ${fmt(have)} 확보`; resolveOpen(h, w, 'purchase', '목표 달성'); resolveOpen(h, w, 'budget', '목표 달성'); resolveOpen(h, w, 'inputs', '목표 달성');
     return setState(h, w, 'done', '');
   }
   let deficit = g.target - have - incoming;
   const parts: string[] = [];
   if (incoming > EPS) parts.push(`운송 중·예정 ${fmt(incoming)}`);
-  if (deficit <= EPS) { for (const k of ['purchase', 'budget', 'credits', 'risk']) resolveOpen(h, w, k, '부족분이 이미 확보됨'); return setState(h, w, 'running', parts.join(' · ') || '목표 재고 유지 중'); }
   const ships = poolShips(h, w.owner), maxCargo = ships.length ? Math.max(...ships.map(s => econOf(s).cargo)) : 0;
-  const capChildren = liveChildren(h, w, 'transport').length >= MAX_LIVE_CHILDREN;
-  // 1) company stock elsewhere
-  const sources = ships.length ? Object.values(h.st.stations).filter(s => s.id !== st.id && (h.canDock(s, w.owner)) && freeStock(h, w.owner, s, g.item, w.id) >= 1 && routeRisk(h, s, st, pol.maxRisk))
+  // 1) company stock elsewhere (station scope only — company scope already counts every store)
+  const sources = !company && ships.length ? Object.values(h.st.stations).filter(s => s.id !== st.id && (h.canDock(s, w.owner)) && freeStock(h, w.owner, s, g.item, w.id) >= 1 && routeRisk(h, s, st, pol.maxRisk))
     .sort((a, b) => (routeRisk(h, a, st, pol.maxRisk)!.hops - routeRisk(h, b, st, pol.maxRisk)!.hops) || a.id.localeCompare(b.id)) : [];
-  if (sources.length && !capChildren) {
+  if (deficit > EPS && sources.length && liveChildren(h, w, 'transport').length < MAX_LIVE_CHILDREN) {
     let blocked = false;
     for (const s of sources) {
       let moved = 0;
@@ -690,27 +939,31 @@ function runStockpile(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'stockpile
       if (blocked || deficit < 1) break;
     }
   }
-  // stock still free elsewhere but waiting for transport slots: never buy what the company already has
-  const pending = liveChildren(h, w, 'transport').length >= MAX_LIVE_CHILDREN ? sources.reduce((n, s) => n + freeStock(h, w.owner, s, g.item, w.id), 0) : 0;
-  if (pending >= 1) { deficit -= pending; parts.push(`자사 재고 ${fmt(pending)} 이송 대기`); }
-  if (deficit <= EPS) return setState(h, w, 'running', parts.join(' · '));
-  // 2) own production at the target station
-  const recipe = g.produce && pol.preferProduce ? Object.values(RECIPES).map(r => recipeFor(h.st, r.id)!).find(r => r && Object.keys(r.out)[0] === g.item && recipeOk(r, co) && facLines(st, r.fac) > 0 && (!r.growth || growthOn(h.st))) : undefined;
-  if (recipe && st.owner === w.owner) {
-    let order = prod;
-    if (!order) {
-      const err = cmd(h, w, { c: 'prodOrder', station: st.id, recipe: recipe.id, mode: 'stock', n: g.target });
-      if (!err) { order = st.orders?.at(-1); (w.rt ??= {}).order = order?.id; parts.push(`${recipe.name} 생산 주문 등록`); }
-      else parts.push(`생산 불가: ${err}`);
-    } else if (order.n !== g.target) cmd(h, w, { c: 'prodOp', station: st.id, order: order.id, op: 'set', n: g.target });
-    if (order) {
-      if (order.paused) cmd(h, w, { c: 'prodOp', station: st.id, order: order.id, op: 'resume' });
-      parts.push(order.why ? `생산 대기: ${order.why}` : '자체 생산으로 확보 중');
-      return setState(h, w, order.why ? 'waiting' : 'running', parts.join(' · '));
-    }
+  // stock still free elsewhere (waiting for transport slots, no pool haulers, or beyond the risk limit):
+  // never produce or buy what the company already has
+  const pending = company ? 0 : Object.values(h.st.stations).filter(s => s.id !== st.id && s.storage[w.owner]).reduce((n, s) => n + freeStock(h, w.owner, s, g.item, w.id), 0);
+  if (deficit > EPS && pending >= 1) {
+    deficit -= pending;
+    parts.push(`자사 재고 ${fmt(pending)} 이송 대기${!ships.length ? ' — 공용 배차 수송선 없음 (물류 관리에서 함선 참여)' : liveChildren(h, w, 'transport').length >= MAX_LIVE_CHILDREN ? ' (운송 순번 대기)' : ' (경로 위험 허용치·도킹 조건 확인)'}`);
   }
-  // 3) purchase
-  if (!g.buy) return setState(h, w, 'waiting', [...parts, '구매 비허용 — 내부 재고·생산 대기'].join(' · '));
+  // 2) own production anywhere in the company: output already planned counts, then plan the rest
+  const notes: string[] = [];
+  const planned = orders.filter(o => o.out === g.item && !o.stalled).reduce((n, o) => n + remainingOut(o), 0);
+  if (planned > EPS) { deficit -= planned; parts.push(`생산 예정 ${fmt(planned)}`); }
+  const stalled = orders.filter(o => o.stalled);
+  if (stalled.length) parts.push(`생산 정체 ${stalled.length}건 (${stalled.map(o => `${o.st.name}: ${o.o.why ?? '사유 미상'}`).join('; ')}) — 계획에서 제외`);
+  if (deficit >= 1 && g.produce && pol.preferProduce) deficit -= planProduce(h, w, g.item, deficit, st, orders, notes);
+  if (g.produce && pol.preferProduce) planInputs(h, w, st, orders, notes);
+  parts.push(...notes);
+  const live = orders.filter(o => !o.stalled);
+  if (deficit < 1) {
+    for (const k of ['purchase', 'budget', 'credits', 'risk']) resolveOpen(h, w, k, '부족분이 이미 확보·계획됨');
+    const waiting = live.filter(o => o.w.state === 'waiting');
+    if (waiting.length && !live.some(o => o.inflight > 0)) return setState(h, w, 'waiting', [...parts, `생산 대기: ${waiting.map(o => `${o.st.name} ${o.o.why ?? ''}`).join('; ')}`].join(' · '));
+    return setState(h, w, 'running', parts.join(' · ') || '목표 재고 유지 중');
+  }
+  // 3) purchase only what neither stock nor production covers
+  if (!g.buy) return setState(h, w, 'waiting', [...parts, `구매 비허용 — ${fmt(deficit)} 부족, 내부 재고·생산 대기`].join(' · '));
   if ((w.rt?.noBuyUntil ?? 0) > h.time) return setState(h, w, 'waiting', [...parts, `구매 보류 중 (결재 거절·대기) — ${fmt(deficit)} 부족`].join(' · '));
   return buyFor(h, w, st, g.item, deficit, parts);
 }
@@ -733,14 +986,15 @@ function buyFor(h: WorldSim, w: Work, st: Station, item: string, need: number, p
   const pick = safe[0];
   // a markedly cheaper market only reachable through riskier space → ask, with both options
   const risky = any[0] && (!pick || any[0].price < pick.price * 0.85) && any[0].risk > riskOk ? any[0] : undefined;
-  if (risky && (w.rt?.riskOk ?? 0) >= 0) {
+  if (risky && (w.rt?.riskOk ?? 0) >= 0 && !w.rt?.market) {
     const est = Math.ceil(need) * risky.price;
     const ap = purchaseApproval(h, w, { ok: false, kind: 'purchase', why: `가장 유리한 시장이 위험 허용치(${pol.maxRisk})를 넘는 경로에 있음` }, [{ item, amount: Math.ceil(need), price: risky.price, station: risky.s.id }],
       { risk: { level: risky.risk, hops: risky.hops, note: `${risky.hops}점프 · 경로 최대 위험도 ${Math.round(risky.risk)} (보안 등급 기반 추정 — 실제 교전 여부는 알 수 없음)` }, alt: pick ? { station: pick.s.id, cost: Math.ceil(need) * pick.price, hops: pick.hops, risk: pick.risk } : undefined,
         context: `${st.name}에 ${itemName(item)} ${fmt(need)} 부족. 위험 경로 ${risky.s.name} 단가 ${fmt(risky.price)} cr${pick ? ` / 안전 경로 ${pick.s.name} 단가 ${fmt(pick.price)} cr` : ' / 안전 경로 시장 없음'}` });
     if (ap) return setState(h, w, 'waiting', [...parts, '경로 위험 결재 대기 — 다른 업무는 계속 진행'].join(' · '));
   }
-  const use = (w.rt?.riskOk ?? 0) > pol.maxRisk && any[0] ? any[0] : pick;
+  const forced = w.rt?.market ? any.find(c => c.s.id === w.rt!.market) : undefined;
+  const use = forced ?? ((w.rt?.riskOk ?? 0) > pol.maxRisk && any[0] ? any[0] : pick);
   if (!use) return setState(h, w, 'waiting', [...parts, `위험 허용치 안의 경로로 갈 수 있는 시장 없음`].join(' · '));
   if (maxPrice !== undefined && use.price > maxPrice + EPS) {
     const ap = purchaseApproval(h, w, { ok: false, kind: 'budget', why: `시장가 ${fmt(use.price)} cr가 승인 단가 ${fmt(maxPrice)} cr 초과` }, [{ item, amount: Math.ceil(need), price: use.price, station: use.s.id }], { context: `${use.s.name} ${itemName(item)} 단가 상승 — 승인 당시보다 비쌉니다` });
@@ -899,25 +1153,49 @@ function runCondition(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'condition
 
 // ─────────────────────────────────────────────── purchase approvals for orders
 
-/** UI-ordered construction/production/ship work blocked only by missing purchase authority → one batched approval */
-function procurementApprovals(h: WorldSim, w: Work) {
-  if (!['facility', 'production', 'ship', 'station'].includes(w.kind) || terminal(w) || w.state === 'paused') return;
+/** the work's procurement plans that are short only because nothing authorises buying */
+function blockedPlans(h: WorldSim, w: Work) {
+  if (!['facility', 'production', 'ship', 'station'].includes(w.kind) || terminal(w) || w.state === 'paused' || !w.ref.station) return [];
   const kind = w.kind === 'facility' || w.kind === 'station' ? 'construction' : w.kind === 'production' ? 'production' : 'ship';
-  const source = kind === 'construction' ? (w.kind === 'station' ? h.st.stations[w.ref.station ?? '']?.modules.find(m => m.kind === 'core')?.id : w.ref.module) : kind === 'production' ? w.ref.order : w.ref.build;
-  if (!source || !w.ref.station) return;
-  const plans = Object.values(h.st.procurementPlans ?? {}).filter(p => p.owner === w.owner && p.station === w.ref.station && p.sourceKind === kind && p.sourceId === source && p.state !== 'closed' && p.shortage > EPS && /자동 구매 꺼짐|최대 단가|구매 예산/.test(p.reason));
-  if (!plans.length) { resolveOpen(h, w, 'purchase', '자재가 확보됨'); return; }
-  if ((w.rt?.noBuyUntil ?? 0) > h.time) return;
-  const st = h.st.stations[w.ref.station]; if (!st) return;
-  const items: Approval['items'] = [];
-  for (const p of plans) {
-    const m = Object.values(h.st.stations).filter(s => s.public && s.market?.[p.item] && s.market[p.item].stock >= 1 && h.canDock(s, w.owner)).map(s => ({ s, price: h.price(s, p.item, 'buy') })).filter(x => x.price > 0).sort((a, b) => a.price - b.price)[0];
-    if (m) items.push({ item: p.item, amount: Math.ceil(p.shortage), price: m.price, station: m.s.id });
+  const source = kind === 'construction' ? (w.kind === 'station' ? h.st.stations[w.ref.station]?.modules.find(m => m.kind === 'core')?.id : w.ref.module) : kind === 'production' ? w.ref.order : w.ref.build;
+  if (!source) return [];
+  return Object.values(h.st.procurementPlans ?? {}).filter(p => p.owner === w.owner && p.station === w.ref.station && p.sourceKind === kind && p.sourceId === source && p.state !== 'closed' && p.shortage > EPS && /자동 구매 꺼짐|최대 단가|구매 예산/.test(p.reason));
+}
+/**
+ * Construction / production / ship work blocked only by missing purchase authority → ONE batched approval per
+ * decision holder: a goal collects the input shortages of all the orders it planned; a directly ordered work
+ * gets its own. The approval budget is spent by the procurement planner through `procurementAuthority`.
+ */
+function procurementApprovals(h: WorldSim) {
+  const groups = new Map<string, { holder: Work; plans: ReturnType<typeof blockedPlans>; from: Work[] }>();
+  for (const w of Object.values(h.st.works ?? {})) {
+    if (terminal(w) || !['facility', 'production', 'ship', 'station'].includes(w.kind)) continue;
+    const holder = budgetHolder(h, w), plans = blockedPlans(h, w);
+    const gr = groups.get(holder.id) ?? (groups.set(holder.id, { holder, plans: [], from: [] }).get(holder.id)!);
+    gr.plans.push(...plans); if (plans.length) gr.from.push(w);
   }
-  if (!items.length) return;
-  const whole = items.reduce((n, x) => n + x.amount * x.price, 0);
-  if (authorize(h, w, whole, Math.max(...items.map(x => x.price)), items[0].item, whole).ok) return;
-  purchaseApproval(h, w, { ok: false, kind: 'purchase', why: '자사 재고로 부족 — 구매 권한 없음' }, items, { context: `${w.title}: 자사 재고·운송으로 충당되지 않는 자재 ${items.map(x => `${itemName(x.item)} ${fmt(x.amount)}`).join(', ')}` });
+  for (const { holder, plans, from } of groups.values()) {
+    const key = holder.goal ? 'inputs' : 'purchase';
+    if (!plans.length) { resolveOpen(h, holder, key, '자재가 확보됨'); continue; }
+    if ((holder.rt?.noBuyUntil ?? 0) > h.time || holder.state === 'paused') continue;
+    const need = new Map<string, number>();
+    for (const p of plans) need.set(p.item, (need.get(p.item) ?? 0) + Math.ceil(p.shortage));
+    // what the goal's own production will still make is not a purchase need
+    if (holder.goal) for (const o of goalOrders(h, holder)) if (!o.stalled && need.has(o.out)) need.set(o.out, Math.max(0, need.get(o.out)! - remainingOut(o)));
+    for (const [k, n] of need) if (n < 1) need.delete(k);
+    if (!need.size) { resolveOpen(h, holder, key, '자체 생산으로 충당 예정'); continue; }
+    const items: Approval['items'] = [];
+    for (const [item, amount] of [...need].sort((a, b) => a[0].localeCompare(b[0]))) {
+      const m = Object.values(h.st.stations).filter(s => s.public && s.market?.[item] && s.market[item].stock >= 1 && h.canDock(s, holder.owner)).map(s => ({ s, price: h.price(s, item, 'buy') })).filter(x => x.price > 0).sort((a, b) => a.price - b.price || a.s.id.localeCompare(b.s.id))[0];
+      if (m) items.push({ item, amount, price: m.price, station: m.s.id });
+    }
+    if (!items.length) continue;
+    const whole = items.reduce((n, x) => n + x.amount * x.price, 0);
+    if (authorize(h, from[0], whole, Math.max(...items.map(x => x.price)), items[0].item, whole).ok) continue;
+    purchaseApproval(h, holder, { ok: false, kind: 'purchase', why: '자사 재고로 부족 — 구매 권한 없음' }, items, {
+      key, context: `${holder.title}: 자사 재고·운송으로 충당되지 않는 ${holder.goal ? '원료·부품' : '자재'} ${items.map(x => `${itemName(x.item)} ${fmt(x.amount)}`).join(', ')}${from.length > 1 ? ` (작업 ${from.length}건 합산)` : ''}`,
+    });
+  }
 }
 
 // ───────────────────────────────────────────────────────────── player control
@@ -941,6 +1219,15 @@ export function workOp(h: WorldSim, owner: string, id: string, op: WorkOp, value
         if (r.station) return '부지 확보 후에는 정거장 화면에서 시설 계획을 관리하세요';
         return h.command(owner, { c: 'setOp', group: r.group!, op: { k: 'idle' } });
       case 'contract': return '계약은 계약 화면에서 관리합니다';
+      case 'operation': {
+        const g = h.st.groups[r.group ?? '']; if (!g || g.owner !== owner) return '부대를 찾을 수 없습니다';
+        opControl = true;
+        try {
+          if (action === 'pause') { if (w.rt?.heldOp) return null; const held = structuredClone(g.op); const e = h.command(owner, { c: 'setOp', group: g.id, op: { k: 'idle' } }); if (!e) (w.rt ??= {}).heldOp = held; return e; }
+          if (action === 'resume') { const held = w.rt?.heldOp; if (!held) return '일시정지된 작전이 아닙니다'; const e = h.command(owner, { c: 'setOp', group: g.id, op: held }); if (!e) delete w.rt!.heldOp; return e; }
+          return w.rt?.heldOp ? null : h.command(owner, { c: 'setOp', group: g.id, op: { k: 'idle' } });
+        } finally { opControl = false; }
+      }
       default: return null;
     }
   };
@@ -1038,23 +1325,85 @@ function reconcileLedger(h: WorldSim) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────── adoption
+
+const refKey = (kind: string, a?: string, b?: string) => `${kind}|${a ?? ''}|${b ?? ''}`;
+function workKeys(w: Work): string[] {
+  const r = w.ref, out: string[] = [];
+  if (r.module) out.push(refKey('module', r.station, r.module));
+  if (r.order) out.push(refKey('order', r.station, r.order));
+  if (r.build) out.push(refKey('build', r.station, r.build));
+  if (r.research) out.push(refKey('research', w.owner, r.research));
+  if (r.job) out.push(refKey('job', r.job));
+  if (r.route) out.push(refKey('route', r.route));
+  if (w.kind === 'operation' && !terminal(w)) out.push(refKey('op', r.group));
+  if (w.kind === 'station' && !terminal(w) && r.group && !r.station) out.push(refKey('found', r.group));
+  if (r.contract) out.push(refKey('contract', r.contract));
+  return out;
+}
+/**
+ * Bring every piece of company activity that the engines are running but no work describes yet under
+ * management: orders, builds, research and construction from older saves, pool shipments started by the
+ * procurement planner, managed routes, accepted contracts and standing fleet orders. Only `Work` records are
+ * created — the engine objects themselves are never copied, restarted or changed. Idempotent.
+ */
+export function adoptEngineWork(h: WorldSim) {
+  const index = new Set<string>();
+  for (const w of Object.values(h.st.works ?? {})) for (const k of workKeys(w)) index.add(k);
+  const players = new Set(Object.values(h.st.companies).filter(c => c.kind === 'player').map(c => c.id));
+  const adopt = (owner: string, kind: WorkKind, title: string, ref: WorkRef, key: string, extra: Partial<Work> = {}) => {
+    if (index.has(key)) return; index.add(key);
+    const w = addWork(h, owner, kind, title, ref, { adopted: true, ...extra });
+    if (!extra.parent) { delete w.parent; delete w.auto; }
+    note(w, h.time, '기존 실행 중인 작업을 통합 업무로 편입'); projectWork(h, w); return w;
+  };
+  for (const st of Object.values(h.st.stations)) {
+    const owner = st.owner; if (!owner || !players.has(owner)) continue;
+    for (const m of st.modules) if (!m.built && m.id) adopt(owner, m.kind === 'core' ? 'station' : 'facility', `${st.name} · ${MODULES[m.kind]?.name ?? m.kind} 건설`, { station: st.id, module: m.id }, refKey('module', st.id, m.id));
+    for (const o of st.orders ?? []) { const r = recipeFor(h.st, o.recipe); adopt(owner, 'production', `${st.name} · ${r?.name ?? o.recipe} ${o.mode === 'stock' ? `재고 ${fmt(o.n)} 유지` : `${fmt(o.n)}회`}`, { station: st.id, order: o.id }, refKey('order', st.id, o.id), { mode: o.mode === 'stock' ? 'maintain' : 'once', progress: { done: o.done, total: o.n } }); }
+    for (const b of st.builds ?? []) adopt(owner, 'ship', `${st.name} · ${b.hull ? CONTENT.hulls[b.hull]?.name ?? b.hull : b.classId} 건조`, { station: st.id, build: b.id }, refKey('build', st.id, b.id));
+  }
+  for (const co of Object.values(h.st.companies)) if (players.has(co.id)) for (const p of co.research ?? []) adopt(co.id, 'research', `${TECHS[p.tech]?.name ?? p.tech} ${p.source === 'copy' ? '복제' : p.source === 'salvage' ? '분석' : '연구'}`, { station: p.station, research: p.id, tech: p.tech }, refKey('research', co.id, p.id));
+  for (const r of Object.values(h.st.logistics ?? {})) if (players.has(r.owner) && r.state !== 'complete') adopt(r.owner, 'route', `${r.config.name || '운송 경로'} · ${itemName(r.config.item)}`, { route: r.id, group: r.group, item: r.config.item }, refKey('route', r.id), { mode: r.config.repeat ? 'repeat' : 'once' });
+  for (const j of Object.values(h.st.logisticsJobs ?? {})) {
+    if (!players.has(j.owner) || !liveJob(j)) continue;
+    // a procurement shipment belongs under the construction / production / ship work it supplies
+    const plan = j.procurement ? h.st.procurementPlans?.[j.procurement] : undefined;
+    const parent = plan ? findWork(h, j.owner, w => !terminal(w) && w.ref.station === plan.station && (plan.sourceKind === 'construction' ? w.ref.module === plan.sourceId || (w.kind === 'station' && h.st.stations[plan.station]?.modules.find(m => m.kind === 'core')?.id === plan.sourceId) : plan.sourceKind === 'production' ? w.ref.order === plan.sourceId : w.ref.build === plan.sourceId)) : undefined;
+    const from = h.st.stations[j.from]?.name ?? j.from, to = h.st.stations[j.to]?.name ?? j.to;
+    adopt(j.owner, 'transport', `${plan ? '조달 · ' : ''}${itemName(j.item)} ${fmt(j.amount)} ${from} → ${to}${j.kind === 'sell' ? ' 판매' : ''}`, { job: j.id, item: j.item, station: j.to }, refKey('job', j.id),
+      { mode: j.repeat ? 'repeat' : 'once', priority: j.priority, progress: { done: 0, total: j.amount }, ...(parent ? { parent: parent.id, auto: true } : plan ? { auto: true } : {}) });
+  }
+  for (const c of Object.values(h.st.contracts)) if (c.takenBy && players.has(c.takenBy) && !c.done) adopt(c.takenBy, 'contract', c.title, { contract: c.id, station: c.stationId }, refKey('contract', c.id), { reason: '계약 수행 중' });
+  for (const g of Object.values(h.st.groups)) {
+    if (!players.has(g.owner) || !g.override && g.parentId) continue;
+    if (g.op.k === 'found') { const w = adopt(g.owner, 'station', `정거장 설립 · ${g.op.name}`, { group: g.id, at: { ...g.op.at } }, refKey('found', g.id)); if (w) setState(h, w, 'running', '건설선 부지로 이동 중'); continue; }
+    if (g.op.k === 'idle' || !OP_NAME[g.op.k] || index.has(refKey('op', g.id))) continue;
+    // a haul run by a managed route is that route's work, not a separate operation
+    if (g.op.k === 'haul' && g.op.route && h.st.logistics?.[g.op.route]) continue;
+    index.add(refKey('op', g.id)); const w = opWork(h, g.owner, g.id, g.op, true); if (w) note(w, h.time, '기존 실행 중인 작업을 통합 업무로 편입');
+  }
+}
+
 // ───────────────────────────────────────────────────────────────── main loop
 
 let lastSync = new WeakMap<WorldState, number>();
+const lastAdopt = new WeakMap<WorldState, number>();
 /** called every strategic second by the world tick */
 export function stepOperations(h: WorldSim) {
   if (!growthOn(h.st)) return;
   reconcileLedger(h);
   const last = lastSync.get(h.st) ?? -Infinity; if (h.time - last < 2 - EPS) return;
   lastSync.set(h.st, h.time);
+  for (const w of Object.values(h.st.works ?? {})) projectWork(h, w);
+  if (h.time - (lastAdopt.get(h.st) ?? -Infinity) >= 10 - EPS) { lastAdopt.set(h.st, h.time); adoptEngineWork(h); }
   const works = Object.values(h.st.works ?? {});
-  for (const w of works) projectWork(h, w);
   for (const w of works) if (GOAL_KINDS.includes(w.kind) && !terminal(w) && w.state !== 'paused' && h.time - (w.rt?.lastRun ?? -Infinity) >= 10 - EPS) runGoal(h, w);
-  for (const w of works) procurementApprovals(h, w);
+  procurementApprovals(h);
   for (const a of Object.values(h.st.approvals ?? {})) if (a.state === 'open' && terminal(h.st.works?.[a.work] ?? { state: 'done' } as Work)) { a.state = 'resolved'; a.note = '업무 종료'; a.updated = h.time; }
   prune(h);
 }
-export function resetOpsClock(st: WorldState) { lastSync.delete(st); }
+export function resetOpsClock(st: WorldState) { lastSync.delete(st); lastAdopt.delete(st); }
 
 function prune(h: WorldSim) {
   const works = h.st.works; if (!works) return;
@@ -1111,8 +1460,10 @@ export function companyInventory(w: Pick<WorldState, 'stations' | 'ships' | 'log
     const r = row(item), j = jobs.find(x => x.ship === s.id && x.item === item);
     r.inTransit += n; r.ships.push({ ship: s.id, amount: n, to: j?.to, job: j?.id });
   }
+  const companyTargets: [InventoryRow, number][] = [];
   for (const wk of Object.values(w.works ?? {})) if (wk.owner === owner && !terminal(wk)) {
-    if (wk.goal?.k === 'stockpile') {
+    if (wk.goal?.k === 'stockpile' && wk.goal.scope === 'company') { const r = row(wk.goal.item); r.target += wk.goal.target; r.works.push(wk.id); companyTargets.push([r, wk.goal.target]); }
+    else if (wk.goal?.k === 'stockpile') {
       const g = wk.goal, r = row(g.item); r.target += g.target; r.works.push(wk.id);
       const have = qty(w.stations[g.station]?.storage?.[owner], g.item);
       const inc = jobs.filter(j => j.to === g.station && j.item === r.item && j.kind !== 'sell').reduce((n, j) => n + outstanding(j), 0);
@@ -1128,6 +1479,8 @@ export function companyInventory(w: Pick<WorldState, 'stations' | 'ships' | 'log
     r.surplus = r.target > 0 ? Math.max(0, r.total + r.planned - r.target - r.consumption) : 0;
     if (r.target <= 0) r.shortage = Math.max(0, r.consumption - r.total - r.planned);
   }
+  // a company-wide target is measured against everything the company holds of the item (sales shipments are already gone)
+  for (const [r, target] of companyTargets) r.shortage += Math.max(0, target - (r.total - r.listed));
   return [...rows.values()].sort((a, b) => b.shortage - a.shortage || b.total - a.total || a.item.localeCompare(b.item));
 }
 

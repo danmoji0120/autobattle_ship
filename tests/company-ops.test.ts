@@ -10,27 +10,7 @@ import { moduleMaterials } from '../src/world/stations';
 import { addFoundationFreighter } from './helpers/foundation';
 import { legacyView } from '../src/server/sync';
 
-function fixture(seed = 1201, security = 100) {
-  const sim = WorldSim.create(seed), p = sim.addPlayer('통합 운영'), co = sim.st.companies[p]; co.credits = 5e6;
-  for (const id of Object.keys(sim.st.ships)) delete sim.st.ships[id];
-  for (const id of Object.keys(sim.st.groups)) delete sim.st.groups[id];
-  for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e10; }
-  for (const sys of Object.values(sim.st.systems)) sys.security = Math.max(sys.security, security);
-  const a = sim.st.stations.astra; a.storage[p] = {};
-  const make = (id: string, dx: number, modules: string[]): Station => ({ ...structuredClone(a), id, name: id, public: false, owner: p, pos: { ...a.pos, x: a.pos.x + dx }, market: null, funds: undefined, fundsMax: undefined, shipStock: undefined, storage: { [p]: {} }, builds: [], orders: [], jobs: [], listings: [], modules: modules.map((kind, slot) => ({ kind, slot, built: true, progress: 1 })) });
-  const home = make('ops_home', 650, ['core', 'power', 'power', 'refinery', 'logistics', 'warehouse', 'warehouse', 'yard_s']), b = make('ops_b', -500, ['core', 'warehouse']);
-  for (const s of [home, b]) sim.st.stations[s.id] = s;
-  const group = sim.newGroup(p, '공용 수송');
-  const ships = Array.from({ length: 3 }, () => { const s = sim.spawnShip(p, 'hauler', 'std', group.id, a.pos); (sim as any).dockShip(s, a); return s; });
-  expect(sim.command(p, { c: 'poolShips', ships: ships.map(s => s.id), on: true })).toBeNull();
-  return { sim, p, co, a, home, b, ships };
-}
-const run = (sim: WorldSim, seconds: number) => { for (let t = 0; t < seconds; t += .25) sim.update(.25); };
-const until = (sim: WorldSim, cond: () => boolean, seconds = 2000) => { for (let t = 0; t < seconds && !cond(); t += .25) sim.update(.25); return cond(); };
-const works = (sim: WorldSim, p: string) => Object.values(sim.st.works ?? {}).filter(w => w.owner === p);
-const approvals = (sim: WorldSim, p: string, open = true) => Object.values(sim.st.approvals ?? {}).filter(a => a.owner === p && (!open || a.state === 'open'));
-const goal = (sim: WorldSim, p: string) => works(sim, p).filter(w => !w.parent && !!w.goal).at(-1)!;
-const kids = (sim: WorldSim, w: Work) => Object.values(sim.st.works ?? {}).filter(c => c.parent === w.id);
+import { fixture, run, until, works, approvals, goal, kids } from './helpers/opsFixture';
 
 describe('A — simple purchase', () => {
   it('records a finished work immediately, spends exactly the market cost, never asks for approval', () => {
@@ -79,15 +59,17 @@ describe('B — alloy stockpile goal (transfer + purchase + approval)', () => {
     expect(units).toBeGreaterThanOrEqual(2000); expect(units).toBeLessThanOrEqual(2000 + 2);
     expect(approvals(f.sim, f.p)).toHaveLength(0);
   }, 60000);
-  it('production path: creates a stock order and asks to buy its inputs in one batched approval', () => {
+  it('production path: plans an order for the shortfall and asks once (on the goal) to buy its inputs', () => {
     const f = fixture(), r = recipeFor(f.sim.st, 'alloy_direct')!;
     expect(f.sim.command(f.p, { c: 'workCreate', goal: { k: 'stockpile', station: f.home.id, item: 'alloy', target: 28, maintain: true, buy: true, produce: true } })).toBeNull();
-    const g = goal(f.sim, f.p); const order = f.home.orders!.find(o => o.id === g.rt!.order)!;
-    expect(order.mode).toBe('stock'); expect(order.n).toBe(28);
-    const child = kids(f.sim, g).find(k => k.kind === 'production')!; expect(child).toBeTruthy();
-    run(f.sim, 25); // procurement finds no stock, the production work raises a purchase approval for its inputs
-    const ap = approvals(f.sim, f.p).find(a => a.work === child.id)!; expect(ap).toBeTruthy();
+    const g = goal(f.sim, f.p); const child = kids(f.sim, g).find(k => k.kind === 'production')!; expect(child).toBeTruthy();
+    const order = f.home.orders!.find(o => o.id === child.ref.order)!;
+    expect(order.mode).toBe('count'); expect(order.recipe).toBe(r.id); expect(order.n).toBe(Math.ceil(28 / r.out.alloy));
+    run(f.sim, 25); // procurement finds no ore, the goal raises one purchase approval for the inputs of its orders
+    expect(approvals(f.sim, f.p)).toHaveLength(1);
+    const ap = approvals(f.sim, f.p).find(a => a.work === g.id)!; expect(ap).toBeTruthy();
     expect(ap.items.map(x => x.item).sort()).toEqual(Object.keys(r.in).sort());
+    expect(f.home.orders!.filter(o => o.recipe === r.id)).toHaveLength(1); // repeated passes never stack orders
     expect(f.sim.command(f.p, { c: 'approvalDecide', approval: ap.id, option: 'approve', scope: 'work' })).toBeNull();
     expect(until(f.sim, () => qty(f.home.storage[f.p], 'alloy') >= 28, 3000)).toBe(true);
     run(f.sim, 15); expect(g.state).toBe('running'); expect(g.reason).toContain('유지'); // maintain goal keeps going
