@@ -29,11 +29,14 @@ export interface Spec {
   outputs?: string[];
   /** haulers per output route */
   outHaulers?: number;
+  /** sell each output at the best N markets (one haul route + sell floor each) */
+  markets?: number;
 }
 export const SPECS: Record<string, Spec> = {
   mine: { name: '채굴 전문', modules: [], miners: 4, minerTo: 'sell', minerGroups: 1 },
   mine2: { name: '채굴 전문 ×2', modules: [], miners: 4, minerTo: 'sell', minerGroups: 2 },
   refine: { name: '1차 가공 (광석 구매 → 금속)', size: 'S', modules: ['core', 'power', 'refinery', 'refinery', 'warehouse'], pool: 2, orders: [{ recipe: 'metal', n: 800 }], inputs: [{ item: 'ore', target: 2400 }], outputs: ['metal'] },
+  refine2: { name: '1차 가공 (광석 구매 → 금속, 2개 시장 분산 판매)', size: 'S', modules: ['core', 'power', 'refinery', 'refinery', 'warehouse'], pool: 2, orders: [{ recipe: 'metal', n: 800 }], inputs: [{ item: 'ore', target: 2400 }], outputs: ['metal'], markets: 2 },
   inter: { name: '중간재 (금속·티타늄 구매 → 합금)', size: 'S', modules: ['core', 'power', 'alloy_plant', 'alloy_plant', 'warehouse'], pool: 2, orders: [{ recipe: 'alloy', n: 800 }], inputs: [{ item: 'metal', target: 600 }, { item: 'titanium', target: 200 }], outputs: ['alloy'] },
   parts: { name: '고급 부품 (시장 구매 → 기계·전자·장갑판)', size: 'M', modules: ['core', 'power', 'power', 'machine_shop', 'electronics_fab', 'armor_plant', 'warehouse'], pool: 3,
     orders: [{ recipe: 'machinery', n: 120 }, { recipe: 'electronics', n: 60 }, { recipe: 'armor_plate', n: 60 }],
@@ -110,12 +113,15 @@ for (const item of spec.outputs ?? []) {
     return { s, j, absorbH: absorbRate(s, item, m.target) * 3600, score: absorbRate(s, item, m.target) * m.base * (1 - (s.tax ?? 0)) / (1 + j) };
   }).sort((a, b) => b.score - a.score);
   const best = cands[0]; if (!best) continue;
-  const floor = Math.round(best.s.market![item].base * 0.5 * 10) / 10;
-  sellPlan[item] = { market: best.s.id, floor, absorbH: Math.round(best.absorbH), jumps: best.j };
-  const g = sim.newGroup(p, `판매 수송 ${ITEMS[item]?.name ?? item}`);
-  for (let i = 0; i < (spec.outHaulers ?? 1); i++) spawn('hauler_mk1', g.id);
-  expectNull(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'haul', from: own!.id, to: best.s.id, res: item } }), 'haul ' + item);
-  expectNull(sim.command(p, { c: 'workCreate', goal: { k: 'condition', station: best.s.id, item, side: 'sell', price: floor, amount: 1_000_000, repeat: true } }), 'sell ' + item);
+  const picks = cands.slice(0, Math.max(1, spec.markets ?? 1));
+  sellPlan[item] = { market: picks.map(c => c.s.id).join('+'), floor: Math.round(best.s.market![item].base * 0.5 * 10) / 10, absorbH: Math.round(picks.reduce((a, c) => a + c.absorbH, 0)), jumps: best.j };
+  for (const c of picks) {
+    const floor = Math.round(c.s.market![item].base * 0.5 * 10) / 10;
+    const g = sim.newGroup(p, `판매 수송 ${ITEMS[item]?.name ?? item} → ${c.s.name}`);
+    for (let i = 0; i < (spec.outHaulers ?? 1); i++) spawn('hauler_mk1', g.id);
+    expectNull(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'haul', from: own!.id, to: c.s.id, res: item } }), 'haul ' + item);
+    expectNull(sim.command(p, { c: 'workCreate', goal: { k: 'condition', station: c.s.id, item, side: 'sell', price: floor, amount: 1_000_000, repeat: true } }), 'sell ' + item);
+  }
 }
 const invested = Object.values(capital).reduce((a, b) => a + b, 0);
 
@@ -139,7 +145,7 @@ for (const item of new Set([...(spec.outputs ?? []), ...(spec.minerTo === 'sell'
   const soldUnits = sum(r => r.kind === 'market' && r.reason === 'sell' && r.item === item), soldValue = sum(r => r.kind === 'market' && r.reason === 'sell' && r.item === item, 'value');
   if (!produced && !soldUnits) continue;
   products[item] = { produced: Math.round(produced), sold: Math.round(soldUnits), avgPrice: soldUnits ? Math.round(soldValue / soldUnits * 10) / 10 : 0, revenue: Math.round(soldValue), unsoldHeld: Math.round(held()[item] ?? 0), plan: sellPlan[item],
-    marketEnd: sellPlan[item] ? (() => { const m = W.stations[sellPlan[item].market].market![item]; return { base: m.base, price: priceOf(m, 'sell', true), stock: Math.round(m.stock), target: m.target }; })() : undefined };
+    marketEnd: sellPlan[item] ? (() => { const m = W.stations[sellPlan[item].market.split('+')[0]].market![item]; return { base: m.base, price: priceOf(m, 'sell', true), stock: Math.round(m.stock), target: m.target }; })() : undefined };
 }
 const ledger: Record<string, number> = {};
 for (const hb of co.ops?.ledger ?? []) { for (const [k, v] of Object.entries(hb.inc)) ledger['+' + k] = (ledger['+' + k] ?? 0) + v; for (const [k, v] of Object.entries(hb.exp)) ledger['-' + k] = (ledger['-' + k] ?? 0) + v; }
