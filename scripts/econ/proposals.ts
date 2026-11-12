@@ -122,7 +122,12 @@ export const PROPOSALS: Record<string, Proposal> = {
     value: chainE.value,
     patch: () => { tuneAlternates(chainE.value, TARGETS_E); scaleUse(PROCESSED, 1.5); for (const f of ['electronics_fab', 'armor_plant', 'weapons_factory', 'engine_plant', 'reactor_plant', 'composite_plant']) if (FACILITIES[f]) scaleFacility(f, 0.8); },
     reprice: w => repriceWith(w, chainE.value) },
+  rec: { id: 'rec', name: 'F. 추천안 (B + 상위 소비처 보강)', desc: 'B 가치 사슬 가격(원자재 0.25배) + 판매가 막히는 구조재·상위 함선 부품만 NPC 소비 1.5배 (중간재·1차 소재 수요는 그대로)',
+    value: chain25.value,
+    patch: () => { tuneAlternates(chain25.value, TARGETS); scaleUse(TOP_DEMAND, 1.5); },
+    reprice: w => repriceWith(w, chain25.value) },
 };
+const TOP_DEMAND = ['structure', 'weapon_parts', 'engine', 'reactor', 'sensor'];
 
 let recipeSnapshot: Record<string, number> | undefined;
 function snapshotValues(value: (k: string) => number) { const r: Record<string, number> = {}; for (const k of [...Object.keys(ITEMS), ...Object.keys(EQUIPMENT)]) r[k] = value(k); return r; }
