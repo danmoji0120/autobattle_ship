@@ -27,6 +27,7 @@ jobs:
         run: |
           npm ci
           npm run typecheck
+          npx vitest run tests/bbex-exclusive.test.ts
           npx vite build
           npm run build:server
       - name: Verify production DB fail-closed behavior
