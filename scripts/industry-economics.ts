@@ -22,4 +22,4 @@ console.log(`# ${propId} · ${origin} · seed ${seed} — NPC budget regen ${r0(
 console.log(['recipe', 'stage', 'in(ask)', 'out(bid)', 'ratio', 'profit/h', 'own-input profit/h', 'capex', 'payback h', 'out/h', 'NPC demand/h', 'lines(demand)', 'lines(budget)'].join('\t'));
 for (const l of lines.sort((a, b) => a.stage.localeCompare(b.stage) || b.profitH - a.profitH))
   console.log([l.recipe, l.stage, r0(l.inCost), r0(l.outBid), l.ratio.toFixed(2), r0(l.profitH), r0(l.ownProfitH), r0(l.capex), l.paybackH ? r1(l.paybackH) : '—', r1(l.outPerH), r0(l.demandH), r1(l.lines), r1(l.budgetLines)].join('\t'));
-console.log(`mining group (4 miners + hauler) @${mining.field}: mined ${mining.minedH}/h ${JSON.stringify(mining.per)} → revenue ${mining.revenueH}/h − upkeep ${mining.upkeepH}/h = ${mining.profitH}/h`);
+console.log(`mining group (4 miners + hauler), median of ${mining.fields} ore fields @${mining.field}: mined ${mining.minedH}/h ${JSON.stringify(mining.per)} → revenue ${mining.revenueH}/h − upkeep ${mining.upkeepH}/h = ${mining.profitH}/h (best @${mining.best.field}: ${mining.best.profitH}/h)`);

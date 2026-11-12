@@ -77,11 +77,20 @@ export function lineEcon(w: WorldState, id: string, M = marketsOf(w)): LineEcon 
     paybackH: profitH > 0 ? capex / profitH : null, demandH, lines: demandH / outPerH, budgetLines: M.budgetH(out) / Math.max(1, outBid * perH), ownProfitH };
 }
 
-/** a mining group: 4 miners + 1 hauler on one field, regrowth-limited, sold at bid, raw demand-capped */
+/** one-way trip of a miner between its field and the market/station, seconds — calibrated on the 24 h
+ *  company run (seed 5: 4 miners delivered 4,608 units/h = one 140-unit load every 437 s each) */
+export const MINER_TRIP_S = 197;
+/** a mining group: 4 miners + 1 hauler on an ore field, cycle = load + round trip, regrowth- and
+ *  raw-demand-capped, sold at the long-run bid */
 export function miningEcon(w: WorldState, M = marketsOf(w)) {
-  const fields = Object.values(w.fields).filter(f => !f.salvage && f.regen > 0);
-  const f = fields.sort((a, b) => b.regen - a.regen)[0];
-  const minedH = Math.min(4 * ECON.miner.mine * 3600, f.regen * 3600);
+  const fields = Object.values(w.fields).filter(f => !f.salvage && f.regen > 0 && (f.mix?.ore ?? (f.res === 'ore' ? 1 : 0)) > 0.3);
+  const all = fields.map(f => miningAt(w, f, M)).sort((a, b) => a.profitH - b.profitH);
+  // the median ore field stands for a typical company (the best one is reported alongside)
+  return { ...all[Math.floor(all.length / 2)], best: all[all.length - 1], fields: all.length };
+}
+function miningAt(w: WorldState, f: WorldState['fields'][string], M: ReturnType<typeof marketsOf>) {
+  const cycle = ECON.miner.cargo / ECON.miner.mine + 2 * MINER_TRIP_S;
+  const minedH = Math.min(4 * ECON.miner.cargo * 3600 / cycle, f.regen * 3600);
   const mix = f.mix ?? { [f.res]: 1 };
   let rev = 0; const per: Record<string, number> = {};
   for (const [k, share] of Object.entries(mix)) { const q = minedH * share; const sell = Math.min(q, M.demandH(k)); per[k] = Math.round(q); rev += sell * M.bid(k); }
