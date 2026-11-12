@@ -17,8 +17,8 @@
    0,
    12
   ],
-  "msPerTick": 0.705,
-  "maxStepMs": 7.8,
+  "msPerTick": 0.758,
+  "maxStepMs": 5.4,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -99,8 +99,8 @@
    2,
    10
   ],
-  "msPerTick": 0.462,
-  "maxStepMs": 2.5,
+  "msPerTick": 0.512,
+  "maxStepMs": 3,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -181,8 +181,8 @@
    2,
    10
   ],
-  "msPerTick": 0.511,
-  "maxStepMs": 6.5,
+  "msPerTick": 0.478,
+  "maxStepMs": 2.5,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -265,8 +265,8 @@
    9,
    1
   ],
-  "msPerTick": 0.962,
-  "maxStepMs": 5.6,
+  "msPerTick": 1.036,
+  "maxStepMs": 4.4,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -350,8 +350,8 @@
    4,
    3
   ],
-  "msPerTick": 1.08,
-  "maxStepMs": 4.4,
+  "msPerTick": 1.021,
+  "maxStepMs": 6.7,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -434,7 +434,7 @@
    6,
    4
   ],
-  "msPerTick": 1.264,
+  "msPerTick": 1.027,
   "maxStepMs": 5.3,
   "hp": 1,
   "state": "alive",
@@ -517,8 +517,8 @@
    42,
    7
   ],
-  "msPerTick": 2.871,
-  "maxStepMs": 20.8,
+  "msPerTick": 2.707,
+  "maxStepMs": 9.3,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -606,8 +606,8 @@
    24,
    20
   ],
-  "msPerTick": 2.97,
-  "maxStepMs": 10.7,
+  "msPerTick": 2.709,
+  "maxStepMs": 22,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -695,8 +695,8 @@
    27,
    6
   ],
-  "msPerTick": 2.686,
-  "maxStepMs": 13,
+  "msPerTick": 2.649,
+  "maxStepMs": 9.1,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -783,8 +783,8 @@
    9,
    24
   ],
-  "msPerTick": 1.685,
-  "maxStepMs": 10,
+  "msPerTick": 1.683,
+  "maxStepMs": 5.5,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -865,8 +865,8 @@
    17,
    24
   ],
-  "msPerTick": 1.638,
-  "maxStepMs": 9.1,
+  "msPerTick": 1.656,
+  "maxStepMs": 7,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -947,8 +947,8 @@
    15,
    33
   ],
-  "msPerTick": 1.933,
-  "maxStepMs": 7.5,
+  "msPerTick": 1.764,
+  "maxStepMs": 6.5,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1028,8 +1028,8 @@
    9,
    4
   ],
-  "msPerTick": 1.502,
-  "maxStepMs": 10.1,
+  "msPerTick": 1.39,
+  "maxStepMs": 6,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1115,8 +1115,8 @@
    16,
    1
   ],
-  "msPerTick": 1.302,
-  "maxStepMs": 4.3,
+  "msPerTick": 1.308,
+  "maxStepMs": 4.7,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1202,8 +1202,8 @@
    13,
    25
   ],
-  "msPerTick": 1.471,
-  "maxStepMs": 6,
+  "msPerTick": 1.484,
+  "maxStepMs": 8,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1290,8 +1290,8 @@
    4,
    48
   ],
-  "msPerTick": 1.41,
-  "maxStepMs": 6.2,
+  "msPerTick": 1.493,
+  "maxStepMs": 4.1,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1372,8 +1372,8 @@
    1,
    39
   ],
-  "msPerTick": 1.433,
-  "maxStepMs": 7,
+  "msPerTick": 1.351,
+  "maxStepMs": 4.8,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1454,8 +1454,8 @@
    5,
    27
   ],
-  "msPerTick": 1.347,
-  "maxStepMs": 4.6,
+  "msPerTick": 1.355,
+  "maxStepMs": 3.8,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1541,8 +1541,8 @@
    0,
    36
   ],
-  "msPerTick": 2.768,
-  "maxStepMs": 16.2,
+  "msPerTick": 2.852,
+  "maxStepMs": 13.6,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1634,8 +1634,8 @@
    2,
    32
   ],
-  "msPerTick": 2.928,
-  "maxStepMs": 10,
+  "msPerTick": 2.956,
+  "maxStepMs": 10.9,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1727,8 +1727,8 @@
    2,
    15
   ],
-  "msPerTick": 2.51,
-  "maxStepMs": 10.5,
+  "msPerTick": 2.791,
+  "maxStepMs": 10.8,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1810,8 +1810,8 @@
   "escaped": 0,
   "minHp": 0.852,
   "dcpKillsPerShot": [],
-  "msPerTick": 2.732,
-  "maxStepMs": 11.7,
+  "msPerTick": 2.854,
+  "maxStepMs": 14.1,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1887,8 +1887,8 @@
   "escaped": 0,
   "minHp": 1,
   "dcpKillsPerShot": [],
-  "msPerTick": 2.87,
-  "maxStepMs": 18.3,
+  "msPerTick": 2.9,
+  "maxStepMs": 11.2,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -1964,8 +1964,8 @@
   "escaped": 0,
   "minHp": 0.983,
   "dcpKillsPerShot": [],
-  "msPerTick": 2.846,
-  "maxStepMs": 9.7,
+  "msPerTick": 2.825,
+  "maxStepMs": 17.3,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -2035,88 +2035,89 @@
   "ships": 200,
   "winner": 0,
   "reason": "적 함대 퇴각",
-  "time": 125.5,
-  "half": 85,
-  "destroyed": 179,
-  "escaped": 21,
-  "minHp": 0.981,
+  "time": 176,
+  "half": 91,
+  "destroyed": 200,
+  "escaped": 0,
+  "minHp": 1,
   "dcpKillsPerShot": [
-   10,
-   15,
+   7,
+   5,
    18,
-   20,
-   11,
+   16,
+   6,
+   5,
    3
   ],
-  "msPerTick": 2.704,
-  "maxStepMs": 13.5,
+  "msPerTick": 2.675,
+  "maxStepMs": 12.3,
   "hp": 1,
   "state": "alive",
   "weapons": {
-   "seraph_ex": {
-    "dmg": 37713.67310830392,
-    "hits": 249,
-    "kills": 9,
-    "shots": 612
-   },
    "abyss_lance": {
-    "dmg": 74347.95837036194,
-    "hits": 119,
-    "kills": 17,
-    "shots": 124
+    "dmg": 106625.1347776507,
+    "hits": 173,
+    "kills": 16,
+    "shots": 172
    },
-   "dcp_omega": {
-    "dmg": 740370.6067274321,
-    "hits": 2681,
-    "kills": 77,
-    "shots": 9
+   "seraph_ex": {
+    "dmg": 64780.8381053363,
+    "hits": 433,
+    "kills": 14,
+    "shots": 812
    },
    "fnl_ex": {
-    "dmg": 37256.64647643045,
-    "hits": 419,
-    "kills": 7,
-    "shots": 465
+    "dmg": 69646.63626952936,
+    "hits": 793,
+    "kills": 19,
+    "shots": 877
+   },
+   "dcp_omega": {
+    "dmg": 634935.627632176,
+    "hits": 1133,
+    "kills": 60,
+    "shots": 7
    },
    "violet_edge": {
-    "dmg": 62345.24304537291,
-    "hits": 1374,
+    "dmg": 93561.2076891534,
+    "hits": 2084,
     "kills": 16,
-    "shots": 1601
+    "shots": 2325
    },
    "lilac_stinger": {
-    "dmg": 68180.48941447385,
-    "hits": 3865,
-    "kills": 50,
-    "shots": 5707
+    "dmg": 109746.69009883981,
+    "hits": 6222,
+    "kills": 73,
+    "shots": 8553
    },
    "purple_rain": {
-    "dmg": 5181.6653999983355,
-    "hits": 236,
-    "kills": 3,
+    "dmg": 2521.297006183302,
+    "hits": 114,
+    "kills": 2,
     "shots": 0
    }
   },
   "funnels": {
-   "alive": 12,
-   "lost": 24,
-   "rebuilt": 24,
-   "intercepts": 137
+   "alive": 11,
+   "lost": 33,
+   "rebuilt": 32,
+   "intercepts": 93
   },
   "paradox": {
-   "hits": 2457,
-   "displaced": 2024,
-   "absorbed": 34352,
-   "overloads": 1
+   "hits": 3092,
+   "displaced": 2642,
+   "absorbed": 42728,
+   "overloads": 0
   },
-  "dcpShots": 6,
-  "blackouts": 8,
-  "wells": 4,
-  "shifts": 4,
-  "gameOvers": 2,
+  "dcpShots": 7,
+  "blackouts": 11,
+  "wells": 6,
+  "shifts": 7,
+  "gameOvers": 0,
   "vetoes": 0,
-  "denies": 1,
-  "rewrites": 1196,
-  "regen": 1890
+  "denies": 0,
+  "rewrites": 1701,
+  "regen": 0
  },
  {
   "trial": "overload",
@@ -2125,88 +2126,89 @@
   "ships": 200,
   "winner": 0,
   "reason": "적 함대 퇴각",
-  "time": 126.5,
-  "half": 89,
-  "destroyed": 197,
-  "escaped": 3,
-  "minHp": 0.972,
+  "time": 182.5,
+  "half": 91,
+  "destroyed": 185,
+  "escaped": 15,
+  "minHp": 1,
   "dcpKillsPerShot": [
-   10,
-   2,
-   25,
-   19,
-   12,
-   39
+   6,
+   6,
+   11,
+   20,
+   3,
+   4,
+   0
   ],
-  "msPerTick": 2.88,
-  "maxStepMs": 8.6,
+  "msPerTick": 2.591,
+  "maxStepMs": 17.8,
   "hp": 1,
   "state": "alive",
   "weapons": {
    "seraph_ex": {
-    "dmg": 43872.29183247895,
-    "hits": 293,
-    "kills": 6,
-    "shots": 623
+    "dmg": 59670.994853120064,
+    "hits": 397,
+    "kills": 9,
+    "shots": 850
    },
    "abyss_lance": {
-    "dmg": 75044.02062552096,
-    "hits": 121,
-    "kills": 16,
-    "shots": 125
-   },
-   "dcp_omega": {
-    "dmg": 818913.7088483857,
-    "hits": 3040,
-    "kills": 107,
-    "shots": 10
-   },
-   "violet_edge": {
-    "dmg": 62532.1394053363,
-    "hits": 1402,
-    "kills": 18,
-    "shots": 1643
-   },
-   "lilac_stinger": {
-    "dmg": 71695.73511588646,
-    "hits": 4358,
-    "kills": 41,
-    "shots": 5924
+    "dmg": 118730.20375415077,
+    "hits": 191,
+    "kills": 19,
+    "shots": 185
    },
    "fnl_ex": {
-    "dmg": 42424.27618280143,
-    "hits": 481,
-    "kills": 6,
-    "shots": 524
+    "dmg": 71701.50210528114,
+    "hits": 815,
+    "kills": 7,
+    "shots": 885
+   },
+   "dcp_omega": {
+    "dmg": 565223.5792014934,
+    "hits": 1086,
+    "kills": 50,
+    "shots": 7
+   },
+   "violet_edge": {
+    "dmg": 99708.50834330448,
+    "hits": 2225,
+    "kills": 23,
+    "shots": 2437
+   },
+   "lilac_stinger": {
+    "dmg": 116391.89910313947,
+    "hits": 6509,
+    "kills": 76,
+    "shots": 8926
    },
    "purple_rain": {
-    "dmg": 4620.963491480192,
-    "hits": 209,
-    "kills": 2,
+    "dmg": 4021.1346800062825,
+    "hits": 186,
+    "kills": 1,
     "shots": 0
    }
   },
   "funnels": {
-   "alive": 12,
-   "lost": 26,
-   "rebuilt": 26,
-   "intercepts": 141
+   "alive": 7,
+   "lost": 41,
+   "rebuilt": 36,
+   "intercepts": 121
   },
   "paradox": {
-   "hits": 2677,
-   "displaced": 2239,
-   "absorbed": 46596,
-   "overloads": 1
+   "hits": 3203,
+   "displaced": 2777,
+   "absorbed": 36428,
+   "overloads": 0
   },
-  "dcpShots": 6,
-  "blackouts": 8,
-  "wells": 4,
+  "dcpShots": 7,
+  "blackouts": 12,
+  "wells": 6,
   "shifts": 6,
-  "gameOvers": 2,
+  "gameOvers": 0,
   "vetoes": 0,
-  "denies": 1,
-  "rewrites": 1709,
-  "regen": 2624
+  "denies": 0,
+  "rewrites": 1660,
+  "regen": 0
  },
  {
   "trial": "overload",
@@ -2215,87 +2217,89 @@
   "ships": 200,
   "winner": 0,
   "reason": "적 함대 퇴각",
-  "time": 126,
-  "half": 80,
-  "destroyed": 171,
-  "escaped": 29,
-  "minHp": 0.967,
+  "time": 176,
+  "half": 101,
+  "destroyed": 194,
+  "escaped": 1,
+  "minHp": 1,
   "dcpKillsPerShot": [
-   17,
+   15,
+   10,
+   3,
+   8,
    13,
-   13,
-   25,
+   14,
    2
   ],
-  "msPerTick": 2.507,
-  "maxStepMs": 10.4,
+  "msPerTick": 2.587,
+  "maxStepMs": 12.3,
   "hp": 1,
   "state": "alive",
   "weapons": {
    "seraph_ex": {
-    "dmg": 39252.773415853735,
-    "hits": 263,
-    "kills": 8,
-    "shots": 594
+    "dmg": 60766.51553751435,
+    "hits": 405,
+    "kills": 9,
+    "shots": 828
    },
    "abyss_lance": {
-    "dmg": 76089.60025438806,
-    "hits": 122,
-    "kills": 20,
-    "shots": 117
-   },
-   "dcp_omega": {
-    "dmg": 754894.9054390731,
-    "hits": 2704,
-    "kills": 70,
-    "shots": 7
+    "dmg": 113794.73081510374,
+    "hits": 183,
+    "kills": 21,
+    "shots": 176
    },
    "fnl_ex": {
-    "dmg": 44774.230407553005,
-    "hits": 506,
-    "kills": 10,
-    "shots": 557
+    "dmg": 68137.73837623751,
+    "hits": 776,
+    "kills": 12,
+    "shots": 862
+   },
+   "dcp_omega": {
+    "dmg": 608914.5716476592,
+    "hits": 1190,
+    "kills": 65,
+    "shots": 7
    },
    "violet_edge": {
-    "dmg": 60307.13086295821,
-    "hits": 1332,
+    "dmg": 97149.11425906129,
+    "hits": 2152,
     "kills": 18,
-    "shots": 1511
+    "shots": 2361
    },
    "lilac_stinger": {
-    "dmg": 62727.29820225246,
-    "hits": 3798,
-    "kills": 41,
-    "shots": 5471
+    "dmg": 111645.51188949813,
+    "hits": 6272,
+    "kills": 69,
+    "shots": 8832
    },
    "purple_rain": {
-    "dmg": 4475.162865340104,
-    "hits": 204,
-    "kills": 4,
+    "dmg": 2220.7944712319872,
+    "hits": 101,
+    "kills": 0,
     "shots": 0
    }
   },
   "funnels": {
-   "alive": 11,
-   "lost": 24,
-   "rebuilt": 23,
-   "intercepts": 145
+   "alive": 8,
+   "lost": 38,
+   "rebuilt": 34,
+   "intercepts": 138
   },
   "paradox": {
-   "hits": 2696,
-   "displaced": 2184,
-   "absorbed": 32266,
-   "overloads": 1
+   "hits": 3352,
+   "displaced": 2864,
+   "absorbed": 43872,
+   "overloads": 0
   },
-  "dcpShots": 5,
-  "blackouts": 8,
-  "wells": 4,
-  "shifts": 4,
-  "gameOvers": 1,
+  "dcpShots": 7,
+  "blackouts": 12,
+  "wells": 6,
+  "shifts": 6,
+  "gameOvers": 0,
   "vetoes": 0,
-  "denies": 2,
-  "rewrites": 1413,
-  "regen": 4307
+  "denies": 0,
+  "rewrites": 1781,
+  "regen": 0
  },
  {
   "trial": "game_over",
@@ -2317,8 +2321,8 @@
    11,
    3
   ],
-  "msPerTick": 2.541,
-  "maxStepMs": 12.1,
+  "msPerTick": 2.616,
+  "maxStepMs": 11.6,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -2407,8 +2411,8 @@
    12,
    39
   ],
-  "msPerTick": 2.85,
-  "maxStepMs": 7.7,
+  "msPerTick": 2.844,
+  "maxStepMs": 14.4,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -2496,8 +2500,8 @@
    25,
    2
   ],
-  "msPerTick": 2.58,
-  "maxStepMs": 9.6,
+  "msPerTick": 2.597,
+  "maxStepMs": 11.8,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -2586,8 +2590,8 @@
    10,
    1
   ],
-  "msPerTick": 2.486,
-  "maxStepMs": 10.1,
+  "msPerTick": 2.573,
+  "maxStepMs": 10.6,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -2676,8 +2680,8 @@
    12,
    3
   ],
-  "msPerTick": 2.399,
-  "maxStepMs": 8.9,
+  "msPerTick": 2.435,
+  "maxStepMs": 9.6,
   "hp": 1,
   "state": "alive",
   "weapons": {
@@ -2766,8 +2770,8 @@
    21,
    4
   ],
-  "msPerTick": 2.444,
-  "maxStepMs": 8.9,
+  "msPerTick": 2.56,
+  "maxStepMs": 11.2,
   "hp": 1,
   "state": "alive",
   "weapons": {

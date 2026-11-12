@@ -21,6 +21,8 @@ node scripts/mptest.mjs      # 실제 WebSocket 클라이언트 2개로 동기�
 
 P8 함선·성장·경제 분석·물류를 합친 개발 브랜치는 `integration/growth-p8-logistics`입니다. [통합 검증 보고서](docs/INTEGRATION_VERIFICATION.md)에 실제 플레이·저장·권한 검사와 남은 성능 한계를 기록합니다.
 
+계정 전용 실험함 **BB-EX**와 지휘관 **BB**(세계 유일, 서버가 지정 계정에만 지급)는 [BB-EX 문서](docs/BBEX.md)를 참조하세요. 운영 서버는 `SIDERARIUM_BB_OWNER_ACCOUNT`를 설정하기 전까지 누구에게도 지급하지 않습니다.
+
 ## 구조 (멀티플레이 전제)
 
 | 층 | 내용 |

@@ -27,12 +27,16 @@ const finite = (n: unknown, min: number, max: number) => typeof n === 'number' &
 
 /** A reproducibility identifier covering the actual content and combat tables used by the lab. */
 export function contentIdentity(): LabConfig['content'] {
-  const data = JSON.stringify([CONTENT.hulls, CONTENT.variants, CONTENT.presets, CONTENT.equipment, SHIP_CLASSES, EQUIPMENT, WEAPONS, TECHS]);
+  // account-exclusive content (BB-EX) is not part of the ordinary content tables: leaving it out keeps
+  // every stored experiment of ordinary ships valid when that content changes
+  const X = CONTENT.exclusive, xw = (id: string) => X.has(`eq_${id}`) || id === 'fnl_ex';
+  const keep = <T,>(o: Record<string, T>, drop: (k: string, v: T) => boolean) => Object.fromEntries(Object.entries(o).filter(([k, v]) => !drop(k, v)));
+  const data = JSON.stringify([keep(CONTENT.hulls, k => X.has(k)), keep(CONTENT.variants, (_k, v) => X.has(v.hull)), keep(CONTENT.presets, (_k, v) => X.has(v.hull)), keep(CONTENT.equipment, k => X.has(k)), SHIP_CLASSES, keep(EQUIPMENT, k => X.has(k)), keep(WEAPONS, k => xw(k)), TECHS]);
   let h = 2166136261; for (let i = 0; i < data.length; i++) { h ^= data.charCodeAt(i); h = Math.imul(h, 16777619); }
   return { version: CONTENT_VERSION, fingerprint: `fnv1a32-${(h >>> 0).toString(16).padStart(8, '0')}`, packs: CONTENT.packs.map(p => p.id) };
 }
 
-export const availableHulls = () => Object.values(CONTENT.hulls).filter(h => !h.dev && !h.exclusive && !!SHIP_CLASSES[h.classId]);
+export const availableHulls = () => Object.values(CONTENT.hulls).filter(h => !h.dev && !!SHIP_CLASSES[h.classId]);
 export function defaultShip(hull: string, id: string, variant?: string): LabShip {
   const h = CONTENT.hulls[hull];
   if (!h || h.dev) throw new Error('사용할 수 없는 선체입니다');
