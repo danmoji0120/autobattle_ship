@@ -43,7 +43,7 @@ import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
 import { expandP10 } from './worldgen-p10';
 import { expandedLayout, gateOpen, foundingRule, dockRefused, FACTIONS } from './territory';
-import { visit, surveyIntel, recordSample, believedMix } from './intel';
+import { visit, surveyIntel, recordSample, believedMix, knowsField } from './intel';
 import { mineGeo, releaseAcc } from './geology';
 import { factionEconStep, warSupply } from './factionEcon';
 import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate, jumps } from './geom';
@@ -1589,7 +1589,7 @@ export class WorldSim {
     switch (op.k) {
       case 'mine': {
         const f = this.st.fields[op.field]; const st = this.st.stations[op.deliver];
-        if (!f) return '소행성 지대 없음';
+        if (!f || (this.st.fog && !knowsField(this.st, company, f))) return '소행성 지대 없음';
         if (!st) return op.auto ? '하역 가능한 정거장이 없음' : '하역 정거장 없음';
         if (!sub.some(s => econOf(s).mine > 0)) return '채굴선이 없음';
         return this.deliverProblem(st, company, op.sell, this.berthOfGroup(g));
@@ -2768,7 +2768,10 @@ export class WorldSim {
           const units = mineGeo(f, s, a, rock, this.st.fields);
           for (const [k, n] of Object.entries(units)) { addc(s.cargo, k, n); emit(st, { kind: 'produce', amount: n, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: 'mining', ref: f.id }); }
           if (cargoKeys(units).length) this.sampled(s.owner, f, units);
-        } else for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) { addc(s.cargo, k, a * w); if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
+        } else {
+          for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) { addc(s.cargo, k, a * w); if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
+          if (this.st.intel && a > 0 && !f.salvage) recordSample(this.st, s.owner, f, Object.fromEntries(Object.entries(f.mix ?? { [f.res]: 1 }).map(([k, w]) => [k, a * w])));
+        }
         s.task = { k: 'mine', field: f.id, rock };
         s.fx = { mining: f.id, rock };
         const r = rockPos(f, rock); s.heading = Math.atan2(r.x - s.pos.x, r.z - s.pos.z);

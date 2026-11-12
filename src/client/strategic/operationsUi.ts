@@ -10,9 +10,11 @@ import { CONTENT } from '../../content/registry';
 import { morph, trackSelects } from '../../ui/morph';
 import { qty } from '../../world/types';
 import { priceOf } from '../../world/market';
+import { fieldPanelHtml } from './territoryUi';
+import { econOf } from '../../world/hullops';
 
-type Tab = 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'finance';
-const TABS: [Tab, string][] = [['hq', '본부'], ['works', '업무'], ['stock', '재고'], ['industry', '산업'], ['research', '연구'], ['logistics', '물류'], ['build', '건설·조선'], ['finance', '재무·결재']];
+type Tab = 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance';
+const TABS: [Tab, string][] = [['hq', '본부'], ['works', '업무'], ['stock', '재고'], ['industry', '산업'], ['research', '연구'], ['logistics', '물류'], ['build', '건설·조선'], ['fields', '광구'], ['finance', '재무·결재']];
 interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard' | 'research'): void; logistics(): void; analytics(): void; close(): void }
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -122,6 +124,8 @@ export class OperationsPanel {
       case 'trade': goal = { k, item: this.val('g-item'), from: this.val('g-from'), to: this.val('g-station'), amount: this.numv('g-n'), maxBuy: this.numv('g-maxbuy'), minSell: this.numv('g-minsell'), minProfit: this.numv('g-minprofit') || 0, cycles: Math.floor(this.numv('g-cycles') || 0) }; break;
       case 'fleet': goal = { k, station: this.val('g-station'), hull: this.val('g-hull'), count: Math.floor(this.numv('g-n')) }; break;
       case 'facilities': goal = { k, station: this.val('g-station'), kind: this.val('g-fac'), count: Math.floor(this.numv('g-n')) }; break;
+      case 'survey_field': goal = { k, field: this.val('g-field'), group: this.val('g-group'), samples: Math.floor(this.numv('g-n')), ...(this.val('g-station') ? { deliver: this.val('g-station') } : {}) }; break;
+      case 'develop_field': goal = { k, field: this.val('g-field'), group: this.val('g-group'), sell: this.checked('g-sell'), miners: Math.floor(this.numv('g-n') || 0), ...(this.val('g-station') ? { deliver: this.val('g-station') } : {}), ...(this.val('g-yard') ? { yard: this.val('g-yard') } : {}) }; break;
       default: goal = { k: 'condition', station: this.val('g-station'), item: this.val('g-item'), side: this.val('g-side') === 'sell' ? 'sell' : 'buy', price: this.numv('g-cond'), amount: this.numv('g-n'), repeat: this.checked('g-repeat') };
     }
     void this.send({ c: 'workCreate', goal, ...(budget > 0 ? { budget } : {}), ...(maxPrice > 0 ? { maxPrice } : {}) }, '목표를 등록했습니다 — 회사가 즉시 계획을 세웁니다');
@@ -139,7 +143,7 @@ export class OperationsPanel {
     const w = this.w, co = w.companies[this.me]; if (!co) return;
     const aps = this.approvals().filter(a => a.state === 'open');
     const live = this.works().filter(x => !terminal(x));
-    const body = this.tab === 'hq' ? this.hq() : this.tab === 'works' ? this.workTab() : this.tab === 'stock' ? this.stockTab() : this.tab === 'industry' ? this.industryTab() : this.tab === 'research' ? this.researchTab() : this.tab === 'logistics' ? this.logisticsTab() : this.tab === 'build' ? this.buildTab() : this.financeTab();
+    const body = this.tab === 'hq' ? this.hq() : this.tab === 'works' ? this.workTab() : this.tab === 'stock' ? this.stockTab() : this.tab === 'industry' ? this.industryTab() : this.tab === 'research' ? this.researchTab() : this.tab === 'logistics' ? this.logisticsTab() : this.tab === 'build' ? this.buildTab() : this.tab === 'fields' ? this.fieldsTab() : this.financeTab();
     morph(this.el, `<div class="panel lg-box ops-box"><header class="lg-head"><div><div class="an-eyebrow">SIDERARIUM / COMPANY HQ</div><h2>회사 본부 <span>${esc(co.name)} · 업무 ${live.length} · 결재 ${aps.length}</span></h2></div><div class="lg-actions"><button class="btn" data-a="close" aria-label="본부 닫기">✕</button></div></header>
       <nav class="pool-tabs ops-tabs" aria-label="본부 화면">${TABS.map(([id, label]) => `<button class="${this.tab === id ? 'on' : ''}" data-a="tab" data-id="${id}" aria-pressed="${this.tab === id}">${label}${id === 'finance' && aps.length ? ` <span class="ops-dot">${aps.length}</span>` : ''}</button>`).join('')}</nav>
       ${this.error ? `<div class="lg-feedback warn" role="alert">${esc(this.error)}</div>` : this.notice ? `<div class="lg-feedback good" role="status">${esc(this.notice)}</div>` : ''}
@@ -223,15 +227,25 @@ export class OperationsPanel {
     const items = Object.entries(ITEMS).map(([id, d]) => ({ id, name: d.name }));
     const field = (label: string, html: string) => `<label>${label}${html}</label>`;
     const num = (name: string, v = '') => `<input type="number" min="0" name="${name}" value="${v}">`;
-    const kinds: [GoalSpec['k'], string][] = [['stockpile', '재고 비축'], ['trade', '반복 무역'], ['fleet', '함선 N척 건조'], ['facilities', '시설 N개 확보'], ['condition', '가격 조건 거래']];
+    const kinds: [GoalSpec['k'], string][] = [['stockpile', '재고 비축'], ['trade', '반복 무역'], ['fleet', '함선 N척 건조'], ['facilities', '시설 N개 확보'], ['condition', '가격 조건 거래'], ...((w as any).intel ? [['survey_field', '광구 시험 채굴'], ['develop_field', '광구 개발']] as [GoalSpec['k'], string][] : [])];
+    const fields = Object.values(w.fields).filter(x => !x.salvage).map(x => ({ id: x.id, name: x.name + ((x as any).unidentified ? ' (미확인)' : '') }));
+    const groups = Object.values(w.groups).filter(g => g.owner === me && g.shipIds.some(id => w.ships[id] && econOf(w.ships[id]).mine > 0)).map(g => ({ id: g.id, name: g.name }));
+    const optE = (list: { id: string; name: string }[], name: string, empty: string) => `<select data-keep name="${name}"><option value="">${empty}</option>${list.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select>`;
     let f = '';
     if (k === 'stockpile') f = field('범위', '<select data-keep name="g-scope"><option value="station">특정 정거장에 비축</option><option value="company">회사 전체 합계로 비축</option></select>') + field('정거장 (회사 전체: 구매품 입고지)', opt(usable, 'g-station')) + field('품목', opt(items, 'g-item')) + field('목표 수량', num('g-n', '3000')) + `<label class="ops-check"><input type="checkbox" name="g-maintain" checked> 계속 유지</label><label class="ops-check"><input type="checkbox" name="g-produce" checked> 자체 생산 우선</label><label class="ops-check"><input type="checkbox" name="g-buy" checked> 부족분 구매 허용</label>`;
     else if (k === 'trade') f = field('품목', opt(items, 'g-item')) + field('매입 시장', opt(markets, 'g-from')) + field('판매 시장', opt(markets, 'g-station')) + field('회당 수량', num('g-n', '400')) + field('최대 매입가', num('g-maxbuy')) + field('최소 판매가', num('g-minsell')) + field('회당 최소 이익', num('g-minprofit', '0')) + field('반복 횟수 (0=계속)', num('g-cycles', '0'));
     else if (k === 'fleet') f = field('조선소', opt(own, 'g-station')) + field('선체', opt(Object.entries(CONTENT.hulls).filter(([, h]) => !h.dev && !h.exclusive && h.classId !== 'platform').map(([id, h]) => ({ id, name: h.name })), 'g-hull')) + field('척수', num('g-n', '2'));
     else if (k === 'facilities') f = field('정거장', opt(own, 'g-station')) + field('시설', opt(Object.values(MODULES).filter(m => m.kind !== 'core').map(m => ({ id: m.kind, name: m.name })), 'g-fac')) + field('개수', num('g-n', '2'));
+    else if (k === 'survey_field') f = field('광구', opt(fields, 'g-field')) + field('채굴 편대', opt(groups, 'g-group')) + field('목표 표본 수', num('g-n', '300')) + field('하역 정거장', optE(usable, 'g-station', '자동 선택 (창고 보관)'));
+    else if (k === 'develop_field') f = field('광구', opt(fields, 'g-field')) + field('채굴 편대', opt(groups, 'g-group')) + field('목표 채굴선 수', num('g-n', '3')) + field('하역 정거장', optE(usable, 'g-station', '자동 선택')) + field('증원 조선소 (선택)', optE(own, 'g-yard', '증원 안 함')) + '<label class="ops-check"><input type="checkbox" name="g-sell"> 하역 시 판매 (끄면 창고 보관·내부 공급)</label>';
     else f = field('시장', opt(markets, 'g-station')) + field('품목', opt(items, 'g-item')) + field('구분', '<select data-keep name="g-side"><option value="buy">이하일 때 구매</option><option value="sell">이상일 때 판매</option></select>') + field('기준 가격', num('g-cond')) + field('수량', num('g-n', '100')) + '<label class="ops-check"><input type="checkbox" name="g-repeat"> 반복</label>';
     return `<div class="ops-goal-form"><button class="btn ${this.formOpen ? '' : 'go'}" data-a="form" aria-expanded="${this.formOpen}">${this.formOpen ? '− 목표 입력 닫기' : '+ 새 회사 목표'}</button>${!this.formOpen ? '</div>' : ''}${this.formOpen ? `<div class="proc-policy-form"><div class="proc-policy-grid">${field('목표 종류', `<select data-goalkind>${kinds.map(([id, l]) => `<option value="${id}" ${id === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}${f}${field('예산 (cr, 비우면 결재)', num('g-budget'))}${field('최대 단가 (선택)', num('g-price'))}</div>
       <p class="dim">예산을 정하면 그 범위 안에서는 묻지 않고 진행합니다. 비워 두면 돈이 필요한 순간 결재를 한 번 요청합니다.</p><button class="btn go" data-a="goal">목표 등록</button></div></div>` : ''}`;
+  }
+  private fieldsTab() {
+    const works = this.works().filter(x => (x.kind === 'survey_field' || x.kind === 'develop_field') && x.goal && 'field' in x.goal).map(x => ({ field: (x.goal as any).field as string, title: x.title, state: STATE_NAME[x.state] + (x.reason ? ` · ${x.reason}` : '') }));
+    return `<section class="ops-section"><h3>광구 관리</h3><p class="dim">자사 함선이 발견하고 실제로 채굴한 결과만 표시합니다. 다른 회사의 탐사 정보는 보이지 않습니다.</p>${fieldPanelHtml(this.w, this.me!, works)}
+      <p><button class="btn" data-a="tab" data-id="works" data-form="1">+ 광구 시험 채굴·개발 목표</button></p></section>`;
   }
   private workTab() {
     const q = this.search.toLowerCase(), all = this.works();

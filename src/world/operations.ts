@@ -8,6 +8,7 @@
 // original systems still applies. Approvals (결재) are raised only where automatic work would
 // spend money without authority or take a risk the company has not accepted.
 import { territoryRisk } from './territory';
+import { validateFieldGoal, runFieldGoal, type FieldGoal } from './fieldOps';
 import type { WorldSim, Cmd } from './sim';
 import type { Company, Station, WorldState, Op, WGroup } from './types';
 import { qty, cargoSum } from './types';
@@ -27,11 +28,11 @@ import { dist } from './geom';
 export type WorkKind =
   | 'buy' | 'sell' | 'transport' | 'route' | 'station' | 'facility' | 'ship' | 'research' | 'production'
   | 'repair' | 'refit' | 'purchase_ship' | 'exchange' | 'contract' | 'operation'
-  | 'stockpile' | 'trade' | 'fleet' | 'facilities' | 'condition';
+  | 'stockpile' | 'trade' | 'fleet' | 'facilities' | 'condition' | 'survey_field' | 'develop_field';
 /** continuous: an open-ended operation (mining, patrol, escort …) — it runs until the player stops or changes it */
 export type WorkMode = 'once' | 'maintain' | 'repeat' | 'condition' | 'continuous';
 export type WorkState = 'running' | 'waiting' | 'paused' | 'done' | 'failed' | 'cancelled';
-export const GOAL_KINDS: WorkKind[] = ['stockpile', 'trade', 'fleet', 'facilities', 'condition'];
+export const GOAL_KINDS: WorkKind[] = ['stockpile', 'trade', 'fleet', 'facilities', 'condition', 'survey_field', 'develop_field'];
 
 export type GoalSpec =
   /** keep (maintain) or reach (once) `target` units of `item`: at `station` (scope 'station', default), or
@@ -44,7 +45,9 @@ export type GoalSpec =
   /** have `count` built facilities of `kind` at `station` */
   | { k: 'facilities'; station: string; kind: string; count: number }
   /** buy below / sell above `price` at `station`, `amount` per trigger */
-  | { k: 'condition'; station: string; item: string; side: 'buy' | 'sell'; price: number; amount: number; repeat: boolean };
+  | { k: 'condition'; station: string; item: string; side: 'buy' | 'sell'; price: number; amount: number; repeat: boolean }
+  /** P10 deposits: test-mine and report, or develop continuously (world/fieldOps.ts) */
+  | FieldGoal;
 
 export interface WorkRef {
   station?: string; module?: string; order?: string; build?: string; research?: string; job?: string; route?: string;
@@ -185,7 +188,7 @@ export const STATE_NAME: Record<WorkState, string> = { running: '진행', waitin
 export const KIND_NAME: Record<WorkKind, string> = {
   buy: '구매', sell: '판매', transport: '운송', route: '정기 운송', station: '정거장 건설', facility: '시설 건설', ship: '함선 건조', research: '연구', production: '생산',
   repair: '수리', refit: '개장', purchase_ship: '함선 구매', exchange: '거래소', contract: '계약', operation: '함대 작전',
-  stockpile: '비축 목표', trade: '반복 무역', fleet: '함대 목표', facilities: '시설 목표', condition: '조건 거래',
+  stockpile: '비축 목표', trade: '반복 무역', fleet: '함대 목표', facilities: '시설 목표', condition: '조건 거래', survey_field: '광구 시험 채굴', develop_field: '광구 개발',
 };
 const children = (h: WorldSim, w: Work) => Object.values(h.st.works ?? {}).filter(c => c.parent === w.id);
 const findWork = (h: WorldSim, owner: string, test: (w: Work) => boolean) => Object.values(h.st.works ?? {}).find(w => w.owner === owner && test(w));
@@ -778,9 +781,24 @@ export function createGoal(h: WorldSim, owner: string, spec: GoalSpec, opts: { t
       title ??= `${st.name} · ${itemName(spec.item)} ${spec.side === 'buy' ? `${fmt(spec.price)} cr 이하 구매` : `${fmt(spec.price)} cr 이상 판매`} ${fmt(spec.amount)}`; mode = 'condition'; total = spec.amount;
       break;
     }
+    case 'survey_field': case 'develop_field': {
+      const err = validateFieldGoal(h, owner, spec); if (err) return err;
+      const sp = spec;
+      if (live.some(w => (w.goal?.k === 'survey_field' || w.goal?.k === 'develop_field') && (w.goal.group === sp.group))) return '이 편대는 이미 다른 광구 목표에 배정되어 있습니다';
+      const f = h.st.fields[sp.field];
+      if (sp.k === 'survey_field') {
+        spec = { k: 'survey_field', field: f.id, group: sp.group, samples: Math.floor(sp.samples), ...(sp.deliver ? { deliver: sp.deliver } : {}) };
+        title ??= `${f.name} · 시험 채굴 ${fmt(spec.samples)}개`; total = spec.samples; unit = '표본';
+      } else {
+        spec = { k: 'develop_field', field: f.id, group: sp.group, sell: !!sp.sell, miners: Math.floor(sp.miners), ...(sp.deliver ? { deliver: sp.deliver } : {}), ...(sp.yard ? { yard: sp.yard, hull: typeof sp.hull === 'string' && Object.hasOwn(CONTENT.hulls, sp.hull) ? sp.hull : Object.values(CONTENT.hulls).find(x => x.classId === 'miner')?.id } : {}) };
+        title ??= `${f.name} · 광구 개발`; mode = 'continuous'; total = 0; unit = '개';
+      }
+      break;
+    }
     default: return '알 수 없는 목표 종류';
   }
-  const w = addWork(h, owner, spec.k, title!, { station: spec.k === 'trade' ? spec.from : spec.station, item: spec.k === 'fleet' || spec.k === 'facilities' ? undefined : spec.item }, { mode, goal: spec, priority: opts.priority ?? 5, progress: { done: 0, total, unit } });
+  const fieldGoal = spec.k === 'survey_field' || spec.k === 'develop_field';
+  const w = addWork(h, owner, spec.k, title!, fieldGoal ? { group: (spec as FieldGoal).group, station: (spec as FieldGoal).deliver } : { station: spec.k === 'trade' ? spec.from : (spec as any).station, item: spec.k === 'fleet' || spec.k === 'facilities' ? undefined : (spec as any).item }, { mode, goal: spec, priority: opts.priority ?? 5, progress: { done: 0, total, unit } });
   delete w.parent; delete w.auto;
   if (opts.budget !== undefined || opts.maxPrice !== undefined) w.budget = { limit: opts.budget ?? 0, spent: 0, ...(opts.maxPrice ? { maxPrice: opts.maxPrice } : {}) };
   setState(h, w, 'running', '계획 수립 중');
@@ -798,7 +816,35 @@ function runGoal(h: WorldSim, w: Work) {
     case 'facilities': return runFacilities(h, w, w.goal);
     case 'trade': return runTrade(h, w, w.goal);
     case 'condition': return runCondition(h, w, w.goal);
+    case 'survey_field': case 'develop_field': return runFieldGoal(fieldHost(h, w), w.goal);
   }
+}
+/** adapter giving fieldOps the goal machinery (state, approvals, child commands) without duplicating it */
+function fieldHost(h: WorldSim, w: Work) {
+  const co = h.st.companies[w.owner], rt = (w.rt ??= {}) as Record<string, any>;
+  return {
+    h, owner: w.owner, rt, maxRisk: opsOf(co).policy.maxRisk,
+    setState: (state: WorkState, reason: string) => setState(h, w, state, reason),
+    log: (text: string) => note(w, h.time, text),
+    progress: (done: number, total: number, unit: string) => { w.progress = { done, total, unit }; },
+    result: (text: string) => { w.result = text; },
+    cmd: (c: any) => cmd(h, w, c),
+    askRisk: (level: number, hops: number, situation: string) => {
+      if (Object.values(h.st.approvals ?? {}).some(a => a.work === w.id && a.state === 'rejected' && h.time - (a.decided ?? 0) < 6 * 3600)) return true;
+      raise(h, w, 'risk', 'risk', { title: `${w.title} — 위험 지역`, reason: `광구 지역 위험도 ${Math.round(level)}가 허용치(${opsOf(co).policy.maxRisk})를 넘습니다`, situation, items: [], estimate: { cost: 0, note: '함선 손실 위험 — 비용은 발생하지 않음' }, risk: { level, hops, note: '치안·지역(무법/미개척/국경 분쟁) 기반 추정' },
+        options: [{ id: 'approve', label: '위험 지역 진입 허용', detail: '이 목표에 한해 허용합니다', scopes: ['work'] }, { id: 'pause', label: '일시정지', detail: '', recommended: true, scopes: ['once'] }, { id: 'reject', label: '거절', detail: '6시간 동안 다시 묻지 않음', scopes: ['once'] }],
+        rejectEffect: '편대를 보내지 않습니다', scopeNote: '이 목표 전체' });
+      return true;
+    },
+    hasChildFleet: () => liveChildren(h, w).some(c => c.kind === 'fleet'),
+    childFleet: (spec: { station: string; hull: string; count: number; group: string }) => {
+      const before = new Set(Object.keys(h.st.works ?? {}));
+      const err = createGoal(h, w.owner, { k: 'fleet', station: spec.station, hull: spec.hull, count: Math.min(50, spec.count), group: spec.group }, { priority: w.priority });
+      if (err) return err;
+      for (const id of Object.keys(h.st.works ?? {})) if (!before.has(id) && h.st.works![id].kind === 'fleet') { h.st.works![id].parent = w.id; h.st.works![id].auto = true; }
+      return null;
+    },
+  };
 }
 const liveChildren = (h: WorldSim, w: Work, kind?: WorkKind) => children(h, w).filter(c => !terminal(c) && (!kind || c.kind === kind));
 function cmd(h: WorldSim, w: Work, c: Cmd): string | null { return withParent(w.id, () => h.command(w.owner, c)); }

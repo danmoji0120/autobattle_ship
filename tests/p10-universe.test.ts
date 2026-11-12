@@ -225,3 +225,58 @@ describe('faction economy and conflicts', () => {
     for (const s of Object.values(sim.st.stations)) for (const m of Object.values(s.market ?? {})) expect(m.stock).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('company-ops deposit goals', () => {
+  function setup(seed: number) {
+    const sim = WorldSim.create(seed, { layout: 'p10' }); quiet(sim);
+    const p = sim.addPlayer('광구 회사'); sim.st.companies[p].credits = 1e7;
+    const f = sim.st.fields.p10_cradle_field;
+    const g = sim.newGroup(p, '시험 채굴반');
+    for (let i = 0; i < 2; i++) sim.spawnShip(p, 'miner', 'std', g.id, { x: f.pos.x + 600 + i * 50, y: 0, z: f.pos.z });
+    run(sim, 3); // the ships are in cradle: the deposit is discovered by visiting
+    return { sim, p, f, g };
+  }
+  it('survey_field test-mines, records only real samples and reports', () => {
+    const { sim, p, f, g } = setup(30);
+    sim.st.companies[p].ops = { ...(sim.st.companies[p].ops ?? {} as any), policy: { ...(sim.st.companies[p].ops?.policy ?? {} as any), maxRisk: 100 } } as any;
+    if (!sim.st.companies[p].ops!.ledger) (sim.st.companies[p].ops as any).ledger = [];
+    if (!sim.st.companies[p].ops!.spend) (sim.st.companies[p].ops as any).spend = [];
+    expect(sim.command(p, { c: 'workCreate', goal: { k: 'survey_field', field: f.id, group: g.id, samples: 40 } } as any)).toBeNull();
+    const w = Object.values(sim.st.works!).find(x => x.kind === 'survey_field')!;
+    for (let t = 0; t < 1800 && w.state !== 'done'; t += 1) sim.update(1);
+    expect(w.state).toBe('done');
+    expect(w.result).toMatch(/표본/);
+    const fi = sim.st.intel![p].fields[f.id];
+    expect(fi.n).toBeGreaterThanOrEqual(40);
+    expect(sim.st.groups[g.id].op.k).toBe('idle');
+    // the operation work for the mining order is a child of the goal
+    expect(Object.values(sim.st.works!).some(x => x.parent === w.id && x.kind === 'operation')).toBe(true);
+  });
+  it('a risky deposit asks for approval before sending ships', () => {
+    const { sim, p, g } = setup(31);
+    const abyss = sim.st.fields.p10_abyss_core;
+    sim.st.intel![p].fields[abyss.id] = { found: 0, n: 0, units: {}, first: {}, last: 0 };
+    expect(sim.command(p, { c: 'workCreate', goal: { k: 'survey_field', field: abyss.id, group: g.id, samples: 50 } } as any)).toBeNull();
+    const w = Object.values(sim.st.works!).find(x => x.kind === 'survey_field')!;
+    expect(w.state).toBe('waiting');
+    expect(Object.values(sim.st.approvals!).some(a => a.work === w.id && a.kind === 'risk' && a.state === 'open')).toBe(true);
+    expect(sim.st.groups[g.id].op.k).not.toBe('mine');
+  });
+  it('develop_field keeps mining and tracks value; a player re-order pauses it', () => {
+    const { sim, p, f, g } = setup(32);
+    const ops = sim.st.companies[p].ops; if (ops) ops.policy.maxRisk = 100;
+    expect(sim.command(p, { c: 'workCreate', goal: { k: 'develop_field', field: f.id, group: g.id, sell: false, miners: 2 } } as any)).toBeNull();
+    const w = Object.values(sim.st.works!).find(x => x.kind === 'develop_field')!;
+    run(sim, 600, 1);
+    expect(w.rt?.profit ?? 0).toBeGreaterThan(0);
+    expect(['running', 'waiting']).toContain(w.state);
+    sim.command(p, { c: 'setOp', group: g.id, op: { k: 'idle' } });
+    run(sim, 20, 1);
+    expect(w.state).toBe('paused');
+  });
+  it('refuses deposit goals on worlds without exploration intel', () => {
+    const sim = WorldSim.create(33); const p = sim.addPlayer('구세계');
+    const g = sim.newGroup(p, 'x'); sim.spawnShip(p, 'miner', 'std', g.id, sim.st.fields.garden.pos);
+    expect(sim.command(p, { c: 'workCreate', goal: { k: 'survey_field', field: 'garden', group: g.id, samples: 40 } } as any)).toMatch(/P10/);
+  });
+});

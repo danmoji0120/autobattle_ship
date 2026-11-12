@@ -105,9 +105,9 @@ export function surveyIntel(w: WorldState, co: string, sysId: string, power: num
   return { done: true, fields: discover(w, co, sys, 3) };
 }
 
-/** record units actually mined by a company's ship from a deposit */
+/** record units actually mined by a company's ship from a deposit (P10 worlds; identified fields too, for goal tracking) */
 export function recordSample(w: WorldState, co: string, f: Field, units: Cargo) {
-  if (!f.geo || !isPlayer(w, co)) return;
+  if (!w.intel || !isPlayer(w, co)) return;
   const I = intelOf(w, co);
   const fi = (I.fields[f.id] ??= { found: w.time, n: 0, units: {}, first: {}, last: 0 });
   for (const [k, n] of Object.entries(units)) {
