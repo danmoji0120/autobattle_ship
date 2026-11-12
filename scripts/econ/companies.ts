@@ -13,7 +13,8 @@ import { priceOf, absorbRate } from '../../src/world/market';
 import { valueOf } from '../../src/world/valuation';
 import { sysAt, jumps } from '../../src/world/geom';
 import { observeWorld, type Observation } from '../../src/world/observe';
-import { qty, type Station, type Size } from '../../src/world/types';
+import { qty, type Station } from '../../src/world/types';
+import type { Size } from '../../src/content/schema';
 import { makeWorld, type Origin } from './world';
 import { proposal } from './proposals';
 
