@@ -80,6 +80,10 @@ export interface HullDef {
   /** development hull (model/loader tests): never sold, built or granted; needs no blueprint. Only
    *  tests and the model preview spawn it. Fixture models may only be used by dev hulls. */
   dev?: boolean;
+  /** ACCOUNT-EXCLUSIVE hull: exists once in the world, granted by the server to one verified account
+   *  (world/exclusive.ts). Never sold, built, listed, dropped or blueprinted — the validator rejects
+   *  `sale`, `build` and any blueprint that targets it, and every catalogue skips it. */
+  exclusive?: boolean;
   // ── growth P3/P4/P6 (contentV ≥ 3). All optional: absent = the class defaults (ECON / HULLS), so the
   //    12 mk1 hulls behave exactly as before. Data-only links for P5 (tech, facilities, parts).
   /** combat structure relative to the class (multiplies hp / armour / tactical speed; variant mods stack) */
@@ -262,6 +266,8 @@ export interface WeaponStats {
   /** effectiveness against shields (1 = full damage to the shield) */
   vsShield?: number;
   sound?: string;
+  /** exotic behaviours of exclusive weapons (see sim/data/weapons.ts) */
+  pierce?: number; seek?: number; phase?: boolean; special?: 'dcp';
 }
 /** visual of a weapon in combat (tracer / beam colour and size) */
 export interface WeaponVis { color: string; len: number; wid: number; beam?: boolean }
@@ -291,6 +297,13 @@ export interface ArmContent {
    *  usually need none and pay in power instead */
   supply?: Record<string, number>;
 }
+/** ACCOUNT-EXCLUSIVE weapon (ContentPack.exclusive.arms): fitted only on an exclusive hull. It has no
+ *  recipe, no research and no supply — nothing in the world can make, unlock, trade or drop it — and
+ *  it stands outside the weapon budget rules by design. */
+export type ExclusiveArm = Omit<ArmContent, 'recipe' | 'tech' | 'supply' | 'size'> & { size: Size };
+/** ACCOUNT-EXCLUSIVE internal module: a named, fixed system of an exclusive hull (its behaviour lives
+ *  in the combat engine, not in `fx`) */
+export interface ExclusiveModule { id: string; name: string; desc: string; slot: InternalKind; size: Size; mass: number; power: number }
 /** combat effects a module or a research applies (multipliers default 1; shield/regen/evasion add) */
 export interface CombatFx {
   /** only weapons of this family (research in a weapon area) */
@@ -359,4 +372,6 @@ export interface ContentPack {
   legacy?: LegacyLoadoutMap[];
   assets?: AssetDef[];
   blueprints?: BlueprintDef[];
+  /** account-exclusive equipment (the hulls that carry it are marked `exclusive` themselves) */
+  exclusive?: { arms?: ExclusiveArm[]; modules?: ExclusiveModule[] };
 }

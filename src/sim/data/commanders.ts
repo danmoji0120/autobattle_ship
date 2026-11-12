@@ -13,6 +13,8 @@ export interface CommanderDef {
   color: string;
   bio: string;
   team: 0 | 1;
+  /** causality interference (the unique commander BB): may intervene before a result is final */
+  causal?: boolean;
 }
 
 export const SPECIALTY_TEXT: Record<Specialty, string> = {

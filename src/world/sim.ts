@@ -33,6 +33,8 @@ import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valu
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale } from './money';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
+import { enforceExclusive, exclusiveGuard, exclusiveLost, stepExclusive, isExclusiveShip, isExclusiveEquip, grantExclusive } from './exclusive';
+import { BBEX_CLASS } from '../sim/bbex/data';
 import { priceOf, driftV3, fundsStep, fundsIn, seedFunds } from './market';
 import { publicCap, storeUsed, reservedSpace, listedSpace, logisticsReservedSpace, setLease, takesSpace, constructionRoom, serviceOf } from './storage';
 import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } from './explore';
@@ -157,6 +159,8 @@ export class WorldSim {
   /** what the content migration did on load (null = not run) */
   contentReport: MigrationReport | null = null;
   /** hooks for the server */
+  /** true only while world/exclusive.ts spawns the account-exclusive hull */
+  exclusiveSpawn = false;
   onBattleOrder?: (eng: string, rec: OrderRecord) => void;
   onBattleEnd?: (eng: Engagement) => void;
 
@@ -191,6 +195,7 @@ export class WorldSim {
       while (w.tick < e.tick && !w.outcome) w.step();
       this.battles.set(e.id, w);
     }
+    enforceExclusive(st);
     const c = st.clock;
     if (c) { this.acc = c.acc; this.slow = c.slow; this.npcRot = c.npcRot; for (const [k, v] of Object.entries(c.battleAcc ?? {})) if (this.battles.has(k)) this.battleAcc.set(k, v); }
   }
@@ -373,6 +378,8 @@ export class WorldSim {
    *  Removed items go to the company's storage at that station; added items come from it, or are
    *  bought (public stations, `buy`). Returns an error message, or null. */
   private applyFitting(company: string, s: WShip, variant: string, nf: ShipFitting, o: { buy?: boolean; preset?: string; what: string }): string | null {
+    if (isExclusiveShip(s)) return 'BB-EX의 전용 장비는 분리하거나 교체할 수 없습니다';
+    if ([...Object.values(nf.hp), ...Object.values(nf.bay)].some(isExclusiveEquip)) return 'BB-EX 전용 장비는 다른 함선에 장착할 수 없습니다';
     const co = this.st.companies[company];
     if (!s.fitting || !s.variant || !s.hull) return '이 함선은 아직 피팅 V2가 적용되지 않았습니다';
     if (s.task.k !== 'docked') return '정박 중이어야 함';
@@ -487,6 +494,7 @@ export class WorldSim {
   // ===================================================================== creation
 
   spawnShip(owner: string, classId: string, loadoutId: string, groupId: string, pos: V, name?: string): WShip {
+    if (classId === BBEX_CLASS && !this.exclusiveSpawn) throw new Error('account-exclusive hull: only the server grant creates it');
     const id = this.id('s');
     const names = SHIP_NAMES[owner === 'pirates' ? 1 : 0];
     const civ: Record<string, string> = { miner: '곡괭이', hauler: '짐꾼', constructor: '석공' };
@@ -511,6 +519,9 @@ export class WorldSim {
     this.st.commanders[c.id] = c;
     return c;
   }
+
+  /** server-only: bind BB / BB-EX to the PMC of a verified account (idempotent — world/exclusive.ts) */
+  grantExclusive(account: string, company: string) { return grantExclusive(this, account, company); }
 
   addPlayer(name: string): string { return watchMoney(this.st, 'company_creation', {}, () => this.createPlayer(name)); }
 
@@ -582,6 +593,8 @@ export class WorldSim {
   private executeCommand(company: string, cmd: Cmd): string | null {
     const co = this.st.companies[company];
     if (!co || co.kind !== 'player') return '알 수 없는 회사';
+    // account-exclusive content (BB / BB-EX) is checked on the server for every command
+    const xerr = exclusiveGuard(this.st, company, cmd as unknown as Record<string, unknown> & { c: string }); if (xerr) return xerr;
     const G = (id: string) => { const g = this.st.groups[id]; return g && g.owner === company ? g : null; };
     const S = (id: string) => this.st.stations[id];
     switch (cmd.c) {
@@ -1381,6 +1394,7 @@ export class WorldSim {
   private hullChoice(cmd: { classId: string; loadoutId: string; hull?: string; variant?: string; preset?: string }): { hull: string; variant: string; preset?: string } | string {
     if (cmd.hull !== undefined && (typeof cmd.hull !== 'string' || !Object.hasOwn(CONTENT.hulls, cmd.hull))) return '알 수 없는 선체';
     if (cmd.hull && CONTENT.hulls[cmd.hull].dev) return '개발용 선체 — 구매·건조할 수 없음';
+    if (cmd.classId === BBEX_CLASS || (cmd.hull && CONTENT.hulls[cmd.hull].exclusive)) return 'BB-EX는 건조하거나 구매할 수 없습니다 (세계 유일 · 설계도 없음)';
     if (cmd.preset !== undefined && (typeof cmd.preset !== 'string' || !Object.hasOwn(CONTENT.presets, cmd.preset))) return '알 수 없는 무장 프리셋';
     if (cmd.variant !== undefined && (typeof cmd.variant !== 'string' || !Object.hasOwn(CONTENT.variants, cmd.variant))) return '알 수 없는 선체 변형';
     if (!cmd.hull) {
@@ -2446,7 +2460,7 @@ export class WorldSim {
     return target;
   }
 
-  private dockShip(s: WShip, st: Station): boolean {
+  dockShip(s: WShip, st: Station): boolean {
     const limit = stationBerths(st);
     if (limit !== undefined && (!berthFits(st, econOf(s).berth) || occupiedBerths(this.st, st.id, s.id) >= limit)) return false;
     const used = new Set(Object.values(this.st.ships).filter(o => o.task.k === 'docked' && o.task.station === st.id).map(o => (o.task as any).berth));
@@ -3373,6 +3387,13 @@ export class WorldSim {
       }
       const s = st.ships[ts.ref];
       if (!s) continue;
+      if (dead && isExclusiveShip(s)) {
+        // BB-EX is never deleted and leaves no wreck, salvage or blueprint: the same hull recovers
+        lostBy.set(s.owner, (lostBy.get(s.owner) ?? 0) + 1);
+        const co = st.companies[s.owner]; if (co) co.stats.lost++;
+        exclusiveLost(this, s);
+        continue;
+      }
       if (dead) {
         salvage += shipValue(s.classId) * 2.2;
         if (sys) {
@@ -3631,6 +3652,7 @@ export class WorldSim {
     for (const f of Object.values(st.fields)) if (f.salvage && (f.expires < this.time || f.amount < 1)) delete st.fields[f.id];
     for (const [id, e] of Object.entries(st.engagements)) if (e.done && this.time - e.start > 600) delete st.engagements[id];
     for (const [id, k] of Object.entries(st.contracts)) if (k.done && this.time - k.expires > 300) delete st.contracts[id];
+    if (st.exclusive) { stepExclusive(this); enforceExclusive(st); }
     // NPC groups that lost all ships
     for (const g of Object.values(st.groups)) if (!g.shipIds.length && st.companies[g.owner]?.kind !== 'player' && !(g.owner === 'union' && g.npc)) { if (g.commanderId) delete st.commanders[g.commanderId]; delete st.groups[g.id]; }
   }

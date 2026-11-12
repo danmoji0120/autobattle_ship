@@ -93,7 +93,14 @@ function startBattle(bs: BattleSetup, replay: OrderRecord[] | null = null) {
 
 if (params.get('devskirmish') === '1') showDevCombatGate(app, getCanvas);
 else if (params.has('modelview')) void import('./render/modelPreview').then(m => m.startModelPreview(app, getCanvas(), params));
-else if (params.has('auto')) {
+else if (params.has('bbex') && import.meta.env.DEV) {
+  // development showcase / visual verification of the account-exclusive BB-EX (not in production builds):
+  //   ?bbex=descent[&n=200]  ANGEL DESCENT    ?bbex=<trial id>  one of the combat trials (sim/bbex/trials.ts)
+  void import('./sim/bbex/trials').then(m => {
+    const seed = Number(params.get('seed') ?? 1), t = m.TRIALS.find(x => x.id === params.get('bbex'));
+    startBattle(t ? m.trialSetup(t, seed) : m.angelDescentSetup(seed, { n: Number(params.get('n') ?? 200), ...(params.has('arrive') ? { arrive: Number(params.get('arrive')) } : {}) }));
+  });
+} else if (params.has('auto')) {
   const scen = params.get('scenario') ?? loadScenarioId();
   startBattle({ seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [loadFleet(), getScenario(scen).enemy] });
 } else if (params.has('skirmish')) showSetup();

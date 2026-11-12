@@ -67,6 +67,8 @@ export interface EquipDef {
   supply?: Record<string, number>;
   /** growth-only content (contentV ≥ 3) */
   growth?: boolean;
+  /** account-exclusive equipment: never produced, bought, sold, hauled or dropped */
+  exclusive?: boolean;
   desc: string;
   tech?: string;
 }

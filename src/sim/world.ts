@@ -7,6 +7,8 @@ import type { FleetSpec, GroupSpec, ShipFx, ShipSpec } from './fleet';
 import type { Group, Ship, Munition, Mount, Order, SimEvent, RadioMsg, Highlight, Outcome, OrderRecord, Team } from './types';
 import { line } from './ai/lines';
 import { updateAI, orderKey, groupRoleOf } from './ai/commander';
+import { BBEX, BBEX_CLASS } from './bbex/data';
+import { initEx, placeEx, updateEx, exSteer, exWeaponsFree, exIncoming, exGraze, exVeto, exRewrite, exNoteHit, exNoteKill, exNoteShot, exSeek, exPhase } from './bbex/system';
 
 export interface BattleSetup {
   seed: number;
@@ -18,6 +20,9 @@ export interface BattleSetup {
   timeLimit?: number;
   /** persistent-world encounters: free-for-all retreat edge relative to spawn */
   backdrop?: string;
+  /** 'ranks': very large fleets form up in several ranks instead of one endless line abreast
+   *  (opt-in, so recorded battles keep their exact layout) */
+  layout?: 'ranks';
 }
 
 export const DT = 1 / 30;
@@ -50,8 +55,11 @@ export class World {
   routed: [number, number] = [-1, -1];
   firstContact = -1;
   intensity = 0;
+  /** BB-EX hulls in this battle (empty in every ordinary battle: none of the exotic code runs) */
+  exShips: Ship[] = [];
   private nextId = 1;
   private radioId = 1;
+  nextRadioId() { return this.radioId++; }
   readonly setup: BattleSetup;
   readonly spawnZ: number;
 
@@ -62,6 +70,7 @@ export class World {
     this.lineRng = new Rng(setup.seed ^ 0x5bd1e995);
     this.spawnTeam(0, setup.fleets[0]);
     this.spawnTeam(1, setup.fleets[1]);
+    if (this.exShips.length) placeEx(this);
     for (const g of this.groups) g.role = groupRoleOf(this, g);
     this.resolveInitialOrders();
     for (const g of this.groups) {
@@ -95,7 +104,7 @@ export class World {
       this.groups.push(g); this.groupById.set(g.id, g);
       if (parent) parent.childIds.push(g.id);
       for (const ss of spec.ships) {
-        const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g, ss.fx, ss.fit);
+        const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g, ss.fx, ss.fit, ss.ex);
         if (ss.ref !== undefined) s.ref = ss.ref;
         if (ss.hp !== undefined) s.hp = Math.max(1, s.maxHp * Math.min(1, ss.hp));
         g.shipIds.push(s.id);
@@ -108,7 +117,7 @@ export class World {
     this.layoutTeam(team, root);
   }
 
-  private createShip(team: Team, classId: string, loadoutId: string, name: string, g: Group, fx: ShipFx = {}, fit?: ShipSpec['fit']): Ship {
+  private createShip(team: Team, classId: string, loadoutId: string, name: string, g: Group, fx: ShipFx = {}, fit?: ShipSpec['fit'], exSpec?: ShipSpec['ex']): Ship {
     const cls = SHIP_CLASSES[classId];
     const base = getLoadout(classId, loadoutId);
     // a fitted ship fights with exactly what is mounted on it (renderer turrets follow the same mounts)
@@ -154,6 +163,7 @@ export class World {
       s.mounts.push(mount);
     });
     this.ships.push(s); this.shipById.set(s.id, s);
+    if (cls.id === BBEX_CLASS) initEx(this, s, exSpec, !!cmd.causal);
     return s;
   }
 
@@ -185,12 +195,30 @@ export class World {
       g.ai.holdPoint = new Vec3(cx, 0, cz);
       g.ai.goal.set(cx, 0, cz);
     };
+    if (this.setup.layout === 'ranks') {
+      // decisive-fleet formation: battle line in ranks of ≤ RANK_W, heaviest in front; escorts form
+      // their own ranks ahead of the line
+      const RANK_W = 3000;
+      const ranks = (gs: Group[], z0: number, dz: number) => {
+        const rows: Group[][] = [[]]; let rw = 0;
+        for (const g of gs) { const w = widthOf(g) + 80; if (rw + w > RANK_W && rows[rows.length - 1].length) { rows.push([]); rw = 0; } rows[rows.length - 1].push(g); rw += w; }
+        rows.forEach((row, ri) => {
+          const tw = row.reduce((a, g) => a + widthOf(g) + 80, 0); let rx = -tw / 2;
+          for (const g of row) { const w = widthOf(g); place(g, rx + w / 2, z0 + ri * dz); rx += w + 80; }
+        });
+        return rows;
+      };
+      const rows = ranks(lines, baseZ, zSign * 210);
+      totalW = rows.length ? Math.min(RANK_W, Math.max(...rows.map(r => r.reduce((a, g) => a + widthOf(g) + 80, 0)))) : 0;
+      ranks(escorts, baseZ - zSign * 150, -zSign * 110);
+    } else {
     for (const g of lines) { const w = widthOf(g); place(g, x + w / 2, baseZ); x += w + 80; }
     if (lines.length === 0) totalW = 0;
     escorts.forEach((g, i) => {
       const off = escorts.length > 1 ? (i - (escorts.length - 1) / 2) * (totalW / Math.max(1, escorts.length)) : 0;
       place(g, off, baseZ - zSign * 130);
     });
+    }
     let wingL = -totalW / 2 - 260, wingR = totalW / 2 + 260;
     raiders.forEach((g, i) => {
       const w = widthOf(g);
@@ -289,7 +317,7 @@ export class World {
 
   teamValueFrac(team: Team): number {
     let v = 0;
-    for (const s of this.ships) if (s.team === team && s.state === 'alive') v += s.value * (0.35 + 0.65 * s.hp / s.maxHp);
+    for (const s of this.ships) if (s.team === team && (s.state === 'alive' || s.state === 'inbound')) v += s.value * (0.35 + 0.65 * s.hp / s.maxHp);
     return v / Math.max(1, this.initialValue[team]);
   }
 
@@ -406,11 +434,13 @@ export class World {
     for (const m of this.munitions) m.prevPos.copy(m.pos);
 
     updateAI(this);
+    if (this.exShips.length) exSteer(this);
     // move everything first, then fire, so neither team sees fresher positions than the other
     for (const s of this.ships) {
       if (s.state === 'alive') this.moveShip(s);
       else if (s.state === 'dying') this.updateDying(s);
     }
+    if (this.exShips.length) updateEx(this);
     for (const s of this.ships) if (s.state === 'alive') { this.updateWeapons(s); this.updateStatus(s); }
     this.updateMunitions();
     this.intensity *= Math.exp(-this.dt / 3);
@@ -513,7 +543,9 @@ export class World {
   // ---------------------------------------------------------------- weapons
   private updateWeapons(s: Ship) {
     const dt = this.dt;
+    if (s.ex && !exWeaponsFree(s)) return;
     for (const m of s.mounts) {
+      if (m.weapon.special) continue;   // driven by its own system (DCP-Ω)
       if (m.disabled > 0) { m.disabled -= dt; continue; }
       m.cooldown -= dt;
       m.retarget -= dt;
@@ -606,12 +638,15 @@ export class World {
       let best = -1, bestScore = -Infinity;
       for (const mu of this.munitions) {
         if (mu.dead || mu.team === s.team || mu.kind === 'shell') continue;
+        if (mu.ghost !== undefined && mu.age < mu.ghost) continue;   // mid-skip (SERAPH-EX): nothing to shoot at
         const d = muzzle.distTo(mu.pos);
         if (d > w.range) continue;
         if (!inArc(mu.pos)) continue;
         let score = -d;
         if (mu.kind === 'torpedo') score += 200;
         if (mu.targetId === s.id) score += 120;
+        // a 16-emitter array spreads over the salvo instead of all tracking the nearest round
+        if (s.ex) score -= ((mu.id * 31 + m.index * 17) % 13) * 22;
         if (score > bestScore) { bestScore = score; best = mu.id; }
       }
       if (best >= 0) { m.targetId = best; m.targetIsMunition = true; return; }
@@ -681,7 +716,8 @@ export class World {
       const tgt = this.shipById.get(m.targetId);
       const agility = tgt ? 1 + clamp(tgt.vel.length() / tgt.radius / 25, 0, 2.2) : 1;
       // ECM / evasive drives on the target widen the dispersion
-      const spread = w.spread / s.gunnery * (s.crit.bridge > 0 ? 1.6 : 1) * agility / (1 - Math.min(0.5, tgt?.evasion ?? 0));
+      let spread = w.spread / s.gunnery * (s.crit.bridge > 0 ? 1.6 : 1) * agility / (1 - Math.min(0.5, tgt?.evasion ?? 0));
+      if (s.jamUntil !== undefined && s.jamUntil > this.time) spread *= 1.9;   // BLACKOUT
       const side = new Vec3().crossVectors(dir, UP).normalize();
       const up = new Vec3().crossVectors(side, dir).normalize();
       dir.addScaled(side, this.rng.gauss() * spread).addScaled(up, this.rng.gauss() * spread).normalize();
@@ -699,7 +735,8 @@ export class World {
     };
     this.munitions.push(mu); this.munitionById.set(mu.id, mu);
     this.events.push({ t: 'fire', ship: s.id, mount: m.index, kind, weapon: w.id, pos: muzzle.clone(), dir: dir.clone() });
-    this.intensity += kind === 'shell' ? w.damage / 400 : 0.2;
+    if (s.ex) exNoteShot(s, w.id);
+    this.intensity += kind === 'shell' ? Math.min(4, w.damage / 400) : 0.2;
     if (this.firstContact < 0) this.firstContact = this.time;
   }
 
@@ -708,7 +745,8 @@ export class World {
     m.lastFire = this.time;
     if (m.targetIsMunition) {
       const mu = this.munitionById.get(m.targetId)!;
-      const chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.6 : 1);
+      let chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.6 : 1);
+      if (s.jamUntil !== undefined && s.jamUntil > this.time) chance *= 0.55;   // BLACKOUT
       const hit = this.rng.chance(chance);
       const to = mu.pos.clone();
       if (!hit) to.add(new Vec3(this.rng.range(-8, 8), this.rng.range(-8, 8), this.rng.range(-8, 8)));
@@ -748,11 +786,13 @@ export class World {
       mu.age += dt;
       mu.life -= dt;
       if (mu.kind !== 'shell') this.guide(mu);
+      else if (mu.weapon.seek) exSeek(this, mu);
       mu.pos.addScaled(mu.vel, dt);
       // collision against enemy ships
       const speed = mu.vel.length();
       for (const t of this.ships) {
         if (t.team === mu.team || (t.state !== 'alive' && t.state !== 'dying')) continue;
+        if (mu.through && mu.through.includes(t.id)) continue;
         const reach = t.halfLen + t.radius + speed * dt + 4;
         if (Math.abs(t.pos.x - mu.pos.x) > reach || Math.abs(t.pos.z - mu.pos.z) > reach || Math.abs(t.pos.y - mu.pos.y) > reach) continue;
         // capsule along ship forward axis
@@ -761,6 +801,11 @@ export class World {
         const extra = mu.kind === 'shell' ? 0 : 2.5;
         const d2 = segSegDistSq(mu.prevPos, mu.pos, tmpA, tmpB, segEnd);
         const rr = t.radius + extra;
+        // PARADOX field (BB-EX): a shell passing close off the hull may still be relocated
+        if (d2 > rr * rr && t.ex && mu.kind === 'shell' && t.state === 'alive' && d2 <= BBEX.pField * BBEX.pField) {
+          if (exGraze(this, t, mu, segEnd)) { mu.dead = true; break; }
+          (mu.through ??= []).push(t.id); continue;
+        }
         if (d2 <= rr * rr) {
           // agile raiders can out-turn anti-ship missiles at the last moment
           if (mu.kind === 'missile' && t.role === 'raider' && !mu.ricochet) {
@@ -771,6 +816,11 @@ export class World {
           const dir = mu.vel.clone().normalize();
           if (t.state === 'alive') this.applyHit(t, mu.weapon, mu.ownerId, segEnd.clone(), dir, mu.kind);
           else this.events.push({ t: 'hit', target: t.id, attacker: mu.ownerId, pos: segEnd.clone(), dir, dmg: 0, result: 'pen', weapon: mu.weapon.id, facing: 'side' });
+          // ABYSS-LANCE: the lance leaves the far side of the hull and keeps going
+          if (mu.weapon.pierce && (mu.through?.length ?? 0) < mu.weapon.pierce) {
+            (mu.through ??= []).push(t.id); mu.dead = false;
+            this.events.push({ t: 'exPierce', pos: segEnd.clone().addScaled(dir, t.radius * 2), dir: dir.clone(), target: t.id });
+          }
           break;
         }
       }
@@ -802,10 +852,13 @@ export class World {
     const boost = mu.kind === 'missile' ? 0.55 : 0.2;
     const speed = mu.vel.length();
     const dir = mu.vel.clone().scale(1 / Math.max(speed, 1e-6));
+    if (t && w.phase && !mu.phased && mu.age > boost + 0.55) { exPhase(this, mu, t); if (mu.ghost !== undefined) return; }
     if (t && mu.age > boost) {
       const tt = t.pos.distTo(mu.pos) / Math.max(speed, 50);
       const aim = new Vec3(t.pos.x + t.vel.x * tt - mu.pos.x, t.pos.y + t.vel.y * tt - mu.pos.y, t.pos.z + t.vel.z * tt - mu.pos.z).normalize();
-      rotateToward(dir, aim, (w.guidedTurn ?? 1) * dt * (mu.age < boost + 0.6 ? 2.2 : 1));
+      let turn = (w.guidedTurn ?? 1) * dt * (mu.age < boost + 0.6 ? 2.2 : 1);
+      if (this.exShips.length) { const o = this.shipById.get(mu.ownerId); if (o && o.jamUntil !== undefined && o.jamUntil > this.time) turn *= 0.4; }   // BLACKOUT
+      rotateToward(dir, aim, turn);
     }
     const ns = Math.min(w.speed, speed + w.speed * 1.2 * dt);
     mu.vel.copy(dir).scale(mu.age < boost ? speed * (1 - 0.6 * dt) + 5 * dt : ns);
@@ -816,6 +869,8 @@ export class World {
     const fromDir = tmpD.copy(dir).scale(-1);
     const c = fromDir.dot(t.fwd);
     const facing: 'front' | 'side' | 'rear' = c > 0.72 ? 'front' : c < -0.6 ? 'rear' : 'side';
+    // PARADOX (BB-EX): the hit is displaced out of this space, or the barrier takes it
+    if (t.ex && exIncoming(this, t, w, attackerId, pos, dir)) { const a0 = this.shipById.get(attackerId); if (a0) a0.stats.hits++; this.events.push({ t: 'hit', target: t.id, attacker: attackerId, pos: pos.clone(), dir: dir.clone(), dmg: 0, result: 'paradox', weapon: w.id, facing }); return; }
     // P5 shields (growth fittings only — c0 ships have none and skip this): the shield takes the hit
     // first, scaled by the weapon's effect on shields; what it cannot hold goes on to the armour
     let through = 1;
@@ -838,14 +893,18 @@ export class World {
     if (ratio >= 1) { mul = 1; result = 'pen'; }
     else if (ratio < 0.55 && this.rng.chance(0.75)) { mul = 0.06; result = 'ricochet'; }
     else { mul = Math.pow(ratio, 1.6); result = mul > 0.35 ? 'pen' : 'blocked'; }
+    // causality interference (commander BB): a glancing result of BB-EX's own fire is overruled
+    if (mul < 1 && this.exShips.length) { const ax = this.shipById.get(attackerId); if (ax?.ex && exRewrite(this, ax, pos)) { mul = 1; result = 'pen'; } }
     const dmg = w.damage * mul * this.rng.range(0.85, 1.15) * through;
     t.hp -= dmg;
     t.stats.dmgTaken += dmg;
     t.recentDamage += dmg;
     t.lastAttacker = attackerId;
     const a = this.shipById.get(attackerId);
+    if (this.exShips.length) t.lastWeapon = w.id;
     if (a) {
       a.stats.dmgDealt += dmg; a.stats.hits++;
+      if (a.ex) exNoteHit(a, w.id, dmg);
       if (result === 'ricochet') a.stats.ricochets++;
       if (facing === 'rear') a.stats.rearHits++;
       if (kind === 'torpedo') a.stats.torpHits++;
@@ -885,7 +944,24 @@ export class World {
     }
   }
 
+  /** damage that ignores armour (DCP-Ω dimension cut): shields soak double, the rest is cut out of the hull */
+  exDamage(t: Ship, dmg: number, attackerId: number, pos: Vec3, dir: Vec3, weapon: string) {
+    if (t.shield && t.shield > 0) {
+      const took = Math.min(t.shield, dmg * 2);
+      t.shield -= took; t.shieldHitAt = this.time; dmg -= took / 2;
+      if (dmg <= 0.5) { this.events.push({ t: 'hit', target: t.id, attacker: attackerId, pos: pos.clone(), dir: dir.clone(), dmg: 0, result: 'shield', weapon, facing: 'side' }); return; }
+    }
+    t.hp -= dmg; t.stats.dmgTaken += dmg; t.recentDamage += dmg; t.lastAttacker = attackerId; t.lastWeapon = weapon;
+    const a = this.shipById.get(attackerId);
+    if (a) { a.stats.dmgDealt += dmg; a.stats.hits++; this.groupById.get(a.groupId)!.stats.dmgDealt += dmg; if (a.ex) exNoteHit(a, weapon, dmg); }
+    this.events.push({ t: 'hit', target: t.id, attacker: attackerId, pos: pos.clone(), dir: dir.clone(), dmg, result: 'cut', weapon, facing: 'side' });
+    this.intensity += Math.min(6, dmg / 600);
+    if (t.hp <= 0 && t.state === 'alive') this.startDying(t, attackerId, false, 'cut');
+  }
+
   private startDying(t: Ship, killerId: number, rear: boolean, kind: string) {
+    // causality interference: BB may reject the destruction of BB-EX before it becomes final
+    if (t.ex && exVeto(this, t)) return;
     t.state = 'dying';
     t.killedBy = killerId;
     t.dyingTimer = t.role === 'raider' ? 0.5 : t.cls.id === 'destroyer' ? 1.4 : t.cls.id === 'cruiser' ? 2.2 : 3.4;
@@ -896,6 +972,7 @@ export class World {
     vg.stats.lost++;
     if (killer) {
       killer.stats.kills++; killer.stats.killValue += t.value;
+      if (killer.ex) exNoteKill(killer, t.lastWeapon);
       const kg = this.groupById.get(killer.groupId)!;
       kg.stats.kills++; kg.stats.killValue += t.value;
       let p = kg.parentId; while (p !== null) { const pg = this.groupById.get(p)!; pg.stats.kills++; pg.stats.killValue += t.value; p = pg.parentId; }
@@ -981,7 +1058,7 @@ export class World {
   private checkOutcome() {
     const alive = [0, 0];
     for (const s of this.ships) {
-      if (s.state === 'alive' || s.state === 'dying') alive[s.team]++;
+      if (s.state === 'alive' || s.state === 'dying' || s.state === 'inbound') alive[s.team]++;
       if (s.state === 'alive') {
         const g = this.groupById.get(s.groupId)!;
         const homeZ = s.team === 0 ? -1 : 1;
@@ -1027,7 +1104,10 @@ export class World {
   digest(): string {
     let h = 2166136261;
     const mix = (v: number) => { h ^= Math.round(v * 100) | 0; h = Math.imul(h, 16777619); };
-    for (const s of this.ships) { mix(s.pos.x); mix(s.pos.y); mix(s.pos.z); mix(s.hp); mix(s.yaw); }
+    for (const s of this.ships) {
+      mix(s.pos.x); mix(s.pos.y); mix(s.pos.z); mix(s.hp); mix(s.yaw);
+      if (s.ex) { mix(s.ex.paradox.energy); for (const f of s.ex.funnels) { mix(f.pos.x); mix(f.pos.y); mix(f.pos.z); mix(f.hp); } }
+    }
     mix(this.munitions.length);
     return (h >>> 0).toString(16);
   }

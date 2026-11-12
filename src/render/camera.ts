@@ -5,8 +5,10 @@ export type CamMode = 'tactical' | 'follow' | 'director';
 export interface FollowTarget { pos: THREE.Vector3; fwd: THREE.Vector3; length: number; alive: boolean; vel?: THREE.Vector3 }
 
 export interface ShotRequest {
-  kind: 'chase' | 'orbit' | 'flyby' | 'low' | 'wide' | 'impact';
+  kind: 'chase' | 'orbit' | 'flyby' | 'low' | 'wide' | 'impact' | 'vista';
   subject: () => FollowTarget | null;
+  /** 'vista': where the camera stands (a fixed vantage chosen by whoever asks for the shot) */
+  at?: () => THREE.Vector3;
   look?: () => THREE.Vector3 | null;
   duration: number;
   priority: number;
@@ -49,6 +51,9 @@ export class CameraRig {
   }
 
   addShake(a: number) { this.shake = Math.min(3, this.shake + a); }
+  /** a brief hitch in time (seconds of real time at `scale`); only local, free-running battles slow down */
+  slowPulse = 0; slowScale = 1;
+  hitch(seconds: number, scale: number) { this.slowPulse = Math.max(this.slowPulse, seconds); this.slowScale = scale; }
 
   orbit(dx: number, dy: number) {
     this.yaw -= dx * 0.005;
@@ -118,6 +123,7 @@ export class CameraRig {
     } else {
       this.updateDirector(dt, realDt);
     }
+    if (this.slowPulse > 0) { this.slowPulse -= realDt; this.timeScaleRequest = Math.min(this.timeScaleRequest, this.slowScale); }
     // shake
     if (this.shake > 0.001) {
       this.shakeT += realDt * 40;
@@ -179,6 +185,13 @@ export class CameraRig {
       case 'flyby': case 'impact': {
         want.copy(sh.anchor);
         lookAt.copy(s.pos);
+        break;
+      }
+      case 'vista': {
+        // a slow drift around the vantage so the picture is never frozen
+        const p = sh.at ? sh.at() : s.pos;
+        want.copy(p).add(tmp.set(Math.sin(sh.t * 0.22) * L * 0.25, sh.t * L * 0.03, Math.cos(sh.t * 0.22) * L * 0.25));
+        lookAt.copy(look ?? s.pos);
         break;
       }
       case 'wide': {

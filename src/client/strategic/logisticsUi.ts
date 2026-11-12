@@ -122,7 +122,7 @@ export class LogisticsPanel {
     const w = this.c.state!, policy = w.companies[this.c.company]?.procurement;
     const plans = Object.values(w.procurementPlans ?? {}).filter(p => p.owner === this.c.company && p.state !== 'closed').sort((a, b) => b.priority - a.priority || a.created - b.created || a.id.localeCompare(b.id));
     const kinds = { construction: '시설 건설', production: '생산', ship: '함선 건조' };
-    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
+    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT).filter(id => !EQUIPMENT[id].exclusive)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
     const stations = Object.values(w.stations).filter(s => s.owner === this.c.company || s.public || this.hasExternalSource(s.id));
     const caps = Object.entries(policy?.maxPrice ?? {}).map(([item, price]) => `${esc(itemName(item))} ${num(price)} cr`).join(' · ');
     const protectedItems = Object.entries(policy?.protectedStock ?? {}).flatMap(([station, stock]) => Object.entries(stock).map(([item, amount]) => `${esc(w.stations[station]?.name ?? station)} / ${esc(itemName(item))} ${num(amount)}`)).join(' · ');
@@ -142,7 +142,7 @@ export class LogisticsPanel {
     const stations = Object.values(w.stations).filter(s => s.public || s.owner === this.c.company);
     const options = (value: string) => `<option value="">정거장 선택</option>${stations.map(s => `<option value="${esc(s.id)}" ${s.id === value ? 'selected' : ''}>${esc(s.name)} · ${esc(sysAt(w.systems, s.pos)?.name ?? '')}</option>`).join('')}`;
     const stock = w.stations[d.from]?.storage[this.c.company] ?? {};
-    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT), ...Object.keys(stock)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
+    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT).filter(id => !EQUIPMENT[id].exclusive), ...Object.keys(stock)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
     return `<aside class="lg-editor"><form data-pool-form><div class="lg-editor-head"><h3>새 작업 요청</h3><button class="btn mini" type="button" data-pool-form-close aria-label="작업 요청 닫기">✕</button></div>
       <label>출발지<select data-pool-field="from" data-keep>${options(d.from)}</select></label><label>목적지<select data-pool-field="to" data-keep>${options(d.to)}</select></label>
       <label>작업 종류<select data-pool-field="kind" data-keep>${Object.entries(modes).map(([v, text]) => `<option value="${v}" ${v === d.kind ? 'selected' : ''}>${text}</option>`).join('')}</select></label>
@@ -176,7 +176,7 @@ export class LogisticsPanel {
     const options = (value: string, destination = false) => `<option value="">정거장 선택</option>${stations.filter(s => destination ? (d.mode === 'construction' ? s.owner === this.c.company : s.public || s.owner === this.c.company && s.modules.some(m => m.kind === 'core' && m.built)) : s.public || s.owner === this.c.company && s.modules.some(m => m.kind === 'core' && m.built) || s.owner !== this.c.company && this.hasExternalSource(s.id)).map(s => `<option value="${esc(s.id)}" ${s.id === value ? 'selected' : ''}>${esc(s.name)} · ${esc(sysAt(w.systems, s.pos)?.name ?? '')}${s.owner === this.c.company && !s.modules.some(m => m.kind === 'core' && m.built) ? ' · 건설 현장' : ''}</option>`).join('')}`;
     const groups = Object.values(w.groups).filter(g => g.owner === this.c.company && routeShips(w, { group: g.id, owner: g.owner }).length);
     const stock = w.stations[d.from]?.storage[this.c.company] ?? {};
-    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT), ...Object.keys(stock)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
+    const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT).filter(id => !EQUIPMENT[id].exclusive), ...Object.keys(stock)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
     const batch = supplyBatch(w.stations[d.to], d.item, w);
     const shipments = this.editId ? Object.values(w.logistics?.[this.editId]?.manifests ?? {}).reduce((n, m) => n + m.amount, 0) : 0;
     const available = qty(w.stations[d.from]?.storage[this.c.company], d.item), destination = qty(w.stations[d.to]?.storage[this.c.company], d.item);

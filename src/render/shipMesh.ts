@@ -3,6 +3,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { ShipClassDef, LoadoutDef, MountDef } from '../sim/data/ships';
 import { WEAPONS } from '../sim/data/weapons';
 import { loadModel, modelReady, modelsEnabled, type ModelTemplate } from './modelLoader';
+import { bbexDesign, bbexTurret, BBEX_COLORS } from './bbex/hull';
+import { BBEX_CLASS } from '../sim/bbex/data';
 
 // Ship-local frame: +x port, +y up, +z bow (matches the simulation).
 
@@ -68,6 +70,66 @@ const STYLE: [FactionStyle, FactionStyle] = [
 
 interface Mats { hull: THREE.MeshStandardMaterial; dark: THREE.MeshStandardMaterial; trim: THREE.MeshStandardMaterial; accent: THREE.MeshBasicMaterial; engine: THREE.MeshBasicMaterial; plume: THREE.MeshBasicMaterial; light: THREE.MeshBasicMaterial; gun: THREE.MeshStandardMaterial }
 const matCache: Partial<Record<number, Mats>> = {};
+let bbexMats: Mats | null = null;
+
+/** BB-EX wears its own colours whichever side it fights on: pearl armour, black structure, violet light */
+function matsBbex(): Mats {
+  if (bbexMats) return bbexMats;
+  const B = BBEX_COLORS;
+  const map = bbexPanels();
+  const emap = bbexEmissive();
+  bbexMats = {
+    hull: new THREE.MeshStandardMaterial({ color: B.hull, map, roughness: 0.34, metalness: 0.62, emissive: 0xffffff, emissiveMap: emap, emissiveIntensity: 1.25 }),
+    dark: new THREE.MeshStandardMaterial({ color: B.dark, roughness: 0.5, metalness: 0.8 }),
+    trim: new THREE.MeshStandardMaterial({ color: B.trim, roughness: 0.3, metalness: 0.9, emissive: 0x2a1060, emissiveIntensity: 0.6 }),
+    accent: new THREE.MeshBasicMaterial({ color: new THREE.Color(B.accent).multiplyScalar(2.3) }),
+    engine: new THREE.MeshBasicMaterial({ color: new THREE.Color(B.engine).multiplyScalar(2.8) }),
+    plume: new THREE.MeshBasicMaterial({ color: B.accent, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+    light: new THREE.MeshBasicMaterial({ color: new THREE.Color(B.light).multiplyScalar(3) }),
+    gun: new THREE.MeshStandardMaterial({ color: B.gun, roughness: 0.35, metalness: 0.9 }),
+  };
+  return bbexMats;
+}
+/** pearl armour: bright plates with fine dark seams (the shared panel texture is mid-grey) */
+function bbexPanels(): THREE.CanvasTexture {
+  const S = 512;
+  const c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#f3f1f8'; g.fillRect(0, 0, S, S);
+  let r = 4242;
+  const rnd = () => ((r = (r * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 90; i++) {
+    const w = 40 + rnd() * 150, h = 20 + rnd() * 80, x = rnd() * S, y = rnd() * S;
+    const v = 232 + rnd() * 22;
+    g.fillStyle = `rgb(${v},${v - 2},${Math.min(255, v + 6)})`; g.fillRect(x, y, w, h);
+    g.strokeStyle = 'rgba(70,60,100,0.5)'; g.lineWidth = 1.2; g.strokeRect(x, y, w, h);
+  }
+  for (let i = 0; i < 26; i++) { g.fillStyle = 'rgba(60,40,110,0.55)'; g.fillRect(rnd() * S, rnd() * S, 3 + rnd() * 60, 1.6); }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 34, 1 / 34); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+/** sparse violet circuit lines instead of the warm window lights of ordinary hulls */
+function bbexEmissive(): THREE.CanvasTexture {
+  const S = 512;
+  const c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#000'; g.fillRect(0, 0, S, S);
+  let r = 97;
+  const rnd = () => ((r = (r * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 46; i++) {
+    let x = rnd() * S, y = rnd() * S;
+    g.strokeStyle = rnd() < 0.75 ? 'rgba(190,120,255,0.9)' : 'rgba(255,170,240,0.9)'; g.lineWidth = 1.6;
+    g.beginPath(); g.moveTo(x, y);
+    for (let k = 0; k < 3; k++) { if (rnd() < 0.5) x += (rnd() - 0.5) * 150; else y += (rnd() - 0.5) * 90; g.lineTo(x, y); }
+    g.stroke();
+    g.fillStyle = 'rgba(235,200,255,1)'; g.fillRect(x - 2, y - 2, 4, 4);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 34, 1 / 34); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return t;
+}
+const isBbexWeapon = (id: string) => !!WEAPONS[id] && (id === 'dcp_omega' || id === 'abyss_lance' || id === 'violet_edge' || id === 'lilac_stinger' || id === 'seraph_ex' || id === 'purple_rain');
 
 function mats(team: 0 | 1): Mats {
   if (matCache[team]) return matCache[team]!;
@@ -302,6 +364,7 @@ function designExtra(base: string, L: number, team: 0 | 1): Design | undefined {
   const enemy = team === 1;
   const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
   switch (base) {
+    case 'bbex': return bbexDesign(L, { slab, box, cyl });
     case 'dd_vls': {            // flat broad deck, missile cell grid amidships, low aft bridge
       const profile: Profile = [[-0.5, 0.85], [-0.2, 1], [0.25, 0.9], [0.5, 0.25]];
       const W = 3.8;
@@ -492,7 +555,7 @@ function designExtra(base: string, L: number, team: 0 | 1): Design | undefined {
 // -------------------------------------------------------------------------- turrets
 
 function buildTurret(md: MountDef, team: 0 | 1): TurretView {
-  const m = mats(team);
+  const m = isBbexWeapon(md.weapon) ? matsBbex() : mats(team);
   const w = WEAPONS[md.weapon];
   const root = new THREE.Group();
   root.position.set(md.pos[0], md.pos[1], md.pos[2]);
@@ -505,7 +568,9 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
     arr.push(g);
   };
   let rotates = true;
-  switch (md.weapon) {
+  const ex = isBbexWeapon(md.weapon) ? bbexTurret(md, (g, mat, part) => add(g, m[mat], part === 'barrels' ? barrels! : root), { slab, box, cyl }) : null;
+  if (ex) { rotates = ex.rotates; if (ex.barrels) barrels.position.set(...ex.barrels); else barrels = null; }
+  else switch (md.weapon) {
     case 'heavy_cannon': {
       add(cyl(3.0, 3.3, 3.2, 0, -1.8, 0), m.dark);
       const housing = new THREE.Shape();
@@ -603,6 +668,7 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
       break;
     }
   }
+  if (ex && !ex.barrels) for (const [parent] of [...buckets]) if (parent !== root) buckets.delete(parent);
   for (const [parent, b] of buckets) for (const [mat, geos] of b) parent.add(new THREE.Mesh(mergeAll(geos), mat));
   if (barrels) root.add(barrels);
   root.rotation.y = md.facing * Math.PI / 180;
@@ -645,8 +711,9 @@ function splitByZ(geos: THREE.BufferGeometry[]): [THREE.BufferGeometry | null, T
 }
 
 export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): ShipModel {
-  const m = mats(team);
-  const mb = loadout.mesh;
+  const bbex = cls.id === BBEX_CLASS;
+  const m = bbex ? matsBbex() : mats(team);
+  const mb = loadout.mesh ?? (bbex ? { base: 'bbex', scale: 1 } : undefined);
   const xd = mb ? designExtra(mb.base, cls.length, team) : undefined;
   const key = xd ? `${mb!.base}@${mb!.scale}:${team}` : `${cls.id}:${team}`;
   let cached = geoCache.get(key);
@@ -696,6 +763,14 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
     root.rotation.y = md.facing * Math.PI / 180;
     const barrels = proto.barrels ? root.children[root.children.length - 1] : null;
     const t: TurretView = { root, barrels, mount: md, recoil: 0, rotates: proto.rotates };
+    if (bbex) {
+      // flush mounts on their own fairings (no pedestals); ventral mounts hang upside-down
+      let node: THREE.Object3D = root;
+      if (md.pos[1] < -1) { const holder = new THREE.Group(); holder.position.copy(root.position); holder.scale.y = -1; root.position.set(0, 0, 0); holder.add(root); node = holder; }
+      (md.pos[2] >= 0 ? front : rear).add(node);
+      turrets.push(t);
+      continue;
+    }
     // pedestal for raised mounts so nothing floats
     peds[md.pos[2] >= 0 ? 0 : 1].push(cyl(WEAPONS[md.weapon].caliber * 0.6 + 0.3, WEAPONS[md.weapon].caliber * 0.7 + 0.4, 3, md.pos[0], md.pos[1] - 2, md.pos[2]));
     (md.pos[2] >= 0 ? front : rear).add(t.root);

@@ -53,6 +53,14 @@ export interface ShipAI {
 }
 
 export interface Ship {
+  /** BB-EX exotic systems (funnels, PARADOX, DCP-Ω …); absent on every other ship */
+  ex?: import('./bbex/state').ExState;
+  /** BLACKOUT: fire control and missile guidance are jammed until this sim time */
+  jamUntil?: number;
+  /** DIMENSION LOCK / GRAVITY WELL: movement is held until this sim time (strength 0..1) */
+  holdUntil?: number; hold?: number;
+  /** the weapon that last damaged the ship (kill attribution for BB-EX statistics) */
+  lastWeapon?: string;
   /** fitted ECM / evasive drives: widens incoming shell dispersion */
   evasion?: number;
   id: number;
@@ -72,7 +80,9 @@ export interface Ship {
   maxSpeed: number; accel: number; turnRate: number; lateral: number;
   radius: number; halfLen: number;
   mounts: Mount[];
-  state: 'alive' | 'dying' | 'dead' | 'escaped';
+  /** 'inbound' = not yet in the battle space (BB-EX before its spatial transfer): untargetable,
+   *  not simulated, but counted as present for the outcome */
+  state: 'alive' | 'dying' | 'dead' | 'escaped' | 'inbound';
   dyingTimer: number;
   deathTime: number;
   crit: { engine: number; fire: number; bridge: number };
@@ -101,6 +111,10 @@ export interface Munition {
   age: number;
   dead: boolean;
   ricochet?: boolean;
+  /** pierce: ships this shell already went through */
+  through?: number[];
+  /** phase: the munition already made its spatial skip / is untouchable until this age */
+  phased?: boolean; ghost?: number;
 }
 
 export interface GroupAI {
@@ -151,7 +165,7 @@ export interface Group {
 export type SimEvent =
   | { t: 'fire'; ship: number; mount: number; kind: string; weapon: string; pos: Vec3; dir: Vec3 }
   | { t: 'pd'; ship: number; mount: number; from: Vec3; to: Vec3; hit: boolean }
-  | { t: 'hit'; target: number; attacker: number; pos: Vec3; dir: Vec3; dmg: number; result: 'pen' | 'ricochet' | 'blocked' | 'shield'; weapon: string; facing: 'front' | 'side' | 'rear' }
+  | { t: 'hit'; target: number; attacker: number; pos: Vec3; dir: Vec3; dmg: number; result: 'pen' | 'ricochet' | 'blocked' | 'shield' | 'cut' | 'paradox'; weapon: string; facing: 'front' | 'side' | 'rear' }
   | { t: 'intercept'; pos: Vec3; kind: string; by: number }
   | { t: 'munitionExpire'; pos: Vec3; kind: string }
   | { t: 'crit'; ship: number; crit: 'engine' | 'weapon' | 'fire' | 'bridge'; pos: Vec3 }
@@ -161,7 +175,8 @@ export type SimEvent =
   | { t: 'escaped'; ship: number }
   | { t: 'radio'; msg: RadioMsg }
   | { t: 'highlight'; h: Highlight }
-  | { t: 'end'; outcome: Outcome };
+  | { t: 'end'; outcome: Outcome }
+  | import('./bbex/state').ExEvent;
 
 export interface RadioMsg {
   id: number;

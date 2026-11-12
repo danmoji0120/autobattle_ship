@@ -134,7 +134,47 @@ export class Sfx {
     add('confirm', 1, 0.25, (d, sr) => { for (let i = 0; i < d.length; i++) { const t = i / sr; d[i] = (Math.sin(2 * Math.PI * (t < 0.08 ? 880 : 1320) * t)) * Math.exp(-((t % 0.08) / 0.05)) * 0.6; } });
     add('win', 1, 3.5, (d, sr) => { const ch = [261.6, 329.6, 392, 523.3]; for (let i = 0; i < d.length; i++) { const t = i / sr; let v = 0; ch.forEach((f, j) => { if (t > j * 0.15) v += Math.sin(2 * Math.PI * f * t) * Math.exp(-(t - j * 0.15) / 1.4); }); d[i] = v * 0.3; } });
     add('lose', 1, 3.5, (d, sr) => { const ch = [220, 207.7, 174.6, 146.8]; for (let i = 0; i < d.length; i++) { const t = i / sr; let v = 0; ch.forEach((f, j) => { if (t > j * 0.3) v += Math.sin(2 * Math.PI * f * t) * Math.exp(-(t - j * 0.3) / 1.6); }); d[i] = v * 0.3; } });
+    this.generateBbex(add);
     add('drum', 2, 0.9, (d, sr, k) => boom(d, sr, { sub: k ? 55 : 42, decay: 0.18, crack: 0.4, body: 0.5 }));
+  }
+
+  /** BB-EX: every exclusive weapon and system has its own voice — glassy, harmonic, violet — so it is
+   *  heard apart from the guns of ordinary fleets */
+  private generateBbex(add: (name: string, n: number, dur: number, g: (d: Float32Array, sr: number, k: number) => void) => void) {
+    const TAU = Math.PI * 2;
+    const tone = (d: Float32Array, sr: number, f: (t: number) => number, env: (t: number) => number, harm = [1, 0.5, 0.25]) => {
+      let ph = 0;
+      for (let i = 0; i < d.length; i++) { const t = i / sr; ph += TAU * f(t) / sr; let v = 0; harm.forEach((a, h) => { v += Math.sin(ph * (h + 1)) * a; }); d[i] += v * env(t); }
+    };
+    const noise = (d: Float32Array, sr: number, env: (t: number) => number, cut: number) => { const tmp = new Float32Array(d.length); for (let i = 0; i < tmp.length; i++) tmp[i] = rnd() * env(i / sr); lp(tmp, () => cut); for (let i = 0; i < d.length; i++) d[i] += tmp[i]; };
+    add('ex_lance', 2, 1.3, (d, sr, k) => { tone(d, sr, t => 1500 * Math.exp(-t * 9) + 150 + k * 20, t => Math.exp(-t / 0.3), [1, 0.6, 0.4, 0.2]); noise(d, sr, t => Math.exp(-t / 0.05), 0.5); tone(d, sr, () => 62, t => Math.exp(-t / 0.45) * 0.8, [1]); });
+    add('ex_edge', 3, 0.22, (d, sr, k) => { tone(d, sr, t => 3200 - t * 6000 + k * 300, t => Math.exp(-t / 0.05), [1, 0.3]); noise(d, sr, t => Math.exp(-t / 0.012) * 0.5, 0.7); });
+    add('ex_stinger', 3, 0.12, (d, sr, k) => tone(d, sr, t => 2400 + k * 350 - t * 5000, t => Math.exp(-t / 0.03), [1, 0.4]));
+    add('ex_seraph', 2, 1.2, (d, sr, k) => { noise(d, sr, t => Math.min(1, t * 40) * Math.exp(-t / 0.35), 0.12); tone(d, sr, t => 420 + 500 * t + k * 40, t => Math.exp(-t / 0.4) * 0.5, [1, 0.5]); });
+    add('ex_rain', 2, 0.1, (d, sr, k) => tone(d, sr, () => 3600 + k * 500, t => Math.exp(-t / 0.02), [1]));
+    add('ex_fbeam', 3, 0.3, (d, sr, k) => { tone(d, sr, t => 1900 + k * 220 - t * 1800, t => Math.exp(-t / 0.08), [1, 0.5, 0.2]); });
+    add('ex_funnel', 2, 0.5, (d, sr, k) => { tone(d, sr, t => 500 + 1800 * t + k * 100, t => Math.sin(Math.min(1, t / 0.5) * Math.PI) * 0.8, [1, 0.3]); noise(d, sr, t => Math.exp(-t / 0.08) * 0.5, 0.3); });
+    add('ex_wing', 1, 2.4, (d, sr) => { for (const [f, a] of [[392, 1], [587, 0.7], [784, 0.5], [1175, 0.3]]) tone(d, sr, t => f * (1 + 0.004 * Math.sin(t * 5)), t => Math.sin(Math.min(1, t / 2.4) * Math.PI) ** 1.5 * a, [1, 0.2]); });
+    add('ex_paradox', 4, 0.3, (d, sr, k) => { tone(d, sr, () => 1300 + k * 260, t => Math.exp(-t / 0.07), [1, 0, 0.5, 0, 0.25]); noise(d, sr, t => Math.exp(-t / 0.01) * 0.4, 0.6); });
+    add('ex_paradox_heavy', 2, 0.8, (d, sr, k) => { tone(d, sr, () => 520 + k * 90, t => Math.exp(-t / 0.22), [1, 0, 0.6, 0, 0.35, 0, 0.2]); tone(d, sr, () => 70, t => Math.exp(-t / 0.2), [1]); noise(d, sr, t => Math.exp(-t / 0.03) * 0.6, 0.4); });
+    add('ex_overload', 1, 1.8, (d, sr) => { noise(d, sr, t => Math.exp(-t / 0.5) * (0.5 + 0.5 * Math.sign(Math.sin(t * 90))), 0.4); tone(d, sr, t => 900 * Math.exp(-t * 2) + 80, t => Math.exp(-t / 0.6), [1, 0.7, 0.5]); });
+    add('ex_restore', 1, 1.0, (d, sr) => tone(d, sr, t => 300 + 900 * t, t => Math.sin(Math.min(1, t) * Math.PI) * 0.8, [1, 0.5, 0.25]));
+    add('ex_rift', 1, 3.6, (d, sr) => { noise(d, sr, t => Math.min(1, t / 3) ** 2 * Math.exp(-Math.max(0, t - 3.2) / 0.2), 0.05); tone(d, sr, t => 40 + 30 * t, t => Math.min(1, t / 3) * 0.9, [1, 0.5]); for (let n = 0; n < 14; n++) { const st = Math.floor((0.4 + Math.random() * 3) * sr); for (let i = 0; i < sr * 0.08 && st + i < d.length; i++) d[st + i] += rnd() * Math.exp(-i / sr / 0.012) * 0.7; } });
+    add('ex_descent', 1, 4.5, (d, sr) => { boom(d, sr, { sub: 30, decay: 1.2, crack: 1.2, body: 1.2, rumble: 0.9 }); for (const [f, a] of [[294, 1], [440, 0.8], [587, 0.6], [880, 0.4]]) tone(d, sr, () => f, t => Math.min(1, t * 6) * Math.exp(-t / 1.6) * a * 0.5, [1, 0.3]); });
+    add('dcp_charge', 1, 3.8, (d, sr) => { tone(d, sr, t => 60 + 30 * t * t, t => Math.min(1, t / 3.4) * 0.9, [1, 0.6, 0.3]); tone(d, sr, t => 400 * Math.pow(2, t * 0.75), t => Math.min(1, t / 3.6) ** 2 * 0.6, [1, 0.4]); noise(d, sr, t => Math.min(1, t / 3.6) ** 3 * 0.5, 0.25); });
+    add('dcp_fire', 1, 3.2, (d, sr) => { boom(d, sr, { sub: 34, decay: 0.9, crack: 2, body: 1.5, rumble: 0.8 }); tone(d, sr, t => 2600 * Math.exp(-t * 2.2) + 110, t => Math.exp(-t / 0.9) * 0.8, [1, 0.7, 0.5, 0.3]); tone(d, sr, () => 1568, t => Math.exp(-t / 1.4) * 0.25, [1, 0, 0.4]); });
+    add('dcp_mirror', 2, 1.2, (d, sr, k) => { for (const f of [1976, 2637, 3520]) tone(d, sr, () => f * (1 + k * 0.06), t => Math.exp(-t / 0.4) * 0.5, [1, 0.2]); noise(d, sr, t => Math.exp(-t / 0.008), 0.8); });
+    add('dcp_split', 2, 1.4, (d, sr, k) => { for (const f of [1319, 1760, 2349, 3136]) tone(d, sr, () => f * (1 + k * 0.05), t => Math.exp(-t / 0.5) * 0.4, [1, 0.3]); for (let n = 0; n < 8; n++) { const st = Math.floor(Math.random() * 0.25 * sr); for (let i = 0; i < sr * 0.04 && st + i < d.length; i++) d[st + i] += rnd() * Math.exp(-i / sr / 0.006) * 0.9; } });
+    add('ex_cut', 3, 0.5, (d, sr, k) => { tone(d, sr, t => 2800 - 1500 * t + k * 300, t => Math.exp(-t / 0.12), [1, 0.5]); noise(d, sr, t => Math.exp(-t / 0.06) * 0.7, 0.5); });
+    add('ex_sever', 2, 1.6, (d, sr, k) => { tone(d, sr, t => 3000 * Math.exp(-t * 5) + 90 + k * 20, t => Math.exp(-t / 0.5), [1, 0.6, 0.3]); noise(d, sr, t => (t > 0.2 ? Math.exp(-(t - 0.2) / 0.3) : 0) * 0.8, 0.1); });
+    add('ex_blackout', 1, 2.2, (d, sr) => { tone(d, sr, t => 1400 * Math.exp(-t * 1.6) + 50, t => Math.exp(-t / 0.9), [1, 0.5, 0.5]); noise(d, sr, t => Math.exp(-t / 0.8) * (Math.floor(t * 30) % 3 ? 0.5 : 0), 0.5); });
+    add('ex_well', 1, 3.0, (d, sr) => { tone(d, sr, t => 120 * Math.exp(-t * 0.5), t => Math.sin(Math.min(1, t / 3) * Math.PI), [1, 0.8, 0.4]); noise(d, sr, t => Math.sin(Math.min(1, t / 3) * Math.PI) * 0.4, 0.03); });
+    add('ex_shift', 1, 1.2, (d, sr) => { tone(d, sr, t => t < 0.25 ? 300 + 4000 * t : 1300 * Math.exp(-(t - 0.25) * 4) + 100, t => t < 0.25 ? t * 4 : Math.exp(-(t - 0.25) / 0.3), [1, 0.4, 0.2]); noise(d, sr, t => Math.exp(-Math.abs(t - 0.25) / 0.03), 0.6); });
+    // causality: not a blast — a tape stopping, a dry click, a seal
+    add('ex_causal', 1, 1.6, (d, sr) => { tone(d, sr, t => t < 0.35 ? 900 * (1 - t / 0.35) + 60 : 1047, t => t < 0.35 ? 0.9 : Math.exp(-(t - 0.35) / 0.5) * 0.7, [1, 0.3, 0.2]); for (const st of [0.35, 0.43]) for (let i = 0; i < sr * 0.02; i++) d[Math.floor(st * sr) + i] += rnd() * Math.exp(-i / sr / 0.004) * 1.2; tone(d, sr, () => 1568, t => t > 0.43 ? Math.exp(-(t - 0.43) / 0.6) * 0.4 : 0, [1]); });
+    add('ex_causal_s', 2, 0.5, (d, sr, k) => { tone(d, sr, t => t < 0.1 ? 1200 * (1 - t / 0.1) + 200 : 1319 + k * 250, t => t < 0.1 ? 0.7 : Math.exp(-(t - 0.1) / 0.15) * 0.6, [1, 0.2]); for (let i = 0; i < sr * 0.012; i++) d[Math.floor(0.1 * sr) + i] += rnd() * Math.exp(-i / sr / 0.003); });
+    add('ex_fix', 2, 0.18, (d, sr, k) => { for (let i = 0; i < sr * 0.01; i++) d[i] += rnd() * Math.exp(-i / sr / 0.002); tone(d, sr, () => 2093 + k * 260, t => Math.exp(-t / 0.05) * 0.6, [1]); });
+    add('ex_gameover', 1, 5.0, (d, sr) => { boom(d, sr, { sub: 28, decay: 1.6, crack: 1, body: 1, rumble: 1 }); for (const [f, a, on] of [[220, 1, 0], [330, 0.8, 0.3], [440, 0.7, 0.6], [660, 0.5, 0.9], [880, 0.4, 1.2]]) tone(d, sr, () => f, t => (t > on ? Math.min(1, (t - on) * 3) * Math.exp(-(t - on) / 2.2) : 0) * a * 0.5, [1, 0.4, 0.2]); });
   }
 
   play(name: string, pos: THREE.Vector3 | null, vol = 1, rate = 1) {
@@ -143,9 +183,11 @@ export class Sfx {
     const list = this.bufs[name];
     if (!list) return;
     const now = c.currentTime;
-    const minGap = name === 'pd' || name === 'auto' || name === 'hitsmall' ? 0.05 : name === 'radio' ? 0.3 : 0.02;
+    // BB-EX fires and is hit dozens of times a second: its small sounds are thinned so they stay a texture
+    const exGap: Record<string, number> = { ex_paradox: 0.07, ex_paradox_heavy: 0.12, ex_stinger: 0.08, ex_rain: 0.09, ex_edge: 0.07, ex_fbeam: 0.06, ex_cut: 0.09, ex_fix: 0.2, ex_sever: 0.1, dcp_mirror: 0.04, dcp_split: 0.04 };
+    const minGap = exGap[name] ?? (name === 'pd' || name === 'auto' || name === 'hitsmall' ? 0.05 : name === 'radio' ? 0.3 : 0.02);
     if (now - (this.lastPlay[name] ?? -1) < minGap) return;
-    const maxV = name === 'explode_big' || name === 'heavy' ? 6 : 10;
+    const maxV = name === 'explode_big' || name === 'heavy' ? 6 : name.startsWith('ex_') && exGap[name] ? 5 : 10;
     if ((this.voices[name] ?? 0) >= maxV) return;
     let g = vol;
     let pan = 0;

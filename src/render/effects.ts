@@ -260,7 +260,7 @@ export class Shockwaves {
             float w = 0.06 + uT * 0.18;
             float ring = exp(-pow((r - 0.86) / w, 2.0));
             float inner = smoothstep(0.86, 0.0, r) * 0.12 * (1.0 - uT);
-            float a = (ring + inner) * pow(1.0 - uT, 1.6);
+            float a = (ring + inner) * pow(1.0 - uT, 1.6) * smoothstep(1.0, 0.93, r);
             gl_FragColor = vec4(uColor * a, 1.0);
           }`,
       });

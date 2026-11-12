@@ -265,7 +265,7 @@ export class FittingScreen {
     const co = this.st!.companies[this.me];
     const q = this.q.trim().toLowerCase();
     const g = growthOn(this.st!);
-    let list = Object.values(EQUIPMENT).filter(e => CONTENT.equipment[e.id] && (g || !e.growth));
+    let list = Object.values(EQUIPMENT).filter(e => CONTENT.equipment[e.id] && (g || !e.growth) && !e.exclusive);
     if (this.filter === 'fit') list = list.filter(e => hp ? !hpAccepts(hp, e.id) : bay ? !bayAccepts(bay, e.id) : true);
     else if (this.filter === 'weapon') list = list.filter(e => e.kind === 'weapon');
     else if (this.filter === 'module') list = list.filter(e => e.kind === 'module');

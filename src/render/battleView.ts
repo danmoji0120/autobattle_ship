@@ -12,6 +12,7 @@ import { ParticleSystem, TrailBatch, Shockwaves, FlashLights, Debris } from './e
 import { buildShip, wreckMaterial, engineColor, type ShipModel } from './shipMesh';
 import { Environment, type Backdrop } from './environment';
 import { CameraRig, type FollowTarget, type ShotRequest } from './camera';
+import { BbexFx, type FxHost } from './bbex/fx';
 
 export interface AudioSink { play(name: string, pos: THREE.Vector3 | null, vol?: number, rate?: number): void }
 
@@ -29,18 +30,20 @@ interface ShipView {
 
 interface Wreck { obj: THREE.Object3D; vel: THREE.Vector3; spin: THREE.Vector3; life: number; burn: THREE.Vector3[]; size: number }
 
-interface TrailRec { pts: THREE.Vector3[]; kind: string; team: number; dead: number; head: THREE.Vector3 }
+interface TrailRec { pts: THREE.Vector3[]; kind: string; team: number; dead: number; head: THREE.Vector3; col?: [number, number, number] }
 
 const V = (v: { x: number; y: number; z: number }) => new THREE.Vector3(v.x, v.y, v.z);
 const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), tmpQ = new THREE.Quaternion();
 const C = (hex: number) => new THREE.Color(hex);
 
-export class BattleView {
+export class BattleView implements FxHost {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly rig: CameraRig;
-  private composer: EffectComposer;
-  private bloom: UnrealBloomPass;
+  readonly composer: EffectComposer;
+  readonly bloom: UnrealBloomPass;
+  /** BB-EX effects (only when the battle has one) */
+  ex: BbexFx | null = null;
   readonly env: Environment;
   readonly glow = new ParticleSystem(26000, 'glow');
   readonly smoke = new ParticleSystem(9000, 'smoke');
@@ -101,12 +104,19 @@ export class BattleView {
       for (let i = 0; i < 4; i++) dp.push(new THREE.Vector3((Math.random() - 0.5) * s.radius * 1.4, Math.random() * s.radius * 0.6, (Math.random() - 0.5) * s.cls.length * 0.8));
       this.views.set(s.id, { ship: s, model, roll: 0, burns: [], damagePts: dp, wpos: new THREE.Vector3(), wfwd: new THREE.Vector3(0, 0, 1), wvel: new THREE.Vector3(), gone: false, flicker: 0, hitFlash: 0 });
     }
+    if (world.exShips.length) this.ex = new BbexFx(this, world);
     // centre camera on the player fleet
     const c = world.centroid(world.ships.filter(s => s.team === 0));
     this.rig.focus.set(c.x * 0.5, 0, c.z * 0.5 + 400);
   }
 
+  // ── FxHost (what the BB-EX effects need from the view)
+  shipPose(id: number) { const v = this.views.get(id); return v && !v.gone ? { pos: v.wpos, fwd: v.wfwd, root: v.model.root as THREE.Object3D, front: v.model.front as THREE.Object3D, rear: v.model.rear as THREE.Object3D, ship: v.ship } : null; }
+  beam(a: THREE.Vector3, b: THREE.Vector3, life: number, w: number, color: number) { this.beams.push({ a, b, life, max: life, w, c: C(color) }); }
+  shake(p: THREE.Vector3, amount: number, range = 1200) { this.shakeNear(p, amount, range); }
+
   dispose() {
+    this.ex?.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     this.scene.traverse(o => { if ((o as THREE.Mesh).geometry) (o as THREE.Mesh).geometry.dispose?.(); });
@@ -127,12 +137,20 @@ export class BattleView {
         case 'fire': this.onFire(e.ship, e.mount, e.weapon, V(e.pos), V(e.dir)); break;
         case 'pd': {
           const from = V(e.from), to = V(e.to);
-          if (Math.random() < 0.55) this.beams.push({ a: from, b: to, life: 0.07, max: 0.07, w: 0.35, c: C(w.shipById.get(e.ship)!.team === 0 ? 0xa0e8ff : 0xffb070) });
+          const src = w.shipById.get(e.ship)!;
+          if (src.ex) {
+            // PURPLE RAIN: every emitter's shot is drawn — a net of violet light around the hull
+            this.beams.push({ a: from, b: to, life: 0.06, max: 0.06, w: 0.3, c: C(0xc9a0ff) });
+            if (e.hit && Math.random() < 0.6) this.glow.emit(to, { life: 0.14, size: 3, size1: 7, color: 0xe6c8ff, alpha: 0.9 });
+            if (Math.random() < 0.04) this.audio?.play('ex_rain', from, 0.3, 0.9 + Math.random() * 0.4);
+            break;
+          }
+          if (Math.random() < 0.55) this.beams.push({ a: from, b: to, life: 0.07, max: 0.07, w: 0.35, c: C(src.team === 0 ? 0xa0e8ff : 0xffb070) });
           if (e.hit && Math.random() < 0.5) this.glow.emit(to, { life: 0.15, size: 3, size1: 6, color: 0xffd080, alpha: 0.8 });
           if (Math.random() < 0.08) this.audio?.play('pd', from, 0.35);
           break;
         }
-        case 'hit': this.onHit(e); break;
+        case 'hit': if (!(this.ex && this.ex.onHit(e))) this.onHit(e); break;
         case 'intercept': {
           const p = V(e.pos);
           const big = e.kind === 'torpedo';
@@ -152,7 +170,8 @@ export class BattleView {
         case 'dying': {
           const v = this.views.get(e.ship); if (!v) break;
           v.flicker = 1;
-          this.explosion(v.wpos.clone(), v.ship.role === 'raider' ? 1.2 : 1.4);
+          // a hull the DCP-Ω cut through is not blown up: it comes apart along the cut (bbex/fx.ts)
+          if (!(this.ex && this.ex.onDying(e.ship))) this.explosion(v.wpos.clone(), v.ship.role === 'raider' ? 1.2 : 1.4);
           this.noteInterest(e.ship, 9, 'dying');
           break;
         }
@@ -165,6 +184,7 @@ export class BattleView {
           break;
         }
         case 'highlight': break;
+        default: if (this.ex && e.t.startsWith('ex')) this.ex.handle(e as never);
       }
     }
   }
@@ -175,6 +195,10 @@ export class BattleView {
     const t = v.model.turrets[mountIdx];
     if (t) t.recoil = 1;
     const team = v.ship.team;
+    if (this.ex && v.ship.ex && this.ex.onFire(v.ship, weapon, pos, dir)) {
+      if (weapon === 'seraph_ex') this.noteInterest(shipId, 2.5, 'missile');
+      return;
+    }
     switch (weapon) {
       case 'heavy_cannon': case 'rail_cannon': {
         const rail = weapon === 'rail_cannon';
@@ -344,6 +368,7 @@ export class BattleView {
       v.model.root.visible = false;
     }
     this.removeView(v, !big);
+    this.ex?.onDestroyed(shipId, p);
     this.noteInterest(shipId, big ? 12 : 3, 'destroyed');
     // director: dramatic cut for capital kills
     if (big && s.value >= 140) {
@@ -400,6 +425,7 @@ export class BattleView {
       if (v.gone) continue;
       const s = v.ship;
       const r = v.model.root;
+      if (s.ex && this.ex) { r.visible = this.ex.visible(s.id) && !v.gone; r.scale.setScalar(this.ex.emergeScale(s.id)); if (!r.visible) { v.wpos.set(s.pos.x, s.pos.y, s.pos.z); continue; } }
       r.position.set(s.prevPos.x + (s.pos.x - s.prevPos.x) * alpha, s.prevPos.y + (s.pos.y - s.prevPos.y) * alpha, s.prevPos.z + (s.pos.z - s.prevPos.z) * alpha);
       let dyaw = s.yaw - s.prevYaw; if (dyaw > Math.PI) dyaw -= Math.PI * 2; if (dyaw < -Math.PI) dyaw += Math.PI * 2;
       const yaw = s.prevYaw + dyaw * alpha, pitch = s.prevPitch + (s.pitch - s.prevPitch) * alpha;
@@ -495,6 +521,7 @@ export class BattleView {
       const a = b.life / b.max;
       this.trails.seg(b.a.x, b.a.y, b.a.z, b.b.x, b.b.y, b.b.z, b.w, b.w * 0.6, b.c.r * 2, b.c.g * 2, b.c.b * 2, a, a * 0.5);
     }
+    this.ex?.frame(alpha, simDt, realDt);
     this.trails.end();
 
     this.glow.update(simDt > 0 ? Math.max(simDt, realDt * 0.25) : realDt * 0.25);
@@ -529,6 +556,12 @@ export class BattleView {
     if (team === 1 && w.id !== 'rail_cannon') { g *= 0.75; b *= 0.6; }
     const k = len / Math.max(sp, 1);
     this.trails.seg(x - m.vel.x * k, y - m.vel.y * k, z - m.vel.z * k, x, y, z, wid * 0.2, wid, r, g, b, 0, 1);
+    if (w.pierce) {
+      // ABYSS-LANCE: a blue-white spear inside a violet wake, shedding motes
+      this.trails.seg(x - m.vel.x * k * 0.55, y - m.vel.y * k * 0.55, z - m.vel.z * k * 0.55, x, y, z, wid * 0.1, wid * 0.5, 2.4, 2.8, 3.2, 0.2, 1);
+      this.trails.seg(x - m.vel.x * k * 1.6, y - m.vel.y * k * 1.6, z - m.vel.z * k * 1.6, x, y, z, wid * 0.4, wid * 2.2, 0.7, 0.2, 1.6, 0, 0.6);
+      if (Math.random() < 0.35) this.glow.emit(tmp.set(x, y, z), { life: 0.35, size: 3.2, size1: 0.4, color: 0xbfd8ff, color1: 0x5a1fd0, alpha: 1 });
+    }
     if (w.id === 'heavy_cannon' || w.id === 'rail_cannon') {
       // bright head
       this.trails.seg(x - m.vel.x * k * 0.12, y - m.vel.y * k * 0.12, z - m.vel.z * k * 0.12, x, y, z, wid * 1.3, wid * 1.3, r, g, b, 0.8, 0.8);
@@ -537,13 +570,15 @@ export class BattleView {
 
   private trackGuided(m: Munition, x: number, y: number, z: number) {
     let rec = this.trailRecs.get(m.id);
-    if (!rec) { rec = { pts: [], kind: m.kind, team: m.team, dead: 0, head: new THREE.Vector3() }; this.trailRecs.set(m.id, rec); }
+    if (!rec) { rec = { pts: [], kind: m.kind, team: m.team, dead: 0, head: new THREE.Vector3(), ...(m.weapon.phase ? { col: [2.0, 0.85, 3.0] as [number, number, number] } : {}) }; this.trailRecs.set(m.id, rec); }
+    // SERAPH-EX skipped through space: the trail does not bridge the gap
+    if (rec.col && rec.pts.length && rec.pts[rec.pts.length - 1].distanceToSquared(tmp.set(x, y, z)) > 200 * 200) rec.pts.length = 0;
     rec.head.set(x, y, z);
     const last = rec.pts[rec.pts.length - 1];
     if (!last || last.distanceToSquared(rec.head) > (m.kind === 'torpedo' ? 30 : 60)) {
       rec.pts.push(rec.head.clone());
       if (rec.pts.length > (m.kind === 'torpedo' ? 26 : 36)) rec.pts.shift();
-      if (m.kind === 'missile' && Math.random() < 0.3) this.smoke.emit(rec.head, { life: 1.4, size: 1.6, size1: 5, color: 0x8a8480, alpha: 0.09, drag: 0.5 });
+      if (m.kind === 'missile' && !rec.col && Math.random() < 0.3) this.smoke.emit(rec.head, { life: 1.4, size: 1.6, size1: 5, color: 0x8a8480, alpha: 0.09, drag: 0.5 });
     }
   }
 
@@ -554,7 +589,7 @@ export class BattleView {
       if (!alive || alive.dead) { rec.dead += realDt; if (rec.dead > 1.2) { this.trailRecs.delete(id); continue; } }
       const fade = 1 - rec.dead / 1.2;
       const torp = rec.kind === 'torpedo';
-      const col = torp ? (rec.team === 0 ? [0.8, 1.4, 3.2] : [3.0, 0.8, 2.0]) : [1.8, 1.1, 0.6];
+      const col = rec.col ?? (torp ? (rec.team === 0 ? [0.8, 1.4, 3.2] : [3.0, 0.8, 2.0]) : [1.8, 1.1, 0.6]);
       const n = rec.pts.length;
       for (let i = 1; i < n; i++) {
         const a = rec.pts[i - 1], b = rec.pts[i];
@@ -564,7 +599,7 @@ export class BattleView {
       if (rec.dead === 0) {
         const tail = rec.pts[n - 1] ?? rec.head;
         this.trails.seg(tail.x, tail.y, tail.z, rec.head.x, rec.head.y, rec.head.z, torp ? 2.2 : 0.7, torp ? 2.2 : 0.7, col[0], col[1], col[2], 0.5, 0.5);
-        if (Math.random() < 0.7) this.glow.emit(rec.head, { life: 0.05, size: torp ? 9 : 4, size1: torp ? 7 : 3, color: torp ? (rec.team === 0 ? 0x80b0ff : 0xff70c0) : 0xfff0c0, alpha: 1.3 });
+        if (Math.random() < 0.7) this.glow.emit(rec.head, { life: 0.05, size: torp ? 9 : 4, size1: torp ? 7 : 3, color: rec.col ? 0xe0b8ff : torp ? (rec.team === 0 ? 0x80b0ff : 0xff70c0) : 0xfff0c0, alpha: 1.3 });
       }
     }
   }

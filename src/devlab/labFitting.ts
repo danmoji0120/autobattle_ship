@@ -97,7 +97,7 @@ export class LabFittingScreen {
   private browserHtml(lay:NonNullable<ReturnType<typeof variantLayout>>) {
     const sel=this.sel, hp=sel?.kind==='hp'?lay.hardpoints.find(h=>h.id===sel.id):undefined, bay=sel?.kind==='bay'?lay.internals.find(b=>b.id===sel.id):undefined;
     const cur=hp?this.draft.hp[hp.id]:bay?this.draft.bay[bay.id]:undefined, q=this.q.trim().toLowerCase();
-    let list=Object.values(EQUIPMENT).filter(e=>CONTENT.equipment[e.id]);
+    let list=Object.values(EQUIPMENT).filter(e=>CONTENT.equipment[e.id]&&!e.exclusive);
     if(this.filter==='fit')list=list.filter(e=>hp?!hpAccepts(hp,e.id):bay?!bayAccepts(bay,e.id):true);else if(this.filter==='weapon')list=list.filter(e=>e.kind==='weapon');else if(this.filter==='module')list=list.filter(e=>e.kind==='module');
     if(q)list=list.filter(e=>`${e.name} ${e.id} ${e.weapon?WEAPONS[e.weapon].name:''}`.toLowerCase().includes(q));
     const dps=(id:string)=>{const w=EQUIPMENT[id]?.weapon;return w?weaponDps(WEAPONS[w]):0;},rng=(id:string)=>{const w=EQUIPMENT[id]?.weapon;return w?WEAPONS[w].range:0;},sp=(id:string)=>CONTENT.equipment[id];
