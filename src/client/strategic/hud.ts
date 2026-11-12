@@ -24,6 +24,7 @@ import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList,
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
 import { TECHS, ITEMS, EQUIPMENT, RECIPES, FACILITIES, itemName, recipeFor, facilityBuild, facilityTech, facilityDescription, techFx } from '../../world/industry';
 import { repairQuote, REPAIR_RATE, type RepairQuote } from '../../world/repair';
+import { ESCORT_FOCUS_NAME, autoFocus, type EscortFocus } from '../../world/escort';
 import { REGIONAL_ORIGINS } from '../../world/regional';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
@@ -659,7 +660,7 @@ export class PmcHud {
     const e = document.getElementById('modeHint')!;
     const txt: Record<string, string> = {
       move: '이동 지점 클릭', dock: '정박할 정거장 클릭', mine: '채굴할 소행성 지대 클릭 → 하역 목적지·방식 설정', haul_from: '운송 출발 정거장 클릭',
-      patrol: '순찰 지점 또는 소행성 지대 클릭', escort: '호위할 자사 함선 클릭', attack: '해적 함선 또는 은신처 클릭', build: growthOn(this.st) ? '자사 건설 현장 클릭 — 공작선은 작업, 화물선은 필요한 자재 반입' : '건설할 자사 정거장 클릭',
+      patrol: '순찰 지점 또는 소행성 지대 클릭', escort: '호위할 자사 함선 또는 편대 이름표 클릭', attack: '해적 함선 또는 은신처 클릭', build: growthOn(this.st) ? '자사 건설 현장 클릭 — 공작선은 작업, 화물선은 필요한 자재 반입' : '건설할 자사 정거장 클릭',
       found: growthOn(this.st) ? `${this.foundSize}급 부지 클릭 — 설립비 ${fmt(STATION_SIZES[this.foundSize].credits)} cr 선납 · 자재 직접 운송 · 중단 시 환급` : `정거장 부지 클릭 — 다른 정거장과 2,600 이상 떨어져야 함 (비용 ${fmt(FOUND_COST.credits)} cr + 합금 ${FOUND_COST.alloy})`,
     };
     if (m) { e.textContent = txt[m] + ' · 우클릭/Esc 취소'; e.classList.remove('hidden'); this.v.renderer.domElement.style.cursor = 'crosshair'; }
@@ -891,6 +892,7 @@ export class PmcHud {
     this.bindMineForm(el);
     el.querySelectorAll<HTMLButtonElement>('[data-op]').forEach(b => b.onclick = () => this.opButton(b.dataset.op!));
     const size = el.querySelector<HTMLSelectElement>('[data-found-size]'); if (size) size.onchange = () => { this.foundSize = size.value as Size; if (this.mode === 'found') this.setMode('found'); else this.renderSel(true); };
+    el.querySelectorAll<HTMLSelectElement>('[data-escfocus]').forEach(b => b.onchange = () => { const gr = this.st.groups[b.dataset.escfocus!]; if (gr?.op.k === 'escort') this.cmd({ c: 'setOp', group: gr.id, op: { k: 'escort', group: gr.op.group, focus: b.value as EscortFocus } }); });
     el.querySelectorAll<HTMLInputElement>('[data-detach]').forEach(b => b.onchange = () => this.cmd({ c: 'setDetached', group: b.dataset.detach!, on: b.checked }));
     el.querySelectorAll<HTMLButtonElement>('[data-unloadship]').forEach(b => b.onclick = () => this.cmd({ c: 'unloadCargo', ship: b.dataset.unloadship! }));
     el.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(b => b.onclick = () => this.openStation(b.dataset.open!));
@@ -1008,11 +1010,23 @@ export class PmcHud {
         </div>
         ${growthOn(st) && ships.some(s => s.classId === 'constructor') ? `<div class="station-found-choice"><label>정거장 규모 <select data-found-size data-keep>${Object.entries(STATION_SIZES).map(([id, d]) => `<option value="${id}" ${id === this.foundSize ? 'selected' : ''}>${id} · ${d.name}</option>`).join('')}</select></label><span>${fmt(STATION_SIZES[this.foundSize].credits)} cr · ${Object.entries(STATION_SIZES[this.foundSize].mats).map(([r, n]) => `${iname(r)} ${fmt(n)}`).join(' · ')}</span><small>시설 ${STATION_SIZES[this.foundSize].capacity} · 전력 ${STATION_SIZES[this.foundSize].power} · 정박 ${STATION_SIZES[this.foundSize].berths}척 · 운영 ${fmt(STATION_SIZES[this.foundSize].upkeep)} cr/h</small></div>` : ''}
         ${g.parentId ? `<div class="row small"><label class="chk" title="체크하면 이 편대는 본대 진형에서 빠져 자기 속도로 앞서 움직입니다 (정찰·선봉). 해제하면 본대와 함께 가장 느린 함선 속도로 이동합니다."><input type="checkbox" data-detach="${g.id}" ${g.detached ? 'checked' : ''}> 독립 기동 (정찰·선봉 — 본대보다 먼저 움직임)</label></div>` : ''}
+        ${g.op.k === 'escort' ? this.escortFormHtml(g) : ''}
         ${hasMiner ? this.mineFormHtml(g) : ''}
         ${this.exploreHtml(g, hasCargo)}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}
       </div></div>`;
+  }
+
+  /** escort order: what to protect inside the target group, and the target's protection state */
+  private escortFormHtml(g: WGroup): string {
+    if (g.op.k !== 'escort') return '';
+    const op = g.op, t = this.st.groups[op.group];
+    const focus = op.focus ?? 'auto';
+    const auto = t ? ESCORT_FOCUS_NAME[autoFocus(t.op)] : '';
+    return `<div class="row small"><label title="채굴 작업이면 광구의 채굴선, 운송·교역이면 화물선을 지킵니다. 광구를 떠나 정거장으로 가는 화물선은 채굴선 호위가 따라가지 않습니다 — 화물선에 별도 호위 편대를 지정하세요.">보호 대상
+      <select data-escfocus="${g.id}">${(Object.keys(ESCORT_FOCUS_NAME) as EscortFocus[]).map(k => `<option value="${k}"${k === focus ? ' selected' : ''}>${k === 'auto' ? `자동 (${auto || '대상 작업에 따라'})` : ESCORT_FOCUS_NAME[k]}</option>`).join('')}</select></label>
+      ${t ? `<span class="dim">대상: ${esc(t.name)} — ${esc(t.status)}</span>` : '<span class="warn">호위 대상 편대가 없습니다</span>'}</div>`;
   }
 
   /** growth: survey the group's current system / salvage a site it knows */

@@ -353,7 +353,7 @@ function projectOperation(h: WorldSim, w: Work) {
   }
   if (!ships) return setState(h, w, 'waiting', '배속된 함선 없음 — 함대 화면에서 함선을 배속하세요');
   if ((w.ref.op === 'move' && /도착/.test(g.status)) || (w.ref.op === 'dock' && / 정박$/.test(g.status))) { w.progress.done = 1; w.result = g.status; return setState(h, w, 'done', ''); }
-  const blocked = /없음|불가|부족|소실|오류|대기/.test(g.status);
+  const blocked = /없음|불가|부족|소실|오류|대기|초과|상실|차단/.test(g.status);
   return setState(h, w, blocked ? 'waiting' : 'running', `${g.status || '수행 중'} · 함선 ${ships}척`);
 }
 

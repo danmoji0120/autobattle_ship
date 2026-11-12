@@ -1,0 +1,267 @@
+[
+  {
+    "label": "station label is a click target",
+    "ok": true
+  },
+  {
+    "label": "label centre click selects the station",
+    "ok": true,
+    "data": {
+      "kind": "station",
+      "id": "astra"
+    }
+  },
+  {
+    "label": "label top-left edge click selects the station",
+    "ok": true
+  },
+  {
+    "label": "label bottom-right edge click selects the station",
+    "ok": true
+  },
+  {
+    "label": "own group label is a click target",
+    "ok": true
+  },
+  {
+    "label": "clicking the group label selects that group",
+    "ok": true,
+    "data": {
+      "objectPickAtLabel": null,
+      "sel": {
+        "kind": "group",
+        "id": "g2"
+      }
+    }
+  },
+  {
+    "label": "overlap → topmost label; non-overlapping parts → their own label",
+    "ok": true,
+    "data": {
+      "overlap": "g3",
+      "onlyFirst": "g2",
+      "onlySecond": "g3"
+    }
+  },
+  {
+    "label": "drawn label rects that intersect (informational)",
+    "ok": true,
+    "data": {
+      "labels": 8,
+      "intersecting": 0
+    }
+  },
+  {
+    "label": "right-click on a group label orders escort",
+    "ok": true,
+    "data": {
+      "k": "escort",
+      "group": "g2"
+    }
+  },
+  {
+    "label": "escort focus selector changes the order",
+    "ok": true,
+    "data": {
+      "options": [
+        "자동 (편대 전체)",
+        "작업선(채굴선)",
+        "수송선",
+        "편대 전체"
+      ],
+      "op": {
+        "k": "escort",
+        "group": "g2",
+        "focus": "cargo"
+      }
+    }
+  },
+  {
+    "label": "field label visible",
+    "ok": true
+  },
+  {
+    "label": "mine mode + field label click picks that deposit in the mining form",
+    "ok": true,
+    "data": {
+      "group": "g2",
+      "field": "kestrel",
+      "deliver": "auto",
+      "sell": true,
+      "live": false,
+      "t": 20819.599999999627
+    }
+  },
+  {
+    "label": "starting the form runs mining on the clicked deposit",
+    "ok": true,
+    "data": {
+      "k": "mine",
+      "field": "kestrel",
+      "deliver": "astra",
+      "sell": true,
+      "auto": true
+    }
+  },
+  {
+    "label": "escort mode (G) + group label click orders escort",
+    "ok": true,
+    "data": {
+      "k": "escort",
+      "group": "g2"
+    }
+  },
+  {
+    "label": "double-click on a field label focuses the camera on the field",
+    "ok": true,
+    "data": {
+      "before": {
+        "f": {
+          "x": -5072.872417272243,
+          "z": -15136.049906158563
+        },
+        "d": 2600
+      },
+      "after": {
+        "f": {
+          "x": -5072.872417272243,
+          "z": -15136.049906158563
+        },
+        "d": 2200
+      }
+    }
+  },
+  {
+    "label": "drag that starts on a label pans the camera and selects nothing",
+    "ok": true,
+    "data": {
+      "f0": {
+        "x": -5072.872417272243,
+        "z": -15136.049906158563
+      },
+      "f1": {
+        "x": -5235.103699361389,
+        "z": -15130.149811946472
+      }
+    }
+  },
+  {
+    "label": "every label pick refers to an object present in the client state",
+    "ok": true,
+    "data": {
+      "labels": 8,
+      "labelsForUnknownObjects": 0
+    }
+  },
+  {
+    "label": "an object missing from the client view has no label and cannot be picked",
+    "ok": true,
+    "data": {
+      "labelDrawnWhileUnknown": false,
+      "pickAtOldLabel": null
+    }
+  },
+  {
+    "label": "escort status shown on the escort group",
+    "ok": true,
+    "data": {
+      "guard": "제1 채굴반 호위 — 호위 진형 유지",
+      "mining": "케스트렐 암초대로 이동",
+      "phase": "convoy"
+    }
+  },
+  {
+    "label": "group panel shows the escort status",
+    "ok": true,
+    "data": "호위 제1 채굴반 호위 — 호위 진형 유지"
+  },
+  {
+    "label": "company works list shows the escort operation and its status",
+    "ok": true,
+    "data": [
+      "경비대 · 호위 · 제1 채굴반",
+      "제1 채굴반 호위 — 호위 진형 유지 · 함선 3척"
+    ]
+  },
+  {
+    "label": "repair charges exactly the shown amount",
+    "ok": true,
+    "data": {
+      "shown": "수리 15,727 cr",
+      "quote": 15727,
+      "charged": 15727
+    }
+  },
+  {
+    "label": "repair research lowers the shown quote (refreshed without reopening)",
+    "ok": true,
+    "data": {
+      "without": 15727,
+      "with": 10485
+    }
+  },
+  {
+    "label": "insufficient funds shows the exact reason",
+    "ok": true,
+    "data": "자금 부족 — 수리비 10,485 cr, 보유 10 cr"
+  },
+  {
+    "label": "phone: station label present",
+    "ok": true
+  },
+  {
+    "label": "phone: an exposed map area exists",
+    "ok": true,
+    "data": {
+      "x": 330,
+      "y": 290
+    }
+  },
+  {
+    "label": "phone: station label moved over the exposed map",
+    "ok": true,
+    "data": {
+      "label": {
+        "x": 322.388969672107,
+        "y": 288.1632479145222
+      },
+      "at": "CANVAS"
+    }
+  },
+  {
+    "label": "phone: tapping the label selects the station",
+    "ok": true,
+    "data": {
+      "kind": "station",
+      "id": "astra"
+    }
+  },
+  {
+    "label": "phone: double tap on a label (informational)",
+    "ok": true,
+    "data": {
+      "distBefore": 2600,
+      "distAfter": 2600,
+      "focused": false
+    }
+  },
+  {
+    "label": "phone: touch drag from a label pans without selecting",
+    "ok": true,
+    "data": {
+      "fz0": [
+        -9428.671676320282,
+        -11985.768305469916
+      ],
+      "fz1": [
+        -10687.806193070051,
+        -12274.115127430116
+      ]
+    }
+  },
+  {
+    "label": "no page errors",
+    "ok": true,
+    "data": []
+  }
+]

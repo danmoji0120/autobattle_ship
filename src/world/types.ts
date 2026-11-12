@@ -106,7 +106,8 @@ export type Op =
   | { k: 'mine'; field: string; deliver: string; sell: boolean; auto?: boolean }
   | { k: 'haul'; from: string; to: string; res: Res; route?: string }   // res '*auto' = supply what `to` lacks, '*all' = move everything
   | { k: 'patrol'; at: V; radius: number }
-  | { k: 'escort'; group: string }
+  /** focus: which of the target's ships to protect (absent = auto: miners on a mining op, carriers on cargo work) */
+  | { k: 'escort'; group: string; focus?: import('./escort').EscortFocus }
   | { k: 'attack'; group?: string; lair?: string }
   | { k: 'build'; station: string }
   /** The server records a growth-world prepayment and the material terms of that order. */
@@ -198,6 +199,10 @@ export interface WGroup {
   detached?: boolean;
   /** fleet movement state, kept on the group whose order the fleet is executing */
   march?: March;
+  /** escort mission state of an escorting group (world/escort.ts) */
+  escort?: import('./escort').EscortState;
+  /** state of a group that is being escorted: rally hold and the escorts it last had */
+  ward?: import('./escort').WardState;
 }
 
 /** coordinated fleet movement: rally → move as one at the slowest ship's pace → stage → attack together */

@@ -1,0 +1,381 @@
+{
+  "A_same_station_departure": {
+    "pass": true,
+    "field": "kestrel",
+    "travelSamples": 37,
+    "escortAheadShare": 1,
+    "maxSeparationWhileTravelling": 451,
+    "escortReachedFieldAt": 40,
+    "minersReachedFieldAt": 55,
+    "guardPhaseAt": 46,
+    "ringDistances": [
+      946,
+      953,
+      977
+    ],
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중",
+    "minersStatus": "케스트렐 암초대 채굴 중"
+  },
+  "B_far_escort_rally": {
+    "pass": true,
+    "escortStartDistance": 12370,
+    "heldTicks": 6,
+    "escortPhaseWhenMinersUndocked": "convoy",
+    "minersUndockedAt": 7,
+    "heldStatus": "호위 집결 대기 — 경비대 합류까지 약 17초 (최대 240초 대기)",
+    "escortDistanceWhenMinersUndocked": 215,
+    "escortStatus": "제1 채굴반 호위 — 호위 진형 유지"
+  },
+  "B2_remote_escort_rally": {
+    "pass": true,
+    "escortJumpsAway": 5,
+    "firstStatus": "호위 집결 대기 — 경비대 합류까지 약 165초 (최대 240초 대기)",
+    "heldTicks": 119,
+    "minersUndockedAt": 120,
+    "escortDistanceAtUndock": 422,
+    "warnings": 0
+  },
+  "B3_wait_is_bounded": {
+    "pass": true,
+    "heldBefore": true,
+    "minersUndockedAfterTimeoutAt": 1,
+    "warning": "제1 채굴반: 호위 합류 지연 (경비대 약 165초) — 단독 출발합니다. 호위가 따라붙으면 진형을 다시 갖춥니다."
+  },
+  "C_slow_escort_sets_pace": {
+    "pass": true,
+    "escortSpeed": 57.6,
+    "minerCruise": 70,
+    "maxMinerSpeedWhileEscorted": 53,
+    "maxSeparation": 453,
+    "escortAheadShare": 0.91,
+    "samples": 55
+  },
+  "D_hauler_split": {
+    "pass": true,
+    "haulerTripsAwayFromField": 7,
+    "ticksHaulerAwayMinersWorking": 66,
+    "miningEscortMaxDistanceFromFieldThen": 35,
+    "ring": 950,
+    "miningEscortNearHaulerTicks": 0,
+    "miningEscortMaxDistanceToMiners": 958,
+    "cargoEscortWithHaulerShare": 1,
+    "cargoEscortStatus": "제1 채굴반 호위 — 광구 경계 중"
+  },
+  "E_pirates_cruise_seed7": {
+    "pass": true,
+    "approachFrom": 5000,
+    "interceptPhaseAt": 6,
+    "contact": {
+      "id": "e205",
+      "groups": [
+        "시험 약탈단(pirates)",
+        "제1 채굴반(p1)",
+        "경비대(p1)"
+      ],
+      "at": 20,
+      "escortIn": true,
+      "minersIn": true,
+      "contactToMiners": 1694,
+      "bandToEscortBefore": 461,
+      "bandToMinersBefore": 1880,
+      "escortToMinersBefore": 1407
+    },
+    "closestBandToMinersBeforeContact": 1864,
+    "minersFled": false,
+    "minerHpBefore": [
+      1,
+      1
+    ],
+    "minerHpAfter": [
+      0.55,
+      1
+    ],
+    "minersLost": 0,
+    "escortShipsLeft": 3,
+    "pirateShipsLeft": 0
+  },
+  "F_return_cruise_seed7": {
+    "pass": true,
+    "battleDoneAt": 104,
+    "backOnGuardAt": 129,
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중",
+    "radio": [
+      "제1 채굴반 쪽으로 접근하는 적대 함선 포착 — 요격한다.",
+      "위협 해소. 보호 위치로 복귀한다."
+    ]
+  },
+  "E_pirates_cruise_seed8": {
+    "pass": true,
+    "approachFrom": 5000,
+    "interceptPhaseAt": 6,
+    "contact": {
+      "id": "e200",
+      "groups": [
+        "시험 약탈단(pirates)",
+        "제1 채굴반(p1)",
+        "경비대(p1)"
+      ],
+      "at": 20,
+      "escortIn": true,
+      "minersIn": true,
+      "contactToMiners": 1666,
+      "bandToEscortBefore": 698,
+      "bandToMinersBefore": 1880,
+      "escortToMinersBefore": 1199
+    },
+    "closestBandToMinersBeforeContact": 1864,
+    "minersFled": false,
+    "minerHpBefore": [
+      1,
+      1
+    ],
+    "minerHpAfter": [
+      0.63,
+      1
+    ],
+    "minersLost": 0,
+    "escortShipsLeft": 3,
+    "pirateShipsLeft": 0
+  },
+  "F_return_cruise_seed8": {
+    "pass": true,
+    "battleDoneAt": 93,
+    "backOnGuardAt": 118,
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중",
+    "radio": [
+      "제1 채굴반 쪽으로 접근하는 적대 함선 포착 — 요격한다.",
+      "위협 해소. 보호 위치로 복귀한다."
+    ]
+  },
+  "E_pirates_cruise_seed9": {
+    "pass": true,
+    "approachFrom": 5000,
+    "interceptPhaseAt": 6,
+    "contact": {
+      "id": "e206",
+      "groups": [
+        "시험 약탈단(pirates)",
+        "제1 채굴반(p1)",
+        "경비대(p1)"
+      ],
+      "at": 21,
+      "escortIn": true,
+      "minersIn": true,
+      "contactToMiners": 1565,
+      "bandToEscortBefore": 465,
+      "bandToMinersBefore": 1733,
+      "escortToMinersBefore": 1301
+    },
+    "closestBandToMinersBeforeContact": 1864,
+    "minersFled": false,
+    "minerHpBefore": [
+      1,
+      1
+    ],
+    "minerHpAfter": [
+      0.65,
+      0.81
+    ],
+    "minersLost": 0,
+    "escortShipsLeft": 3,
+    "pirateShipsLeft": 0
+  },
+  "F_return_cruise_seed9": {
+    "pass": true,
+    "battleDoneAt": 112,
+    "backOnGuardAt": 135,
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중",
+    "radio": [
+      "제1 채굴반 쪽으로 접근하는 적대 함선 포착 — 요격한다.",
+      "위협 해소. 보호 위치로 복귀한다."
+    ]
+  },
+  "E_pirates_warp_seed7": {
+    "pass": true,
+    "approachFrom": 9000,
+    "interceptPhaseAt": 5,
+    "contact": {
+      "id": "e204",
+      "groups": [
+        "시험 약탈단(pirates)",
+        "제1 채굴반(p1)",
+        "경비대(p1)"
+      ],
+      "at": 7,
+      "escortIn": true,
+      "minersIn": true,
+      "contactToMiners": 615,
+      "bandToEscortBefore": 457,
+      "bandToMinersBefore": 750,
+      "escortToMinersBefore": 218
+    },
+    "closestBandToMinersBeforeContact": 791,
+    "minersFled": false,
+    "minerHpBefore": [
+      1,
+      1
+    ],
+    "minerHpAfter": [
+      0.8,
+      1
+    ],
+    "minersLost": 0,
+    "escortShipsLeft": 3,
+    "pirateShipsLeft": 0
+  },
+  "F_return_warp_seed7": {
+    "pass": true,
+    "battleDoneAt": 60,
+    "backOnGuardAt": 66,
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중",
+    "radio": [
+      "제1 채굴반 쪽으로 접근하는 적대 함선 포착 — 요격한다.",
+      "위협 해소. 보호 위치로 복귀한다."
+    ]
+  },
+  "E_pirates_warp_seed8": {
+    "pass": true,
+    "approachFrom": 9000,
+    "interceptPhaseAt": 5,
+    "contact": {
+      "id": "e196",
+      "groups": [
+        "시험 약탈단(pirates)",
+        "제1 채굴반(p1)",
+        "경비대(p1)"
+      ],
+      "at": 7,
+      "escortIn": true,
+      "minersIn": true,
+      "contactToMiners": 579,
+      "bandToEscortBefore": 499,
+      "bandToMinersBefore": 750,
+      "escortToMinersBefore": 163
+    },
+    "closestBandToMinersBeforeContact": 791,
+    "minersFled": false,
+    "minerHpBefore": [
+      1,
+      1
+    ],
+    "minerHpAfter": [
+      0.99,
+      1
+    ],
+    "minersLost": 0,
+    "escortShipsLeft": 3,
+    "pirateShipsLeft": 0
+  },
+  "F_return_warp_seed8": {
+    "pass": true,
+    "battleDoneAt": 139,
+    "backOnGuardAt": 145,
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중",
+    "radio": [
+      "제1 채굴반 쪽으로 접근하는 적대 함선 포착 — 요격한다.",
+      "위협 해소. 보호 위치로 복귀한다."
+    ]
+  },
+  "E_pirates_warp_seed9": {
+    "pass": true,
+    "approachFrom": 9000,
+    "interceptPhaseAt": 5,
+    "contact": {
+      "id": "e202",
+      "groups": [
+        "시험 약탈단(pirates)",
+        "제1 채굴반(p1)",
+        "경비대(p1)"
+      ],
+      "at": 7,
+      "escortIn": true,
+      "minersIn": true,
+      "contactToMiners": 578,
+      "bandToEscortBefore": 503,
+      "bandToMinersBefore": 750,
+      "escortToMinersBefore": 163
+    },
+    "closestBandToMinersBeforeContact": 791,
+    "minersFled": false,
+    "minerHpBefore": [
+      1,
+      1
+    ],
+    "minerHpAfter": [
+      1,
+      1
+    ],
+    "minersLost": 0,
+    "escortShipsLeft": 3,
+    "pirateShipsLeft": 0
+  },
+  "F_return_warp_seed9": {
+    "pass": true,
+    "battleDoneAt": 95,
+    "backOnGuardAt": 101,
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중",
+    "radio": [
+      "제1 채굴반 쪽으로 접근하는 적대 함선 포착 — 요격한다.",
+      "위협 해소. 보호 위치로 복귀한다."
+    ]
+  },
+  "G_jump_gate_travel": {
+    "pass": true,
+    "cmdErr": null,
+    "targetSystem": "helios",
+    "field": "garden",
+    "escortJumpedAt": 19,
+    "minersJumpedAt": 18,
+    "ticksInDifferentSystems": 1,
+    "regroupHoldTicks": 1,
+    "maxSeparationSameSystem": 26183,
+    "ticksSeparatedOver2200": 12,
+    "warpNote": "long in-system legs use the warp drive; separation peaks are warp transits",
+    "minersAtField": 30,
+    "escortAtField": 34,
+    "escortStatus": "제1 채굴반 호위 — 광구 경계 중"
+  },
+  "H1_escort_destroyed": {
+    "pass": true,
+    "warning": "제1 채굴반: 호위 전력 상실 (경비대) — 무호위 상태로 작업을 계속합니다. 대체 호위를 지정하거나 철수 명령을 내리세요.",
+    "minedAfterLoss": 313.1789568,
+    "minersStatus": "케스트렐 암초대로 이동",
+    "escortStatus": "제1 채굴반 호위 — 호위 전력 상실 (전투 함선 없음)"
+  },
+  "H2_escort_cancelled": {
+    "pass": true,
+    "notice": "제1 채굴반: 경비대의 호위가 해제되었습니다 — 무호위 상태로 작업을 계속합니다.",
+    "minersStatus": "광석 운반 중"
+  },
+  "H3_target_group_disbanded": {
+    "pass": true,
+    "escortStatus": "호위 대상 소실"
+  },
+  "I_restart_keeps_escort": {
+    "pass": true,
+    "before": {
+      "op": "{\"k\":\"escort\",\"group\":\"g2\",\"focus\":\"work\"}",
+      "phase": "convoy",
+      "minersStatus": "케스트렐 암초대로 이동"
+    },
+    "after": {
+      "op": "{\"k\":\"escort\",\"group\":\"g2\",\"focus\":\"work\"}",
+      "phase": "convoy"
+    },
+    "minersLeftAfterRestartAt": 1,
+    "escortDistanceAtDeparture": 451,
+    "escortStatusAfter": "제1 채굴반 호위 — 광구 경계 중"
+  },
+  "J_route_blocked": {
+    "pass": true,
+    "closedEdge": [
+      "anvil",
+      "deepmine"
+    ],
+    "cutOffSystem": "deepmine",
+    "mineCmd": null,
+    "minersLeftAt": 19,
+    "escortStatus": "호위 불가능 — 경로 차단 (제1 채굴반)",
+    "event": "경비대: 호위 불가능 — 제1 채굴반까지 가는 관문이 모두 막혀 있습니다. 경로가 열리면 다시 합류합니다. 다른 편대를 호위로 지정하거나 대기 명령을 내릴 수 있습니다."
+  }
+}

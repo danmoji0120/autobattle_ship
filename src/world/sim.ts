@@ -43,6 +43,7 @@ import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
 import { expandP10 } from './worldgen-p10';
 import { repairQuote } from './repair';
+import { ESCORT, pickWards, convoySlot, ringSlot, coverSlot, escortStatus, unit, type EscortPhase } from './escort';
 import { expandedLayout, gateOpen, foundingRule, dockRefused, bumpStanding, FACTIONS } from './territory';
 import { visit, surveyIntel, recordSample, believedMix, knowsField } from './intel';
 import { mineGeo, releaseAcc } from './geology';
@@ -56,6 +57,8 @@ const NPC_BATTLE_BUDGET_MS = 8;
 /** safety valve: ships in concurrent NPC battles above this fall back to the strength model */
 const NPC_BATTLE_CAP = 160;
 const clockMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+/** per-tick escort picture (world/escort.ts phases) */
+interface EscortPlan { phase: EscortPhase; name: string; wc: V | null; heading: [number, number] | null; threat: V | null; ring: { at: V; r: number } | null; n: number; ids: string[]; extra: string }
 const ENGAGE_R = 420;
 const JOIN_R = 1700;
 const WARP_MIN = 6000;      // trips longer than this use the in-system warp drive
@@ -161,6 +164,10 @@ export class WorldSim {
   /** live tactical battles (transient; rebuilt from setup+orders on load) */
   battles = new Map<string, World>();
   private battleAcc = new Map<string, number>();
+  /** per-tick escort caches (never saved: rebuilt from the groups' orders every tick) */
+  private speedCap = new Map<string, number>();
+  private escortPlans = new Map<string, EscortPlan>();
+  private escortIdx: Map<string, WGroup[]> | null = null;
   private npcRot = 0;
   /** wall time spent stepping NPC battles (diagnostics) */
   npcBattleMs = 0;
@@ -1608,7 +1615,13 @@ export class WorldSim {
         return null;
       }
       case 'dock': { const st = this.st.stations[op.station]; return st && this.canDock(st, company) ? null : '정박 불가'; }
-      case 'escort': { const t = this.st.groups[op.group]; return t && t.owner === company && t.id !== g.id ? null : '호위 대상 오류'; }
+      case 'escort': {
+        const t = this.st.groups[op.group];
+        if (op.focus !== undefined && !['auto', 'work', 'cargo', 'all'].includes(op.focus)) return '호위 보호 대상 오류';
+        // an escort cannot protect itself, its own subgroups (they move with it) or a group it commands
+        for (let x: WGroup | undefined = t, i = 0; x && i < 12; x = x.parentId ? this.st.groups[x.parentId] : undefined, i++) if (x.id === g.id) return '호위 대상 오류 — 자기 편대나 하위 편대는 호위할 수 없습니다';
+        return t && t.owner === company && t.id !== g.id ? null : '호위 대상 오류';
+      }
       case 'attack': {
         if (op.lair) return this.st.lairs[op.lair]?.alive ? null : '대상 없음';
         const t = op.group ? this.st.groups[op.group] : null;
@@ -1782,6 +1795,7 @@ export class WorldSim {
     this.economy(dt);
     this.npcs(dt);
     if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if (st.logisticsJobs && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } stepOperations(this); }
+    this.speedCap.clear(); this.escortPlans.clear(); this.escortIdx = null;
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
       this.runGroup(g, dt);
@@ -2211,11 +2225,214 @@ export class WorldSim {
       g.status = '해적 회피 — 대피 중';
       return;
     }
+    const ward = this.st.companies[g.owner]?.kind === 'player' ? this.wardControl(g, ships, op) : null;
+    if (ward?.hold.size) {
+      for (const s of ward.hold) if (s.state === 'space') { s.vel.x *= 0.85; s.vel.z *= 0.85; s.pos = vadd(s.pos, s.vel, dt); }
+      ships = ships.filter(s => !ward.hold.has(s));
+    }
     if ((op.k === 'move' || op.k === 'attack') && this.st.companies[g.owner]?.kind === 'player') {
       const m = this.fleetMarch(g, op, dt);
-      if (m) { for (const s of ships) this.marchShip(s, g, op, m, dt, c); return; }
+      if (m) { for (const s of ships) this.marchShip(s, g, op, m, dt, c); if (ward?.note) g.status = ward.note; return; }
     }
     for (const s of ships) this.behave(s, g, op, dt, c);
+    if (ward?.note) g.status = ward.note;
+  }
+
+  // -------------------------------------------------- escort missions (pure parts in escort.ts)
+
+  /** escorting groups (the ones holding the escort order) by target group id, rebuilt once per tick */
+  private escortsTargeting(id: string): WGroup[] {
+    if (!this.escortIdx) {
+      this.escortIdx = new Map();
+      for (const e of Object.values(this.st.groups)) {
+        if (e.op.k !== 'escort' || (e.parentId && !e.override)) continue;
+        const list = this.escortIdx.get(e.op.group) ?? []; list.push(e); this.escortIdx.set(e.op.group, list);
+      }
+    }
+    return this.escortIdx.get(id) ?? [];
+  }
+  /** the ships of a target group an escort protects */
+  private wardsOf(t: WGroup, focus: Extract<Op, { k: 'escort' }>['focus']): WShip[] {
+    return pickWards(this.opOf(t), focus ?? 'auto', this.subtreeShips(t).filter(s => econOf(s).cruise > 0), s => econOf(s).mine > 0, s => econOf(s).cargo > 0);
+  }
+  private centroidOf(ps: V[]): V | null {
+    if (!ps.length) return null;
+    const c = { x: 0, y: 0, z: 0 }; for (const p of ps) { c.x += p.x; c.y += p.y; c.z += p.z; }
+    return { x: c.x / ps.length, y: c.y / ps.length, z: c.z / ps.length };
+  }
+  /** can ships in `from` reach `to` through open gates? */
+  private reachable(from: V, to: V): boolean {
+    const a = this.sysOf(from), b = this.sysOf(to);
+    if (!a || !b || a.id === b.id) return true;
+    return !!nextGate(this.st.systems, a.id, b.id, this.st.conflicts ? gate => gateOpen(this.st, gate) : undefined);
+  }
+  private escortEta(from: V, to: V, speed: number): number {
+    const a = this.sysOf(from), b = this.sysOf(to);
+    // long in-system legs use the warp drive (WARP_MIN); each jump is roughly one warp to the next gate
+    const leg = (d: number) => d > WARP_MIN ? 8 + d / 4000 + WARP_EXIT / Math.max(1, speed) : d / Math.max(1, speed);
+    if (!a || !b || a.id === b.id) return leg(dist(from, to));
+    return jumps(this.st.systems, a.id, b.id) * 30 + 15;
+  }
+  private escortShips(e: WGroup): WShip[] { return this.subtreeShipsInOp(e, true).filter(s => s.state !== 'battle' && econOf(s).cruise > 0); }
+
+  /**
+   * The protected side: wait for a far escort at a safe place (bounded), keep to the escort's pace,
+   * and report an escort that was lost or withdrawn. Returns ships to hold this tick and a status note.
+   */
+  private wardControl(g: WGroup, ships: WShip[], op: Op): { hold: Set<WShip>; note: string | null } | null {
+    // escorts may target this group or the group whose order it executes
+    let tg: WGroup | undefined = g, escorts: WGroup[] = [];
+    for (let i = 0; tg && i < 6 && !escorts.length; i++) { escorts = this.escortsTargeting(tg.id); if (!escorts.length) tg = tg.parentId && !tg.override ? this.st.groups[tg.parentId] : undefined; }
+    const W = g.ward;
+    const live = escorts.map(e => ({ e, ships: this.escortShips(e), mil: this.escortShips(e).filter(s => econOf(s).military) })).filter(x => x.mil.length);
+    // report escorts that disappeared since the last tick (once)
+    if (W?.escorts?.length || live.length) {
+      const now = live.map(x => ({ id: x.e.id, name: x.e.name }));
+      for (const old of W?.escorts ?? []) if (!now.some(x => x.id === old.id)) {
+        const eg = this.st.groups[old.id];
+        const destroyed = !eg || !this.subtreeShips(eg).some(s => econOf(s).military);
+        if (eg && destroyed && eg.op.k === 'escort') { eg.status = `${g.name} 호위 — 호위 전력 상실 (전투 함선 없음)`; eg.escort = { phase: 'lost', since: this.time }; }
+        this.ev(destroyed ? 'warn' : 'info', destroyed
+          ? `${g.name}: 호위 전력 상실 (${old.name}) — 무호위 상태로 작업을 계속합니다. 대체 호위를 지정하거나 철수 명령을 내리세요.`
+          : `${g.name}: ${old.name}의 호위가 해제되었습니다 — 무호위 상태로 작업을 계속합니다.`, { company: g.owner, who: g.name, ref: g.id });
+      }
+      if (now.length) (g.ward ??= {}).escorts = now; else if (g.ward) { delete g.ward.escorts; delete g.ward.waitSince; delete g.ward.gaveUp; }
+    }
+    if (!live.length || !tg) return null;
+    const focus = (escorts[0].op as Extract<Op, { k: 'escort' }>).focus;
+    const wardSet = new Set(this.wardsOf(tg, focus).map(s => s.id));
+    const wards = ships.filter(s => wardSet.has(s.id));
+    if (!wards.length) return null;
+    const wc = this.centroidOf(wards.map(s => s.pos))!;
+    // the nearest escort with combat ships decides
+    const best = live.map(x => ({ ...x, c: this.centroidOf(x.mil.map(s => s.pos))! })).sort((a, b) => (this.sysOf(a.c) === this.sysOf(wc) ? dist(a.c, wc) : 1e12) - (this.sysOf(b.c) === this.sysOf(wc) ? dist(b.c, wc) : 1e12))[0];
+    const sameSys = this.sysOf(best.c)?.id === this.sysOf(wc)?.id, d = sameSys ? dist(best.c, wc) : Infinity;
+    const escortSpeed = Math.min(...best.mil.map(s => this.cruiseOf(s) * (0.6 + 0.4 * s.hp)));
+    const near = d < ESCORT.joined * 1.6;
+    // travelling together: the wards keep to the escort's pace (never slower than a third of their own)
+    if (near) for (const s of wards) this.speedCap.set(s.id, Math.max(escortSpeed * ESCORT.pace, this.cruiseOf(s) * 0.33));
+    const ward = (g.ward ??= {});
+    if (d <= ESCORT.joined) { delete ward.waitSince; delete ward.gaveUp; return { hold: new Set(), note: null }; }
+    // far escort: wait only at a safe place, before setting out, for a reachable escort, for a bounded time
+    const field = op.k === 'mine' ? this.st.fields[op.field] : undefined;
+    const atWork = field ? dist(wc, field.pos) < field.radius + 1500 : false;
+    // a safe place: docked / next to a dockable station, or just through a gate the escort is one jump behind (regroup after a jump)
+    const wsys = this.sysOf(wc), esys = this.sysOf(best.c);
+    const goal = wards.map(s => s.task.k === 'goto' ? s.task.to : null).find(Boolean) ?? (field?.pos ?? (op.k === 'move' ? op.to : null));
+    const gsys = goal ? this.sysOf(goal) : undefined;
+    const headingBack = !!wsys && !!gsys && !!esys && gsys.id !== wsys.id && nextGate(this.st.systems, wsys.id, gsys.id)?.to === esys.id;
+    const afterJump = !!wsys && !!esys && wsys.id !== esys.id && !headingBack && jumps(this.st.systems, esys.id, wsys.id) === 1 && wsys.gates.some(gt => gt.to === esys.id && dist(gt.pos, wc) < 2500);
+    const safe = afterJump || wards.every(s => s.state === 'docked' || Object.values(this.st.stations).some(st => this.canDock(st, g.owner) && dist(st.pos, s.pos) < ESCORT.safeR));
+    const reach = this.reachable(best.c, wc);
+    if (!reach) return { hold: new Set(), note: null };
+    if (atWork || !safe || g.fleeing || ward.gaveUp) return { hold: new Set(), note: null };
+    const eta = Math.round(this.escortEta(best.c, wc, escortSpeed));
+    ward.waitSince ??= this.time;
+    const waited = this.time - ward.waitSince;
+    if (waited > ESCORT.waitMax || eta > ESCORT.etaMax) {
+      ward.gaveUp = true;
+      this.ev('warn', `${g.name}: 호위 합류 지연 (${best.e.name} 약 ${eta}초) — 단독 출발합니다. 호위가 따라붙으면 진형을 다시 갖춥니다.`, { company: g.owner, who: g.name, ref: g.id });
+      return { hold: new Set(), note: null };
+    }
+    // hold only ships with nothing left to unload (docked miners finish unloading first)
+    const hold = new Set(wards.filter(s => s.state === 'space' || cargoSum(s.cargo) < 1));
+    return { hold, note: `${afterJump ? '점프 후 재집결' : '호위 집결'} 대기 — ${best.e.name} 합류까지 약 ${eta}초 (최대 ${Math.max(0, Math.round(ESCORT.waitMax - waited))}초 대기)` };
+  }
+
+  /** the escort's picture of its wards this tick, shared by all its ships */
+  private escortPlan(g: WGroup, op: Extract<Op, { k: 'escort' }>, c: CommanderDef): EscortPlan {
+    const cached = this.escortPlans.get(g.id); if (cached) return cached;
+    const plan = this.makeEscortPlan(g, op, c);
+    this.escortPlans.set(g.id, plan);
+    // phase changes: radio and the one-off reports a player needs
+    const prev = g.escort?.phase;
+    if (prev !== plan.phase) {
+      g.escort = { phase: plan.phase, since: this.time };
+      const t = this.st.groups[op.group];
+      if (plan.phase === 'intercept') this.say(g, `${t?.name ?? '보호 대상'} 쪽으로 접근하는 적대 함선 포착 — 요격한다.`, 'warn', 0);
+      else if (plan.phase === 'cover') this.say(g, '보호 대상이 후퇴한다. 엄호 위치로!', 'warn', 0);
+      else if (prev === 'intercept' && plan.phase !== 'lost') this.say(g, '위협 해소. 보호 위치로 복귀한다.', 'radio', 0);
+      else if (plan.phase === 'blocked') this.ev('warn', `${g.name}: 호위 불가능 — ${t?.name ?? '호위 대상'}까지 가는 관문이 모두 막혀 있습니다. 경로가 열리면 다시 합류합니다. 다른 편대를 호위로 지정하거나 대기 명령을 내릴 수 있습니다.`, { company: g.owner, who: g.name, ref: g.id });
+      else if (plan.phase === 'lost') this.ev('warn', `${g.name}: 호위 대상이 사라졌습니다 — 새 호위 대상을 지정하세요.`, { company: g.owner, who: g.name, ref: g.id });
+    }
+    return plan;
+  }
+
+  private makeEscortPlan(g: WGroup, op: Extract<Op, { k: 'escort' }>, c: CommanderDef): EscortPlan {
+    const t = this.st.groups[op.group];
+    const own = this.escortShips(g);
+    const ec = this.centroidOf(own.filter(s => s.state === 'space').map(s => s.pos)) ?? this.centroidOf(own.map(s => s.pos));
+    const none: EscortPlan = { phase: 'lost', name: t?.name ?? '', wc: null, heading: null, threat: null, ring: null, n: own.length, ids: own.map(s => s.id), extra: '' };
+    if (!t || !ec) return none;
+    const all = this.wardsOf(t, op.focus);
+    // wards already fighting: go to that battle
+    const live = all.filter(s => s.state !== 'battle');
+    if (!live.length) {
+      const fighting = all.find(s => s.state === 'battle');
+      const e = fighting && Object.values(this.st.engagements).find(x => !x.done && !!fighting.groupId && x.groupRefs.includes(fighting.groupId));
+      const at = e?.pos ?? fighting?.pos;
+      return at ? { ...none, phase: 'intercept', wc: at, threat: at, extra: ' (교전 지원)' } : none;
+    }
+    const wc = this.centroidOf(live.map(s => s.pos))!;
+    const name = t.name;
+    if (!this.reachable(ec, wc)) return { ...none, phase: 'blocked', name, wc };
+    const sameSys = this.sysOf(ec)?.id === this.sysOf(wc)?.id, d = sameSys ? dist(ec, wc) : Infinity;
+    // where the wards are heading
+    const tOp = this.opOf(t);
+    const field = tOp.k === 'mine' ? this.st.fields[tOp.field] : undefined;
+    const goingTo = live.map(s => s.task.k === 'goto' ? s.task.to : null).find(Boolean) ?? (tOp.k === 'move' ? tOp.to : tOp.k === 'dock' ? this.st.stations[tOp.station]?.pos : field?.pos) ?? null;
+    // working the deposit: mining, or inside it with no errand leading out of it
+    const inField = (q: V) => !!field && dist(q, field.pos) < field.radius + 900;
+    const atField = !!field && (inField(wc) || live.every(s => s.task.k === 'mine')) && !live.some(s => s.task.k === 'goto' && !inField(s.task.to));
+    const v = live.reduce((a, s) => ({ x: a.x + s.vel.x, z: a.z + s.vel.z }), { x: 0, z: 0 });
+    const spd = Math.hypot(v.x, v.z) / live.length;
+    const crossSys = goingTo && this.sysOf(goingTo)?.id !== this.sysOf(wc)?.id;
+    const toward = goingTo && !atField ? (crossSys ? (() => { const a = this.sysOf(wc), b = this.sysOf(goingTo); const gt = a && b ? nextGate(this.st.systems, a.id, b.id) : null; return gt?.pos ?? goingTo; })() : goingTo) : null;
+    const heading = toward && dist(toward, wc) > 300 ? unit(toward.x - wc.x, toward.z - wc.z) : spd > 15 ? unit(v.x, v.z) : null;
+    const moving = !atField && (spd > 15 || (!!toward && dist(toward, wc) > 1500 && live.some(s => s.state === 'space')));
+    // threats: the attacker closest to a ward, within detection, never beyond the leash
+    const detect = ESCORT.detect + c.skill * ESCORT.detectSkill;
+    let threat: V | null = null, best = Infinity;
+    for (const p of Object.values(this.st.groups)) {
+      if (this.st.companies[p.owner]?.kind !== 'pirate' || p.cooldown > 0 || !p.shipIds.length) continue;
+      const pc = this.groupCenter(p); if (!pc || dist(pc, wc) > ESCORT.leash) continue;
+      const dw = Math.min(...live.map(s => dist(pc, s.pos)));
+      if (dw < detect || dist(pc, ec) < ESCORT.detectEscort) if (dw < best) { best = dw; threat = pc; }
+    }
+    const ring = atField ? { at: field!.pos, r: Math.max(ESCORT.ringMin, field!.radius + ESCORT.ringPad) } : null;
+    const base = { name, wc, heading, threat, ring, n: own.length, ids: own.map(s => s.id) };
+    if (t.fleeing && d < ESCORT.far) return { ...base, phase: 'cover', extra: '' };
+    if (threat && d < ESCORT.far) return { ...base, phase: 'intercept', extra: ` (위협까지 ${Math.round(best)}m)` };
+    if (d > ESCORT.far) return { ...base, phase: 'far', extra: sameSys ? ` (${Math.round(d)}m)` : ` (${this.sysOf(wc)?.name ?? '다른 성계'})` };
+    if (d > ESCORT.joined) return { ...base, phase: 'join', extra: ` (${Math.round(d)}m)` };
+    if (atField) return { ...base, phase: 'guard', extra: '' };
+    if (moving) return { ...base, phase: 'convoy', extra: '' };
+    return { ...base, phase: 'standby', extra: '' };
+  }
+
+  private behaveEscort(s: WShip, g: WGroup, op: Extract<Op, { k: 'escort' }>, dt: number, speed: number, c: CommanderDef) {
+    const owner = this.opOwner(g);
+    const p = this.escortPlan(owner, op, c);
+    g.status = escortStatus(p.phase, p.name, p.extra);
+    if (owner !== g) owner.status = g.status;
+    const i = Math.max(0, p.ids.indexOf(s.id));
+    const drift = () => { if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; s.pos = vadd(s.pos, s.vel, dt); } };
+    if (!p.wc) return drift();
+    switch (p.phase) {
+      case 'lost': case 'blocked': return drift();
+      case 'intercept': this.moveTo(s, this.formationSlot(s, g, p.threat!, 50), speed, dt, 10); return;
+      case 'cover': this.moveTo(s, coverSlot(i, p.wc, p.threat), speed, dt, 25); return;
+      case 'guard': {
+        const pir = this.nearestHostile(p.ring!.at, g.owner, 9000, p.ring!.at, 9000);
+        this.moveTo(s, ringSlot(i, p.n, p.ring!.at, p.ring!.r, pir ? unit(pir.x - p.ring!.at.x, pir.z - p.ring!.at.z) : null, this.time), speed * 0.7, dt, 30);
+        return;
+      }
+      case 'convoy': case 'join': case 'far':
+        // head for the screen position ahead of the wards, not for where they were
+        this.moveTo(s, p.heading ? convoySlot(i, p.n, p.wc, p.heading) : ringSlot(i, p.n, p.wc, 420, null, this.time), speed, dt, 30);
+        return;
+      case 'standby': this.moveTo(s, ringSlot(i, p.n, p.wc, 420, null, this.time), speed * 0.7, dt, 30); return;
+    }
   }
 
   // -------------------------------------------------- coordinated fleet movement
@@ -2579,7 +2796,9 @@ export class WorldSim {
   private behave(s: WShip, g: WGroup, op: Op, dt: number, c: CommanderDef) {
     const ec = econOf(s);
     if (ec.cruise <= 0) return;
-    const speed = this.cruiseOf(s) * (0.6 + 0.4 * s.hp) * (c.specialty === 'maneuver' ? 1.08 : 1);
+    let speed = this.cruiseOf(s) * (0.6 + 0.4 * s.hp) * (c.specialty === 'maneuver' ? 1.08 : 1);
+    // an escorted ship does not outrun its escort (set by wardControl for this tick)
+    const cap = this.speedCap.get(s.id); if (cap !== undefined) speed = Math.min(speed, cap);
     const st = this.st;
     if (s.logisticsJob && stepPoolShip(this, s, g, dt, speed)) return;
     switch (op.k) {
@@ -2612,18 +2831,7 @@ export class WorldSim {
         }
         break;
       }
-      case 'escort': {
-        const t = st.groups[op.group];
-        const tc = t ? this.groupCenter(t) : null;
-        if (!tc) { g.status = '호위 대상 소실'; break; }
-        if (ec.military) {
-          const hostile = this.nearestHostile(tc, g.owner, 1600, tc, 1800);
-          if (hostile) { this.moveTo(s, this.formationSlot(s, g, hostile, 50), speed, dt, 10); g.status = `${t.name} 호위 — 위협 요격`; break; }
-        }
-        this.moveTo(s, this.formationSlot(s, g, vadd(tc, { x: 0, y: 40, z: 0 }), 120), speed, dt, 30);
-        g.status = `${t.name} 호위 중`;
-        break;
-      }
+      case 'escort': this.behaveEscort(s, g, op, dt, speed, c); break;
       case 'attack': {
         let target: V | null = null;
         let name = '';
