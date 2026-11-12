@@ -113,14 +113,14 @@ const chainE = chainOf(0.3, 0.15, TARGETS_E);
 export const PROPOSALS: Record<string, Proposal> = {
   base: { id: 'base', name: '현행', desc: '변경 없음 (월드 출신에 따라 가격 체계가 다름)' },
   c4: { id: 'c4', name: 'A. c4 가격 일관 적용', desc: '모든 원자재 0.25배, 가공품 valueOf(원가 × 1.1) — 기존 저장을 c4로 이관했을 때와 같은 가격', value: c4Value, reprice: w => repriceWith(w, c4Value) },
-  chain: { id: 'chain', name: 'B. 가치 사슬 가격 (원자재 0.25배)', desc: '가공품 = (투입 × 1.15 + 레시피별 부가가치 × 시간) ÷ 산출, 부가가치는 시장 구매 라인 목표 이익에 맞춰 산정. 원자재 0.25배', value: chain25.value, reprice: w => repriceWith(w, chain25.value) },
-  chain40: { id: 'chain40', name: 'C. 가치 사슬 가격 (원자재 0.4배)', desc: 'B와 같은 공식, 원자재 0.4배 (채굴 수익 상향)', value: chain40.value, reprice: w => repriceWith(w, chain40.value) },
+  chain: { id: 'chain', name: 'B. 가치 사슬 가격 (원자재 0.25배)', desc: '가공품 = (투입 × 1.15 + 레시피별 부가가치 × 시간) ÷ 산출, 부가가치는 시장 구매 라인 목표 이익에 맞춰 산정. 원자재 0.25배', value: chain25.value, patch: () => tuneAlternates(chain25.value, TARGETS), reprice: w => repriceWith(w, chain25.value) },
+  chain40: { id: 'chain40', name: 'C. 가치 사슬 가격 (원자재 0.4배)', desc: 'B와 같은 공식, 원자재 0.4배 (채굴 수익 상향)', value: chain40.value, patch: () => tuneAlternates(chain40.value, TARGETS), reprice: w => repriceWith(w, chain40.value) },
   recipe: { id: 'recipe', name: 'D. 가격 유지 + 레시피 조정', desc: '시장 가격은 c4 값 그대로 두고, 주 레시피의 투입·산출만 바꿔 시장 구매 라인 목표 이익에 맞춤',
-    patch: () => { recipeSnapshot = snapshotValues(c4Value); for (const [id, ch] of Object.entries(solveRecipes(k => recipeSnapshot![k], TARGETS))) setRecipe(id, ch); },
+    patch: () => { recipeSnapshot = snapshotValues(c4Value); for (const [id, ch] of Object.entries(solveRecipes(k => recipeSnapshot![k], TARGETS))) setRecipe(id, ch); tuneAlternates(k => recipeSnapshot![k], TARGETS); },
     reprice: w => repriceWith(w, k => recipeSnapshot?.[k] ?? c4Value(k)) },
   combo: { id: 'combo', name: 'E. 추천 조합', desc: '가치 사슬 가격(원자재 0.3배, 상위 티어 목표 이익 하향) + 가공품 NPC 소비 1.5배 + 상위 시설 건설비 0.8배',
     value: chainE.value,
-    patch: () => { scaleUse(PROCESSED, 1.5); for (const f of ['electronics_fab', 'armor_plant', 'weapons_factory', 'engine_plant', 'reactor_plant', 'composite_plant']) if (FACILITIES[f]) scaleFacility(f, 0.8); },
+    patch: () => { tuneAlternates(chainE.value, TARGETS_E); scaleUse(PROCESSED, 1.5); for (const f of ['electronics_fab', 'armor_plant', 'weapons_factory', 'engine_plant', 'reactor_plant', 'composite_plant']) if (FACILITIES[f]) scaleFacility(f, 0.8); },
     reprice: w => repriceWith(w, chainE.value) },
 };
 
@@ -142,6 +142,20 @@ export function solveRecipes(v: (k: string) => number, targets: Record<string, n
     out[id] = { in: best!.in, out: { [o]: best!.n } };
   }
   return out;
+}
+
+/**
+ * Side recipes that bypass a main recipe must not out-earn it: direct ore → alloy (no research) is held
+ * to 80 % of the alloy line target; research recipes (metal_eff…) keep their yield edge over the main one.
+ */
+function tuneAlternates(v: (k: string) => number, targets: Record<string, number>) {
+  const r = RECIPES.alloy_direct, T = targets.alloy * 0.8;
+  let best = r.out.alloy, err = Infinity;
+  for (let n = 1; n <= 30; n++) { const e = Math.abs(lineProfit({ ...r, out: { alloy: n } }, v) - T); if (e < err) { err = e; best = n; } }
+  setRecipe('alloy_direct', { out: { alloy: best } });
+  const base = recipeBackup.get('metal'), now = RECIPES.metal;
+  // research yield edge kept: metal_eff (40 ore) yields 26/20 of what the main recipe gets per ore
+  if (base) setRecipe('metal_eff', { out: { metal: Math.round(now.out.metal / now.in.ore * (26 / 20) * 40) } });
 }
 
 export function proposal(id: string): Proposal {
