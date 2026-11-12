@@ -110,11 +110,9 @@ describe('company-wide production planning', () => {
     expect(metal.length).toBeGreaterThanOrEqual(1); // the intermediate (metal) is planned at the refinery station
     const metalBatches = () => f.home.orders!.filter(o => o.recipe.startsWith('metal')).reduce((n, o) => n + o.n, 0);
     expect(metalBatches()).toBe(4); // 5 machinery batches × 16 metal = 80 = 4 refinery batches
-    if (approvals(f.sim, f.p).length) console.log(JSON.stringify(approvals(f.sim, f.p).map(a => [a.title, a.reason, a.situation, a.items])));
     expect(approvals(f.sim, f.p)).toHaveLength(0); // everything comes from own stock — nothing to approve
     run(f.sim, 60); expect(metalBatches()).toBeLessThanOrEqual(4); expect(c.orders!.reduce((n, o) => n + o.n, 0)).toBeLessThanOrEqual(5);
     const done = (() => { for (let t = 0; t < 9000 && g.state !== 'done'; t += .25) f.sim.update(.25); return g.state === 'done'; })();
-    if (!done) console.log(JSON.stringify({ g: [g.state, g.reason], kids: works(f.sim, f.p).filter(w => w.parent === g.id).map(w => [w.kind, w.state, w.reason, w.ref.station]) }));
     expect(done).toBe(true);
     expect(qty(f.b.storage[f.p], 'machinery')).toBeGreaterThanOrEqual(30);
     // made exactly what was needed: 30 machinery in all, metal fully consumed
@@ -218,7 +216,6 @@ describe('default policy in an ordinary session: no needless approvals, a blocke
     const raised: string[] = [];
     for (let t = 0; t < 2 * 3600; t += .25) { f.sim.update(.25); for (const a of approvals(f.sim, f.p)) if (!raised.includes(a.id)) raised.push(a.id); }
     const all = approvals(f.sim, f.p, false);
-    if (raised.length !== 1) console.log(JSON.stringify(all.map(a => [a.title, a.kind, a.key, a.reason, a.situation, a.state, a.note])));
     expect(raised).toHaveLength(1); expect(all).toHaveLength(1);
     const ti = works(f.sim, f.p).find(w => w.goal?.k === 'stockpile' && w.goal.item === 'titanium')!;
     expect(all[0].work).toBe(ti.id); expect(ti.state).toBe('waiting');
