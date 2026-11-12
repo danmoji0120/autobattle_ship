@@ -42,6 +42,8 @@ export interface ServerOptions {
   /** Verified account UUID that owns the account-exclusive content (commander BB, ship BB-EX).
    *  Set only by the server operator (SIDERARIUM_BB_OWNER_ACCOUNT). Unset = nobody is granted it. */
   exclusiveOwner?: string;
+  /** Defer automatic exclusive grant until the host has verified restoration/migration conservation. */
+  deferExclusiveGrant?: boolean;
 }
 
 function token(): string {
@@ -92,7 +94,7 @@ export class GameServer {
     this.auth = save?.auth ?? {};
     this.accounts = save?.accounts ?? {};
     for (const c of Object.values(this.sim.st.companies)) c.online = false;
-    this.grantExclusive();
+    if (!opts.deferExclusiveGrant) this.grantExclusive();
     this.sim.onBattleOrder = (eng, rec) => {
       for (const c of this.conns.values()) if (c.battles.has(eng)) c.send({ t: 'border', eng, rec });
     };

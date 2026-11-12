@@ -315,6 +315,8 @@ async function main() {
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
     singleplayer: false, accounts: true, migrateContent: applyContent,
+    // Verify migration conservation before the intentionally granted BB-EX changes the census.
+    deferExclusiveGrant: true,
     adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),
     analytics: { enabled: process.env.ANALYTICS_ENABLED !== '0', snapshotSeconds: Number(process.env.ANALYTICS_INTERVAL_S ?? 600), maxBytes: Number(process.env.ANALYTICS_MAX_BYTES ?? 8388608), alerts: alertConfig }, snapInterval: 1.0, movInterval: 0.2, saveInterval: Number(process.env.SAVE_INTERVAL_S ?? 30),
     onSaveDue: () => saver?.due(),
@@ -334,6 +336,20 @@ async function main() {
     const ok = new WorldSim(JSON.parse(s1), { migrateContent: applyContent }).serialize() === s1;
     if (!ok) { console.error('[siderarium] !!! 복원 검증 실패 — 저장하지 않고 종료합니다'); process.exit(1); }
     console.log(`[siderarium] migration check OK ${JSON.stringify(after)} · restore round-trip identical`);
+  }
+
+  // Exclusive ownership is an intentional server grant, not a migration asset delta.
+  // Wait until the restored world has passed conservation and serialization checks.
+  if (bbOwner) {
+    const grant = game.grantExclusive();
+    console.log(`[siderarium] BB-EX exclusive grant: ${grant}`);
+    if (grant === 'granted' || grant === 'repaired') {
+      // Persist the immutable account ledger and unique ship before opening the server.
+      if (!await saver.flush()) {
+        console.error('[siderarium] !!! BB-EX 계정 귀속 저장 실패 — 서비스 시작을 중단합니다');
+        process.exit(1);
+      }
+    }
   }
 
   // ── sessions: an HttpOnly cookie carries a random session id; scripts in the page never see it ──
