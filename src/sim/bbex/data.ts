@@ -50,7 +50,7 @@ export const BBEX = {
   // ── PHANTOM SHIFT
   psCool: 17, psRange: 820,
   // ── causality interference (commander BB)
-  cVetoes: 3, cVetoCool: 38, cRewrite: 0.55,
+  cVetoes: 3, cVetoCool: 38, cRewrite: 0.55, cDenyCool: 7, cDenyMin: 200,
   // ── BB CHANNEL: GAME OVER
   goSpread: 1.6, goCharge: 2.2, goFire: 2.5, goReplan: 24, goCool: 100, goDepth: 5, goSplit: 3, goMaxSeg: 34, goDamage: 0.6, goReload: 0.5,
 } as const;

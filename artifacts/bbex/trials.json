@@ -1,0 +1,2839 @@
+[
+ {
+  "trial": "bb50",
+  "name": "전함 50척",
+  "seed": 1,
+  "ships": 50,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 103.5,
+  "half": 89,
+  "destroyed": 50,
+  "escaped": 0,
+  "minHp": 0.995,
+  "dcpKillsPerShot": [
+   1,
+   1,
+   0,
+   12
+  ],
+  "msPerTick": 0.705,
+  "maxStepMs": 7.8,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 57421.814026805805,
+    "hits": 385,
+    "kills": 10,
+    "shots": 480
+   },
+   "fnl_ex": {
+    "dmg": 52785.025778102456,
+    "hits": 602,
+    "kills": 7,
+    "shots": 641
+   },
+   "dcp_omega": {
+    "dmg": 352381.39277132717,
+    "hits": 1337,
+    "kills": 14,
+    "shots": 6
+   },
+   "abyss_lance": {
+    "dmg": 57363.91585394228,
+    "hits": 94,
+    "kills": 7,
+    "shots": 93
+   },
+   "violet_edge": {
+    "dmg": 55240.788300194785,
+    "hits": 1206,
+    "kills": 9,
+    "shots": 1270
+   },
+   "lilac_stinger": {
+    "dmg": 51040.17759239772,
+    "hits": 4223,
+    "kills": 3,
+    "shots": 4937
+   }
+  },
+  "funnels": {
+   "alive": 5,
+   "lost": 25,
+   "rebuilt": 18,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 1420,
+   "displaced": 1292,
+   "absorbed": 27816,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 5,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 2406,
+  "regen": 428
+ },
+ {
+  "trial": "bb50",
+  "name": "전함 50척",
+  "seed": 2,
+  "ships": 50,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 102,
+  "half": 84,
+  "destroyed": 50,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   1,
+   2,
+   2,
+   10
+  ],
+  "msPerTick": 0.462,
+  "maxStepMs": 2.5,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 57120.12730713235,
+    "hits": 379,
+    "kills": 7,
+    "shots": 468
+   },
+   "fnl_ex": {
+    "dmg": 49062.72488631141,
+    "hits": 556,
+    "kills": 4,
+    "shots": 602
+   },
+   "dcp_omega": {
+    "dmg": 371134.19847494713,
+    "hits": 1342,
+    "kills": 15,
+    "shots": 6
+   },
+   "abyss_lance": {
+    "dmg": 55401.40900971973,
+    "hits": 89,
+    "kills": 9,
+    "shots": 91
+   },
+   "violet_edge": {
+    "dmg": 55445.97448566347,
+    "hits": 1213,
+    "kills": 7,
+    "shots": 1284
+   },
+   "lilac_stinger": {
+    "dmg": 53519.80253941754,
+    "hits": 4484,
+    "kills": 8,
+    "shots": 5056
+   }
+  },
+  "funnels": {
+   "alive": 7,
+   "lost": 23,
+   "rebuilt": 18,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 1204,
+   "displaced": 1105,
+   "absorbed": 23276,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 5,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 2508,
+  "regen": 0
+ },
+ {
+  "trial": "bb50",
+  "name": "전함 50척",
+  "seed": 3,
+  "ships": 50,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 103.5,
+  "half": 87,
+  "destroyed": 50,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   1,
+   1,
+   2,
+   10
+  ],
+  "msPerTick": 0.511,
+  "maxStepMs": 6.5,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 57548.3693791274,
+    "hits": 385,
+    "kills": 9,
+    "shots": 486
+   },
+   "fnl_ex": {
+    "dmg": 47467.10466289744,
+    "hits": 539,
+    "kills": 6,
+    "shots": 575
+   },
+   "dcp_omega": {
+    "dmg": 360383.11587030557,
+    "hits": 1403,
+    "kills": 14,
+    "shots": 6
+   },
+   "abyss_lance": {
+    "dmg": 54543.307369528804,
+    "hits": 87,
+    "kills": 6,
+    "shots": 92
+   },
+   "violet_edge": {
+    "dmg": 53606.77441165187,
+    "hits": 1175,
+    "kills": 6,
+    "shots": 1249
+   },
+   "lilac_stinger": {
+    "dmg": 48906.75000805575,
+    "hits": 4088,
+    "kills": 9,
+    "shots": 4869
+   }
+  },
+  "funnels": {
+   "alive": 10,
+   "lost": 20,
+   "rebuilt": 18,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 1354,
+   "displaced": 1224,
+   "absorbed": 26776,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 4,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 2284,
+  "regen": 0
+ },
+ {
+  "trial": "bb100",
+  "name": "전함 100척",
+  "seed": 1,
+  "ships": 100,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 125.5,
+  "half": 72,
+  "destroyed": 99,
+  "escaped": 1,
+  "minHp": 0.915,
+  "dcpKillsPerShot": [
+   3,
+   1,
+   4,
+   22,
+   9,
+   1
+  ],
+  "msPerTick": 0.962,
+  "maxStepMs": 5.6,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 68855.5143864057,
+    "hits": 460,
+    "kills": 9,
+    "shots": 595
+   },
+   "fnl_ex": {
+    "dmg": 66892.10444108136,
+    "hits": 759,
+    "kills": 13,
+    "shots": 809
+   },
+   "dcp_omega": {
+    "dmg": 866211.2758020519,
+    "hits": 3012,
+    "kills": 40,
+    "shots": 8
+   },
+   "abyss_lance": {
+    "dmg": 73046.9908108702,
+    "hits": 119,
+    "kills": 10,
+    "shots": 117
+   },
+   "violet_edge": {
+    "dmg": 69336.86087682053,
+    "hits": 1508,
+    "kills": 11,
+    "shots": 1627
+   },
+   "lilac_stinger": {
+    "dmg": 68659.05673997808,
+    "hits": 5303,
+    "kills": 16,
+    "shots": 6097
+   }
+  },
+  "funnels": {
+   "alive": 10,
+   "lost": 27,
+   "rebuilt": 25,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 2512,
+   "displaced": 2228,
+   "absorbed": 48700,
+   "overloads": 1
+  },
+  "dcpShots": 6,
+  "blackouts": 8,
+  "wells": 3,
+  "shifts": 5,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 2877,
+  "regen": 6548
+ },
+ {
+  "trial": "bb100",
+  "name": "전함 100척",
+  "seed": 2,
+  "ships": 100,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 160,
+  "half": 94,
+  "destroyed": 100,
+  "escaped": 0,
+  "minHp": 0.991,
+  "dcpKillsPerShot": [
+   2,
+   3,
+   1,
+   9,
+   3,
+   4,
+   3
+  ],
+  "msPerTick": 1.08,
+  "maxStepMs": 4.4,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 83165.38333810866,
+    "hits": 551,
+    "kills": 6,
+    "shots": 762
+   },
+   "fnl_ex": {
+    "dmg": 77362.14747815824,
+    "hits": 876,
+    "kills": 15,
+    "shots": 927
+   },
+   "dcp_omega": {
+    "dmg": 722087.7877334866,
+    "hits": 2442,
+    "kills": 25,
+    "shots": 9
+   },
+   "abyss_lance": {
+    "dmg": 108341.87627572939,
+    "hits": 175,
+    "kills": 14,
+    "shots": 153
+   },
+   "violet_edge": {
+    "dmg": 90249.13434808013,
+    "hits": 1980,
+    "kills": 22,
+    "shots": 2131
+   },
+   "lilac_stinger": {
+    "dmg": 84083.13122370117,
+    "hits": 6912,
+    "kills": 18,
+    "shots": 8158
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 36,
+   "rebuilt": 36,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 3035,
+   "displaced": 2721,
+   "absorbed": 63468,
+   "overloads": 1
+  },
+  "dcpShots": 7,
+  "blackouts": 10,
+  "wells": 5,
+  "shifts": 6,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 3990,
+  "regen": 849
+ },
+ {
+  "trial": "bb100",
+  "name": "전함 100척",
+  "seed": 3,
+  "ships": 100,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 150.5,
+  "half": 88,
+  "destroyed": 100,
+  "escaped": 0,
+  "minHp": 0.994,
+  "dcpKillsPerShot": [
+   0,
+   0,
+   1,
+   13,
+   6,
+   4
+  ],
+  "msPerTick": 1.264,
+  "maxStepMs": 5.3,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 85348.79502935219,
+    "hits": 565,
+    "kills": 16,
+    "shots": 718
+   },
+   "fnl_ex": {
+    "dmg": 72018.3944507072,
+    "hits": 821,
+    "kills": 12,
+    "shots": 867
+   },
+   "dcp_omega": {
+    "dmg": 764544.7438741798,
+    "hits": 2872,
+    "kills": 25,
+    "shots": 8
+   },
+   "violet_edge": {
+    "dmg": 83144.08674237016,
+    "hits": 1825,
+    "kills": 16,
+    "shots": 1957
+   },
+   "abyss_lance": {
+    "dmg": 90951.2830642336,
+    "hits": 147,
+    "kills": 15,
+    "shots": 145
+   },
+   "lilac_stinger": {
+    "dmg": 76090.64081595946,
+    "hits": 6414,
+    "kills": 16,
+    "shots": 7628
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 35,
+   "rebuilt": 35,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 2924,
+   "displaced": 2629,
+   "absorbed": 61920,
+   "overloads": 1
+  },
+  "dcpShots": 6,
+  "blackouts": 10,
+  "wells": 4,
+  "shifts": 5,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 3592,
+  "regen": 344
+ },
+ {
+  "trial": "mixed200",
+  "name": "연합 혼성 결전함대 200척",
+  "seed": 1,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 133.5,
+  "half": 90,
+  "destroyed": 192,
+  "escaped": 8,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   6,
+   8,
+   12,
+   42,
+   7
+  ],
+  "msPerTick": 2.871,
+  "maxStepMs": 20.8,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "abyss_lance": {
+    "dmg": 85003.97903940687,
+    "hits": 136,
+    "kills": 18,
+    "shots": 136
+   },
+   "seraph_ex": {
+    "dmg": 54005.24389144499,
+    "hits": 359,
+    "kills": 6,
+    "shots": 630
+   },
+   "fnl_ex": {
+    "dmg": 50904.08252561431,
+    "hits": 581,
+    "kills": 11,
+    "shots": 652
+   },
+   "dcp_omega": {
+    "dmg": 769762.377198014,
+    "hits": 2600,
+    "kills": 75,
+    "shots": 7
+   },
+   "violet_edge": {
+    "dmg": 69031.35784599361,
+    "hits": 1566,
+    "kills": 22,
+    "shots": 1760
+   },
+   "lilac_stinger": {
+    "dmg": 74850.5914640304,
+    "hits": 4128,
+    "kills": 58,
+    "shots": 6452
+   },
+   "purple_rain": {
+    "dmg": 2986.448065235651,
+    "hits": 135,
+    "kills": 2,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 10,
+   "lost": 26,
+   "rebuilt": 24,
+   "intercepts": 83
+  },
+  "paradox": {
+   "hits": 1757,
+   "displaced": 1547,
+   "absorbed": 28344,
+   "overloads": 0
+  },
+  "dcpShots": 5,
+  "blackouts": 8,
+  "wells": 3,
+  "shifts": 5,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 1094,
+  "regen": 0
+ },
+ {
+  "trial": "mixed200",
+  "name": "연합 혼성 결전함대 200척",
+  "seed": 2,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 139.5,
+  "half": 91,
+  "destroyed": 200,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   6,
+   5,
+   8,
+   24,
+   20
+  ],
+  "msPerTick": 2.97,
+  "maxStepMs": 10.7,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 48110.07963015698,
+    "hits": 320,
+    "kills": 19,
+    "shots": 650
+   },
+   "abyss_lance": {
+    "dmg": 85796.00467854226,
+    "hits": 139,
+    "kills": 14,
+    "shots": 141
+   },
+   "fnl_ex": {
+    "dmg": 51947.64629763496,
+    "hits": 590,
+    "kills": 16,
+    "shots": 632
+   },
+   "dcp_omega": {
+    "dmg": 726954.6643606349,
+    "hits": 2372,
+    "kills": 67,
+    "shots": 7
+   },
+   "violet_edge": {
+    "dmg": 74210.7062210072,
+    "hits": 1663,
+    "kills": 20,
+    "shots": 1836
+   },
+   "lilac_stinger": {
+    "dmg": 82055.22490526445,
+    "hits": 4510,
+    "kills": 56,
+    "shots": 6586
+   },
+   "purple_rain": {
+    "dmg": 4527.296173406389,
+    "hits": 204,
+    "kills": 3,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 27,
+   "rebuilt": 27,
+   "intercepts": 105
+  },
+  "paradox": {
+   "hits": 2142,
+   "displaced": 1869,
+   "absorbed": 24200,
+   "overloads": 0
+  },
+  "dcpShots": 5,
+  "blackouts": 9,
+  "wells": 3,
+  "shifts": 5,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 1082,
+  "regen": 0
+ },
+ {
+  "trial": "mixed200",
+  "name": "연합 혼성 결전함대 200척",
+  "seed": 3,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 136.5,
+  "half": 89,
+  "destroyed": 199,
+  "escaped": 1,
+  "minHp": 0.997,
+  "dcpKillsPerShot": [
+   15,
+   16,
+   11,
+   27,
+   6
+  ],
+  "msPerTick": 2.686,
+  "maxStepMs": 13,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 49948.36149679846,
+    "hits": 330,
+    "kills": 13,
+    "shots": 642
+   },
+   "abyss_lance": {
+    "dmg": 87723.48524012603,
+    "hits": 141,
+    "kills": 15,
+    "shots": 138
+   },
+   "fnl_ex": {
+    "dmg": 49455.69998195861,
+    "hits": 563,
+    "kills": 15,
+    "shots": 630
+   },
+   "dcp_omega": {
+    "dmg": 741745.3585790694,
+    "hits": 2372,
+    "kills": 80,
+    "shots": 7
+   },
+   "violet_edge": {
+    "dmg": 73163.45681052789,
+    "hits": 1640,
+    "kills": 16,
+    "shots": 1803
+   },
+   "lilac_stinger": {
+    "dmg": 76077.74929991359,
+    "hits": 4143,
+    "kills": 59,
+    "shots": 6391
+   },
+   "purple_rain": {
+    "dmg": 1282.9391402493227,
+    "hits": 58,
+    "kills": 1,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 8,
+   "lost": 27,
+   "rebuilt": 23,
+   "intercepts": 115
+  },
+  "paradox": {
+   "hits": 1722,
+   "displaced": 1517,
+   "absorbed": 20864,
+   "overloads": 0
+  },
+  "dcpShots": 5,
+  "blackouts": 9,
+  "wells": 3,
+  "shifts": 5,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 855,
+  "regen": 184
+ },
+ {
+  "trial": "missile",
+  "name": "대규모 미사일 포화 (130척)",
+  "seed": 1,
+  "ships": 130,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 93,
+  "half": 65,
+  "destroyed": 130,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   7,
+   11,
+   9,
+   24
+  ],
+  "msPerTick": 1.685,
+  "maxStepMs": 10,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 43705.05163675058,
+    "hits": 289,
+    "kills": 9,
+    "shots": 425
+   },
+   "abyss_lance": {
+    "dmg": 47696.54860166926,
+    "hits": 77,
+    "kills": 11,
+    "shots": 88
+   },
+   "fnl_ex": {
+    "dmg": 24084.036488898455,
+    "hits": 275,
+    "kills": 15,
+    "shots": 297
+   },
+   "dcp_omega": {
+    "dmg": 291946.06004045403,
+    "hits": 908,
+    "kills": 51,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 38751.85333045769,
+    "hits": 844,
+    "kills": 11,
+    "shots": 1106
+   },
+   "lilac_stinger": {
+    "dmg": 48499.983322216416,
+    "hits": 2648,
+    "kills": 33,
+    "shots": 3972
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 8,
+   "rebuilt": 8,
+   "intercepts": 336
+  },
+  "paradox": {
+   "hits": 517,
+   "displaced": 412,
+   "absorbed": 12105,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 3,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 1038,
+  "regen": 0
+ },
+ {
+  "trial": "missile",
+  "name": "대규모 미사일 포화 (130척)",
+  "seed": 2,
+  "ships": 130,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 95.5,
+  "half": 65,
+  "destroyed": 130,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   7,
+   10,
+   17,
+   24
+  ],
+  "msPerTick": 1.638,
+  "maxStepMs": 9.1,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 40293.05313977762,
+    "hits": 268,
+    "kills": 14,
+    "shots": 449
+   },
+   "abyss_lance": {
+    "dmg": 49822.42185973888,
+    "hits": 79,
+    "kills": 18,
+    "shots": 91
+   },
+   "fnl_ex": {
+    "dmg": 25063.50970498843,
+    "hits": 284,
+    "kills": 6,
+    "shots": 298
+   },
+   "dcp_omega": {
+    "dmg": 310808.55443535734,
+    "hits": 900,
+    "kills": 58,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 39820.40626666218,
+    "hits": 865,
+    "kills": 11,
+    "shots": 1129
+   },
+   "lilac_stinger": {
+    "dmg": 48953.358528433666,
+    "hits": 2704,
+    "kills": 23,
+    "shots": 4161
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 6,
+   "rebuilt": 6,
+   "intercepts": 356
+  },
+  "paradox": {
+   "hits": 428,
+   "displaced": 314,
+   "absorbed": 13680,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 2,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 1006,
+  "regen": 0
+ },
+ {
+  "trial": "missile",
+  "name": "대규모 미사일 포화 (130척)",
+  "seed": 3,
+  "ships": 130,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 93,
+  "half": 66,
+  "destroyed": 130,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   4,
+   11,
+   15,
+   33
+  ],
+  "msPerTick": 1.933,
+  "maxStepMs": 7.5,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 45733.398947686655,
+    "hits": 304,
+    "kills": 16,
+    "shots": 428
+   },
+   "abyss_lance": {
+    "dmg": 45991.86527906265,
+    "hits": 75,
+    "kills": 13,
+    "shots": 90
+   },
+   "fnl_ex": {
+    "dmg": 25023.240220120915,
+    "hits": 284,
+    "kills": 6,
+    "shots": 300
+   },
+   "dcp_omega": {
+    "dmg": 300674.1724484981,
+    "hits": 944,
+    "kills": 63,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 39982.4599543783,
+    "hits": 870,
+    "kills": 10,
+    "shots": 1093
+   },
+   "lilac_stinger": {
+    "dmg": 48796.345879206194,
+    "hits": 2674,
+    "kills": 22,
+    "shots": 3973
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 4,
+   "rebuilt": 4,
+   "intercepts": 378
+  },
+  "paradox": {
+   "hits": 465,
+   "displaced": 353,
+   "absorbed": 12810,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 3,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 1026,
+  "regen": 0
+ },
+ {
+  "trial": "swarm",
+  "name": "고속 소형함 160척",
+  "seed": 1,
+  "ships": 160,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 76.5,
+  "half": 42,
+  "destroyed": 160,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   20,
+   9,
+   4
+  ],
+  "msPerTick": 1.502,
+  "maxStepMs": 10.1,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "abyss_lance": {
+    "dmg": 15372.303917902056,
+    "hits": 25,
+    "kills": 12,
+    "shots": 63
+   },
+   "seraph_ex": {
+    "dmg": 30850.103643983603,
+    "hits": 205,
+    "kills": 21,
+    "shots": 306
+   },
+   "fnl_ex": {
+    "dmg": 44045.83059572706,
+    "hits": 501,
+    "kills": 25,
+    "shots": 640
+   },
+   "dcp_omega": {
+    "dmg": 52318.13022985298,
+    "hits": 116,
+    "kills": 33,
+    "shots": 3
+   },
+   "violet_edge": {
+    "dmg": 12313.410486739027,
+    "hits": 269,
+    "kills": 16,
+    "shots": 789
+   },
+   "lilac_stinger": {
+    "dmg": 31552.582669433206,
+    "hits": 1576,
+    "kills": 43,
+    "shots": 2794
+   },
+   "purple_rain": {
+    "dmg": 18024.61669295108,
+    "hits": 821,
+    "kills": 10,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 11,
+   "lost": 1,
+   "rebuilt": 0,
+   "intercepts": 2
+  },
+  "paradox": {
+   "hits": 2240,
+   "displaced": 1751,
+   "absorbed": 5868,
+   "overloads": 0
+  },
+  "dcpShots": 3,
+  "blackouts": 5,
+  "wells": 2,
+  "shifts": 3,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 0,
+  "regen": 0
+ },
+ {
+  "trial": "swarm",
+  "name": "고속 소형함 160척",
+  "seed": 2,
+  "ships": 160,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 72,
+  "half": 40,
+  "destroyed": 160,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   13,
+   16,
+   1
+  ],
+  "msPerTick": 1.302,
+  "maxStepMs": 4.3,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 29508.358154471498,
+    "hits": 195,
+    "kills": 19,
+    "shots": 299
+   },
+   "abyss_lance": {
+    "dmg": 15903.324653555639,
+    "hits": 25,
+    "kills": 12,
+    "shots": 58
+   },
+   "fnl_ex": {
+    "dmg": 39729.46715155784,
+    "hits": 449,
+    "kills": 27,
+    "shots": 569
+   },
+   "dcp_omega": {
+    "dmg": 50545.790080963634,
+    "hits": 118,
+    "kills": 30,
+    "shots": 3
+   },
+   "violet_edge": {
+    "dmg": 16418.08183940249,
+    "hits": 356,
+    "kills": 17,
+    "shots": 762
+   },
+   "lilac_stinger": {
+    "dmg": 31874.727880852763,
+    "hits": 1590,
+    "kills": 44,
+    "shots": 2683
+   },
+   "purple_rain": {
+    "dmg": 19069.25152843367,
+    "hits": 868,
+    "kills": 11,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 0,
+   "rebuilt": 0,
+   "intercepts": 1
+  },
+  "paradox": {
+   "hits": 2591,
+   "displaced": 2013,
+   "absorbed": 6936,
+   "overloads": 0
+  },
+  "dcpShots": 3,
+  "blackouts": 5,
+  "wells": 2,
+  "shifts": 2,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 0,
+  "regen": 0
+ },
+ {
+  "trial": "swarm",
+  "name": "고속 소형함 160척",
+  "seed": 3,
+  "ships": 160,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 67,
+  "half": 41,
+  "destroyed": 160,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   19,
+   13,
+   25
+  ],
+  "msPerTick": 1.471,
+  "maxStepMs": 6,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 27251.300293074455,
+    "hits": 181,
+    "kills": 18,
+    "shots": 252
+   },
+   "abyss_lance": {
+    "dmg": 15908.803746616002,
+    "hits": 26,
+    "kills": 12,
+    "shots": 59
+   },
+   "fnl_ex": {
+    "dmg": 31856.21743082625,
+    "hits": 362,
+    "kills": 26,
+    "shots": 496
+   },
+   "dcp_omega": {
+    "dmg": 85316.18882406096,
+    "hits": 147,
+    "kills": 57,
+    "shots": 3
+   },
+   "violet_edge": {
+    "dmg": 11395.728587642318,
+    "hits": 246,
+    "kills": 18,
+    "shots": 700
+   },
+   "lilac_stinger": {
+    "dmg": 27281.880819624756,
+    "hits": 1354,
+    "kills": 25,
+    "shots": 2550
+   },
+   "purple_rain": {
+    "dmg": 11900.39383718138,
+    "hits": 543,
+    "kills": 4,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 0,
+   "rebuilt": 0,
+   "intercepts": 1
+  },
+  "paradox": {
+   "hits": 2152,
+   "displaced": 1632,
+   "absorbed": 6240,
+   "overloads": 0
+  },
+  "dcpShots": 3,
+  "blackouts": 4,
+  "wells": 2,
+  "shifts": 2,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 0,
+  "regen": 0
+ },
+ {
+  "trial": "aa",
+  "name": "강화 방공망 (120척)",
+  "seed": 1,
+  "ships": 120,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 97,
+  "half": 83,
+  "destroyed": 120,
+  "escaped": 0,
+  "minHp": 0.994,
+  "dcpKillsPerShot": [
+   11,
+   7,
+   4,
+   48
+  ],
+  "msPerTick": 1.41,
+  "maxStepMs": 6.2,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "abyss_lance": {
+    "dmg": 55558.06019400805,
+    "hits": 90,
+    "kills": 4,
+    "shots": 95
+   },
+   "seraph_ex": {
+    "dmg": 43646.00449946243,
+    "hits": 290,
+    "kills": 4,
+    "shots": 450
+   },
+   "fnl_ex": {
+    "dmg": 29659.133836323388,
+    "hits": 337,
+    "kills": 6,
+    "shots": 357
+   },
+   "dcp_omega": {
+    "dmg": 348057.76755088824,
+    "hits": 1264,
+    "kills": 71,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 47426.90178600932,
+    "hits": 1069,
+    "kills": 6,
+    "shots": 1137
+   },
+   "lilac_stinger": {
+    "dmg": 58314.20959218782,
+    "hits": 3154,
+    "kills": 29,
+    "shots": 4433
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 27,
+   "rebuilt": 27,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 861,
+   "displaced": 784,
+   "absorbed": 11368,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 2,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 937,
+  "regen": 536
+ },
+ {
+  "trial": "aa",
+  "name": "강화 방공망 (120척)",
+  "seed": 2,
+  "ships": 120,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 101.5,
+  "half": 82,
+  "destroyed": 120,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   13,
+   0,
+   1,
+   39
+  ],
+  "msPerTick": 1.433,
+  "maxStepMs": 7,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 37833.603500097524,
+    "hits": 254,
+    "kills": 8,
+    "shots": 472
+   },
+   "abyss_lance": {
+    "dmg": 54464.54231430683,
+    "hits": 88,
+    "kills": 8,
+    "shots": 99
+   },
+   "fnl_ex": {
+    "dmg": 37886.085764414434,
+    "hits": 428,
+    "kills": 7,
+    "shots": 454
+   },
+   "dcp_omega": {
+    "dmg": 382799.86572851345,
+    "hits": 1307,
+    "kills": 53,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 49544.260393081786,
+    "hits": 1117,
+    "kills": 7,
+    "shots": 1210
+   },
+   "lilac_stinger": {
+    "dmg": 59376.12386898349,
+    "hits": 3173,
+    "kills": 37,
+    "shots": 4725
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 27,
+   "rebuilt": 27,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 771,
+   "displaced": 715,
+   "absorbed": 8660,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 2,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 834,
+  "regen": 0
+ },
+ {
+  "trial": "aa",
+  "name": "강화 방공망 (120척)",
+  "seed": 3,
+  "ships": 120,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 93.5,
+  "half": 68,
+  "destroyed": 120,
+  "escaped": 0,
+  "minHp": 0.997,
+  "dcpKillsPerShot": [
+   17,
+   3,
+   5,
+   27
+  ],
+  "msPerTick": 1.347,
+  "maxStepMs": 4.6,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 25722.881976775825,
+    "hits": 171,
+    "kills": 3,
+    "shots": 426
+   },
+   "abyss_lance": {
+    "dmg": 55722.836131380405,
+    "hits": 89,
+    "kills": 8,
+    "shots": 90
+   },
+   "fnl_ex": {
+    "dmg": 30768.90926628746,
+    "hits": 350,
+    "kills": 7,
+    "shots": 370
+   },
+   "dcp_omega": {
+    "dmg": 341178.1506021947,
+    "hits": 980,
+    "kills": 52,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 43054.75541648793,
+    "hits": 975,
+    "kills": 9,
+    "shots": 1070
+   },
+   "lilac_stinger": {
+    "dmg": 52291.476669358985,
+    "hits": 2795,
+    "kills": 40,
+    "shots": 4210
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 27,
+   "rebuilt": 27,
+   "intercepts": 0
+  },
+  "paradox": {
+   "hits": 644,
+   "displaced": 594,
+   "absorbed": 11284,
+   "overloads": 0
+  },
+  "dcpShots": 4,
+  "blackouts": 6,
+  "wells": 2,
+  "shifts": 2,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 705,
+  "regen": 184
+ },
+ {
+  "trial": "funnel_loss",
+  "name": "퍼널 손실 (4기, 재구성 불가) vs 200척",
+  "seed": 1,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 200,
+  "half": 122,
+  "destroyed": 199,
+  "escaped": 1,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   3,
+   5,
+   1,
+   15,
+   3,
+   6,
+   1,
+   0,
+   36
+  ],
+  "msPerTick": 2.768,
+  "maxStepMs": 16.2,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "abyss_lance": {
+    "dmg": 137613.38918094384,
+    "hits": 222,
+    "kills": 9,
+    "shots": 209
+   },
+   "seraph_ex": {
+    "dmg": 69685.06299353787,
+    "hits": 464,
+    "kills": 12,
+    "shots": 985
+   },
+   "dcp_omega": {
+    "dmg": 614719.7255133132,
+    "hits": 2213,
+    "kills": 70,
+    "shots": 12
+   },
+   "fnl_ex": {
+    "dmg": 10436.336576761858,
+    "hits": 119,
+    "kills": 0,
+    "shots": 138
+   },
+   "violet_edge": {
+    "dmg": 113900.8884437416,
+    "hits": 2550,
+    "kills": 30,
+    "shots": 2800
+   },
+   "lilac_stinger": {
+    "dmg": 134885.2688030148,
+    "hits": 7713,
+    "kills": 76,
+    "shots": 10376
+   },
+   "purple_rain": {
+    "dmg": 3318.0546231045373,
+    "hits": 151,
+    "kills": 2,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 3,
+   "lost": 1,
+   "rebuilt": 0,
+   "intercepts": 41
+  },
+  "paradox": {
+   "hits": 4028,
+   "displaced": 3472,
+   "absorbed": 50552,
+   "overloads": 0
+  },
+  "dcpShots": 9,
+  "blackouts": 13,
+  "wells": 6,
+  "shifts": 6,
+  "gameOvers": 2,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 2530,
+  "regen": 0
+ },
+ {
+  "trial": "funnel_loss",
+  "name": "퍼널 손실 (4기, 재구성 불가) vs 200척",
+  "seed": 2,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 201.5,
+  "half": 135,
+  "destroyed": 200,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   2,
+   2,
+   0,
+   15,
+   4,
+   6,
+   9,
+   2,
+   32
+  ],
+  "msPerTick": 2.928,
+  "maxStepMs": 10,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 74034.61232226575,
+    "hits": 491,
+    "kills": 8,
+    "shots": 1008
+   },
+   "abyss_lance": {
+    "dmg": 140032.35606068047,
+    "hits": 224,
+    "kills": 17,
+    "shots": 216
+   },
+   "dcp_omega": {
+    "dmg": 598073.1265892235,
+    "hits": 2106,
+    "kills": 72,
+    "shots": 13
+   },
+   "fnl_ex": {
+    "dmg": 10576.47986295522,
+    "hits": 121,
+    "kills": 3,
+    "shots": 139
+   },
+   "violet_edge": {
+    "dmg": 116078.31410956054,
+    "hits": 2602,
+    "kills": 19,
+    "shots": 2892
+   },
+   "lilac_stinger": {
+    "dmg": 128472.84538321728,
+    "hits": 7465,
+    "kills": 80,
+    "shots": 10418
+   },
+   "purple_rain": {
+    "dmg": 4501.794015255198,
+    "hits": 204,
+    "kills": 1,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 3,
+   "lost": 1,
+   "rebuilt": 0,
+   "intercepts": 44
+  },
+  "paradox": {
+   "hits": 3954,
+   "displaced": 3387,
+   "absorbed": 45760,
+   "overloads": 0
+  },
+  "dcpShots": 9,
+  "blackouts": 13,
+  "wells": 6,
+  "shifts": 7,
+  "gameOvers": 2,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 2417,
+  "regen": 0
+ },
+ {
+  "trial": "funnel_loss",
+  "name": "퍼널 손실 (4기, 재구성 불가) vs 200척",
+  "seed": 3,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 200.5,
+  "half": 115,
+  "destroyed": 199,
+  "escaped": 1,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   5,
+   7,
+   0,
+   16,
+   6,
+   2,
+   4,
+   2,
+   15
+  ],
+  "msPerTick": 2.51,
+  "maxStepMs": 10.5,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 63930.848325068364,
+    "hits": 426,
+    "kills": 14,
+    "shots": 984
+   },
+   "abyss_lance": {
+    "dmg": 133336.16683544172,
+    "hits": 215,
+    "kills": 18,
+    "shots": 212
+   },
+   "dcp_omega": {
+    "dmg": 616310.0990827862,
+    "hits": 1996,
+    "kills": 57,
+    "shots": 12
+   },
+   "fnl_ex": {
+    "dmg": 9872.493923628517,
+    "hits": 113,
+    "kills": 2,
+    "shots": 127
+   },
+   "violet_edge": {
+    "dmg": 111994.93721992392,
+    "hits": 2505,
+    "kills": 24,
+    "shots": 2839
+   },
+   "lilac_stinger": {
+    "dmg": 126704.94814492097,
+    "hits": 7127,
+    "kills": 82,
+    "shots": 10245
+   },
+   "purple_rain": {
+    "dmg": 3865.9611582657317,
+    "hits": 176,
+    "kills": 2,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 3,
+   "lost": 1,
+   "rebuilt": 0,
+   "intercepts": 27
+  },
+  "paradox": {
+   "hits": 3713,
+   "displaced": 3250,
+   "absorbed": 40312,
+   "overloads": 0
+  },
+  "dcpShots": 9,
+  "blackouts": 13,
+  "wells": 6,
+  "shifts": 8,
+  "gameOvers": 2,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 1866,
+  "regen": 0
+ },
+ {
+  "trial": "no_dcp",
+  "name": "주포 비활성화 vs 200척",
+  "seed": 1,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 327.5,
+  "half": 211,
+  "destroyed": 181,
+  "escaped": 0,
+  "minHp": 0.852,
+  "dcpKillsPerShot": [],
+  "msPerTick": 2.732,
+  "maxStepMs": 11.7,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "abyss_lance": {
+    "dmg": 222966.85771544185,
+    "hits": 362,
+    "kills": 16,
+    "shots": 335
+   },
+   "seraph_ex": {
+    "dmg": 115647.78233074816,
+    "hits": 771,
+    "kills": 10,
+    "shots": 1572
+   },
+   "fnl_ex": {
+    "dmg": 149460.9397653158,
+    "hits": 1701,
+    "kills": 24,
+    "shots": 1813
+   },
+   "violet_edge": {
+    "dmg": 193852.23732957136,
+    "hits": 4278,
+    "kills": 39,
+    "shots": 4619
+   },
+   "lilac_stinger": {
+    "dmg": 230891.23146445572,
+    "hits": 14017,
+    "kills": 86,
+    "shots": 17562
+   },
+   "purple_rain": {
+    "dmg": 6208.607803402374,
+    "hits": 283,
+    "kills": 6,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 9,
+   "lost": 89,
+   "rebuilt": 86,
+   "intercepts": 106
+  },
+  "paradox": {
+   "hits": 9018,
+   "displaced": 7400,
+   "absorbed": 122172,
+   "overloads": 4
+  },
+  "dcpShots": 0,
+  "blackouts": 22,
+  "wells": 15,
+  "shifts": 12,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 5,
+  "rewrites": 5464,
+  "regen": 26048
+ },
+ {
+  "trial": "no_dcp",
+  "name": "주포 비활성화 vs 200척",
+  "seed": 2,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 278.5,
+  "half": 183,
+  "destroyed": 183,
+  "escaped": 0,
+  "minHp": 1,
+  "dcpKillsPerShot": [],
+  "msPerTick": 2.87,
+  "maxStepMs": 18.3,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 70954.76794398506,
+    "hits": 475,
+    "kills": 6,
+    "shots": 1334
+   },
+   "abyss_lance": {
+    "dmg": 210215.05616741488,
+    "hits": 339,
+    "kills": 22,
+    "shots": 290
+   },
+   "fnl_ex": {
+    "dmg": 128108.66893300612,
+    "hits": 1455,
+    "kills": 24,
+    "shots": 1550
+   },
+   "violet_edge": {
+    "dmg": 167653.71824560664,
+    "hits": 3712,
+    "kills": 31,
+    "shots": 3956
+   },
+   "lilac_stinger": {
+    "dmg": 193850.11624856846,
+    "hits": 11545,
+    "kills": 96,
+    "shots": 14637
+   },
+   "purple_rain": {
+    "dmg": 3972.5760371973283,
+    "hits": 180,
+    "kills": 4,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 9,
+   "lost": 79,
+   "rebuilt": 76,
+   "intercepts": 110
+  },
+  "paradox": {
+   "hits": 6382,
+   "displaced": 5452,
+   "absorbed": 89396,
+   "overloads": 0
+  },
+  "dcpShots": 0,
+  "blackouts": 18,
+  "wells": 13,
+  "shifts": 10,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 3939,
+  "regen": 0
+ },
+ {
+  "trial": "no_dcp",
+  "name": "주포 비활성화 vs 200척",
+  "seed": 3,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 316.5,
+  "half": 223,
+  "destroyed": 191,
+  "escaped": 0,
+  "minHp": 0.983,
+  "dcpKillsPerShot": [],
+  "msPerTick": 2.846,
+  "maxStepMs": 9.7,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 94361.13155794912,
+    "hits": 630,
+    "kills": 8,
+    "shots": 1535
+   },
+   "abyss_lance": {
+    "dmg": 232209.44548281515,
+    "hits": 373,
+    "kills": 18,
+    "shots": 325
+   },
+   "fnl_ex": {
+    "dmg": 138950.0812695651,
+    "hits": 1586,
+    "kills": 22,
+    "shots": 1697
+   },
+   "violet_edge": {
+    "dmg": 191670.3963585753,
+    "hits": 4236,
+    "kills": 41,
+    "shots": 4536
+   },
+   "lilac_stinger": {
+    "dmg": 226638.98691292532,
+    "hits": 13765,
+    "kills": 102,
+    "shots": 17085
+   },
+   "purple_rain": {
+    "dmg": 3133.3596947623405,
+    "hits": 144,
+    "kills": 0,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 9,
+   "lost": 89,
+   "rebuilt": 86,
+   "intercepts": 135
+  },
+  "paradox": {
+   "hits": 8823,
+   "displaced": 7380,
+   "absorbed": 116060,
+   "overloads": 1
+  },
+  "dcpShots": 0,
+  "blackouts": 21,
+  "wells": 15,
+  "shifts": 10,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 5161,
+  "regen": 2150
+ },
+ {
+  "trial": "overload",
+  "name": "PARADOX 과부하 상태로 진입 vs 200척",
+  "seed": 1,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 125.5,
+  "half": 85,
+  "destroyed": 179,
+  "escaped": 21,
+  "minHp": 0.981,
+  "dcpKillsPerShot": [
+   10,
+   15,
+   18,
+   20,
+   11,
+   3
+  ],
+  "msPerTick": 2.704,
+  "maxStepMs": 13.5,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 37713.67310830392,
+    "hits": 249,
+    "kills": 9,
+    "shots": 612
+   },
+   "abyss_lance": {
+    "dmg": 74347.95837036194,
+    "hits": 119,
+    "kills": 17,
+    "shots": 124
+   },
+   "dcp_omega": {
+    "dmg": 740370.6067274321,
+    "hits": 2681,
+    "kills": 77,
+    "shots": 9
+   },
+   "fnl_ex": {
+    "dmg": 37256.64647643045,
+    "hits": 419,
+    "kills": 7,
+    "shots": 465
+   },
+   "violet_edge": {
+    "dmg": 62345.24304537291,
+    "hits": 1374,
+    "kills": 16,
+    "shots": 1601
+   },
+   "lilac_stinger": {
+    "dmg": 68180.48941447385,
+    "hits": 3865,
+    "kills": 50,
+    "shots": 5707
+   },
+   "purple_rain": {
+    "dmg": 5181.6653999983355,
+    "hits": 236,
+    "kills": 3,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 24,
+   "rebuilt": 24,
+   "intercepts": 137
+  },
+  "paradox": {
+   "hits": 2457,
+   "displaced": 2024,
+   "absorbed": 34352,
+   "overloads": 1
+  },
+  "dcpShots": 6,
+  "blackouts": 8,
+  "wells": 4,
+  "shifts": 4,
+  "gameOvers": 2,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 1196,
+  "regen": 1890
+ },
+ {
+  "trial": "overload",
+  "name": "PARADOX 과부하 상태로 진입 vs 200척",
+  "seed": 2,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 126.5,
+  "half": 89,
+  "destroyed": 197,
+  "escaped": 3,
+  "minHp": 0.972,
+  "dcpKillsPerShot": [
+   10,
+   2,
+   25,
+   19,
+   12,
+   39
+  ],
+  "msPerTick": 2.88,
+  "maxStepMs": 8.6,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 43872.29183247895,
+    "hits": 293,
+    "kills": 6,
+    "shots": 623
+   },
+   "abyss_lance": {
+    "dmg": 75044.02062552096,
+    "hits": 121,
+    "kills": 16,
+    "shots": 125
+   },
+   "dcp_omega": {
+    "dmg": 818913.7088483857,
+    "hits": 3040,
+    "kills": 107,
+    "shots": 10
+   },
+   "violet_edge": {
+    "dmg": 62532.1394053363,
+    "hits": 1402,
+    "kills": 18,
+    "shots": 1643
+   },
+   "lilac_stinger": {
+    "dmg": 71695.73511588646,
+    "hits": 4358,
+    "kills": 41,
+    "shots": 5924
+   },
+   "fnl_ex": {
+    "dmg": 42424.27618280143,
+    "hits": 481,
+    "kills": 6,
+    "shots": 524
+   },
+   "purple_rain": {
+    "dmg": 4620.963491480192,
+    "hits": 209,
+    "kills": 2,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 26,
+   "rebuilt": 26,
+   "intercepts": 141
+  },
+  "paradox": {
+   "hits": 2677,
+   "displaced": 2239,
+   "absorbed": 46596,
+   "overloads": 1
+  },
+  "dcpShots": 6,
+  "blackouts": 8,
+  "wells": 4,
+  "shifts": 6,
+  "gameOvers": 2,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 1709,
+  "regen": 2624
+ },
+ {
+  "trial": "overload",
+  "name": "PARADOX 과부하 상태로 진입 vs 200척",
+  "seed": 3,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 126,
+  "half": 80,
+  "destroyed": 171,
+  "escaped": 29,
+  "minHp": 0.967,
+  "dcpKillsPerShot": [
+   17,
+   13,
+   13,
+   25,
+   2
+  ],
+  "msPerTick": 2.507,
+  "maxStepMs": 10.4,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 39252.773415853735,
+    "hits": 263,
+    "kills": 8,
+    "shots": 594
+   },
+   "abyss_lance": {
+    "dmg": 76089.60025438806,
+    "hits": 122,
+    "kills": 20,
+    "shots": 117
+   },
+   "dcp_omega": {
+    "dmg": 754894.9054390731,
+    "hits": 2704,
+    "kills": 70,
+    "shots": 7
+   },
+   "fnl_ex": {
+    "dmg": 44774.230407553005,
+    "hits": 506,
+    "kills": 10,
+    "shots": 557
+   },
+   "violet_edge": {
+    "dmg": 60307.13086295821,
+    "hits": 1332,
+    "kills": 18,
+    "shots": 1511
+   },
+   "lilac_stinger": {
+    "dmg": 62727.29820225246,
+    "hits": 3798,
+    "kills": 41,
+    "shots": 5471
+   },
+   "purple_rain": {
+    "dmg": 4475.162865340104,
+    "hits": 204,
+    "kills": 4,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 11,
+   "lost": 24,
+   "rebuilt": 23,
+   "intercepts": 145
+  },
+  "paradox": {
+   "hits": 2696,
+   "displaced": 2184,
+   "absorbed": 32266,
+   "overloads": 1
+  },
+  "dcpShots": 5,
+  "blackouts": 8,
+  "wells": 4,
+  "shifts": 4,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 2,
+  "rewrites": 1413,
+  "regen": 4307
+ },
+ {
+  "trial": "game_over",
+  "name": "결전 프로토콜 즉시 발동 vs 200척",
+  "seed": 1,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 125.5,
+  "half": 85,
+  "destroyed": 179,
+  "escaped": 21,
+  "minHp": 0.981,
+  "dcpKillsPerShot": [
+   10,
+   15,
+   18,
+   20,
+   11,
+   3
+  ],
+  "msPerTick": 2.541,
+  "maxStepMs": 12.1,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 37713.67310830392,
+    "hits": 249,
+    "kills": 9,
+    "shots": 612
+   },
+   "abyss_lance": {
+    "dmg": 74347.95837036194,
+    "hits": 119,
+    "kills": 17,
+    "shots": 124
+   },
+   "dcp_omega": {
+    "dmg": 740370.6067274321,
+    "hits": 2681,
+    "kills": 77,
+    "shots": 9
+   },
+   "fnl_ex": {
+    "dmg": 37256.64647643045,
+    "hits": 419,
+    "kills": 7,
+    "shots": 465
+   },
+   "violet_edge": {
+    "dmg": 62345.24304537291,
+    "hits": 1374,
+    "kills": 16,
+    "shots": 1601
+   },
+   "lilac_stinger": {
+    "dmg": 68180.48941447385,
+    "hits": 3865,
+    "kills": 50,
+    "shots": 5707
+   },
+   "purple_rain": {
+    "dmg": 5181.6653999983355,
+    "hits": 236,
+    "kills": 3,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 24,
+   "rebuilt": 24,
+   "intercepts": 137
+  },
+  "paradox": {
+   "hits": 2457,
+   "displaced": 2024,
+   "absorbed": 34352,
+   "overloads": 1
+  },
+  "dcpShots": 6,
+  "blackouts": 8,
+  "wells": 4,
+  "shifts": 4,
+  "gameOvers": 2,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 1196,
+  "regen": 1890
+ },
+ {
+  "trial": "game_over",
+  "name": "결전 프로토콜 즉시 발동 vs 200척",
+  "seed": 2,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 126.5,
+  "half": 89,
+  "destroyed": 197,
+  "escaped": 3,
+  "minHp": 0.972,
+  "dcpKillsPerShot": [
+   10,
+   2,
+   25,
+   19,
+   12,
+   39
+  ],
+  "msPerTick": 2.85,
+  "maxStepMs": 7.7,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 43872.29183247895,
+    "hits": 293,
+    "kills": 6,
+    "shots": 623
+   },
+   "abyss_lance": {
+    "dmg": 75044.02062552096,
+    "hits": 121,
+    "kills": 16,
+    "shots": 125
+   },
+   "dcp_omega": {
+    "dmg": 818913.7088483857,
+    "hits": 3040,
+    "kills": 107,
+    "shots": 10
+   },
+   "violet_edge": {
+    "dmg": 62532.1394053363,
+    "hits": 1402,
+    "kills": 18,
+    "shots": 1643
+   },
+   "lilac_stinger": {
+    "dmg": 71695.73511588646,
+    "hits": 4358,
+    "kills": 41,
+    "shots": 5924
+   },
+   "fnl_ex": {
+    "dmg": 42424.27618280143,
+    "hits": 481,
+    "kills": 6,
+    "shots": 524
+   },
+   "purple_rain": {
+    "dmg": 4620.963491480192,
+    "hits": 209,
+    "kills": 2,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 26,
+   "rebuilt": 26,
+   "intercepts": 141
+  },
+  "paradox": {
+   "hits": 2677,
+   "displaced": 2239,
+   "absorbed": 46596,
+   "overloads": 1
+  },
+  "dcpShots": 6,
+  "blackouts": 8,
+  "wells": 4,
+  "shifts": 6,
+  "gameOvers": 2,
+  "vetoes": 0,
+  "denies": 1,
+  "rewrites": 1709,
+  "regen": 2624
+ },
+ {
+  "trial": "game_over",
+  "name": "결전 프로토콜 즉시 발동 vs 200척",
+  "seed": 3,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 126,
+  "half": 80,
+  "destroyed": 171,
+  "escaped": 29,
+  "minHp": 0.967,
+  "dcpKillsPerShot": [
+   17,
+   13,
+   13,
+   25,
+   2
+  ],
+  "msPerTick": 2.58,
+  "maxStepMs": 9.6,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 39252.773415853735,
+    "hits": 263,
+    "kills": 8,
+    "shots": 594
+   },
+   "abyss_lance": {
+    "dmg": 76089.60025438806,
+    "hits": 122,
+    "kills": 20,
+    "shots": 117
+   },
+   "dcp_omega": {
+    "dmg": 754894.9054390731,
+    "hits": 2704,
+    "kills": 70,
+    "shots": 7
+   },
+   "fnl_ex": {
+    "dmg": 44774.230407553005,
+    "hits": 506,
+    "kills": 10,
+    "shots": 557
+   },
+   "violet_edge": {
+    "dmg": 60307.13086295821,
+    "hits": 1332,
+    "kills": 18,
+    "shots": 1511
+   },
+   "lilac_stinger": {
+    "dmg": 62727.29820225246,
+    "hits": 3798,
+    "kills": 41,
+    "shots": 5471
+   },
+   "purple_rain": {
+    "dmg": 4475.162865340104,
+    "hits": 204,
+    "kills": 4,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 11,
+   "lost": 24,
+   "rebuilt": 23,
+   "intercepts": 145
+  },
+  "paradox": {
+   "hits": 2696,
+   "displaced": 2184,
+   "absorbed": 32266,
+   "overloads": 1
+  },
+  "dcpShots": 5,
+  "blackouts": 8,
+  "wells": 4,
+  "shifts": 4,
+  "gameOvers": 1,
+  "vetoes": 0,
+  "denies": 2,
+  "rewrites": 1413,
+  "regen": 4307
+ },
+ {
+  "trial": "no_bb",
+  "name": "BB 미탑승 vs 200척",
+  "seed": 1,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 169,
+  "half": 105,
+  "destroyed": 189,
+  "escaped": 11,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   14,
+   6,
+   7,
+   39,
+   10,
+   1
+  ],
+  "msPerTick": 2.486,
+  "maxStepMs": 10.1,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "abyss_lance": {
+    "dmg": 120127.46882691095,
+    "hits": 194,
+    "kills": 9,
+    "shots": 170
+   },
+   "seraph_ex": {
+    "dmg": 62560.422161294846,
+    "hits": 418,
+    "kills": 10,
+    "shots": 792
+   },
+   "fnl_ex": {
+    "dmg": 53954.4802048542,
+    "hits": 614,
+    "kills": 20,
+    "shots": 657
+   },
+   "dcp_omega": {
+    "dmg": 604950.4921158915,
+    "hits": 862,
+    "kills": 77,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 85330.24530723583,
+    "hits": 2008,
+    "kills": 7,
+    "shots": 2268
+   },
+   "lilac_stinger": {
+    "dmg": 104466.9547804779,
+    "hits": 6523,
+    "kills": 62,
+    "shots": 8262
+   },
+   "purple_rain": {
+    "dmg": 3232.0052433701703,
+    "hits": 146,
+    "kills": 4,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 44,
+   "rebuilt": 44,
+   "intercepts": 137
+  },
+  "paradox": {
+   "hits": 2472,
+   "displaced": 2131,
+   "absorbed": 33508,
+   "overloads": 0
+  },
+  "dcpShots": 6,
+  "blackouts": 11,
+  "wells": 5,
+  "shifts": 8,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 0,
+  "regen": 0
+ },
+ {
+  "trial": "no_bb",
+  "name": "BB 미탑승 vs 200척",
+  "seed": 2,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 166,
+  "half": 91,
+  "destroyed": 195,
+  "escaped": 5,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   10,
+   15,
+   22,
+   33,
+   12,
+   3
+  ],
+  "msPerTick": 2.399,
+  "maxStepMs": 8.9,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 66063.58470547828,
+    "hits": 437,
+    "kills": 10,
+    "shots": 769
+   },
+   "abyss_lance": {
+    "dmg": 105568.47808392486,
+    "hits": 169,
+    "kills": 15,
+    "shots": 165
+   },
+   "fnl_ex": {
+    "dmg": 53304.16520491781,
+    "hits": 608,
+    "kills": 14,
+    "shots": 671
+   },
+   "dcp_omega": {
+    "dmg": 707268.2208228658,
+    "hits": 933,
+    "kills": 95,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 85601.51019968264,
+    "hits": 1988,
+    "kills": 14,
+    "shots": 2187
+   },
+   "lilac_stinger": {
+    "dmg": 81129.86641351071,
+    "hits": 6482,
+    "kills": 44,
+    "shots": 8010
+   },
+   "purple_rain": {
+    "dmg": 4817.557821671056,
+    "hits": 218,
+    "kills": 3,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 8,
+   "lost": 40,
+   "rebuilt": 36,
+   "intercepts": 125
+  },
+  "paradox": {
+   "hits": 2389,
+   "displaced": 2065,
+   "absorbed": 26756,
+   "overloads": 0
+  },
+  "dcpShots": 6,
+  "blackouts": 11,
+  "wells": 5,
+  "shifts": 7,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 0,
+  "regen": 0
+ },
+ {
+  "trial": "no_bb",
+  "name": "BB 미탑승 vs 200척",
+  "seed": 3,
+  "ships": 200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "time": 170.5,
+  "half": 92,
+  "destroyed": 199,
+  "escaped": 1,
+  "minHp": 1,
+  "dcpKillsPerShot": [
+   10,
+   14,
+   19,
+   9,
+   21,
+   4
+  ],
+  "msPerTick": 2.444,
+  "maxStepMs": 8.9,
+  "hp": 1,
+  "state": "alive",
+  "weapons": {
+   "seraph_ex": {
+    "dmg": 67281.66194787249,
+    "hits": 450,
+    "kills": 11,
+    "shots": 776
+   },
+   "abyss_lance": {
+    "dmg": 111227.9239811129,
+    "hits": 177,
+    "kills": 14,
+    "shots": 168
+   },
+   "fnl_ex": {
+    "dmg": 55491.768578098476,
+    "hits": 632,
+    "kills": 22,
+    "shots": 680
+   },
+   "dcp_omega": {
+    "dmg": 618140.6086640875,
+    "hits": 806,
+    "kills": 77,
+    "shots": 6
+   },
+   "violet_edge": {
+    "dmg": 87808.42038726449,
+    "hits": 2069,
+    "kills": 12,
+    "shots": 2265
+   },
+   "lilac_stinger": {
+    "dmg": 82583.05603394209,
+    "hits": 6730,
+    "kills": 54,
+    "shots": 8399
+   },
+   "purple_rain": {
+    "dmg": 7055.6683314306165,
+    "hits": 320,
+    "kills": 8,
+    "shots": 0
+   }
+  },
+  "funnels": {
+   "alive": 12,
+   "lost": 41,
+   "rebuilt": 41,
+   "intercepts": 107
+  },
+  "paradox": {
+   "hits": 2361,
+   "displaced": 1990,
+   "absorbed": 38600,
+   "overloads": 0
+  },
+  "dcpShots": 6,
+  "blackouts": 11,
+  "wells": 5,
+  "shifts": 7,
+  "gameOvers": 0,
+  "vetoes": 0,
+  "denies": 0,
+  "rewrites": 0,
+  "regen": 0
+ }
+]

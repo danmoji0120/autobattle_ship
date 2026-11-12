@@ -70,7 +70,7 @@ export interface ExState {
   blackout: { next: number; n: number };
   well: { next: number; pos: Vec3; until: number; n: number };
   shift: { next: number; n: number };
-  causal: { on: boolean; vetoes: number; next: number; used: number; rewrites: number };
+  causal: { on: boolean; vetoes: number; next: number; used: number; rewrites: number; denyNext: number; denies: number };
   over: { next: number; until: number; n: number };
   /** heading of the standing orbit around the enemy mass */
   orbit: number;
@@ -107,7 +107,10 @@ export type ExEvent =
   | { t: 'exBlackout'; ship: number; pos: P; radius: number; jammed: number }
   | { t: 'exWell'; ship: number; pos: P; radius: number; dur: number }
   | { t: 'exShift'; ship: number; from: P; to: P }
-  | { t: 'exCausal'; ship: number; what: 'veto' | 'rewrite'; pos: P }
+  /** causality interference: 'veto' = the destruction of BB-EX is rejected, 'deny' = a hit that had landed
+   *  on the hull is struck from the record, 'rewrite' = a glancing shot of BB-EX is made to have bitten.
+   *  `dir` = the direction the affected shot travelled, `from` = where it was fired from. */
+  | { t: 'exCausal'; ship: number; what: 'veto' | 'deny' | 'rewrite'; pos: P; dir?: P; from?: P; target?: number }
   | { t: 'exGameOver'; ship: number; on: boolean; dur: number }
   /** a pierce-through (ABYSS-LANCE leaving a hull) */
   | { t: 'exPierce'; pos: P; dir: P; target: number }

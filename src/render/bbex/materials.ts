@@ -37,11 +37,25 @@ void main() {
   float flow = along * 0.03 - uTime * vParam.y + vParam.z;
   float fil = fbm2(vec2(flow, vUv.y * 5.0 + vParam.z));
   float pulse = 0.82 + 0.18 * sin(along * 0.16 - uTime * 46.0 + vParam.z * 6.0);
-  float sheath = pow(e, 1.5) * (0.5 + 1.1 * fil) * pulse;
+  if (vParam.x < 0.0) {
+    // cut boundary: not light but a wound — broken hairline cracks running beside the beam, and
+    // shards of light flaking off them
+    float yy = abs(vUv.y * 2.0 - 1.0);
+    float wander = fbm2(vec2(along * 0.018 + vParam.z, vParam.z * 3.0 + floor(uTime * 9.0) * 0.37));
+    float crack = exp(-pow((yy - (0.34 + 0.5 * wander)) * 15.0, 2.0));
+    float crack2 = exp(-pow((yy - (0.12 + 0.3 * fbm2(vec2(along * 0.031 - vParam.z, 7.0)))) * 22.0, 2.0)) * 0.6;
+    float gaps = step(0.42, n2(vec2(along * 0.011 + vParam.z * 5.0, floor(uTime * 14.0))));
+    float branch = pow(n2(vec2(along * 0.06 + vParam.z, yy * 5.0 - uTime * 2.0)), 7.0) * smoothstep(1.0, 0.3, yy) * 5.0;
+    vec3 c = vColor.rgb * ((crack + crack2) * gaps * 1.5 + branch);
+    gl_FragColor = vec4(c * vColor.a * smoothstep(1.0, 0.85, yy), 1.0);
+    return;
+  }
+  float sheath = pow(e, 1.9) * (0.45 + 1.0 * fil) * pulse;
   // hot knots travelling down the beam
   float knots = pow(max(0.0, sin(along * 0.045 - uTime * vParam.y * 3.0 + vParam.z * 3.0)), 14.0) * pow(e, 3.0);
-  float core = pow(e, 7.0) * vParam.x;
-  vec3 col = vColor.rgb * (sheath + knots * 1.6) + vec3(1.0, 0.93, 1.0) * core * 3.2;
+  // the core keeps a hard outline: a thin, almost solid line rather than a glow
+  float core = smoothstep(0.80, 0.93, e) * vParam.x;
+  vec3 col = vColor.rgb * (sheath + knots * 1.2) + vec3(1.0, 0.95, 1.0) * core * 1.5;
   gl_FragColor = vec4(col * vColor.a, 1.0);
 }`;
 
@@ -76,7 +90,10 @@ export class BeamBatch {
     this.side.crossVectors(this.d, this.toCam);
     const l = this.side.length(); if (l < 1e-6) return;
     this.side.multiplyScalar(1 / l);
-    const boost = Math.max(1, this.toCam.length() / far);
+    // looking almost straight down a beam from beside it would fill the screen with light: it thins out
+    alpha *= Math.max(0.18, Math.min(1, (l / len) / (Math.max(wa, wb) * 20)));
+    // far beams are widened so they stay visible, but only so much: the lattice must stay a set of lines
+    const boost = Math.min(2.4, Math.max(1, this.toCam.length() / far));
     wa *= boost; wb *= boost;
     const p = this.posA.array as Float32Array, c = this.colA.array as Float32Array, uv = this.uvA.array as Float32Array, q = this.parA.array as Float32Array;
     const i = this.n * 12, j = this.n * 16, k = this.n * 8;
@@ -167,7 +184,7 @@ void main() {
   float lit = smoothstep(front, front - 0.5, r) * smoothstep(1.0, 0.75, r);
   float alive = step(t * 1.15, cell * 0.7 + 0.42);
   float ring = exp(-pow((r - front * 0.85) * 7.0, 2.0)) * (1.0 - t);
-  float flash = exp(-r * r * 9.0) * exp(-t * 9.0) * (2.2 + vP.w * 2.0);
+  float flash = exp(-r * r * 14.0) * exp(-t * 9.0) * (0.9 + vP.w * 0.8);
   float body = (line * 1.7 + (1.0 - smoothstep(0.0, 0.44, edge)) * 0.06 + cell * 0.1 * smoothstep(0.46, 0.2, edge)) * lit * alive;
   vec3 col = mix(vC.rgb, vec3(1.0, 0.62, 0.95), vP.z * 0.6);
   float a = (body * (1.0 - t * t) + ring * 1.3 + flash) * vC.a;
@@ -196,8 +213,15 @@ void main() {
   float crack = pow(abs(sin(ang * k + n2(vec2(r * 5.0, vP.w)) * 2.4 + vP.w * 9.0)), 30.0) * smoothstep(0.02, 0.2, r) * smoothstep(1.0, 0.3, r);
   float node = exp(-r * r * 26.0);
   float fl = vP.y;
-  float a = rim * 1.5 + lattice * (0.12 + 0.5 * fl) + sheen * 0.07 + fres * 0.3 + (crack * 1.6 + node * 5.0 + exp(-r * 3.0) * 0.7) * fl;
-  vec3 col = vC.rgb * a + vec3(1.0, 0.96, 1.0) * (node * 4.0 + crack * 0.8) * fl;
+  // the edge of folded space splits light: three rims, slightly apart
+  float e0 = 0.5 * open;
+  vec3 iris = vec3(smoothstep(e0 - 0.085, e0 - 0.03, hx) * smoothstep(e0 + 0.0, e0 - 0.02, hx),
+                   smoothstep(e0 - 0.07, e0 - 0.018, hx),
+                   smoothstep(e0 - 0.05, e0 - 0.006, hx)) * vec3(1.5, 0.9, 1.7);
+  // after the strike the pane keeps ringing
+  float ring = pow(0.5 + 0.5 * sin(r * 26.0 - uTime * 17.0), 4.0) * smoothstep(1.0, 0.1, r) * fl;
+  float a = lattice * (0.14 + 0.5 * fl) + sheen * 0.08 + fres * 0.28 + ring * 0.5 + (crack * 1.5 + node * 2.6 + exp(-r * 3.0) * 0.5) * fl;
+  vec3 col = vC.rgb * a + iris * (0.9 + 0.8 * fl) + vec3(1.0, 0.96, 1.0) * (node * 1.6 + crack * 0.7) * fl;
   gl_FragColor = vec4(col * inside * vC.a, 1.0);
 }`;
 
@@ -353,7 +377,8 @@ void main() {
   float wave = 0.5 + 0.5 * sin(vL.z * 3.0 - uTime * 2.4);
   float tear = mix(1.0, step(0.45, fbm2(uv * 1.4 + uTime * 3.0)), uOver);
   float flick = mix(1.0, 0.4 + 0.6 * step(0.5, fract(uTime * 17.0 + h21(h.zw))), uOver);
-  float e = (fres * 0.55 + line * (0.12 + 0.5 * wave * uLevel)) * (0.25 + uLevel) * tear * flick;
+  // at rest it is almost nothing — a hint of an edge; it only shows itself where and while it works
+  float e = (fres * 0.2 + line * (0.08 + 0.4 * wave * uLevel)) * (0.06 + 0.5 * uLevel) * tear * flick;
   vec3 col = mix(uColor, vec3(1.0, 0.3, 0.75), uOver * 0.7);
   gl_FragColor = vec4(col * e, 1.0);
 }`;
@@ -384,13 +409,23 @@ export function waveMaterial(): THREE.ShaderMaterial {
 
 export const MAX_LENS = 8;
 export const DistortShader = {
-  uniforms: { tDiffuse: { value: null as THREE.Texture | null }, uLens: { value: Array.from({ length: MAX_LENS }, () => new THREE.Vector4()) }, uAspect: { value: 1 }, uFlash: { value: new THREE.Vector4(0, 0, 0, 0) }, uTime: { value: 0 } },
+  uniforms: { tDiffuse: { value: null as THREE.Texture | null }, uLens: { value: Array.from({ length: MAX_LENS }, () => new THREE.Vector4()) }, uAspect: { value: 1 }, uFlash: { value: new THREE.Vector4(0, 0, 0, 0) }, uTime: { value: 0 }, uFold: { value: new THREE.Vector4(0.5, 0.5, 0, 0) } },
   vertexShader: /* glsl */`varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: /* glsl */`
-    uniform sampler2D tDiffuse; uniform vec4 uLens[${MAX_LENS}]; uniform float uAspect; uniform vec4 uFlash; uniform float uTime;
+    uniform sampler2D tDiffuse; uniform vec4 uLens[${MAX_LENS}]; uniform float uAspect; uniform vec4 uFlash; uniform float uTime; uniform vec4 uFold;
     varying vec2 vUv;
     void main() {
       vec2 off = vec2(0.0); float ca = 0.0;
+      // causality fold: reality creases along a line through the point and springs back — the two
+      // sides slide against each other for an instant, colours come apart
+      if (uFold.z > 0.001) {
+        vec2 d = vUv - uFold.xy; d.x *= uAspect;
+        float side = sign(d.y * 0.94 + d.x * 0.34);
+        float near = exp(-pow(length(d) * 2.4, 2.0));
+        off += vec2(0.94, -0.34) * side * uFold.z * 0.022 * near;
+        ca += uFold.z * 0.5 * near + uFold.z * 0.05;
+        off += vec2(uFold.z * 0.004, 0.0);
+      }
       for (int i = 0; i < ${MAX_LENS}; i++) {
         vec4 L = uLens[i];
         if (L.z <= 0.0) continue;

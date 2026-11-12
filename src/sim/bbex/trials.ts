@@ -57,7 +57,7 @@ export const TRIALS: Trial[] = [
   { id: 'aa', name: '강화 방공망 (120척)', enemy: [['battleship', 'fortress', 30], ['destroyer', 'aa', 60], ['frigate', 'aa', 30]], note: 'SERAPH-EX 공간침투 · 퍼널 소모' },
   { id: 'funnel_loss', name: '퍼널 손실 (4기, 재구성 불가) vs 200척', enemy: DECISIVE_200, ex: { funnels: 4, rebuild: false }, note: '퍼널 손실 이후의 전투' },
   { id: 'no_dcp', name: '주포 비활성화 vs 200척', enemy: DECISIVE_200, ex: { dcp: false }, note: 'DCP-Ω 없는 기본 화력' },
-  { id: 'overload', name: 'PARADOX 과부하 상태로 진입 vs 200척', enemy: DECISIVE_200, ex: { paradox: 0 }, note: '결계 없이 시작' },
+  { id: 'overload', name: 'PARADOX 과부하 상태로 진입 vs 200척', enemy: DECISIVE_200, ex: { paradox: 0, over: false }, note: '결계 없이 시작, 결전 프로토콜(비상 발동) 차단' },
   { id: 'game_over', name: '결전 프로토콜 즉시 발동 vs 200척', enemy: DECISIVE_200, ex: { over: true }, note: 'BB CHANNEL: GAME OVER' },
   { id: 'no_bb', name: 'BB 미탑승 vs 200척', enemy: DECISIVE_200, bb: false, note: '인과율 간섭·결전 프로토콜 없음' },
 ];

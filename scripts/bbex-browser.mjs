@@ -33,7 +33,9 @@ for (const st of steps) {
     else if (st.cam === 'follow') { rig.setMode('follow'); rig.follow = () => v.followTarget(ex.id); }
     else if (st.cam) {
       rig.mode = 'tactical'; rig.minPitch = -1.4; rig.minDist = 20;
-      const f = st.cam.focus === 'bbex' || !st.cam.focus ? [ex.pos.x, ex.pos.y, ex.pos.z] : st.cam.focus;
+      let f = st.cam.focus === 'bbex' || !st.cam.focus ? [ex.pos.x, ex.pos.y, ex.pos.z] : st.cam.focus;
+      if (f === 'lattice') { const g = ex.ex.dcp.segs; let x = 0, y = 0, z = 0; for (const q of g) { x += q.a.x + q.b.x; y += q.a.y + q.b.y; z += q.a.z + q.b.z; } f = g.length ? [x / g.length / 2, y / g.length / 2, z / g.length / 2] : [ex.pos.x, ex.pos.y, ex.pos.z]; }
+      if (f === 'enemy') { const es = w.ships.filter(q => q.team === 1 && q.state === 'alive'); const c = w.centroid(es); f = [c.x, c.y, c.z]; }
       rig.focus.set(f[0] + (st.cam.off?.[0] ?? 0), f[1] + (st.cam.off?.[1] ?? 0), f[2] + (st.cam.off?.[2] ?? 0)); rig.yaw = st.cam.yaw ?? rig.yaw; rig.pitch = st.cam.pitch ?? rig.pitch; rig.dist = st.cam.dist ?? rig.dist;
       rig.cur.focus.copy(rig.focus); rig.cur.yaw = rig.yaw; rig.cur.pitch = rig.pitch; rig.cur.dist = rig.dist;
     }

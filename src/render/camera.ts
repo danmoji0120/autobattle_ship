@@ -51,6 +51,9 @@ export class CameraRig {
   }
 
   addShake(a: number) { this.shake = Math.min(3, this.shake + a); }
+  /** a brief hitch in time (seconds of real time at `scale`); only local, free-running battles slow down */
+  slowPulse = 0; slowScale = 1;
+  hitch(seconds: number, scale: number) { this.slowPulse = Math.max(this.slowPulse, seconds); this.slowScale = scale; }
 
   orbit(dx: number, dy: number) {
     this.yaw -= dx * 0.005;
@@ -120,6 +123,7 @@ export class CameraRig {
     } else {
       this.updateDirector(dt, realDt);
     }
+    if (this.slowPulse > 0) { this.slowPulse -= realDt; this.timeScaleRequest = Math.min(this.timeScaleRequest, this.slowScale); }
     // shake
     if (this.shake > 0.001) {
       this.shakeT += realDt * 40;

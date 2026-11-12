@@ -85,7 +85,7 @@ export function initEx(w: World, s: Ship, spec: ExSpec | undefined, causal: bool
     paradox: { energy, max: BBEX.pEnergy, overload: energy <= 0 ? BBEX.pOverload : 0, load: 0, hits: 0, displaced: 0, absorbed: 0, overloads: 0 },
     dcp: { state: 'cool', t: BBEX.dcpCool - 4.5, mount, nodes: [], segs: [], locked: [], pulse: 0, shots: 0, over: false, replan: 0 },
     blackout: { next: 0, n: 0 }, well: { next: 0, pos: new Vec3(), until: 0, n: 0 }, shift: { next: 0, n: 0 },
-    causal: { on: causal, vetoes: causal ? BBEX.cVetoes : 0, next: 0, used: 0, rewrites: 0 },
+    causal: { on: causal, vetoes: causal ? BBEX.cVetoes : 0, next: 0, used: 0, rewrites: 0, denyNext: 0, denies: 0 },
     over: { next: spec?.over === false ? Infinity : spec?.over === true ? 0 : 80, until: 0, n: 0 },
     orbit: s.id % 2 ? 1 : -1,
     stats: { weapon: {}, funnelsLost: 0, funnelsRebuilt: 0, intercepts: 0, regen: 0, arrivedAt: 0 },
@@ -176,7 +176,7 @@ export function updateEx(w: World) {
       ex.spread = Math.min(1, ex.spread + dt / (BBEX.descentTime * 0.62));
       if (w.time - ex.stats.arrivedAt >= BBEX.descentTime) {
         ex.phase = 'combat'; setForm(w, s, ex, 'hunt');
-        ex.blackout.next = w.time + 1.5; ex.well.next = w.time + 6; ex.shift.next = w.time + 6; if (ex.over.next !== 0) ex.over.next = w.time + 75;
+        ex.blackout.next = w.time + 1.5; ex.well.next = w.time + 6; ex.shift.next = w.time + 6; if (ex.over.next !== 0 && ex.over.next !== Infinity) ex.over.next = w.time + 75;
       }
     } else {
       const want = ex.form === 'wing' ? 1 : 0;
@@ -880,6 +880,13 @@ function updateDcp(w: World, s: Ship, ex: ExState) {
 
 // ─────────────────────────────────────────────────────────────────────────── hooks called by the engine
 
+// BB speaks only on the interventions that matter; the line is drawn from the battle's own line RNG,
+// so every spectator and every replay reads the same words
+const VETO_LINES = ['어머나? 그 결과는 기각이에요♡', '자, 이쪽 결과로 다시 방송할게요♡', 'BB-EX 격침? 그런 방송 사고는 편집해 버렸답니다♪'];
+const DENY_LINES = ['그 탄환, 방금 폐기 처리했답니다.', '맞았다고요? 그 기록은 채택되지 않았어요♡', '아쉽네요 — 그 명중 판정, 반려예요♪'];
+const REWRITE_LINES = ['선배의 승률, BB쨩이 보정해드릴게요♪', '빗나갔다고요? 아니요, 맞은 걸로 해 둘게요♡', '도탄이라니, 그런 결과는 재미없잖아요?'];
+const bbLine = (w: World, lines: string[]) => lines[Math.floor(w.lineRng.next() * lines.length)];
+
 /** PARADOX: an incoming hit is displaced (it never happened here) or soaked by the barrier.
  *  Returns true when nothing is left for the hull. */
 export function exIncoming(w: World, t: Ship, wd: WeaponDef, attackerId: number, pos: Vec3, dir: Vec3): boolean {
@@ -894,8 +901,19 @@ export function exIncoming(w: World, t: Ship, wd: WeaponDef, attackerId: number,
     w.events.push({ t: 'exParadox', ship: t.id, pos: pos.clone(), dir: dir.clone(), mode: 'displace', dmg: wd.damage, heavy });
     return true;
   }
-  if (p.overload > 0 || p.energy <= 0) return false;
+  // causality interference (BB): a heavy hit that got past the displacement and has no barrier to
+  // meet it did land — and is then struck from the record
+  const c = ex.causal;
   const want = wd.damage * (wd.vsShield ?? 1);
+  if (c.on && wd.damage >= BBEX.cDenyMin && w.time >= c.denyNext && (p.overload > 0 || p.energy < want)) {
+    c.denyNext = w.time + BBEX.cDenyCool; c.denies++;
+    t.lastAttacker = attackerId;
+    const a = w.shipById.get(attackerId);
+    w.events.push({ t: 'exCausal', ship: t.id, what: 'deny', pos: pos.clone(), dir: dir.clone(), ...(a ? { from: a.pos.clone() } : {}) });
+    if (c.denies % 3 === 1) say(w, t, bbLine(w, DENY_LINES), 1);
+    return true;
+  }
+  if (p.overload > 0 || p.energy <= 0) return false;
   if (p.energy >= want) {
     p.energy -= want; p.absorbed += wd.damage;
     t.lastAttacker = attackerId;
@@ -932,7 +950,7 @@ export function exVeto(w: World, t: Ship): boolean {
   t.crit.fire = 0; t.crit.engine = 0; t.crit.bridge = 0;
   w.events.push({ t: 'exOverload', ship: t.id, on: false });
   w.events.push({ t: 'exCausal', ship: t.id, what: 'veto', pos: t.pos.clone() });
-  say(w, t, '그 결과는 기각한다.', 2);
+  say(w, t, bbLine(w, VETO_LINES), 2);
   // and it is somewhere else
   const away = new Vec3(-t.fwd.x, 0, -t.fwd.z);
   let cx = 0, cz = 0, n = 0;
@@ -949,7 +967,10 @@ export function exRewrite(w: World, a: Ship, pos: Vec3): boolean {
   const c = a.ex!.causal;
   if (!c.on || !w.rng.chance(BBEX.cRewrite)) return false;
   c.rewrites++;
-  if (c.rewrites % 6 === 1) w.events.push({ t: 'exCausal', ship: a.id, what: 'rewrite', pos: pos.clone() });
+  if (c.rewrites % 5 === 1) {
+    w.events.push({ t: 'exCausal', ship: a.id, what: 'rewrite', pos: pos.clone(), from: a.pos.clone() });
+    if (c.rewrites % 40 === 1) say(w, a, bbLine(w, REWRITE_LINES), 0);
+  }
   return true;
 }
 
@@ -1004,6 +1025,6 @@ export function exReport(s: Ship) {
     weapons: ex.stats.weapon, funnels: { alive: ex.funnels.filter(f => f.alive).length, lost: ex.stats.funnelsLost, rebuilt: ex.stats.funnelsRebuilt, intercepts: ex.stats.intercepts },
     paradox: { hits: ex.paradox.hits, displaced: ex.paradox.displaced, absorbed: Math.round(ex.paradox.absorbed), overloads: ex.paradox.overloads },
     dcpShots: ex.dcp.shots, blackouts: ex.blackout.n, wells: ex.well.n, shifts: ex.shift.n, gameOvers: ex.over.n,
-    vetoes: ex.causal.used, rewrites: ex.causal.rewrites, regen: Math.round(ex.stats.regen),
+    vetoes: ex.causal.used, denies: ex.causal.denies, rewrites: ex.causal.rewrites, regen: Math.round(ex.stats.regen),
   };
 }

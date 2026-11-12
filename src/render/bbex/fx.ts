@@ -27,7 +27,7 @@ export interface FxHost {
   composer: EffectComposer; bloom: UnrealBloomPass;
   audio: { play(name: string, pos: THREE.Vector3 | null, vol?: number, rate?: number): void } | null;
   /** world transform of a ship as drawn this frame */
-  shipPose(id: number): { pos: THREE.Vector3; fwd: THREE.Vector3; root: THREE.Object3D; ship: Ship } | null;
+  shipPose(id: number): { pos: THREE.Vector3; fwd: THREE.Vector3; root: THREE.Object3D; front: THREE.Object3D; rear: THREE.Object3D; ship: Ship } | null;
   beam(a: THREE.Vector3, b: THREE.Vector3, life: number, w: number, color: number): void;
   burst(p: THREE.Vector3, n: number, c0: number, c1: number, size: number, speed: number, bias?: THREE.Vector3): void;
   shake(p: THREE.Vector3, amount: number, range?: number): void;
@@ -93,7 +93,7 @@ export class BbexFx {
   private beams = new BeamBatch(460);
   private paradox = new QuadBatch(200, PARADOX_FS, 6);
   private facetQ = new QuadBatch(72, FACET_FS, 5);
-  private haloQ = new QuadBatch(16, HALO_FS, 4);
+  private haloQ = new QuadBatch(40, HALO_FS, 4);
   private riftQ = new QuadBatch(10, RIFT_FS, 7);
   private wellQ = new QuadBatch(8, WELL_FS, 4);
   private darkQ = new QuadBatch(10, DARK_FS, 3, THREE.NormalBlending);
@@ -109,7 +109,10 @@ export class BbexFx {
   private funGeo = funnelGeometry();
   private tmp = new THREE.Vector3(); private tmp2 = new THREE.Vector3(); private tmp3 = new THREE.Vector3(); private q = new THREE.Quaternion(); private m4 = new THREE.Matrix4(); private sv = new Vec3();
   private bx = new THREE.Vector3(); private by = new THREE.Vector3(); private bz = new THREE.Vector3(); private sc = new THREE.Vector3();
-  private paradoxSfx = 0;
+  private paradoxSfx = 0; private fixSfx = 0;
+  private fold = new THREE.Vector4(0.5, 0.5, 0, 0); private foldAt = new THREE.Vector3();
+  private severing: { ship: number; t: number; n: THREE.Vector3; dur: number }[] = [];
+  private erasing: { a: THREE.Vector3; b: THREE.Vector3; t: number; dur: number }[] = [];
 
   constructor(private host: FxHost, private world: World) {
     const B = BBEX_COLORS;
@@ -126,7 +129,7 @@ export class BbexFx {
     this.pass = new ShaderPass(DistortShader);
     this.pass.enabled = false;
     host.composer.insertPass(this.pass, 1);
-    this.pass.uniforms.uFlash.value = this.flash;
+    this.pass.uniforms.uFlash.value = this.flash; this.pass.uniforms.uFold.value = this.fold;
     this.bloom0 = host.bloom.strength;
   }
 
@@ -260,6 +263,28 @@ export class BbexFx {
     pose.root.updateMatrixWorld();
     const a = pose.root.worldToLocal(p.clone().addScaledVector(dir, -r)), b = pose.root.worldToLocal(p.clone().addScaledVector(dir, r));
     this.scars.push({ ship: shipId, a, b, life, max: life, w });
+  }
+
+  /** a hull killed by the DCP-Ω: first the cut is seen — a white line right through it, the two parts
+   *  slipping against each other, light in the gap — and only then it comes apart. true = handled. */
+  onDying(shipId: number): boolean {
+    const s = this.world.shipById.get(shipId), pose = this.host.shipPose(shipId);
+    if (!s || !pose || s.lastWeapon !== BBEX_WEAPON.dcp) return false;
+    const h = this.host, cut = this.lastCut.get(shipId);
+    const dir = cut ? cut.dir.clone() : rdir(new THREE.Vector3());
+    const p = cut ? cut.pos.clone() : pose.pos.clone();
+    // the cut line across the whole hull (long-lived, wide), ship-local so it rides with the wreck
+    const r = s.cls.length * 0.75 + 6;
+    pose.root.updateMatrixWorld();
+    this.scars.push({ ship: shipId, a: pose.root.worldToLocal(p.clone().addScaledVector(dir, -r)), b: pose.root.worldToLocal(p.clone().addScaledVector(dir, r)), life: s.dyingTimer + 0.3, max: s.dyingTimer + 0.3, w: Math.max(1.1, s.radius * 0.16) });
+    // slip direction: across the cut, in the hull's own frame
+    const nW = new THREE.Vector3().crossVectors(dir, pose.fwd); if (nW.lengthSq() < 0.01) nW.crossVectors(dir, UPV); nW.normalize();
+    const nL = nW.clone().transformDirection(new THREE.Matrix4().copy(pose.root.matrixWorld).invert());
+    this.severing.push({ ship: shipId, t: 0, n: nL, dur: Math.max(0.35, s.dyingTimer) });
+    h.glow.emit(p, { life: 0.25, size: s.radius * 3 + 8, size1: 4, color: WHITE, color1: VIOLET, alpha: 1.3 });
+    h.rings.spawn(p, s.cls.length * 1.2 + 20, 0.5, WHITE, dir);
+    this.sfx('ex_sever', p, 0.9, 0.8 + Math.min(0.5, 30 / s.cls.length));
+    return true;
   }
 
   /** a hull that died to the DCP-Ω: it is not blown apart, it is severed */
@@ -416,18 +441,7 @@ export class BbexFx {
       }
       case 'exCausal': {
         const pos = V(e.pos);
-        if (e.what === 'veto') {
-          const sf = this.ships.get(e.ship); if (sf) sf.veto = 1;
-          this.screenFlash(WHITE, 0.75);
-          this.sigils.push({ pos: pos.clone(), ship: e.ship, size: 150, t: 0, life: 1.8, seed: Math.random() * 9, flat: false });
-          // the explosion that was about to happen runs backwards into the hull
-          for (let i = 0; i < 90; i++) { const d = rdir(new THREE.Vector3()); const p0 = pos.clone().addScaledVector(d, rnd(60, 190)); h.glow.emit(p0, { life: rnd(0.4, 0.8), size: rnd(3, 7), size1: 0.6, color: i % 2 ? WHITE : PINK, color1: VIOLET, vel: d.multiplyScalar(-rnd(160, 300)), drag: 0.2 }); }
-          h.rings.spawn(pos, 260, 0.9, WHITE); h.flashes.flash(pos, 400, 1400, 0.8, WHITE);
-          h.shake(pos, 1.8, 2400);
-          this.sfx('ex_causal', pos, 1.3);
-        } else {
-          this.sigils.push({ pos: pos.clone(), ship: -1, size: 16, t: 0, life: 0.5, seed: Math.random() * 9, flat: false });
-        }
+        this.causal(e, pos);
         break;
       }
       case 'exGameOver': {
@@ -435,16 +449,16 @@ export class BbexFx {
         if (!sf || !p) break;
         if (e.on) {
           sf.overT = 0; sf.overDur = e.dur; sf.over = 0.001;
-          this.screenFlash(VIOLET, 0.3);
-          h.rings.spawn(p.pos, 600, 1.6, VIOLET, p.fwd.clone()); h.rings.spawn(p.pos, 380, 1.2, WHITE, UPV);
+          this.screenFlash(VIOLET, 0.07);
+          h.rings.spawn(p.pos, 420, 1.6, DEEP, p.fwd.clone()); h.rings.spawn(p.pos, 300, 1.2, VIOLET, UPV);
           h.shake(p.pos, 1.6, 3000);
           this.sfx('ex_gameover', p.pos, 1.5);
           if (this.director()) h.rig.offer({ kind: 'orbit', subject: () => { const q = h.shipPose(e.ship); return q ? { pos: q.pos, fwd: q.fwd, length: 110, alive: true } : null; }, duration: BBEX.goSpread + BBEX.goCharge, priority: 15 });
         } else {
           sf.overT = sf.overDur + 10;
           // the light that swallows the field, then quiet
-          this.screenFlash(VIOLET, 0.85);
-          h.glow.emit(p.pos, { life: 1.4, size: 200, size1: 900, color: VIOLET, color1: DEEP, alpha: 1.0 });
+          this.screenFlash(VIOLET, 0.5);
+          h.glow.emit(p.pos, { life: 1.2, size: 120, size1: 600, color: VIOLET, color1: DEEP, alpha: 0.5 });
           h.rings.spawn(p.pos, 1400, 2.4, VIOLET, UPV);
           if (this.director()) h.rig.offer({ kind: 'wide', subject: () => { const q = h.shipPose(e.ship); return q ? { pos: q.pos, fwd: q.fwd, length: 200, alive: true } : null; }, duration: 7, priority: 9 });
         }
@@ -466,6 +480,59 @@ export class BbexFx {
         break;
       }
       case 'exRegen': break;
+    }
+  }
+
+  /** Causality interference. Not a shield and not a flash: thin exact lines, a small layered seal, the
+   *  picture creasing for an instant, and what had just happened running backwards. */
+  private causal(e: Extract<ExEvent, { t: 'exCausal' }>, pos: THREE.Vector3) {
+    const h = this.host;
+    const seal = (p: THREE.Vector3, size: number, life: number, ship = -1) => {
+      for (let k = 0; k < 3; k++) this.sigils.push({ pos: p.clone(), ship, size: size * (0.45 + k * 0.3), t: -k * 0.04, life: life - k * 0.08, seed: Math.random() * 9 + k * 2.7, flat: false });
+    };
+    const creases = (p: THREE.Vector3, n: number, len: number) => {
+      // hairlines through the point: the record being ruled out
+      for (let k = 0; k < n; k++) { const d = rdir(new THREE.Vector3()); h.beam(p.clone().addScaledVector(d, len * 0.15), p.clone().addScaledVector(d, len), 0.22 + k * 0.02, 0.22, k % 2 ? WHITE : VIOLET); }
+    };
+    const inward = (p: THREE.Vector3, n: number, r0: number, r1: number) => {
+      for (let i = 0; i < n; i++) { const d = rdir(new THREE.Vector3()); const rr = rnd(r0, r1); h.glow.emit(p.clone().addScaledVector(d, rr), { life: 0.3, size: rnd(2, 5), size1: 0.4, color: i % 2 ? WHITE : 0xffb070, color1: VIOLET, vel: d.multiplyScalar(-rr / 0.3), drag: 0 }); }
+    };
+    if (e.what === 'veto') {
+      // the destruction of BB-EX had begun: it is played backwards and struck out
+      const sf = this.ships.get(e.ship); if (sf) sf.veto = 1;
+      seal(pos, 120, 1.5, e.ship);
+      inward(pos, 110, 50, 200);
+      creases(pos, 14, 170);
+      h.rings.spawn(pos, 30, 0.5, WHITE);
+      this.foldAt.copy(pos); this.fold.z = 1;
+      h.rig.hitch(0.42, 0.12);
+      h.flashes.flash(pos, 90, 700, 0.3, WHITE);
+      this.sfx('ex_causal', pos, 1.3);
+    } else if (e.what === 'deny') {
+      // the shot did land: a burst, its track still glowing — then the burst is drawn back in and the
+      // track is erased from the hull outward
+      const dir = e.dir ? V(e.dir) : new THREE.Vector3(0, 0, 1);
+      h.glow.emit(pos, { life: 0.12, size: 22, size1: 2, color: 0xffd0a0, color1: WHITE, alpha: 1.2 });
+      inward(pos, 26, 14, 46);
+      this.erasing.push({ a: pos.clone().addScaledVector(dir, -260), b: pos.clone(), t: 0, dur: 0.34 });
+      seal(pos, 17, 0.62);
+      creases(pos, 5, 30);
+      // strike-through: one hard white stroke across the point
+      const sd = new THREE.Vector3().crossVectors(dir, UPV).normalize(); if (sd.lengthSq() < 0.1) sd.set(1, 0, 0);
+      this.after(0.1, () => h.beam(pos.clone().addScaledVector(sd, -20).addScaledVector(UPV, -7), pos.clone().addScaledVector(sd, 20).addScaledVector(UPV, 7), 0.3, 0.5, WHITE));
+      this.foldAt.copy(pos); this.fold.z = Math.max(this.fold.z, 0.6);
+      h.rig.hitch(0.16, 0.2);
+      this.sfx('ex_causal_s', pos, 0.9, rnd(0.95, 1.1));
+    } else {
+      // a shot that would have glanced off: the line from the gun is pinned to the target and the
+      // result is fixed there
+      const from = e.from ? V(e.from) : null;
+      if (from) this.shots.push({ a: from, b: pos.clone(), life: 0.2, max: 0.2, w: 0.3, col: [2.2, 2.0, 2.4], core: 1.6 });
+      seal(pos, 9, 0.45);
+      // brackets closing on the point
+      for (let k = 0; k < 4; k++) { const d = new THREE.Vector3(k < 2 ? 1 : -1, k % 2 ? 1 : -1, rnd(-0.4, 0.4)).normalize(); const a = pos.clone().addScaledVector(d, 26); h.beam(a, pos.clone().addScaledVector(d, 7), 0.2, 0.25, WHITE); }
+      this.after(0.12, () => { h.rings.spawn(pos, 22, 0.25, WHITE); h.glow.emit(pos, { life: 0.12, size: 9, size1: 1, color: WHITE, alpha: 1.3 }); });
+      if (this.wall - this.fixSfx > 0.25) { this.fixSfx = this.wall; this.sfx('ex_fix', pos, 0.5, rnd(0.95, 1.2)); }
     }
   }
 
@@ -534,13 +601,12 @@ export class BbexFx {
     if (pose && sf) {
       const mz = sf.muzzle.clone();
       const d0 = segs.length ? segs[0].b.clone().sub(segs[0].a).normalize() : pose.fwd.clone();
-      h.glow.emit(mz, { life: 0.5, size: 90, size1: 30, color: WHITE, color1: VIOLET, alpha: 1.8 });
-      h.glow.emit(mz, { life: 1.0, size: 60, size1: 190, color: VIOLET, color1: DEEP, alpha: 0.9 });
-      h.rings.spawn(mz, 190, 0.7, WHITE, d0); h.rings.spawn(mz.clone().addScaledVector(d0, 40), 120, 0.5, VIOLET, d0);
+      h.glow.emit(mz, { life: 0.3, size: 30, size1: 10, color: WHITE, color1: VIOLET, alpha: 1.0 });
+      h.rings.spawn(mz.clone().addScaledVector(d0, 14), 80, 0.6, VIOLET, d0); h.rings.spawn(mz.clone().addScaledVector(d0, 46), 50, 0.45, DEEP, d0);
       for (let i = 0; i < 46; i++) h.glow.emit(mz, { life: rnd(0.4, 1.0), size: rnd(2.5, 6), size1: 0.5, color: WHITE, color1: MAGENTA, vel: d0.clone().multiplyScalar(rnd(200, 900)).add(rdir(this.tmp).multiplyScalar(120)), drag: 1.3 });
-      h.flashes.flash(mz, 520, 2000, 0.9, VIOLET);
+      h.flashes.flash(mz, 150, 1200, 0.6, VIOLET);
       h.shake(mz, e.over ? 3 : 2.2, 3600);
-      this.screenFlash(VIOLET, e.over ? 0.3 : 0.2);
+      this.screenFlash(VIOLET, e.over ? 0.1 : 0.05);
       this.sfx('dcp_fire', mz, 1.6, e.over ? 0.85 : 1);
     }
     if (this.director() && segs.length && (e.seq === 0 || e.seq === 2)) {
@@ -583,13 +649,14 @@ export class BbexFx {
     this.frameWells(dt, T);
     this.frameSigils(dt, T);
     this.frameWaves(dt, T);
+    this.frameCausal(dt, realDt);
 
     this.beams.end();
     for (const b of [this.paradox, this.facetQ, this.haloQ, this.riftQ, this.wellQ, this.darkQ, this.sigilQ]) b.end();
     // screen flash decays in real time; the pass only runs while something needs it
     this.flash.w = Math.max(0, this.flash.w - realDt * (this.flash.w > 0.4 ? 0.9 : 0.6));
     this.pass.uniforms.uAspect.value = cam.aspect; this.pass.uniforms.uTime.value = T;
-    this.pass.enabled = this.lensN > 0 || this.flash.w > 0.003;
+    this.pass.enabled = this.lensN > 0 || this.flash.w > 0.003 || this.fold.z > 0.002;
     h.bloom.strength += (this.bloom0 + bloomAdd - h.bloom.strength) * Math.min(1, realDt * 4);
   }
 
@@ -682,12 +749,13 @@ export class BbexFx {
     } else sf.wing.visible = false;
     {
       // halo: a standing rune ring behind the hull, a tilted second ring, more of them in GAME OVER
-      const power = Math.max(sp, sf.charging ? 0.5 + 0.5 * sf.charge : 0, sf.veto) * Math.min(1, sf.emerge * 1.3);
+      const power = Math.max(sp, sf.charging ? 0.5 + 0.5 * sf.charge : 0) * Math.min(1, sf.emerge * 1.3);
       if (power > 0.03) {
         const c = toWorld(0, 6, -13, this.tmp);
-        const [r, g, b] = C3(VIOLET, 1.9);
+        const [r, g, b] = C3(VIOLET, 1.25);
         QuadBatch.look(pose.fwd, this.q);
-        const R = (88 + 26 * sf.over) * (0.35 + 0.65 * power);
+        // while the cannon charges the halo draws in and locks to the firing line
+        const R = (88 + 26 * sf.over) * (0.35 + 0.65 * power) * (sf.charging ? 1 - 0.38 * ease(sf.charge) : 1);
         this.haloQ.add(c, this.q, R, R, sf.haloSpin, 2 + (sf.over > 0.4 ? 1 : 0), 1.3, 1 + sf.over, r, g, b, power * 0.9);
         const n2 = toWorld(0, 0.86, -0.5, this.tmp2).sub(toWorld(0, 0, 0, this.tmp3)).normalize();
         QuadBatch.look(n2, this.q);
@@ -695,9 +763,9 @@ export class BbexFx {
         if (sf.over > 0.05) {
           const n3 = toWorld(0.62, 0.3, 0.72, this.tmp2).sub(toWorld(0, 0, 0, this.tmp3)).normalize();
           QuadBatch.look(n3, this.q);
-          this.haloQ.add(c, this.q, R * 1.5, R * 1.5, sf.haloSpin * 0.6, 3, 7.7, 1.6, 1.9, 0.9, 1.7, sf.over * 0.8);
+          this.haloQ.add(c, this.q, R * 1.5, R * 1.5, sf.haloSpin * 0.6, 3, 7.7, 1.0, 1.2, 0.6, 1.1, sf.over * 0.45);
           QuadBatch.look(UPV, this.q);
-          this.haloQ.add(toWorld(0, -4, 0, this.tmp2), this.q, R * 2.3, R * 2.3, -sf.haloSpin * 0.4, 3, 2.2, 1.2, r, g, b, sf.over * 0.5);
+          this.haloQ.add(toWorld(0, -4, 0, this.tmp2), this.q, R * 2.3, R * 2.3, -sf.haloSpin * 0.4, 3, 2.2, 0.6, r, g, b, sf.over * 0.28);
         }
       }
     }
@@ -706,7 +774,7 @@ export class BbexFx {
     sf.shield.visible = true;
     sf.shield.position.copy(pose.pos); sf.shield.quaternion.copy(root.quaternion); sf.shield.scale.set(BBEX.pField * 0.9, BBEX.pField * 0.78, 30);
     const su = (sf.shield.material as THREE.ShaderMaterial).uniforms;
-    su.uTime.value = T; su.uLevel.value = Math.min(1.6, 0.05 + sf.level * 0.6 + (ex.phase === 'descent' ? 0.5 : 0) + sf.over * 0.5); su.uOver.value = ex.paradox.overload > 0 ? 1 : 0;
+    su.uTime.value = T; su.uLevel.value = Math.min(1.1, 0.02 + sf.level * 0.4 + (ex.phase === 'descent' ? 0.5 : 0) + sf.over * 0.4 + (ex.paradox.overload > 0 ? 0.6 : 0)); su.uOver.value = ex.paradox.overload > 0 ? 1 : 0;
     if (ex.paradox.overload > 0) this.addLens(pose.pos, 60, -0.012);
 
     // ── DCP-Ω charge at the emitter
@@ -714,13 +782,38 @@ export class BbexFx {
     if (sf.charging) {
       sf.charge = Math.min(1, sf.charge + dt / sf.chargeDur);
       const c = sf.charge, mz = sf.muzzle;
-      h.glow.emit(mz, { life: 0.07, size: 7 + 26 * c, size1: 5 + 20 * c, color: WHITE, color1: VIOLET, alpha: 0.9 + c });
-      h.glow.emit(mz, { life: 0.1, size: 20 + 60 * c, size1: 16 + 50 * c, color: DEEP, alpha: 0.35 + 0.4 * c });
+      // the core is pressed down to a small, very white point; violet turns around it
+      h.glow.emit(mz, { life: 0.07, size: 4 + 9 * c, size1: 3 + 7 * c, color: WHITE, color1: VIOLET, alpha: 0.9 + c });
+      h.glow.emit(mz, { life: 0.1, size: 12 + 26 * c, size1: 10 + 22 * c, color: DEEP, alpha: 0.2 + 0.25 * c });
+      for (let k = 0; k < 2; k++) { const an = T * (5 + 3 * c) + k * Math.PI, rr = 9 - 4 * c; h.glow.emit(toWorld(Math.cos(an) * rr, 0.4 + Math.sin(an) * rr, 23.5, this.tmp), { life: 0.22, size: 2.6, size1: 0.4, color: k ? PINK : LILAC, color1: DEEP, alpha: 1 }); }
       const n = Math.floor((1.2 + 5 * c) * (dt > 0 ? 1 : 0) + Math.random());
       for (let i = 0; i < n; i++) { const d = rdir(this.tmp2); const r0 = rnd(28, 70); const p0 = this.tmp.copy(mz).addScaledVector(d, r0); h.glow.emit(p0, { life: 0.34, size: rnd(1.6, 3.6), size1: 0.4, color: i % 2 ? LILAC : PINK, color1: WHITE, vel: d.clone().multiplyScalar(-r0 / 0.34), drag: 0 }); }
       // arcs between the tines
       if (Math.random() < 0.5 + c) { const a = toWorld(rnd(-1.1, 1.1), rnd(-0.4, 1.2), rnd(12, 22), this.tmp), b = toWorld(rnd(-1.1, 1.1), rnd(-0.4, 1.2), rnd(12, 22), this.tmp2); h.trails.seg(a.x, a.y, a.z, b.x, b.y, b.z, 0.25, 0.25, 2.6, 2.0, 3.2, 1, 1); }
       if (Math.random() < 0.06) h.flashes.flash(mz, 60 + 120 * c, 500, 0.2, VIOLET);
+      // aiming rings ahead of the emitter: they start wide and apart, close in and line up on the bore
+      {
+        const [r, g, b] = C3(VIOLET, 1.7);
+        const ax = pose.fwd;
+        QuadBatch.look(ax, this.q);
+        for (let k = 0; k < 4; k++) {
+          const dk = (16 + k * 20) * (1.5 - 0.5 * ease(c));
+          const Rk = (30 - k * 5) * (2.1 - 1.25 * ease(c)) * (1 + 0.04 * Math.sin(T * 9 + k));
+          this.haloQ.add(this.tmp.copy(mz).addScaledVector(ax, dk), this.q, Rk, Rk, T * (k % 2 ? 1.6 : -1.1) * (0.4 + c) + k, 1 + (k & 1), k * 1.9, 0.2, r, g, b, (0.25 + 0.75 * c) * (k === 0 ? 1 : 0.75));
+        }
+      }
+      // the path the cut will take shows for a moment as hairline fractures — muzzle to mirror, mirror to mirror
+      if (c > 0.45) {
+        const nodes = ex.dcp.nodes, vis = (c - 0.45) / 0.55, fl = vis * (0.35 + 0.65 * Math.abs(Math.sin(T * 23)));
+        const at = (i: number, out: THREE.Vector3) => { const nd = nodes[i]; const f = nd.funnel >= 0 && !sf.chargeOver ? sf.fpos[nd.funnel] : null; return f && ex.funnels[nd.funnel].mode === 'lock' ? out.copy(f) : out.set(nd.pos.x, nd.pos.y, nd.pos.z); };
+        const line = (a: THREE.Vector3, b: THREE.Vector3, k: number) => h.trails.seg(a.x, a.y, a.z, b.x, b.y, b.z, 0.22, 0.22, 2.0, 1.4, 2.6, fl * k, fl * k);
+        for (let i = 0; i < nodes.length && i < 40; i++) {
+          const nd = nodes[i];
+          const b = at(i, this.tmp2), a = nd.parent < 0 ? this.tmp.copy(mz) : at(nd.parent, this.tmp);
+          line(a, b, nd.depth === 0 ? 1 : 0.7);
+          for (const en of nd.ends) line(b, this.tmp3.set(en.x, en.y, en.z), 0.45);
+        }
+      }
       this.addLens(mz, 26 + 60 * c, 0.05 + 0.22 * c);
       bloomAdd = Math.max(bloomAdd, 0.12 * c);
     }
@@ -757,7 +850,7 @@ export class BbexFx {
       const L = this.lattices[li];
       L.t += dt;
       if (L.ended >= 0) L.ended += dt;
-      const AFTER = 1.7;
+      const AFTER = 0.95;
       if (L.ended > AFTER) { this.lattices.splice(li, 1); continue; }
       const live = L.ended < 0;
       for (const s of L.segs) {
@@ -771,9 +864,11 @@ export class BbexFx {
           const w = s.w;
           const main = s.gen === 0;
           // wide dark-violet mantle, the violet sheath with its white core, and for the main beam a blinding centre
-          this.beams.seg(s.a, head, w * 2.9, w * 2.9, 0.42, 0.1, 1.05, 0.5 * I, 0, 5, s.seed, 0, 900);
-          this.beams.seg(s.a, head, w * 1.2, w * 1.2, 1.5, 0.62, 2.4, I, main ? 1.4 : 0.9, 9, s.seed + 1, 0, 900);
-          if (main || L.over) this.beams.seg(s.a, head, w * 0.42, w * 0.42, 2.4, 2.1, 2.6, I, 2, 14, s.seed + 2, 0, 900);
+          // four layers, each with its own job, none of them a fog: a faint mantle, the violet cutting
+          // body with its hard white core, and the cracked boundary where space is coming apart
+          this.beams.seg(s.a, head, w * 2.3, w * 2.3, 0.3, 0.07, 0.8, 0.2 * I, 0, 5, s.seed, 0, 1100);
+          this.beams.seg(s.a, head, w * 1.05, w * 1.05, 0.95, 0.36, 1.7, I, main ? 1.25 : 0.95, 9, s.seed + 1, 0, 1100);
+          this.beams.seg(s.a, head, w * 3.4, w * 3.4, 1.2, 0.75, 1.7, 0.8 * I, -1, 0, s.seed + 2, 0, 1100);
           // sparks streaming down the beam
           if (dt > 0 && sparks < 46 && Math.random() < Math.min(1, s.len / 1400)) {
             sparks++;
@@ -784,8 +879,8 @@ export class BbexFx {
         } else {
           // the cut it left: a thin scar of light that lingers
           const f = 1 - L.ended / AFTER;
-          this.beams.seg(s.a, s.b, s.w * 0.5 * f + 0.4, s.w * 0.5 * f + 0.4, 1.3, 0.35, 1.7, f * f * 0.9, 0.5 * f, 2, s.seed, 0, 900);
-          this.beams.seg(s.a, s.b, s.w * 1.9, s.w * 1.9, 0.3, 0.06, 0.8, f * 0.3, 0, 1.5, s.seed + 1, 0, 900);
+          this.beams.seg(s.a, s.b, s.w * 0.4 * f + 0.3, s.w * 0.4 * f + 0.3, 1.2, 0.35, 1.7, f * f * 0.8, 0.5 * f, 2, s.seed, 0, 1100);
+          this.beams.seg(s.a, s.b, s.w * 3.0, s.w * 3.0, 1.0, 0.5, 1.5, f * 0.5, -1, 0, s.seed + 2, 0, 1100);
           if (dt > 0 && sparks < 20 && Math.random() < 0.12 * f) { sparks++; h.glow.emit(this.tmp2.copy(s.a).lerp(s.b, Math.random()), { life: rnd(0.5, 1.1), size: 2.2, size1: 0.3, color: PINK, color1: DEEP, alpha: 0.9, vel: rdir(new THREE.Vector3()).multiplyScalar(14) }); }
         }
       }
@@ -806,9 +901,9 @@ export class BbexFx {
       // the beam reaches it: flash, shock ring in the mirror plane, glass cracks where it splits
       if (lat && f.hitAt >= 0 && !f.struck && lat.t >= f.hitAt) {
         f.struck = true; f.flash = 1;
-        h.glow.emit(f.pos, { life: 0.4, size: 60, size1: 20, color: WHITE, color1: VIOLET, alpha: 1.7 });
-        h.rings.spawn(f.pos, 150 + 40 * f.split, 0.6, f.split > 1 ? WHITE : VIOLET, f.n.clone());
-        h.flashes.flash(f.pos, 300, 1300, 0.6, VIOLET);
+        h.glow.emit(f.pos, { life: 0.22, size: 26, size1: 8, color: WHITE, color1: VIOLET, alpha: 1.3 });
+        h.rings.spawn(f.pos, 130 + 40 * f.split, 0.6, f.split > 1 ? WHITE : VIOLET, f.n.clone());
+        h.flashes.flash(f.pos, 220, 1100, 0.5, VIOLET);
         const a = this.tmp.crossVectors(f.n, Math.abs(f.n.y) > 0.9 ? ZV : UPV).normalize().clone(), b = this.tmp2.crossVectors(f.n, a).normalize().clone();
         const shards = f.split > 1 ? 30 : 12;
         for (let k = 0; k < shards; k++) { const an = Math.random() * Math.PI * 2; const d = a.clone().multiplyScalar(Math.cos(an)).addScaledVector(b, Math.sin(an)).addScaledVector(f.n, rnd(-0.25, 0.25)); h.glow.emit(f.pos, { life: rnd(0.4, 1.0), size: rnd(2, 5), size1: 0.4, color: WHITE, color1: PINK, vel: d.multiplyScalar(rnd(90, 380)), drag: 1.8 }); }
@@ -818,15 +913,18 @@ export class BbexFx {
       }
       f.flash = lat && f.struck ? Math.max(0.55, f.flash - dt * 1.2) : Math.max(0, f.flash - dt * 2.5);
       const [r, g, b] = C3(VIOLET, 1.6);
-      const sz = f.size * (0.5 + 0.5 * ease(f.open));
+      // a struck pane shivers; a short pin through its centre shows which way it faces
+      const sz = f.size * (0.5 + 0.5 * ease(f.open)) * (1 + 0.06 * f.flash * Math.sin(this.wall * 38 + f.seed));
       this.facetQ.add(f.pos, f.q, sz, sz, ease(f.open), f.flash, f.split, f.seed, r, g, b, f.fade * (0.55 + 0.45 * f.open));
+      const pin = f.size * 0.3 * f.open * f.fade;
+      h.trails.seg(f.pos.x - f.n.x * pin, f.pos.y - f.n.y * pin, f.pos.z - f.n.z * pin, f.pos.x + f.n.x * pin, f.pos.y + f.n.y * pin, f.pos.z + f.n.z * pin, 0.25, 0.25, 1.6, 1.2, 2.2, 0.5 * f.fade, 0.5 * f.fade);
       if (f.flash > 0.3) this.addLens(f.pos, f.size * 1.3, -0.006 * f.flash);
     }
     void alpha;
   }
 
   private framePanels(dt: number) {
-    const [r, g, b] = C3(VIOLET, 2.1);
+    const [r, g, b] = C3(VIOLET, 1.35);
     for (let i = this.panels.length - 1; i >= 0; i--) {
       const p = this.panels[i];
       p.age += dt;
@@ -929,6 +1027,41 @@ export class BbexFx {
       else { this.tmp2.copy(cam.position).sub(s.pos).normalize(); QuadBatch.look(this.tmp2, this.q); this.tmp.copy(s.pos); }
       const R = s.size * 2 * (s.flat ? 1 : 0.6 + 0.4 * Math.min(1, s.t * 4));
       this.sigilQ.add(this.tmp, this.q, R, R, T * (s.flat ? 0.5 : 2.2) + s.seed, s.t / s.life, s.seed, 0, r, g, b, s.flat ? 0.8 : 1.4);
+    }
+  }
+
+  private frameCausal(dt: number, realDt: number) {
+    const h = this.host;
+    // the crease in the picture snaps shut within a third of a second (real time: it must read even in slow motion)
+    if (this.fold.z > 0) {
+      this.fold.z = Math.max(0, this.fold.z - realDt * 3.2);
+      const v = this.tmp3.copy(this.foldAt).project(h.rig.camera);
+      this.fold.x = v.x * 0.5 + 0.5; this.fold.y = v.y * 0.5 + 0.5;
+      if (v.z > 1 || v.z < -1) this.fold.z = 0;
+    }
+    // a struck-out shot: its track is wiped from the impact back toward where it came from
+    for (let i = this.erasing.length - 1; i >= 0; i--) {
+      const e = this.erasing[i];
+      e.t += realDt;
+      const k = e.t / e.dur;
+      if (k >= 1) { this.erasing.splice(i, 1); continue; }
+      const b = this.tmp.copy(e.b).lerp(e.a, k);
+      h.trails.seg(e.a.x, e.a.y, e.a.z, b.x, b.y, b.z, 0.2, 0.7, 2.6, 2.2, 2.8, 0.1, 1 - k * 0.5);
+      h.glow.emit(b, { life: 0.06, size: 5, size1: 1, color: WHITE, alpha: 1.2 });
+    }
+    // severed hulls: the two parts slide along the cut while the gap burns
+    for (let i = this.severing.length - 1; i >= 0; i--) {
+      const s = this.severing[i];
+      const pose = h.shipPose(s.ship);
+      if (!pose || pose.ship.state !== 'dying') { this.severing.splice(i, 1); continue; }
+      s.t += dt;
+      const k = Math.min(1, s.t / s.dur), slip = ease(k) * (pose.ship.radius * 0.55 + 1.2);
+      pose.front.position.set(s.n.x * slip, s.n.y * slip, s.n.z * slip + slip * 0.35);
+      pose.rear.position.set(-s.n.x * slip, -s.n.y * slip, -s.n.z * slip - slip * 0.35);
+      if (dt > 0 && Math.random() < 0.7) {
+        const p0 = this.tmp.set(rnd(-1, 1) * pose.ship.radius * 0.8, rnd(-0.5, 1) * pose.ship.radius * 0.6, rnd(-2, 2)).applyMatrix4(pose.root.matrixWorld);
+        h.glow.emit(p0, { life: rnd(0.2, 0.5), size: pose.ship.radius * 0.5 + 1.5, size1: 0.4, color: WHITE, color1: MAGENTA, alpha: 1.1, vel: rdir(new THREE.Vector3()).multiplyScalar(26) });
+      }
     }
   }
 

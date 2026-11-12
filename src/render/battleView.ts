@@ -111,7 +111,7 @@ export class BattleView implements FxHost {
   }
 
   // ── FxHost (what the BB-EX effects need from the view)
-  shipPose(id: number) { const v = this.views.get(id); return v && !v.gone ? { pos: v.wpos, fwd: v.wfwd, root: v.model.root as THREE.Object3D, ship: v.ship } : null; }
+  shipPose(id: number) { const v = this.views.get(id); return v && !v.gone ? { pos: v.wpos, fwd: v.wfwd, root: v.model.root as THREE.Object3D, front: v.model.front as THREE.Object3D, rear: v.model.rear as THREE.Object3D, ship: v.ship } : null; }
   beam(a: THREE.Vector3, b: THREE.Vector3, life: number, w: number, color: number) { this.beams.push({ a, b, life, max: life, w, c: C(color) }); }
   shake(p: THREE.Vector3, amount: number, range = 1200) { this.shakeNear(p, amount, range); }
 
@@ -170,7 +170,8 @@ export class BattleView implements FxHost {
         case 'dying': {
           const v = this.views.get(e.ship); if (!v) break;
           v.flicker = 1;
-          this.explosion(v.wpos.clone(), v.ship.role === 'raider' ? 1.2 : 1.4);
+          // a hull the DCP-Ω cut through is not blown up: it comes apart along the cut (bbex/fx.ts)
+          if (!(this.ex && this.ex.onDying(e.ship))) this.explosion(v.wpos.clone(), v.ship.role === 'raider' ? 1.2 : 1.4);
           this.noteInterest(e.ship, 9, 'dying');
           break;
         }
