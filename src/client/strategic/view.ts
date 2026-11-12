@@ -21,7 +21,7 @@ import type { StarSystem } from '../../world/types';
 
 interface ShipView { model: ShipModel; pos: THREE.Vector3; raw: THREE.Vector3; heading: number; roll: number; key: string; cls: string; seen: number; speed: number; warp: number; sys: string; jumpT: number; hp: number }
 
-export type Pick = { kind: 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string; pos: THREE.Vector3 };
+export type Pick = { kind: 'ship' | 'group' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string; pos: THREE.Vector3 };
 
 const lerpAngle = (a: number, b: number, t: number) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * t; };
 

@@ -94,7 +94,8 @@ export class PmcHud {
   private keys = new Set<string>();
   private disposers: (() => void)[] = [];
   private toastBox: HTMLElement;
-  private labels: { x0: number; x1: number; y0: number; y1: number }[] = [];
+  /** label rectangles drawn this frame, in draw order (last = on top); `pick` makes a label a click target */
+  private labels: { x0: number; x1: number; y0: number; y1: number; pick?: Pick }[] = [];
   private lastSelKey = '';
   private unseen = 0;
 
@@ -190,7 +191,7 @@ export class PmcHud {
       if (b === 0) this.leftClick(e.clientX, e.clientY);
       else if (b === 2) this.rightClick(e.clientX, e.clientY);
     });
-    on(cv, 'dblclick', (e: MouseEvent) => { const p = this.v.pick(e.clientX, e.clientY); if (p) this.v.focusOn(p.pos, p.kind === 'ship' ? 700 : 2200); });
+    on(cv, 'dblclick', (e: MouseEvent) => { const p = this.pickAt(e.clientX, e.clientY); if (p) this.v.focusOn(p.pos, p.kind === 'ship' || p.kind === 'group' ? 700 : 2200); });
     on(cv, 'wheel', (e: WheelEvent) => { e.preventDefault(); this.v.rig.zoom(Math.exp(e.deltaY * 0.0013)); }, { passive: false });
     on(window, 'resize', () => this.resize());
     on(window, 'keydown', (e: KeyboardEvent) => {
@@ -221,16 +222,45 @@ export class PmcHud {
     this.v.resize(innerWidth, innerHeight);
   }
 
+  /** the topmost name label under the point wins; outside every label the normal object pick applies.
+   *  Labels exist only for objects in this client's view, so a label never selects something hidden. */
+  private pickAt(x: number, y: number): Pick | null {
+    for (let i = this.labels.length - 1; i >= 0; i--) {
+      const r = this.labels[i];
+      if (r.pick && x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1 && this.pickExists(r.pick)) return r.pick;
+    }
+    return this.v.pick(x, y);
+  }
+  private pickExists(p: Pick): boolean {
+    const st = this.st;
+    switch (p.kind) {
+      case 'group': return !!st.groups[p.id];
+      case 'station': return !!st.stations[p.id];
+      case 'field': return !!st.fields[p.id];
+      case 'lair': return !!st.lairs[p.id];
+      case 'battle': return !!st.engagements[p.id];
+      case 'gate': return !!this.v.sys?.gates.some(g => g.id === p.id);
+      default: return true;
+    }
+  }
+
   private pirateGroupAt(p: Pick | null): string | null {
+    if (p?.kind === 'group') return this.st.companies[this.st.groups[p.id]?.owner]?.kind === 'pirate' ? p.id : null;
     if (p?.kind !== 'ship') return null;
     const s = this.st.ships[p.id];
     return s && s.owner === 'pirates' ? s.groupId : null;
   }
 
   private leftClick(x: number, y: number) {
-    const p = this.v.pick(x, y);
+    const p = this.pickAt(x, y);
     if (this.mode) { this.applyMode(p, x, y); return; }
     if (!p) { this.select(null); return; }
+    if (p.kind === 'group') {
+      const g = this.st.groups[p.id];
+      if (g?.owner === this.me) this.select({ kind: 'group', id: g.id });
+      else { const s = g && this.shipsOf(g)[0]; this.select(s ? { kind: 'ship', id: s.id } : null); }
+      return;
+    }
     if (p.kind === 'ship') {
       const s = this.st.ships[p.id];
       if (s.owner === this.me) { this.group = s.groupId; this.select({ kind: 'ship', id: s.id }); }
@@ -242,7 +272,7 @@ export class PmcHud {
     if (this.mode) { this.setMode(null); return; }
     if (!this.group) return;
     const g = this.st.groups[this.group]; if (!g) return;
-    const p = this.v.pick(x, y);
+    const p = this.pickAt(x, y);
     const hasMiner = this.subtree(g).some(s => econOf(s).mine > 0);
     const pirate = this.pirateGroupAt(p);
     if (pirate) return void this.setOp({ k: 'attack', group: pirate });
@@ -259,6 +289,7 @@ export class PmcHud {
     if (p?.kind === 'lair') return void this.setOp({ k: 'attack', lair: p.id });
     if (p?.kind === 'gate') { const to = this.arrivalPoint(p.id); if (to) return void this.setOp({ k: 'move', to }); }
     if (p?.kind === 'ship') { const s = this.st.ships[p.id]; if (s.owner === this.me && s.groupId !== g.id) return void this.setOp({ k: 'escort', group: s.groupId }); }
+    if (p?.kind === 'group') { const t = this.st.groups[p.id]; if (t?.owner === this.me && t.id !== g.id) return void this.setOp({ k: 'escort', group: t.id }); }
     const c = this.center(g);
     const pt = this.v.screenToPlane(x, y, c?.y ?? 0);
     if (pt) this.setOp({ k: 'move', to: { x: pt.x, y: c?.y ?? 0, z: pt.z } });
@@ -584,7 +615,7 @@ export class PmcHud {
       case 'mine': if (p?.kind === 'field') { this.mineForm = { group: g.id, field: p.id, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.setMode(null); this.hint('하역 목적지와 하역 방식을 고른 뒤 「작업 시작」을 누르세요'); this.refresh(true); } else this.hint('소행성 지대를 클릭하세요'); return;
       case 'haul_from': if (p?.kind === 'station') { this.haulFrom = p.id; this.mode = 'haul_to'; this.hint('운송 목적지 정거장을 클릭하세요'); } else this.hint('출발 정거장을 클릭하세요'); return;
       case 'haul_to': if (p?.kind === 'station' && this.haulFrom) this.openHaulRes(this.haulFrom, p.id); else this.hint('목적지 정거장을 클릭하세요'); return;
-      case 'escort': { const s = p?.kind === 'ship' ? this.st.ships[p.id] : null; if (s && s.owner === this.me && s.groupId !== g.id) this.setOp({ k: 'escort', group: s.groupId }); else this.hint('호위할 자사 함선을 클릭하세요'); return; }
+      case 'escort': { const target = p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : p?.kind === 'group' ? p.id : undefined; const tg = target ? this.st.groups[target] : undefined; if (tg && tg.owner === this.me && tg.id !== g.id) this.setOp({ k: 'escort', group: tg.id }); else this.hint('호위할 자사 함선이나 편대 이름표를 클릭하세요'); return; }
       case 'attack': { const pg = this.pirateGroupAt(p); if (pg) this.setOp({ k: 'attack', group: pg }); else if (p?.kind === 'lair') this.setOp({ k: 'attack', lair: p.id }); else this.hint('해적 함선이나 은신처를 클릭하세요'); return; }
       case 'build': if (p?.kind === 'station' && this.st.stations[p.id].owner === this.me) this.setOp({ k: 'build', station: p.id }); else this.hint('자사 정거장을 클릭하세요'); return;
       case 'found': {
@@ -1594,13 +1625,14 @@ export class PmcHud {
   private drawOverlay() {
     const ctx = this.ctx, W = innerWidth, H = innerHeight;
     ctx.clearRect(0, 0, W, H);
+    this.labels = [];
     if (!this.v.active) return;
     const st = this.st, v = this.v, p = new THREE.Vector3();
     const camD = v.rig.camera.position.distanceTo(v.rig.focus);
     const far = camD > 3500;
     this.labels = [];
     ctx.font = '600 11px "Noto Sans KR", sans-serif';
-    const label = (x: number, y: number, text: string, color: string, bg = 'rgba(4,12,20,0.7)', sub?: string) => {
+    const label = (x: number, y: number, text: string, color: string, bg = 'rgba(4,12,20,0.7)', sub?: string, pick?: Pick) => {
       const tw = Math.max(ctx.measureText(text).width, sub ? ctx.measureText(sub).width * 0.9 : 0);
       let ly = y;
       for (let k = 0; k < 6; k++) { const hit = this.labels.find(r => x - tw / 2 - 5 < r.x1 && x + tw / 2 + 5 > r.x0 && ly - 11 < r.y1 && ly + (sub ? 16 : 5) > r.y0); if (!hit) break; ly = hit.y0 - (sub ? 18 : 6); }
@@ -1609,7 +1641,7 @@ export class PmcHud {
       ctx.fillStyle = color; ctx.fillRect(x - tw / 2 - 5, ly - 11, 2, hh);
       ctx.fillText(text, x - ctx.measureText(text).width / 2, ly + 1);
       if (sub) { ctx.font = '10px "Noto Sans KR", sans-serif'; ctx.fillStyle = '#9ab'; ctx.fillText(sub, x - ctx.measureText(sub).width / 2, ly + 13); ctx.font = '600 11px "Noto Sans KR", sans-serif'; }
-      this.labels.push({ x0: x - tw / 2 - 5, x1: x + tw / 2 + 5, y0: ly - 11, y1: ly - 11 + hh });
+      this.labels.push({ x0: x - tw / 2 - 5, x1: x + tw / 2 + 5, y0: ly - 11, y1: ly - 11 + hh, pick });
     };
     // planets and gates
     for (const pl of v.sys?.planets ?? []) {
@@ -1622,24 +1654,24 @@ export class PmcHud {
     for (const gt of v.sys?.gates ?? []) {
       if (!v.project(gt.pos, p)) continue;
       const dest = st.systems[gt.to];
-      label(p.x, p.y - 24, `⟁ ${dest?.name ?? ''}`, secBand(dest ? effSec(dest) : 50).color, 'rgba(4,16,30,0.8)', dest ? `${secBand(effSec(dest)).name} · 치안 ${Math.round(effSec(dest))}` : undefined);
+      label(p.x, p.y - 24, `⟁ ${dest?.name ?? ''}`, secBand(dest ? effSec(dest) : 50).color, 'rgba(4,16,30,0.8)', dest ? `${secBand(effSec(dest)).name} · 치안 ${Math.round(effSec(dest))}` : undefined, { kind: 'gate', id: gt.id, pos: new THREE.Vector3(gt.pos.x, gt.pos.y, gt.pos.z) });
     }
     // stations
     for (const s of Object.values(st.stations)) {
       if (!v.project(s.pos, p)) continue;
       const co = st.companies[s.owner];
-      label(p.x, p.y - 26, `${s.public ? '◎' : '⬢'} ${s.name}`, co?.color ?? '#9cf', 'rgba(4,12,20,0.75)', s.public ? undefined : `${co?.name ?? ''} · 모듈 ${s.modules.filter(m => m.built).length}/${s.modules.length}`);
+      label(p.x, p.y - 26, `${s.public ? '◎' : '⬢'} ${s.name}`, co?.color ?? '#9cf', 'rgba(4,12,20,0.75)', s.public ? undefined : `${co?.name ?? ''} · 모듈 ${s.modules.filter(m => m.built).length}/${s.modules.length}`, { kind: 'station', id: s.id, pos: new THREE.Vector3(s.pos.x, s.pos.y, s.pos.z) });
     }
     for (const f of Object.values(st.fields)) {
       if (!v.project(f.pos, p)) continue;
       const frac = f.amount / f.max;
-      label(p.x, p.y, `${f.salvage ? '✱' : '◇'} ${f.name}`, RES_COLOR[f.res], 'rgba(4,12,20,0.55)', `${RES_NAME[f.res]} ${fmt(f.amount)} ${f.danger > 1 ? '· 위험 ' + '▲'.repeat(f.danger) : ''}`);
+      label(p.x, p.y, `${f.salvage ? '✱' : '◇'} ${f.name}`, RES_COLOR[f.res], 'rgba(4,12,20,0.55)', `${RES_NAME[f.res]} ${fmt(f.amount)} ${f.danger > 1 ? '· 위험 ' + '▲'.repeat(f.danger) : ''}`, { kind: 'field', id: f.id, pos: new THREE.Vector3(f.pos.x, f.pos.y, f.pos.z) });
       ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(p.x - 24, p.y + 18, 48, 3);
       ctx.fillStyle = RES_COLOR[f.res]; ctx.fillRect(p.x - 24, p.y + 18, 48 * frac, 3);
     }
     for (const l of Object.values(st.lairs)) {
       if (!v.project(l.pos, p)) continue;
-      label(p.x, p.y - 22, `☠ ${l.name}`, l.alive ? '#ff5040' : '#666', 'rgba(30,4,4,0.7)', l.alive ? `요새 ${Math.round(l.hp * 100)}%` : '파괴됨');
+      label(p.x, p.y - 22, `☠ ${l.name}`, l.alive ? '#ff5040' : '#666', 'rgba(30,4,4,0.7)', l.alive ? `요새 ${Math.round(l.hp * 100)}%` : '파괴됨', { kind: 'lair', id: l.id, pos: new THREE.Vector3(l.pos.x, l.pos.y, l.pos.z) });
     }
     // battles
     for (const e of Object.values(st.engagements)) {
@@ -1647,7 +1679,7 @@ export class PmcHud {
       const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 180);
       ctx.strokeStyle = `rgba(255,90,60,${0.5 + pulse * 0.5})`; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(p.x, p.y, 18 + pulse * 6, 0, Math.PI * 2); ctx.stroke();
-      label(p.x, p.y - 34, `⚔ 교전 중 ${e.sides[0].includes(this.me) ? '— 클릭하여 지휘' : ''}`, '#ff6040', 'rgba(40,6,4,0.85)');
+      label(p.x, p.y - 34, `⚔ 교전 중 ${e.sides[0].includes(this.me) ? '— 클릭하여 지휘' : ''}`, '#ff6040', 'rgba(40,6,4,0.85)', undefined, { kind: 'battle', id: e.id, pos: new THREE.Vector3(e.pos.x, e.pos.y, e.pos.z) });
     }
     // ships (icons when far)
     for (const s of Object.values(st.ships)) {
@@ -1670,16 +1702,16 @@ export class PmcHud {
     for (const g of Object.values(st.groups)) {
       const c = this.center(g); if (!c || !v.project(c, p)) continue;
       const co = st.companies[g.owner]; if (!co) continue;
-      const x = p.x, y = p.y;
+      const x = p.x, y = p.y, gp: Pick = { kind: 'group', id: g.id, pos: new THREE.Vector3(c.x, c.y, c.z) };
       if (g.owner === this.me) {
         const sel = this.group === g.id;
         if (sel || !far) this.drawOpLine(g, c, x, y, sel);
-        label(x, y + 22, `${g.name}`, co.color, sel ? 'rgba(20,50,70,0.85)' : 'rgba(4,12,20,0.6)', g.status);
+        label(x, y + 22, `${g.name}`, co.color, sel ? 'rgba(20,50,70,0.85)' : 'rgba(4,12,20,0.6)', g.status, gp);
       } else if (co.kind === 'pirate') {
-        label(x, y + 20, `☠ ${g.name} (${g.shipIds.length})`, '#ff5040', 'rgba(40,6,4,0.75)');
+        label(x, y + 20, `☠ ${g.name} (${g.shipIds.length})`, '#ff5040', 'rgba(40,6,4,0.75)', undefined, gp);
       } else if (co.kind === 'player') {
-        label(x, y + 20, `${co.name}: ${g.name}`, co.color, 'rgba(4,12,20,0.5)');
-      } else if (!far) label(x, y + 20, g.name, co.color, 'rgba(4,12,20,0.4)');
+        label(x, y + 20, `${co.name}: ${g.name}`, co.color, 'rgba(4,12,20,0.5)', undefined, gp);
+      } else if (!far) label(x, y + 20, g.name, co.color, 'rgba(4,12,20,0.4)', undefined, gp);
     }
     if (this.mode) { ctx.strokeStyle = 'rgba(255,179,71,0.9)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(this.pointer.x, this.pointer.y, 12, 0, Math.PI * 2); ctx.stroke(); }
   }
@@ -1718,7 +1750,7 @@ export class PmcHud {
   private tooltip() {
     const tip = document.getElementById('tooltip')!;
     if (this.pointer.down >= 0) { tip.classList.add('hidden'); return; }
-    const pk = this.v.pick(this.pointer.x, this.pointer.y);
+    const pk = this.pickAt(this.pointer.x, this.pointer.y);
     const st = this.st;
     if (!pk) {
       // empty space: local security under the cursor (only when it matters for a decision)
@@ -1738,6 +1770,7 @@ export class PmcHud {
     else if (pk.kind === 'lair') html = `<b>☠ ${esc(st.lairs[pk.id].name)}</b>`;
     else if (pk.kind === 'battle') html = '<b>⚔ 교전 중</b><br><span class="dim">클릭하여 전투 화면</span>';
     else if (pk.kind === 'gate') { const gt = this.v.sys?.gates.find(g => g.id === pk.id); html = `<b>⟁ ${esc(gt?.name ?? '')}</b><br><span class="dim">우클릭: 선택 편대 점프</span>`; }
+    else if (pk.kind === 'group') { const g = st.groups[pk.id], co = st.companies[g?.owner ?? '']; html = `<b style="color:${co?.color}">${esc(g?.name ?? '')}</b> <span class="dim">${esc(co?.name ?? '')} · ${g?.shipIds.length ?? 0}척</span>${g?.owner === this.me ? `<br>${esc(g.status)}` : ''}`; }
     else if (pk.kind === 'planet') { const pl = this.v.sys?.planets.find(x => x.id === pk.id); html = `<b>${esc(pl?.name ?? '')}</b>`; }
     tip.innerHTML = html;
     tip.style.left = `${this.pointer.x + 14}px`; tip.style.top = `${this.pointer.y + 12}px`;
