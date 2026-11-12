@@ -19,12 +19,13 @@ export const FACTIONS: Readonly<Record<string, FactionDef>> = {
   pirates: { id: 'pirates', name: '해적 연합', short: '해적', color: '#b07cff', kind: 'pirate', capital: 'blackgate', hostile: true, desc: '무법 공역을 근거지로 삼는 약탈 세력.' },
 };
 
-/** What each region type actually changes. Every field is read by a rule elsewhere (see comments). */
+/** What each region type actually changes. `found` and `risk` are read by rules; `patrol` is descriptive only
+ *  (the security effect comes from each system's own `security`, set per region by worldgen-p10). */
 export interface RegionRule {
   name: string;
   /** station founding: 'forbidden' | licence fee as a share of the foundation price | free */
   found: 'forbidden' | number;
-  /** territorial patrol strength 0..3 (security floor in secAt via territorySec) */
+  /** descriptive patrol level 0..3 (not read by any rule; system security carries the effect) */
   patrol: number;
   /** extra transport risk added to route risk (logistics/procurement) */
   risk: number;
