@@ -68,6 +68,8 @@ const S: Record<string, () => void> = {
     check('신뢰도 표시 (300표본 → 보통 이상 아님/낮음)', r.confidence === 'low' || r.confidence === 'medium');
     check('미관측 성분 상한 > 0 (희귀 없음 단정 안 함)', r.unseenMax > 0);
     check('함선 실제 채굴량 = 표본 수', Math.abs(r.n - f.geo!.draws) < 1e-9);
+    const obs = Object.fromEntries(r.shares), gap = Math.max(...Object.entries(truth).filter(([, v]) => v >= .1).map(([k, v]) => Math.abs((obs[k] ?? 0) - v)));
+    check('주요 성분 관측 비율 ≈ 실제 성분 (±12%p)', gap < .12, `최대 차이 ${(gap * 100).toFixed(1)}%p`);
   },
   C() {
     console.log('C. 장기 채굴 후 희귀 자원 발견');
@@ -77,9 +79,11 @@ const S: Record<string, () => void> = {
     sim.command(p, { c: 'workCreate', goal: { k: 'develop_field', field: f.id, group: g.id, sell: false, miners: 6 } } as any);
     const marks: { t: number; n: number; items: string[] }[] = [];
     let firstRare: { t: number; n: number; mined: number } | undefined;
+    let before: ReturnType<typeof fieldReport> | undefined;
     for (let t = 0; t < 10 * 3600; t++) {
       sim.update(1);
       const fi = sim.st.intel![p].fields[f.id];
+      if (!firstRare && fi && !fi.units.dense_titanium_ore) before = fieldReport(fi);
       if (!firstRare && fi?.units.dense_titanium_ore) firstRare = { t: sim.st.time, n: fi.n, mined: f.geo!.mined };
       if (t % 3600 === 0 && fi) marks.push({ t: Math.round(sim.st.time), n: fi.n, items: Object.keys(fi.units).sort() });
       if (firstRare && t > firstRare.t + 1800) break;
@@ -88,7 +92,7 @@ const S: Record<string, () => void> = {
     out.C = { marks, firstRare, final: { n: fi.n, shares: pct(fi.units) }, depth: f.geo!.mined };
     check('초기 표본에는 희귀 성분 없음', marks.length > 0 && !marks[0].items.includes('dense_titanium_ore'));
     check('깊이 3,000 이후 희귀 성분 발견', !!firstRare && firstRare.mined >= 3000, firstRare ? `표본 ${firstRare.n}개째, ${Math.round(firstRare.t / 60)}분` : '미발견');
-    check('발견 전 보고는 "미관측 상한"으로 표현', true, '보고서는 unseenMax(3/n) 상한만 제시');
+    check('발견 직전 보고: 희귀 성분 미표기 + 미관측 상한 > 0 (없다고 단정 안 함)', !!before && !before.shares.some(([k]) => k === 'dense_titanium_ore') && before.unseenMax > 0, before ? `표본 ${before.n}개, 신뢰도 ${before.confidence}, 미관측 상한 ${(before.unseenMax * 100).toFixed(2)}%` : '');
   },
   D() {
     console.log('D. 광구 자동 개발 (develop_field) — 채굴·하역·판매·수익 추적');

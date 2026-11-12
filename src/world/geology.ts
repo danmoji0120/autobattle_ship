@@ -54,11 +54,17 @@ export function trueMix(geo: FieldGeo): Cargo {
   return out;
 }
 
+/** well-mixed 32-bit hash of (field, n): the plain string hash clusters for sequential n, which skewed draws */
+function unitHash(fieldId: string, n: number): number {
+  let x = (hashId(fieldId) ^ Math.imul(n + 1, 0x9e3779b1)) >>> 0;
+  x ^= x >>> 16; x = Math.imul(x, 0x7feb352d); x ^= x >>> 15; x = Math.imul(x, 0x846ca68b); x ^= x >>> 16;
+  return x >>> 0;
+}
 /** deterministic weighted draw for the n-th unit of a field */
 export function drawItem(fieldId: string, n: number, mix: Cargo): string {
   const keys = sorted(mix); if (!keys.length) return 'ore';
   const total = keys.reduce((a, k) => a + mix[k], 0);
-  let r = (hashId(`${fieldId}#${n}`) / 4294967296) * total;
+  let r = (unitHash(fieldId, n) / 4294967296) * total;
   for (const k of keys) { r -= mix[k]; if (r < 0) return k; }
   return keys[keys.length - 1];
 }

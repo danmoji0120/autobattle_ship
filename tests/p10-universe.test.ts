@@ -5,7 +5,7 @@ import { jumps, nextGate, sysAt } from '../src/world/geom';
 import { cargoSum, type Cargo } from '../src/world/types';
 import { gateOpen, foundingRule, REGION_RULES } from '../src/world/territory';
 import { factionEconStep, startConflict, RESERVE, doctrineOf } from '../src/world/factionEcon';
-import { localMix, trueMix } from '../src/world/geology';
+import { localMix, trueMix, drawItem } from '../src/world/geology';
 import { fieldReport, sysLevel, knowsField } from '../src/world/intel';
 import { legacyView, applySync, ClientSync, SyncHub, syncMessage, type SyncMsg } from '../src/server/sync';
 import { P10_TERRITORY } from '../src/world/worldgen-p10';
@@ -95,6 +95,12 @@ describe('unidentified deposits', () => {
     expect(fi.n).toBe(f.geo!.draws);
     expect(fieldReport(fi).confidence).not.toBe('high');
     expect(fieldReport(fi).unseenMax).toBeGreaterThan(0);
+  });
+
+  it('draws units in proportion to the local composition', () => {
+    const mix = { titanium_ore: .45, rare_ore: .2, ore: .35 }, n = 20000, got: Record<string, number> = {};
+    for (let i = 0; i < n; i++) { const k = drawItem('p10_zenith_vein', i, mix); got[k] = (got[k] ?? 0) + 1; }
+    for (const [k, v] of Object.entries(mix)) expect(Math.abs(got[k] / n - v)).toBeLessThan(.015);
   });
 
   it('opens rare veins only after long mining, in some zones', () => {
