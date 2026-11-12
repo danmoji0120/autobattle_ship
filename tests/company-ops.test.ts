@@ -192,7 +192,11 @@ describe('G — over-budget approval and approval fatigue', () => {
     expect(g.budget!.spent).toBeLessThanOrEqual(price * 300 + 1e-6);
     let open = approvals(f.sim, f.p); expect(open).toHaveLength(1); expect(open[0].kind).toBe('budget');
     expect(f.sim.command(f.p, { c: 'approvalDecide', approval: open[0].id, option: 'reject' })).toBeNull();
-    const spent = g.budget!.spent; run(f.sim, 120);
+    const spent = g.budget!.spent; run(f.sim, 60);
+    // a rejection is reviewed once: at most one follow-up holding only the alternatives, nothing bought meanwhile
+    const alt = approvals(f.sim, f.p); expect(alt.length).toBeLessThanOrEqual(1); expect(alt.every(a => a.key === 'alt' && a.work === g.id)).toBe(true);
+    for (const a of alt) expect(f.sim.command(f.p, { c: 'approvalDecide', approval: a.id, option: 'reject' })).toBeNull();
+    run(f.sim, 120);
     expect(g.budget!.spent).toBe(spent); expect(approvals(f.sim, f.p)).toHaveLength(0); // rejection honoured, not re-asked
     expect(g.state).not.toBe('done');
     // a later decision with modified conditions (player raises the budget explicitly) resumes purchasing
