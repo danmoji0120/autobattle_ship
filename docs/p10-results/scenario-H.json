@@ -1,0 +1,145 @@
+{
+  "H": {
+    "hours": 12,
+    "tickMs": {
+      "p50": 12.931,
+      "p95": 22.077,
+      "p99": 28.99,
+      "max": 237.211
+    },
+    "saveBytes": 449372,
+    "intelBytes": 762,
+    "viewBytes": [
+      170595,
+      166636,
+      170639
+    ],
+    "factions": {
+      "union": {
+        "strength": 70,
+        "infra": 60,
+        "made": {
+          "ships": 10,
+          "infra": 10
+        },
+        "claimed": []
+      },
+      "guild": {
+        "strength": 18,
+        "infra": 55,
+        "made": {
+          "ships": 64,
+          "infra": 15
+        },
+        "claimed": []
+      },
+      "ceres": {
+        "strength": 32,
+        "infra": 70,
+        "made": {
+          "ships": 58,
+          "infra": 25
+        },
+        "claimed": []
+      },
+      "miners": {
+        "strength": 16,
+        "infra": 45,
+        "made": {
+          "ships": 58,
+          "infra": 15
+        },
+        "claimed": []
+      },
+      "iron": {
+        "strength": 100,
+        "infra": 60,
+        "made": {
+          "ships": 110,
+          "infra": 15
+        },
+        "claimed": []
+      },
+      "pirates": {
+        "strength": 37,
+        "infra": 15,
+        "made": {
+          "ships": 144,
+          "infra": 0
+        },
+        "claimed": []
+      }
+    },
+    "conflicts": [
+      {
+        "a": "iron",
+        "b": "pirates",
+        "from": 5160,
+        "to": 7380
+      },
+      {
+        "a": "iron",
+        "b": "guild",
+        "from": 18300,
+        "to": 19200
+      },
+      {
+        "a": "iron",
+        "b": "pirates",
+        "from": 18420,
+        "to": 19920
+      },
+      {
+        "a": "iron",
+        "b": "guild",
+        "from": 26760,
+        "to": 27660
+      },
+      {
+        "a": "miners",
+        "b": "pirates",
+        "from": 27360,
+        "to": 30000
+      },
+      {
+        "a": "iron",
+        "b": "pirates",
+        "from": 33000,
+        "to": 33420
+      },
+      {
+        "a": "ceres",
+        "b": "miners",
+        "from": 33480,
+        "to": 34620
+      },
+      {
+        "a": "iron",
+        "b": "guild",
+        "from": 39660,
+        "to": 40560
+      },
+      {
+        "a": "ceres",
+        "b": "miners",
+        "from": 39780,
+        "to": 41520
+      }
+    ],
+    "invariantViolations": 0,
+    "works": [
+      {
+        "state": "running",
+        "value": 567725
+      },
+      {
+        "state": "waiting",
+        "value": 117181
+      },
+      {
+        "state": "running",
+        "value": 1172215
+      }
+    ]
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "A": {
+    "travelS": 46,
+    "levels": {
+      "gloam": 3,
+      "zenith": 2
+    },
+    "viewBytes": {
+      "a": 135298,
+      "b": 130833
+    }
+  },
+  "D": {
+    "state": "running",
+    "reason": "채굴 30,574개 · 기준가 산출 가치 약 296,588 cr (74,147 cr/h)",
+    "value": 296588,
+    "credits": 84533,
+    "mined": 30578,
+    "log": [
+      "채굴반: 표류 암괴군 채굴 배정",
+      "대기 — 채굴 0개 · 기준가 산출 가치 약 0 cr (0 cr/h) · 대기",
+      "진행 — 채굴 0개 · 기준가 산출 가치 약 0 cr (0 cr/h)"
+    ]
+  },
+  "E": {
+    "sold": {
+      "value": 32568,
+      "sold": 600
+    },
+    "built": {
+      "without": 7.8,
+      "with": 9
+    },
+    "infra": {
+      "without": 42.6,
+      "with": 43
+    },
+    "alloyPrice": {
+      "before": 64.4,
+      "afterSale": 52.7
+    },
+    "standing": {
+      "iron": 1.30272
+    }
+  },
+  "F": {
+    "calm": {
+      "t": 42,
+      "seen": [
+        "crossroads",
+        "rampart",
+        "muster"
+      ]
+    },
+    "war": {
+      "t": 134,
+      "seen": [
+        "crossroads",
+        "ember",
+        "fang",
+        "frontier",
+        "meridian",
+        "rampart",
+        "muster"
+      ]
+    },
+    "ironStrength": {
+      "calm": 94,
+      "war": 56
+    },
+    "shipsBuiltDuringWar": 24,
+    "musterAlloyStock": {
+      "calm": 1250,
+      "war": 1245
+    },
+    "musterAlloyPrice": {
+      "start": 44,
+      "calm": 36.4,
+      "war": 36.5
+    }
+  },
+  "G": {
+    "extracted": 7313.034766400001,
+    "draws": 7312,
+    "a": {
+      "samples": 3656,
+      "held": 3656.522075360001
+    },
+    "b": {
+      "samples": 3656,
+      "held": 3656.512691040001
+    }
+  }
+}

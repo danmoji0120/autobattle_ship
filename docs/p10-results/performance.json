@@ -1,0 +1,165 @@
+{
+  "note": "single process; tick(1) = 1 simulated second; heavy = N companies × miners on separate deposits; sync = protocol-2 per-client messages, 1 frame per simulated second",
+  "idle": [
+    {
+      "layout": "five",
+      "systems": 5,
+      "ships": 146,
+      "msPerTick": 1.8769940144444446,
+      "cpuMsPerTick": 1.9151077777777779,
+      "saveBytes": 169575
+    },
+    {
+      "layout": "p9",
+      "systems": 22,
+      "ships": 148,
+      "msPerTick": 2.4347068238888885,
+      "cpuMsPerTick": 2.4983794444444443,
+      "saveBytes": 201673
+    },
+    {
+      "layout": "p10",
+      "systems": 40,
+      "ships": 162,
+      "msPerTick": 2.9392851294444458,
+      "cpuMsPerTick": 2.9627755555555555,
+      "saveBytes": 269178
+    }
+  ],
+  "load": [
+    {
+      "layout": "p9",
+      "companies": 1,
+      "playerShips": 6,
+      "miningShips": 6,
+      "mining": {
+        "msPerTick": 2.9535006366666656,
+        "cpuMsPerTick": 3.188278888888889
+      },
+      "war": null,
+      "sync": {
+        "fullBytesAvg": 128154,
+        "fullBytesMax": 128154,
+        "deltaBytesPerFrameAvg": 13523,
+        "deltaBytesPerFrameMax": 15076
+      },
+      "intelBytesPerCompany": 2,
+      "saveBytes": 207599,
+      "ships": 154
+    },
+    {
+      "layout": "p9",
+      "companies": 4,
+      "playerShips": 24,
+      "miningShips": 24,
+      "mining": {
+        "msPerTick": 4.685478847777777,
+        "cpuMsPerTick": 5.060635555555556
+      },
+      "war": null,
+      "sync": {
+        "fullBytesAvg": 133721,
+        "fullBytesMax": 134652,
+        "deltaBytesPerFrameAvg": 15096,
+        "deltaBytesPerFrameMax": 17001
+      },
+      "intelBytesPerCompany": 2,
+      "saveBytes": 292179,
+      "ships": 183
+    },
+    {
+      "layout": "p9",
+      "companies": 8,
+      "playerShips": 48,
+      "miningShips": 48,
+      "mining": {
+        "msPerTick": 6.479866472222226,
+        "cpuMsPerTick": 7.208297777777777
+      },
+      "war": null,
+      "sync": {
+        "fullBytesAvg": 141701,
+        "fullBytesMax": 143012,
+        "deltaBytesPerFrameAvg": 15091,
+        "deltaBytesPerFrameMax": 17641
+      },
+      "intelBytesPerCompany": 2,
+      "saveBytes": 389427,
+      "ships": 232
+    },
+    {
+      "layout": "p10",
+      "companies": 1,
+      "playerShips": 6,
+      "miningShips": 6,
+      "mining": {
+        "msPerTick": 3.9227339677777815,
+        "cpuMsPerTick": 4.131083333333334
+      },
+      "war": {
+        "msPerTick": 3.623442831111105,
+        "cpuMsPerTick": 3.7285044444444444
+      },
+      "sync": {
+        "fullBytesAvg": 163529,
+        "fullBytesMax": 163529,
+        "deltaBytesPerFrameAvg": 17120,
+        "deltaBytesPerFrameMax": 20758
+      },
+      "intelBytesPerCompany": 323,
+      "saveBytes": 287831,
+      "ships": 177
+    },
+    {
+      "layout": "p10",
+      "companies": 4,
+      "playerShips": 24,
+      "miningShips": 24,
+      "mining": {
+        "msPerTick": 5.848213842222225,
+        "cpuMsPerTick": 6.268672222222222
+      },
+      "war": {
+        "msPerTick": 4.817549354444442,
+        "cpuMsPerTick": 5.239311111111111
+      },
+      "sync": {
+        "fullBytesAvg": 172033,
+        "fullBytesMax": 174160,
+        "deltaBytesPerFrameAvg": 16522,
+        "deltaBytesPerFrameMax": 21106
+      },
+      "intelBytesPerCompany": 430,
+      "saveBytes": 383938,
+      "ships": 209
+    },
+    {
+      "layout": "p10",
+      "companies": 8,
+      "playerShips": 48,
+      "miningShips": 48,
+      "mining": {
+        "msPerTick": 7.917764474444444,
+        "cpuMsPerTick": 8.560915555555555
+      },
+      "war": {
+        "msPerTick": 7.830918927777772,
+        "cpuMsPerTick": 8.463435555555556
+      },
+      "sync": {
+        "fullBytesAvg": 174917,
+        "fullBytesMax": 176883,
+        "deltaBytesPerFrameAvg": 16868,
+        "deltaBytesPerFrameMax": 21063
+      },
+      "intelBytesPerCompany": 401,
+      "saveBytes": 455017,
+      "ships": 245
+    }
+  ],
+  "intelAllVisited": {
+    "systemsVisited": 40,
+    "fieldsKnown": 15,
+    "bytes": 1473
+  }
+}

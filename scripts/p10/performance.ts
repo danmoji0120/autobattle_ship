@@ -23,25 +23,28 @@ function timeTicks(sim: WorldSim, n: number) {
   return { msPerTick: (performance.now() - t) / n, cpuMsPerTick: (cpu.user + cpu.system) / 1000 / n };
 }
 
-/** N player companies; each gets a group of `miners` mining ships on a different deposit (unidentified ones on p10) */
+/** N player companies; each gets a group of `miners` mining ships on a deposit (unidentified ones on p10).
+ *  A deposit the mining op refuses (e.g. no market for auto-delivery) is skipped for the next one. */
 function populate(sim: WorldSim, companies: number, miners: number) {
   const fields = Object.values(sim.st.fields).filter(f => !f.salvage && (sim.st.worldLayout === 'p10' ? !!f.geo : true));
   const out: string[] = [];
+  let next = 0;
   for (let c = 0; c < companies; c++) {
     const p = sim.addPlayer(`부하 ${c + 1}`); sim.st.companies[p].credits = 1e8;
-    const f = fields[c % fields.length];
     const g = sim.newGroup(p, '채굴');
-    for (let i = 0; i < miners; i++) sim.spawnShip(p, 'miner', 'std', g.id, { x: f.pos.x + 300 + i * 40, y: 0, z: f.pos.z });
+    for (let tries = 0; tries < fields.length; tries++) {
+      const f = fields[next++ % fields.length];
+      const ships = Array.from({ length: miners }, (_, i) => sim.spawnShip(p, 'miner', 'std', g.id, { x: f.pos.x + 300 + i * 40, y: 0, z: f.pos.z }));
+      run(sim, 3); // ships arrive → the deposit is discovered (fog worlds)
+      const err = sim.command(p, { c: 'setOp', group: g.id, op: { k: 'mine', field: f.id, deliver: '', sell: true, auto: true } } as any);
+      if (!err) break;
+      for (const s of ships) delete sim.st.ships[s.id];
+    }
     out.push(p);
-    (sim as any).__pending = [...((sim as any).__pending ?? []), [p, g.id, f.id]];
-  }
-  run(sim, 3); // ships arrive → the deposit is discovered (fog worlds)
-  for (const [p, g, f] of (sim as any).__pending as [string, string, string][]) {
-    const err = sim.command(p, { c: 'setOp', group: g, op: { k: 'mine', field: f, deliver: '', sell: true, auto: true } } as any);
-    if (err) console.error('mine refused', p, f, err);
   }
   return out;
 }
+const onMineOp = (sim: WorldSim, cos: string[]) => Object.values(sim.st.ships).filter(s => cos.includes(s.owner) && s.groupId && sim.st.groups[s.groupId]?.op.k === 'mine').length;
 
 function syncBytes(sim: WorldSim, companies: string[], frames: number) {
   const hub = new SyncHub(), cs = companies.map(() => new ClientSync());
@@ -81,7 +84,7 @@ for (const layout of ['p9', 'p10'] as Layout[]) for (const n of [1, 4, 8]) {
   const mining = timeTicks(sim, 900);
   const sync = syncBytes(sim, cos, 60);
   const intel = cos.map(c => Buffer.byteLength(JSON.stringify(sim.st.intel?.[c] ?? {})));
-  const minedShips = Object.values(sim.st.ships).filter(s => cos.includes(s.owner) && s.task.k === 'mine').length;
+  const minedShips = onMineOp(sim, cos);
   let war: any = null;
   if (layout === 'p10') {
     startConflict(sim, sim.st, 'iron', 'guild', [['crossroads', 'rampart']]);
