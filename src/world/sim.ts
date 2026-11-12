@@ -42,7 +42,7 @@ import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } fr
 import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
 import { expandP10 } from './worldgen-p10';
-import { expandedLayout, gateOpen, foundingRule, dockRefused, FACTIONS } from './territory';
+import { expandedLayout, gateOpen, foundingRule, dockRefused, bumpStanding, FACTIONS } from './territory';
 import { visit, surveyIntel, recordSample, believedMix, knowsField } from './intel';
 import { mineGeo, releaseAcc } from './geology';
 import { factionEconStep, warSupply } from './factionEcon';
@@ -3106,6 +3106,8 @@ export class WorldSim {
     if (co.credits !== beforeDebt) book(this, company, 'upkeep', co.credits - beforeDebt);
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
     if (sold) emit(this.st, { kind: 'market', reason: 'sell', amount: sold, value: total, company, station: st.id, item: r });
+    // P10: supplying a faction's market slowly improves standing with it (bounded per sale)
+    if (sold && st.faction && this.st.factions) bumpStanding(this.st, company, st.faction, Math.min(2, total / 25000));
     return { value: total, sold };
   }
 
@@ -3548,6 +3550,8 @@ export class WorldSim {
       if (pay > 0) { co.credits += pay; co.stats.earned += pay; }
       const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
       if (standing) emit(st, { kind: 'reputation', reason: 'pirate_bounty', amount: standing, company: co.id, system: e.sys });
+      // P10: the faction holding the system values pirate hunting; the pirates remember it
+      if (standing && st.factions) { const fsys = st.systems[e.sys ?? '']?.faction; if (fsys && fsys !== 'pirates') bumpStanding(st, co.id, fsys, standing * .5); bumpStanding(st, co.id, 'pirates', -standing); }
       co.stats.kills += Math.round(destroyedPirateValue.size * share);
       if (won) { co.stats.battlesWon++; if (!co.milestones.includes('first_victory')) this.milestone(co, 'first_victory'); }
       const lost = lostBy.get(c) ?? 0;

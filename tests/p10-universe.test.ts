@@ -81,7 +81,10 @@ describe('unidentified deposits', () => {
     const group = sim.newGroup(p, '시험 채굴');
     const ship = sim.spawnShip(p, 'miner', 'std', group.id, { x: f.pos.x + 300, y: 0, z: f.pos.z });
     const dock = Object.values(sim.st.stations).find(s => s.public && sysAt(sim.st.systems, s.pos)?.id === 'quiet') ?? sim.st.stations.p9_harbor_port;
-    sim.command(p, { c: 'setOp', group: group.id, op: { k: 'mine', field: f.id, deliver: dock.id, sell: false } });
+    // under fog the deposit must be found first: an unknown field is refused, the arriving ship discovers it
+    expect(sim.command(p, { c: 'setOp', group: group.id, op: { k: 'mine', field: f.id, deliver: dock.id, sell: false } })).toBeTruthy();
+    run(sim, 2);
+    expect(sim.command(p, { c: 'setOp', group: group.id, op: { k: 'mine', field: f.id, deliver: dock.id, sell: false } })).toBeNull();
     run(sim, 120);
     const mined = before - f.amount;
     expect(mined).toBeGreaterThan(5);
@@ -144,6 +147,20 @@ describe('per-company intel and replication', () => {
     expect(vb.intel![b].sys.cradle).toBeUndefined();
     expect(JSON.stringify(vb)).not.toContain('p10_cradle_field');
     expect(JSON.stringify(va)).not.toMatch(/"layers"/);
+  });
+
+  it('does not leak unknown system names through gate names', () => {
+    const sim = WorldSim.create(20, { layout: 'p10' }); quiet(sim);
+    const b = sim.addPlayer('B');
+    run(sim, 2);
+    const vb = view(sim, b), text = JSON.stringify(vb);
+    const unknown = Object.values(sim.st.systems).filter(s => sysLevel(sim.st, b, s.id) === 0 && !vb.systems[s.id]);
+    expect(unknown.length).toBeGreaterThan(5);
+    for (const s of unknown) expect(text).not.toContain(s.name);
+    // a charted system bordering unknown space keeps the gate, under a neutral name
+    const edge = Object.values(vb.systems).find(s => s.gates.some(g => sysLevel(sim.st, b, g.to) < 1))!;
+    expect(edge).toBeDefined();
+    expect(edge.gates.filter(g => sysLevel(sim.st, b, g.to) < 1).every(g => g.name === '미확인 점프게이트')).toBe(true);
   });
 
   it('protocol-2 replication equals the reference view on a fog world', () => {

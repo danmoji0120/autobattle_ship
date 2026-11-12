@@ -58,12 +58,17 @@ function stubSystem(st: WorldState, s: StarSystem, c: string | undefined) {
     star: { name: '미확인', color: '#56607a', size: 1500 }, nebula: s.nebula, map: s.map, planets: [], gates: s.gates.filter(g => level(st, c, g.to) >= 1), lanes: [],
     stats: { pirateKills: 0, unionLosses: 0, civLosses: 0, raids: 0, bands: 0 }, charted: false, unknown: true };
 }
-type SysVis = 'full' | 'stub' | null;
+type SysVis = 'full' | 'redact' | 'stub' | null;
 function systemVis(st: WorldState, s: StarSystem, c: string | undefined): SysVis {
   if (!st.fog) return 'full';
-  if (level(st, c, s.id) >= 1) return 'full';
+  if (level(st, c, s.id) >= 1) return s.gates.some(g => level(st, c, g.to) < 1) ? 'redact' : 'full';
   return c && sysStub(st, c, s.id) ? 'stub' : null;
 }
+/** a known system whose gates lead into unknown space: those gates keep their position, not the destination's name */
+function redactGates(st: WorldState, s: StarSystem, c: string | undefined) {
+  return { ...s, gates: s.gates.map(g => level(st, c, g.to) < 1 ? { ...g, name: '미확인 점프게이트' } : g) };
+}
+const sysBody = (st: WorldState, s: StarSystem, c: string | undefined, vis: SysVis) => vis === 'full' ? s : vis === 'redact' ? redactGates(st, s, c) : stubSystem(st, s, c);
 const fieldVisible = (st: WorldState, f: Field, c: string | undefined) => !st.fog || (c ? knowsField(st, c, f) : !f.geo && contentsKnown(st, c, f.pos));
 /** an unidentified deposit: appearance, rough size and hints only — never its composition */
 function geoField(f: Field) {
@@ -105,7 +110,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   const ships = Object.fromEntries(Object.values(st.ships).filter(s => shipVisible(s, c, origin)).map(s => [s.id, s.owner === c ? s : publicShip(s)]));
   const own = <T extends { owner: string }>(m: Record<string, T> | undefined) => m ? Object.fromEntries(Object.entries(m).filter(([, r]) => r.owner === c)) : undefined;
   const fog = st.fog ? {
-    systems: Object.fromEntries(Object.values(st.systems).map(s => [s, systemVis(st, s, c)] as const).filter(([, vis]) => vis).map(([s, vis]) => [s.id, vis === 'full' ? s : stubSystem(st, s, c)])),
+    systems: Object.fromEntries(Object.values(st.systems).map(s => [s, systemVis(st, s, c)] as const).filter(([, vis]) => vis).map(([s, vis]) => [s.id, sysBody(st, s, c, vis)])),
     fields: Object.fromEntries(Object.values(st.fields).filter(f => fieldVisible(st, f, c)).map(f => [f.id, f.geo ? geoField(f) : f])),
     lairs: Object.fromEntries(Object.values(st.lairs).filter(l => contentsKnown(st, c, l.pos)).map(l => [l.id, l])),
     engagements: Object.fromEntries(Object.entries(eng).filter(([, e]) => contentsKnown(st, c, e.pos) || (!!c && e.sides.some((x: string[]) => x.includes(c))))),
@@ -282,6 +287,7 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
       for (const id in map) {
         const vis = systemVis(st, map[id], c);
         if (vis === 'full') one(id, 'systems', () => map[id]);
+        else if (vis === 'redact') one(id, 'sy.r:' + c, () => redactGates(st, map[id], c));
         else if (vis === 'stub') one(id, 'sy.u:' + c, () => stubSystem(st, map[id], c));
       }
       return;
