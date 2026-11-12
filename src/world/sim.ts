@@ -5,6 +5,7 @@ import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, obs
 import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
 import { createPoolJob, controlPoolJob, setPoolShips, interruptPoolShips, dispatchPool, maintainPool, stepPoolShip, type PoolRequest } from './autonomousLogistics';
 import { planProcurement, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
+import { registerCommand, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -116,7 +117,12 @@ export type Cmd =
   | { c: 'poolCreate'; request: PoolRequest }
   | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'procPolicy'; settings: ProcurementSettings }
-  | { c: 'procSource'; station: string; kind: ProcurementKind; source: string; enabled: boolean; priority?: number };
+  | { c: 'procSource'; station: string; kind: ProcurementKind; source: string; enabled: boolean; priority?: number }
+  // ── company operations (world/operations.ts)
+  | { c: 'workOp'; work: string; op: WorkOp; value?: number; price?: number }
+  | { c: 'workCreate'; goal: GoalSpec; title?: string; priority?: number; budget?: number; maxPrice?: number }
+  | { c: 'approvalDecide'; approval: string; option: string; scope?: ApprovalScope; value?: number }
+  | { c: 'opsPolicy'; policy: Partial<OpsPolicy> & { autoBuyItem?: string; autoBuyPrice?: number } };
 
 const PLAYER_COLORS = ['#5fd4ff', '#7dffb0', '#ffb35f', '#d79fff'];
 /** "창살급 구축함" */
@@ -570,8 +576,15 @@ export class WorldSim {
         const r = this.st.logistics?.[id], g = r && this.st.groups[r.group]; if (r?.owner === company && g) poolManual.push(...this.subtreeShipsInOp(g, true));
       }
     }
+    const opsBefore = growthOn(this.st) ? opsSnapshot(this, company, cmd) : undefined, bookedBefore = bookedSoFar(this.st, company);
     return watchMoney(this.st, cmd.c, meta, () => {
       const err = this.executeCommand(company, cmd);
+      if (!err && opsBefore) {
+        const co = this.st.companies[company];
+        // cash ledger: what this command moved, minus what nested paths (market sales) already booked
+        if (co) book(this, company, CMD_CATEGORY[cmd.c] ?? (cmd.c === 'sell' ? 'sales' : 'other'), co.credits - opsBefore.credits - (bookedSoFar(this.st, company) - bookedBefore));
+        registerCommand(this, company, cmd, opsBefore);
+      }
       if (!err && manual.length) pauseManualRoutes(this, manual);
       if (!err && poolManual.length) interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존');
       if (!err && growthOn(this.st)) {
@@ -1348,6 +1361,10 @@ export class WorldSim {
       case 'poolControl': return controlPoolJob(this, company, cmd.job, cmd.action);
       case 'procPolicy': return setProcurementPolicy(this, company, cmd.settings);
       case 'procSource': return setProcurementSource(this, company, cmd.station, cmd.kind, cmd.source, cmd.enabled, cmd.priority);
+      case 'workOp': return growthOn(this.st) ? workOp(this, company, cmd.work, cmd.op, cmd.value, cmd.price) : '이 세계에서는 회사 업무를 사용할 수 없습니다';
+      case 'workCreate': return createGoal(this, company, cmd.goal, { title: typeof cmd.title === 'string' ? cmd.title.slice(0, 60) : undefined, priority: cmd.priority, budget: cmd.budget, maxPrice: cmd.maxPrice });
+      case 'approvalDecide': return growthOn(this.st) ? decideApproval(this, company, cmd.approval, cmd.option, cmd.scope ?? 'once', cmd.value) : '결재 없음';
+      case 'opsPolicy': return setOpsPolicy(this, company, cmd.policy);
       case 'payArrears': {
         if (!growthOn(this.st)) return '이 월드에는 운영비 미납금이 없습니다';
         const paid = payDebt(this.st, co, 'manual');
@@ -1752,7 +1769,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if (st.logisticsJobs && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } }
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if (st.logisticsJobs && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } stepOperations(this); }
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
       this.runGroup(g, dt);
@@ -1891,7 +1908,9 @@ export class WorldSim {
     }
     if (growthOn(st)) for (const co of Object.values(st.companies)) {
       if (co.kind !== 'player') continue;
+      const before = co.credits;
       for (const e of stepUpkeep(st, co, dt)) this.ev(e.kind, e.text, { company: co.id, tag: e.tag });
+      if (co.credits !== before) book(this, co.id, 'upkeep', co.credits - before);
     }
     for (const co of Object.values(st.companies)) {
       if (co.kind !== 'player' || !co.research?.length) continue;
@@ -3020,7 +3039,9 @@ export class WorldSim {
     total *= tax;
     const co = this.st.companies[company];
     co.credits += total; co.stats.earned += total;
-    payFromSale(this.st, co, total);
+    book(this, company, 'sales', total, r);
+    const beforeDebt = co.credits; payFromSale(this.st, co, total);
+    if (co.credits !== beforeDebt) book(this, company, 'upkeep', co.credits - beforeDebt);
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
     if (sold) emit(this.st, { kind: 'market', reason: 'sell', amount: sold, value: total, company, station: st.id, item: r });
     return { value: total, sold };

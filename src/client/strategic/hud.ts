@@ -1,6 +1,7 @@
 import { LogisticsPanel } from './logisticsUi';
 import { procurementSourceHtml } from './procurementUi';
 import { AnalyticsPanel } from './analyticsUi';
+import { OperationsPanel } from './operationsUi';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
 import type { StrategicView, Pick } from './view';
@@ -74,6 +75,7 @@ export class PmcHud {
   private gy = newGrowthYardUi();
   private logisticsPanel: LogisticsPanel | null = null;
   private analyticsPanel: AnalyticsPanel | null = null;
+  private opsPanel: OperationsPanel | null = null;
   private upkOpen = false;
   private upkEl: HTMLElement | null = null;
   private tabScroll = new Map<string, number>();
@@ -727,6 +729,7 @@ export class PmcHud {
       ${this.c.sp ? `<div class="speedgrp">${[[0, '❚❚'], [1, '1×'], [2, '2×'], [4, '4×'], [8, '8×']].map(([v, l]) => `<button class="btn${spd === v ? ' on' : ''}" data-spd="${v}">${l}</button>`).join('')}</div>`
         : `<div class="kv"><span>접속 중</span><b>${this.c.players.filter(p => p.online).length}명</b></div>${players.map(p => `<span class="dot" title="${esc(p.name)}${p.online ? '' : ' (오프라인)'}" style="background:${p.color};opacity:${p.online ? 1 : 0.3}"></span>`).join('')}`}
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
+      ${growthOn(this.st) ? `<button class="btn" id="opsBtn" title="회사 전체 업무 · 목표 · 재고 · 결재">회사 본부${(() => { const n = Object.values(this.st.approvals ?? {}).filter(a => a.owner === this.me && a.state === 'open').length; return n ? ` <span class="ops-dot">${n}</span>` : ''; })()}</button>` : ''}
       ${growthOn(this.st) ? '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>' : ''}
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
@@ -734,6 +737,7 @@ export class PmcHud {
     const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
     const ab = document.getElementById('acctBtn') as HTMLButtonElement | null; if (ab) ab.onclick = () => this.opts.onAccount?.();
     const logistics = document.getElementById('logisticsBtn'); if (logistics) logistics.onclick = () => this.openLogistics();
+    const ops = document.getElementById('opsBtn'); if (ops) ops.onclick = () => this.openOperations();
     (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
   }
@@ -1092,7 +1096,7 @@ export class PmcHud {
 
   openLogistics(options: { station?: string; group?: string; create?: boolean; construction?: boolean } = {}) {
     if (!growthOn(this.st)) return;
-    this.closeModal(); this.analyticsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
+    this.closeModal(); this.analyticsPanel?.close(); this.logisticsPanel?.close(); this.opsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
     this.logisticsPanel = new LogisticsPanel(this.root, this.c, {
       station: (id, tab) => this.openStation(id, tab ?? 'store'),
       fleet: (id, ship) => { this.select({ kind: 'group', id }); const pos = ship ? this.st.ships[ship]?.pos : this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
@@ -1100,10 +1104,22 @@ export class PmcHud {
     }, options);
   }
 
-  openAnalytics() { this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
+  openOperations(tab?: 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'finance') {
+    if (!growthOn(this.st)) return;
+    if (this.opsPanel) { if (tab) this.opsPanel.show(tab); return; }
+    this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
+    this.opsPanel = new OperationsPanel(this.root, this.c, {
+      station: (id, t) => { this.opsPanel?.close(); this.openStation(id, t ?? 'store'); },
+      logistics: () => { this.opsPanel?.close(); this.openLogistics(); },
+      analytics: () => { this.opsPanel?.close(); this.openAnalytics(); },
+      close: () => { this.opsPanel = null; },
+    }, tab);
+  }
+
+  openAnalytics() { this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
-    this.logisticsPanel?.close();
+    this.logisticsPanel?.close(); this.opsPanel?.close();
     this.upkOpen = false; this.renderUpkeep(true);
     this.modalStation = id;
     const s = this.st.stations[id];

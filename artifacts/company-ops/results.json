@@ -1,0 +1,15 @@
+{
+  "works": [
+    {
+      "kind": "buy",
+      "state": "done",
+      "reason": ""
+    },
+    {
+      "kind": "stockpile",
+      "state": "waiting",
+      "reason": "결재 대기: 이 업무에는 아직 구매 권한이 없음"
+    }
+  ],
+  "errors": []
+}

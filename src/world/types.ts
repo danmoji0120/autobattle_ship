@@ -53,6 +53,8 @@ export interface Company {
   lastTrade?: { seq: number; id: string; signature: string };
   /** Optional company procurement policy; absent means transport enabled and purchasing disabled. */
   procurement?: import('./procurement').ProcurementPolicy;
+  /** Company operations (works, approvals policy, cash ledger) — see world/operations.ts. Created lazily. */
+  ops?: import('./operations').CompanyOps;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -487,6 +489,10 @@ export interface WorldState {
   logistics?: Record<string, import('./logistics').LogisticsRoute>;
   logisticsJobs?: Record<string, import('./autonomousLogistics').LogisticsJob>;
   procurementPlans?: Record<string, import('./procurement').ProcurementPlan>;
+  /** Unified company works and goals (world/operations.ts). Owner-only replication. */
+  works?: Record<string, import('./operations').Work>;
+  /** Approval documents (결재) raised by works. Owner-only replication. */
+  approvals?: Record<string, import('./operations').Approval>;
   contracts: Record<string, Contract>;
   engagements: Record<string, Engagement>;
   /** finished tactical battles, replayable from setup + seed + orders (newest last) */

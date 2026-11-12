@@ -21,12 +21,12 @@ export const SYNC_PROTO = 2;
 export interface Viewer { company?: string; view?: string }
 
 /** keyed collections replicated entity by entity (others are replicated as whole values) */
-const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'contracts', 'engagements', 'sites', 'uniques', 'ships'] as const;
+const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'uniques', 'ships'] as const;
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
 const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive']);
-const OWNED = new Set<string>(['logistics', 'logisticsJobs', 'procurementPlans']);
+const OWNED = new Set<string>(['logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals']);
 
 // ───────────────────────────────────────────────────────────── visibility rules (shared by both paths)
 
@@ -73,6 +73,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   return {
     ...base, engagements: eng, battleLog: log, companies, stations, ships, groups,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
+    works: own(base.works), approvals: own(base.approvals),
     grants: undefined, conversions: undefined, exclusive: undefined,
     sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c && s.seen.includes(c)).map(([id, s]) => [id, siteFor(s, c!)])) : undefined,
   } as WorldView;

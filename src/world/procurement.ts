@@ -12,6 +12,7 @@ import { dist } from './geom';
 import { effSec } from './security';
 import { usableRouteGate, incomingRoutes } from './logistics';
 import { createPoolJob, controlPoolJob, type LogisticsJob } from './autonomousLogistics';
+import { procurementAuthority } from './operations';
 
 export type ProcurementKind = 'construction' | 'production' | 'ship';
 export interface ProcurementPolicy {
@@ -247,19 +248,24 @@ export function planProcurement(h: WorldSim) {
           destRoom.set(d.station.id, Math.max(0, room - (takesSpace(d.item) ? transfer : 0))); remaining = Math.max(0, remaining - transfer); covered += transfer;
         }
       }
-      if (remaining > EPS && policy.autoBuy && policy.maxPrice[d.item] > 0 && policy.spent < policy.budget) {
+      // Purchasing authority: the company procurement policy, or an approved budget on the
+      // originating work / goal (company operations). Neither exists by default.
+      const legacy = policy.autoBuy && policy.maxPrice[d.item] > 0 && policy.spent < policy.budget;
+      const ops = remaining > EPS && !legacy ? procurementAuthority(h, d.owner, d.station.id, d.kind, d.source, d.item) : undefined;
+      if (remaining > EPS && (legacy || ops)) {
+        const maxUnit = legacy ? policy.maxPrice[d.item] : ops!.maxPrice, budgetLeft = () => legacy ? policy.budget - policy.spent : ops!.left, floor = legacy ? policy.minCredits : ops!.minCredits;
         const markets = Object.values(h.st.stations).filter(st => st.id !== d.station.id && st.public && st.market?.[d.item] && h.canDock(st, d.owner) && canCarry(ships, st, d.station, d.kind === 'construction') && qty(st.storage[d.owner], d.item) >= (policy.protectedStock[st.id]?.[d.item] ?? 0))
-          .map(st => ({ st, score: routeScore(h, st, d.station, policy.maxRisk), price: h.price(st, d.item, 'buy') })).filter(x => Number.isFinite(x.score) && x.price > 0 && x.price <= policy.maxPrice[d.item]).sort((a, b) => a.score - b.score || a.price - b.price || a.st.id.localeCompare(b.st.id));
+          .map(st => ({ st, score: routeScore(h, st, d.station, policy.maxRisk), price: h.price(st, d.item, 'buy') })).filter(x => Number.isFinite(x.score) && x.price > 0 && x.price <= maxUnit).sort((a, b) => a.score - b.score || a.price - b.price || a.st.id.localeCompare(b.st.id));
         for (const { st, price } of markets) {
           if (remaining < 1 - EPS) break;
           const room = destRoom.get(d.station.id) ?? 0;
-          const amount = Math.floor(Math.min(remaining, maxCargo, st.market![d.item].stock, h.room(st, d.owner), takesSpace(d.item) ? room : Infinity, (policy.budget - policy.spent) / price, (co.credits - policy.minCredits) / price) + EPS);
+          const amount = Math.floor(Math.min(remaining, maxCargo, st.market![d.item].stock, h.room(st, d.owner), takesSpace(d.item) ? room : Infinity, budgetLeft() / price, (co.credits - floor) / price) + EPS);
           if (amount < 1) continue;
           const stockBefore = qty(st.storage[d.owner], d.item), creditsBefore = co.credits;
           const err = h.command(d.owner, { c: 'buy', station: st.id, res: d.item, amount });
           if (err) { p.reason = err; continue; }
           const bought = Math.max(0, qty(st.storage[d.owner], d.item) - stockBefore), spent = Math.max(0, creditsBefore - co.credits);
-          policy.spent += spent; p.spent += spent;
+          if (legacy) policy.spent += spent; else { ops!.charge(spent, price); ops!.left -= spent; } p.spent += spent;
           if (bought > 0 && createJob(h, p, st, bought)) {
             const j = Object.values(h.st.logisticsJobs!).at(-1)!; allJobs.push(j); children.push(j); claim(claims, d.owner, st.id, d.item, bought);
             destRoom.set(d.station.id, Math.max(0, room - (takesSpace(d.item) ? bought : 0))); remaining = Math.max(0, remaining - bought); covered += bought;
