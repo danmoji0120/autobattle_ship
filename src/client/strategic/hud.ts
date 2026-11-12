@@ -22,12 +22,13 @@ import { FACTIONS } from '../../world/territory';
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, planMats, type Mat } from '../../world/construction';
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
-import { TECHS, ITEMS, EQUIPMENT, RECIPES, FACILITIES, itemName, recipeFor, facilityBuild, facilityTech, facilityDescription } from '../../world/industry';
+import { TECHS, ITEMS, EQUIPMENT, RECIPES, FACILITIES, itemName, recipeFor, facilityBuild, facilityTech, facilityDescription, techFx } from '../../world/industry';
+import { repairQuote, REPAIR_RATE, type RepairQuote } from '../../world/repair';
 import { REGIONAL_ORIGINS } from '../../world/regional';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
-import { growthOn, econOf, miningCargoCapacity } from '../../world/hullops';
+import { growthOn, econOf, miningCargoCapacity, shipWorth } from '../../world/hullops';
 import { priceOf } from '../../world/market';
 import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml, storageGrowthHtml, sitesHtml } from './growthUi';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
@@ -59,6 +60,13 @@ const secZone = (v: number) => v >= 90 ? { name: '핵심 관리 구역', grade: 
   : v >= 40 ? { name: '변방 구역', grade: '주의', color: '#ffd166' }
   : v >= 15 ? { name: '위험 구역', grade: '위험', color: '#ff8a4c' }
   : { name: '무법 구역', grade: '매우 위험', color: '#ff4a3a' };
+
+/** the repair button carries the quote it shows; the server refuses when its charge differs */
+function repairCell(ship: string, q: RepairQuote): string {
+  const price = `수리 ${Math.round(q.cost).toLocaleString()} cr`;
+  if (q.why) return `<button class="btn" disabled title="${q.why.replace(/"/g, '&quot;')}">${price}</button><div class="warn small">${q.why.replace(/[<>&]/g, '')}</div>`;
+  return `<button class="btn" data-repair="${ship}" data-quote="${q.cost}">${price}</button>`;
+}
 
 export class PmcHud {
   private root: HTMLElement;
@@ -1310,7 +1318,7 @@ export class PmcHud {
       if (op === 'cancel' && !confirm('생산 주문을 취소할까요? 이미 시작된 배치는 끝까지 생산됩니다 (투입된 재료는 돌아오지 않음).')) return;
       await this.cmd({ c: 'prodOp', station: s.id, order, op: op as 'pause' });
     });
-    m.querySelectorAll<HTMLButtonElement>('[data-repair]').forEach(b => b.onclick = () => this.cmd({ c: 'repair', ship: b.dataset.repair! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-repair]').forEach(b => b.onclick = () => this.cmd({ c: 'repair', ship: b.dataset.repair!, quote: Number(b.dataset.quote) }));
     m.querySelectorAll<HTMLButtonElement>('[data-openfit]').forEach(b => b.onclick = () => this.openFitting(b.dataset.openfit!));
     m.querySelectorAll<HTMLSelectElement>('[data-refit]').forEach(sel => sel.onchange = () => { if (sel.value) this.cmd({ c: 'refit', ship: sel.dataset.refit!, loadoutId: sel.value }); });
     m.querySelectorAll<HTMLButtonElement>('[data-hire]').forEach(b => b.onclick = () => this.cmd({ c: 'hire', commander: b.dataset.hire! }));
@@ -1395,19 +1403,19 @@ export class PmcHud {
 
   private dockHtml(s: Station): string {
     const ships = Object.values(this.st.ships).filter(x => x.owner === this.me && x.task.k === 'docked' && (x.task as any).station === s.id);
-    const own = s.owner === this.me;
+    const own = s.owner === this.me, co = this.st.companies[this.me];
     const canRepair = s.services.repair || (own && s.modules.some(m => m.kind === 'repair' && m.built));
     const canRefit = s.services.refit || (own && s.modules.some(m => (m.kind === 'fitting' || m.kind.startsWith('yard_')) && m.built));
     const store = s.storage[this.me] ?? {};
     if (!ships.length) return `<div class="dim">이 정거장에 정박한 자사 함선이 없습니다. 편대를 선택하고 정거장을 우클릭하면 정박합니다.</div>`;
     return `<table class="gt"><tr><th>함선</th><th>선체</th><th>무장</th><th></th></tr>${ships.map(x => {
       const c = SHIP_CLASSES[x.classId];
-      const cost = Math.round((1 - x.hp) * econOf(x).price * 0.3);
+      const q = repairQuote(this.st, x, co);
       return `<tr><td><b>${esc(x.name)}</b> <span class="dim">${c.type}</span></td><td><span style="color:${hpCol(x.hp)}">${Math.round(x.hp * 100)}%</span></td>
-        <td>${x.fitting ? `${this.fitSummary(x)} ${canRefit ? `<button class="btn go" data-openfit="${x.id}">피팅</button>` : '<span class="dim small">(피팅 시설 없음)</span>'}` : canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (${own ? '창고의 무장 장비로 교체' : `개조 ${fmt(econOf(x).price * 0.15)} cr`})</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
-        <td>${x.hp < 0.999 && canRepair ? `<button class="btn" data-repair="${x.id}">수리 ${fmt(cost)} cr</button>` : ''}</td></tr>
+        <td>${x.fitting ? `${this.fitSummary(x)} ${canRefit ? `<button class="btn go" data-openfit="${x.id}">피팅</button>` : '<span class="dim small">(피팅 시설 없음)</span>'}` : canRefit && c.loadouts.length > 1 ? `<select data-refit="${x.id}"><option value="">${esc(getLoadout(x.classId, x.loadoutId).name)} (${own ? '창고의 무장 장비로 교체' : `개조 ${fmt(Math.round(shipWorth(this.st, x) * 0.15))} cr`})</option>${c.loadouts.filter(l => l.id !== x.loadoutId).map(l => `<option value="${l.id}">→ ${esc(l.name)}</option>`).join('')}</select>` : esc(getLoadout(x.classId, x.loadoutId).name)}</td>
+        <td>${x.hp < 0.999 && canRepair ? repairCell(x.id, q) : ''}</td></tr>
         ${canRefit && !x.fitting ? `<tr class="fitrow"><td colspan="4">${fitHtml(this.st, x, store)}</td></tr>` : ''}`;
-    }).join('')}</table>${own && s.modules.some(m => m.kind === 'repair' && m.built) ? '<div class="dim small">정비소: 이곳에 정박한 자사 함선은 무료로 천천히 수리됩니다.</div>' : ''}`;
+    }).join('')}</table><div class="dim small">수리비 = 손상률 × 선체 가치 × ${REPAIR_RATE * 100}%${techFx(co?.tech).repairMul !== 1 ? ` ÷ 수리 연구 ×${techFx(co?.tech).repairMul}` : ''}. 내구도(선체 손상) 수리는 이 버튼으로만 이뤄집니다. ${growthOn(this.st) ? '정박 시 자동으로 청구되는 <b>마모 정비비</b>와 함대 운영비는 별도이며 재무 화면의 정비비·운영비 항목에 기록됩니다.' : ''}${own && s.modules.some(m => m.kind === 'repair' && m.built) ? ' 자사 정비소: 마모 정비료 50%.' : ''}</div>`;
   }
 
   private recruitHtml(s: Station): string {

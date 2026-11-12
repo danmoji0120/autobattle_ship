@@ -42,6 +42,7 @@ import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } fr
 import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
 import { expandP10 } from './worldgen-p10';
+import { repairQuote } from './repair';
 import { expandedLayout, gateOpen, foundingRule, dockRefused, bumpStanding, FACTIONS } from './territory';
 import { visit, surveyIntel, recordSample, believedMix, knowsField } from './intel';
 import { mineGeo, releaseAcc } from './geology';
@@ -81,7 +82,7 @@ export type Cmd =
   | { c: 'sell'; station: string; res: Res; amount: number; request?: { seq: number; id: string } }
   | { c: 'buy'; station: string; res: Res; amount: number; /** growth: load straight into this docked ship's hold */ ship?: string; request?: { seq: number; id: string } }
   | { c: 'lease'; station: string; blocks: number }
-  | { c: 'repair'; ship: string }
+  | { c: 'repair'; ship: string; /** the cost the client showed; refused when the server charge differs */ quote?: number }
   | { c: 'refit'; ship: string; loadoutId: string }
   | { c: 'hire'; commander: string }
   | { c: 'dismiss'; commander: string }
@@ -815,13 +816,15 @@ export class WorldSim {
         return null;
       }
       case 'repair': {
-        const s = this.st.ships[cmd.ship]; if (!s || s.owner !== company || s.state !== 'docked' || s.task.k !== 'docked') return '정박 중인 함선만 수리 가능';
-        const st = S(s.task.station); if (!st.services.repair && !(st.owner === company && this.hasModule(st, 'repair'))) return '수리 시설 없음';
-        if (stationSize(st) && stationPower(st).factor < 1) return '전력 부족 — 발전시설을 증설한 뒤 수리하세요';
-        const cost = Math.round((1 - s.hp) * shipWorth(this.st, s) * 0.3 / techFx(co.tech).repairMul);
-        if (co.credits < cost) return '자금 부족';
-        co.credits -= cost; emit(this.st, { kind: 'cost', reason: 'repair', amount: cost, company, group: s.groupId, ship: s.id, station: st.id }); s.hp = 1;
-        this.ev('money', `${s.name} 수리 완료 -${cost.toLocaleString()} cr`, { company });
+        const s = this.st.ships[cmd.ship];
+        const q = s ? repairQuote(this.st, s, co) : null;
+        if (!s || !q) return '정박 중인 함선만 수리 가능';
+        if (q.why) return q.why;
+        // the client shows a quote; if the charge changed since (hp, research, hull value), refuse rather than surprise
+        if (typeof cmd.quote === 'number' && Number.isFinite(cmd.quote) && Math.round(cmd.quote) !== q.cost) return `수리비가 바뀌었습니다 (${Math.round(cmd.quote).toLocaleString()} → ${q.cost.toLocaleString()} cr) — 견적을 확인한 뒤 다시 시도하세요`;
+        const st = S(s.task.k === 'docked' ? s.task.station : '');
+        co.credits -= q.cost; emit(this.st, { kind: 'cost', reason: 'repair', amount: q.cost, company, group: s.groupId, ship: s.id, station: st.id }); s.hp = 1;
+        this.ev('money', `${s.name} 수리 완료 -${q.cost.toLocaleString()} cr`, { company });
         return null;
       }
       case 'refit': {
