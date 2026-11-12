@@ -14,6 +14,7 @@ import { EQUIPMENT, RECIPES, TECHS } from '../src/world/industry';
 import { generateCommander } from '../src/world/data';
 import { yardHulls } from '../src/world/hullops';
 import { BBEX_SHIP_ID, BB_COMMANDER_ID, EXCLUSIVE_RECOVER_S, enforceExclusive, isExclusiveEquip } from '../src/world/exclusive';
+import { census as assetCensus, compareCensus } from '../src/world/migrate';
 import { Rng } from '../src/sim/rng';
 import type { WorldSim } from '../src/world/sim';
 
@@ -72,6 +73,35 @@ describe('1–2. grant: the owner account gets exactly one BB and one BB-EX, nob
     srv.handle('anon', { t: 'hello', name: 'BB', token: OWNER });
     srv.handle('anon', { t: 'createPmc', name: OWNER });
     expect(census(srv.sim).ships).toHaveLength(0);
+  });
+});
+
+
+describe('startup migration census and deferred exclusive grant', () => {
+  it('validates existing assets before granting the owner one BB-EX, then persists idempotently', () => {
+    const initial = mk(null, '');
+    join(initial, 'a', OWNER, '오너 PMC');
+    join(initial, 'b', OTHER, '다른 PMC');
+    const save = JSON.parse(JSON.stringify(initial.snapshotFile())) as SaveFile;
+    const before = assetCensus(save.world);
+
+    // Production startup must compare these censuses before the exclusive ship is granted.
+    const restored = new GameServer(save, {
+      singleplayer: false, accounts: true, exclusiveOwner: OWNER,
+      deferExclusiveGrant: true, snapInterval: 0.5,
+    }, 7);
+    expect(compareCensus(before, assetCensus(restored.sim.st))).toEqual([]);
+    expect(census(restored.sim).ships).toHaveLength(0);
+    expect(restored.grantExclusive()).toBe('granted');
+    expect(restored.grantExclusive()).toBe('present');
+    expect(census(restored.sim).ships).toHaveLength(1);
+    expect(census(restored.sim).cmdrs).toHaveLength(1);
+    expect(restored.sim.st.exclusive!.bbex!.account).toBe(OWNER);
+
+    const again = mk(JSON.parse(JSON.stringify(restored.snapshotFile())), OWNER);
+    expect(again.grantExclusive()).toBe('present');
+    expect(census(again.sim).ships).toHaveLength(1);
+    expect(census(again.sim).cmdrs).toHaveLength(1);
   });
 });
 
