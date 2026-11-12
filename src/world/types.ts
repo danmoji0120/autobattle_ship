@@ -55,6 +55,8 @@ export interface Company {
   procurement?: import('./procurement').ProcurementPolicy;
   /** Company operations (works, approvals policy, cash ledger) — see world/operations.ts. Created lazily. */
   ops?: import('./operations').CompanyOps;
+  /** P10 standing with each territorial faction (−100..100; absent = 0) */
+  standing?: Record<string, number>;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -153,6 +155,8 @@ export interface WShip {
   kills: number;
   /** visual hints for clients */
   fx?: { mining?: string; rock?: number; transfer?: string; welding?: string };
+  /** P10: fraction of a unit mined from an unidentified field that has not yet become a discrete sample (owned by that field) */
+  mineAcc?: { field: string; a: number };
   /** in-system high-speed travel: aligning, then warping */
   warp?: { to: V; phase: 'align' | 'warp'; t: number };
   /** world time of the last gate jump (client flash) */
@@ -299,6 +303,8 @@ export interface Station {
   shipStock?: Record<string, { n: number; t: number; why?: string }>;
   /** player ship sale listings (ship stays docked, locked) */
   shipListings?: ShipListing[];
+  /** P10: territorial faction that hosts this public market (its programs draw from this stock) */
+  faction?: string;
 }
 
 export interface Site {
@@ -358,6 +364,8 @@ export interface Field {
   danger: number;
   /** yield multiplier (remote, lawless space is richer) */
   rich?: number;
+  /** P10: unidentified deposit model (world/geology.ts). Composition is server-only; companies learn it from samples. */
+  geo?: import('./geology').FieldGeo;
 }
 
 export interface Lair {
@@ -403,6 +411,12 @@ export interface StarSystem {
   inf?: { union: number; pirates: number; guild: number };
   /** reconstruction boom after a lair falls */
   recoverUntil?: number;
+  /** P10 territory (world/territory.ts): controlling faction id, absent = unclaimed */
+  faction?: string;
+  /** P10 region type, drives territory rules (founding, licences, patrols, demand) */
+  region?: import('./territory').RegionKind;
+  /** P10: false = uncharted (not on public charts; per-company exploration intel only) */
+  charted?: boolean;
 }
 
 export interface Contract {
@@ -505,7 +519,17 @@ export interface WorldState {
   /** content-model migration applied (world/migrate.ts CONTENT_VERSION) */
   contentV?: number;
   /** Layout of a freshly created world. Existing saves are never implicitly expanded. */
-  worldLayout?: 'p9';
+  worldLayout?: 'p9' | 'p10';
+  /** P10 territory: faction economies (world/territory.ts, world/factionEcon.ts) */
+  factions?: Record<string, import('./territory').FactionState>;
+  /** P10 active border conflicts (closed gates) */
+  conflicts?: Record<string, import('./territory').Conflict>;
+  /** P10 per-company exploration knowledge (world/intel.ts); only the owner's entry is ever replicated */
+  intel?: Record<string, import('./intel').CompanyIntel>;
+  /** P10 last faction-economy cycle time */
+  factionClock?: number;
+  /** P10 fog of war: uncharted systems and unidentified fields are hidden per company */
+  fog?: 1;
   /** Explicit regional-resource rules; absent on older worlds until separately activated. */
   regionalV?: 1;
   /** items created by migrations (asset conservation ledger) */

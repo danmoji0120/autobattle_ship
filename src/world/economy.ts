@@ -68,7 +68,7 @@ function addGood(m: Market, id: string, mult: number, fill: number) {
 export function upgradeIndustry(st: WorldState) {
   if ((st.industryV ?? 0) >= INDUSTRY_VERSION) return;
   for (const [id, add] of Object.entries(YARD_ADD)) { const x = st.stations[id]; if (x) for (const c of add) if (!x.services.shipyard.includes(c)) x.services.shipyard.push(c); }
-  for (const f of Object.values(st.fields)) if (!f.mix) f.mix = FIELD_MIX[f.id] ?? (f.salvage ? { ...SALVAGE_MIX } : undefined);
+  for (const f of Object.values(st.fields)) if (!f.mix && !f.geo) f.mix = FIELD_MIX[f.id] ?? (f.salvage ? { ...SALVAGE_MIX } : undefined);
   for (const s of Object.values(st.stations)) {
     for (const m of s.modules) if (LEGACY_MODULE[m.kind]) m.kind = LEGACY_MODULE[m.kind];
     if (s.public && s.market) {

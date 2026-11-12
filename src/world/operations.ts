@@ -7,6 +7,7 @@
 // through `WorldSim.command`, so every rule, price, capacity and ownership check of the
 // original systems still applies. Approvals (결재) are raised only where automatic work would
 // spend money without authority or take a risk the company has not accepted.
+import { territoryRisk } from './territory';
 import type { WorldSim, Cmd } from './sim';
 import type { Company, Station, WorldState, Op, WGroup } from './types';
 import { qty, cargoSum } from './types';
@@ -682,7 +683,8 @@ export function decideApproval(h: WorldSim, owner: string, id: string, option: s
 /** fewest-jump path (by usable gates); returns hops and the highest sector risk crossed, or null */
 export function routeRisk(h: WorldSim, a: Station, b: Station, maxRisk = 100): { hops: number; risk: number } | null {
   const s = h.sysOf(a.pos), e = h.sysOf(b.pos); if (!s || !e) return null;
-  const r = (id: string) => 100 - effSec(h.st.systems[id]);
+  // P10: territory adds region risk (lawless, uncharted, contested borders)
+  const r = (id: string) => Math.min(100, 100 - effSec(h.st.systems[id]) + territoryRisk(h.st, h.st.systems[id]));
   if (r(s.id) > maxRisk + EPS || r(e.id) > maxRisk + EPS) return null;
   if (s.id === e.id) return { hops: 0, risk: r(s.id) };
   const q = [{ id: s.id, hops: 0, risk: r(s.id) }], seen = new Set([s.id]);

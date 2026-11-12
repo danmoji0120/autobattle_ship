@@ -41,6 +41,11 @@ import { publicCap, storeUsed, reservedSpace, listedSpace, logisticsReservedSpac
 import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } from './explore';
 import type { Size } from '../content/schema';
 import { effSec, secAt } from './security';
+import { expandP10 } from './worldgen-p10';
+import { expandedLayout, gateOpen, foundingRule, dockRefused, FACTIONS } from './territory';
+import { visit, surveyIntel, recordSample, believedMix } from './intel';
+import { mineGeo, releaseAcc } from './geology';
+import { factionEconStep, warSupply } from './factionEcon';
 import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate, jumps } from './geom';
 import { STATION_SIZES, foundingMaterials, validStationSize, facilityProblem, moduleMaterials, moduleWork, moduleUnlocks, stationSize, stationBerths, occupiedBerths, stationCargoRate } from './stations';
 
@@ -206,9 +211,11 @@ export class WorldSim {
     if (c) { this.acc = c.acc; this.slow = c.slow; this.npcRot = c.npcRot; for (const [k, v] of Object.entries(c.battleAcc ?? {})) if (this.battles.has(k)) this.battleAcc.set(k, v); }
   }
 
-  static create(seed = 1): WorldSim {
+  /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     expandFreshWorld(sim.st);
+    if (opts.layout === 'p10') expandP10(sim.st);
     return sim;
   }
 
@@ -271,7 +278,7 @@ export class WorldSim {
   hasModule(st: Station, kind: string) { return st.modules.some(m => m.kind === kind && m.built); }
   /** P9 system origins are storage coordinates, not a measure of travel distance. */
   private routeDistance(a: V, b: V): number {
-    if (this.st.worldLayout !== 'p9') return dist(a, b);
+    if (!expandedLayout(this.st)) return dist(a, b);
     const from = sysAt(this.st.systems, a), to = sysAt(this.st.systems, b);
     if (!from || !to || from.id === to.id) return dist(a, b);
     const n = jumps(this.st.systems, from.id, to.id);
@@ -292,14 +299,14 @@ export class WorldSim {
   autoDeliver(company: string, fieldId: string, sell: boolean, berth: Size = 'S', cargo?: Cargo): string | null {
     const f = this.st.fields[fieldId]; if (!f) return null;
     const fs = sysAt(this.st.systems, f.pos)?.id;
-    const goods = cargo && cargoKeys(cargo).length ? cargo : f.mix ?? { [f.res]: 1 };
+    const goods = cargo && cargoKeys(cargo).length ? cargo : believedMix(this.st, company, f);
     let best: string | null = null, bd = Infinity;
     for (const st of Object.values(this.st.stations)) {
-      if (this.deliverProblem(st, company, sell, berth) || this.intakeProblem(st, company, sell, this.st.worldLayout === 'p9' ? goods : cargo ?? f.mix ?? { [f.res]: 1 })) continue;
-      if (this.st.worldLayout === 'p9' && sell && !cargoKeys(goods).some(k => st.market?.[k])) continue;
+      if (this.deliverProblem(st, company, sell, berth) || this.intakeProblem(st, company, sell, expandedLayout(this.st) ? goods : cargo ?? f.mix ?? { [f.res]: 1 })) continue;
+      if (expandedLayout(this.st) && sell && !cargoKeys(goods).some(k => st.market?.[k])) continue;
       const ss = sysAt(this.st.systems, st.pos)?.id;
-      const j = this.st.worldLayout !== 'p9' && fs && ss ? jumps(this.st.systems, fs, ss) : 0;
-      const d = (this.st.worldLayout === 'p9' ? this.routeDistance(f.pos, st.pos) : Math.hypot(st.pos.x - f.pos.x, st.pos.z - f.pos.z) + j * 200000) * (!sell && st.owner === company ? 0.6 : 1);
+      const j = !expandedLayout(this.st) && fs && ss ? jumps(this.st.systems, fs, ss) : 0;
+      const d = (expandedLayout(this.st) ? this.routeDistance(f.pos, st.pos) : Math.hypot(st.pos.x - f.pos.x, st.pos.z - f.pos.z) + j * 200000) * (!sell && st.owner === company ? 0.6 : 1);
       if (d < bd) { bd = d; best = st.id; }
     }
     return best;
@@ -318,7 +325,7 @@ export class WorldSim {
   private deliveryCargo(g: WGroup, field: string, orderRoot = false): Cargo {
     const cargo: Cargo = {};
     for (const s of this.subtreeShipsInOp(g, orderRoot)) for (const k of cargoKeys(s.cargo)) addc(cargo, k, s.cargo[k]);
-    if (!cargoKeys(cargo).length) { const f = this.st.fields[field]; if (f) Object.assign(cargo, f.mix ?? { [f.res]: 1 }); }
+    if (!cargoKeys(cargo).length) { const f = this.st.fields[field]; if (f) Object.assign(cargo, believedMix(this.st, g.owner, f)); }
     return cargo;
   }
 
@@ -487,11 +494,11 @@ export class WorldSim {
   private npcMarket(s: Station, m: import('./types').Market, dt: number) {
     const sys = this.sysOf(s.pos);
     const v3 = growthOn(this.st);
-    npcMarketStep(s, m, dt, sys?.heat ?? 0, supplyMul(sys, this.time), !v3);
+    npcMarketStep(s, m, dt, sys?.heat ?? 0, supplyMul(sys, this.time) * (this.st.conflicts ? warSupply(this.st, sys) : 1), !v3);
     if (v3) driftV3(s, m, dt, Math.max(0.15, 1 - (sys?.heat ?? 0) / 120) * supplyMul(sys, this.time));
   }
 
-  canDock(st: Station, company: string) { return st.public || (st.owner === company && this.hasModule(st, 'core')); }
+  canDock(st: Station, company: string) { return st.public ? !dockRefused(this.st, st, company) : st.owner === company && this.hasModule(st, 'core'); }
 
   price(st: Station, res: Res, side: 'sell' | 'buy'): number {
     return priceOf(st.market?.[res], side, growthOn(this.st));
@@ -1620,6 +1627,8 @@ export class WorldSim {
         const sys = this.sysOf(op.at);
         if (!sys || Math.hypot(op.at.x - sys.origin.x, op.at.z - sys.origin.z) > sys.radius * 0.95) return '성계 관제 범위를 벗어남';
         if (sys.security >= 90) return `${sys.name}은(는) 연합 핵심 성계 — 민간 정거장 건설 허가가 나지 않는다`;
+        const rule = foundingRule(this.st, sys, company);
+        if (!rule.ok) return rule.why;
         if (Math.hypot(op.at.x - sys.origin.x, op.at.z - sys.origin.z) < sys.star.size * 2.5) return '항성에 너무 가깝다';
         for (const pl of sys.planets) if (dist2(pl.pos, op.at) < pl.size * 1.8) return `${pl.name}에 너무 가깝다`;
         return null;
@@ -1796,6 +1805,11 @@ export class WorldSim {
     if (this.sysOf(s.pos) !== sys) { g.status = `${sys.name}로 이동 (탐사)`; return; }
     const co = this.st.companies[g.owner];
     const power = dt * (co.tech?.includes('long_sensors') ? 1.5 : 1);
+    if (this.st.fog && g.shipIds[0] === s.id) {
+      const r = surveyIntel(this.st, g.owner, sys.id, power * g.shipIds.length);
+      for (const f of r.fields) this.ev('info', `${sys.name}: 미확인 광구 "${f.name}" 발견 — 시험 채굴로 성분을 확인해야 합니다`, { company: g.owner, pos: f.pos, ref: f.id });
+      if (r.done) this.ev('info', `${sys.name} 정밀 탐사 완료`, { company: g.owner, ref: sys.id });
+    }
     for (const site of surveyStep(this.st, g.owner, sys.id, power)) {
       this.say(g, `탐사 성과: ${site.name} 발견 (${['', '얕은', '깊은', '심층'][site.tier]} 유적). 인양 작전을 지시할 수 있습니다.`, 'info', 0);
       this.ev('info', `${sys.name}: ${site.name} 발견 — 등급 ${site.tier} 인양 지점`, { company: g.owner, pos: site.pos, ref: site.id });
@@ -1805,6 +1819,29 @@ export class WorldSim {
       g.status = '탐사 완료';
       if (g.override) { g.op = { k: 'idle' }; this.say(g, `${sys.name} 탐사 완료 — 더 숨은 지점이 없습니다. 대기합니다.`, 'radio', 0); }
     } else g.status = `${sys.name} 탐사 중 (다음 발견까지 약 ${Math.ceil(left / Math.max(1, g.shipIds.length) / 60)}분)`;
+  }
+
+  /** P10 fog: every player ship marks the system it is in as visited (1 Hz). */
+  private exploreStep() {
+    const seen = new Set<string>();
+    for (const s of Object.values(this.st.ships)) {
+      const co = this.st.companies[s.owner]; if (co?.kind !== 'player' || s.state === 'battle') continue;
+      const sys = this.sysOf(s.pos); if (!sys) continue;
+      const key = s.owner + '\u0000' + sys.id; if (seen.has(key)) continue; seen.add(key);
+      if (this.st.intel?.[s.owner]?.sys[sys.id]) continue;
+      const r = visit(this.st, s.owner, sys.id);
+      if (r.first && sys.charted === false) this.ev('info', `미개척 성계 ${sys.name}에 처음 도달했습니다 — 회사 전용 성도에 기록`, { company: s.owner, ref: sys.id });
+      for (const f of r.fields) this.ev('info', `${sys.name}: 미확인 광구 "${f.name}" 발견 — 시험 채굴로 성분을 확인해야 합니다`, { company: s.owner, pos: f.pos, ref: f.id });
+    }
+  }
+
+  /** P10: record a company's own mined units from an unidentified deposit; report first sightings */
+  private sampled(owner: string, f: Field, units: Cargo) {
+    const before = this.st.intel?.[owner]?.fields[f.id]?.first ?? {};
+    const fresh = Object.keys(units).filter(k => before[k] === undefined);
+    recordSample(this.st, owner, f, units);
+    if (fresh.length && (this.st.intel?.[owner]?.fields[f.id]?.n ?? 0) > fresh.length)
+      this.ev('info', `${f.name}: 새 성분 ${fresh.map(k => ITEMS[k]?.name ?? k).join(', ')} 첫 채굴 (누적 표본 ${this.st.intel![owner].fields[f.id].n})`, { company: owner, pos: f.pos, ref: f.id });
   }
 
   /** salvage: work a found site; cutters and holds count double. Loot goes into the group's holds. */
@@ -1940,6 +1977,8 @@ export class WorldSim {
       sys.heat = Math.max(0, Math.min(100, sys.heat - (0.002 + sys.security / 100 * 0.012)));
     }
     factionStep(st, 1);
+    if (st.fog) this.exploreStep();
+    if (st.factions && st.time - (st.factionClock ?? 0) >= 60) { st.factionClock = st.time; factionEconStep(this, st, 60); }
     this.unionForces();
     this.pirateForces();
     const traders = Object.values(st.groups).filter(g => g.owner === 'guild' && g.shipIds.length);
@@ -2093,7 +2132,7 @@ export class WorldSim {
     for (const sys of Object.values(st.systems)) {
       // Raising a frontier's security in a test or future control update does not turn an empty
       // system into a settled trade lane. P9 keeps rogue traffic in the authored settled regions.
-      if (st.worldLayout === 'p9' && sys.kind !== 'settled') continue;
+      if (expandedLayout(st) && sys.kind !== 'settled') continue;
       if (sys.security >= 90 || sys.security < 70) continue;
       const rogues = Object.values(st.groups).filter(g => g.owner === 'pirates' && g.npc?.role === 'rogue' && g.npc.sys === sys.id);
       for (const g of rogues) {
@@ -2128,7 +2167,7 @@ export class WorldSim {
   }
 
   private spawnTrader() {
-    const ids = ['astra', 'nova', 'barcaco', 'exchange', 'helios', 'drakeout', 'cinderco', ...(this.st.worldLayout === 'p9' ? ['p9_lyra_port', 'p9_ceres_works', 'p9_forge_works', 'p9_anvil_port', 'p9_harbor_port', 'p9_junction_port'] : [])].filter(x => this.st.stations[x]);
+    const ids = ['astra', 'nova', 'barcaco', 'exchange', 'helios', 'drakeout', 'cinderco', ...(expandedLayout(this.st) ? ['p9_lyra_port', 'p9_ceres_works', 'p9_forge_works', 'p9_anvil_port', 'p9_harbor_port', 'p9_junction_port'] : []), ...(this.st.worldLayout === 'p10' ? ['p10_crossroads_bazaar', 'p10_meridian_port', 'p10_kiln_works', 'p10_bulwark_yard', 'p10_arsenal_works'] : [])].filter(x => this.st.stations[x]);
     const start = this.rng.pick(ids);
     const route = [start];
     while (route.length < 4) { const n = this.rng.pick(ids); if (n !== route[route.length - 1]) route.push(n); }
@@ -2213,7 +2252,7 @@ export class WorldSim {
     let here = this.sysOf(from);
     const there = this.sysOf(to);
     for (let k = 0; k < 8 && here && there && here.id !== there.id; k++) {
-      const gate = nextGate(this.st.systems, here.id, there.id); if (!gate) break;
+      const gate = nextGate(this.st.systems, here.id, there.id, this.st.conflicts ? gt => gateOpen(this.st, gt) : undefined); if (!gate) break;
       const inward = (p: V, o: V, d: number) => { const dx = o.x - p.x, dz = o.z - p.z, l = Math.hypot(dx, dz) || 1; return { x: p.x + dx / l * d, y: p.y, z: p.z + dz / l * d }; };
       out.push(inward(gate.pos, here.origin, 650));                       // regroup before the gate
       const dest = this.st.systems[gate.to]; const exit = dest?.gates.find(x => x.id === gate.exit);
@@ -2371,7 +2410,8 @@ export class WorldSim {
     if (here && there && here.id !== there.id) {
       const job = s.logisticsJob ? this.st.logisticsJobs?.[s.logisticsJob] : undefined;
       const maxRisk = managed && job?.procurement ? this.st.companies[s.owner]?.procurement?.maxRisk ?? 100 : undefined;
-      const gate = nextGate(this.st.systems, here.id, there.id, managed ? gate => usableRouteGate(this.st, gate) && (maxRisk === undefined || 100 - effSec(this.st.systems[gate.to]) <= maxRisk) : undefined);
+      const open = this.st.conflicts ? (gate: Gate) => gateOpen(this.st, gate) : undefined;
+      const gate = nextGate(this.st.systems, here.id, there.id, managed ? gate => usableRouteGate(this.st, gate) && (maxRisk === undefined || 100 - effSec(this.st.systems[gate.to]) <= maxRisk) : open);
       if (!gate) { s.vel.x *= 0.9; s.vel.z *= 0.9; return false; }
       if (!s.warp && dist(s.pos, gate.pos) < 180) { this.jump(s, gate); return false; }
       this.fly(s, gate.pos, speed, dt, 10);
@@ -2384,6 +2424,7 @@ export class WorldSim {
     const dest = this.st.systems[gate.to];
     const exit = dest?.gates.find(g => g.id === gate.exit);
     if (!dest || !exit) return;
+    if (!gateOpen(this.st, gate)) return;   // a blockaded gate refuses transit
     // emerge a little inward of the exit gate, toward the star
     const ix = dest.origin.x - exit.pos.x, iz = dest.origin.z - exit.pos.z, l = Math.hypot(ix, iz) || 1;
     const a = this.rng.range(-0.6, 0.6);
@@ -2722,7 +2763,12 @@ export class WorldSim {
         const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp) * (f.rich ?? 1) * (g3 ? wearMul(s) * (ec.minField && f.max < ec.minField ? 0.5 : 1) : 1);
         const a = Math.min(rate * dt * techFx(this.st.companies[g.owner]?.tech).mineMul, f.amount, cap - cargoSum(s.cargo));
         f.amount -= a;
-        for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) { addc(s.cargo, k, a * w); if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
+        if (f.geo) {
+          // unidentified deposit: discrete units drawn from the local (zone, depth) composition; the company learns only these
+          const units = mineGeo(f, s, a, rock, this.st.fields);
+          for (const [k, n] of Object.entries(units)) { addc(s.cargo, k, n); emit(st, { kind: 'produce', amount: n, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: 'mining', ref: f.id }); }
+          if (cargoKeys(units).length) this.sampled(s.owner, f, units);
+        } else for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) { addc(s.cargo, k, a * w); if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
         s.task = { k: 'mine', field: f.id, rock };
         s.fx = { mining: f.id, rock };
         const r = rockPos(f, rock); s.heading = Math.atan2(r.x - s.pos.x, r.z - s.pos.z);
@@ -2911,6 +2957,19 @@ export class WorldSim {
 
   private foundStation(g: WGroup, s: WShip, op: Extract<Op, { k: 'found' }>, paid = 0) {
     const co = this.st.companies[g.owner];
+    if (this.st.factions) {
+      const rule = foundingRule(this.st, this.sysOf(op.at), g.owner);
+      const fee = rule.ok ? Math.round(rule.feeShare * STATION_SIZES[op.size ?? 'S'].credits) : 0;
+      if (fee > 0) {
+        if (co.credits < fee) {
+          // keep the order and the prepayment; the licence is paid on arrival
+          if (paid) (co.foundingEscrow ??= {})[g.id] = paid;
+          g.status = `설립 허가료 ${fee.toLocaleString()} cr 부족 — 대기`; return;
+        }
+        watchMoney(this.st, 'territory_licence', { company: g.owner, system: this.sysOf(op.at)?.id }, () => { co.credits -= fee; });
+        this.ev('info', `${FACTIONS[(rule as any).faction]?.name ?? '세력'} 정거장 설립 허가료 ${fee.toLocaleString()} cr 납부`, { company: g.owner, pos: op.at });
+      }
+    }
     const id = this.id('st');
     const station: Station = {
       id, name: op.name.slice(0, 18) || `${co.name} 기지`, owner: g.owner, public: false, ...(op.size ? { size: op.size } : {}), style: 3, pos: { ...op.at, y: 0 }, radius: 180,

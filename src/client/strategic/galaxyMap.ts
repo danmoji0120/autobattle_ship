@@ -23,7 +23,10 @@ export const P9_CHART: Readonly<Record<string, ChartPoint>> = {
   relic: { x: 910, y: 880, label: 'right' }, dusk: { x: 1155, y: 845, label: 'right' },
 };
 
+/** P10 charts are wider; positions are authored as s.map × size (world/worldgen-p10.ts P10_CHART) */
+export const chartSize = (layout?: string) => layout === 'p10' ? { w: 2400, h: 1150 } : { w: CHART_WIDTH, h: CHART_HEIGHT };
 export function chartPoint(s: StarSystem, layout?: string): ChartPoint {
+  if (layout === 'p10') { const x = Math.round(s.map.x * 2400), y = Math.round(s.map.y * 1150); return { x, y, label: x > 2150 ? 'left' : 'right' }; }
   return layout === 'p9' && P9_CHART[s.id] ? P9_CHART[s.id] : { x: 110 + s.map.x * 1380, y: 95 + s.map.y * 810, label: s.map.x > .72 ? 'left' : 'right' };
 }
 export const edgeKey = (a: string, b: string) => [a, b].sort().join('\u0000');

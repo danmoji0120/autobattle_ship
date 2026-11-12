@@ -16,7 +16,9 @@ import { secAt, effSec } from '../../world/security';
 import { FACTION_NAME, LAIR_FOOTHOLD } from '../../world/factions';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
-import { CHART_HEIGHT, CHART_STARS, CHART_WIDTH, chartPoint, chartRoute, edgeKey } from './galaxyMap';
+import { CHART_STARS, chartPoint, chartRoute, chartSize, edgeKey } from './galaxyMap';
+import { fieldIntelHtml, territoryHtml, unidentified } from './territoryUi';
+import { FACTIONS } from '../../world/territory';
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, planMats, type Mat } from '../../world/construction';
 import { storeHtml, prodHtml, marketHtml as marketPanel, newIndUi, iname, FAC_CATS, yardOwnHtml, fitHtml, researchHtml } from './industryUi';
@@ -41,7 +43,8 @@ const h = (tag: string, cls = '', html = '') => { const e = document.createEleme
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => Math.round(n).toLocaleString();
 const cargoNum = (n: number) => n > 0 && n < .001 ? '&lt;0.001' : n.toLocaleString(undefined, { maximumFractionDigits: 3 });
-const fieldMix = (f: Field) => Object.entries(f.mix ?? { [f.res]: 1 }).filter(([, share]) => share > 0);
+/** identified composition only; unidentified deposits show the company's own samples (territoryUi) */
+const fieldMix = (f: Field) => unidentified(f) ? [] : Object.entries(f.mix ?? { [f.res]: 1 }).filter(([, share]) => share > 0);
 const fieldUses = (w: { regionalV?: number }, item: string) => [...new Set(Object.keys(RECIPES).map(id => recipeFor(w, id)).filter(r => r && (r.in[item] ?? 0) > 0).map(r => FACILITIES[r!.fac]?.name).filter(Boolean))];
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
@@ -380,9 +383,21 @@ export class PmcHud {
     [...this.galaxy.querySelectorAll<SVGGElement>('[data-sys]')].find(n => n.dataset.sys === active)?.focus({ preventScroll: true });
   }
 
+  /** P10: soft faction-colored territory discs under the nodes, labelled at each capital */
+  private territoryLayer(P: (s: WorldView['systems'][string]) => { x: number; y: number }): string {
+    let out = '<g class="gal-territory" aria-hidden="true">';
+    for (const s of Object.values(this.st.systems)) {
+      const f = s.faction ? FACTIONS[s.faction] : undefined; if (!f) continue;
+      const p = P(s);
+      out += `<circle cx="${p.x}" cy="${p.y}" r="${f.capital === s.id ? 120 : 95}" fill="${f.color}" opacity="${s.region === 'border' ? .07 : .12}"/>`;
+      if (f.capital === s.id) out += `<text x="${p.x}" y="${p.y - 58}" text-anchor="middle" fill="${f.color}" font-size="17" opacity=".85">${esc(f.name)}</text>`;
+    }
+    return out + '</g>';
+  }
+
   private renderGalaxy(force = false) {
     const el = this.galaxy; if (!el) return;
-    const st = this.st, W = CHART_WIDTH, H = CHART_HEIGHT;
+    const st = this.st, { w: W, h: H } = chartSize(st.worldLayout);
     const oldViewport = el.querySelector<HTMLElement>('.galviewport');
     const estimatedWidth = Math.min(innerWidth - 24, 1640) - (innerWidth > 900 ? 340 : 0);
     const estimatedHeight = innerWidth > 900 ? Math.min(innerHeight - 160, 780) : innerHeight * .43;
@@ -399,7 +414,9 @@ export class PmcHud {
     const fields = sel ? Object.values(st.fields).filter(x => !x.salvage && sysAt(st.systems, x.pos)?.id === sel.id) : [];
     const lairs = sel ? Object.values(st.lairs).filter(x => sysAt(st.systems, x.pos)?.id === sel.id) : [];
     const key = JSON.stringify({ zoom, layout: st.worldLayout, selected: sel?.id, here: this.v.sys?.id, group: g && [g.id, g.name, g.owner, gSys], ownedShips, ownedStations,
-      systems: Object.values(st.systems).map(s => [s.id, s.name, s.map.x, s.map.y, s.star.color, Math.round(effSec(s)), secBand(effSec(s)).min, s.gates.map(gt => gt.to)]),
+      systems: Object.values(st.systems).map(s => [s.id, s.name, s.map.x, s.map.y, s.star.color, Math.round(effSec(s)), secBand(effSec(s)).min, s.gates.map(gt => gt.to), s.faction, s.region, (s as any).unknown]),
+      wars: Object.values(st.conflicts ?? {}).filter(c => !c.ended).map(c => c.id), fac: st.factions && Object.values(st.factions).map(f => [Math.round(f.strength), Math.round(f.infra)]),
+      fi: (st as any).intel?.[this.me]?.fields && Object.entries((st as any).intel[this.me].fields).map(([k, v]: [string, any]) => [k, v.n]),
       detail: sel && [sel.desc, sel.security, Math.round(sel.heat), sel.heat > 1, sel.stats, sel.inf && [Math.round(sel.inf.union), Math.round(sel.inf.pirates), Math.round(sel.inf.guild), sel.inf.pirates < LAIR_FOOTHOLD], (sel.recoverUntil ?? 0) > st.time,
         stations.map(s => [s.id, s.name, s.tax, s.owner, !!s.market, s.services.shipyard.length]), fields.map(f => [f.id, f.name, f.res, f.mix, f.rich, Math.round(f.amount), f.regen, f.danger]), lairs.map(l => [l.id, l.name, l.alive])] });
     if (!force && key === this.galRenderKey) return;
@@ -413,16 +430,20 @@ export class PmcHud {
       <ellipse cx="1230" cy="225" rx="450" ry="300" fill="url(#gal-rim)"/><ellipse cx="1030" cy="790" rx="580" ry="300" fill="url(#gal-deep)"/>
       <ellipse cx="230" cy="720" rx="290" ry="170" fill="url(#gal-core)" opacity=".32"/><ellipse cx="1430" cy="670" rx="310" ry="210" fill="url(#gal-deep)" opacity=".45"/>
       <g class="gal-stars">${CHART_STARS}</g>
+      ${st.worldLayout === 'p10' ? this.territoryLayer(P) : ''}
       ${st.worldLayout === 'p9' ? `<g class="gal-regions" aria-hidden="true" style="font-size:${zoom < .45 ? Math.round(11 / zoom) : 14}px"><text x="210" y="135">수도권 · 산업 회랑</text><text x="1170" y="55">북방 외곽</text><text x="255" y="945">남부 변경</text><text x="1260" y="550">무법 외곽</text></g>` : ''}`;
     const done = new Set<string>();
     for (const s of Object.values(st.systems)) for (const gt of s.gates) {
       const k = edgeKey(s.id, gt.to); if (done.has(k) || !st.systems[gt.to]) continue; done.add(k);
       const a = P(s), b = P(st.systems[gt.to]);
       const choke = st.worldLayout === 'p9' && k === edgeKey('junction', 'shard');
-      svg += `<line class="gal-link${choke ? ' is-choke' : ''}${route.has(k) ? ' is-route' : ''}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
+      const closed = Object.values(st.conflicts ?? {}).some(c => !c.ended && c.gates.includes(gt.id));
+      const unknown = (s as any).unknown || (st.systems[gt.to] as any).unknown;
+      svg += `<line class="gal-link${choke ? ' is-choke' : ''}${route.has(k) ? ' is-route' : ''}"${closed ? ' stroke="#ff5a4a" stroke-dasharray="10 8"' : unknown ? ' stroke-dasharray="4 10" opacity=".55"' : ''} x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
+      if (closed) svg += `<text x="${(a.x + b.x) / 2}" y="${(a.y + b.y) / 2 + 6}" text-anchor="middle" fill="#ff7a6a" font-size="20">✕ 봉쇄</text>`;
     }
     for (const s of Object.values(st.systems)) {
-      const p = P(s), eff = effSec(s), band = secBand(eff), here = this.v.sys?.id === s.id;
+      const p = P(s), unknown = !!(s as any).unknown, eff = effSec(s), band = unknown ? { name: '미확인', color: '#6c7590', min: 0 } as ReturnType<typeof secBand> : secBand(eff), here = this.v.sys?.id === s.id;
       const selected = sel?.id === s.id, showLabel = zoom >= .45;
       const anchor = p.label === 'left' ? 'end' : 'start', lx = p.x + (p.label === 'left' ? -24 : 24);
       const labelSize = 19;
@@ -437,7 +458,7 @@ export class PmcHud {
         <circle class="gal-node-star" cx="${p.x}" cy="${p.y}" r="9" fill="${s.star.color}" stroke="${band.color}"/>
         <circle cx="${p.x}" cy="${p.y}" r="2.5" fill="#fff"/>
         ${showLabel ? `<text class="galname" x="${lx}" y="${p.y - 4}" text-anchor="${anchor}" font-size="${labelSize}">${esc(s.name)}</text>
-        <text class="gal-node-sec" x="${lx}" y="${p.y + 17}" text-anchor="${anchor}" fill="${band.color}">치안 ${Math.round(eff)}${here ? ' · 현재' : ''}</text>
+        <text class="gal-node-sec" x="${lx}" y="${p.y + 17}" text-anchor="${anchor}" fill="${band.color}">${unknown ? '미탐사' : `치안 ${Math.round(eff)}`}${s.faction && FACTIONS[s.faction] ? ` · ${FACTIONS[s.faction].short}${FACTIONS[s.faction].capital === s.id ? '★' : ''}` : s.charted === false && !unknown ? ' · 미개척' : ''}${here ? ' · 현재' : ''}</text>
         ${ownedShips[s.id] || ownedStations[s.id] ? `<text class="gal-node-owned" x="${lx}" y="${p.y + 34}" text-anchor="${anchor}">함선 ${ownedShips[s.id] ?? 0}${ownedStations[s.id] ? ` · 기지 ${ownedStations[s.id]}` : ''}</text>` : ''}` : ''}
       </g>`;
     }
@@ -449,12 +470,13 @@ export class PmcHud {
         const kind = s.owner === this.me ? '자사 정거장' : [s.market ? '시장' : '', s.services.shipyard.length ? '조선소' : ''].filter(Boolean).join(' · ') || '정거장';
         return `<button class="gal-object" data-gal-station="${esc(s.id)}"><span class="gal-object-icon">◈</span><span><b>${esc(s.name)}</b><small>${kind}${s.tax ? ` · 세금 ${Math.round(s.tax * 100)}%` : ''}</small></span><span class="gal-object-arrow">↗</span></button>`;
       }).join('') || '<p class="gal-empty">등록된 정거장이 없습니다.</p>';
-      const fieldRows = fields.map(f => `<button class="gal-object" data-gal-field="${esc(f.id)}"><span class="gal-object-icon resource">◇</span><span><b>${esc(f.name)}${fieldMix(f).some(([r]) => REGIONAL_ORIGINS[r]) ? ' · 지역 희귀' : ''}</b><small>${fieldMix(f).map(([r, share]) => `${esc(RES_NAME[r])} ${Math.round(share * 100)}%`).join(' · ')}<br>매장 ${fmt(f.amount)} / ${fmt(f.max)} · ${f.regen > 0 ? `재생 ${cargoNum(f.regen)}/초` : '재생 없음'} · 위험 ${f.danger} · 효율 ×${(f.rich ?? 1).toFixed(2)}</small></span><span class="gal-object-arrow">↗</span></button>`).join('') || '<p class="gal-empty">확인된 자원 지대가 없습니다.</p>';
+      const fieldRows = fields.map(f => `<button class="gal-object" data-gal-field="${esc(f.id)}"><span class="gal-object-icon resource">◇</span><span><b>${esc(f.name)}${fieldMix(f).some(([r]) => REGIONAL_ORIGINS[r]) ? ' · 지역 희귀' : ''}</b><small>${unidentified(f) ? `미확인 · 외형 ${esc(unidentified(f)!.hints[0] ?? '')} · 자사 표본 ${fmt((st as any).intel?.[this.me]?.fields?.[f.id]?.n ?? 0)}` : fieldMix(f).map(([r, share]) => `${esc(RES_NAME[r])} ${Math.round(share * 100)}%`).join(' · ')}<br>매장 ${fmt(f.amount)} / ${fmt(f.max)} · ${f.regen > 0 ? `재생 ${cargoNum(f.regen)}/초` : '재생 없음'} · 위험 ${f.danger} · 효율 ×${(f.rich ?? 1).toFixed(2)}</small></span><span class="gal-object-arrow">↗</span></button>`).join('') || '<p class="gal-empty">확인된 자원 지대가 없습니다.</p>';
       info = `<div class="galinfo-main"><div class="gal-detail-kicker">선택한 성계</div>
         <div class="gal-detail-title"><h2>${esc(sel.name)}</h2><span class="gal-detail-dot" style="background:${band.color}"></span></div>
         <div class="gal-security"><span style="color:${band.color}">${band.name}</span><b>치안 ${Math.round(eff)}</b><div class="gal-security-bar"><i style="width:${Math.max(0, Math.min(100, eff))}%;background:${band.color}"></i></div></div>
         <p class="gal-description">${esc(sel.desc)}</p>
         <div class="gal-metrics"><div><b>${stations.length}</b><span>정거장</span></div><div><b>${fields.length}</b><span>자원 지대</span></div><div><b>${ownedShips[sel.id] ?? 0}</b><span>자사 함선</span></div></div>
+        ${territoryHtml(st, sel)}
         <section class="gal-section"><div class="gal-section-head"><h3>항로</h3><span>${hops === null ? '편대 미선택' : hops >= 99 ? '연결 없음' : `${hops}회 점프`}</span></div>
           <p class="gal-route-copy">${g && gSys ? `${esc(g.name)} · ${esc(st.systems[gSys]?.name ?? gSys)}에서 출발` : '편대를 선택하면 이 성계까지의 항로가 표시됩니다.'}</p></section>
         <section class="gal-section"><div class="gal-section-head"><h3>주요 정거장</h3><span>${stations.length}</span></div><div class="gal-objects">${stationRows}</div></section>
@@ -467,7 +489,7 @@ export class PmcHud {
     }
     morph(el, `<div class="panel gbox"><header class="galhead"><div><span class="gal-eyebrow">SIDERARIUM / 항행 정보</span><h1>성계 지도</h1></div><p>성계를 선택해 항로와 기회를 살펴보세요.</p><button class="btn gal-close" data-close aria-label="지도 닫기">✕</button></header>
       <div class="gal-layout"><div class="gal-main"><div class="gal-mapbar"><div><span class="gal-eyebrow">항로망</span><b>${Object.keys(st.systems).length}개 성계</b></div><div class="galcontrols"><button class="btn mini" data-zoom="out" aria-label="지도 축소">−</button><span>${Math.round(zoom * 100)}%</span><button class="btn mini" data-zoom="in" aria-label="지도 확대">＋</button><button class="btn mini gal-fit" data-zoom="fit">전체 보기</button></div></div>
-      <div class="galviewport">${svg}</div><div class="gal-map-foot"><div class="gal-legend"><span><i class="gal-legend-line"></i>점프 항로</span>${st.worldLayout === 'p9' ? '<span><i class="gal-legend-line choke"></i>북방 병목</span>' : ''}<span><i class="gal-legend-line route"></i>선택 항로</span></div><span class="gal-map-help">${zoom < .45 ? '확대하면 성계 이름이 표시됩니다' : '드래그 이동 · Ctrl + 휠 확대'}</span><span class="gal-touch-help">${zoom < .45 ? '확대해 이름 보기' : '밀어서 이동'}</span></div></div><aside class="galinfo" aria-label="선택 성계 상세">${info}</aside></div></div>`);
+      <div class="galviewport">${svg}</div><div class="gal-map-foot"><div class="gal-legend"><span><i class="gal-legend-line"></i>점프 항로</span>${st.worldLayout === 'p9' ? '<span><i class="gal-legend-line choke"></i>북방 병목</span>' : ''}${st.worldLayout === 'p10' ? Object.values(FACTIONS).map(f => `<span><i class="gal-legend-line" style="background:${f.color}"></i>${esc(f.short)}</span>`).join('') + '<span style="color:#ff7a6a">✕ 분쟁 봉쇄</span>' : ''}<span><i class="gal-legend-line route"></i>선택 항로</span></div><span class="gal-map-help">${zoom < .45 ? '확대하면 성계 이름이 표시됩니다' : '드래그 이동 · Ctrl + 휠 확대'}</span><span class="gal-touch-help">${zoom < .45 ? '확대해 이름 보기' : '밀어서 이동'}</span></div></div><aside class="galinfo" aria-label="선택 성계 상세">${info}</aside></div></div>`);
     const viewport = el.querySelector<HTMLElement>('.galviewport')!;
     if (!this.galCentered && sel) { const p = P(sel); viewport.scrollLeft = p.x * zoom - viewport.clientWidth / 2; viewport.scrollTop = p.y * zoom - viewport.clientHeight / 2; this.galCentered = true; }
     const applyZoom = (value: number) => {
@@ -868,7 +890,7 @@ export class PmcHud {
         <div class="bar2"><i style="width:${f.max > 0 ? Math.max(0, Math.min(100, f.amount / f.max * 100)) : 0}%;background:${RES_COLOR[f.res]}"></i></div>
         <div class="dim">총 매장량 ${fmt(f.amount)} / ${fmt(f.max)} · ${f.regen > 0 ? `총 재생 ${cargoNum(f.regen)}/초` : f.expires > 0 ? `재생 없음 · ${Math.max(0, Math.round((f.expires - st.time) / 60))}분 후 소멸` : '재생 없음'} · 채굴 효율 ×${(f.rich ?? 1).toFixed(2)}</div>
         <div class="svc">위험 지표 ${f.danger} · ${this.secLine(f.pos)}</div>
-        <div class="small">${parts}</div><div class="dim small">혼합비는 채굴물과 재생량에 적용됩니다. 실제 위협은 치안과 해적 활동에 따라 달라집니다.</div>
+        ${unidentified(f) ? fieldIntelHtml(st, this.me, f) : `<div class="small">${parts}</div><div class="dim small">혼합비는 채굴물과 재생량에 적용됩니다. 실제 위협은 치안과 해적 활동에 따라 달라집니다.</div>`}
         ${this.group ? `<button class="btn" data-minehere="${f.id}">이 지대 채굴 설정…</button><button class="btn" data-quick='${JSON.stringify({ k: 'patrol', at: f.pos, radius: f.radius + 400 })}'>이 지역 순찰</button>` : '<div class="dim">편대를 선택하고 우클릭하면 채굴을 지시합니다.</div>'}</div>`;
     }
     if (s.kind === 'lair') {

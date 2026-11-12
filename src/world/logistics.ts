@@ -1,4 +1,5 @@
 // Authoritative managed transport. Uses the existing docking, gates, stock, market and upkeep paths.
+import { gateOpen } from './territory';
 import type { WorldSim } from './sim';
 import type { WorldState, WShip, WGroup, Gate } from './types';
 import { cargoSum, qty, takec, addc } from './types';
@@ -166,7 +167,8 @@ export function maintainRoutes(h: Host) {
     if (r.state === 'running' && !r.config.repeat && ships.length && ships.every(s => r.done.includes(s.id))) { r.state = 'complete'; r.updated = h.time; }
   }
 }
-export const usableRouteGate = (w: Pick<WorldState, 'systems'>, gate: Gate) => !!w.systems[gate.to]?.gates.some(exit => exit.id === gate.exit);
+/** a gate a managed route may use: its exit exists and (P10) no border conflict has closed it */
+export const usableRouteGate = (w: Pick<WorldState, 'systems' | 'conflicts'>, gate: Gate) => !!w.systems[gate.to]?.gates.some(exit => exit.id === gate.exit) && gateOpen(w, gate);
 export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, dt: number, speed: number) {
   if (r.owner !== s.owner || h.opOwner(g).id !== r.group) return;
   if (r.state !== 'running') { g.status = r.state === 'complete' ? '편도 운송 완료' : r.reason ?? '물류 일시정지'; if (s.state !== 'battle') { s.vel = { x: 0, y: 0, z: 0 }; delete s.warp; } return; }

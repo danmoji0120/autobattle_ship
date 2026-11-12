@@ -12,7 +12,9 @@
 // enforced by tests/sync.test.ts. Visibility rules are unchanged: they live in one place (VIEW below)
 // and legacyView keeps the original implementation as the reference.
 
-import type { WorldState, WShip, Station, Site } from '../world/types';
+import type { WorldState, WShip, Station, Site, StarSystem, Field } from '../world/types';
+import { sysAt } from '../world/geom';
+import { sysLevel, sysStub, knowsField, knowsSystemContents } from '../world/intel';
 import type { WorldView } from './protocol';
 
 export const SYNC_PROTO = 2;
@@ -21,7 +23,7 @@ export const SYNC_PROTO = 2;
 export interface Viewer { company?: string; view?: string }
 
 /** keyed collections replicated entity by entity (others are replicated as whole values) */
-const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'uniques', 'ships'] as const;
+const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'uniques', 'ships', 'intel'] as const;
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
@@ -41,12 +43,44 @@ function stationBody(st: Station, own: boolean) {
 function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined }; }
 function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, fitting: undefined, fit: undefined }; }
 function siteFor(s: Site, company: string) { return { ...s, scan: s.scan[company] !== undefined ? { [company]: s.scan[company] } : {}, seen: [company] }; }
+// ── P10 fog of war (w.fog): per-company knowledge of uncharted systems and unidentified deposits.
+// Worlds without fog take none of these branches, so their replication is unchanged.
+const level = (st: WorldState, c: string | undefined, id: string) => c ? sysLevel(st, c, id) : st.systems[id]?.charted === false ? 0 : 1;
+/** may the viewer see objects positioned in this system */
+const contentsKnown = (st: WorldState, c: string | undefined, p: { x: number; y: number; z: number }) => {
+  if (!st.fog) return true;
+  const sys = sysAt(st.systems, p); if (!sys) return true;
+  return c ? knowsSystemContents(st, c, sys.id) : sys.charted !== false;
+};
+/** an adjacent unknown system: position and gates back to known space, nothing else */
+function stubSystem(st: WorldState, s: StarSystem, c: string | undefined) {
+  return { id: s.id, name: '미확인 성계', idx: s.idx, origin: s.origin, radius: s.radius, kind: 'frontier', security: 0, heat: 0, desc: '탐사되지 않은 성계입니다. 함선이 도달하면 회사 성도에 기록됩니다.',
+    star: { name: '미확인', color: '#56607a', size: 1500 }, nebula: s.nebula, map: s.map, planets: [], gates: s.gates.filter(g => level(st, c, g.to) >= 1), lanes: [],
+    stats: { pirateKills: 0, unionLosses: 0, civLosses: 0, raids: 0, bands: 0 }, charted: false, unknown: true };
+}
+type SysVis = 'full' | 'stub' | null;
+function systemVis(st: WorldState, s: StarSystem, c: string | undefined): SysVis {
+  if (!st.fog) return 'full';
+  if (level(st, c, s.id) >= 1) return 'full';
+  return c && sysStub(st, c, s.id) ? 'stub' : null;
+}
+const fieldVisible = (st: WorldState, f: Field, c: string | undefined) => !st.fog || (c ? knowsField(st, c, f) : !f.geo && contentsKnown(st, c, f.pos));
+/** an unidentified deposit: appearance, rough size and hints only — never its composition */
+function geoField(f: Field) {
+  const g = f.geo!, q = (n: number) => Math.round(n / Math.max(1, f.max) * 20) / 20 * f.max;
+  return { ...f, mix: undefined, geo: undefined, res: g.look, amount: q(f.amount), regen: 0, unidentified: { look: g.look, size: g.size, hints: g.hints, hidden: !!g.hidden } };
+}
+/** the system a fog viewer may look at */
+export function viewAllowed(st: WorldState, company: string | undefined, sysId: string) {
+  return !st.fog || !!st.systems[sysId] && level(st, company, sysId) >= (st.systems[sysId].charted === false ? 2 : 1);
+}
+
 const fullGroup = (st: WorldState, g: any, company?: string) => g.owner === company || st.companies[g.owner]?.kind !== 'player';
 const fullCompany = (id: string, co: any, company?: string) => id === company || co.kind !== 'player';
 
 /** the system a viewer is looking at (defaults to where its company is based) */
 export function viewSystem(st: WorldState, v: Viewer, sysOf: (p: { x: number; y: number; z: number }) => { id: string } | undefined): string {
-  if (v.view) return v.view;
+  if (v.view && viewAllowed(st, v.company, v.view)) return v.view;
   const co = v.company ? st.companies[v.company] : null;
   const home = co ? st.stations[co.homeStation] : null;
   return (home && sysOf(home.pos)?.id) || 'astra';
@@ -65,13 +99,20 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   const log = (battleLog ?? []).map(({ setup: _x, orders: _o, ...lite }) => { void _x; void _o; return lite; });
   const c = v.company;
   const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, fullCompany(id, co, c) ? co : publicCompany(id, co)]));
-  const stations = Object.fromEntries(Object.entries(base.stations).map(([id, s]) => [id, { ...s, storage: { ...(c && s.storage[c] ? { [c]: s.storage[c] } : {}) }, ...(s.owner === c ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: s.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
+  const stations = Object.fromEntries(Object.entries(base.stations).filter(([, s]) => s.owner === c || contentsKnown(st, c, s.pos)).map(([id, s]) => [id, { ...s, storage: { ...(c && s.storage[c] ? { [c]: s.storage[c] } : {}) }, ...(s.owner === c ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: s.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
   const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, fullGroup(st, g, c) ? g : publicGroup(g)]));
   const origin = st.systems[sysId]?.origin;
   const ships = Object.fromEntries(Object.values(st.ships).filter(s => shipVisible(s, c, origin)).map(s => [s.id, s.owner === c ? s : publicShip(s)]));
   const own = <T extends { owner: string }>(m: Record<string, T> | undefined) => m ? Object.fromEntries(Object.entries(m).filter(([, r]) => r.owner === c)) : undefined;
+  const fog = st.fog ? {
+    systems: Object.fromEntries(Object.values(st.systems).map(s => [s, systemVis(st, s, c)] as const).filter(([, vis]) => vis).map(([s, vis]) => [s.id, vis === 'full' ? s : stubSystem(st, s, c)])),
+    fields: Object.fromEntries(Object.values(st.fields).filter(f => fieldVisible(st, f, c)).map(f => [f.id, f.geo ? geoField(f) : f])),
+    lairs: Object.fromEntries(Object.values(st.lairs).filter(l => contentsKnown(st, c, l.pos)).map(l => [l.id, l])),
+    engagements: Object.fromEntries(Object.entries(eng).filter(([, e]) => contentsKnown(st, c, e.pos) || (!!c && e.sides.some((x: string[]) => x.includes(c))))),
+  } : {};
   return {
-    ...base, engagements: eng, battleLog: log, companies, stations, ships, groups,
+    ...base, engagements: eng, battleLog: log, companies, stations, ships, groups, ...fog,
+    intel: base.intel ? (c && base.intel[c] ? { [c]: base.intel[c] } : {}) : undefined,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
     works: own(base.works), approvals: own(base.approvals),
     grants: undefined, conversions: undefined, exclusive: undefined,
@@ -217,6 +258,7 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
     case 'stations':
       for (const id in map) {
         const s = map[id] as Station, own = s.owner === c, ab = own ? 'st.o' : 'st.p';
+        if (st.fog && !own && !contentsKnown(st, c, s.pos)) continue;
         const a = f.str(ab, id, () => stationBody(s, own));
         const b = c && s.storage[c] ? f.str('st.s:' + c, id, () => s.storage[c]) : '';
         out.set(id, b ? { a, ab, b } : { a, ab });
@@ -236,8 +278,24 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
         } else one(s.id, own ? 'sh.of' : 'sh.pf', () => own ? s : publicShip(s));
       }
       return;
+    case 'systems':
+      for (const id in map) {
+        const vis = systemVis(st, map[id], c);
+        if (vis === 'full') one(id, 'systems', () => map[id]);
+        else if (vis === 'stub') one(id, 'sy.u:' + c, () => stubSystem(st, map[id], c));
+      }
+      return;
+    case 'fields':
+      for (const id in map) { const fd = map[id] as Field; if (!fieldVisible(st, fd, c)) continue; if (fd.geo) one(id, 'fd.g', () => geoField(fd)); else one(id, 'fields', () => fd); }
+      return;
+    case 'lairs':
+      for (const id in map) if (contentsKnown(st, c, map[id].pos)) one(id, 'lairs', () => map[id]);
+      return;
+    case 'intel':
+      if (c && map[c]) one(c, 'in:' + c, () => map[c]);
+      return;
     case 'engagements':
-      for (const id in map) one(id, 'en', () => { const { setup: _x, orders: _o, ...lite } = map[id]; return lite; });
+      for (const id in map) if (!st.fog || contentsKnown(st, c, map[id].pos) || (!!c && map[id].sides.some((x: string[]) => x.includes(c)))) one(id, 'en', () => { const { setup: _x, orders: _o, ...lite } = map[id]; return lite; });
       return;
     case 'sites':
       if (!c) return;
