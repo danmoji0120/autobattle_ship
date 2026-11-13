@@ -107,9 +107,10 @@ export const PROFILES2: Record<string, Profile> = {
   ceres: { civ: .6, ind: 1.2, mun: .2, mine: { ore: 1 }, sectors: { metal: 13, titanium: 5, alloy: 12, structure: 2.2, machinery: 1.2, precision: .8, engine: .015 }, tax: 1.5, reach: 4 },
   // raw-material exporter; imports machinery, chemicals, electronics
   miners: { civ: .5, ind: .25, mun: .1, mine: { ore: 20, titanium_ore: 12, rare_ore: .5, silicate: 2, gas: 3 }, sectors: { metal: 3, titanium: 4 }, tax: .9, reach: 4 },
-  // munitions, armour plate and ship parts in bulk; mines and refines its own titanium for armour plate
-  // and imported titanium ore (ceres turns all of its titanium into alloy); imports alloy, precision, chemicals
-  iron: { civ: .5, ind: .5, mun: 1.2, mine: { ore: .5, titanium_ore: .8 }, sectors: { titanium: 1, armor_plate: .45, weapon_parts: .45, structure: 1.2, eq_autocannon: .05, eq_medium_gun: .02, mod_armor: .01 }, tax: 3.5, reach: 4 },
+  // munitions, armour plate and ship parts in bulk; mines and refines its own titanium and makes the precision
+  // parts of its weapon parts (ceres turns all of its titanium into alloy, and precision reaches markets only in
+  // small lots); imports alloy, machinery, chemicals
+  iron: { civ: .5, ind: .5, mun: 1.2, mine: { ore: .5, titanium_ore: 1.3 }, sectors: { titanium: 1.2, precision: .3, armor_plate: .45, weapon_parts: .45, structure: 1.2, eq_autocannon: .05, eq_medium_gun: .02, mod_armor: .01 }, tax: 3.5, reach: 4 },
   // raiders: munitions and repair goods, crystal/rare ore, unstable base
   pirates: { civ: .4, ind: .15, mun: .5, mine: { crystal: .6, rare_ore: .6, ore: 1.5, gas: 2 }, sectors: { chemicals: 3, weapon_parts: .5, metal: 2 }, tax: .7, reach: 3, unstable: true, raider: true },
 };
@@ -163,8 +164,9 @@ const MODERN_MIN_RDY = .9;
 /** raider economy (pirates): */
 /** extra logistics cost per jump when smuggling through an embargo (hostile, not at war) */
 const SMUGGLE = .15;
-/** goods value a raider takes per strength point per hour at full readiness, before the victim's defence */
-const RAID_VALUE = 250;
+/** goods value a raider takes per hour at full readiness, before the victim's defence: per strength point, and
+ *  per territory size unit (hideouts and small raiding parties keep working when the main fleet is gone) */
+const RAID_VALUE = 250, RAID_SIZE = 1200;
 /** a raid never takes a victim's stock below this share of the victim's own target */
 const RAID_KEEP = .5;
 /** wreck material a raider recovers per strength point lost in its fights (either side) */
@@ -184,7 +186,9 @@ const BUDGET_CAP_H = 24;
 /** v2 faction markets keep this share of the old regional budget recovery (civilian buyers) */
 export const FE_FUNDS_REGEN = .5;
 
-function shipRecipe(id: string): Cargo { const r: Cargo = { ...doctrineOf(id).ship }; for (const [k, n] of Object.entries(SHIP_FIT)) addc(r, k, n); return r; }
+/** raiders refit captured and salvaged hulls: no new engines or guns, weapon parts and metal instead */
+const RAIDER_FIT: Cargo = { weapon_parts: .5, metal: 6 };
+function shipRecipe(id: string): Cargo { const r: Cargo = { ...doctrineOf(id).ship }; for (const [k, n] of Object.entries(PROFILES2[id]?.raider ? RAIDER_FIT : SHIP_FIT)) addc(r, k, n); return r; }
 
 /** every good this module manages (produced or consumed by some faction) */
 export const FE_GOODS: ReadonlySet<string> = (() => {
@@ -587,16 +591,18 @@ function raid(w: WorldState, f: FactionState, st: FactionEconState, R: Rates, h:
   const victims = new Set<string>();
   for (const id of mine) for (const g of w.systems[id].gates) { const o = w.systems[g.to]?.faction; if (o && o !== f.id && w.factions![o]) victims.add(o); }
   const hostile = [...victims].sort().filter(v => warBetween(w, f.id, v) || Math.min(f.rel[v] ?? 0, w.factions![v].rel[f.id] ?? 0) <= -50);
-  if (!hostile.length || f.strength <= 0) return 0;
+  if (!hostile.length) return 0;
   // wanted goods by value of what the raider is missing against its target, most valuable first
   const want = Object.entries(R.target).map(([k, t]) => [k, Math.max(0, t - qty(f.stock, k))] as [string, number]).filter(x => x[1] > 1e-6)
     .sort((a, b) => b[1] * value(b[0]) - a[1] * value(a[0]) || (a[0] < b[0] ? -1 : 1));
   if (!want.length) return 0;
   let took = 0;
+  const force = f.strength + sizeOf(w, f.id) * 4;   // raiding force: fleet plus hideout parties
   for (const vid of hostile) {
     const v = w.factions![vid]; if (!v.econ) continue;
+    // the victim's ready patrols cut the take: equal forces halve it
     const def = v.strength * (v.econ.rdy ?? 1) * .5;
-    let budget = f.strength * st.rdy * RAID_VALUE * h / hostile.length * (f.strength / (f.strength + def));
+    let budget = (f.strength * RAID_VALUE + sizeOf(w, f.id) * RAID_SIZE) * (.5 + .5 * st.rdy) * h / hostile.length * (force / (force + def));
     const vt = rates(w, v, v.econ).target;
     for (const [k] of want) {
       if (budget <= 1) break;
