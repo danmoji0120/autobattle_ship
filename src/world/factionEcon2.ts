@@ -97,9 +97,9 @@ export const PROFILES2: Record<string, Profile> = {
   // trade and logistics; varied light industry; buys from the furthest
   guild: { civ: 1.0, ind: .35, mun: .1, mine: { ore: 3, gas: 3 }, sectors: { metal: 6, chemicals: 5, machinery: 1.2 }, tax: 1.15, reach: 6 },
   // heavy industry: eats ore/titanium ore/metal, makes alloy, structure, machinery, precision, engines
-  ceres: { civ: .6, ind: 1.2, mun: .2, mine: { ore: 1 }, sectors: { metal: 13, titanium: 3, alloy: 12, structure: 2.2, machinery: 1.2, precision: .3, engine: .015 }, tax: 1.5, reach: 4 },
+  ceres: { civ: .6, ind: 1.2, mun: .2, mine: { ore: 1 }, sectors: { metal: 13, titanium: 5, alloy: 12, structure: 2.2, machinery: 1.2, precision: .8, engine: .015 }, tax: 1.5, reach: 4 },
   // raw-material exporter; imports machinery, chemicals, electronics
-  miners: { civ: .5, ind: .25, mun: .1, mine: { ore: 20, titanium_ore: 6, rare_ore: .5, silicate: 2, gas: 3 }, sectors: { metal: 3, titanium: 1 }, tax: .9, reach: 4 },
+  miners: { civ: .5, ind: .25, mun: .1, mine: { ore: 20, titanium_ore: 12, rare_ore: .5, silicate: 2, gas: 3 }, sectors: { metal: 3, titanium: 2 }, tax: .9, reach: 4 },
   // munitions, armour plate and ship parts in bulk; imports alloy, titanium, precision, chemicals
   iron: { civ: .5, ind: .5, mun: 1.2, mine: { ore: .5 }, sectors: { armor_plate: .45, weapon_parts: .45, structure: 1.2, eq_autocannon: .05, eq_medium_gun: .02, mod_armor: .01 }, tax: 3.5, reach: 4 },
   // raiders: munitions and repair goods, crystal/rare ore, unstable base
