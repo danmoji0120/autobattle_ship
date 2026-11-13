@@ -53,10 +53,15 @@ export interface FactionLedger {
   /** subset of `bought` that came from markets of other factions */
   imported: Cargo;
   lostStr: number; builtStr: number; builtInfra: number; infraLost: number; devGain: number;
-  /** stockpile when v2 started: stock = opening + extracted + made − inputs + bought − used − exported − lost */
+  /** stockpile when v2 started:
+   *  stock = opening + extracted + made − inputs + bought + seized + salvaged − used − exported − lost */
   opening: Cargo;
   /** goods destroyed or seized outside the economy (raids, blockades; `writeOff`) */
   lost?: Cargo;
+  /** raider factions: goods taken from neighbours' stockpiles (the victim records the same goods as `lost`) */
+  seized?: Cargo;
+  /** raider factions: material recovered from wrecks of a fight they took part in */
+  salvaged?: Cargo;
 }
 export interface FactionEconState {
   dev: number; eff: number; rdy: number; budget: number;
@@ -90,6 +95,8 @@ interface Profile {
   reach: number;
   /** unstable supply base (pirates): production/extraction swings cycle to cycle */
   unstable?: boolean;
+  /** raider economy (pirates): smuggles through embargoes, raids hostile neighbours, salvages wrecks */
+  raider?: boolean;
 }
 export const PROFILES2: Record<string, Profile> = {
   // large civilian economy; security and administration; chemicals/electronics industry
@@ -99,11 +106,12 @@ export const PROFILES2: Record<string, Profile> = {
   // heavy industry: eats ore/titanium ore/metal, makes alloy, structure, machinery, precision, engines
   ceres: { civ: .6, ind: 1.2, mun: .2, mine: { ore: 1 }, sectors: { metal: 13, titanium: 5, alloy: 12, structure: 2.2, machinery: 1.2, precision: .8, engine: .015 }, tax: 1.5, reach: 4 },
   // raw-material exporter; imports machinery, chemicals, electronics
-  miners: { civ: .5, ind: .25, mun: .1, mine: { ore: 20, titanium_ore: 12, rare_ore: .5, silicate: 2, gas: 3 }, sectors: { metal: 3, titanium: 2 }, tax: .9, reach: 4 },
-  // munitions, armour plate and ship parts in bulk; imports alloy, titanium, precision, chemicals
-  iron: { civ: .5, ind: .5, mun: 1.2, mine: { ore: .5 }, sectors: { armor_plate: .45, weapon_parts: .45, structure: 1.2, eq_autocannon: .05, eq_medium_gun: .02, mod_armor: .01 }, tax: 3.5, reach: 4 },
+  miners: { civ: .5, ind: .25, mun: .1, mine: { ore: 20, titanium_ore: 12, rare_ore: .5, silicate: 2, gas: 3 }, sectors: { metal: 3, titanium: 4 }, tax: .9, reach: 4 },
+  // munitions, armour plate and ship parts in bulk; refines its own titanium for armour plate from imported
+  // titanium ore (ceres uses all of its titanium for alloy); imports alloy, titanium ore, precision, chemicals
+  iron: { civ: .5, ind: .5, mun: 1.2, mine: { ore: .5 }, sectors: { titanium: 1, armor_plate: .45, weapon_parts: .45, structure: 1.2, eq_autocannon: .05, eq_medium_gun: .02, mod_armor: .01 }, tax: 3.5, reach: 4 },
   // raiders: munitions and repair goods, crystal/rare ore, unstable base
-  pirates: { civ: .4, ind: .15, mun: .5, mine: { crystal: .6, rare_ore: .6, ore: 1.5, gas: 2 }, sectors: { chemicals: 3, weapon_parts: .5, metal: 2 }, tax: .7, reach: 3, unstable: true },
+  pirates: { civ: .4, ind: .15, mun: .5, mine: { crystal: .6, rare_ore: .6, ore: 1.5, gas: 2 }, sectors: { chemicals: 3, weapon_parts: .5, metal: 2 }, tax: .7, reach: 3, unstable: true, raider: true },
 };
 /** recipes that run on munitions capacity (the rest run on industrial capacity) */
 const MUNITIONS = new Set(['armor_plate', 'weapon_parts', 'eq_autocannon', 'eq_medium_gun', 'mod_armor']);
@@ -143,8 +151,22 @@ const EXPORT_FLOOR = .5;
 export const FE_TUNING = {
   /** faction exports fill a market only up to this share of its target; the band above is left to player
    *  sellers (1 = factions may fill markets completely) */
-  exportFill: 1,
+  exportFill: .6,
 };
+/** export goods: at least this share of the cycle's own output of a good is offered to markets even when the
+ *  faction's stock is below its export floor (strategic goods keep flowing in war, scarce and expensive) */
+const EXPORT_MIN_SHARE = .25;
+/** modernization waits until the fleet is supplied (readiness), so civilian growth does not outrun munitions */
+const MODERN_MIN_RDY = .9;
+/** raider economy (pirates): */
+/** extra logistics cost per jump when smuggling through an embargo (hostile, not at war) */
+const SMUGGLE = .15;
+/** goods value a raider takes per strength point per hour at full readiness, before the victim's defence */
+const RAID_VALUE = 250;
+/** a raid never takes a victim's stock below this share of the victim's own target */
+const RAID_KEEP = .5;
+/** wreck material a raider recovers per strength point lost in its fights (either side) */
+const SALVAGE: Cargo = { alloy: 6, metal: 4, weapon_parts: .1 };
 /** export goods: own-market room is refilled this many times per hour (planned production for others) */
 const EXPORT_PULL = 2;
 /** markets keep this share of target stock for others */
@@ -220,22 +242,26 @@ function reachFrom(w: WorldState, fid: string, reach: number): Map<string, numbe
   return d;
 }
 const warBetween = (w: WorldState, a: string, b: string) => Object.values(w.conflicts ?? {}).some(c => !c.ended && ((c.a === a && c.b === b) || (c.a === b && c.b === a)));
-/** markets a faction may buy from, cheapest logistics first: [station, jumps, own] */
-function suppliers(w: WorldState, f: FactionState, sysOf: Map<string, StarSystem | undefined>): [Station, number, boolean][] {
+/** markets a faction may trade with, cheapest logistics first: [station, jumps, own, logistics cost per jump] */
+type Supplier = [Station, number, boolean, number];
+function suppliers(w: WorldState, f: FactionState, sysOf: Map<string, StarSystem | undefined>): Supplier[] {
   const p = PROFILES2[f.id]; const reach = reachFrom(w, f.id, p?.reach ?? 3);
-  const out: [Station, number, boolean][] = [];
+  const out: Supplier[] = [];
   for (const st of Object.values(w.stations)) {
     if (!st.public || !st.market || !st.faction) continue;
-    if (st.faction === f.id) { out.push([st, 0, true]); continue; }
+    if (st.faction === f.id) { out.push([st, 0, true, 0]); continue; }
     const g = w.factions![st.faction]; if (!g) continue;
-    // trade stops in war; outside war only the hostile faction is embargoed by bad relations
+    // trade stops in war; outside war only the hostile faction is embargoed by bad relations — a raider
+    // smuggles through the embargo at a higher logistics cost
     const hostile = FACTIONS[f.id]?.hostile || FACTIONS[st.faction]?.hostile;
-    if (warBetween(w, f.id, st.faction) || (hostile && Math.min(f.rel[st.faction] ?? 0, g.rel[f.id] ?? 0) <= -50)) continue;
+    if (warBetween(w, f.id, st.faction)) continue;
+    const embargo = hostile && Math.min(f.rel[st.faction] ?? 0, g.rel[f.id] ?? 0) <= -50;
+    if (embargo && !p?.raider) continue;
     const sys = sysOf.get(st.id); const j = sys ? reach.get(sys.id) : undefined;
     if (j === undefined) continue;
-    out.push([st, Math.max(1, j), false]);
+    out.push([st, Math.max(1, j), false, embargo ? SMUGGLE : SURCHARGE]);
   }
-  return out.sort((a, b) => a[1] - b[1] || (a[0].id < b[0].id ? -1 : 1));
+  return out.sort((a, b) => a[1] * a[3] - b[1] * b[3] || (a[0].id < b[0].id ? -1 : 1));
 }
 const value = (k: string) => ITEMS[k]?.price ?? 50;
 const tierOf = (r: string) => ITEMS[Object.keys(RECIPES[r].out)[0]]?.tier ?? 1;
@@ -317,7 +343,7 @@ export function rates(w: WorldState, f: FactionState, st: FactionEconState = f.e
     for (const [i, n] of Object.entries(rec.in)) addc(input, i, n * plan[r]);
   }
   const capOf: Cargo = {}, needOf: Cargo = {};
-  for (const [k, n] of Object.entries(p.mine)) addc(capOf, k, size * n * FE_SCALE);
+  for (const [k, n] of Object.entries(p.mine)) addc(capOf, k, size * n * FE_SCALE * st.dev);
   for (const r of Object.keys(p.sectors)) { const [o] = Object.keys(RECIPES[r].out); addc(capOf, o, (MUNITIONS.has(r) ? mun : ind) * p.sectors[r] * FE_SCALE); }
   for (const c of [base, input, ...Object.values(prog)]) for (const [k, n] of Object.entries(c)) addc(needOf, k, n);
   const exportGood = new Set(Object.keys(capOf).filter(k => (capOf[k] ?? 0) > (needOf[k] ?? 0) * 1.1));
@@ -331,7 +357,7 @@ export function rates(w: WorldState, f: FactionState, st: FactionEconState = f.e
   return { civ, ind, mun, size, war, cls, prog, input, plan, base, target, exportGood };
 }
 function modernizing(_w: WorldState, f: FactionState, st: FactionEconState, d: ReturnType<typeof doctrineOf>) {
-  return !atWar(_w, f.id) && f.infra >= d.infra - 1e-6 && st.eff >= .9 && st.dev < DEV_CAP + .1 * (f.claimed?.length ?? 0);
+  return !atWar(_w, f.id) && f.infra >= d.infra - 1e-6 && st.eff >= .9 && st.rdy >= MODERN_MIN_RDY && st.dev < DEV_CAP + .1 * (f.claimed?.length ?? 0);
 }
 
 // ───────────────────────────────────────────────────────────── one cycle
@@ -347,8 +373,10 @@ export function factionEcon2Step(host: EconHost, w: WorldState, dt = FE_CYCLE) {
   for (const f of [...all.slice(r), ...all.slice(0, r)]) cycle(w, f, h, sysOf);
   conflicts(host, w, dt / 60, {
     lossMul: (victim, attacker) => (.5 + .5 * (attacker.econ?.rdy ?? 1)) * (1.5 - .5 * (victim.econ?.rdy ?? 1)),
-    onLoss: (f, lost) => {
+    onLoss: (f, lost, c) => {
       const st = f.econ; if (!st || lost <= 0) return;
+      // a raider strips the wrecks of every fight it is in (its own and the enemy's losses)
+      for (const id of [c.a, c.b]) { const r = w.factions![id]; if (r?.econ && PROFILES2[id]?.raider) for (const [k, n] of Object.entries(SALVAGE)) { addc(r.stock, k, n * lost); addc((r.econ.led.salvaged ??= {}), k, n * lost); } }
       st.led.lostStr += lost;
       // fighting on the border damages infrastructure and slows development
       const dmg = Math.min(f.infra, lost * .25); f.infra -= dmg; st.led.infraLost += dmg;
@@ -376,19 +404,24 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
   const prodMul = st.eff * (R.war ? .85 : 1) * swing;
 
   // 1. extraction and aggregate industry, lowest tier first
+  // extraction grows with development (mines are part of the modernized economy, like the industry)
   for (const [k, n] of Object.entries(p.mine)) {
-    const amt = Math.min(R.size * n * FE_SCALE * prodMul * h, Math.max(0, outCap(k) - qty(f.stock, k)));
+    const amt = Math.min(R.size * n * FE_SCALE * st.dev * prodMul * h, Math.max(0, outCap(k) - qty(f.stock, k)));
     if (amt <= 1e-9) continue;
     addc(f.stock, k, amt); addc(led.extracted, k, amt);
   }
+  // industry leaves this cycle's direct consumption of an input in stock (metal for the civilian economy is
+  // not turned into export structure first); fleet goods (upkeep, war) may still draw on it
+  const madeNow: Cargo = {};
+  const keep = (i: string, out: string) => (R.cls.upkeep[out] || R.cls.war[out] ? 0 : ((R.cls.civ[i] ?? 0) + (R.cls.maint[i] ?? 0) + (R.cls.upkeep[i] ?? 0) + (R.cls.war[i] ?? 0)) * h);
   for (const r of sectorOrder(p)) {
     const rec = RECIPES[r]; const [o, outN] = Object.entries(rec.out)[0];
     let runs = R.plan[r] * prodMul * h;
-    for (const [i, n] of Object.entries(rec.in)) runs = Math.min(runs, qty(f.stock, i) / n);
+    for (const [i, n] of Object.entries(rec.in)) runs = Math.min(runs, Math.max(0, qty(f.stock, i) - keep(i, o)) / n);
     runs = Math.min(runs, Math.max(0, outCap(o) - qty(f.stock, o)) / outN);
     if (runs <= 1e-9) continue;
     for (const [i, n] of Object.entries(rec.in)) { addc(f.stock, i, -n * runs); addc(led.inputs, i, n * runs); }
-    addc(f.stock, o, outN * runs); addc(led.made, o, outN * runs);
+    addc(f.stock, o, outN * runs); addc(led.made, o, outN * runs); addc(madeNow, o, outN * runs);
   }
 
   // 2. sustained consumption from the stockpile
@@ -443,7 +476,8 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
   st.budget += inc; led.income += inc;
 
   // 6. purchases: what the stockpile is short of, most urgent first
-  const R2 = rates(w, f, st, room);   // targets after this cycle's programs (a finished program needs nothing)
+  let R2 = rates(w, f, st, room);   // targets after this cycle's programs (a finished program needs nothing)
+  if (p.raider && raid(w, f, st, R2, h)) R2 = rates(w, f, st, room);
   const direct = (k: string) => (R2.cls.war[k] ? 0 : R2.cls.upkeep[k] ? 1 : R2.cls.civ[k] || R2.cls.maint[k] ? 2 : R2.prog.rebuild[k] || R2.prog.build[k] ? 3 : R2.input[k] ? 4 : 5);
   // make before buy: the inputs of a good the faction makes itself inherit that good's urgency (alloy for
   // iron's own weapon parts is as urgent as the weapon parts), so a producer is not starved into importing
@@ -455,7 +489,7 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
   const prio = (k: string) => pr[k] ?? direct(k);
   const buyTarget = (k: string) => (R2.target[k] ?? 0) * (R2.exportGood.has(k) ? EXPORT_FLOOR : 1);
   const items = Object.keys(R2.target).filter(k => buyTarget(k) - qty(f.stock, k) > 1e-6).sort((a, b) => prio(a) - prio(b) || (a < b ? -1 : 1));
-  let markets: [Station, number, boolean][] | undefined;
+  let markets: Supplier[] | undefined;
   const v3 = growthOn(w);
   const wantOf = (k: string) => {
     const deficit = buyTarget(k) - qty(f.stock, k);
@@ -477,13 +511,13 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
       let want = q;
       let cap = q * value(k) * share * (pool / Math.max(pool, cost * share));   // this good's slice of the tier budget
       markets ??= suppliers(w, f, sysOf);
-      for (const [s, jumps, mine] of markets) {
+      for (const [s, jumps, mine, perJump] of markets) {
         if (want <= 1e-6 || st.budget <= 1 || cap <= 1) break;
         const m = s.market![k]; if (!m) continue;
         for (let slice = 0; slice < 2 && want > 1e-6; slice++) {
           const avail = m.stock - m.target * RESERVE2; if (avail <= 1e-6) break;
           const unit = priceOf(m, mine ? 'sell' : 'buy', v3); if (!(unit > 0)) break;
-          const cost1 = unit * (1 + SURCHARGE * (mine ? 0 : jumps));
+          const cost1 = unit * (1 + perJump * jumps);
           // one faction takes at most half of what a market can spare in a cycle (others share the rest)
           const take = Math.min(slice === 0 ? want / 2 : want, avail * Math.min(1, (slice === 0 ? .25 : .5) * per), Math.min(st.budget, cap * 1.5) / cost1);
           if (take <= 1e-6) break;
@@ -505,16 +539,18 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
   //    partner market costs the exporter SURCHARGE per jump (leaves the economy, recorded as sunk)
   for (const k of Object.keys(f.stock).sort()) {
     let surplus = qty(f.stock, k) - (R2.target[k] ?? 0) * (R2.exportGood.has(k) ? EXPORT_FLOOR : EXPORT_ABOVE);
+    // an export good keeps a minimum flow to markets even when the maker is short itself (war stockpiling)
+    if (R2.exportGood.has(k)) surplus = Math.max(surplus, Math.min(qty(f.stock, k), (madeNow[k] ?? 0) * EXPORT_MIN_SHARE));
     if (surplus <= 1e-6) continue;
     markets ??= suppliers(w, f, sysOf);
-    for (const [s, jumps, mine] of markets) {
+    for (const [s, jumps, mine, perJump] of markets) {
       const m = s.market![k]; if (!m) continue;
       const fill = m.target * FE_TUNING.exportFill;
       if (m.stock >= fill) continue;
       const unit = priceOf(m, 'sell', v3); if (!(unit > 0)) continue;
       const put = Math.min(surplus, fill - m.stock, Math.max(0, (s.funds ?? 0) * Math.min(1, STATION_EXPORT_SHARE * per)) / unit);
       if (put <= 1e-6) continue;
-      const pay = put * unit, ship = mine ? 0 : pay * SURCHARGE * jumps;
+      const pay = put * unit, ship = mine ? 0 : pay * perJump * jumps;
       m.stock += put; surplus -= put;
       addc(f.stock, k, -put); addc(led.exported, k, put);
       s.funds = (s.funds ?? 0) - pay; st.budget += pay - ship; led.exportRev += pay - ship; led.sunk += ship;
@@ -537,6 +573,38 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
     .filter(([, n]) => n >= 1).sort((a, b) => b[1] * value(b[0]) - a[1] * value(a[0]) || (a[0] < b[0] ? -1 : 1)).slice(0, 5).map(([k, n]) => [k, Math.round(n)]);
   // tiny float residue never goes negative
   for (const k of Object.keys(f.stock)) if (f.stock[k]! < 1e-9) { if (f.stock[k]! < -1e-6) throw new Error(`faction ${f.id} stock negative: ${k} ${f.stock[k]}`); delete f.stock[k]; }
+}
+
+/** raider economy: take what the raider is short of from the stockpiles of hostile neighbours (a system of the
+ *  victim shares a gate with the raider's territory; relations ≤ −50 or at war). The yield grows with the raider's
+ *  strength and readiness and falls with the victim's ready strength (patrols); the victim keeps RAID_KEEP of its
+ *  own target of every good. Goods move, nothing is created: victim `lost`, raider `seized`. Returns credits taken. */
+function raid(w: WorldState, f: FactionState, st: FactionEconState, R: Rates, h: number): number {
+  const mine = new Set(Object.values(w.systems).filter(s => s.faction === f.id).map(s => s.id));
+  const victims = new Set<string>();
+  for (const id of mine) for (const g of w.systems[id].gates) { const o = w.systems[g.to]?.faction; if (o && o !== f.id && w.factions![o]) victims.add(o); }
+  const hostile = [...victims].sort().filter(v => warBetween(w, f.id, v) || Math.min(f.rel[v] ?? 0, w.factions![v].rel[f.id] ?? 0) <= -50);
+  if (!hostile.length || f.strength <= 0) return 0;
+  // wanted goods by value of what the raider is missing against its target, most valuable first
+  const want = Object.entries(R.target).map(([k, t]) => [k, Math.max(0, t - qty(f.stock, k))] as [string, number]).filter(x => x[1] > 1e-6)
+    .sort((a, b) => b[1] * value(b[0]) - a[1] * value(a[0]) || (a[0] < b[0] ? -1 : 1));
+  if (!want.length) return 0;
+  let took = 0;
+  for (const vid of hostile) {
+    const v = w.factions![vid]; if (!v.econ) continue;
+    const def = v.strength * (v.econ.rdy ?? 1) * .5;
+    let budget = f.strength * st.rdy * RAID_VALUE * h / hostile.length * (f.strength / (f.strength + def));
+    const vt = rates(w, v, v.econ).target;
+    for (const [k] of want) {
+      if (budget <= 1) break;
+      const n0 = Math.min(Math.max(0, R.target[k] - qty(f.stock, k)), Math.max(0, qty(v.stock, k) - (vt[k] ?? 0) * RAID_KEEP), budget / value(k));
+      if (n0 <= 1e-6) continue;
+      const n = writeOff(v, k, n0);
+      addc(f.stock, k, n); addc((st.led.seized ??= {}), k, n);
+      budget -= n * value(k); took += n * value(k);
+    }
+  }
+  return took;
 }
 
 /** markets of a v2 world: is this good driven by the faction economy here (no free refill/absorption)? */

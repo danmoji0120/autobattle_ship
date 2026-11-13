@@ -42,9 +42,9 @@ function check(tag: string) {
     if (e.budget < -1e-6) violations.push(`${tag} ${f.id} negative budget`);
     if (!Number.isFinite(e.budget + f.strength + f.infra)) violations.push(`${tag} ${f.id} non-finite`);
     const L = e.led;
-    for (const k of new Set([...Object.keys(f.stock), ...Object.keys(L.used), ...Object.keys(L.bought), ...Object.keys(L.made), ...Object.keys(L.extracted)])) {
+    for (const k of new Set([...Object.keys(f.stock), ...Object.keys(L.used), ...Object.keys(L.bought), ...Object.keys(L.made), ...Object.keys(L.extracted), ...Object.keys(L.seized ?? {}), ...Object.keys(L.salvaged ?? {}), ...Object.keys(L.lost ?? {})])) {
       const q = (c: Cargo) => qty(c, k);
-      const exp = q(L.opening) + q(L.extracted) + q(L.made) - q(L.inputs) + q(L.bought) - q(L.used) - q(L.exported) - q(L.lost ?? {});
+      const exp = q(L.opening) + q(L.extracted) + q(L.made) - q(L.inputs) + q(L.bought) + q(L.seized ?? {}) + q(L.salvaged ?? {}) - q(L.used) - q(L.exported) - q(L.lost ?? {});
       if (Math.abs(exp - qty(f.stock, k)) > 1e-6 * Math.max(1, Math.abs(exp))) violations.push(`${tag} ${f.id} ledger ${k} ${exp} vs ${qty(f.stock, k)}`);
     }
   }

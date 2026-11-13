@@ -14,10 +14,10 @@ const peace = (sim: WorldSim) => { for (const f of Object.values(sim.st.factions
 /** stock = opening + extracted + made − inputs + bought − used − exported, for every good */
 function ledgerGap(f: FactionState) {
   const L = f.econ!.led; let worst = 0;
-  const keys = new Set([...Object.keys(f.stock), ...Object.keys(L.opening), ...Object.keys(L.extracted), ...Object.keys(L.made), ...Object.keys(L.inputs), ...Object.keys(L.bought), ...Object.keys(L.used), ...Object.keys(L.exported)]);
+  const keys = new Set([...Object.keys(f.stock), ...Object.keys(L.opening), ...Object.keys(L.extracted), ...Object.keys(L.made), ...Object.keys(L.inputs), ...Object.keys(L.bought), ...Object.keys(L.used), ...Object.keys(L.exported), ...Object.keys(L.seized ?? {}), ...Object.keys(L.salvaged ?? {}), ...Object.keys(L.lost ?? {})]);
   for (const k of keys) {
     const q = (c: Cargo) => qty(c, k);
-    const expect = q(L.opening) + q(L.extracted) + q(L.made) - q(L.inputs) + q(L.bought) - q(L.used) - q(L.exported) - q(L.lost ?? {});
+    const expect = q(L.opening) + q(L.extracted) + q(L.made) - q(L.inputs) + q(L.bought) + q(L.seized ?? {}) + q(L.salvaged ?? {}) - q(L.used) - q(L.exported) - q(L.lost ?? {});
     worst = Math.max(worst, Math.abs(expect - qty(f.stock, k)) / Math.max(1, Math.abs(expect)));
   }
   return worst;
