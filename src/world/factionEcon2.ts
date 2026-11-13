@@ -99,12 +99,13 @@ interface Profile {
   raider?: boolean;
 }
 export const PROFILES2: Record<string, Profile> = {
-  // large civilian economy; security and administration; chemicals/electronics industry
-  union: { civ: 1.2, ind: .45, mun: .15, mine: { gas: 5, silicate: 2.5, ore: 2 }, sectors: { chemicals: 8, silicon: 4, electronics: 1.2, metal: 4, alloy: 2 }, tax: 1.0, reach: 4 },
+  // large civilian economy; security and administration; chemicals/electronics industry (mines a little crystal
+  // for its electronics: the only other source is the pirates, who are embargoed)
+  union: { civ: 1.2, ind: .45, mun: .15, mine: { gas: 5, silicate: 2.5, ore: 2, crystal: .2 }, sectors: { chemicals: 8, silicon: 4, electronics: 1.2, metal: 4, alloy: 2 }, tax: 1.0, reach: 4 },
   // trade and logistics; varied light industry; buys from the furthest
   guild: { civ: 1.0, ind: .35, mun: .1, mine: { ore: 3, gas: 3 }, sectors: { metal: 6, chemicals: 5, machinery: 1.2 }, tax: 1.15, reach: 6 },
   // heavy industry: eats ore/titanium ore/metal, makes alloy, structure, machinery, precision, engines
-  ceres: { civ: .6, ind: 1.2, mun: .2, mine: { ore: 1 }, sectors: { metal: 13, titanium: 5, alloy: 12, structure: 2.2, machinery: 1.2, precision: .8, engine: .015 }, tax: 1.5, reach: 4 },
+  ceres: { civ: .6, ind: 1.2, mun: .2, mine: { ore: 1 }, sectors: { metal: 13, titanium: 5, alloy: 12, structure: 2.2, machinery: 1.2, precision: .8, engine: .03 }, tax: 1.5, reach: 4 },
   // raw-material exporter; imports machinery, chemicals, electronics
   miners: { civ: .5, ind: .25, mun: .1, mine: { ore: 20, titanium_ore: 12, rare_ore: .5, silicate: 2, gas: 3 }, sectors: { metal: 3, titanium: 4 }, tax: .9, reach: 4 },
   // munitions, armour plate and ship parts in bulk; mines and refines its own titanium and makes the precision
