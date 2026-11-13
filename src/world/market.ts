@@ -35,8 +35,9 @@ export function absorbRate(s: Station, k: string, target: number): number {
 }
 
 /** v3 drift: shortages refill as before (pirates choke supply); gluts shrink at the finite absorption rate */
-export function driftV3(s: Station, m: Market, dt: number, supply: number) {
+export function driftV3(s: Station, m: Market, dt: number, supply: number, skip?: (k: string) => boolean) {
   for (const [k, e] of Object.entries(m)) {
+    if (skip?.(k)) continue;   // v2 faction economy: the faction's own production/purchases move this stock
     if (k.startsWith('bp:')) { if (e.stock < e.target) e.stock = Math.min(e.target, e.stock + dt / 7200); continue; }
     const d = e.target - e.stock;
     if (d > 0) e.stock += d * 0.0032 * supply * dt * (EQUIPMENT[k] || (ITEMS[k]?.tier ?? 1) >= 4 ? 0.3 : 1);
@@ -45,9 +46,9 @@ export function driftV3(s: Station, m: Market, dt: number, supply: number) {
 }
 
 /** budget recovery (regional income), dt seconds */
-export function fundsStep(s: Station, dt: number) {
+export function fundsStep(s: Station, dt: number, share = 1) {
   if (!s.public || s.fundsMax === undefined) return;
-  s.funds = Math.min(s.fundsMax, (s.funds ?? 0) + s.fundsMax * FUNDS_REGEN_H / 3600 * dt);
+  s.funds = Math.min(s.fundsMax, (s.funds ?? 0) + s.fundsMax * FUNDS_REGEN_H * share / 3600 * dt);
 }
 
 /** a public station's budget after players paid it `cr` */

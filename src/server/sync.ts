@@ -28,6 +28,11 @@ type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
 const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive', 'econLog']);
+/** factions as clients see them: the v2 economy ledger stays on the server (it is large and changes every cycle) */
+export function publicFactions(fs: WorldState['factions']) {
+  if (!fs) return fs;
+  return Object.fromEntries(Object.entries(fs).map(([id, f]) => [id, f.econ ? { ...f, stock: {}, econ: { ...f.econ, led: undefined } } : f]));
+}
 const OWNED = new Set<string>(['logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals']);
 
 // ───────────────────────────────────────────────────────────── visibility rules (shared by both paths)
@@ -116,7 +121,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
     engagements: Object.fromEntries(Object.entries(eng).filter(([, e]) => contentsKnown(st, c, e.pos) || (!!c && e.sides.some((x: string[]) => x.includes(c))))),
   } : {};
   return {
-    ...base, engagements: eng, battleLog: log, companies, stations, ships, groups, ...fog,
+    ...base, engagements: eng, battleLog: log, companies, stations, ships, groups, ...fog, factions: publicFactions(base.factions),
     intel: base.intel ? (c && base.intel[c] ? { [c]: base.intel[c] } : {}) : undefined,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
     works: own(base.works), approvals: own(base.approvals),
@@ -206,7 +211,7 @@ export class SyncFrame {
       if (HIDDEN.has(k) || IS_COL.has(k)) continue;
       const v = (st as any)[k];
       if (v === undefined && k !== 'battleLog') continue;
-      const json = k === 'battleLog' ? JSON.stringify(((v ?? []) as any[]).map(({ setup: _x, orders: _o, ...lite }) => lite)) : JSON.stringify(v);
+      const json = k === 'battleLog' ? JSON.stringify(((v ?? []) as any[]).map(({ setup: _x, orders: _o, ...lite }) => lite)) : k === 'factions' ? JSON.stringify(publicFactions(v)) : JSON.stringify(v);
       if (json !== undefined) this.scalars.set(k, json);
     }
     // the legacy view always carries a battle log (empty when the world has none yet)

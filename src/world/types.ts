@@ -533,6 +533,8 @@ export interface WorldState {
   intel?: Record<string, import('./intel').CompanyIntel>;
   /** P10 last faction-economy cycle time */
   factionClock?: number;
+  /** faction economy version: 2 = large sustained faction economies (factionEcon2.ts, opt-in); absent = v1 */
+  factionEcon?: 2;
   /** P10 fog of war: uncharted systems and unidentified fields are hidden per company */
   fog?: 1;
   /** Explicit regional-resource rules; absent on older worlds until separately activated. */

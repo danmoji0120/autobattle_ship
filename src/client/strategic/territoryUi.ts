@@ -46,6 +46,8 @@ export function territoryHtml(st: WorldView, sys: StarSystem): string {
     ${f ? `<p><b style="color:${f.color}">${esc(f.name)}</b>${f.capital === sys.id ? ' · 수도' : ''}</p><p class="dim small">${esc(f.desc)}</p>` : `<p class="dim">${sys.charted === false ? '미개척 공역 — 어느 세력도 지배하지 않습니다.' : '무주 공역 — 세력의 보호가 없습니다.'}</p>`}
     <p class="small">${esc(rule.desc)}</p>
     ${fs && d ? `<p class="small">함대 전력 ${fmt(fs.strength)} / ${d.strength} · 기반시설 ${fmt(fs.infra)} / ${d.infra}${fs.strength < d.strength ? ' · <span class="warn">함선 건조 수요</span>' : ''}${fs.infra < d.infra ? ' · <span class="warn">건설 수요</span>' : ''}</p>` : ''}
+    ${fs?.econ ? `<p class="small">경제 효율 ${pct(fs.econ.eff)} · 전투 준비 ${pct(fs.econ.rdy)} · 발전도 ${fs.econ.dev.toFixed(2)}${fs.econ.recon > 0 ? ' · <span class="warn">전후 재건 중</span>' : ''}</p>
+    ${fs.econ.hot?.length ? `<p class="small">부족 품목: ${fs.econ.hot.map(([k, n]) => `<b>${esc(RES_NAME[k] ?? k)}</b> ${fmt(n)}`).join(' · ')}<span class="dim"> — 세력 시장에 판매하면 세력이 사들여 유지·건조·건설에 씁니다</span></p>` : ''}` : ''}
     ${rel.length ? `<p class="dim small">관계: ${rel.map(([k, v]) => `${esc(FACTIONS[k].short)} ${Math.round(v)}`).join(' · ')}</p>` : ''}
     ${wars.length ? wars.map(c => `<p class="warn small">분쟁 중: ${esc(FACTIONS[c.a].short)}–${esc(FACTIONS[c.b].short)} · 관문 ${c.gates.length / 2}곳 봉쇄</p>`).join('') : ''}</section>`;
 }

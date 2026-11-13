@@ -50,6 +50,7 @@ import { expandedLayout, gateOpen, foundingRule, dockRefused, bumpStanding, FACT
 import { visit, surveyIntel, recordSample, believedMix, knowsField } from './intel';
 import { mineGeo, releaseAcc } from './geology';
 import { factionEconStep, warSupply } from './factionEcon';
+import { factionEcon2Step, feOn, feMarket, FE_GOODS, FE_CYCLE, FE_FUNDS_REGEN, enableFactionEcon2 } from './factionEcon2';
 import { dist, dist2, rockPos, miningSpot, berthPos, hashId, sysAt, nextGate, jumps } from './geom';
 import { STATION_SIZES, foundingMaterials, validStationSize, facilityProblem, moduleMaterials, moduleWork, moduleUnlocks, stationSize, stationBerths, occupiedBerths, stationCargoRate } from './stations';
 
@@ -226,13 +227,16 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
+    if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
     // value-chain pricing is opt-in (unapproved default): priced once, after every market exists, so
     // the result never depends on which expansion created a market
     if (opts.econ === 'chain') enableEconChainNew(sim.st, { eq: opts.eq, alloyDirect: opts.alloyDirect });
+    // v2 faction economy is opt-in (new isolated P10 worlds only); enabled after pricing so stockpiles use final prices
+    if (opts.factionEcon === 'v2') enableFactionEcon2(sim.st);
     return sim;
   }
 
@@ -511,8 +515,9 @@ export class WorldSim {
   private npcMarket(s: Station, m: import('./types').Market, dt: number) {
     const sys = this.sysOf(s.pos);
     const v3 = growthOn(this.st);
-    npcMarketStep(s, m, dt, sys?.heat ?? 0, supplyMul(sys, this.time) * (this.st.conflicts ? warSupply(this.st, sys) : 1), !v3);
-    if (v3) driftV3(s, m, dt, Math.max(0.15, 1 - (sys?.heat ?? 0) / 120) * supplyMul(sys, this.time));
+    const skip = feMarket(this.st, s) ? (k: string) => FE_GOODS.has(k) : undefined;
+    npcMarketStep(s, m, dt, sys?.heat ?? 0, supplyMul(sys, this.time) * (this.st.conflicts ? warSupply(this.st, sys) : 1), !v3, skip);
+    if (v3) driftV3(s, m, dt, Math.max(0.15, 1 - (sys?.heat ?? 0) / 120) * supplyMul(sys, this.time), skip);
   }
 
   canDock(st: Station, company: string) { return st.public ? !dockRefused(this.st, st, company) : st.owner === company && this.hasModule(st, 'core'); }
@@ -1958,7 +1963,7 @@ export class WorldSim {
         if (observed) for (const item in m) observed.before[item] = m[item].stock;
         this.npcMarket(s, m, dt);
         if (observed) metricBatch(st, () => { for (const item in m) { const delta = m[item].stock - (observed!.before[item] ?? 0); if (!delta) continue; const identities = observed!.identities[item] ??= [{ kind: 'market.net_supply', reason: 'npc_economy', amount: 0, item, station: s.id }, { kind: 'market.net_consumption', reason: 'npc_economy', amount: 0, item, station: s.id }]; emitMetric(st, identities[delta > 0 ? 0 : 1], Math.abs(delta)); } });
-        if (growthOn(st) && s.public) { const before = s.funds ?? 0; fundsStep(s, dt); const delta = (s.funds ?? 0) - before; if (delta && observed) metricBatch(st, () => emitMetric(st, observed!.budget[delta > 0 ? 0 : 1], Math.abs(delta))); this.restockYards(s, dt); }
+        if (growthOn(st) && s.public) { const before = s.funds ?? 0; fundsStep(s, dt, feMarket(st, s) ? FE_FUNDS_REGEN : 1); const delta = (s.funds ?? 0) - before; if (delta && observed) metricBatch(st, () => emitMetric(st, observed!.budget[delta > 0 ? 0 : 1], Math.abs(delta))); this.restockYards(s, dt); }
       }
       if (!s.public) {
         if (this.hasModule(s, 'defense') && stationSupportOnline(s) && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
@@ -2004,7 +2009,10 @@ export class WorldSim {
     }
     factionStep(st, 1);
     if (st.fog) this.exploreStep();
-    if (st.factions && st.time - (st.factionClock ?? 0) >= 60) { st.factionClock = st.time; factionEconStep(this, st, 60); }
+    if (feOn(st)) {
+      // v2: fixed 60 s cycles on a fixed grid, so the outcome does not depend on the tick length
+      while (st.time - (st.factionClock ?? 0) >= FE_CYCLE) { st.factionClock = (st.factionClock ?? 0) + FE_CYCLE; factionEcon2Step(this, st, FE_CYCLE); }
+    } else if (st.factions && st.time - (st.factionClock ?? 0) >= 60) { st.factionClock = st.time; factionEconStep(this, st, 60); }
     this.unionForces();
     this.pirateForces();
     const traders = Object.values(st.groups).filter(g => g.owner === 'guild' && g.shipIds.length);

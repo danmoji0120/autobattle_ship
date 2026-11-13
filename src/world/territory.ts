@@ -55,6 +55,8 @@ export interface FactionState {
   rel: Record<string, number>;
   /** systems claimed through limited expansion (ids) */
   claimed?: string[];
+  /** faction economy v2 state (factionEcon2.ts); absent on v1 worlds */
+  econ?: import('./factionEcon2').FactionEconState;
 }
 
 export interface Conflict {

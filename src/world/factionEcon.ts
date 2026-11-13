@@ -127,20 +127,31 @@ export function factionEconStep(host: EconHost, w: WorldState, dt = 60) {
   conflicts(host, w, k);
 }
 
-function conflicts(host: EconHost, w: WorldState, k: number) {
+/** optional hooks used by the v2 faction economy (factionEcon2.ts); absent = the v1 rules exactly */
+export interface ConflictMods {
+  /** multiplier on the losses `victim` takes from `attacker` (supply/readiness) */
+  lossMul?(victim: FactionState, attacker: FactionState): number;
+  /** strength actually lost by a side this cycle */
+  onLoss?(f: FactionState, lost: number, c: Conflict): void;
+  onEnd?(c: Conflict): void;
+}
+
+export function conflicts(host: EconHost, w: WorldState, k: number, mods?: ConflictMods) {
   const F = w.factions!; const C = (w.conflicts ??= {});
   for (const c of Object.values(C)) {
     if (c.ended) continue;
     const A = F[c.a], B = F[c.b];
     // attrition: each side loses a share of the other's strength (deterministic world RNG)
-    const la = Math.min(A.strength, (.4 + B.strength * .012) * host.rng.range(.7, 1.3) * k);
-    const lb = Math.min(B.strength, (.4 + A.strength * .012) * host.rng.range(.7, 1.3) * k);
+    const la = Math.min(A.strength, (.4 + B.strength * .012) * host.rng.range(.7, 1.3) * k * (mods?.lossMul?.(A, B) ?? 1));
+    const lb = Math.min(B.strength, (.4 + A.strength * .012) * host.rng.range(.7, 1.3) * k * (mods?.lossMul?.(B, A) ?? 1));
     A.strength -= la; B.strength -= lb;
+    if (mods?.onLoss) { mods.onLoss(A, la, c); mods.onLoss(B, lb, c); }
     c.lost[c.a] = (c.lost[c.a] ?? 0) + la; c.lost[c.b] = (c.lost[c.b] ?? 0) + lb;
     for (const s of Object.values(w.systems)) if ((s.faction === c.a || s.faction === c.b) && s.region === 'border') s.heat = Math.min(100, s.heat + 2 * k);
     const age = w.time - c.since;
     if (age > 2 * 3600 || A.strength < 10 || B.strength < 10 || (age > 1800 && host.rng.chance(.02 * k))) {
       c.ended = w.time;
+      mods?.onEnd?.(c);
       A.rel[c.b] = Math.min(100, (A.rel[c.b] ?? 0) + 15); B.rel[c.a] = Math.min(100, (B.rel[c.a] ?? 0) + 15);
       host.ev('world', `${FACTIONS[c.a].name}–${FACTIONS[c.b].name} 국경 분쟁 종료 — 봉쇄 해제 (손실 ${Math.round(c.lost[c.a])} / ${Math.round(c.lost[c.b])})`, { ref: c.id });
     }

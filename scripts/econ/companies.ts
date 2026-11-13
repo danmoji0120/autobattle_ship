@@ -3,9 +3,11 @@
 // goals that buy and haul inputs, standing production orders, haul groups to a market and price-floor
 // sell goals). Profit is what the company's credits really did; goods that the NPC markets do not buy
 // stay in storage and are never counted as income.
-//   npx vite-node scripts/econ/companies.ts -- <spec> <proposal=base> <origin=fresh|migrated|p10> <hours=24> <seed=5> [out.json] [copies=1]
+//   npx vite-node scripts/econ/companies.ts -- <spec> <proposal=base> <origin=fresh|migrated|p10|p10fe> <hours=24> <seed=5> [out.json] [copies=1]
 // copies > 1: that many identical companies compete for the same inputs and markets (competition run);
 // the main result is company 1, `competitors` lists every company's outcome.
+// <spec> may be a comma list (mine,refine,parts): one company per spec in the same world (specialisation run).
+// p10fe worlds also record hourly faction-economy metrics (scripts/faction/metrics.ts).
 import fs from 'node:fs';
 import { WorldSim } from '../../src/world/sim';
 import { FACILITIES, ITEMS, RECIPES, facilityBuild, recipeFor } from '../../src/world/industry';
@@ -19,6 +21,8 @@ import { qty, type Station } from '../../src/world/types';
 import type { Size } from '../../src/content/schema';
 import { makeWorld, type Origin } from './world';
 import { proposal } from './proposals';
+import { feOn, feManaged, rates } from '../../src/world/factionEcon2';
+import { snapshot, flows, marketView, KEY_GOODS, type Snap } from '../faction/metrics';
 
 export interface Spec {
   name: string; size?: Size; modules: string[];
@@ -52,8 +56,12 @@ export const SPECS: Record<string, Spec> = {
 };
 
 const args = process.argv.slice(2).filter(a => a !== '--');
-const specId = args[0] ?? 'refine', propId = args[1] ?? 'base', origin = (args[2] ?? 'fresh') as Origin, hours = Number(args[3] ?? 24), seed = Number(args[4] ?? 5), out = args[5], copies = Math.max(1, Math.min(4, Number(args[6] ?? 1)));
-const spec = SPECS[specId]; if (!spec) throw new Error(`spec ${specId}? ${Object.keys(SPECS).join(' ')}`);
+const specId = args[0] ?? 'refine', propId = args[1] ?? 'base', origin = (args[2] ?? 'fresh') as Origin, hours = Number(args[3] ?? 24), seed = Number(args[4] ?? 5), out = args[5], copies0 = Math.max(1, Math.min(8, Number(args[6] ?? 1)));
+const specIds = specId.split(',');
+for (const id of specIds) if (!SPECS[id]) throw new Error(`spec ${id}? ${Object.keys(SPECS).join(' ')}`);
+const spec = SPECS[specIds[0]];
+const copies = specIds.length > 1 ? specIds.length : copies0;
+const specOf = (ci: number) => SPECS[specIds[ci % specIds.length]];
 const prop = proposal(propId);
 const sim = makeWorld(seed, origin, prop);
 const W = sim.st;
@@ -72,7 +80,12 @@ const buyPrice = (k: string) => Math.min(...markets.filter(s => s.market![k] && 
 const matValue = (mats: Record<string, number>) => Object.entries(mats).reduce((a, [k, n]) => a + n * (isFinite(buyPrice(k)) ? buyPrice(k) : valueOf(k)), 0);
 
 const START = 500_000;
+function factionNeedH(fid: string, item: string) {
+  const R = rates(W, W.factions![fid]);
+  return (R.base[item] ?? 0) + (R.input[item] ?? 0) + Object.values(R.prog).reduce((n, c) => n + (c[item] ?? 0), 0);
+}
 function setupCompany(ci: number) {
+const spec = specOf(ci);
 const p = sim.addPlayer(`${spec.name.slice(0, 16)}${ci ? ` ${ci + 1}` : ''}`); const co = W.companies[p];
 for (const s of Object.values(W.ships)) if (s.owner === p) { const g = W.groups[s.groupId]; if (g) g.shipIds = g.shipIds.filter(x => x !== s.id); delete W.ships[s.id]; }
 for (const g of Object.values(W.groups)) if (g.owner === p) delete W.groups[g.id];
@@ -117,7 +130,9 @@ const sellPlan: Record<string, { market: string; floor: number; absorbH: number;
 for (const item of spec.outputs ?? []) {
   const cands = markets.filter(s => s.market![item]).map(s => {
     const m = s.market![item], j = jumps(W.systems, ownSys, sysAt(W.systems, s.pos)?.id ?? ownSys);
-    return { s, j, absorbH: absorbRate(s, item, m.target) * 3600, score: absorbRate(s, item, m.target) * m.base * (1 - (s.tax ?? 0)) / (1 + j) };
+    // v2 faction markets: no free absorption — the buyer is the owning faction's sustained need
+    const absorb = feManaged(W, s, item) ? (W.factions![s.faction!] ? factionNeedH(s.faction!, item) / 3600 : 0) : absorbRate(s, item, m.target);
+    return { s, j, absorbH: absorb * 3600, score: absorb * m.base * (1 - (s.tax ?? 0)) / (1 + j) };
   }).sort((a, b) => b.score - a.score);
   const best = cands[0]; if (!best) continue;
   const picks = cands.slice(0, Math.max(1, spec.markets ?? 1));
@@ -132,7 +147,7 @@ for (const item of spec.outputs ?? []) {
 }
 const invested = Object.values(capital).reduce((a, b) => a + b, 0);
 
-return { p, co, own, capital, invested, sellPlan };
+return { p, co, own, capital, invested, sellPlan, spec: specIds[ci % specIds.length] };
 }
 const setups = Array.from({ length: copies }, (_, ci) => setupCompany(ci));
 const { p, co, capital, invested, sellPlan } = setups[0];
@@ -142,11 +157,16 @@ function expectNull(err: string | null, what: string) { if (err) { console.error
 // run
 const hourly: { h: number; credits: number; stock: Record<string, number> }[] = [];
 const held = () => { const r: Record<string, number> = {}; for (const s of Object.values(W.stations)) for (const [k, n] of Object.entries(s.storage[p] ?? {})) if (n > 0.5) r[k] = (r[k] ?? 0) + n; for (const s of Object.values(W.ships)) if (s.owner === p) for (const [k, n] of Object.entries(s.cargo ?? {})) if ((n as number) > 0.5) r[k] = (r[k] ?? 0) + (n as number); return r; };
-const t0 = Date.now(); let worst = 0;
+const t0 = Date.now(); let worst = 0, tickMs = 0;
+const fe = feOn(W); const facHourly: unknown[] = []; let snap: Snap | undefined = fe ? snapshot(W) : undefined;
+const coHourly: number[][] = [];
 for (let h = 1; h <= hours; h++) {
-  for (let t = 0; t < 3600; t += 1) { const s = performance.now(); sim.update(1); worst = Math.max(worst, performance.now() - s); }
+  for (let t = 0; t < 3600; t += 1) { const s = performance.now(); sim.update(1); const d = performance.now() - s; tickMs += d; worst = Math.max(worst, d); }
   hourly.push({ h, credits: Math.round(co.credits), stock: Object.fromEntries(Object.entries(held()).map(([k, n]) => [k, Math.round(n)])) });
+  coHourly.push(setups.map(x => Math.round(x.co.credits)));
+  if (fe) { const now = snapshot(W); facHourly.push({ h, factions: flows(W, snap!, now), wars: Object.values(W.conflicts ?? {}).filter(c => !c.ended).map(c => `${c.a}-${c.b}`) }); snap = now; }
 }
+const saveBytes = sim.serialize().length;
 const mine = Object.entries(tally).filter(([k]) => k.startsWith(p + '|')).map(([k, v]) => { const [, kind, reason, item] = k.split('|'); return { kind, reason, item, amount: Math.round(v.amount * 10) / 10, value: Math.round(v.value) }; });
 const sum = (f: (r: typeof mine[number]) => boolean, key: 'amount' | 'value' = 'amount') => mine.filter(f).reduce((a, r) => a + r[key], 0);
 const steadyFrom = Math.max(1, Math.min(6, Math.floor(hours / 3)));
@@ -162,7 +182,7 @@ for (const item of new Set([...(spec.outputs ?? []), ...(spec.minerTo === 'sell'
 const ledger: Record<string, number> = {};
 for (const hb of co.ops?.ledger ?? []) { for (const [k, v] of Object.entries(hb.inc)) ledger['+' + k] = (ledger['+' + k] ?? 0) + v; for (const [k, v] of Object.entries(hb.exp)) ledger['-' + k] = (ledger['-' + k] ?? 0) + v; }
 const result = {
-  spec: specId, name: spec.name, proposal: propId, origin, hours, seed, ms: Date.now() - t0, worstTickMs: Math.round(worst),
+  spec: specId, name: spec.name, proposal: propId, origin, hours, seed, ms: Date.now() - t0, worstTickMs: Math.round(worst), avgTickMs: +(tickMs / (hours * 3600)).toFixed(2), saveBytes,
   invested: Math.round(invested), capital: Object.fromEntries(Object.entries(capital).map(([k, v]) => [k, Math.round(v)])),
   start: START, end: Math.round(co.credits), net: Math.round(co.credits - START), netPerH: Math.round((co.credits - START) / hours), steadyPerH: Math.round(steady),
   paybackH: steady > 0 ? Math.round(invested / steady * 10) / 10 : null,
@@ -173,9 +193,12 @@ const result = {
   events: mine.filter(r => r.kind !== 'cost'),
   competitors: copies > 1 ? setups.map(x => {
     const ev = Object.entries(tally).filter(([k]) => k.startsWith(x.p + '|') && k.includes('|market|sell|'));
-    return { company: x.p, net: Math.round(x.co.credits - START), netPerH: Math.round((x.co.credits - START) / hours), invested: Math.round(x.invested),
+    return { company: x.p, spec: x.spec, net: Math.round(x.co.credits - START), netPerH: Math.round((x.co.credits - START) / hours), invested: Math.round(x.invested),
       sold: Object.fromEntries(ev.map(([k, v]) => [k.split('|')[3], { units: Math.round(v.amount), value: Math.round(v.value) }])) };
   }) : undefined,
+  companyHourly: copies > 1 ? coHourly : undefined,
+  factionHourly: fe ? facHourly : undefined,
+  marketsEnd: marketView(W, KEY_GOODS),
 };
 const text = JSON.stringify(result);
 if (out) fs.writeFileSync(out, text); else console.log(text);
