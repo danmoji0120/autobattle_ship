@@ -1,0 +1,5087 @@
+{
+ "seed": 5,
+ "policies": {
+  "chain": {
+   "changed": 93,
+   "goods": [
+    {
+     "id": "ore",
+     "before": 3,
+     "after": 2.7,
+     "pct": -11
+    },
+    {
+     "id": "alloy",
+     "before": 43.3,
+     "after": 40,
+     "pct": -7.7
+    },
+    {
+     "id": "crystal",
+     "before": 25.3,
+     "after": 26.8,
+     "pct": 5.9
+    },
+    {
+     "id": "sensor",
+     "before": 2212.4,
+     "after": 4851.8,
+     "pct": 119.3
+    },
+    {
+     "id": "reactor",
+     "before": 4835.9,
+     "after": 11314.2,
+     "pct": 134
+    },
+    {
+     "id": "engine",
+     "before": 4929.2,
+     "after": 9751.4,
+     "pct": 97.8
+    },
+    {
+     "id": "electronics",
+     "before": 162.1,
+     "after": 255.3,
+     "pct": 57.5
+    },
+    {
+     "id": "eq_medium_gun",
+     "before": 2842.4,
+     "after": 6181.7,
+     "pct": 117.5
+    },
+    {
+     "id": "eq_missile_rack",
+     "before": 3487.6,
+     "after": 7766.6,
+     "pct": 122.7
+    },
+    {
+     "id": "eq_pd_gun",
+     "before": 900.2,
+     "after": 2269.2,
+     "pct": 152.1
+    },
+    {
+     "id": "mod_armor",
+     "before": 2481.7,
+     "after": 4763.8,
+     "pct": 92
+    },
+    {
+     "id": "mod_fcs",
+     "before": 1669.7,
+     "after": 3638.7,
+     "pct": 117.9
+    },
+    {
+     "id": "structure",
+     "before": 118,
+     "after": 146.9,
+     "pct": 24.5
+    },
+    {
+     "id": "armor_plate",
+     "before": 301.4,
+     "after": 410.9,
+     "pct": 36.3
+    },
+    {
+     "id": "composite",
+     "before": 94.1,
+     "after": 123.1,
+     "pct": 30.9
+    },
+    {
+     "id": "precision",
+     "before": 342.2,
+     "after": 500.9,
+     "pct": 46.4
+    },
+    {
+     "id": "weapon_parts",
+     "before": 594.5,
+     "after": 1121.7,
+     "pct": 88.7
+    },
+    {
+     "id": "metal",
+     "before": 23.2,
+     "after": 13.8,
+     "pct": -40.5
+    },
+    {
+     "id": "titanium",
+     "before": 53.4,
+     "after": 30.1,
+     "pct": -43.6
+    },
+    {
+     "id": "silicon",
+     "before": 23.5,
+     "after": 14.6,
+     "pct": -37.9
+    },
+    {
+     "id": "chemicals",
+     "before": 35.9,
+     "after": 20.2,
+     "pct": -43.9
+    },
+    {
+     "id": "rare_metal",
+     "before": 216.9,
+     "after": 147.7,
+     "pct": -31.9
+    },
+    {
+     "id": "machinery",
+     "before": 125.2,
+     "after": 157.8,
+     "pct": 26.1
+    },
+    {
+     "id": "silicate",
+     "before": 2.3,
+     "after": 2.3,
+     "pct": 0
+    },
+    {
+     "id": "gas",
+     "before": 3.1,
+     "after": 3.1,
+     "pct": 0
+    },
+    {
+     "id": "eq_autocannon",
+     "before": 878.2,
+     "after": 2058.2,
+     "pct": 134.4
+    },
+    {
+     "id": "mod_engine",
+     "before": 1834.2,
+     "after": 3807.3,
+     "pct": 107.6
+    },
+    {
+     "id": "eq_torpedo",
+     "before": 2645.1,
+     "after": 5701,
+     "pct": 115.5
+    },
+    {
+     "id": "titanium_ore",
+     "before": 4.8,
+     "after": 4.8,
+     "pct": 0
+    },
+    {
+     "id": "rare_ore",
+     "before": 13.1,
+     "after": 13.2,
+     "pct": 0.3
+    },
+    {
+     "id": "eq_heavy_cannon",
+     "before": 13546,
+     "after": 27791.8,
+     "pct": 105.2
+    },
+    {
+     "id": "mod_ecm",
+     "before": 2442.9,
+     "after": 5245.6,
+     "pct": 114.7
+    }
+   ],
+   "holding": {
+    "before": 124417,
+    "after": 121760,
+    "pct": -2.1
+   },
+   "hulls": [
+    {
+     "hull": "battleship_mk1",
+     "npc": 2555900,
+     "npcBefore": 2555900,
+     "buildBefore": 676334,
+     "buildAfter": 856159,
+     "ratioBefore": 0.26,
+     "ratioAfter": 0.33,
+     "selfVsNpcBefore": 0.29,
+     "selfVsNpcAfter": 0.38,
+     "stripBefore": 0.02,
+     "stripAfter": 0.04,
+     "optionB": 3288000,
+     "optionBRatio": 0.26
+    },
+    {
+     "hull": "cruiser_mk1",
+     "npc": 698100,
+     "npcBefore": 698100,
+     "buildBefore": 246138,
+     "buildAfter": 333986,
+     "ratioBefore": 0.35,
+     "ratioAfter": 0.48,
+     "selfVsNpcBefore": 0.37,
+     "selfVsNpcAfter": 0.53,
+     "stripBefore": 0.02,
+     "stripAfter": 0.04,
+     "optionB": 947900,
+     "optionBRatio": 0.35
+    },
+    {
+     "hull": "destroyer_mk1",
+     "npc": 116500,
+     "npcBefore": 116500,
+     "buildBefore": 61208,
+     "buildAfter": 97283,
+     "ratioBefore": 0.53,
+     "ratioAfter": 0.84,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 1.01,
+     "stripBefore": 0.06,
+     "stripAfter": 0.15,
+     "optionB": 191200,
+     "optionBRatio": 0.51
+    },
+    {
+     "hull": "corvette_mk1",
+     "npc": 9300,
+     "npcBefore": 9300,
+     "buildBefore": 20620,
+     "buildAfter": 37786,
+     "ratioBefore": 2.22,
+     "ratioAfter": 4.06,
+     "selfVsNpcBefore": 2.83,
+     "selfVsNpcAfter": 5.46,
+     "stripBefore": 0.52,
+     "stripAfter": 1.19,
+     "optionB": 17700,
+     "optionBRatio": 2.13
+    },
+    {
+     "hull": "frigate_mk1",
+     "npc": 13500,
+     "npcBefore": 13500,
+     "buildBefore": 31294,
+     "buildAfter": 55035,
+     "ratioBefore": 2.32,
+     "ratioAfter": 4.08,
+     "selfVsNpcBefore": 2.81,
+     "selfVsNpcAfter": 5.22,
+     "stripBefore": 0.42,
+     "stripAfter": 0.97,
+     "optionB": 24600,
+     "optionBRatio": 2.24
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "npc": 252300,
+     "npcBefore": 252300,
+     "buildBefore": 110137,
+     "buildAfter": 170875,
+     "ratioBefore": 0.44,
+     "ratioAfter": 0.68,
+     "selfVsNpcBefore": 0.48,
+     "selfVsNpcAfter": 0.78,
+     "stripBefore": 0.04,
+     "stripAfter": 0.1,
+     "optionB": 395400,
+     "optionBRatio": 0.43
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "npc": 1426100,
+     "npcBefore": 1426100,
+     "buildBefore": 417503,
+     "buildAfter": 553251,
+     "ratioBefore": 0.29,
+     "ratioAfter": 0.39,
+     "selfVsNpcBefore": 0.32,
+     "selfVsNpcAfter": 0.46,
+     "stripBefore": 0.03,
+     "stripAfter": 0.06,
+     "optionB": 1925000,
+     "optionBRatio": 0.29
+    },
+    {
+     "hull": "miner_mk1",
+     "npc": 7600,
+     "npcBefore": 7600,
+     "buildBefore": 19433,
+     "buildAfter": 33629,
+     "ratioBefore": 2.56,
+     "ratioAfter": 4.42,
+     "selfVsNpcBefore": 2.81,
+     "selfVsNpcAfter": 5.06,
+     "stripBefore": 0.21,
+     "stripAfter": 0.52,
+     "optionB": 13400,
+     "optionBRatio": 2.51
+    },
+    {
+     "hull": "hauler_mk1",
+     "npc": 9300,
+     "npcBefore": 9300,
+     "buildBefore": 24671,
+     "buildAfter": 44051,
+     "ratioBefore": 2.65,
+     "ratioAfter": 4.74,
+     "selfVsNpcBefore": 2.86,
+     "selfVsNpcAfter": 5.26,
+     "stripBefore": 0.17,
+     "stripAfter": 0.42,
+     "optionB": 16800,
+     "optionBRatio": 2.62
+    },
+    {
+     "hull": "constructor_mk1",
+     "npc": 31900,
+     "npcBefore": 31900,
+     "buildBefore": 40637,
+     "buildAfter": 61625,
+     "ratioBefore": 1.27,
+     "ratioAfter": 1.93,
+     "selfVsNpcBefore": 1.33,
+     "selfVsNpcAfter": 2.08,
+     "stripBefore": 0.05,
+     "stripAfter": 0.12,
+     "optionB": 48300,
+     "optionBRatio": 1.28
+    },
+    {
+     "hull": "destroyer_vls",
+     "npc": 160600,
+     "npcBefore": 160600,
+     "buildBefore": 67057,
+     "buildAfter": 105877,
+     "ratioBefore": 0.42,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.94,
+     "stripBefore": 0.11,
+     "stripAfter": 0.24,
+     "optionB": 269300,
+     "optionBRatio": 0.39
+    },
+    {
+     "hull": "destroyer_picket",
+     "npc": 151400,
+     "npcBefore": 151400,
+     "buildBefore": 68749,
+     "buildAfter": 110914,
+     "ratioBefore": 0.45,
+     "ratioAfter": 0.73,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.93,
+     "stripBefore": 0.07,
+     "stripAfter": 0.17,
+     "optionB": 256300,
+     "optionBRatio": 0.43
+    },
+    {
+     "hull": "destroyer_heavy",
+     "npc": 231100,
+     "npcBefore": 231100,
+     "buildBefore": 82538,
+     "buildAfter": 121982,
+     "ratioBefore": 0.36,
+     "ratioAfter": 0.53,
+     "selfVsNpcBefore": 0.5,
+     "selfVsNpcAfter": 0.82,
+     "stripBefore": 0.11,
+     "stripAfter": 0.23,
+     "optionB": 366400,
+     "optionBRatio": 0.33
+    },
+    {
+     "hull": "destroyer_fast",
+     "npc": 138500,
+     "npcBefore": 138500,
+     "buildBefore": 56759,
+     "buildAfter": 91575,
+     "ratioBefore": 0.41,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.48,
+     "selfVsNpcAfter": 0.83,
+     "stripBefore": 0.07,
+     "stripAfter": 0.16,
+     "optionB": 230600,
+     "optionBRatio": 0.4
+    },
+    {
+     "hull": "miner_m",
+     "npc": 32600,
+     "npcBefore": 32600,
+     "buildBefore": 41604,
+     "buildAfter": 62951,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.93,
+     "selfVsNpcBefore": 1.34,
+     "selfVsNpcAfter": 2.08,
+     "stripBefore": 0.05,
+     "stripAfter": 0.12,
+     "optionB": 49300,
+     "optionBRatio": 1.28
+    },
+    {
+     "hull": "miner_l",
+     "npc": 69900,
+     "npcBefore": 69900,
+     "buildBefore": 79623,
+     "buildAfter": 117762,
+     "ratioBefore": 1.14,
+     "ratioAfter": 1.68,
+     "selfVsNpcBefore": 1.18,
+     "selfVsNpcAfter": 1.79,
+     "stripBefore": 0.03,
+     "stripAfter": 0.08,
+     "optionB": 102600,
+     "optionBRatio": 1.15
+    },
+    {
+     "hull": "miner_xl",
+     "npc": 381200,
+     "npcBefore": 381200,
+     "buildBefore": 225058,
+     "buildAfter": 303574,
+     "ratioBefore": 0.59,
+     "ratioAfter": 0.8,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.82,
+     "stripBefore": 0.01,
+     "stripAfter": 0.02,
+     "optionB": 504600,
+     "optionBRatio": 0.6
+    },
+    {
+     "hull": "hauler_m",
+     "npc": 28900,
+     "npcBefore": 28900,
+     "buildBefore": 36968,
+     "buildAfter": 57272,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.98,
+     "selfVsNpcBefore": 1.35,
+     "selfVsNpcAfter": 2.15,
+     "stripBefore": 0.05,
+     "stripAfter": 0.14,
+     "optionB": 44700,
+     "optionBRatio": 1.28
+    },
+    {
+     "hull": "hauler_l",
+     "npc": 67500,
+     "npcBefore": 67500,
+     "buildBefore": 78049,
+     "buildAfter": 119637,
+     "ratioBefore": 1.16,
+     "ratioAfter": 1.77,
+     "selfVsNpcBefore": 1.2,
+     "selfVsNpcAfter": 1.88,
+     "stripBefore": 0.03,
+     "stripAfter": 0.09,
+     "optionB": 102600,
+     "optionBRatio": 1.17
+    },
+    {
+     "hull": "hauler_xl",
+     "npc": 379200,
+     "npcBefore": 379200,
+     "buildBefore": 227422,
+     "buildAfter": 317154,
+     "ratioBefore": 0.6,
+     "ratioAfter": 0.84,
+     "selfVsNpcBefore": 0.61,
+     "selfVsNpcAfter": 0.86,
+     "stripBefore": 0.01,
+     "stripAfter": 0.02,
+     "optionB": 518500,
+     "optionBRatio": 0.61
+    },
+    {
+     "hull": "constructor_s",
+     "npc": 6900,
+     "npcBefore": 6900,
+     "buildBefore": 18482,
+     "buildAfter": 32483,
+     "ratioBefore": 2.68,
+     "ratioAfter": 4.71,
+     "selfVsNpcBefore": 2.82,
+     "selfVsNpcAfter": 5.06,
+     "stripBefore": 0.11,
+     "stripAfter": 0.29,
+     "optionB": 12000,
+     "optionBRatio": 2.71
+    },
+    {
+     "hull": "constructor_l",
+     "npc": 68300,
+     "npcBefore": 68300,
+     "buildBefore": 78709,
+     "buildAfter": 116329,
+     "ratioBefore": 1.15,
+     "ratioAfter": 1.7,
+     "selfVsNpcBefore": 1.18,
+     "selfVsNpcAfter": 1.77,
+     "stripBefore": 0.02,
+     "stripAfter": 0.06,
+     "optionB": 99300,
+     "optionBRatio": 1.17
+    },
+    {
+     "hull": "constructor_xl",
+     "npc": 395400,
+     "npcBefore": 395400,
+     "buildBefore": 233955,
+     "buildAfter": 314158,
+     "ratioBefore": 0.59,
+     "ratioAfter": 0.79,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.82,
+     "stripBefore": 0.01,
+     "stripAfter": 0.02,
+     "optionB": 521500,
+     "optionBRatio": 0.6
+    },
+    {
+     "hull": "patrol_pathfinder",
+     "npc": 9200,
+     "npcBefore": 9200,
+     "buildBefore": 22128,
+     "buildAfter": 39621,
+     "ratioBefore": 2.41,
+     "ratioAfter": 4.31,
+     "selfVsNpcBefore": 2.82,
+     "selfVsNpcAfter": 5.3,
+     "stripBefore": 0.35,
+     "stripAfter": 0.84,
+     "optionB": 17000,
+     "optionBRatio": 2.33
+    },
+    {
+     "hull": "destroyer_lancet",
+     "npc": 165500,
+     "npcBefore": 165500,
+     "buildBefore": 69488,
+     "buildAfter": 108730,
+     "ratioBefore": 0.42,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.93,
+     "stripBefore": 0.1,
+     "stripAfter": 0.23,
+     "optionB": 275000,
+     "optionBRatio": 0.4
+    },
+    {
+     "hull": "miner_quarry",
+     "npc": 34200,
+     "npcBefore": 34200,
+     "buildBefore": 43465,
+     "buildAfter": 65003,
+     "ratioBefore": 1.27,
+     "ratioAfter": 1.9,
+     "selfVsNpcBefore": 1.33,
+     "selfVsNpcAfter": 2.04,
+     "stripBefore": 0.05,
+     "stripAfter": 0.12,
+     "optionB": 50900,
+     "optionBRatio": 1.28
+    },
+    {
+     "hull": "hauler_meridian",
+     "npc": 71400,
+     "npcBefore": 71400,
+     "buildBefore": 81476,
+     "buildAfter": 123624,
+     "ratioBefore": 1.14,
+     "ratioAfter": 1.73,
+     "selfVsNpcBefore": 1.19,
+     "selfVsNpcAfter": 1.87,
+     "stripBefore": 0.04,
+     "stripAfter": 0.11,
+     "optionB": 108200,
+     "optionBRatio": 1.14
+    },
+    {
+     "hull": "cruiser_vigil",
+     "npc": 364900,
+     "npcBefore": 364900,
+     "buildBefore": 124370,
+     "buildAfter": 189972,
+     "ratioBefore": 0.34,
+     "ratioAfter": 0.52,
+     "selfVsNpcBefore": 0.37,
+     "selfVsNpcAfter": 0.58,
+     "stripBefore": 0.02,
+     "stripAfter": 0.04,
+     "optionB": 559700,
+     "optionBRatio": 0.34
+    },
+    {
+     "hull": "testbed_destroyer",
+     "npc": 117000,
+     "npcBefore": 117000,
+     "buildBefore": 59139,
+     "buildAfter": 93185,
+     "ratioBefore": 0.51,
+     "ratioAfter": 0.8,
+     "selfVsNpcBefore": 0.61,
+     "selfVsNpcAfter": 0.98,
+     "stripBefore": 0.06,
+     "stripAfter": 0.14,
+     "optionB": 190400,
+     "optionBRatio": 0.49
+    },
+    {
+     "hull": "testbed_hauler",
+     "npc": 28900,
+     "npcBefore": 28900,
+     "buildBefore": 36968,
+     "buildAfter": 57272,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.98,
+     "selfVsNpcBefore": 1.35,
+     "selfVsNpcAfter": 2.15,
+     "stripBefore": 0.05,
+     "stripAfter": 0.14,
+     "optionB": 44700,
+     "optionBRatio": 1.28
+    }
+   ],
+   "equipment": [
+    {
+     "recipe": "eq_autocannon",
+     "item": "eq_autocannon",
+     "tech": null,
+     "base": 2058,
+     "inCost": 1210,
+     "npcMarket": true,
+     "profitH": 8603,
+     "paybackH": 42.4,
+     "baseBefore": 878,
+     "profitHBefore": 853,
+     "paybackHBefore": 424.3
+    },
+    {
+     "recipe": "eq_pd_gun",
+     "item": "eq_pd_gun",
+     "tech": null,
+     "base": 2269,
+     "inCost": 1375,
+     "npcMarket": true,
+     "profitH": 7076,
+     "paybackH": 51.6,
+     "baseBefore": 900,
+     "profitHBefore": 259,
+     "paybackHBefore": 1395.4
+    },
+    {
+     "recipe": "eq_torpedo",
+     "item": "eq_torpedo",
+     "tech": null,
+     "base": 5701,
+     "inCost": 3830,
+     "npcMarket": true,
+     "profitH": 8565,
+     "paybackH": 42.6,
+     "baseBefore": 2645,
+     "profitHBefore": 615,
+     "paybackHBefore": 589.2
+    },
+    {
+     "recipe": "eq_medium_gun",
+     "item": "eq_medium_gun",
+     "tech": null,
+     "base": 6182,
+     "inCost": 3855,
+     "npcMarket": true,
+     "profitH": 13628,
+     "paybackH": 26.8,
+     "baseBefore": 2842,
+     "profitHBefore": 2945,
+     "paybackHBefore": 122.9
+    },
+    {
+     "recipe": "eq_missile_rack",
+     "item": "eq_missile_rack",
+     "tech": "guided_missiles",
+     "base": 7767,
+     "inCost": 4390,
+     "npcMarket": true,
+     "profitH": 10346,
+     "paybackH": 35.3,
+     "baseBefore": 3488,
+     "profitHBefore": 1552,
+     "paybackHBefore": 233.3
+    },
+    {
+     "recipe": "eq_laser",
+     "item": "eq_laser",
+     "tech": "energy_weapons",
+     "base": null,
+     "inCost": 3379,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_heavy_cannon",
+     "item": "eq_heavy_cannon",
+     "tech": "heavy_ordnance",
+     "base": 27792,
+     "inCost": 15824,
+     "npcMarket": true,
+     "profitH": 13716,
+     "paybackH": 26.6,
+     "baseBefore": 13546,
+     "profitHBefore": 3067,
+     "paybackHBefore": 118.1
+    },
+    {
+     "recipe": "eq_rail_cannon",
+     "item": "eq_rail_cannon",
+     "tech": "railguns",
+     "base": null,
+     "inCost": 16261,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_lance",
+     "item": "eq_lance",
+     "tech": "particle_lance",
+     "base": null,
+     "inCost": 13367,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_armor",
+     "item": "mod_armor",
+     "tech": null,
+     "base": 4764,
+     "inCost": 2857,
+     "npcMarket": true,
+     "profitH": 7027,
+     "paybackH": 29.6,
+     "baseBefore": 2482,
+     "profitHBefore": -132,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_armor2",
+     "item": "mod_armor2",
+     "tech": "reactive_armor",
+     "base": null,
+     "inCost": 3710,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_engine",
+     "item": "mod_engine",
+     "tech": null,
+     "base": 3807,
+     "inCost": 1837,
+     "npcMarket": true,
+     "profitH": 11774,
+     "paybackH": 10.7,
+     "baseBefore": 1834,
+     "profitHBefore": 2399,
+     "paybackHBefore": 54.3
+    },
+    {
+     "recipe": "mod_engine2",
+     "item": "mod_engine2",
+     "tech": "vector_thrust",
+     "base": null,
+     "inCost": 3332,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_fcs",
+     "item": "mod_fcs",
+     "tech": "fire_control",
+     "base": 3639,
+     "inCost": 1622,
+     "npcMarket": true,
+     "profitH": 7516,
+     "paybackH": 33.7,
+     "baseBefore": 1670,
+     "profitHBefore": 1536,
+     "paybackHBefore": 168.2
+    },
+    {
+     "recipe": "mod_sensor",
+     "item": "mod_sensor",
+     "tech": "long_sensors",
+     "base": null,
+     "inCost": 5955,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_ecm",
+     "item": "mod_ecm",
+     "tech": "ecm",
+     "base": 5246,
+     "inCost": 1897,
+     "npcMarket": true,
+     "profitH": 11253,
+     "paybackH": 22.5,
+     "baseBefore": 2443,
+     "profitHBefore": 2939,
+     "paybackHBefore": 87.9
+    },
+    {
+     "recipe": "mod_reactor",
+     "item": "mod_reactor",
+     "tech": "reactor_tuning",
+     "base": null,
+     "inCost": 13199,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_pd",
+     "item": "mod_pd",
+     "tech": "pd_network",
+     "base": null,
+     "inCost": 6470,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_red",
+     "item": "eq_laser_red",
+     "tech": "optical_lasers",
+     "base": null,
+     "inCost": 2083,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_blue",
+     "item": "eq_laser_blue",
+     "tech": "blue_lasers",
+     "base": null,
+     "inCost": 4423,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_uv",
+     "item": "eq_laser_uv",
+     "tech": "uv_lasers",
+     "base": null,
+     "inCost": 7270,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_xray",
+     "item": "eq_laser_xray",
+     "tech": "xray_lasers",
+     "base": null,
+     "inCost": 15128,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_gamma",
+     "item": "eq_laser_gamma",
+     "tech": "gamma_lasers",
+     "base": null,
+     "inCost": 25621,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_coil_s",
+     "item": "eq_coil_s",
+     "tech": "coilguns",
+     "base": null,
+     "inCost": 1992,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_coil_fast",
+     "item": "eq_coil_fast",
+     "tech": "fast_coils",
+     "base": null,
+     "inCost": 4268,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_rail_m",
+     "item": "eq_rail_m",
+     "tech": "rail_miniaturization",
+     "base": null,
+     "inCost": 8131,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_fast",
+     "item": "eq_missile_fast",
+     "tech": "fast_missiles",
+     "base": null,
+     "inCost": 4101,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_lr",
+     "item": "eq_missile_lr",
+     "tech": "lr_missiles",
+     "base": null,
+     "inCost": 6017,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_smart",
+     "item": "eq_missile_smart",
+     "tech": "smart_missiles",
+     "base": null,
+     "inCost": 8202,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_torp_std",
+     "item": "eq_torp_std",
+     "tech": "torpedo_casting",
+     "base": null,
+     "inCost": 4114,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_torp_asm",
+     "item": "eq_torp_asm",
+     "tech": "asm_torpedoes",
+     "base": null,
+     "inCost": 11567,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_plasma_s",
+     "item": "eq_plasma_s",
+     "tech": "plasma_containment",
+     "base": null,
+     "inCost": 5761,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_plasma_l",
+     "item": "eq_plasma_l",
+     "tech": "plasma_heavy",
+     "base": null,
+     "inCost": 14346,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_particle_m",
+     "item": "eq_particle_m",
+     "tech": "particle_accel",
+     "base": null,
+     "inCost": 9972,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_pd_laser",
+     "item": "eq_pd_laser",
+     "tech": "pd_lasers",
+     "base": null,
+     "inCost": 2341,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_pd_flak",
+     "item": "eq_pd_flak",
+     "tech": "flak_fuzes",
+     "base": null,
+     "inCost": 2186,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_twin",
+     "item": "eq_laser_twin",
+     "tech": "twin_emitters",
+     "base": null,
+     "inCost": 2341,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_shield",
+     "item": "mod_shield",
+     "tech": "deflector_shields",
+     "base": null,
+     "inCost": 3046,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_shield2",
+     "item": "mod_shield2",
+     "tech": "phased_shields",
+     "base": null,
+     "inCost": 5513,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_fusion_core",
+     "item": "mod_fusion_core",
+     "tech": "compact_fusion",
+     "base": null,
+     "inCost": 14485,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    }
+   ],
+   "refit": [
+    {
+     "hull": "battleship_mk1",
+     "items": 11,
+     "cost": 127612,
+     "before": 60645
+    },
+    {
+     "hull": "battleship_mk1",
+     "items": 9,
+     "cost": 88141,
+     "before": 60645
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 6,
+     "cost": 34487,
+     "before": 15364
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 7,
+     "cost": 45785,
+     "before": 15364
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 7,
+     "cost": 31725,
+     "before": 15364
+    },
+    {
+     "hull": "destroyer_mk1",
+     "items": 7,
+     "cost": 20650,
+     "before": 8578
+    },
+    {
+     "hull": "destroyer_mk1",
+     "items": 5,
+     "cost": 23160,
+     "before": 8578
+    },
+    {
+     "hull": "corvette_mk1",
+     "items": 4,
+     "cost": 12975,
+     "before": 5691
+    },
+    {
+     "hull": "corvette_mk1",
+     "items": 5,
+     "cost": 11354,
+     "before": 5691
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 5,
+     "cost": 15397,
+     "before": 6652
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 6,
+     "cost": 14156,
+     "before": 6652
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 4,
+     "cost": 15784,
+     "before": 6652
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 6,
+     "cost": 25611,
+     "before": 11318
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 5,
+     "cost": 28372,
+     "before": 11318
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 5,
+     "cost": 17284,
+     "before": 11318
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 10,
+     "cost": 96457,
+     "before": 45460
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 8,
+     "cost": 56987,
+     "before": 45460
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 8,
+     "cost": 57105,
+     "before": 45460
+    },
+    {
+     "hull": "miner_mk1",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_mk1",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    },
+    {
+     "hull": "constructor_mk1",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    },
+    {
+     "hull": "destroyer_vls",
+     "items": 7,
+     "cost": 45785,
+     "before": 20372
+    },
+    {
+     "hull": "destroyer_vls",
+     "items": 7,
+     "cost": 40545,
+     "before": 20372
+    },
+    {
+     "hull": "destroyer_picket",
+     "items": 11,
+     "cost": 30340,
+     "before": 12422
+    },
+    {
+     "hull": "destroyer_heavy",
+     "items": 4,
+     "cost": 67154,
+     "before": 32292
+    },
+    {
+     "hull": "destroyer_heavy",
+     "items": 4,
+     "cost": 42114,
+     "before": 32292
+    },
+    {
+     "hull": "destroyer_fast",
+     "items": 5,
+     "cost": 23160,
+     "before": 10369
+    },
+    {
+     "hull": "miner_m",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    },
+    {
+     "hull": "miner_l",
+     "items": 3,
+     "cost": 7268,
+     "before": 2883
+    },
+    {
+     "hull": "miner_xl",
+     "items": 4,
+     "cost": 9690,
+     "before": 3844
+    },
+    {
+     "hull": "hauler_m",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_l",
+     "items": 3,
+     "cost": 7268,
+     "before": 2883
+    },
+    {
+     "hull": "hauler_xl",
+     "items": 4,
+     "cost": 9690,
+     "before": 3844
+    },
+    {
+     "hull": "constructor_s",
+     "items": 1,
+     "cost": 2423,
+     "before": 961
+    },
+    {
+     "hull": "constructor_l",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    },
+    {
+     "hull": "constructor_xl",
+     "items": 4,
+     "cost": 9690,
+     "before": 3844
+    },
+    {
+     "hull": "patrol_pathfinder",
+     "items": 4,
+     "cost": 9121,
+     "before": 3819
+    },
+    {
+     "hull": "destroyer_lancet",
+     "items": 7,
+     "cost": 45785,
+     "before": 20372
+    },
+    {
+     "hull": "miner_quarry",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_meridian",
+     "items": 4,
+     "cost": 9690,
+     "before": 3844
+    },
+    {
+     "hull": "cruiser_vigil",
+     "items": 6,
+     "cost": 21448,
+     "before": 11919
+    },
+    {
+     "hull": "testbed_destroyer",
+     "items": 6,
+     "cost": 21448,
+     "before": 11919
+    },
+    {
+     "hull": "testbed_hauler",
+     "items": 2,
+     "cost": 4845,
+     "before": 1922
+    }
+   ],
+   "facilities": [
+    {
+     "kind": "refinery",
+     "capex": 42605,
+     "before": 43992
+    },
+    {
+     "kind": "smelter",
+     "capex": 61424,
+     "before": 62806
+    },
+    {
+     "kind": "alloy_plant",
+     "capex": 100305,
+     "before": 102026
+    },
+    {
+     "kind": "machine_shop",
+     "capex": 115176,
+     "before": 119346
+    },
+    {
+     "kind": "electronics_fab",
+     "capex": 216891,
+     "before": 221083
+    },
+    {
+     "kind": "armor_plant",
+     "capex": 172186,
+     "before": 174588
+    },
+    {
+     "kind": "weapons_factory",
+     "capex": 328914,
+     "before": 324865
+    },
+    {
+     "kind": "engine_plant",
+     "capex": 441489,
+     "before": 434734
+    },
+    {
+     "kind": "reactor_plant",
+     "capex": 745103,
+     "before": 741810
+    },
+    {
+     "kind": "hull_works",
+     "capex": 142000,
+     "before": 144938
+    }
+   ],
+   "stations": {
+    "before": {
+     "S": 43173,
+     "M": 148898
+    },
+    "after": {
+     "S": 41088,
+     "M": 144452
+    }
+   },
+   "fleets": {
+    "before": {
+     "small": 3833,
+     "mid": 8566
+    },
+    "after": {
+     "small": 3744,
+     "mid": 8398
+    }
+   },
+   "repair": [
+    {
+     "hull": "battleship_mk1",
+     "cost": 383385,
+     "before": 383385
+    },
+    {
+     "hull": "cruiser_mk1",
+     "cost": 104715,
+     "before": 104715
+    },
+    {
+     "hull": "destroyer_mk1",
+     "cost": 17475,
+     "before": 17475
+    },
+    {
+     "hull": "corvette_mk1",
+     "cost": 1395,
+     "before": 1395
+    },
+    {
+     "hull": "frigate_mk1",
+     "cost": 2025,
+     "before": 2025
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "cost": 37845,
+     "before": 37845
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "cost": 213915,
+     "before": 213915
+    },
+    {
+     "hull": "miner_mk1",
+     "cost": 1140,
+     "before": 1140
+    },
+    {
+     "hull": "hauler_mk1",
+     "cost": 1395,
+     "before": 1395
+    },
+    {
+     "hull": "constructor_mk1",
+     "cost": 4785,
+     "before": 4785
+    },
+    {
+     "hull": "destroyer_vls",
+     "cost": 24090,
+     "before": 24090
+    },
+    {
+     "hull": "destroyer_picket",
+     "cost": 22710,
+     "before": 22710
+    }
+   ],
+   "approvalStall": {
+    "items": [
+     {
+      "item": "ore",
+      "oldAsk": 2.6,
+      "cap": 3,
+      "newAsk": 2.8,
+      "stalls": false
+     },
+     {
+      "item": "metal",
+      "oldAsk": 26,
+      "cap": 30,
+      "newAsk": 15.5,
+      "stalls": false
+     },
+     {
+      "item": "titanium",
+      "oldAsk": 58.4,
+      "cap": 68,
+      "newAsk": 33,
+      "stalls": false
+     },
+     {
+      "item": "silicon",
+      "oldAsk": 26.3,
+      "cap": 31,
+      "newAsk": 16.4,
+      "stalls": false
+     },
+     {
+      "item": "chemicals",
+      "oldAsk": 39.1,
+      "cap": 45,
+      "newAsk": 22,
+      "stalls": false
+     },
+     {
+      "item": "crystal",
+      "oldAsk": 19.6,
+      "cap": 23,
+      "newAsk": 28,
+      "stalls": true
+     },
+     {
+      "item": "alloy",
+      "oldAsk": 45.3,
+      "cap": 53,
+      "newAsk": 41.8,
+      "stalls": false
+     },
+     {
+      "item": "composite",
+      "oldAsk": 98.1,
+      "cap": 113,
+      "newAsk": 128.4,
+      "stalls": true
+     },
+     {
+      "item": "machinery",
+      "oldAsk": 134.7,
+      "cap": 155,
+      "newAsk": 169.8,
+      "stalls": true
+     },
+     {
+      "item": "precision",
+      "oldAsk": 365.3,
+      "cap": 421,
+      "newAsk": 534.7,
+      "stalls": true
+     },
+     {
+      "item": "structure",
+      "oldAsk": 123,
+      "cap": 142,
+      "newAsk": 153.1,
+      "stalls": true
+     },
+     {
+      "item": "electronics",
+      "oldAsk": 163.7,
+      "cap": 189,
+      "newAsk": 257.8,
+      "stalls": true
+     },
+     {
+      "item": "armor_plate",
+      "oldAsk": 311.9,
+      "cap": 359,
+      "newAsk": 425.2,
+      "stalls": true
+     },
+     {
+      "item": "weapon_parts",
+      "oldAsk": 592.3,
+      "cap": 682,
+      "newAsk": 1117.6,
+      "stalls": true
+     },
+     {
+      "item": "engine",
+      "oldAsk": 5525.6,
+      "cap": 6355,
+      "newAsk": 10931.3,
+      "stalls": true
+     },
+     {
+      "item": "reactor",
+      "oldAsk": 5421,
+      "cap": 6235,
+      "newAsk": 12683.2,
+      "stalls": true
+     },
+     {
+      "item": "sensor",
+      "oldAsk": 2480.1,
+      "cap": 2853,
+      "newAsk": 5438.9,
+      "stalls": true
+     }
+    ],
+    "share": 65
+   }
+  },
+  "keep": {
+   "changed": 73,
+   "goods": [
+    {
+     "id": "ore",
+     "before": 3,
+     "after": 2.7,
+     "pct": -11
+    },
+    {
+     "id": "alloy",
+     "before": 43.3,
+     "after": 40,
+     "pct": -7.7
+    },
+    {
+     "id": "crystal",
+     "before": 25.3,
+     "after": 26.8,
+     "pct": 5.9
+    },
+    {
+     "id": "sensor",
+     "before": 2212.4,
+     "after": 4851.8,
+     "pct": 119.3
+    },
+    {
+     "id": "reactor",
+     "before": 4835.9,
+     "after": 11314.2,
+     "pct": 134
+    },
+    {
+     "id": "engine",
+     "before": 4929.2,
+     "after": 9751.4,
+     "pct": 97.8
+    },
+    {
+     "id": "electronics",
+     "before": 162.1,
+     "after": 255.3,
+     "pct": 57.5
+    },
+    {
+     "id": "eq_medium_gun",
+     "before": 2842.4,
+     "after": 2842.4,
+     "pct": 0
+    },
+    {
+     "id": "eq_missile_rack",
+     "before": 3487.6,
+     "after": 3487.6,
+     "pct": 0
+    },
+    {
+     "id": "eq_pd_gun",
+     "before": 900.2,
+     "after": 900.2,
+     "pct": 0
+    },
+    {
+     "id": "mod_armor",
+     "before": 2481.7,
+     "after": 2481.7,
+     "pct": 0
+    },
+    {
+     "id": "mod_fcs",
+     "before": 1669.7,
+     "after": 1669.7,
+     "pct": 0
+    },
+    {
+     "id": "structure",
+     "before": 118,
+     "after": 146.9,
+     "pct": 24.5
+    },
+    {
+     "id": "armor_plate",
+     "before": 301.4,
+     "after": 410.9,
+     "pct": 36.3
+    },
+    {
+     "id": "composite",
+     "before": 94.1,
+     "after": 123.1,
+     "pct": 30.9
+    },
+    {
+     "id": "precision",
+     "before": 342.2,
+     "after": 500.9,
+     "pct": 46.4
+    },
+    {
+     "id": "weapon_parts",
+     "before": 594.5,
+     "after": 1121.7,
+     "pct": 88.7
+    },
+    {
+     "id": "metal",
+     "before": 23.2,
+     "after": 13.8,
+     "pct": -40.5
+    },
+    {
+     "id": "titanium",
+     "before": 53.4,
+     "after": 30.1,
+     "pct": -43.6
+    },
+    {
+     "id": "silicon",
+     "before": 23.5,
+     "after": 14.6,
+     "pct": -37.9
+    },
+    {
+     "id": "chemicals",
+     "before": 35.9,
+     "after": 20.2,
+     "pct": -43.9
+    },
+    {
+     "id": "rare_metal",
+     "before": 216.9,
+     "after": 147.7,
+     "pct": -31.9
+    },
+    {
+     "id": "machinery",
+     "before": 125.2,
+     "after": 157.8,
+     "pct": 26.1
+    },
+    {
+     "id": "silicate",
+     "before": 2.3,
+     "after": 2.3,
+     "pct": 0
+    },
+    {
+     "id": "gas",
+     "before": 3.1,
+     "after": 3.1,
+     "pct": 0
+    },
+    {
+     "id": "eq_autocannon",
+     "before": 878.2,
+     "after": 878.2,
+     "pct": 0
+    },
+    {
+     "id": "mod_engine",
+     "before": 1834.2,
+     "after": 1834.2,
+     "pct": 0
+    },
+    {
+     "id": "eq_torpedo",
+     "before": 2645.1,
+     "after": 2645.1,
+     "pct": 0
+    },
+    {
+     "id": "titanium_ore",
+     "before": 4.8,
+     "after": 4.8,
+     "pct": 0
+    },
+    {
+     "id": "rare_ore",
+     "before": 13.1,
+     "after": 13.2,
+     "pct": 0.3
+    },
+    {
+     "id": "eq_heavy_cannon",
+     "before": 13546,
+     "after": 13546,
+     "pct": 0
+    },
+    {
+     "id": "mod_ecm",
+     "before": 2442.9,
+     "after": 2442.9,
+     "pct": 0
+    }
+   ],
+   "holding": {
+    "before": 124417,
+    "after": 121760,
+    "pct": -2.1
+   },
+   "hulls": [
+    {
+     "hull": "battleship_mk1",
+     "npc": 2555900,
+     "npcBefore": 2555900,
+     "buildBefore": 676334,
+     "buildAfter": 856159,
+     "ratioBefore": 0.26,
+     "ratioAfter": 0.33,
+     "selfVsNpcBefore": 0.29,
+     "selfVsNpcAfter": 0.36,
+     "stripBefore": 0.02,
+     "stripAfter": 0.02,
+     "optionB": 3096000,
+     "optionBRatio": 0.28
+    },
+    {
+     "hull": "cruiser_mk1",
+     "npc": 698100,
+     "npcBefore": 698100,
+     "buildBefore": 246138,
+     "buildAfter": 333986,
+     "ratioBefore": 0.35,
+     "ratioAfter": 0.48,
+     "selfVsNpcBefore": 0.37,
+     "selfVsNpcAfter": 0.5,
+     "stripBefore": 0.02,
+     "stripAfter": 0.02,
+     "optionB": 901400,
+     "optionBRatio": 0.37
+    },
+    {
+     "hull": "destroyer_mk1",
+     "npc": 116500,
+     "npcBefore": 116500,
+     "buildBefore": 61208,
+     "buildAfter": 97283,
+     "ratioBefore": 0.53,
+     "ratioAfter": 0.84,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.91,
+     "stripBefore": 0.06,
+     "stripAfter": 0.06,
+     "optionB": 170700,
+     "optionBRatio": 0.57
+    },
+    {
+     "hull": "corvette_mk1",
+     "npc": 9300,
+     "npcBefore": 9300,
+     "buildBefore": 20620,
+     "buildAfter": 37786,
+     "ratioBefore": 2.22,
+     "ratioAfter": 4.06,
+     "selfVsNpcBefore": 2.83,
+     "selfVsNpcAfter": 4.67,
+     "stripBefore": 0.52,
+     "stripAfter": 0.52,
+     "optionB": 15000,
+     "optionBRatio": 2.52
+    },
+    {
+     "hull": "frigate_mk1",
+     "npc": 13500,
+     "npcBefore": 13500,
+     "buildBefore": 31294,
+     "buildAfter": 55035,
+     "ratioBefore": 2.32,
+     "ratioAfter": 4.08,
+     "selfVsNpcBefore": 2.81,
+     "selfVsNpcAfter": 4.57,
+     "stripBefore": 0.42,
+     "stripAfter": 0.42,
+     "optionB": 21400,
+     "optionBRatio": 2.57
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "npc": 252300,
+     "npcBefore": 252300,
+     "buildBefore": 110137,
+     "buildAfter": 170875,
+     "ratioBefore": 0.44,
+     "ratioAfter": 0.68,
+     "selfVsNpcBefore": 0.48,
+     "selfVsNpcAfter": 0.72,
+     "stripBefore": 0.04,
+     "stripAfter": 0.04,
+     "optionB": 365400,
+     "optionBRatio": 0.47
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "npc": 1426100,
+     "npcBefore": 1426100,
+     "buildBefore": 417503,
+     "buildAfter": 553251,
+     "ratioBefore": 0.29,
+     "ratioAfter": 0.39,
+     "selfVsNpcBefore": 0.32,
+     "selfVsNpcAfter": 0.42,
+     "stripBefore": 0.03,
+     "stripAfter": 0.03,
+     "optionB": 1790700,
+     "optionBRatio": 0.31
+    },
+    {
+     "hull": "miner_mk1",
+     "npc": 7600,
+     "npcBefore": 7600,
+     "buildBefore": 19433,
+     "buildAfter": 33629,
+     "ratioBefore": 2.56,
+     "ratioAfter": 4.42,
+     "selfVsNpcBefore": 2.81,
+     "selfVsNpcAfter": 4.68,
+     "stripBefore": 0.21,
+     "stripAfter": 0.21,
+     "optionB": 12300,
+     "optionBRatio": 2.73
+    },
+    {
+     "hull": "hauler_mk1",
+     "npc": 9300,
+     "npcBefore": 9300,
+     "buildBefore": 24671,
+     "buildAfter": 44051,
+     "ratioBefore": 2.65,
+     "ratioAfter": 4.74,
+     "selfVsNpcBefore": 2.86,
+     "selfVsNpcAfter": 4.94,
+     "stripBefore": 0.17,
+     "stripAfter": 0.17,
+     "optionB": 15700,
+     "optionBRatio": 2.81
+    },
+    {
+     "hull": "constructor_mk1",
+     "npc": 31900,
+     "npcBefore": 31900,
+     "buildBefore": 40637,
+     "buildAfter": 61625,
+     "ratioBefore": 1.27,
+     "ratioAfter": 1.93,
+     "selfVsNpcBefore": 1.33,
+     "selfVsNpcAfter": 1.99,
+     "stripBefore": 0.05,
+     "stripAfter": 0.05,
+     "optionB": 46000,
+     "optionBRatio": 1.34
+    },
+    {
+     "hull": "destroyer_vls",
+     "npc": 160600,
+     "npcBefore": 160600,
+     "buildBefore": 67057,
+     "buildAfter": 105877,
+     "ratioBefore": 0.42,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.79,
+     "stripBefore": 0.11,
+     "stripAfter": 0.11,
+     "optionB": 225800,
+     "optionBRatio": 0.47
+    },
+    {
+     "hull": "destroyer_picket",
+     "npc": 151400,
+     "npcBefore": 151400,
+     "buildBefore": 68749,
+     "buildAfter": 110914,
+     "ratioBefore": 0.45,
+     "ratioAfter": 0.73,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.81,
+     "stripBefore": 0.07,
+     "stripAfter": 0.07,
+     "optionB": 222300,
+     "optionBRatio": 0.5
+    },
+    {
+     "hull": "destroyer_heavy",
+     "npc": 231100,
+     "npcBefore": 231100,
+     "buildBefore": 82538,
+     "buildAfter": 121982,
+     "ratioBefore": 0.36,
+     "ratioAfter": 0.53,
+     "selfVsNpcBefore": 0.5,
+     "selfVsNpcAfter": 0.67,
+     "stripBefore": 0.11,
+     "stripAfter": 0.11,
+     "optionB": 306100,
+     "optionBRatio": 0.4
+    },
+    {
+     "hull": "destroyer_fast",
+     "npc": 138500,
+     "npcBefore": 138500,
+     "buildBefore": 56759,
+     "buildAfter": 91575,
+     "ratioBefore": 0.41,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.48,
+     "selfVsNpcAfter": 0.74,
+     "stripBefore": 0.07,
+     "stripAfter": 0.07,
+     "optionB": 203500,
+     "optionBRatio": 0.45
+    },
+    {
+     "hull": "miner_m",
+     "npc": 32600,
+     "npcBefore": 32600,
+     "buildBefore": 41604,
+     "buildAfter": 62951,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.93,
+     "selfVsNpcBefore": 1.34,
+     "selfVsNpcAfter": 1.99,
+     "stripBefore": 0.05,
+     "stripAfter": 0.05,
+     "optionB": 47000,
+     "optionBRatio": 1.34
+    },
+    {
+     "hull": "miner_l",
+     "npc": 69900,
+     "npcBefore": 69900,
+     "buildBefore": 79623,
+     "buildAfter": 117762,
+     "ratioBefore": 1.14,
+     "ratioAfter": 1.68,
+     "selfVsNpcBefore": 1.18,
+     "selfVsNpcAfter": 1.73,
+     "stripBefore": 0.03,
+     "stripAfter": 0.03,
+     "optionB": 98900,
+     "optionBRatio": 1.19
+    },
+    {
+     "hull": "miner_xl",
+     "npc": 381200,
+     "npcBefore": 381200,
+     "buildBefore": 225058,
+     "buildAfter": 303574,
+     "ratioBefore": 0.59,
+     "ratioAfter": 0.8,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.81,
+     "stripBefore": 0.01,
+     "stripAfter": 0.01,
+     "optionB": 495200,
+     "optionBRatio": 0.61
+    },
+    {
+     "hull": "hauler_m",
+     "npc": 28900,
+     "npcBefore": 28900,
+     "buildBefore": 36968,
+     "buildAfter": 57272,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.98,
+     "selfVsNpcBefore": 1.35,
+     "selfVsNpcAfter": 2.05,
+     "stripBefore": 0.05,
+     "stripAfter": 0.05,
+     "optionB": 42500,
+     "optionBRatio": 1.35
+    },
+    {
+     "hull": "hauler_l",
+     "npc": 67500,
+     "npcBefore": 67500,
+     "buildBefore": 78049,
+     "buildAfter": 119637,
+     "ratioBefore": 1.16,
+     "ratioAfter": 1.77,
+     "selfVsNpcBefore": 1.2,
+     "selfVsNpcAfter": 1.82,
+     "stripBefore": 0.03,
+     "stripAfter": 0.03,
+     "optionB": 98900,
+     "optionBRatio": 1.21
+    },
+    {
+     "hull": "hauler_xl",
+     "npc": 379200,
+     "npcBefore": 379200,
+     "buildBefore": 227422,
+     "buildAfter": 317154,
+     "ratioBefore": 0.6,
+     "ratioAfter": 0.84,
+     "selfVsNpcBefore": 0.61,
+     "selfVsNpcAfter": 0.85,
+     "stripBefore": 0.01,
+     "stripAfter": 0.01,
+     "optionB": 509000,
+     "optionBRatio": 0.62
+    },
+    {
+     "hull": "constructor_s",
+     "npc": 6900,
+     "npcBefore": 6900,
+     "buildBefore": 18482,
+     "buildAfter": 32483,
+     "ratioBefore": 2.68,
+     "ratioAfter": 4.71,
+     "selfVsNpcBefore": 2.82,
+     "selfVsNpcAfter": 4.85,
+     "stripBefore": 0.11,
+     "stripAfter": 0.11,
+     "optionB": 11500,
+     "optionBRatio": 2.82
+    },
+    {
+     "hull": "constructor_l",
+     "npc": 68300,
+     "npcBefore": 68300,
+     "buildBefore": 78709,
+     "buildAfter": 116329,
+     "ratioBefore": 1.15,
+     "ratioAfter": 1.7,
+     "selfVsNpcBefore": 1.18,
+     "selfVsNpcAfter": 1.73,
+     "stripBefore": 0.02,
+     "stripAfter": 0.02,
+     "optionB": 96800,
+     "optionBRatio": 1.2
+    },
+    {
+     "hull": "constructor_xl",
+     "npc": 395400,
+     "npcBefore": 395400,
+     "buildBefore": 233955,
+     "buildAfter": 314158,
+     "ratioBefore": 0.59,
+     "ratioAfter": 0.79,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.8,
+     "stripBefore": 0.01,
+     "stripAfter": 0.01,
+     "optionB": 512100,
+     "optionBRatio": 0.61
+    },
+    {
+     "hull": "patrol_pathfinder",
+     "npc": 9200,
+     "npcBefore": 9200,
+     "buildBefore": 22128,
+     "buildAfter": 39621,
+     "ratioBefore": 2.41,
+     "ratioAfter": 4.31,
+     "selfVsNpcBefore": 2.82,
+     "selfVsNpcAfter": 4.72,
+     "stripBefore": 0.35,
+     "stripAfter": 0.35,
+     "optionB": 15000,
+     "optionBRatio": 2.64
+    },
+    {
+     "hull": "destroyer_lancet",
+     "npc": 165500,
+     "npcBefore": 165500,
+     "buildBefore": 69488,
+     "buildAfter": 108730,
+     "ratioBefore": 0.42,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.78,
+     "stripBefore": 0.1,
+     "stripAfter": 0.1,
+     "optionB": 231500,
+     "optionBRatio": 0.47
+    },
+    {
+     "hull": "miner_quarry",
+     "npc": 34200,
+     "npcBefore": 34200,
+     "buildBefore": 43465,
+     "buildAfter": 65003,
+     "ratioBefore": 1.27,
+     "ratioAfter": 1.9,
+     "selfVsNpcBefore": 1.33,
+     "selfVsNpcAfter": 1.96,
+     "stripBefore": 0.05,
+     "stripAfter": 0.05,
+     "optionB": 48700,
+     "optionBRatio": 1.33
+    },
+    {
+     "hull": "hauler_meridian",
+     "npc": 71400,
+     "npcBefore": 71400,
+     "buildBefore": 81476,
+     "buildAfter": 123624,
+     "ratioBefore": 1.14,
+     "ratioAfter": 1.73,
+     "selfVsNpcBefore": 1.19,
+     "selfVsNpcAfter": 1.79,
+     "stripBefore": 0.04,
+     "stripAfter": 0.04,
+     "optionB": 103200,
+     "optionBRatio": 1.2
+    },
+    {
+     "hull": "cruiser_vigil",
+     "npc": 364900,
+     "npcBefore": 364900,
+     "buildBefore": 124370,
+     "buildAfter": 189972,
+     "ratioBefore": 0.34,
+     "ratioAfter": 0.52,
+     "selfVsNpcBefore": 0.37,
+     "selfVsNpcAfter": 0.55,
+     "stripBefore": 0.02,
+     "stripAfter": 0.02,
+     "optionB": 523500,
+     "optionBRatio": 0.36
+    },
+    {
+     "hull": "testbed_destroyer",
+     "npc": 117000,
+     "npcBefore": 117000,
+     "buildBefore": 59139,
+     "buildAfter": 93185,
+     "ratioBefore": 0.51,
+     "ratioAfter": 0.8,
+     "selfVsNpcBefore": 0.61,
+     "selfVsNpcAfter": 0.9,
+     "stripBefore": 0.06,
+     "stripAfter": 0.06,
+     "optionB": 167800,
+     "optionBRatio": 0.56
+    },
+    {
+     "hull": "testbed_hauler",
+     "npc": 28900,
+     "npcBefore": 28900,
+     "buildBefore": 36968,
+     "buildAfter": 57272,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.98,
+     "selfVsNpcBefore": 1.35,
+     "selfVsNpcAfter": 2.05,
+     "stripBefore": 0.05,
+     "stripAfter": 0.05,
+     "optionB": 42500,
+     "optionBRatio": 1.35
+    }
+   ],
+   "equipment": [
+    {
+     "recipe": "eq_autocannon",
+     "item": "eq_autocannon",
+     "tech": null,
+     "base": 878,
+     "inCost": 1210,
+     "npcMarket": true,
+     "profitH": -4691,
+     "paybackH": null,
+     "baseBefore": 878,
+     "profitHBefore": 853,
+     "paybackHBefore": 424.3
+    },
+    {
+     "recipe": "eq_pd_gun",
+     "item": "eq_pd_gun",
+     "tech": null,
+     "base": 900,
+     "inCost": 1375,
+     "npcMarket": true,
+     "profitH": -7174,
+     "paybackH": null,
+     "baseBefore": 900,
+     "profitHBefore": 259,
+     "paybackHBefore": 1395.4
+    },
+    {
+     "recipe": "eq_torpedo",
+     "item": "eq_torpedo",
+     "tech": null,
+     "base": 2645,
+     "inCost": 3830,
+     "npcMarket": true,
+     "profitH": -8377,
+     "paybackH": null,
+     "baseBefore": 2645,
+     "profitHBefore": 615,
+     "paybackHBefore": 589.2
+    },
+    {
+     "recipe": "eq_medium_gun",
+     "item": "eq_medium_gun",
+     "tech": null,
+     "base": 2842,
+     "inCost": 3855,
+     "npcMarket": true,
+     "profitH": -6260,
+     "paybackH": null,
+     "baseBefore": 2842,
+     "profitHBefore": 2945,
+     "paybackHBefore": 122.9
+    },
+    {
+     "recipe": "eq_missile_rack",
+     "item": "eq_missile_rack",
+     "tech": "guided_missiles",
+     "base": 3488,
+     "inCost": 4390,
+     "npcMarket": true,
+     "profitH": -5058,
+     "paybackH": null,
+     "baseBefore": 3488,
+     "profitHBefore": 1552,
+     "paybackHBefore": 233.3
+    },
+    {
+     "recipe": "eq_laser",
+     "item": "eq_laser",
+     "tech": "energy_weapons",
+     "base": null,
+     "inCost": 3379,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_heavy_cannon",
+     "item": "eq_heavy_cannon",
+     "tech": "heavy_ordnance",
+     "base": 13546,
+     "inCost": 15824,
+     "npcMarket": true,
+     "profitH": -5516,
+     "paybackH": null,
+     "baseBefore": 13546,
+     "profitHBefore": 3067,
+     "paybackHBefore": 118.1
+    },
+    {
+     "recipe": "eq_rail_cannon",
+     "item": "eq_rail_cannon",
+     "tech": "railguns",
+     "base": null,
+     "inCost": 16261,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_lance",
+     "item": "eq_lance",
+     "tech": "particle_lance",
+     "base": null,
+     "inCost": 13367,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_armor",
+     "item": "mod_armor",
+     "tech": null,
+     "base": 2482,
+     "inCost": 2857,
+     "npcMarket": true,
+     "profitH": -4574,
+     "paybackH": null,
+     "baseBefore": 2482,
+     "profitHBefore": -132,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_armor2",
+     "item": "mod_armor2",
+     "tech": "reactive_armor",
+     "base": null,
+     "inCost": 3710,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_engine",
+     "item": "mod_engine",
+     "tech": null,
+     "base": 1834,
+     "inCost": 1837,
+     "npcMarket": true,
+     "profitH": -64,
+     "paybackH": null,
+     "baseBefore": 1834,
+     "profitHBefore": 2399,
+     "paybackHBefore": 54.3
+    },
+    {
+     "recipe": "mod_engine2",
+     "item": "mod_engine2",
+     "tech": "vector_thrust",
+     "base": null,
+     "inCost": 3332,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_fcs",
+     "item": "mod_fcs",
+     "tech": "fire_control",
+     "base": 1670,
+     "inCost": 1622,
+     "npcMarket": true,
+     "profitH": -1841,
+     "paybackH": null,
+     "baseBefore": 1670,
+     "profitHBefore": 1536,
+     "paybackHBefore": 168.2
+    },
+    {
+     "recipe": "mod_sensor",
+     "item": "mod_sensor",
+     "tech": "long_sensors",
+     "base": null,
+     "inCost": 5955,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_ecm",
+     "item": "mod_ecm",
+     "tech": "ecm",
+     "base": 2443,
+     "inCost": 1897,
+     "npcMarket": true,
+     "profitH": 1163,
+     "paybackH": 217.5,
+     "baseBefore": 2443,
+     "profitHBefore": 2939,
+     "paybackHBefore": 87.9
+    },
+    {
+     "recipe": "mod_reactor",
+     "item": "mod_reactor",
+     "tech": "reactor_tuning",
+     "base": null,
+     "inCost": 13199,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_pd",
+     "item": "mod_pd",
+     "tech": "pd_network",
+     "base": null,
+     "inCost": 6470,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_red",
+     "item": "eq_laser_red",
+     "tech": "optical_lasers",
+     "base": null,
+     "inCost": 2083,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_blue",
+     "item": "eq_laser_blue",
+     "tech": "blue_lasers",
+     "base": null,
+     "inCost": 4423,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_uv",
+     "item": "eq_laser_uv",
+     "tech": "uv_lasers",
+     "base": null,
+     "inCost": 7270,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_xray",
+     "item": "eq_laser_xray",
+     "tech": "xray_lasers",
+     "base": null,
+     "inCost": 15128,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_gamma",
+     "item": "eq_laser_gamma",
+     "tech": "gamma_lasers",
+     "base": null,
+     "inCost": 25621,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_coil_s",
+     "item": "eq_coil_s",
+     "tech": "coilguns",
+     "base": null,
+     "inCost": 1992,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_coil_fast",
+     "item": "eq_coil_fast",
+     "tech": "fast_coils",
+     "base": null,
+     "inCost": 4268,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_rail_m",
+     "item": "eq_rail_m",
+     "tech": "rail_miniaturization",
+     "base": null,
+     "inCost": 8131,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_fast",
+     "item": "eq_missile_fast",
+     "tech": "fast_missiles",
+     "base": null,
+     "inCost": 4101,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_lr",
+     "item": "eq_missile_lr",
+     "tech": "lr_missiles",
+     "base": null,
+     "inCost": 6017,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_smart",
+     "item": "eq_missile_smart",
+     "tech": "smart_missiles",
+     "base": null,
+     "inCost": 8202,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_torp_std",
+     "item": "eq_torp_std",
+     "tech": "torpedo_casting",
+     "base": null,
+     "inCost": 4114,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_torp_asm",
+     "item": "eq_torp_asm",
+     "tech": "asm_torpedoes",
+     "base": null,
+     "inCost": 11567,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_plasma_s",
+     "item": "eq_plasma_s",
+     "tech": "plasma_containment",
+     "base": null,
+     "inCost": 5761,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_plasma_l",
+     "item": "eq_plasma_l",
+     "tech": "plasma_heavy",
+     "base": null,
+     "inCost": 14346,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_particle_m",
+     "item": "eq_particle_m",
+     "tech": "particle_accel",
+     "base": null,
+     "inCost": 9972,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_pd_laser",
+     "item": "eq_pd_laser",
+     "tech": "pd_lasers",
+     "base": null,
+     "inCost": 2341,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_pd_flak",
+     "item": "eq_pd_flak",
+     "tech": "flak_fuzes",
+     "base": null,
+     "inCost": 2186,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_twin",
+     "item": "eq_laser_twin",
+     "tech": "twin_emitters",
+     "base": null,
+     "inCost": 2341,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_shield",
+     "item": "mod_shield",
+     "tech": "deflector_shields",
+     "base": null,
+     "inCost": 3046,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_shield2",
+     "item": "mod_shield2",
+     "tech": "phased_shields",
+     "base": null,
+     "inCost": 5513,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_fusion_core",
+     "item": "mod_fusion_core",
+     "tech": "compact_fusion",
+     "base": null,
+     "inCost": 14485,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    }
+   ],
+   "refit": [
+    {
+     "hull": "battleship_mk1",
+     "items": 11,
+     "cost": 60645,
+     "before": 60645
+    },
+    {
+     "hull": "battleship_mk1",
+     "items": 9,
+     "cost": 59720,
+     "before": 60645
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 6,
+     "cost": 15364,
+     "before": 15364
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 7,
+     "cost": 20372,
+     "before": 15364
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 7,
+     "cost": 14129,
+     "before": 15364
+    },
+    {
+     "hull": "destroyer_mk1",
+     "items": 7,
+     "cost": 8578,
+     "before": 8578
+    },
+    {
+     "hull": "destroyer_mk1",
+     "items": 5,
+     "cost": 10369,
+     "before": 8578
+    },
+    {
+     "hull": "corvette_mk1",
+     "items": 4,
+     "cost": 5691,
+     "before": 5691
+    },
+    {
+     "hull": "corvette_mk1",
+     "items": 5,
+     "cost": 4772,
+     "before": 5691
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 5,
+     "cost": 6652,
+     "before": 6652
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 6,
+     "cost": 5750,
+     "before": 6652
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 4,
+     "cost": 6784,
+     "before": 6652
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 6,
+     "cost": 11318,
+     "before": 11318
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 5,
+     "cost": 12553,
+     "before": 11318
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 5,
+     "cost": 14361,
+     "before": 11318
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 10,
+     "cost": 45460,
+     "before": 45460
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 8,
+     "cost": 44535,
+     "before": 45460
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 8,
+     "cost": 44653,
+     "before": 45460
+    },
+    {
+     "hull": "miner_mk1",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_mk1",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    },
+    {
+     "hull": "constructor_mk1",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    },
+    {
+     "hull": "destroyer_vls",
+     "items": 7,
+     "cost": 20372,
+     "before": 20372
+    },
+    {
+     "hull": "destroyer_vls",
+     "items": 7,
+     "cost": 18201,
+     "before": 20372
+    },
+    {
+     "hull": "destroyer_picket",
+     "items": 11,
+     "cost": 12422,
+     "before": 12422
+    },
+    {
+     "hull": "destroyer_heavy",
+     "items": 4,
+     "cost": 32292,
+     "before": 32292
+    },
+    {
+     "hull": "destroyer_heavy",
+     "items": 4,
+     "cost": 19919,
+     "before": 32292
+    },
+    {
+     "hull": "destroyer_fast",
+     "items": 5,
+     "cost": 10369,
+     "before": 10369
+    },
+    {
+     "hull": "miner_m",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    },
+    {
+     "hull": "miner_l",
+     "items": 3,
+     "cost": 2883,
+     "before": 2883
+    },
+    {
+     "hull": "miner_xl",
+     "items": 4,
+     "cost": 3844,
+     "before": 3844
+    },
+    {
+     "hull": "hauler_m",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_l",
+     "items": 3,
+     "cost": 2883,
+     "before": 2883
+    },
+    {
+     "hull": "hauler_xl",
+     "items": 4,
+     "cost": 3844,
+     "before": 3844
+    },
+    {
+     "hull": "constructor_s",
+     "items": 1,
+     "cost": 961,
+     "before": 961
+    },
+    {
+     "hull": "constructor_l",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    },
+    {
+     "hull": "constructor_xl",
+     "items": 4,
+     "cost": 3844,
+     "before": 3844
+    },
+    {
+     "hull": "patrol_pathfinder",
+     "items": 4,
+     "cost": 3819,
+     "before": 3819
+    },
+    {
+     "hull": "destroyer_lancet",
+     "items": 7,
+     "cost": 20372,
+     "before": 20372
+    },
+    {
+     "hull": "miner_quarry",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_meridian",
+     "items": 4,
+     "cost": 3844,
+     "before": 3844
+    },
+    {
+     "hull": "cruiser_vigil",
+     "items": 6,
+     "cost": 11919,
+     "before": 11919
+    },
+    {
+     "hull": "testbed_destroyer",
+     "items": 6,
+     "cost": 11919,
+     "before": 11919
+    },
+    {
+     "hull": "testbed_hauler",
+     "items": 2,
+     "cost": 1922,
+     "before": 1922
+    }
+   ],
+   "facilities": [
+    {
+     "kind": "refinery",
+     "capex": 42605,
+     "before": 43992
+    },
+    {
+     "kind": "smelter",
+     "capex": 61424,
+     "before": 62806
+    },
+    {
+     "kind": "alloy_plant",
+     "capex": 100305,
+     "before": 102026
+    },
+    {
+     "kind": "machine_shop",
+     "capex": 115176,
+     "before": 119346
+    },
+    {
+     "kind": "electronics_fab",
+     "capex": 216891,
+     "before": 221083
+    },
+    {
+     "kind": "armor_plant",
+     "capex": 172186,
+     "before": 174588
+    },
+    {
+     "kind": "weapons_factory",
+     "capex": 328914,
+     "before": 324865
+    },
+    {
+     "kind": "engine_plant",
+     "capex": 441489,
+     "before": 434734
+    },
+    {
+     "kind": "reactor_plant",
+     "capex": 745103,
+     "before": 741810
+    },
+    {
+     "kind": "hull_works",
+     "capex": 142000,
+     "before": 144938
+    }
+   ],
+   "stations": {
+    "before": {
+     "S": 43173,
+     "M": 148898
+    },
+    "after": {
+     "S": 41088,
+     "M": 144452
+    }
+   },
+   "fleets": {
+    "before": {
+     "small": 3833,
+     "mid": 8566
+    },
+    "after": {
+     "small": 3744,
+     "mid": 8398
+    }
+   },
+   "repair": [
+    {
+     "hull": "battleship_mk1",
+     "cost": 383385,
+     "before": 383385
+    },
+    {
+     "hull": "cruiser_mk1",
+     "cost": 104715,
+     "before": 104715
+    },
+    {
+     "hull": "destroyer_mk1",
+     "cost": 17475,
+     "before": 17475
+    },
+    {
+     "hull": "corvette_mk1",
+     "cost": 1395,
+     "before": 1395
+    },
+    {
+     "hull": "frigate_mk1",
+     "cost": 2025,
+     "before": 2025
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "cost": 37845,
+     "before": 37845
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "cost": 213915,
+     "before": 213915
+    },
+    {
+     "hull": "miner_mk1",
+     "cost": 1140,
+     "before": 1140
+    },
+    {
+     "hull": "hauler_mk1",
+     "cost": 1395,
+     "before": 1395
+    },
+    {
+     "hull": "constructor_mk1",
+     "cost": 4785,
+     "before": 4785
+    },
+    {
+     "hull": "destroyer_vls",
+     "cost": 24090,
+     "before": 24090
+    },
+    {
+     "hull": "destroyer_picket",
+     "cost": 22710,
+     "before": 22710
+    }
+   ],
+   "approvalStall": {
+    "items": [
+     {
+      "item": "ore",
+      "oldAsk": 2.6,
+      "cap": 3,
+      "newAsk": 2.8,
+      "stalls": false
+     },
+     {
+      "item": "metal",
+      "oldAsk": 26,
+      "cap": 30,
+      "newAsk": 15.5,
+      "stalls": false
+     },
+     {
+      "item": "titanium",
+      "oldAsk": 58.4,
+      "cap": 68,
+      "newAsk": 33,
+      "stalls": false
+     },
+     {
+      "item": "silicon",
+      "oldAsk": 26.3,
+      "cap": 31,
+      "newAsk": 16.4,
+      "stalls": false
+     },
+     {
+      "item": "chemicals",
+      "oldAsk": 39.1,
+      "cap": 45,
+      "newAsk": 22,
+      "stalls": false
+     },
+     {
+      "item": "crystal",
+      "oldAsk": 19.6,
+      "cap": 23,
+      "newAsk": 28,
+      "stalls": true
+     },
+     {
+      "item": "alloy",
+      "oldAsk": 45.3,
+      "cap": 53,
+      "newAsk": 41.8,
+      "stalls": false
+     },
+     {
+      "item": "composite",
+      "oldAsk": 98.1,
+      "cap": 113,
+      "newAsk": 128.4,
+      "stalls": true
+     },
+     {
+      "item": "machinery",
+      "oldAsk": 134.7,
+      "cap": 155,
+      "newAsk": 169.8,
+      "stalls": true
+     },
+     {
+      "item": "precision",
+      "oldAsk": 365.3,
+      "cap": 421,
+      "newAsk": 534.7,
+      "stalls": true
+     },
+     {
+      "item": "structure",
+      "oldAsk": 123,
+      "cap": 142,
+      "newAsk": 153.1,
+      "stalls": true
+     },
+     {
+      "item": "electronics",
+      "oldAsk": 163.7,
+      "cap": 189,
+      "newAsk": 257.8,
+      "stalls": true
+     },
+     {
+      "item": "armor_plate",
+      "oldAsk": 311.9,
+      "cap": 359,
+      "newAsk": 425.2,
+      "stalls": true
+     },
+     {
+      "item": "weapon_parts",
+      "oldAsk": 592.3,
+      "cap": 682,
+      "newAsk": 1117.6,
+      "stalls": true
+     },
+     {
+      "item": "engine",
+      "oldAsk": 5525.6,
+      "cap": 6355,
+      "newAsk": 10931.3,
+      "stalls": true
+     },
+     {
+      "item": "reactor",
+      "oldAsk": 5421,
+      "cap": 6235,
+      "newAsk": 12683.2,
+      "stalls": true
+     },
+     {
+      "item": "sensor",
+      "oldAsk": 2480.1,
+      "cap": 2853,
+      "newAsk": 5438.9,
+      "stalls": true
+     }
+    ],
+    "share": 65
+   }
+  },
+  "margin": {
+   "changed": 93,
+   "goods": [
+    {
+     "id": "ore",
+     "before": 3,
+     "after": 2.7,
+     "pct": -11
+    },
+    {
+     "id": "alloy",
+     "before": 43.3,
+     "after": 40,
+     "pct": -7.7
+    },
+    {
+     "id": "crystal",
+     "before": 25.3,
+     "after": 26.8,
+     "pct": 5.9
+    },
+    {
+     "id": "sensor",
+     "before": 2212.4,
+     "after": 4851.8,
+     "pct": 119.3
+    },
+    {
+     "id": "reactor",
+     "before": 4835.9,
+     "after": 11314.2,
+     "pct": 134
+    },
+    {
+     "id": "engine",
+     "before": 4929.2,
+     "after": 9751.4,
+     "pct": 97.8
+    },
+    {
+     "id": "electronics",
+     "before": 162.1,
+     "after": 255.3,
+     "pct": 57.5
+    },
+    {
+     "id": "eq_medium_gun",
+     "before": 2842.4,
+     "after": 5693.9,
+     "pct": 100.3
+    },
+    {
+     "id": "eq_missile_rack",
+     "before": 3487.6,
+     "after": 6667.4,
+     "pct": 91.2
+    },
+    {
+     "id": "eq_pd_gun",
+     "before": 900.2,
+     "after": 1913.9,
+     "pct": 112.6
+    },
+    {
+     "id": "mod_armor",
+     "before": 2481.7,
+     "after": 4062,
+     "pct": 63.7
+    },
+    {
+     "id": "mod_fcs",
+     "before": 1669.7,
+     "after": 2571.2,
+     "pct": 54
+    },
+    {
+     "id": "structure",
+     "before": 118,
+     "after": 146.9,
+     "pct": 24.5
+    },
+    {
+     "id": "armor_plate",
+     "before": 301.4,
+     "after": 410.9,
+     "pct": 36.3
+    },
+    {
+     "id": "composite",
+     "before": 94.1,
+     "after": 123.1,
+     "pct": 30.9
+    },
+    {
+     "id": "precision",
+     "before": 342.2,
+     "after": 500.9,
+     "pct": 46.4
+    },
+    {
+     "id": "weapon_parts",
+     "before": 594.5,
+     "after": 1121.7,
+     "pct": 88.7
+    },
+    {
+     "id": "metal",
+     "before": 23.2,
+     "after": 13.8,
+     "pct": -40.5
+    },
+    {
+     "id": "titanium",
+     "before": 53.4,
+     "after": 30.1,
+     "pct": -43.6
+    },
+    {
+     "id": "silicon",
+     "before": 23.5,
+     "after": 14.6,
+     "pct": -37.9
+    },
+    {
+     "id": "chemicals",
+     "before": 35.9,
+     "after": 20.2,
+     "pct": -43.9
+    },
+    {
+     "id": "rare_metal",
+     "before": 216.9,
+     "after": 147.7,
+     "pct": -31.9
+    },
+    {
+     "id": "machinery",
+     "before": 125.2,
+     "after": 157.8,
+     "pct": 26.1
+    },
+    {
+     "id": "silicate",
+     "before": 2.3,
+     "after": 2.3,
+     "pct": 0
+    },
+    {
+     "id": "gas",
+     "before": 3.1,
+     "after": 3.1,
+     "pct": 0
+    },
+    {
+     "id": "eq_autocannon",
+     "before": 878.2,
+     "after": 1670.6,
+     "pct": 90.2
+    },
+    {
+     "id": "mod_engine",
+     "before": 1834.2,
+     "after": 2816.8,
+     "pct": 53.6
+    },
+    {
+     "id": "eq_torpedo",
+     "before": 2645.1,
+     "after": 5243.5,
+     "pct": 98.2
+    },
+    {
+     "id": "titanium_ore",
+     "before": 4.8,
+     "after": 4.8,
+     "pct": 0
+    },
+    {
+     "id": "rare_ore",
+     "before": 13.1,
+     "after": 13.2,
+     "pct": 0.3
+    },
+    {
+     "id": "eq_heavy_cannon",
+     "before": 13546,
+     "after": 25753,
+     "pct": 90.1
+    },
+    {
+     "id": "mod_ecm",
+     "before": 2442.9,
+     "after": 3355.8,
+     "pct": 37.4
+    }
+   ],
+   "holding": {
+    "before": 124417,
+    "after": 121760,
+    "pct": -2.1
+   },
+   "hulls": [
+    {
+     "hull": "battleship_mk1",
+     "npc": 2555900,
+     "npcBefore": 2555900,
+     "buildBefore": 676334,
+     "buildAfter": 856159,
+     "ratioBefore": 0.26,
+     "ratioAfter": 0.33,
+     "selfVsNpcBefore": 0.29,
+     "selfVsNpcAfter": 0.38,
+     "stripBefore": 0.02,
+     "stripAfter": 0.04,
+     "optionB": 3258100,
+     "optionBRatio": 0.26
+    },
+    {
+     "hull": "cruiser_mk1",
+     "npc": 698100,
+     "npcBefore": 698100,
+     "buildBefore": 246138,
+     "buildAfter": 333986,
+     "ratioBefore": 0.35,
+     "ratioAfter": 0.48,
+     "selfVsNpcBefore": 0.37,
+     "selfVsNpcAfter": 0.52,
+     "stripBefore": 0.02,
+     "stripAfter": 0.04,
+     "optionB": 937800,
+     "optionBRatio": 0.36
+    },
+    {
+     "hull": "destroyer_mk1",
+     "npc": 116500,
+     "npcBefore": 116500,
+     "buildBefore": 61208,
+     "buildAfter": 97283,
+     "ratioBefore": 0.53,
+     "ratioAfter": 0.84,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.99,
+     "stripBefore": 0.06,
+     "stripAfter": 0.13,
+     "optionB": 186500,
+     "optionBRatio": 0.52
+    },
+    {
+     "hull": "corvette_mk1",
+     "npc": 9300,
+     "npcBefore": 9300,
+     "buildBefore": 20620,
+     "buildAfter": 37786,
+     "ratioBefore": 2.22,
+     "ratioAfter": 4.06,
+     "selfVsNpcBefore": 2.83,
+     "selfVsNpcAfter": 5.27,
+     "stripBefore": 0.52,
+     "stripAfter": 1.04,
+     "optionB": 17100,
+     "optionBRatio": 2.21
+    },
+    {
+     "hull": "frigate_mk1",
+     "npc": 13500,
+     "npcBefore": 13500,
+     "buildBefore": 31294,
+     "buildAfter": 55035,
+     "ratioBefore": 2.32,
+     "ratioAfter": 4.08,
+     "selfVsNpcBefore": 2.81,
+     "selfVsNpcAfter": 5.06,
+     "stripBefore": 0.42,
+     "stripAfter": 0.84,
+     "optionB": 23900,
+     "optionBRatio": 2.3
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "npc": 252300,
+     "npcBefore": 252300,
+     "buildBefore": 110137,
+     "buildAfter": 170875,
+     "ratioBefore": 0.44,
+     "ratioAfter": 0.68,
+     "selfVsNpcBefore": 0.48,
+     "selfVsNpcAfter": 0.77,
+     "stripBefore": 0.04,
+     "stripAfter": 0.09,
+     "optionB": 390000,
+     "optionBRatio": 0.44
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "npc": 1426100,
+     "npcBefore": 1426100,
+     "buildBefore": 417503,
+     "buildAfter": 553251,
+     "ratioBefore": 0.29,
+     "ratioAfter": 0.39,
+     "selfVsNpcBefore": 0.32,
+     "selfVsNpcAfter": 0.45,
+     "stripBefore": 0.03,
+     "stripAfter": 0.05,
+     "optionB": 1903600,
+     "optionBRatio": 0.29
+    },
+    {
+     "hull": "miner_mk1",
+     "npc": 7600,
+     "npcBefore": 7600,
+     "buildBefore": 19433,
+     "buildAfter": 33629,
+     "ratioBefore": 2.56,
+     "ratioAfter": 4.42,
+     "selfVsNpcBefore": 2.81,
+     "selfVsNpcAfter": 4.96,
+     "stripBefore": 0.21,
+     "stripAfter": 0.44,
+     "optionB": 13100,
+     "optionBRatio": 2.57
+    },
+    {
+     "hull": "hauler_mk1",
+     "npc": 9300,
+     "npcBefore": 9300,
+     "buildBefore": 24671,
+     "buildAfter": 44051,
+     "ratioBefore": 2.65,
+     "ratioAfter": 4.74,
+     "selfVsNpcBefore": 2.86,
+     "selfVsNpcAfter": 5.18,
+     "stripBefore": 0.17,
+     "stripAfter": 0.36,
+     "optionB": 16500,
+     "optionBRatio": 2.67
+    },
+    {
+     "hull": "constructor_mk1",
+     "npc": 31900,
+     "npcBefore": 31900,
+     "buildBefore": 40637,
+     "buildAfter": 61625,
+     "ratioBefore": 1.27,
+     "ratioAfter": 1.93,
+     "selfVsNpcBefore": 1.33,
+     "selfVsNpcAfter": 2.06,
+     "stripBefore": 0.05,
+     "stripAfter": 0.1,
+     "optionB": 47700,
+     "optionBRatio": 1.29
+    },
+    {
+     "hull": "destroyer_vls",
+     "npc": 160600,
+     "npcBefore": 160600,
+     "buildBefore": 67057,
+     "buildAfter": 105877,
+     "ratioBefore": 0.42,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.91,
+     "stripBefore": 0.11,
+     "stripAfter": 0.21,
+     "optionB": 258800,
+     "optionBRatio": 0.41
+    },
+    {
+     "hull": "destroyer_picket",
+     "npc": 151400,
+     "npcBefore": 151400,
+     "buildBefore": 68749,
+     "buildAfter": 110914,
+     "ratioBefore": 0.45,
+     "ratioAfter": 0.73,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.9,
+     "stripBefore": 0.07,
+     "stripAfter": 0.15,
+     "optionB": 248200,
+     "optionBRatio": 0.45
+    },
+    {
+     "hull": "destroyer_heavy",
+     "npc": 231100,
+     "npcBefore": 231100,
+     "buildBefore": 82538,
+     "buildAfter": 121982,
+     "ratioBefore": 0.36,
+     "ratioAfter": 0.53,
+     "selfVsNpcBefore": 0.5,
+     "selfVsNpcAfter": 0.8,
+     "stripBefore": 0.11,
+     "stripAfter": 0.21,
+     "optionB": 357000,
+     "optionBRatio": 0.34
+    },
+    {
+     "hull": "destroyer_fast",
+     "npc": 138500,
+     "npcBefore": 138500,
+     "buildBefore": 56759,
+     "buildAfter": 91575,
+     "ratioBefore": 0.41,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.48,
+     "selfVsNpcAfter": 0.81,
+     "stripBefore": 0.07,
+     "stripAfter": 0.14,
+     "optionB": 225900,
+     "optionBRatio": 0.41
+    },
+    {
+     "hull": "miner_m",
+     "npc": 32600,
+     "npcBefore": 32600,
+     "buildBefore": 41604,
+     "buildAfter": 62951,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.93,
+     "selfVsNpcBefore": 1.34,
+     "selfVsNpcAfter": 2.06,
+     "stripBefore": 0.05,
+     "stripAfter": 0.1,
+     "optionB": 48700,
+     "optionBRatio": 1.29
+    },
+    {
+     "hull": "miner_l",
+     "npc": 69900,
+     "npcBefore": 69900,
+     "buildBefore": 79623,
+     "buildAfter": 117762,
+     "ratioBefore": 1.14,
+     "ratioAfter": 1.68,
+     "selfVsNpcBefore": 1.18,
+     "selfVsNpcAfter": 1.77,
+     "stripBefore": 0.03,
+     "stripAfter": 0.07,
+     "optionB": 101700,
+     "optionBRatio": 1.16
+    },
+    {
+     "hull": "miner_xl",
+     "npc": 381200,
+     "npcBefore": 381200,
+     "buildBefore": 225058,
+     "buildAfter": 303574,
+     "ratioBefore": 0.59,
+     "ratioAfter": 0.8,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.82,
+     "stripBefore": 0.01,
+     "stripAfter": 0.02,
+     "optionB": 502200,
+     "optionBRatio": 0.6
+    },
+    {
+     "hull": "hauler_m",
+     "npc": 28900,
+     "npcBefore": 28900,
+     "buildBefore": 36968,
+     "buildAfter": 57272,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.98,
+     "selfVsNpcBefore": 1.35,
+     "selfVsNpcAfter": 2.12,
+     "stripBefore": 0.05,
+     "stripAfter": 0.11,
+     "optionB": 44200,
+     "optionBRatio": 1.3
+    },
+    {
+     "hull": "hauler_l",
+     "npc": 67500,
+     "npcBefore": 67500,
+     "buildBefore": 78049,
+     "buildAfter": 119637,
+     "ratioBefore": 1.16,
+     "ratioAfter": 1.77,
+     "selfVsNpcBefore": 1.2,
+     "selfVsNpcAfter": 1.86,
+     "stripBefore": 0.03,
+     "stripAfter": 0.07,
+     "optionB": 101600,
+     "optionBRatio": 1.18
+    },
+    {
+     "hull": "hauler_xl",
+     "npc": 379200,
+     "npcBefore": 379200,
+     "buildBefore": 227422,
+     "buildAfter": 317154,
+     "ratioBefore": 0.6,
+     "ratioAfter": 0.84,
+     "selfVsNpcBefore": 0.61,
+     "selfVsNpcAfter": 0.86,
+     "stripBefore": 0.01,
+     "stripAfter": 0.02,
+     "optionB": 516000,
+     "optionBRatio": 0.61
+    },
+    {
+     "hull": "constructor_s",
+     "npc": 6900,
+     "npcBefore": 6900,
+     "buildBefore": 18482,
+     "buildAfter": 32483,
+     "ratioBefore": 2.68,
+     "ratioAfter": 4.71,
+     "selfVsNpcBefore": 2.82,
+     "selfVsNpcAfter": 5,
+     "stripBefore": 0.11,
+     "stripAfter": 0.24,
+     "optionB": 11900,
+     "optionBRatio": 2.73
+    },
+    {
+     "hull": "constructor_l",
+     "npc": 68300,
+     "npcBefore": 68300,
+     "buildBefore": 78709,
+     "buildAfter": 116329,
+     "ratioBefore": 1.15,
+     "ratioAfter": 1.7,
+     "selfVsNpcBefore": 1.18,
+     "selfVsNpcAfter": 1.76,
+     "stripBefore": 0.02,
+     "stripAfter": 0.05,
+     "optionB": 98700,
+     "optionBRatio": 1.18
+    },
+    {
+     "hull": "constructor_xl",
+     "npc": 395400,
+     "npcBefore": 395400,
+     "buildBefore": 233955,
+     "buildAfter": 314158,
+     "ratioBefore": 0.59,
+     "ratioAfter": 0.79,
+     "selfVsNpcBefore": 0.6,
+     "selfVsNpcAfter": 0.82,
+     "stripBefore": 0.01,
+     "stripAfter": 0.02,
+     "optionB": 519100,
+     "optionBRatio": 0.61
+    },
+    {
+     "hull": "patrol_pathfinder",
+     "npc": 9200,
+     "npcBefore": 9200,
+     "buildBefore": 22128,
+     "buildAfter": 39621,
+     "ratioBefore": 2.41,
+     "ratioAfter": 4.31,
+     "selfVsNpcBefore": 2.82,
+     "selfVsNpcAfter": 5.12,
+     "stripBefore": 0.35,
+     "stripAfter": 0.69,
+     "optionB": 16400,
+     "optionBRatio": 2.42
+    },
+    {
+     "hull": "destroyer_lancet",
+     "npc": 165500,
+     "npcBefore": 165500,
+     "buildBefore": 69488,
+     "buildAfter": 108730,
+     "ratioBefore": 0.42,
+     "ratioAfter": 0.66,
+     "selfVsNpcBefore": 0.54,
+     "selfVsNpcAfter": 0.9,
+     "stripBefore": 0.1,
+     "stripAfter": 0.2,
+     "optionB": 264500,
+     "optionBRatio": 0.41
+    },
+    {
+     "hull": "miner_quarry",
+     "npc": 34200,
+     "npcBefore": 34200,
+     "buildBefore": 43465,
+     "buildAfter": 65003,
+     "ratioBefore": 1.27,
+     "ratioAfter": 1.9,
+     "selfVsNpcBefore": 1.33,
+     "selfVsNpcAfter": 2.02,
+     "stripBefore": 0.05,
+     "stripAfter": 0.1,
+     "optionB": 50300,
+     "optionBRatio": 1.29
+    },
+    {
+     "hull": "hauler_meridian",
+     "npc": 71400,
+     "npcBefore": 71400,
+     "buildBefore": 81476,
+     "buildAfter": 123624,
+     "ratioBefore": 1.14,
+     "ratioAfter": 1.73,
+     "selfVsNpcBefore": 1.19,
+     "selfVsNpcAfter": 1.85,
+     "stripBefore": 0.04,
+     "stripAfter": 0.09,
+     "optionB": 106900,
+     "optionBRatio": 1.16
+    },
+    {
+     "hull": "cruiser_vigil",
+     "npc": 364900,
+     "npcBefore": 364900,
+     "buildBefore": 124370,
+     "buildAfter": 189972,
+     "ratioBefore": 0.34,
+     "ratioAfter": 0.52,
+     "selfVsNpcBefore": 0.37,
+     "selfVsNpcAfter": 0.57,
+     "stripBefore": 0.02,
+     "stripAfter": 0.04,
+     "optionB": 553200,
+     "optionBRatio": 0.34
+    },
+    {
+     "hull": "testbed_destroyer",
+     "npc": 117000,
+     "npcBefore": 117000,
+     "buildBefore": 59139,
+     "buildAfter": 93185,
+     "ratioBefore": 0.51,
+     "ratioAfter": 0.8,
+     "selfVsNpcBefore": 0.61,
+     "selfVsNpcAfter": 0.97,
+     "stripBefore": 0.06,
+     "stripAfter": 0.12,
+     "optionB": 186300,
+     "optionBRatio": 0.5
+    },
+    {
+     "hull": "testbed_hauler",
+     "npc": 28900,
+     "npcBefore": 28900,
+     "buildBefore": 36968,
+     "buildAfter": 57272,
+     "ratioBefore": 1.28,
+     "ratioAfter": 1.98,
+     "selfVsNpcBefore": 1.35,
+     "selfVsNpcAfter": 2.12,
+     "stripBefore": 0.05,
+     "stripAfter": 0.11,
+     "optionB": 44200,
+     "optionBRatio": 1.3
+    }
+   ],
+   "equipment": [
+    {
+     "recipe": "eq_autocannon",
+     "item": "eq_autocannon",
+     "tech": null,
+     "base": 1671,
+     "inCost": 1210,
+     "npcMarket": true,
+     "profitH": 4236,
+     "paybackH": 86.2,
+     "baseBefore": 878,
+     "profitHBefore": 853,
+     "paybackHBefore": 424.3
+    },
+    {
+     "recipe": "eq_pd_gun",
+     "item": "eq_pd_gun",
+     "tech": null,
+     "base": 1914,
+     "inCost": 1375,
+     "npcMarket": true,
+     "profitH": 3378,
+     "paybackH": 108.1,
+     "baseBefore": 900,
+     "profitHBefore": 259,
+     "paybackHBefore": 1395.4
+    },
+    {
+     "recipe": "eq_torpedo",
+     "item": "eq_torpedo",
+     "tech": null,
+     "base": 5244,
+     "inCost": 3830,
+     "npcMarket": true,
+     "profitH": 6029,
+     "paybackH": 60.5,
+     "baseBefore": 2645,
+     "profitHBefore": 615,
+     "paybackHBefore": 589.2
+    },
+    {
+     "recipe": "eq_medium_gun",
+     "item": "eq_medium_gun",
+     "tech": null,
+     "base": 5694,
+     "inCost": 3855,
+     "npcMarket": true,
+     "profitH": 10723,
+     "paybackH": 34,
+     "baseBefore": 2842,
+     "profitHBefore": 2945,
+     "paybackHBefore": 122.9
+    },
+    {
+     "recipe": "eq_missile_rack",
+     "item": "eq_missile_rack",
+     "tech": "guided_missiles",
+     "base": 6667,
+     "inCost": 4390,
+     "npcMarket": true,
+     "profitH": 6389,
+     "paybackH": 57.1,
+     "baseBefore": 3488,
+     "profitHBefore": 1552,
+     "paybackHBefore": 233.3
+    },
+    {
+     "recipe": "eq_laser",
+     "item": "eq_laser",
+     "tech": "energy_weapons",
+     "base": null,
+     "inCost": 3379,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_heavy_cannon",
+     "item": "eq_heavy_cannon",
+     "tech": "heavy_ordnance",
+     "base": 25753,
+     "inCost": 15824,
+     "npcMarket": true,
+     "profitH": 10963,
+     "paybackH": 33.3,
+     "baseBefore": 13546,
+     "profitHBefore": 3067,
+     "paybackHBefore": 118.1
+    },
+    {
+     "recipe": "eq_rail_cannon",
+     "item": "eq_rail_cannon",
+     "tech": "railguns",
+     "base": null,
+     "inCost": 16261,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_lance",
+     "item": "eq_lance",
+     "tech": "particle_lance",
+     "base": null,
+     "inCost": 13367,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_armor",
+     "item": "mod_armor",
+     "tech": null,
+     "base": 4062,
+     "inCost": 2857,
+     "npcMarket": true,
+     "profitH": 3460,
+     "paybackH": 60.2,
+     "baseBefore": 2482,
+     "profitHBefore": -132,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_armor2",
+     "item": "mod_armor2",
+     "tech": "reactive_armor",
+     "base": null,
+     "inCost": 3710,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_engine",
+     "item": "mod_engine",
+     "tech": null,
+     "base": 2817,
+     "inCost": 1837,
+     "npcMarket": true,
+     "profitH": 5831,
+     "paybackH": 21.5,
+     "baseBefore": 1834,
+     "profitHBefore": 2399,
+     "paybackHBefore": 54.3
+    },
+    {
+     "recipe": "mod_engine2",
+     "item": "mod_engine2",
+     "tech": "vector_thrust",
+     "base": null,
+     "inCost": 3332,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_fcs",
+     "item": "mod_fcs",
+     "tech": "fire_control",
+     "base": 2571,
+     "inCost": 1622,
+     "npcMarket": true,
+     "profitH": 2443,
+     "paybackH": 103.6,
+     "baseBefore": 1670,
+     "profitHBefore": 1536,
+     "paybackHBefore": 168.2
+    },
+    {
+     "recipe": "mod_sensor",
+     "item": "mod_sensor",
+     "tech": "long_sensors",
+     "base": null,
+     "inCost": 5955,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_ecm",
+     "item": "mod_ecm",
+     "tech": "ecm",
+     "base": 3356,
+     "inCost": 1897,
+     "npcMarket": true,
+     "profitH": 4450,
+     "paybackH": 56.9,
+     "baseBefore": 2443,
+     "profitHBefore": 2939,
+     "paybackHBefore": 87.9
+    },
+    {
+     "recipe": "mod_reactor",
+     "item": "mod_reactor",
+     "tech": "reactor_tuning",
+     "base": null,
+     "inCost": 13199,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_pd",
+     "item": "mod_pd",
+     "tech": "pd_network",
+     "base": null,
+     "inCost": 6470,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_red",
+     "item": "eq_laser_red",
+     "tech": "optical_lasers",
+     "base": null,
+     "inCost": 2083,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_blue",
+     "item": "eq_laser_blue",
+     "tech": "blue_lasers",
+     "base": null,
+     "inCost": 4423,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_uv",
+     "item": "eq_laser_uv",
+     "tech": "uv_lasers",
+     "base": null,
+     "inCost": 7270,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_xray",
+     "item": "eq_laser_xray",
+     "tech": "xray_lasers",
+     "base": null,
+     "inCost": 15128,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_gamma",
+     "item": "eq_laser_gamma",
+     "tech": "gamma_lasers",
+     "base": null,
+     "inCost": 25621,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_coil_s",
+     "item": "eq_coil_s",
+     "tech": "coilguns",
+     "base": null,
+     "inCost": 1992,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_coil_fast",
+     "item": "eq_coil_fast",
+     "tech": "fast_coils",
+     "base": null,
+     "inCost": 4268,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_rail_m",
+     "item": "eq_rail_m",
+     "tech": "rail_miniaturization",
+     "base": null,
+     "inCost": 8131,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_fast",
+     "item": "eq_missile_fast",
+     "tech": "fast_missiles",
+     "base": null,
+     "inCost": 4101,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_lr",
+     "item": "eq_missile_lr",
+     "tech": "lr_missiles",
+     "base": null,
+     "inCost": 6017,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_missile_smart",
+     "item": "eq_missile_smart",
+     "tech": "smart_missiles",
+     "base": null,
+     "inCost": 8202,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_torp_std",
+     "item": "eq_torp_std",
+     "tech": "torpedo_casting",
+     "base": null,
+     "inCost": 4114,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_torp_asm",
+     "item": "eq_torp_asm",
+     "tech": "asm_torpedoes",
+     "base": null,
+     "inCost": 11567,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_plasma_s",
+     "item": "eq_plasma_s",
+     "tech": "plasma_containment",
+     "base": null,
+     "inCost": 5761,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_plasma_l",
+     "item": "eq_plasma_l",
+     "tech": "plasma_heavy",
+     "base": null,
+     "inCost": 14346,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_particle_m",
+     "item": "eq_particle_m",
+     "tech": "particle_accel",
+     "base": null,
+     "inCost": 9972,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_pd_laser",
+     "item": "eq_pd_laser",
+     "tech": "pd_lasers",
+     "base": null,
+     "inCost": 2341,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_pd_flak",
+     "item": "eq_pd_flak",
+     "tech": "flak_fuzes",
+     "base": null,
+     "inCost": 2186,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "eq_laser_twin",
+     "item": "eq_laser_twin",
+     "tech": "twin_emitters",
+     "base": null,
+     "inCost": 2341,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_shield",
+     "item": "mod_shield",
+     "tech": "deflector_shields",
+     "base": null,
+     "inCost": 3046,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_shield2",
+     "item": "mod_shield2",
+     "tech": "phased_shields",
+     "base": null,
+     "inCost": 5513,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    },
+    {
+     "recipe": "mod_fusion_core",
+     "item": "mod_fusion_core",
+     "tech": "compact_fusion",
+     "base": null,
+     "inCost": 14485,
+     "npcMarket": false,
+     "profitH": null,
+     "paybackH": null,
+     "baseBefore": null,
+     "profitHBefore": null,
+     "paybackHBefore": null
+    }
+   ],
+   "refit": [
+    {
+     "hull": "battleship_mk1",
+     "items": 11,
+     "cost": 117308,
+     "before": 60645
+    },
+    {
+     "hull": "battleship_mk1",
+     "items": 9,
+     "cost": 83374,
+     "before": 60645
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 6,
+     "cost": 30299,
+     "before": 15364
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 7,
+     "cost": 39615,
+     "before": 15364
+    },
+    {
+     "hull": "cruiser_mk1",
+     "items": 7,
+     "cost": 28658,
+     "before": 15364
+    },
+    {
+     "hull": "destroyer_mk1",
+     "items": 7,
+     "cost": 17892,
+     "before": 8578
+    },
+    {
+     "hull": "destroyer_mk1",
+     "items": 5,
+     "cost": 20949,
+     "before": 8578
+    },
+    {
+     "hull": "corvette_mk1",
+     "items": 4,
+     "cost": 11266,
+     "before": 5691
+    },
+    {
+     "hull": "corvette_mk1",
+     "items": 5,
+     "cost": 9293,
+     "before": 5691
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 5,
+     "cost": 13309,
+     "before": 6652
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 6,
+     "cost": 11798,
+     "before": 6652
+    },
+    {
+     "hull": "frigate_mk1",
+     "items": 4,
+     "cost": 13373,
+     "before": 6652
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 6,
+     "cost": 23026,
+     "before": 11318
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 5,
+     "cost": 24667,
+     "before": 11318
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "items": 5,
+     "cost": 16525,
+     "before": 11318
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 10,
+     "cost": 88439,
+     "before": 45460
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 8,
+     "cost": 54505,
+     "before": 45460
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "items": 8,
+     "cost": 54623,
+     "before": 45460
+    },
+    {
+     "hull": "miner_mk1",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_mk1",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    },
+    {
+     "hull": "constructor_mk1",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    },
+    {
+     "hull": "destroyer_vls",
+     "items": 7,
+     "cost": 39615,
+     "before": 20372
+    },
+    {
+     "hull": "destroyer_vls",
+     "items": 7,
+     "cost": 35863,
+     "before": 20372
+    },
+    {
+     "hull": "destroyer_picket",
+     "items": 11,
+     "cost": 26065,
+     "before": 12422
+    },
+    {
+     "hull": "destroyer_heavy",
+     "items": 4,
+     "cost": 61825,
+     "before": 32292
+    },
+    {
+     "hull": "destroyer_heavy",
+     "items": 4,
+     "cost": 38588,
+     "before": 32292
+    },
+    {
+     "hull": "destroyer_fast",
+     "items": 5,
+     "cost": 20949,
+     "before": 10369
+    },
+    {
+     "hull": "miner_m",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    },
+    {
+     "hull": "miner_l",
+     "items": 3,
+     "cost": 6130,
+     "before": 2883
+    },
+    {
+     "hull": "miner_xl",
+     "items": 4,
+     "cost": 8173,
+     "before": 3844
+    },
+    {
+     "hull": "hauler_m",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_l",
+     "items": 3,
+     "cost": 6130,
+     "before": 2883
+    },
+    {
+     "hull": "hauler_xl",
+     "items": 4,
+     "cost": 8173,
+     "before": 3844
+    },
+    {
+     "hull": "constructor_s",
+     "items": 1,
+     "cost": 2043,
+     "before": 961
+    },
+    {
+     "hull": "constructor_l",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    },
+    {
+     "hull": "constructor_xl",
+     "items": 4,
+     "cost": 8173,
+     "before": 3844
+    },
+    {
+     "hull": "patrol_pathfinder",
+     "items": 4,
+     "cost": 7480,
+     "before": 3819
+    },
+    {
+     "hull": "destroyer_lancet",
+     "items": 7,
+     "cost": 39615,
+     "before": 20372
+    },
+    {
+     "hull": "miner_quarry",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    },
+    {
+     "hull": "hauler_meridian",
+     "items": 4,
+     "cost": 8173,
+     "before": 3844
+    },
+    {
+     "hull": "cruiser_vigil",
+     "items": 6,
+     "cost": 19724,
+     "before": 11919
+    },
+    {
+     "hull": "testbed_destroyer",
+     "items": 6,
+     "cost": 19724,
+     "before": 11919
+    },
+    {
+     "hull": "testbed_hauler",
+     "items": 2,
+     "cost": 4087,
+     "before": 1922
+    }
+   ],
+   "facilities": [
+    {
+     "kind": "refinery",
+     "capex": 42605,
+     "before": 43992
+    },
+    {
+     "kind": "smelter",
+     "capex": 61424,
+     "before": 62806
+    },
+    {
+     "kind": "alloy_plant",
+     "capex": 100305,
+     "before": 102026
+    },
+    {
+     "kind": "machine_shop",
+     "capex": 115176,
+     "before": 119346
+    },
+    {
+     "kind": "electronics_fab",
+     "capex": 216891,
+     "before": 221083
+    },
+    {
+     "kind": "armor_plant",
+     "capex": 172186,
+     "before": 174588
+    },
+    {
+     "kind": "weapons_factory",
+     "capex": 328914,
+     "before": 324865
+    },
+    {
+     "kind": "engine_plant",
+     "capex": 441489,
+     "before": 434734
+    },
+    {
+     "kind": "reactor_plant",
+     "capex": 745103,
+     "before": 741810
+    },
+    {
+     "kind": "hull_works",
+     "capex": 142000,
+     "before": 144938
+    }
+   ],
+   "stations": {
+    "before": {
+     "S": 43173,
+     "M": 148898
+    },
+    "after": {
+     "S": 41088,
+     "M": 144452
+    }
+   },
+   "fleets": {
+    "before": {
+     "small": 3833,
+     "mid": 8566
+    },
+    "after": {
+     "small": 3744,
+     "mid": 8398
+    }
+   },
+   "repair": [
+    {
+     "hull": "battleship_mk1",
+     "cost": 383385,
+     "before": 383385
+    },
+    {
+     "hull": "cruiser_mk1",
+     "cost": 104715,
+     "before": 104715
+    },
+    {
+     "hull": "destroyer_mk1",
+     "cost": 17475,
+     "before": 17475
+    },
+    {
+     "hull": "corvette_mk1",
+     "cost": 1395,
+     "before": 1395
+    },
+    {
+     "hull": "frigate_mk1",
+     "cost": 2025,
+     "before": 2025
+    },
+    {
+     "hull": "light_cruiser_mk1",
+     "cost": 37845,
+     "before": 37845
+    },
+    {
+     "hull": "battlecruiser_mk1",
+     "cost": 213915,
+     "before": 213915
+    },
+    {
+     "hull": "miner_mk1",
+     "cost": 1140,
+     "before": 1140
+    },
+    {
+     "hull": "hauler_mk1",
+     "cost": 1395,
+     "before": 1395
+    },
+    {
+     "hull": "constructor_mk1",
+     "cost": 4785,
+     "before": 4785
+    },
+    {
+     "hull": "destroyer_vls",
+     "cost": 24090,
+     "before": 24090
+    },
+    {
+     "hull": "destroyer_picket",
+     "cost": 22710,
+     "before": 22710
+    }
+   ],
+   "approvalStall": {
+    "items": [
+     {
+      "item": "ore",
+      "oldAsk": 2.6,
+      "cap": 3,
+      "newAsk": 2.8,
+      "stalls": false
+     },
+     {
+      "item": "metal",
+      "oldAsk": 26,
+      "cap": 30,
+      "newAsk": 15.5,
+      "stalls": false
+     },
+     {
+      "item": "titanium",
+      "oldAsk": 58.4,
+      "cap": 68,
+      "newAsk": 33,
+      "stalls": false
+     },
+     {
+      "item": "silicon",
+      "oldAsk": 26.3,
+      "cap": 31,
+      "newAsk": 16.4,
+      "stalls": false
+     },
+     {
+      "item": "chemicals",
+      "oldAsk": 39.1,
+      "cap": 45,
+      "newAsk": 22,
+      "stalls": false
+     },
+     {
+      "item": "crystal",
+      "oldAsk": 19.6,
+      "cap": 23,
+      "newAsk": 28,
+      "stalls": true
+     },
+     {
+      "item": "alloy",
+      "oldAsk": 45.3,
+      "cap": 53,
+      "newAsk": 41.8,
+      "stalls": false
+     },
+     {
+      "item": "composite",
+      "oldAsk": 98.1,
+      "cap": 113,
+      "newAsk": 128.4,
+      "stalls": true
+     },
+     {
+      "item": "machinery",
+      "oldAsk": 134.7,
+      "cap": 155,
+      "newAsk": 169.8,
+      "stalls": true
+     },
+     {
+      "item": "precision",
+      "oldAsk": 365.3,
+      "cap": 421,
+      "newAsk": 534.7,
+      "stalls": true
+     },
+     {
+      "item": "structure",
+      "oldAsk": 123,
+      "cap": 142,
+      "newAsk": 153.1,
+      "stalls": true
+     },
+     {
+      "item": "electronics",
+      "oldAsk": 163.7,
+      "cap": 189,
+      "newAsk": 257.8,
+      "stalls": true
+     },
+     {
+      "item": "armor_plate",
+      "oldAsk": 311.9,
+      "cap": 359,
+      "newAsk": 425.2,
+      "stalls": true
+     },
+     {
+      "item": "weapon_parts",
+      "oldAsk": 592.3,
+      "cap": 682,
+      "newAsk": 1117.6,
+      "stalls": true
+     },
+     {
+      "item": "engine",
+      "oldAsk": 5525.6,
+      "cap": 6355,
+      "newAsk": 10931.3,
+      "stalls": true
+     },
+     {
+      "item": "reactor",
+      "oldAsk": 5421,
+      "cap": 6235,
+      "newAsk": 12683.2,
+      "stalls": true
+     },
+     {
+      "item": "sensor",
+      "oldAsk": 2480.1,
+      "cap": 2853,
+      "newAsk": 5438.9,
+      "stalls": true
+     }
+    ],
+    "share": 65
+   }
+  }
+ }
+}

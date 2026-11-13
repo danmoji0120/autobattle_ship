@@ -518,4 +518,60 @@ describe.skipIf(!URL)('content migration against a live old instance (real Postg
       expect(current.orders![0].done).toBe(1); expect(current.orders![0].why).toContain('고강도 특수 합금');
     }
   }, 60_000);
+
+  it('econ value-chain migration: one instance applies it with a verified backup row; the old instance cannot write old prices back; restart is idempotent; the backup restores', async () => {
+    const local = new GameServer(null, { singleplayer: false, snapInterval: 1 }, 4402), sim = local.sim;
+    const p = sim.addPlayer('PG 경제 이관'); sim.st.companies[p].credits = 2e6;
+    const a = sim.st.stations.astra;
+    const site: Station = { ...structuredClone(a), id: 'pg_econ', name: 'PG 경제', owner: p, public: false, market: null, funds: undefined, fundsMax: undefined, shipStock: undefined,
+      storage: { [p]: { ore: 3000 } }, builds: [], orders: [], jobs: [], listings: [], modules: ['core', 'power', 'refinery'].map((kind, slot) => ({ kind, slot, built: true, progress: 1 })) };
+    sim.st.stations[site.id] = site;
+    expect(sim.command(p, { c: 'prodOrder', station: site.id, recipe: 'alloy_direct', mode: 'count', n: 20 })).toBeNull();
+    sim.tick(1); expect(site.jobs).toHaveLength(1);
+    const file = local.snapshotFile();
+    expect(file.world.contentV).toBe(CONTENT_VERSION); expect(file.world.econ).toBeUndefined();
+    await pg.query("DELETE FROM siderarium_world WHERE id LIKE 'backup-pre-v4.2.c4.e%'");
+    await pg.query("UPDATE siderarium_world SET data = $1::jsonb, gen = gen + 1 WHERE id = 'main'", [JSON.stringify(file)]);
+    const gen0 = Number((await row())!.gen);
+    // old instance: no flag — only a dry run is logged, and it keeps autosaving
+    const A = await start(8341, { SAVE_INTERVAL_S: '0.5' });
+    expect(A.log()).toMatch(/econ migration DRY RUN e0→e1: .*census OK — 적용하지 않음/);
+    await wait(1200);
+    const pre = (await row())!; expect(pre.data.world.econ).toBeUndefined();
+    // new instance with ECON_MIGRATE=apply (transaction held open while A keeps trying to save)
+    const B = await start(8342, { ECON_MIGRATE: 'apply', SAVE_INTERVAL_S: '600', SIDERARIUM_TEST_MIGRATE_HOLD_MS: '2000' });
+    expect(B.log()).toMatch(/save migration committed: backup backup-pre-v4\.2\.c4\.e0 verified/);
+    const mid = (await row())!;
+    expect(Number(mid.gen)).toBe(gen0 + 1);
+    expect(mid.data.world.econ).toMatchObject({ v: 1, how: 'migrated' });
+    const bk = (await row('backup-pre-v4.2.c4.e0'))!;
+    expect(bk.data.world.econ).toBeUndefined();
+    expect(compareCensus(census(bk.data.world), census(mid.data.world))).toEqual([]);
+    expect(mid.data.accounts).toEqual(bk.data.accounts);
+    // only market prices moved; the running batch kept its terms; stock, credits and storage are the backup's
+    expect(mid.data.world.stations[site.id].jobs).toEqual(bk.data.world.stations[site.id].jobs);
+    expect(mid.data.world.stations[site.id].storage).toEqual(bk.data.world.stations[site.id].storage);
+    for (const [id, c] of Object.entries(bk.data.world.companies)) expect(mid.data.world.companies[id].credits).toBe(c.credits);
+    expect(mid.data.world.stations.astra.market!.metal.base).not.toBe(bk.data.world.stations.astra.market!.metal.base);
+    expect(mid.data.world.stations.astra.market!.metal.stock).toBe(bk.data.world.stations.astra.market!.metal.stock);
+    // the old instance's saves (old prices) are refused from now on, including its shutdown save
+    await wait(2000);
+    expect(A.log()).toMatch(/저장 거부: 더 새로운 월드 세대/);
+    expect(await stop(A)).toBe(0);
+    expect((await row())!.h).toBe(mid.h);
+    expect(await stop(B)).toBe(0);
+    // restart with the flag still set: nothing is migrated again, no new backup
+    const C = await start(8343, { ECON_MIGRATE: 'apply', SAVE_INTERVAL_S: '600' });
+    expect(C.log()).not.toMatch(/save migration/);
+    expect(await stop(C)).toBe(0);
+    const fin = (await row())!;
+    expect(Number(fin.gen)).toBe(gen0 + 1); expect(fin.data.world.econ?.how).toBe('migrated');
+    expect((await pg.query("SELECT count(*)::int AS n FROM siderarium_world WHERE id LIKE 'backup-pre-v4.2.c4.e%'")).rows[0].n).toBe(1);
+    // data rollback: the verified backup row restored over main, server without the flag → old prices
+    await pg.query("UPDATE siderarium_world SET data = (SELECT data FROM siderarium_world WHERE id = 'backup-pre-v4.2.c4.e0'), gen = gen + 1 WHERE id = 'main'");
+    const D = await start(8344, { SAVE_INTERVAL_S: '600' }); expect(await stop(D)).toBe(0);
+    const back = (await row())!;
+    expect(back.data.world.econ).toBeUndefined();
+    expect(back.data.world.stations.astra.market!.metal.base).toBe(bk.data.world.stations.astra.market!.metal.base);
+  }, 90_000);
 });

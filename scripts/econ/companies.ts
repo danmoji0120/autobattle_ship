@@ -3,7 +3,9 @@
 // goals that buy and haul inputs, standing production orders, haul groups to a market and price-floor
 // sell goals). Profit is what the company's credits really did; goods that the NPC markets do not buy
 // stay in storage and are never counted as income.
-//   npx vite-node scripts/econ/companies.ts -- <spec> <proposal=base> <origin=fresh|migrated> <hours=24> <seed=5> [out.json]
+//   npx vite-node scripts/econ/companies.ts -- <spec> <proposal=base> <origin=fresh|migrated|p10> <hours=24> <seed=5> [out.json] [copies=1]
+// copies > 1: that many identical companies compete for the same inputs and markets (competition run);
+// the main result is company 1, `competitors` lists every company's outcome.
 import fs from 'node:fs';
 import { WorldSim } from '../../src/world/sim';
 import { FACILITIES, ITEMS, RECIPES, facilityBuild, recipeFor } from '../../src/world/industry';
@@ -41,13 +43,16 @@ export const SPECS: Record<string, Spec> = {
   parts: { name: '고급 부품 (시장 구매 → 기계·전자·장갑판)', size: 'M', modules: ['core', 'power', 'power', 'machine_shop', 'electronics_fab', 'armor_plant', 'warehouse'], pool: 3,
     orders: [{ recipe: 'machinery', n: 120 }, { recipe: 'electronics', n: 60 }, { recipe: 'armor_plate', n: 60 }],
     inputs: [{ item: 'metal', target: 300 }, { item: 'alloy', target: 300 }, { item: 'titanium', target: 120 }, { item: 'silicon', target: 150 }, { item: 'crystal', target: 20 }], outputs: ['machinery', 'electronics', 'armor_plate'] },
+  direct: { name: '직접 합금 (광석 구매 → 직접 합금, 정제소만)', size: 'S', modules: ['core', 'power', 'refinery', 'refinery', 'warehouse'], pool: 2, orders: [{ recipe: 'alloy_direct', n: 800 }], inputs: [{ item: 'ore', target: 2400 }], outputs: ['alloy'] },
+  equip: { name: '장비 제조 (무장 부품 구매 → 기관포·부포)', size: 'M', modules: ['core', 'power', 'power', 'weapons_factory', 'warehouse'], pool: 2,
+    orders: [{ recipe: 'eq_autocannon', n: 12 }, { recipe: 'eq_medium_gun', n: 8 }], inputs: [{ item: 'weapon_parts', target: 40 }, { item: 'metal', target: 120 }, { item: 'alloy', target: 150 }], outputs: ['eq_autocannon', 'eq_medium_gun'] },
   vertical: { name: '수직 계열화 (채굴 → 정련 → 기계부품·구조재)', size: 'M', modules: ['core', 'power', 'power', 'refinery', 'refinery', 'machine_shop', 'hull_works', 'warehouse', 'warehouse'], miners: 4, minerTo: 'own', minerGroups: 1, pool: 2,
     orders: [{ recipe: 'metal', n: 300 }, { recipe: 'alloy_direct', n: 300 }, { recipe: 'machinery', n: 120 }, { recipe: 'structure', n: 200 }],
     inputs: [{ item: 'ore', target: 1500 }], outputs: ['machinery', 'structure'] },
 };
 
 const args = process.argv.slice(2).filter(a => a !== '--');
-const specId = args[0] ?? 'refine', propId = args[1] ?? 'base', origin = (args[2] ?? 'fresh') as Origin, hours = Number(args[3] ?? 24), seed = Number(args[4] ?? 5), out = args[5];
+const specId = args[0] ?? 'refine', propId = args[1] ?? 'base', origin = (args[2] ?? 'fresh') as Origin, hours = Number(args[3] ?? 24), seed = Number(args[4] ?? 5), out = args[5], copies = Math.max(1, Math.min(4, Number(args[6] ?? 1)));
 const spec = SPECS[specId]; if (!spec) throw new Error(`spec ${specId}? ${Object.keys(SPECS).join(' ')}`);
 const prop = proposal(propId);
 const sim = makeWorld(seed, origin, prop);
@@ -66,16 +71,18 @@ const markets = Object.values(W.stations).filter(s => s.public && s.market) as S
 const buyPrice = (k: string) => Math.min(...markets.filter(s => s.market![k] && s.market![k].stock > 1).map(s => priceOf(s.market![k], 'buy', true)), Infinity);
 const matValue = (mats: Record<string, number>) => Object.entries(mats).reduce((a, [k, n]) => a + n * (isFinite(buyPrice(k)) ? buyPrice(k) : valueOf(k)), 0);
 
-const p = sim.addPlayer(spec.name.slice(0, 20)); const co = W.companies[p];
+const START = 500_000;
+function setupCompany(ci: number) {
+const p = sim.addPlayer(`${spec.name.slice(0, 16)}${ci ? ` ${ci + 1}` : ''}`); const co = W.companies[p];
 for (const s of Object.values(W.ships)) if (s.owner === p) { const g = W.groups[s.groupId]; if (g) g.shipIds = g.shipIds.filter(x => x !== s.id); delete W.ships[s.id]; }
 for (const g of Object.values(W.groups)) if (g.owner === p) delete W.groups[g.id];
-const START = 500_000; co.credits = START;
+co.credits = START;
 const capital: Record<string, number> = {};
 const home = W.stations[co.homeStation];
 let own: Station | undefined;
 if (spec.size) {
   const id = `own_${p}`;
-  own = { id, name: '자사 공장', owner: p, public: false, size: spec.size, style: 3, pos: { x: home.pos.x + 1400, y: 0, z: home.pos.z + 500 }, radius: 180, market: null,
+  own = { id, name: '자사 공장', owner: p, public: false, size: spec.size, style: 3, pos: { x: home.pos.x + 1400 + ci * 350, y: 0, z: home.pos.z + 500 - ci * 250 }, radius: 180, market: null,
     services: { repair: false, shipyard: [], recruit: false, contracts: false, refit: false }, storage: {}, defenseHp: 1, founded: W.time, desc: '',
     modules: spec.modules.map((kind, slot) => ({ id: sim.id('pl'), kind, slot, built: true, progress: 1 })) } as Station;
   for (const c of Object.keys(W.companies)) own.storage[c] = {};
@@ -94,7 +101,7 @@ for (let gi = 0; gi < (spec.minerGroups ?? 0); gi++) {
   const g = sim.newGroup(p, `채굴반 ${gi + 1}`);
   for (let i = 0; i < (spec.miners ?? 0); i++) spawn('miner_mk1', g.id);
   if (spec.minerTo === 'sell') spawn('hauler_mk1', g.id);
-  const f = fields[gi % fields.length];
+  const f = fields[(gi + ci) % fields.length];
   expectNull(sim.command(p, { c: 'setOp', group: g.id, op: spec.minerTo === 'own' ? { k: 'mine', field: f.id, deliver: own!.id, sell: false } : { k: 'mine', field: f.id, deliver: '', sell: true, auto: true } }), 'mine');
 }
 // input purchasing: pooled haulers + maintained stockpile goals at the own station
@@ -124,6 +131,11 @@ for (const item of spec.outputs ?? []) {
   }
 }
 const invested = Object.values(capital).reduce((a, b) => a + b, 0);
+
+return { p, co, own, capital, invested, sellPlan };
+}
+const setups = Array.from({ length: copies }, (_, ci) => setupCompany(ci));
+const { p, co, capital, invested, sellPlan } = setups[0];
 
 function expectNull(err: string | null, what: string) { if (err) { console.error(`setup failed (${what}): ${err}`); process.exit(1); } }
 
@@ -159,6 +171,11 @@ const result = {
   hourly: hourly.map(x => x.credits), endStock: hourly.at(-1)?.stock,
   recipes: Object.fromEntries((spec.orders ?? []).map(o => { const r = recipeFor(W, o.recipe) ?? RECIPES[o.recipe]; return [o.recipe, { time: r.time, in: r.in, out: r.out }]; })),
   events: mine.filter(r => r.kind !== 'cost'),
+  competitors: copies > 1 ? setups.map(x => {
+    const ev = Object.entries(tally).filter(([k]) => k.startsWith(x.p + '|') && k.includes('|market|sell|'));
+    return { company: x.p, net: Math.round(x.co.credits - START), netPerH: Math.round((x.co.credits - START) / hours), invested: Math.round(x.invested),
+      sold: Object.fromEntries(ev.map(([k, v]) => [k.split('|')[3], { units: Math.round(v.amount), value: Math.round(v.value) }])) };
+  }) : undefined,
 };
 const text = JSON.stringify(result);
 if (out) fs.writeFileSync(out, text); else console.log(text);
