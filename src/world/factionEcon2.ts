@@ -484,35 +484,47 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
   // 6. purchases: what the stockpile is short of, most urgent first
   let R2 = rates(w, f, st, room);   // targets after this cycle's programs (a finished program needs nothing)
   if (p.raider && raid(w, f, st, R2, h)) R2 = rates(w, f, st, room);
+  // priority by purpose: war munitions 0, fleet upkeep 1, civilian + infrastructure upkeep 2, rebuild/construction 3,
+  // industry inputs 4, modernization 5. A good is bought tier by tier only up to the stock target of the purposes
+  // of that tier and the ones above it (alloy for civilians at tier 2, alloy for rebuilding only at tier 3), so a
+  // good with one urgent use does not carry all of its other uses to the front of the queue.
   const direct = (k: string) => (R2.cls.war[k] ? 0 : R2.cls.upkeep[k] ? 1 : R2.cls.civ[k] || R2.cls.maint[k] ? 2 : R2.prog.rebuild[k] || R2.prog.build[k] ? 3 : R2.input[k] ? 4 : 5);
-  // make before buy: the inputs of a good the faction makes itself inherit that good's urgency (alloy for
-  // iron's own weapon parts is as urgent as the weapon parts), so a producer is not starved into importing
-  // — only while the faction itself is short of that good: inputs for production beyond its own stock target
+  // make before buy: the input share of a good the faction makes itself inherits that good's urgency (alloy for
+  // iron's own weapon parts is as urgent as the weapon parts), so a producer is not starved into importing —
+  // only while the faction itself is short of that good: inputs for production beyond its own stock target
   // (exports) are ordinary industry inputs, so a maker does not starve its own civilian economy to export
-  const pr: Record<string, number> = {};
+  const inPr: Record<string, number> = {};
   for (const r of [...sectorOrder(p)].reverse()) {
-    const [o] = Object.keys(RECIPES[r].out); const po = pr[o] ?? direct(o);
+    const [o] = Object.keys(RECIPES[r].out); const po = Math.min(direct(o), inPr[o] ?? 5);
     const own = qty(f.stock, o) < (R2.target[o] ?? 0) ? po : 4;
-    for (const i of Object.keys(RECIPES[r].in)) pr[i] = Math.min(pr[i] ?? direct(i), own);
+    for (const i of Object.keys(RECIPES[r].in)) inPr[i] = Math.min(inPr[i] ?? 4, own);
   }
-  const prio = (k: string) => pr[k] ?? direct(k);
-  const buyTarget = (k: string) => (R2.target[k] ?? 0) * (R2.exportGood.has(k) ? EXPORT_FLOOR : 1);
-  const items = Object.keys(R2.target).filter(k => buyTarget(k) - qty(f.stock, k) > 1e-6).sort((a, b) => prio(a) - prio(b) || (a < b ? -1 : 1));
+  const comps: [Cargo, number, (k: string) => number][] = [
+    [R2.cls.war, COVER.war, () => 0], [R2.cls.upkeep, R2.war ? COVER.war : COVER.upkeep, () => 1],
+    [R2.cls.civ, COVER.civ, () => 2], [R2.cls.maint, COVER.civ, () => 2],
+    [R2.prog.rebuild, COVER.program, () => 3], [R2.prog.build, COVER.program, () => 3],
+    [R2.input, COVER.input, k => inPr[k] ?? 4], [R2.prog.modern, COVER.program, () => 5],
+  ];
+  /** stock target and per-hour need of a good from the purposes of priority ≤ t (export goods: up to EXPORT_FLOOR) */
+  const upTo = (k: string, t: number): [number, number] => {
+    let tg = 0, ph = 0;
+    for (const [c, cov, pf] of comps) { const n = c[k] ?? 0; if (n > 0 && pf(k) <= t) { tg += n * cov; ph += n; } }
+    return [tg * (R2.exportGood.has(k) ? EXPORT_FLOOR : 1), ph];
+  };
   let markets: Supplier[] | undefined;
   const v3 = growthOn(w);
-  const wantOf = (k: string) => {
-    const deficit = buyTarget(k) - qty(f.stock, k);
-    const perH = (R2.base[k] ?? 0) + Object.values(R2.prog).reduce((n, c) => n + (c[k] ?? 0), 0) + (R2.input[k] ?? 0);
-    return Math.min(deficit, deficit * REFILL_H * h + perH * h);
-  };
-  // one priority tier at a time; inside a tier the budget is shared in proportion to each good's
-  // deficit value, so one bulky good (ore) cannot starve another (titanium ore)
+  const goods = Object.keys(R2.target).sort();
   for (let tier = 0; tier <= 5; tier++) {
-    const tierItems = items.filter(k => prio(k) === tier);
-    if (!tierItems.length) continue;
     // industry inputs keep a small reserve for upkeep; modernization waits for a healthy treasury
     if ((tier === 4 && st.budget < incomeH * .25) || (tier === 5 && st.budget < incomeH * 2)) continue;
-    const wants = tierItems.map(k => [k, wantOf(k)] as [string, number]);
+    const wants: [string, number][] = [];
+    for (const k of goods) {
+      const [tg, ph] = upTo(k, tier), deficit = tg - qty(f.stock, k);
+      if (deficit <= 1e-6) continue;
+      const phTier = ph - (tier > 0 ? upTo(k, tier - 1)[1] : 0);   // this tier's own per-hour need
+      wants.push([k, Math.min(deficit, deficit * REFILL_H * h + phTier * h)]);
+    }
+    if (!wants.length) continue;
     const cost = wants.reduce((n, [k, q]) => n + q * value(k), 0);
     const share = cost > 0 ? Math.min(1, st.budget / cost) : 1;
     const pool = st.budget;
