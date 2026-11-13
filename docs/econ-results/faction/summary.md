@@ -1,6 +1,6 @@
 # 세력 경제 v2 검증 결과
 
-원본: `docs/econ-results/faction/runs` (24건). 재현: `bash scripts/faction/batch.sh` → `npx vite-node scripts/faction/summarize.ts`.
+원본: `docs/econ-results/faction/runs` (36건). 재현: `bash scripts/faction/batch.sh` → `npx vite-node scripts/faction/summarize.ts`.
 
 금액은 참조 가격(ITEMS.price) 기준 cr/h. `자급`은 소비 가치 중 구매가 아닌 몫. 부족 = 목표 대비 충족 못 한 수요의 가치.
 
@@ -417,19 +417,31 @@
 
 | 실행 | 전문 | 안 | 월드 | 시간 | 시드 | 회사 | 투자 | 순이익/h | 정상상태/h | 회수 h | 주요 판매 (수량 · 평균가) | 평균 ms/틱 | 최악 틱 | 저장 KB |
 |---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|
+| co.equip.L.p10.12h.s5.x1 | equip | L | p10 | 12 | 5 | 1 | 542,193 | 748 | 5,083 | 106.7 | eq_autocannon 143 · 1678.4 | 18.3 | 107 | 568 |
 | co.equip.L.p10fe.12h.s5.x1 | equip | L | p10fe | 12 | 5 | 1 | 676,950 | -112 | 5,076 | 133.4 | eq_autocannon 143 · 1751.5 | 16.2 | 83 | 591 |
+| co.equip.base.p10.12h.s5.x1 | equip | base | p10 | 12 | 5 | 1 | 525,896 | -2,461 | -746 | — | eq_autocannon 143 · 683.2 | 17.39 | 67 | 556 |
+| co.equip.base.p10fe.12h.s5.x1 | equip | base | p10fe | 12 | 5 | 1 | 659,622 | -6,833 | -5,671 | — | eq_autocannon 113 · 577.4; eq_medium_gun 1 · 3775 | 15.85 | 90 | 578 |
 | co.inter.L.p10fe.12h.s5.x1 | inter | L | p10fe | 12 | 5 | 1 | 364,933 | -8,099 | -10,123 | — | alloy 7,280 · 32.7 | 17.34 | 90 | 627 |
 | co.inter.L.p10fe.12h.s5.x2 | inter | L | p10fe | 12 | 5 | 2 | 370,900 | -12,821 | -17,842 | — | alloy 16,390 · 22.8 | 37.61 | 522 | 1855 |
 | co.inter.L.p10fe.12h.s5.x4 | inter | L | p10fe | 12 | 5 | 4 | 359,718 | 100 | -736 | — | alloy 10,604 · 33 | 68.75 | 943 | 2426 |
+| co.inter.L.p10fe.12h.s5.x8 | inter | L | p10fe | 12 | 5 | 8 | 364,933 | 440 | 557 | 655.8 | alloy 9,416 · 34.2 | 166.37 | 4311 | 3110 |
+| co.inter.base.p10fe.12h.s5.x1 | inter | base | p10fe | 12 | 5 | 1 | 368,582 | -23,423 | -8,310 | — | alloy 7,766 · 26.5 | 16.74 | 94 | 629 |
 | co.mine+refine+inter+parts.L.p10.24h.s5.x1 | mine,refine,inter,parts | L | p10 | 24 | 5 | 4 | 39,700 | 7,063 | 6,826 | 5.8 | ore 80,826 · 2.2; silicate 24,140 · 2 | 144.18 | 2119 | 3025 |
 | co.mine+refine+inter+parts.L.p10fe.24h.s5.x1 | mine,refine,inter,parts | L | p10fe | 24 | 5 | 4 | 39,700 | 12,527 | 11,662 | 3.4 | ore 82,846 · 3.4; silicate 27,616 · 2.6 | 118.54 | 2204 | 3033 |
 | co.mine+refine+inter+parts.base.p10fe.24h.s5.x1 | mine,refine,inter,parts | base | p10fe | 24 | 5 | 4 | 39,700 | 19,930 | 17,613 | 2.3 | ore 82,854 · 3.5; silicate 27,618 · 8.7 | 93.11 | 1496 | 2375 |
+| co.mine.L.p10.12h.s5.x1 | mine | L | p10 | 12 | 5 | 1 | 39,700 | 7,946 | 6,894 | 5.8 | ore 43,972 · 2.1; silicate 14,657 · 2 | 15.71 | 66 | 391 |
 | co.mine.L.p10fe.12h.s5.x1 | mine | L | p10fe | 12 | 5 | 1 | 39,700 | 12,587 | 10,882 | 3.6 | ore 43,939 · 3.1; silicate 14,645 · 2.8 | 14.3 | 75 | 418 |
+| co.mine.base.p10fe.12h.s5.x1 | mine | base | p10fe | 12 | 5 | 1 | 39,700 | 22,936 | 19,539 | 2 | ore 43,972 · 3.4; silicate 14,657 · 10.3 | 16.68 | 183 | 413 |
+| co.parts.L.p10.12h.s5.x1 | parts | L | p10 | 12 | 5 | 1 | 710,319 | 40,619 | 39,983 | 17.8 | machinery 2,154 · 129.7; electronics 1,076 · 196.8; armor_plate 1,148 · 427.1 | 27.71 | 255 | 1110 |
 | co.parts.L.p10fe.12h.s5.x1 | parts | L | p10fe | 12 | 5 | 1 | 900,307 | 15,140 | 17,875 | 50.4 | machinery 2,154 · 117.4; electronics 1,076 · 281.1; armor_plate 8 · 331.1 | 24.34 | 307 | 994 |
 | co.parts.L.p10fe.12h.s5.x3 | parts | L | p10fe | 12 | 5 | 3 | 887,728 | 12,325 | 15,639 | 56.8 | machinery 2,154 · 112.6; electronics 1,072 · 280.6; armor_plate 16 · 320.1 | 98.7 | 1913 | 2427 |
 | co.parts.L.p10fe.24h.s6.x1 | parts | L | p10fe | 24 | 6 | 1 | 878,794 | 17,634 | 20,566 | 42.7 | machinery 4,314 · 118; electronics 2,132 · 280.7; armor_plate 16 · 325.4 | 32.93 | 448 | 1480 |
+| co.parts.base.p10fe.12h.s5.x1 | parts | base | p10fe | 12 | 5 | 1 | 924,863 | -10,607 | -4,126 | — | machinery 2,146 · 100.6; electronics 1,056 · 183.7; armor_plate 4 · 262 | 23.83 | 220 | 989 |
 | co.refine.L.p10fe.12h.s5.x1 | refine | L | p10fe | 12 | 5 | 1 | 237,088 | 2,449 | -393 | — | metal 3,920 · 17.4 | 14.91 | 74 | 652 |
 | co.refine.L.p10fe.12h.s5.x3 | refine | L | p10fe | 12 | 5 | 3 | 243,272 | 1,311 | -436 | — | metal 2,580 · 17.3 | 19.6 | 110 | 1186 |
+| co.refine.base.p10fe.12h.s5.x1 | refine | base | p10fe | 12 | 5 | 1 | 245,119 | 18,143 | 14,138 | 17.3 | metal 11,120 · 29.2 | 19.51 | 206 | 783 |
+| co.vertical.L.p10fe.12h.s5.x1 | vertical | L | p10fe | 12 | 5 | 1 | 731,415 | 37,676 | 31,773 | 23 | machinery 1,998 · 139.6; structure 2,040 · 166.7 | 25.8 | 174 | 1037 |
+| co.vertical.base.p10fe.12h.s5.x1 | vertical | base | p10fe | 12 | 5 | 1 | 749,490 | 46,089 | 40,721 | 18.4 | machinery 2,058 · 115.7; structure 3,450 · 120.1 | 20.2 | 123 | 884 |
 
 ### co.inter.L.p10fe.12h.s5.x2 — 회사별
 
@@ -446,6 +458,19 @@
 | p619 | inter | 359,718 | -8,533 | -711 | alloy 7,018 · 230,610 |
 | p649 | inter | 359,718 | -10,727 | -894 | alloy 3,344 · 117,970 |
 | p679 | inter | 359,718 | -10,719 | -893 | alloy 2,046 · 78,554 |
+
+### co.inter.L.p10fe.12h.s5.x8 — 회사별
+
+| 회사 | 전문 | 투자 | 순이익 | 순이익/h | 판매 (수량 · 금액) |
+|---|---|---:|---:|---:|---|
+| p606 | inter | 364,933 | 5,282 | 440 | alloy 9,416 · 322,414 |
+| p636 | inter | 364,933 | -2,570 | -214 | alloy 7,898 · 265,825 |
+| p666 | inter | 364,933 | -10,117 | -843 | alloy 4,510 · 155,215 |
+| p696 | inter | 364,933 | -16,708 | -1,392 | alloy 1,804 · 64,865 |
+| p726 | inter | 364,933 | -17,540 | -1,462 | alloy 1,166 · 44,131 |
+| p756 | inter | 364,933 | -16,941 | -1,412 | alloy 1,122 · 43,073 |
+| p786 | inter | 364,933 | -17,391 | -1,449 | alloy 1,056 · 39,927 |
+| p814 | inter | 364,933 | -17,641 | -1,470 | alloy 990 · 38,137 |
 
 ### co.mine+refine+inter+parts.L.p10.24h.s5.x1 — 회사별
 
@@ -495,14 +520,22 @@
 | 실행 | union | guild | ceres | miners | iron | pirates |
 |---|---|---|---|---|---|---|
 | co.equip.L.p10fe.12h.s5.x1 | s62 e0.932 r0.998 부족18k | s12 e0.936 r1 부족14k | s32.8 e0.934 r0.999 부족9k | s14.2 e0.935 r1 부족9k | s79.1 e0.864 r0.997 부족14k | s8.9 e0.777 r0.935 부족12k |
+| co.equip.base.p10fe.12h.s5.x1 | s63.6 e0.931 r1 부족18k | s12.4 e0.937 r1 부족14k | s36.3 e0.928 r1 부족9k | s17.4 e0.935 r1 부족9k | s83.6 e0.863 r0.999 부족14k | s9.1 e0.824 r0.938 부족10k |
 | co.inter.L.p10fe.12h.s5.x1 | s61.9 e0.931 r0.998 부족18k | s13.6 e0.937 r1 부족14k | s20.1 e0.936 r1 부족9k | s12 e0.935 r1 부족9k | s74.6 e0.828 r0.997 부족18k | s9.8 e0.777 r0.935 부족12k |
 | co.inter.L.p10fe.12h.s5.x2 | s61.9 e0.94 r0.998 부족14k | s13.7 e0.937 r1 부족13k | s19.4 e0.901 r1 부족15k | s11 e0.935 r1 부족9k | s74.9 e0.766 r0.997 부족25k | s9.3 e0.779 r0.934 부족12k |
 | co.inter.L.p10fe.12h.s5.x4 | s61.9 e0.931 r0.998 부족18k | s13.9 e0.936 r1 부족14k | s32.7 e0.933 r0.999 부족9k | s14 e0.934 r1 부족9k | s82.4 e0.773 r0.997 부족22k | s9.6 e0.779 r0.934 부족12k |
+| co.inter.L.p10fe.12h.s5.x8 | s61.9 e0.932 r0.998 부족18k | s13.9 e0.937 r1 부족14k | s18.6 e0.933 r1 부족9k | s10.3 e0.936 r1 부족9k | s70.2 e0.768 r1 부족25k | s9.4 e0.78 r0.937 부족12k |
+| co.inter.base.p10fe.12h.s5.x1 | s63.6 e0.931 r1 부족18k | s10.5 e0.937 r1 부족14k | s36.3 e0.938 r1 부족9k | s16 e0.935 r1 부족9k | s92.3 e0.862 r0.997 부족14k | s29.8 e0.816 r0.623 부족12k |
 | co.mine+refine+inter+parts.L.p10fe.24h.s5.x1 | s61.9 e0.89 r0.998 부족25k | s19.3 e0.948 r1 부족10k | s24.4 e0.951 r1 부족6k | s17.6 e0.944 r1 부족7k | s74.2 e0.888 r0.998 부족6k | s8.9 e0.755 r0.83 부족12k |
 | co.mine+refine+inter+parts.base.p10fe.24h.s5.x1 | s64.1 e0.94 r0.997 부족13k | s14.5 e0.94 r1 부족11k | s24 e0.946 r0.998 부족7k | s10.8 e0.942 r1 부족7k | s86.1 e0.853 r0.663 부족17k | s9.8 e0.807 r0.812 부족9k |
 | co.mine.L.p10fe.12h.s5.x1 | s62 e0.932 r0.998 부족18k | s13.1 e0.938 r1 부족14k | s20.2 e0.937 r1 부족9k | s11.8 e0.936 r1 부족9k | s75.1 e0.881 r1 부족12k | s9.3 e0.779 r0.937 부족12k |
+| co.mine.base.p10fe.12h.s5.x1 | s63.5 e0.924 r0.999 부족18k | s16.1 e0.937 r1 부족14k | s35.6 e0.938 r0.999 부족9k | s19.2 e0.936 r1 부족9k | s92 e0.865 r0.998 부족14k | s9.5 e0.822 r0.939 부족10k |
 | co.parts.L.p10fe.12h.s5.x1 | s62.1 e0.945 r0.998 부족17k | s13.2 e0.967 r1 부족9k | s32.7 e0.955 r0.999 부족6k | s14.9 e0.958 r1 부족7k | s77.5 e0.836 r0.997 부족22k | s9.4 e0.774 r0.934 부족12k |
 | co.parts.L.p10fe.12h.s5.x3 | s62 e0.97 r0.998 부족14k | s12.4 e1 r1 부족0k | s19 e0.968 r1 부족3k | s11.7 e0.994 r1 부족3k | s69.4 e0.77 r0.997 부족24k | s9 e0.782 r0.935 부족12k |
 | co.parts.L.p10fe.24h.s6.x1 | s62 e0.899 r0.998 부족21k | s19.8 e0.946 r1 부족10k | s32.6 e0.951 r0.999 부족6k | s19.8 e0.941 r1 부족8k | s78.9 e0.729 r0.997 부족23k | s9.9 e0.748 r0.606 부족13k |
+| co.parts.base.p10fe.12h.s5.x1 | s64.4 e0.945 r0.999 부족15k | s15.1 e0.956 r1 부족11k | s23.6 e0.962 r1 부족6k | s15.1 e0.963 r1 부족7k | s94.8 e0.867 r0.997 부족14k | s9.2 e0.833 r1 부족9k |
 | co.refine.L.p10fe.12h.s5.x1 | s62 e0.931 r0.998 부족18k | s12.8 e0.936 r1 부족14k | s19.3 e0.934 r1 부족9k | s10.6 e0.934 r1 부족9k | s75.8 e0.868 r1 부족13k | s9.5 e0.777 r0.937 부족12k |
 | co.refine.L.p10fe.12h.s5.x3 | s61.9 e0.931 r0.998 부족18k | s12.7 e0.936 r1 부족14k | s32.8 e0.935 r0.999 부족9k | s26.1 e0.935 r0.999 부족9k | s79.1 e0.885 r1 부족11k | s9.9 e0.778 r0.937 부족12k |
+| co.refine.base.p10fe.12h.s5.x1 | s63.5 e0.93 r1 부족18k | s9.7 e0.937 r1 부족14k | s24.5 e0.937 r1 부족9k | s15.3 e0.935 r1 부족9k | s90.7 e0.865 r1 부족14k | s9.6 e0.835 r1 부족9k |
+| co.vertical.L.p10fe.12h.s5.x1 | s62 e0.931 r0.998 부족18k | s9.7 e0.937 r1 부족14k | s20.3 e0.931 r1 부족9k | s11.7 e0.935 r1 부족9k | s73 e0.865 r1 부족13k | s9.9 e0.776 r0.934 부족12k |
+| co.vertical.base.p10fe.12h.s5.x1 | s63.5 e0.93 r1 부족18k | s16.2 e0.937 r1 부족14k | s23 e0.935 r1 부족9k | s13.7 e0.935 r1 부족9k | s92.7 e0.822 r0.997 부족25k | s9.6 e0.835 r1 부족9k |
