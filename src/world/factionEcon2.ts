@@ -107,9 +107,9 @@ export const PROFILES2: Record<string, Profile> = {
   ceres: { civ: .6, ind: 1.2, mun: .2, mine: { ore: 1 }, sectors: { metal: 13, titanium: 5, alloy: 12, structure: 2.2, machinery: 1.2, precision: .8, engine: .015 }, tax: 1.5, reach: 4 },
   // raw-material exporter; imports machinery, chemicals, electronics
   miners: { civ: .5, ind: .25, mun: .1, mine: { ore: 20, titanium_ore: 12, rare_ore: .5, silicate: 2, gas: 3 }, sectors: { metal: 3, titanium: 4 }, tax: .9, reach: 4 },
-  // munitions, armour plate and ship parts in bulk; refines its own titanium for armour plate from imported
-  // titanium ore (ceres uses all of its titanium for alloy); imports alloy, titanium ore, precision, chemicals
-  iron: { civ: .5, ind: .5, mun: 1.2, mine: { ore: .5 }, sectors: { titanium: 1, armor_plate: .45, weapon_parts: .45, structure: 1.2, eq_autocannon: .05, eq_medium_gun: .02, mod_armor: .01 }, tax: 3.5, reach: 4 },
+  // munitions, armour plate and ship parts in bulk; mines and refines its own titanium for armour plate
+  // and imported titanium ore (ceres turns all of its titanium into alloy); imports alloy, precision, chemicals
+  iron: { civ: .5, ind: .5, mun: 1.2, mine: { ore: .5, titanium_ore: .8 }, sectors: { titanium: 1, armor_plate: .45, weapon_parts: .45, structure: 1.2, eq_autocannon: .05, eq_medium_gun: .02, mod_armor: .01 }, tax: 3.5, reach: 4 },
   // raiders: munitions and repair goods, crystal/rare ore, unstable base
   pirates: { civ: .4, ind: .15, mun: .5, mine: { crystal: .6, rare_ore: .6, ore: 1.5, gas: 2 }, sectors: { chemicals: 3, weapon_parts: .5, metal: 2 }, tax: .7, reach: 3, unstable: true, raider: true },
 };
