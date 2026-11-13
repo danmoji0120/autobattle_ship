@@ -5,6 +5,7 @@ import type { WorldState, Station, Market } from './types';
 import { emptyCargo } from './types';
 import { ITEMS, TECHS, itemPrice, EQUIPMENT } from './industry';
 import { LEGACY_MODULE } from './data';
+import { marketBase } from './econChain';
 
 export const INDUSTRY_VERSION = 2;
 /** hulls on sale at public yards from industry v2 (bought complete with standard weapons) */
@@ -58,10 +59,10 @@ export const PROFILES: Record<string, Profile> = {
 /** target stock for a good at a market: cheap bulk goods are stocked in thousands, ship parts in single digits */
 export const targetFor = (id: string) => Math.max(2, Math.round(Math.min(5000, 40000 / Math.max(5, itemPrice(id)))));
 
-function addGood(m: Market, id: string, mult: number, fill: number) {
+function addGood(m: Market, id: string, mult: number, fill: number, w?: WorldState) {
   if (m[id]) return;
   const target = targetFor(id);
-  m[id] = { stock: Math.round(target * fill), target, base: Math.round(itemPrice(id) * mult * 10) / 10 };
+  m[id] = { stock: Math.round(target * fill), target, base: marketBase(w, id, mult, () => Math.round(itemPrice(id) * mult * 10) / 10) };
 }
 
 /** idempotent: older saves gain field compositions, the new goods and renamed facilities */
@@ -74,7 +75,7 @@ export function upgradeIndustry(st: WorldState) {
     if (s.public && s.market) {
       const p = PROFILES[s.id];
       if (p) {
-        for (const id of [...p.make, ...p.sell, ...Object.keys(p.use), ...(p.conv ?? []).flatMap(c => [...Object.keys(c.in), ...Object.keys(c.out)])]) addGood(s.market, id, p.mult ?? 1, p.make.includes(id) ? 0.8 : 0.5);
+        for (const id of [...p.make, ...p.sell, ...Object.keys(p.use), ...(p.conv ?? []).flatMap(c => [...Object.keys(c.in), ...Object.keys(c.out)])]) addGood(s.market, id, p.mult ?? 1, p.make.includes(id) ? 0.8 : 0.5, st);
         if (p.bp) for (const t of Object.values(TECHS)) if (t.bp) s.market[`bp:${t.id}`] ??= { stock: 1, target: 1, base: t.bp };
       }
     }

@@ -20,7 +20,9 @@ import { stationSize, stationBerths, occupiedBerths } from './stations';
 import { storeUsed, takesSpace, logisticsReservedSpace } from './storage';
 
 export interface ProdOrder { id: string; recipe: string; mode: 'count' | 'stock'; n: number; done: number; paused?: boolean; why?: string; /** Obsolete P9.7 development-save field; never changes a new batch's inputs. */ legacyRecipe?: true }
-export interface ProdJob { id: string; order: string; recipe: string; fac: string; left: number; total: number }
+export interface ProdJob { id: string; order: string; recipe: string; fac: string; left: number; total: number;
+  /** output fixed when the batch started (only stored when it differs from the static recipe) */
+  out?: Record<string, number> }
 
 export const builtCount = (st: Station, kind: string) => st.modules.filter(m => m.kind === kind && m.built).length;
 export const facLines = (st: Station, kind: string) => builtCount(st, kind) * (FACILITIES[kind]?.lines ?? 1);
@@ -65,8 +67,8 @@ const inflight = (jobs: ProdJob[], o: ProdOrder) => jobs.filter(j => j.order ===
 const mainOut = (r: RecipeDef) => Object.keys(r.out)[0];
 
 /** does the order still want another batch? (and why not) */
-export function orderWants(o: ProdOrder, store: Cargo, jobs: ProdJob[]): string | null {
-  const r = RECIPES[o.recipe];
+export function orderWants(o: ProdOrder, store: Cargo, jobs: ProdJob[], world?: { regionalV?: number }): string | null {
+  const r = recipeFor(world, o.recipe) ?? RECIPES[o.recipe];
   if (o.mode === 'count') return o.done + inflight(jobs, o) >= o.n ? '완료' : null;
   const have = qty(store, mainOut(r)) + inflight(jobs, o) * r.out[mainOut(r)];
   return have >= o.n ? `목표 재고 도달 (${fmt(qty(store, mainOut(r)))}/${o.n})` : null;
@@ -94,12 +96,12 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
     const j = jobs[i];
     j.left -= dt * speed;
     if (j.left > 0) continue;
-    const r = RECIPES[j.recipe];
-    if (sized && (speed <= 0 || storeUsed(store) + logisticsHeld + space(r.out) > capacity + 1e-9)) {
+    const r = RECIPES[j.recipe], made = j.out ?? r.out;
+    if (sized && (speed <= 0 || storeUsed(store) + logisticsHeld + space(made) > capacity + 1e-9)) {
       j.left = 0;
       continue; // The completed batch remains in its job until power and output space return.
     }
-    for (const [k, n] of Object.entries(r.out)) { addc(store, k, n); if (world) emit(world, { kind: 'produce', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
+    for (const [k, n] of Object.entries(made)) { addc(store, k, n); if (world) emit(world, { kind: 'produce', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
     jobs.splice(i, 1);
     const o = orders.find(x => x.id === j.order);
     if (o) {
@@ -111,7 +113,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   // 2) free lines take the first order they can serve
   const cap = storageCap(st);
   const used = cargoSum(store) + logisticsHeld;
-  let projected = sized ? storeUsed(store) + logisticsHeld + jobs.reduce((n, j) => n + space(RECIPES[j.recipe]?.out ?? {}), 0) : 0;
+  let projected = sized ? storeUsed(store) + logisticsHeld + jobs.reduce((n, j) => n + space(j.out ?? RECIPES[j.recipe]?.out ?? {}), 0) : 0;
   const busy: Record<string, number> = {};
   for (const j of jobs) busy[j.fac] = (busy[j.fac] ?? 0) + 1;
   for (const o of orders) {
@@ -125,7 +127,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
     if (!lines) { o.why = `${FACILITIES[r.fac]?.name ?? r.fac} 없음`; continue; }
     let started = 0;
     for (;;) {
-      const want = orderWants(o, store, jobs);
+      const want = orderWants(o, store, jobs, world);
       if (want) { o.why = inflight(jobs, o) ? '가동 중' : want; break; }
       if ((busy[r.fac] ?? 0) >= lines) { o.why = inflight(jobs, o) ? '가동 중' : `${FACILITIES[r.fac].name} 라인 사용 중 — 대기`; break; }
       const sh = shortText(store, r.in);
@@ -136,7 +138,7 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
       if (sized ? projected - space(r.in) + space(r.out) > Math.max(cap, projected) + 1e-9 : cap > 0 && used + outN > cap) { o.why = `창고 가득 (${fmt(sized ? storeUsed(store) : used)}/${fmt(cap)})`; break; }
       for (const [k, n] of Object.entries(r.in)) { addc(store, k, -n); if (world) emit(world, { kind: 'consume', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
       if (sized) projected += space(r.out) - space(r.in);
-      jobs.push({ id: `j${(st.seq = (st.seq ?? 0) + 1)}`, order: o.id, recipe: r.id, fac: r.fac, left: r.time, total: r.time });
+      jobs.push({ id: `j${(st.seq = (st.seq ?? 0) + 1)}`, order: o.id, recipe: r.id, fac: r.fac, left: r.time, total: r.time, ...(r.out !== RECIPES[r.id]?.out ? { out: { ...r.out } } : {}) });
       busy[r.fac] = (busy[r.fac] ?? 0) + 1;
       o.why = '가동 중';
       if (++started > 50) break;
@@ -161,7 +163,7 @@ export function stationNeeds(st: Station, world?: { regionalV?: number }): Recor
   for (const o of st.orders ?? []) {
     if (o.paused) continue;
     const r = recipeFor(world, o.recipe); if (!r) continue;
-    if (orderWants(o, store, st.jobs ?? [])) continue;
+    if (orderWants(o, store, st.jobs ?? [], world)) continue;
     // aim for two batches of each input
     for (const [k, n] of Object.entries(r.in)) { const lack = n * 2 - qty(store, k); if (lack > 0) need[k] = Math.max(need[k] ?? 0, lack); }
   }

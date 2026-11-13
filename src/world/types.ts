@@ -537,6 +537,10 @@ export interface WorldState {
   fog?: 1;
   /** Explicit regional-resource rules; absent on older worlds until separately activated. */
   regionalV?: 1;
+  /** Value-chain market pricing (econChain.ts). Absent = the world keeps its own prices (default). */
+  econ?: import('./econChain').EconChainState;
+  /** econ migrations applied to this save (rollback reference: previous bases) */
+  econLog?: import('./econMigrate').EconMigrationRecord[];
   /** items created by migrations (asset conservation ledger) */
   grants?: import('./migrate').GrantRecord[];
   /** existing items that changed form during migrations (not new) */

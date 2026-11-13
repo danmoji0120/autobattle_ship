@@ -34,6 +34,10 @@ export interface ServerOptions {
   /** apply the content-model migration to an older save (default true; the production server keeps it
    *  off until approved and only dry-runs it — see node.ts CONTENT_MIGRATE) */
   migrateContent?: boolean;
+  /** ECON_MIGRATE=apply: move an eligible c4 save onto value-chain pricing (econMigrate.ts) */
+  migrateEcon?: boolean;
+  /** ECON_PRICING=chain: a brand-new world starts with value-chain pricing (opt-in, unapproved default) */
+  econNew?: boolean;
   analytics?: AnalyticsOptions;
   /** keep only this many finished logistics jobs per company (see world/retention.ts); unset = keep all */
   logisticsJobRetain?: number;
@@ -88,7 +92,7 @@ export class GameServer {
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
-    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent }) : WorldSim.create(seed);
+    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, opts.econNew ? { econ: 'chain' } : {});
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }
     this.auth = save?.auth ?? {};

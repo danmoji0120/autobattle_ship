@@ -5,6 +5,7 @@
 //
 // Rendered with morph() so typing in the search box or an open dropdown survives live updates; all
 // clicks go through one delegated listener.
+import { fitServiceUnit } from '../../world/econChain';
 import { econOf, growthOn } from '../../world/hullops';
 import * as THREE from 'three';
 import type { WorldView } from '../../server/protocol';
@@ -126,7 +127,7 @@ export class FittingScreen {
       const price = priceOf(m, 'buy', true);
       return !m || !Number.isFinite(m.stock) || m.stock < n || !Number.isFinite(price) || price <= 0;
     });
-    const buyCost = Math.round(short.reduce((a, [k, n]) => a + (regionalMarketRequired(this.st, k) ? 0 : n * itemPrice(k) * 1.2), 0))
+    const buyCost = Math.round(short.reduce((a, [k, n]) => a + (regionalMarketRequired(this.st, k) ? 0 : n * fitServiceUnit(this.st ?? undefined, k, st?.market?.[k] ? priceOf(st.market[k], 'buy', true) : undefined)), 0))
       + short.reduce((a, [k, n]) => a + (regionalMarketRequired(this.st, k) ? n * priceOf(st?.market?.[k], 'buy', true) : 0), 0);
     const changed = Object.keys(delta).length;
     const varFee = this.draft.variant !== s.variant && !ownFit ? Math.round(econOf(s).price * 0.15) : 0;

@@ -7,6 +7,10 @@
 //   WORLD_RESET   token: replace the world with a fresh one once per token (accounts are kept)
 //   CONTENT_MIGRATE  'apply' moves an older save onto the content model (growth project); anything else
 //                 (default) only dry-runs the migration on an in-memory copy and logs the result
+//   ECON_MIGRATE  'apply' moves an eligible c4 save onto value-chain pricing (docs/ECONOMY_B_PLAN.md);
+//                 anything else (default) only dry-runs it on an in-memory copy and logs the result
+//   ECON_PRICING  'chain' makes a brand-new world (first start / WORLD_RESET) use value-chain pricing;
+//                 default off (unapproved design decision)
 //   SAVE_INTERVAL_S  seconds between autosaves (default 30)
 //   SESSION_TTL_HOURS  idle lifetime of a sign-in session (default 336 = 14 days, renewed while used)
 // Accounts (login ID + password, see accounts.ts) live in siderarium_accounts / siderarium_sessions
@@ -22,6 +26,7 @@ import { WorldSim } from '../world/sim';
 import { INDUSTRY_VERSION } from '../world/economy';
 import { WORLD_VERSION } from '../world/worldgen';
 import { CONTENT_VERSION, census, compareCensus, migrateContent } from '../world/migrate';
+import { econEligible, migrateEconChain } from '../world/econMigrate';
 import { AuthService, AuthError, memoryStore, pgAccountStore, type AccountStore } from './accounts';
 import { DevCombatAuth } from './devCombatAuth';
 import { ConnGuard, limitsFromEnv, parseClientMsg } from './wsguard';
@@ -233,7 +238,7 @@ async function main() {
   if (resetTok) {
     if (!/^[A-Za-z0-9_-]{4,40}$/.test(resetTok)) { console.error('[siderarium] !!! WORLD_RESET 토큰 형식 오류 (영숫자·_- 4~40자)'); process.exit(1); }
     const seed = Number(process.env.WORLD_SEED ?? 1);
-    const r = await storage.reset(resetTok, () => ({ v: 1, world: JSON.parse(WorldSim.create(seed).serialize()), auth: {}, accounts: {} }));
+    const r = await storage.reset(resetTok, () => ({ v: 1, world: JSON.parse(WorldSim.create(seed, process.env.ECON_PRICING === 'chain' ? { econ: 'chain' } : {}).serialize()), auth: {}, accounts: {} }));
     // accounts are separate from the world: they survive; each account simply gets "create your PMC" again
     if (r.done) {
       console.log(`[siderarium] WORLD RESET applied (token ${resetTok}) — previous world kept as ${r.backup ?? '(없음)'}`);
@@ -244,7 +249,10 @@ async function main() {
   // Storage.migrate); the migrated world must keep every player, credit, ship, station, stored good and
   // piece of equipment (plus exactly what the migration recorded as granted), and load back identically
   const applyContent = process.env.CONTENT_MIGRATE === 'apply';
-  const due = (w: SaveFile['world']) => (w.version ?? 0) < WORLD_VERSION || (w.industryV ?? 0) < INDUSTRY_VERSION || (applyContent && (w.contentV ?? 0) < CONTENT_VERSION);
+  const applyEcon = process.env.ECON_MIGRATE === 'apply';
+  // econ is due only for a save that is (or this run makes) c4 and has no value-chain pricing yet
+  const econDue = (w: SaveFile['world']) => applyEcon && !w.econ && ((w.contentV ?? 0) >= 4 || applyContent);
+  const due = (w: SaveFile['world']) => (w.version ?? 0) < WORLD_VERSION || (w.industryV ?? 0) < INDUSTRY_VERSION || (applyContent && (w.contentV ?? 0) < CONTENT_VERSION) || econDue(w);
   if (saved && due(saved.world)) {
     // backup → transform → verify → write is one transaction on the row as it is *now* (an old instance
     // may have saved since this one loaded), and bumps the world generation: the old instance's autosave
@@ -252,15 +260,16 @@ async function main() {
     let rep = null as WorldSim['contentReport'];
     try {
       const r = await storage.migrate(
-        d => `${d.world.version ?? 0}.${d.world.industryV ?? 0}${(d.world.contentV ?? 0) || applyContent ? `.c${d.world.contentV ?? 0}` : ''}`,
+        d => `${d.world.version ?? 0}.${d.world.industryV ?? 0}${(d.world.contentV ?? 0) || applyContent ? `.c${d.world.contentV ?? 0}` : ''}${d.world.econ || applyEcon ? `.e${d.world.econ?.v ?? 0}` : ''}`,
         d => {
           if (!due(d.world)) return null;
           const b = census(d.world);
-          const sim = new WorldSim(structuredClone(d.world), { migrateContent: applyContent });
+          const sim = new WorldSim(structuredClone(d.world), { migrateContent: applyContent, migrateEcon: applyEcon });
           const bad = compareCensus(b, census(sim.st));
           if (bad.length) throw new Error(`센서스 불일치 ${bad.join('; ')}`);
+          if (applyEcon && sim.econReport && !sim.econReport.ok) console.log(`[siderarium] econ migration skipped: ${sim.econReport.why}`);
           const s1 = sim.serialize();
-          if (new WorldSim(JSON.parse(s1), { migrateContent: applyContent }).serialize() !== s1) throw new Error('복원 왕복 불일치');
+          if (new WorldSim(JSON.parse(s1), { migrateContent: applyContent, migrateEcon: applyEcon }).serialize() !== s1) throw new Error('복원 왕복 불일치');
           rep = sim.contentReport;
           return { ...d, world: JSON.parse(s1) };
         });
@@ -290,6 +299,14 @@ async function main() {
       } catch (e) { console.error('[siderarium] content migration DRY RUN failed:', (e as Error).stack); }
     }
   }
+  if (saved && !applyEcon && !econEligible(saved.world)) {
+    // econ dry run on a copy: how many market bases value-chain pricing would change (nothing written)
+    try {
+      const copy = structuredClone(saved.world), b = census(copy), rep = migrateEconChain(copy);
+      const bad = compareCensus(b, census(copy));
+      console.log(`[siderarium] econ migration DRY RUN e0→e1: markets ${rep.markets} · goods ${rep.goods} · bases changed ${rep.changed} · census ${bad.length ? 'MISMATCH ' + bad.join('; ') : 'OK'} — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)`);
+    } catch (e) { console.error('[siderarium] econ migration DRY RUN failed:', (e as Error).message); }
+  }
   if (!accountStore) {
     const f = path.join(path.dirname(SAVE_FILE), 'accounts.json');
     accountStore = memoryStore({ read: () => { try { return fs.readFileSync(f, 'utf8'); } catch { return null; } }, write: s => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f + '.tmp', s); fs.renameSync(f + '.tmp', f); } });
@@ -314,7 +331,7 @@ async function main() {
   }
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent,
+    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, econNew: process.env.ECON_PRICING === 'chain',
     // Verify migration conservation before the intentionally granted BB-EX changes the census.
     deferExclusiveGrant: true,
     adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),
@@ -333,7 +350,7 @@ async function main() {
     if (game.sim.contentReport && game.sim.contentReport.from < game.sim.contentReport.to) console.log(`[siderarium] content migration applied c${game.sim.contentReport.from}→c${game.sim.contentReport.to}: ships ${game.sim.contentReport.ships} · builds ${game.sim.contentReport.builds} · fitted ${game.sim.contentReport.fitted} · returned ${game.sim.contentReport.returned.length} · granted ${game.sim.contentReport.granted.length}`);
     // restore check: the migrated world serializes and loads back identically
     const s1 = game.sim.serialize();
-    const ok = new WorldSim(JSON.parse(s1), { migrateContent: applyContent }).serialize() === s1;
+    const ok = new WorldSim(JSON.parse(s1), { migrateContent: applyContent, migrateEcon: applyEcon }).serialize() === s1;
     if (!ok) { console.error('[siderarium] !!! 복원 검증 실패 — 저장하지 않고 종료합니다'); process.exit(1); }
     console.log(`[siderarium] migration check OK ${JSON.stringify(after)} · restore round-trip identical`);
   }

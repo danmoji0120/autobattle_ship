@@ -52,7 +52,7 @@ export function storeHtml(w: WorldState, s: Station, me: string, ui: IndUi): str
   const reserved: Record<string, number> = {};
   for (const m of s.modules) for (const [k, n] of Object.entries(m.reserved ?? {})) if (n > 0.01) reserved[k] = (reserved[k] ?? 0) + n;
   const inJobs: Record<string, number> = {};
-  for (const j of own ? s.jobs ?? [] : []) for (const [k, n] of Object.entries(RECIPES[j.recipe]?.out ?? {})) inJobs[k] = (inJobs[k] ?? 0) + n;
+  for (const j of own ? s.jobs ?? [] : []) for (const [k, n] of Object.entries(j.out ?? RECIPES[j.recipe]?.out ?? {})) inJobs[k] = (inJobs[k] ?? 0) + n;
   const needs = own ? stationNeeds(s, w) : {};
   const shown = ids.filter(k => (ui.invCat === 'all' || itemCat(k) === ui.invCat) && match(k, ui.invQ)).sort((a, b) => CATS.indexOf(itemCat(a)) - CATS.indexOf(itemCat(b)) || (ITEMS[a]?.tier ?? 9) - (ITEMS[b]?.tier ?? 9) || a.localeCompare(b));
   // logistics: own haul operations touching this station

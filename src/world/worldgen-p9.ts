@@ -8,6 +8,7 @@ import { seedSites } from './explore';
 import { ITEMS, itemPrice } from './industry';
 import { RAW_PRICE_V4 } from './econConfig';
 import { valueOf } from './valuation';
+import { marketBase } from './econChain';
 import { targetFor } from './economy';
 import { activateRegionalResources } from './regional';
 
@@ -89,7 +90,7 @@ export function expandFreshWorld(w: WorldState): void {
     for (const id of def.goods) {
       const target = targetFor(id);
       // Same c4 raw/production-cost price baseline as the existing economy.
-      const base = Math.round((ITEMS[id]?.cat === 'raw' ? itemPrice(id) * RAW_PRICE_V4 : valueOf(id)) * 10) / 10;
+      const base = marketBase(w, id, 1, () => Math.round((ITEMS[id]?.cat === 'raw' ? itemPrice(id) * RAW_PRICE_V4 : valueOf(id)) * 10) / 10);
       market[id] = { stock: Math.round(target * (id === 'ore' && (def.sys === 'ceres' || def.sys === 'forge') ? .25 : .6)), target, base };
     }
     const storage = Object.fromEntries(Object.keys(w.companies).map(id => [id, emptyCargo()]));

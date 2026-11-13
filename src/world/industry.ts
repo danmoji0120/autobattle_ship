@@ -256,7 +256,10 @@ const REGIONAL_RECIPES: Record<string, RecipeDef> = Object.fromEntries(Object.en
 export function recipeFor(w: { regionalV?: number } | undefined, id: string): RecipeDef | undefined {
   const r = Object.hasOwn(RECIPES, id) ? RECIPES[id] : undefined;
   if (!r || (r.regional && !regionalOn(w))) return undefined;
-  return regionalOn(w) ? REGIONAL_RECIPES[id] ?? r : r;
+  const out = regionalOn(w) ? REGIONAL_RECIPES[id] ?? r : r;
+  // value-chain worlds (econChain.ts) run the direct-alloy fallback at their own recorded output
+  const ad = (w as { econ?: { v: number; alloyDirect: number } } | undefined)?.econ;
+  return ad?.v === 1 && id === 'alloy_direct' && out.out.alloy !== ad.alloyDirect ? { ...out, out: { alloy: ad.alloyDirect } } : out;
 }
 
 // ─────────────────────────────────────────────────────────────── hull production

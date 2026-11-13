@@ -61,7 +61,7 @@ function bind(h: Host, r: LogisticsRoute) {
 /** Largest current batch input, respecting paused, finished and already satisfied orders. */
 export function supplyBatch(st: import('./types').Station | undefined, item: string, world?: { regionalV?: number }): number {
   if (!st) return 0; let need = 0;
-  for (const order of st.orders ?? []) { const recipe = recipeFor(world, order.recipe); if (!order.paused && recipe && !orderWants(order, st.storage[st.owner] ?? {}, st.jobs ?? [])) need = Math.max(need, recipe.in[item] ?? 0); }
+  for (const order of st.orders ?? []) { const recipe = recipeFor(world, order.recipe); if (!order.paused && recipe && !orderWants(order, st.storage[st.owner] ?? {}, st.jobs ?? [], world)) need = Math.max(need, recipe.in[item] ?? 0); }
   return need;
 }
 /** External collection exposes only the requesting company's already-owned stock. */

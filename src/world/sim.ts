@@ -18,6 +18,8 @@ import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MI
 import { newWorld, migrateWorld, WORLD_VERSION } from './worldgen';
 import { expandFreshWorld } from './worldgen-p9';
 import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from './migrate';
+import { migrateEconChain, enableEconChainNew, type EconMigrationReport } from './econMigrate';
+import { fitServiceUnit, type EqPolicy } from './econChain';
 import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, type ShipFitting } from './fitting';
 import { CONTENT, legacyOf, contentAvail } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
@@ -177,6 +179,8 @@ export class WorldSim {
   private procurementAt = 0;
   /** what the content migration did on load (null = not run) */
   contentReport: MigrationReport | null = null;
+  /** what the econ (value-chain pricing) migration did on load (null = not asked) */
+  econReport: EconMigrationReport | null = null;
   /** hooks for the server */
   /** true only while world/exclusive.ts spawns the account-exclusive hull */
   exclusiveSpawn = false;
@@ -186,7 +190,7 @@ export class WorldSim {
   /** `migrateContent: false` keeps a save on the content version it has (server default until a
    *  migration is approved); a save that is already partly migrated is kept consistent *at its own
    *  version* (repairs only — it is never moved forward without the flag) */
-  constructor(st: WorldState, opts: { migrateContent?: boolean } = {}) {
+  constructor(st: WorldState, opts: { migrateContent?: boolean; migrateEcon?: boolean } = {}) {
     if ((st.version ?? 0) < WORLD_VERSION) st = migrateWorld(st);
     if (opts.migrateContent !== false) this.contentReport = migrateContent(st);
     else if ((st.contentV ?? 0) >= 1) this.contentReport = migrateContent(st, st.contentV);
@@ -204,6 +208,8 @@ export class WorldSim {
     this.rng = new Rng(st.seed).restore(st.rng.length ? st.rng : new Rng(st.seed).state());
     // industry: field compositions, NPC markets for the new goods, legacy facility kinds (idempotent)
     upgradeIndustry(st);
+    // value-chain pricing for an existing c4 save: only when explicitly asked (ECON_MIGRATE=apply)
+    if (opts.migrateEcon) this.econReport = migrateEconChain(st);
     // construction plans: give pre-plan saves their bookkeeping (idempotent)
     for (const x of Object.values(st.stations)) for (const m of x.modules) normPlan(m, () => this.id('pl'));
     // rebuild live battles
@@ -220,10 +226,13 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
+    // value-chain pricing is opt-in (unapproved default): priced once, after every market exists, so
+    // the result never depends on which expansion created a market
+    if (opts.econ === 'chain') enableEconChainNew(sim.st, { eq: opts.eq, alloyDirect: opts.alloyDirect });
     return sim;
   }
 
@@ -435,7 +444,7 @@ export class WorldSim {
       const actualMarket = regionalMarketRequired(this.st, k);
       const m = actualMarket && st.market && Object.hasOwn(st.market, k) ? st.market[k] : undefined;
       if (actualMarket && (!m || !Number.isFinite(m.stock) || m.stock < short)) return `${e?.name ?? k}: 시장 재고 부족 — 실제 재고가 있는 시장이나 플레이어 거래소를 이용하세요`;
-      const unit = actualMarket ? this.price(st, k, 'buy') : itemPriceOf(k) * 1.2;
+      const unit = actualMarket ? this.price(st, k, 'buy') : fitServiceUnit(this.st, k, st.market?.[k] ? this.price(st, k, 'buy') : undefined);
       if (!Number.isFinite(unit) || unit <= 0) return `${e?.name ?? k}: 유효하지 않은 시장 가격`;
       buyList.push([k, short, unit, actualMarket]);
     }

@@ -92,7 +92,7 @@ function demandList(h: WorldSim, co: Company): Demand[] {
       for (const [item, amount] of Object.entries(buildNeeds(b.classId, b.loadoutId, b.fit, b))) push(st, 'ship', b.id, item, amount);
     }
     for (const o of st.orders ?? []) {
-      const r = recipeFor(h.st, o.recipe); if (o.paused || !r || !recipeOk(r, co) || !facLines(st, r.fac) || orderWants(o, st.storage[co.id] ?? {}, st.jobs ?? [])) continue;
+      const r = recipeFor(h.st, o.recipe); if (o.paused || !r || !recipeOk(r, co) || !facLines(st, r.fac) || orderWants(o, st.storage[co.id] ?? {}, st.jobs ?? [], h.st)) continue;
       // At most one not-yet-started batch per order; already started batches consumed their inputs.
       for (const [item, amount] of Object.entries(r.in)) push(st, 'production', o.id, item, amount);
     }

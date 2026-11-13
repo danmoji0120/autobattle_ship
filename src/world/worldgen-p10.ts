@@ -9,6 +9,7 @@ import { seedSites } from './explore';
 import { ITEMS, itemPrice } from './industry';
 import { RAW_PRICE_V4 } from './econConfig';
 import { valueOf } from './valuation';
+import { marketBase } from './econChain';
 import { targetFor, PROFILES } from './economy';
 import { FACTIONS, type RegionKind, type FactionState } from './territory';
 import { sizeOf, LOOK_HINT, type FieldGeo, type GeoLayer, type GeoVein } from './geology';
@@ -185,7 +186,7 @@ export function expandP10(w: WorldState): void {
     const s = w.systems[def.sys], market: Market = {}, p = P10_PROFILES[def.id];
     for (const id of new Set([...p.make, ...p.sell, ...Object.keys(p.use), ...(p.conv ?? []).flatMap(c => [...Object.keys(c.in), ...Object.keys(c.out)])])) {
       const target = targetFor(id);
-      const base = Math.round((ITEMS[id]?.cat === 'raw' ? itemPrice(id) * RAW_PRICE_V4 : valueOf(id)) * (p.mult ?? 1) * 10) / 10;
+      const base = marketBase(w, id, p.mult ?? 1, () => Math.round((ITEMS[id]?.cat === 'raw' ? itemPrice(id) * RAW_PRICE_V4 : valueOf(id)) * (p.mult ?? 1) * 10) / 10);
       market[id] = { stock: Math.round(target * .5), target, base };
     }
     const storage = Object.fromEntries(Object.keys(w.companies).map(id => [id, emptyCargo()]));

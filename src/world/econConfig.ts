@@ -49,3 +49,29 @@ export const YARD_RESTOCK_SHARE_WAR: [string, number][] = [['structure', 0.1], [
 export const START_CREDITS_GROWTH = 12000;
 /** company-wide overhead on running costs (flat: splitting into accounts saves nothing) */
 export const OVERHEAD = 0.1;
+
+/** Value-chain pricing "B" (econChain.ts) — OPT-IN per world, not a default. Experimental values pending
+ *  approval (docs/ECONOMY_B_PLAN.md §결정): equipment policy, direct-alloy output. A world records the
+ *  policy and output it was priced with (st.econ), so changing these never reprices an existing world. */
+export const ECON_CHAIN = {
+  id: 'b1',
+  /** raw goods: share of the hand-set base price (same as c4) */
+  raw: 0.25,
+  /** spread allowance carried on the inputs' value at every made step */
+  S: 0.15,
+  /** value-added rate (credits per line-second) for recipes without a solved target (equipment) */
+  vaDefault: 2.5,
+  /** target profit/h of one main-recipe line that buys every input at the market */
+  targets: {
+    metal: 6000, titanium: 6000, silicon: 5000, chemicals: 5000, rare_metal: 12000,
+    alloy: 7000, composite: 12000,
+    machinery: 8000, precision: 8000, structure: 8000, electronics: 11000, armor_plate: 10000,
+    weapon_parts: 12000, engine: 14000, reactor: 18000, sensor: 12000,
+  } as Record<string, number>,
+  /** equipment policy of a newly enabled world: 'chain' value chain (as the B analysis), 'keep' c4 price,
+   *  'margin' inputs × (1 + eqMargin) + labour */
+  eqDefault: 'chain' as 'chain' | 'keep' | 'margin',
+  eqMargin: 0.4,
+  /** direct ore → alloy output in a chain world (c4: 14) */
+  alloyDirect: 7,
+};
