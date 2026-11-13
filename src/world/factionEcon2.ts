@@ -115,6 +115,8 @@ export const PROFILES2: Record<string, Profile> = {
 };
 /** recipes that run on munitions capacity (the rest run on industrial capacity) */
 const MUNITIONS = new Set(['armor_plate', 'weapon_parts', 'eq_autocannon', 'eq_medium_gun', 'mod_armor']);
+/** strategic goods: munitions outputs, exported at least EXPORT_MIN_SHARE of their output even in war */
+const STRATEGIC: ReadonlySet<string> = new Set([...MUNITIONS].map(r => Object.keys(RECIPES[r].out)[0]));
 
 // demand baskets, per hour (× FE_SCALE)
 /** per civ unit */
@@ -153,8 +155,8 @@ export const FE_TUNING = {
    *  sellers (1 = factions may fill markets completely) */
   exportFill: .6,
 };
-/** export goods: at least this share of the cycle's own output of a good is offered to markets even when the
- *  faction's stock is below its export floor (strategic goods keep flowing in war, scarce and expensive) */
+/** strategic export goods (munitions): at least this share of the cycle's own output is offered to markets even
+ *  when the maker's stock is below its export floor (they keep flowing in war, scarce and expensive) */
 const EXPORT_MIN_SHARE = .25;
 /** modernization waits until the fleet is supplied (readiness), so civilian growth does not outrun munitions */
 const MODERN_MIN_RDY = .9;
@@ -539,8 +541,9 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
   //    partner market costs the exporter SURCHARGE per jump (leaves the economy, recorded as sunk)
   for (const k of Object.keys(f.stock).sort()) {
     let surplus = qty(f.stock, k) - (R2.target[k] ?? 0) * (R2.exportGood.has(k) ? EXPORT_FLOOR : EXPORT_ABOVE);
-    // an export good keeps a minimum flow to markets even when the maker is short itself (war stockpiling)
-    if (R2.exportGood.has(k)) surplus = Math.max(surplus, Math.min(qty(f.stock, k), (madeNow[k] ?? 0) * EXPORT_MIN_SHARE));
+    // a strategic export good (munitions) keeps a minimum flow to markets even when the maker is short itself
+    // (war stockpiling); other goods wait for real surplus
+    if (R2.exportGood.has(k) && STRATEGIC.has(k)) surplus = Math.max(surplus, Math.min(qty(f.stock, k), (madeNow[k] ?? 0) * EXPORT_MIN_SHARE));
     if (surplus <= 1e-6) continue;
     markets ??= suppliers(w, f, sysOf);
     for (const [s, jumps, mine, perJump] of markets) {
