@@ -6,6 +6,7 @@ import { factionEcon2Step, rates, FE_TUNING, PROFILES2 } from '../src/world/fact
 import { startConflict } from '../src/world/factionEcon';
 import { P10_FRONTS } from '../src/world/worldgen-p10';
 import { qty, type Cargo } from '../src/world/types';
+import { ITEMS } from '../src/world/industry';
 import type { FactionState } from '../src/world/territory';
 
 const host = (sim: WorldSim) => sim as unknown as Parameters<typeof factionEcon2Step>[0];
@@ -61,9 +62,12 @@ describe('faction economy v2 stabilization', () => {
     for (const [k, n] of Object.entries(seized)) expect(lost[k] ?? 0).toBeCloseTo(n!, 6);
     expect(Object.values(F).filter(f => f.id !== 'pirates' && sum(f.econ!.led.lost) > 0).every(f => ['iron', 'miners'].includes(f.id))).toBe(true);
     for (const f of Object.values(F)) { expect(ledgerGap(f), f.id).toBeLessThan(1e-6); for (const n of Object.values(f.stock)) expect(n!).toBeGreaterThanOrEqual(0); }
-    // raiding is bounded by the pirates' strength: a pirate fleet of strength 0 takes nothing
-    const before = sum(F.pirates.econ!.led.seized); F.pirates.strength = 0; cycles(sim, 5);
-    expect(sum(F.pirates.econ!.led.seized)).toBeCloseTo(before, 6);
+    // the take grows with the raiding force: hideout parties keep raiding without a fleet, a fleet takes more
+    const take = (str: number) => { const w2 = hostileWorld(); w2.st.factions!.pirates.strength = str; cycles(w2, 10); return w2.st.factions!.pirates.econ!.led.seized ?? {}; };
+    const value = (c: Cargo) => Object.entries(c).reduce((a, [k, n]) => a + n! * (ITEMS[k]?.price ?? 50), 0);
+    const v0 = value(take(0)), v60 = value(take(60));
+    expect(v0).toBeGreaterThan(0);
+    expect(v60).toBeGreaterThan(v0 * 1.5);
   });
 
   it('no raids on factions at peace with the pirates', () => {

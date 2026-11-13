@@ -1,8 +1,8 @@
 #!/bin/bash
 # Faction economy v2 verification batch (§9). Runs in parallel (4 jobs); results → docs/econ-results/faction/runs
-#   bash scripts/faction/batch.sh [jobs.txt]
+#   [D=out dir] bash scripts/faction/batch.sh [jobs.txt]
 cd "$(dirname "$0")/../.."
-D=docs/econ-results/faction/runs; mkdir -p $D
+D=${D:-docs/econ-results/faction/runs}; mkdir -p $D
 jobs=${1:-}
 if [ -z "$jobs" ]; then jobs=$(mktemp); cat > $jobs <<'J'
 F peace 72 5

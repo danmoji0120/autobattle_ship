@@ -1,0 +1,14 @@
+F peace 72 5
+F war 72 5
+F war 72 6
+F war 24 7
+F cut 8 5
+F recover 8 5
+F save 12 5
+C inter L p10fe 12 5 1
+C refine L p10fe 12 5 1
+C parts L p10fe 12 5 1
+C mine L p10fe 12 5 1
+C refine L p10fe 12 5 3
+C inter L p10fe 12 5 4
+C mine,refine,inter,parts L p10fe 24 5 1
