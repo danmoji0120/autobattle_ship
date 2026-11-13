@@ -84,7 +84,7 @@ describe('faction economy v2 stabilization', () => {
     cycles(sim, 30);
     const lostBoth = (c.lost.iron ?? 0) + (c.lost.pirates ?? 0);
     expect(lostBoth).toBeGreaterThan(0);
-    expect(qty(sim.st.factions!.pirates.econ!.led.salvaged ?? {}, 'alloy')).toBeCloseTo(6 * lostBoth, 6);
+    expect(qty(sim.st.factions!.pirates.econ!.led.salvaged ?? {}, 'alloy')).toBeCloseTo(3 * lostBoth, 6);
     expect(PROFILES2.iron.raider).toBeFalsy();
     expect(sum(sim.st.factions!.iron.econ!.led.salvaged)).toBe(0);
   });

@@ -166,11 +166,11 @@ const MODERN_MIN_RDY = .9;
 const SMUGGLE = .15;
 /** goods value a raider takes per hour at full readiness, before the victim's defence: per strength point, and
  *  per territory size unit (hideouts and small raiding parties keep working when the main fleet is gone) */
-const RAID_VALUE = 250, RAID_SIZE = 1200;
+const RAID_VALUE = 100, RAID_SIZE = 500;
 /** a raid never takes a victim's stock below this share of the victim's own target */
-const RAID_KEEP = .5;
+const RAID_KEEP = .8;
 /** wreck material a raider recovers per strength point lost in its fights (either side) */
-const SALVAGE: Cargo = { alloy: 6, metal: 4, weapon_parts: .1 };
+const SALVAGE: Cargo = { alloy: 3, metal: 2, weapon_parts: .05 };
 /** export goods: own-market room is refilled this many times per hour (planned production for others) */
 const EXPORT_PULL = 2;
 /** markets keep this share of target stock for others */
@@ -487,10 +487,13 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
   const direct = (k: string) => (R2.cls.war[k] ? 0 : R2.cls.upkeep[k] ? 1 : R2.cls.civ[k] || R2.cls.maint[k] ? 2 : R2.prog.rebuild[k] || R2.prog.build[k] ? 3 : R2.input[k] ? 4 : 5);
   // make before buy: the inputs of a good the faction makes itself inherit that good's urgency (alloy for
   // iron's own weapon parts is as urgent as the weapon parts), so a producer is not starved into importing
+  // — only while the faction itself is short of that good: inputs for production beyond its own stock target
+  // (exports) are ordinary industry inputs, so a maker does not starve its own civilian economy to export
   const pr: Record<string, number> = {};
   for (const r of [...sectorOrder(p)].reverse()) {
     const [o] = Object.keys(RECIPES[r].out); const po = pr[o] ?? direct(o);
-    for (const i of Object.keys(RECIPES[r].in)) pr[i] = Math.min(pr[i] ?? direct(i), po);
+    const own = qty(f.stock, o) < (R2.target[o] ?? 0) ? po : 4;
+    for (const i of Object.keys(RECIPES[r].in)) pr[i] = Math.min(pr[i] ?? direct(i), own);
   }
   const prio = (k: string) => pr[k] ?? direct(k);
   const buyTarget = (k: string) => (R2.target[k] ?? 0) * (R2.exportGood.has(k) ? EXPORT_FLOOR : 1);
