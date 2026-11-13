@@ -336,5 +336,6 @@ WorldSim.create(seed, { layout: 'p10', factionEcon: 'v2' })   // 개발·검증 
 ### 6.5 회귀
 
 - `tests/faction-econ2.test.ts` + `tests/faction-econ2-stab.test.ts` 23개 통과. 주기 길이 비교의 수입 허용치는 0.03으로 바꿨다. 광업동맹이 국고 상한에 걸려 −2.6% 차이가 나기 때문이다.
+- 전체 `vitest run`: 68 파일 통과, 2 건너뜀(613 통과 / 16 건너뜀, 실패 0).
 - `npm run content:check` 0 오류, `npm run build` 성공.
 - 기존 월드 해시(c0 / P9 / P10-v1 / P10-v1+B)가 기준 커밋과 동일하다.
