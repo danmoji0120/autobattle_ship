@@ -139,6 +139,12 @@ const EXPORT_ABOVE = 1.2;
 /** goods a faction makes or mines beyond its own need (export goods): stock above this share of the
  *  target goes to its own markets, and the faction never buys them back above it (no export/re-buy loop) */
 const EXPORT_FLOOR = .5;
+/** tuning knobs scripts may change for experiments (defaults are the shipped behaviour) */
+export const FE_TUNING = {
+  /** faction exports fill a market only up to this share of its target; the band above is left to player
+   *  sellers (1 = factions may fill markets completely) */
+  exportFill: 1,
+};
 /** export goods: own-market room is refilled this many times per hour (planned production for others) */
 const EXPORT_PULL = 2;
 /** markets keep this share of target stock for others */
@@ -354,7 +360,7 @@ export function factionEcon2Step(host: EconHost, w: WorldState, dt = FE_CYCLE) {
 
 /** the faction's own public markets (stable order) and the empty space in them per good */
 export const ownMarkets = (w: WorldState, fid: string) => Object.values(w.stations).filter(s => s.public && s.market && s.faction === fid).sort((a, b) => (a.id < b.id ? -1 : 1));
-export const roomIn = (own: Station[]) => (k: string) => own.reduce((n, s) => n + Math.max(0, (s.market![k]?.target ?? 0) - (s.market![k]?.stock ?? 0)), 0);
+export const roomIn = (own: Station[]) => (k: string) => own.reduce((n, s) => n + Math.max(0, (s.market![k]?.target ?? 0) * FE_TUNING.exportFill - (s.market![k]?.stock ?? 0)), 0);
 
 function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, StarSystem | undefined>) {
   const st = (f.econ ??= initState(w, f));   // a faction added later starts with an empty ledger
@@ -502,9 +508,11 @@ function cycle(w: WorldState, f: FactionState, h: number, sysOf: Map<string, Sta
     if (surplus <= 1e-6) continue;
     markets ??= suppliers(w, f, sysOf);
     for (const [s, jumps, mine] of markets) {
-      const m = s.market![k]; if (!m || m.stock >= m.target) continue;
+      const m = s.market![k]; if (!m) continue;
+      const fill = m.target * FE_TUNING.exportFill;
+      if (m.stock >= fill) continue;
       const unit = priceOf(m, 'sell', v3); if (!(unit > 0)) continue;
-      const put = Math.min(surplus, m.target - m.stock, Math.max(0, (s.funds ?? 0) * Math.min(1, STATION_EXPORT_SHARE * per)) / unit);
+      const put = Math.min(surplus, fill - m.stock, Math.max(0, (s.funds ?? 0) * Math.min(1, STATION_EXPORT_SHARE * per)) / unit);
       if (put <= 1e-6) continue;
       const pay = put * unit, ship = mine ? 0 : pay * SURCHARGE * jumps;
       m.stock += put; surplus -= put;

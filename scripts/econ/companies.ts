@@ -21,7 +21,7 @@ import { qty, type Station } from '../../src/world/types';
 import type { Size } from '../../src/content/schema';
 import { makeWorld, type Origin } from './world';
 import { proposal } from './proposals';
-import { feOn, feManaged, rates } from '../../src/world/factionEcon2';
+import { feOn, feManaged, rates, FE_TUNING } from '../../src/world/factionEcon2';
 import { snapshot, flows, marketView, KEY_GOODS, type Snap } from '../faction/metrics';
 
 export interface Spec {
@@ -55,7 +55,11 @@ export const SPECS: Record<string, Spec> = {
     inputs: [{ item: 'ore', target: 1500 }], outputs: ['machinery', 'structure'] },
 };
 
-const args = process.argv.slice(2).filter(a => a !== '--');
+const args0 = process.argv.slice(2).filter(a => a !== '--');
+// experiment knob for v2 worlds: fill=<share> (FE_TUNING.exportFill), never written to any save
+const fillArg = args0.find(a => a.startsWith('fill='));
+if (fillArg) FE_TUNING.exportFill = Number(fillArg.slice(5));
+const args = args0.filter(a => !a.startsWith('fill='));
 const specId = args[0] ?? 'refine', propId = args[1] ?? 'base', origin = (args[2] ?? 'fresh') as Origin, hours = Number(args[3] ?? 24), seed = Number(args[4] ?? 5), out = args[5], copies0 = Math.max(1, Math.min(8, Number(args[6] ?? 1)));
 const specIds = specId.split(',');
 for (const id of specIds) if (!SPECS[id]) throw new Error(`spec ${id}? ${Object.keys(SPECS).join(' ')}`);
