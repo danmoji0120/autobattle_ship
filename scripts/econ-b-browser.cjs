@@ -90,7 +90,7 @@ const numbersOf = t => (t.match(/[\d,]+(\.\d+)?\s*cr/g) ?? []).join(' ');
     await p.evaluate(() => { const s = window.siderarium.client.t.server; for (let i = 0; i < 8; i++) s.step(.25); });
     await p.locator('#opsBtn').click(); await p.waitForSelector('.ops-box');
     await p.locator('[data-a="tab"][data-id="finance"]').first().click(); await p.waitForTimeout(300);
-    const fin = await p.locator('.ops-box').innerText(); await p.screenshot({ animations: 'disabled', path: `${out}/finance-${label}.png` });
+    const fin = await p.locator('.ops-box').innerText(); await p.locator('h3:has-text("재고 평가 변화")').scrollIntoViewIfNeeded(); await p.screenshot({ animations: 'disabled', path: `${out}/finance-${label}.png` });
     fs.writeFileSync(`${out}/finance-${label}.txt`, fin);
     assert(/재고 평가 변화/.test(fin) && /평가 변화 \(현금 아님\)/.test(fin) && !bad(fin), `${label}: finance tab shows the valuation change as non-cash`);
     await p.locator('[data-a="tab"][data-id="works"]').first().click(); await p.waitForTimeout(300);
