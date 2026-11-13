@@ -5,8 +5,12 @@ import type { WorldState } from '../../src/world/types';
 import { ITEMS, RECIPES, FACILITIES, EQUIPMENT, itemPrice } from '../../src/world/industry';
 import { PROFILES } from '../../src/world/economy';
 import { valueOf } from '../../src/world/valuation';
+import { chainValue as liveChainValue, type EqPolicy } from '../../src/world/econChain';
+import { ECON_CHAIN } from '../../src/world/econConfig';
 
-export interface Proposal { id: string; name: string; desc: string; patch?: () => void; reprice?: (w: WorldState) => void; value?: (id: string) => number }
+export interface Proposal { id: string; name: string; desc: string; patch?: () => void; reprice?: (w: WorldState) => void; value?: (id: string) => number;
+  /** the LIVE game path (econChain.ts): world created / migrated with value-chain pricing, nothing patched */
+  live?: { eq: EqPolicy; alloyDirect: number } }
 
 const isRaw = (k: string) => ITEMS[k]?.cat === 'raw';
 
@@ -128,6 +132,11 @@ export const PROPOSALS: Record<string, Proposal> = {
     reprice: w => repriceWith(w, chain25.value) },
 };
 const TOP_DEMAND = ['structure', 'weapon_parts', 'engine', 'reactor', 'sensor'];
+// LIVE value-chain pricing (src/world/econChain.ts) — the code path the game would run. `L` = equipment in
+// the chain, `Lk` = equipment keeps its c4 price, `Lm` = equipment at inputs × (1 + margin); suffix = direct
+// alloy output (default ECON_CHAIN.alloyDirect).
+const live = (id: string, eq: EqPolicy, alloyDirect = ECON_CHAIN.alloyDirect): Proposal => ({ id, name: `B 실게임 (장비 ${eq}, 직접 합금 ${alloyDirect})`, desc: 'econChain.ts 실게임 경로', live: { eq, alloyDirect }, value: k => liveChainValue(k, eq) });
+for (const p of [live('L', 'chain'), live('Lk', 'keep'), live('Lm', 'margin'), ...[4, 5, 6, 7, 8, 10, 14].map(n => live(`L${n}`, 'chain', n))]) PROPOSALS[p.id] = p;
 
 let recipeSnapshot: Record<string, number> | undefined;
 function snapshotValues(value: (k: string) => number) { const r: Record<string, number> = {}; for (const k of [...Object.keys(ITEMS), ...Object.keys(EQUIPMENT)]) r[k] = value(k); return r; }

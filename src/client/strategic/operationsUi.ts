@@ -342,6 +342,7 @@ export class OperationsPanel {
       <section class="pool-section"><div class="pool-section-head"><div><h3>현금 흐름 <small>최근 ${led.length}시간 실적</small></h3><p>실제 입출금만 기록합니다 (장부가치 제외).</p></div></div>
       <table class="ops-table"><thead><tr><th>항목</th><th>수입</th><th>지출</th></tr></thead><tbody>${cats.map(c => `<tr><td>${esc(LEDGER_NAME[c] ?? c)}</td><td class="good">${tot('inc', c) ? n0(tot('inc', c)) : ''}</td><td class="warn">${tot('exp', c) ? n0(tot('exp', c)) : ''}</td></tr>`).join('') || '<tr><td colspan="3" class="dim">아직 기록 없음</td></tr>'}</tbody></table>
       <div class="proc-policy-status"><span>판매 수입<b>${n0(sales)} cr</b></span><span>운영 유지비<b>${n0(upkeep)} cr</b></span><span>판매 − 유지비<b class="${sales - upkeep >= 0 ? 'good' : 'warn'}">${n0(sales - upkeep)} cr</b></span></div>
+      ${this.valuationNote()}
       <h3 class="ops-h3">목표별 예산</h3>${goals.map(x => `<div class="proc-plan"><b>${esc(x.title)}</b> <span>지출 ${n0(x.cost)} cr · ${x.budget ? x.budget.open ? '목표 전체 승인' : `예산 ${n0(x.budget.spent)}/${n0(x.budget.limit)} cr` : '예산 없음 (필요 시 결재)'}</span></div>`).join('') || '<p class="dim">없음</p>'}
       <h3 class="ops-h3">위임 정책</h3><div class="proc-policy-form"><div class="proc-policy-grid">
         <label>자율 수준<select data-keep name="p-autonomy"><option value="ask" ${pol.autonomy === 'ask' ? 'selected' : ''}>권한 밖 지출은 결재</option><option value="auto" ${pol.autonomy === 'auto' ? 'selected' : ''}>아래 한도 안에서 자동</option></select></label>
@@ -351,6 +352,17 @@ export class OperationsPanel {
         <label class="ops-check"><input type="checkbox" name="p-produce" ${pol.preferProduce ? 'checked' : ''}> 구매보다 자체 생산 우선</label>
         <p class="dim">위임 품목: ${Object.entries(pol.autoBuy).map(([i, p]) => `${esc(itemName(i))} ≤ ${n0(p)} cr`).join(', ') || '없음'} — 결재에서 "정책 위임"을 고르면 추가됩니다.</p>
         <button class="btn go" data-a="policy">정책 저장</button></div></section></div>`;
+  }
+  /** value-chain migration: what the company's goods were worth before vs now (reference, NOT cash) */
+  private valuationNote() {
+    const e = this.w.econ; if (!e?.before) return '';
+    const mean = (k: string) => { const b = Object.values(this.w.stations).filter(s => s.public && s.market?.[k]).map(s => s.market![k].base); return b.length ? b.reduce((a, x) => a + x, 0) / b.length : NaN; };
+    const rows = companyInventory(this.w as never, this.me).filter(r => r.total >= 1 && e.before![r.item] > 0 && Number.isFinite(mean(r.item)))
+      .map(r => ({ item: r.item, n: r.total, was: r.total * e.before![r.item], now: r.total * mean(r.item) })).sort((a, b) => Math.abs(b.now - b.was) - Math.abs(a.now - a.was));
+    const was = rows.reduce((a, r) => a + r.was, 0), now = rows.reduce((a, r) => a + r.now, 0);
+    return `<h3 class="ops-h3">재고 평가 변화 <small>가격 체계 변경 참고</small></h3><p class="dim">이 월드는 가치 사슬 가격으로 바뀌었습니다. 아래는 보유 재고를 공개 시장 평균 기준가로 평가한 <b>장부상 변화</b>이며 현금 흐름(위 표)과 별개입니다. 품목·크레딧은 바뀌지 않았습니다.</p>
+      <table class="ops-table"><thead><tr><th>품목</th><th>보유</th><th>변경 전 평가</th><th>현재 평가</th><th>차이</th></tr></thead><tbody>${rows.slice(0, 12).map(r => `<tr><td>${esc(itemName(r.item))}</td><td>${n0(r.n)}</td><td>${n0(r.was)}</td><td>${n0(r.now)}</td><td class="${r.now >= r.was ? 'good' : 'warn'}">${r.now >= r.was ? '+' : '−'}${n0(Math.abs(r.now - r.was))}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">평가할 재고 없음</td></tr>'}</tbody></table>
+      <div class="proc-policy-status"><span>변경 전 평가<b>${n0(was)} cr</b></span><span>현재 평가<b>${n0(now)} cr</b></span><span>평가 변화 (현금 아님)<b class="${now >= was ? 'good' : 'warn'}">${now >= was ? '+' : '−'}${n0(Math.abs(now - was))} cr</b></span></div>`;
   }
   private approvalCard(a: Approval) {
     const work = this.w.works?.[a.work], scope = this.scope[a.id] ?? 'once';

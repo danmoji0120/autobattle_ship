@@ -8,18 +8,21 @@
 import { WorldSim } from '../../src/world/sim';
 import { newWorld } from '../../src/world/worldgen';
 import type { Proposal } from './proposals';
+import { migrateEconChain } from '../../src/world/econMigrate';
 
 export type Origin = 'fresh' | 'migrated' | 'p10';
 
 export function makeWorld(seed: number, origin: Origin, proposal: Proposal): WorldSim {
   proposal.patch?.();                                     // static data (recipes, NPC demand, facility costs)
+  const lv = proposal.live, econ = lv ? { econ: 'chain' as const, eq: lv.eq, alloyDirect: lv.alloyDirect } : {};
   let sim: WorldSim;
-  if (origin === 'fresh') sim = WorldSim.create(seed);
-  else if (origin === 'p10') sim = WorldSim.create(seed, { layout: 'p10' });   // 40 systems, faction demand, fog
+  if (origin === 'fresh') sim = WorldSim.create(seed, econ);
+  else if (origin === 'p10') sim = WorldSim.create(seed, { layout: 'p10', ...econ });   // 40 systems, faction demand, fog
   else {
     const st = newWorld(seed); delete (st as { contentV?: number }).contentV;
     const c0 = new WorldSim(st, { migrateContent: false });
     sim = new WorldSim(JSON.parse(c0.serialize()), { migrateContent: true });
+    if (lv) { const r = migrateEconChain(sim.st, lv); if (!r.ok) throw new Error(`econ migration: ${r.why}`); }
   }
   proposal.reprice?.(sim.st);                             // market base prices, as a migration would set them
   return sim;

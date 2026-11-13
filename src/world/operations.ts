@@ -16,7 +16,9 @@ import { ITEMS, EQUIPMENT, RECIPES, TECHS, FACILITIES, recipeFor, facilityBuild 
 import { MODULES, RES_NAME } from './data';
 import { missing, planMats, prereqBuilt } from './construction';
 import { recipeOk, facLines } from './production';
-import { econOf, growthOn, hullBuild } from './hullops';
+import { econOf, growthOn, hullBuild, hullUpkeep } from './hullops';
+import { chainOn, chainValue } from './econChain';
+import { OVERHEAD } from './econConfig';
 import { yardFee } from './valuation';
 import { effSec } from './security';
 import { usableRouteGate } from './logistics';
@@ -79,6 +81,8 @@ export interface Work {
   /** goal runtime state (persisted so a restart resumes exactly) */
   rt?: {
     order?: string; launched?: number; cycles?: number; losses?: number; profit?: number; phase?: 'buy' | 'move';
+    /** value-chain worlds: estimated hauling cost of the cycle in flight (counted in its profit) */
+    cycleHaul?: number;
     cycleCost?: number; cycleJob?: string; sellQuote?: number; sellRatio?: number; bought?: number; riskOk?: number; noBuyUntil?: number; creditsOk?: number;
     rejected?: Record<string, { t: number; amount: number }>; lastRun?: number; triggered?: number;
     /** last observed progress per production order of this goal (`station:order` → done, time) — stall detection */
@@ -1125,6 +1129,17 @@ function runFacilities(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'faciliti
   return setState(h, w, 'running', `가동 ${built} · 추가 착공`);
 }
 
+/** Value-chain worlds: hauling cost of moving `n` units a→b with a pool hauler — its running cost (upkeep +
+ *  overhead + supplies at reference value) over an estimated round trip, shared by the load it carries.
+ *  Other worlds: 0 (their trade rule is unchanged). */
+export function tradeHaulCost(h: WorldSim, ship: { hull?: string; classId: string } | undefined, hops: number, n: number): number {
+  if (!chainOn(h.st) || !ship || n <= 0) return 0;
+  const u = hullUpkeep(ship.hull ?? ship.classId);
+  const perH = u.credits * (1 + OVERHEAD) + Object.entries(u.supplies ?? {}).reduce((a, [k, q]) => a + q * chainValue(k, h.st.econ!.eq), 0);
+  const roundTripH = 2 * (0.15 + 0.12 * hops), cargo = Math.max(1, econOf(ship as Parameters<typeof econOf>[0]).cargo);
+  return perH * roundTripH * Math.ceil(n / cargo);
+}
+
 function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
   const a = h.st.stations[g.from], b = h.st.stations[g.to]; if (!a?.market?.[g.item] || !b?.market?.[g.item]) return setState(h, w, 'failed', '시장 소실');
   const rt = (w.rt ??= {}); rt.phase ??= 'buy'; rt.cycles ??= 0; rt.losses ??= 0; rt.profit ??= 0;
@@ -1132,11 +1147,11 @@ function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
   if (rt.phase === 'move') {
     const j = h.st.logisticsJobs?.[rt.cycleJob ?? ''];
     if (j && liveJob(j)) return setState(h, w, 'running', `${rt.cycles + 1}회차 운송·판매 중 · 누적 손익 ${fmt(rt.profit)} cr`);
-    const earned = j?.earned ?? 0, profit = earned - (rt.cycleCost ?? 0);
+    const earned = j?.earned ?? 0, haul = rt.cycleHaul ?? 0, profit = earned - (rt.cycleCost ?? 0) - haul;
     // learn how much of the quoted sell price a sale of this size really realises (price walks down, taxes)
     if (rt.sellQuote && rt.bought) { const r = earned / (rt.sellQuote * rt.bought); rt.sellRatio = Math.max(0.2, Math.min(1.05, rt.sellRatio === undefined ? r : (rt.sellRatio + r) / 2)); }
     rt.cycles++; rt.profit += profit; w.income = (w.income ?? 0) + earned; rt.phase = 'buy';
-    note(w, h.time, `${rt.cycles}회차 정산: 매입 ${fmt(rt.cycleCost ?? 0)} · 매출 ${fmt(earned)} · ${profit >= 0 ? '이익' : '손실'} ${fmt(Math.abs(profit))} cr${j && j.lost ? ` · 손실 화물 ${fmt(j.lost)}` : ''}`);
+    note(w, h.time, `${rt.cycles}회차 정산: 매입 ${fmt(rt.cycleCost ?? 0)} · 매출 ${fmt(earned)}${haul ? ` · 운송비 추정 ${fmt(haul)}` : ''} · ${profit >= 0 ? '이익' : '손실'} ${fmt(Math.abs(profit))} cr${j && j.lost ? ` · 손실 화물 ${fmt(j.lost)}` : ''}`);
     rt.losses = profit < 0 ? rt.losses + 1 : 0;
     if (g.cycles && rt.cycles >= g.cycles) { w.result = `${rt.cycles}회 완료 · 누적 손익 ${fmt(rt.profit)} cr`; return setState(h, w, 'done', ''); }
     if (rt.losses >= 2) {
@@ -1153,8 +1168,10 @@ function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
   // expected realised price: the quote times the ratio actually realised by earlier cycles (0.9 until measured)
   const ratio = rt.sellRatio ?? 0.9, expect = sell * ratio;
   if (buy > g.maxBuy + EPS) return setState(h, w, 'waiting', `매수가 ${fmt(buy)} cr > 상한 ${fmt(g.maxBuy)} cr — 대기`);
-  if (sell < g.minSell - EPS || (expect - buy) * g.amount < g.minProfit - EPS || expect <= buy) return setState(h, w, 'waiting', `매도 호가 ${fmt(sell)} cr · 실현 예상 ${fmt(expect)} cr (${rt.sellRatio === undefined ? '초기 추정 90%' : `지난 회차 실현율 ${Math.round(ratio * 100)}%`}) vs 매수 ${fmt(buy)} cr — 수익 조건 미충족, 대기`);
-  const ships = poolShips(h, w.owner); if (!ships.length) return setState(h, w, 'waiting', '공용 배차 수송선이 없습니다');
+  const ships = poolShips(h, w.owner);
+  const hops = chainOn(h.st) ? routeRisk(h, a, b, 100)?.hops ?? 0 : 0, haulAll = tradeHaulCost(h, ships[0], hops, g.amount);
+  if (sell < g.minSell - EPS || (expect - buy) * g.amount - haulAll < g.minProfit - EPS || expect <= buy) return setState(h, w, 'waiting', `매도 호가 ${fmt(sell)} cr · 실현 예상 ${fmt(expect)} cr (${rt.sellRatio === undefined ? '초기 추정 90%' : `지난 회차 실현율 ${Math.round(ratio * 100)}%`}) vs 매수 ${fmt(buy)} cr${haulAll ? ` · 운송비 추정 ${fmt(haulAll)} cr` : ''} — 수익 조건 미충족, 대기`);
+  if (!ships.length) return setState(h, w, 'waiting', '공용 배차 수송선이 없습니다');
   const r = routeRisk(h, a, b, Math.max(opsOf(h.st.companies[w.owner]).policy.maxRisk, rt.riskOk ?? 0));
   if (!r) {
     const any = routeRisk(h, a, b, 100);
@@ -1172,6 +1189,7 @@ function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
   const e2 = cmd(h, w, { c: 'poolCreate', request: { from: a.id, to: b.id, item: g.item, kind: 'sell', amount: got, priority: w.priority, repeat: false } });
   if (e2) return setState(h, w, 'waiting', `운송 등록 실패: ${e2} — 매입품은 ${a.name} 보관함에 보존`);
   rt.cycleJob = Object.keys(h.st.logisticsJobs ?? {})[ids]; rt.cycleCost = paid; rt.phase = 'move'; rt.sellQuote = sell; rt.bought = got;
+  if (chainOn(h.st)) rt.cycleHaul = Math.round(tradeHaulCost(h, ships[0], hops, got)); else delete rt.cycleHaul;
   return setState(h, w, 'running', `${rt.cycles + 1}회차: ${fmt(got)} 매입 (${fmt(paid)} cr) → ${b.name} 판매 운송`);
 }
 

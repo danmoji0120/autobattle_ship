@@ -32,6 +32,9 @@ export interface EconChainState {
   /** how the world got here, when (world time) */
   how: 'new' | 'migrated';
   at: number;
+  /** migrated saves: mean public-market base per good before the change (shown to players as a
+   *  valuation reference — the change is not cash; the exact per-market values live in st.econLog) */
+  before?: Record<string, number>;
 }
 
 export const chainOn = (w?: { econ?: EconChainState } | null): w is { econ: EconChainState } => w?.econ?.v === 1;

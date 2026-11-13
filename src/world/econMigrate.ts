@@ -56,6 +56,9 @@ export function migrateEconChain(st: WorldState, opts: { eq?: EqPolicy; alloyDir
       plan.push([x.market as Record<string, { base: number }>, k, base]);
     }
   }
+  const acc: Record<string, [number, number]> = {};
+  for (const x of Object.values(st.stations)) if (x.public && x.market) for (const [k, e] of Object.entries(x.market)) if (chainPriced(k)) { const a = (acc[k] ??= [0, 0]); a[0] += e.base; a[1]++; }
+  econ.before = Object.fromEntries(Object.entries(acc).map(([k, [sum, n]]) => [k, Math.round(sum / n * 10) / 10]));
   for (const [m, k, base] of plan) m[k].base = base;
   st.econ = econ;
   (st.econLog ??= []).push({ v: ECON_VERSION, at: st.time, how: 'migrated', prev, changed: plan.length });
