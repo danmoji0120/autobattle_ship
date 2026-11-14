@@ -44,7 +44,9 @@ function run(perSide: number) {
   // everyone attacks the next side's groups (real orders)
   cos.forEach((c, k) => groups[k].forEach((gid, i) => { const tg = groups[(k + 1) % SIDES]; sim.command(c, { c: 'setOp', group: gid, op: { k: 'attack', group: tg[i % tg.length] } } as any); }));
   const flow: Record<string, number> = {};
-  const stop = observeWorld(sim.st, e => { if (!e.item) return; const k = `${e.kind}/${e.reason}/${e.item}`; flow[k] = (flow[k] ?? 0) + e.amount; });
+  // the combatants' own ships only (NPC traders that keep spawning buy and sell metal at markets)
+  const orig = new Set(Object.keys(sim.st.ships)), sideFlow: Record<string, number> = {};
+  const stop = observeWorld(sim.st, e => { if (!e.item) return; const k = `${e.kind}/${e.reason}/${e.item}`; flow[k] = (flow[k] ?? 0) + e.amount; if (e.ship && orig.has(e.ship)) sideFlow[k] = (sideFlow[k] ?? 0) + e.amount; });
   // time makeWrecks inside the real battle end
   // wreck creation runs inside the tick that ends a battle: measured as those ticks' cost
   let makeMs = 0, makeCalls = 0, maxMake = 0;
@@ -66,11 +68,15 @@ function run(perSide: number) {
   const dupSources = ids.length - new Set(ids).size;
   const engs = new Set(ws.map(w => w.eng));
   const perEng = [...engs].map(e => ws.filter(w => w.eng === e).length);
-  // cargo conservation: before = destroyed + in wrecks + still aboard survivors
+  // cargo conservation: original cargo + what survivors recovered from wrecks during the battle (automatic
+  // on-site salvage; a salvager that is itself sunk later puts it into a new wreck again)
+  //   = destroyed + moved into wrecks + still aboard + unloaded into storage
   const aboard: Record<string, number> = {};
-  // (survivors' automatic on-site salvage is in s.salvaged: not their original cargo)
-  for (const s of Object.values(sim.st.ships)) for (const k of ['metal', 'electronics']) aboard[k] = (aboard[k] ?? 0) + (s.cargo[k] ?? 0) - (s.salvaged?.[k] ?? 0);
-  const cons = Object.fromEntries(['metal', 'electronics'].map(k => [k, cargoBefore[k] - (flow[`consume/combat_cargo_loss/${k}`] ?? 0) - (flow[`salvage/to_wreck/${k}`] ?? 0) - aboard[k]]));
+  for (const s of Object.values(sim.st.ships)) if (orig.has(s.id)) for (const k of ['metal', 'electronics']) aboard[k] = (aboard[k] ?? 0) + (s.cargo[k] ?? 0);
+  const fl = (k: string) => sideFlow[k] ?? 0;
+  const cons = Object.fromEntries(['metal', 'electronics'].map(k => [k, +(cargoBefore[k] + fl(`salvage/recover/${k}`) - fl(`consume/combat_cargo_loss/${k}`) - fl(`salvage/to_wreck/${k}`) - aboard[k] - fl(`logistics/salvage_unload/${k}`)).toFixed(6)]));
+  const recoveredInBattle = Object.fromEntries(['metal', 'electronics'].map(k => [k, +fl(`salvage/recover/${k}`).toFixed(3)]));
+  const lotsMax = Math.max(0, ...ws.map(w => w.lots.length)), wreckJsonBytes = JSON.stringify(sim.st.wrecks ?? {}).length;
   // save / restore equality
   const copy = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: false });
   const same = JSON.stringify(copy.st.wrecks) === JSON.stringify(sim.st.wrecks);
@@ -79,12 +85,13 @@ function run(perSide: number) {
   const S = sim.addPlayer('인양 산업'); sim.st.companies[S].credits = 1e6;
   // a neutral salvage company: it may take hull scrap, equipment and fragments; the combatants' cargo is
   // protected (no unauthorised orders here). Hostile to them it would mostly evade their surviving warships.
-  const nSalv = Math.max(10, Math.round(perSide / 5));
+  const nSalv = Math.max(10, Math.round(perSide / 5)); const refusedOrders: Record<string, number> = {};
   for (let g = 0; g < nSalv; g++) {
     const grp = sim.newGroup(S, `인양${g}`); grp.commanderId = sim.newCommander(S, 2).id;
     for (const cl of ['hauler', 'miner', 'constructor']) sim.spawnShip(S, cl, 'std', grp.id, at(2000 + g * 50, -3000));
     const w = ws[g % Math.max(1, ws.length)];
-    if (w) sim.command(S, { c: 'setOp', group: grp.id, op: { k: 'salvzone', at: w.pos, radius: 4000 } } as any);
+    const e = w ? sim.command(S, { c: 'setOp', group: grp.id, op: { k: 'salvzone', at: w.pos, radius: 4000 } } as any) : 'no wreck';
+    if (e) refusedOrders[e] = (refusedOrders[e] ?? 0) + 1;
   }
 
   const tick = (x: WorldSim) => { const s = performance.now(); x.update(1); return performance.now() - s; };
@@ -94,7 +101,7 @@ function run(perSide: number) {
   const phases: Record<string, number> = {}; const why: Record<string, number> = {};
   for (let t = 0; t < 1800; t++) {
     withS.push(tick(sim)); without.push(tick(control)); track();
-    if (t % 60 === 59) for (const g of Object.values(sim.st.groups)) if (g.owner === S) { const k = g.salv ? `${g.salv.mode}/${g.salv.phase}` : `op:${g.op.k}`; phases[k] = (phases[k] ?? 0) + 1; const y = (g.salv as any)?.why ?? g.status; if (y) why[y.slice(0, 40)] = (why[y.slice(0, 40)] ?? 0) + 1; }
+    if (t % 60 === 59) for (const g of Object.values(sim.st.groups)) if (g.owner === S) { const k = g.salv ? `${g.salv.mode}/${g.salv.phase}` : `op:${g.op.k}`; phases[k] = (phases[k] ?? 0) + 1; const y = ((g.salv as any)?.why ?? g.status ?? '').split(' — ')[0].slice(0, 24); if (y) why[y] = (why[y] ?? 0) + 1; }
   }
   stop();
   const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
@@ -113,9 +120,9 @@ function run(perSide: number) {
     sides: SIDES, perSide, ships: SIDES * perSide, battleSimSeconds: simT, battleWallMs: Math.round(battleWall), maxTickMs: +maxTick.toFixed(1),
     wreckCreation: { ticksWithNewWrecks: makeCalls, meanTickMsThen: +(makeMs / Math.max(1, makeCalls)).toFixed(2), maxTickMsThen: +maxMake.toFixed(1) },
     wrecks: ws.length, engagements: engs.size, wrecksPerEngagementMax: Math.max(0, ...perEng), deadInWrecks: dead, duplicateSources: dupSources,
-    lotsMax: Math.max(0, ...ws.map(w => w.lots.length)), wreckJsonBytes: JSON.stringify(sim.st.wrecks ?? {}).length,
-    cargoConservationError: cons, saveRestoreEqual: same,
-    salvage: { groups: nSalv, ships: nSalv * 3, wrecksDuringSalvage: all.length, phaseSamples: phases, reasons: why, initialUnits: initial, removedWithRemainder: removedLeft, takenBySalvager: takenS, takenAll, leftAfter30min: left, decayed, accountingError: +(initial - takenAll - left - removedLeft - decayed).toFixed(6),
+    lotsMax, wreckJsonBytes,
+    cargoConservationError: cons, recoveredDuringBattle: recoveredInBattle, saveRestoreEqual: same,
+    salvage: { groups: nSalv, ships: nSalv * 3, wrecksDuringSalvage: all.length, refusedOrders, phaseSamples: phases, reasons: why, initialUnits: initial, removedWithRemainder: removedLeft, takenBySalvager: takenS, takenAll, leftAfter30min: left, decayed, accountingError: +(initial - takenAll - left - removedLeft).toFixed(6), decayFlowEqualsRemovedRemainder: Math.abs(decayed - removedLeft) < 1e-6,
       salvagerValueStored: Math.round(stored), salvagerValueAboard: Math.round(aboardS),
       tickMsWith: +mean(withS).toFixed(3), tickMsWithout: +mean(without).toFixed(3), p95With: +p95(withS).toFixed(3), p95Without: +p95(without).toFixed(3) },
   };
@@ -123,4 +130,4 @@ function run(perSide: number) {
 const rows = [];
 for (const n of SIZES) { const r = run(n); rows.push(r); console.log(JSON.stringify(r)); }
 mkdirSync('docs/salvage-results', { recursive: true });
-writeFileSync(`docs/salvage-results/p131-perf-${SIDES}x${SIZES.join('-')}.json`, JSON.stringify({ note: 'real P11 battles between mutually hostile companies near astra (P13.1 world, NPCs removed, security 100); then a neutral salvage company's groups (hauler+miner+constructor) on zone orders for 1800 sim seconds vs a control copy without them', rows }, null, 2));
+writeFileSync(`docs/salvage-results/p131-perf-${SIDES}x${SIZES.join('-')}.json`, JSON.stringify({ note: 'real P11 battles between mutually hostile companies near astra (P13.1 world, NPCs removed, security 100); then a neutral salvage company groups (hauler+miner+constructor) on zone orders for 1800 sim seconds vs a control copy without them', rows }, null, 2));

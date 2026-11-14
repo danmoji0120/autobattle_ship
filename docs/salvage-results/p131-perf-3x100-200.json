@@ -1,0 +1,138 @@
+{
+  "note": "real P11 battles between mutually hostile companies near astra (P13.1 world, NPCs removed, security 100); then a neutral salvage company groups (hauler+miner+constructor) on zone orders for 1800 sim seconds vs a control copy without them",
+  "rows": [
+    {
+      "sides": 3,
+      "perSide": 100,
+      "ships": 300,
+      "battleSimSeconds": 1800,
+      "battleWallMs": 47108,
+      "maxTickMs": 143.4,
+      "wreckCreation": {
+        "ticksWithNewWrecks": 2,
+        "meanTickMsThen": 14.46,
+        "maxTickMsThen": 16.7
+      },
+      "wrecks": 2,
+      "engagements": 2,
+      "wrecksPerEngagementMax": 1,
+      "deadInWrecks": 206,
+      "duplicateSources": 0,
+      "lotsMax": 24,
+      "wreckJsonBytes": 25175,
+      "cargoConservationError": {
+        "metal": 0,
+        "electronics": 0
+      },
+      "recoveredDuringBattle": {
+        "metal": 0,
+        "electronics": 0
+      },
+      "saveRestoreEqual": true,
+      "salvage": {
+        "groups": 20,
+        "ships": 60,
+        "wrecksDuringSalvage": 2,
+        "phaseSamples": {
+          "op:idle": 60,
+          "zone/work": 161,
+          "zone/unload": 57,
+          "zone/hold": 360,
+          "zone/return": 22
+        },
+        "reasons": {
+          "정박 대기": 60,
+          "구역 인양: 인양 중": 161,
+          "구역 인양: 하역하러 이동": 46,
+          "구역에 회수 가능한 잔해가 없습니다": 360,
+          "구역 인양: 인양 구역 복귀": 22,
+          "구역 인양: 바르카 채굴 조합 정박·하역 중": 4,
+          "구역 인양: 프라임 궤도 거래소 정박·하역 ": 2,
+          "구역 인양: 세레스 제련단지 정박·하역 중": 2,
+          "구역 인양: 리라 상업항 정박·하역 중": 3
+        },
+        "initialUnits": 25653,
+        "removedWithRemainder": 0,
+        "takenBySalvager": 25518,
+        "takenAll": 25518,
+        "leftAfter30min": 135,
+        "decayed": 0,
+        "accountingError": 0,
+        "decayFlowEqualsRemovedRemainder": true,
+        "salvagerValueStored": 2335040,
+        "salvagerValueAboard": 0,
+        "tickMsWith": 28.848,
+        "tickMsWithout": 17.285,
+        "p95With": 40.238,
+        "p95Without": 24.904
+      }
+    },
+    {
+      "sides": 3,
+      "perSide": 200,
+      "ships": 600,
+      "battleSimSeconds": 1800,
+      "battleWallMs": 95830,
+      "maxTickMs": 280.7,
+      "wreckCreation": {
+        "ticksWithNewWrecks": 5,
+        "meanTickMsThen": 20.17,
+        "maxTickMsThen": 29.9
+      },
+      "wrecks": 7,
+      "engagements": 5,
+      "wrecksPerEngagementMax": 2,
+      "deadInWrecks": 479,
+      "duplicateSources": 0,
+      "lotsMax": 24,
+      "wreckJsonBytes": 59376,
+      "cargoConservationError": {
+        "metal": 0,
+        "electronics": 0
+      },
+      "recoveredDuringBattle": {
+        "metal": 128,
+        "electronics": 32
+      },
+      "saveRestoreEqual": true,
+      "salvage": {
+        "groups": 40,
+        "ships": 120,
+        "wrecksDuringSalvage": 7,
+        "phaseSamples": {
+          "op:idle": 60,
+          "zone/work": 271,
+          "zone/transit": 59,
+          "zone/hold": 782,
+          "zone/unload": 56,
+          "zone/return": 32
+        },
+        "reasons": {
+          "정박 대기": 60,
+          "구역 인양: 인양 중": 271,
+          "구역 인양: 잔해로 이동": 59,
+          "구역에 회수 가능한 잔해가 없습니다": 782,
+          "구역 인양: 아스트라 자유항 정박·하역 중": 1,
+          "구역 인양: 하역하러 이동": 45,
+          "구역 인양: 인양 구역 복귀": 32,
+          "구역 인양: 바르카 채굴 조합 정박·하역 중": 7,
+          "구역 인양: 프라임 궤도 거래소 정박·하역 ": 3
+        },
+        "initialUnits": 60858,
+        "removedWithRemainder": 0,
+        "takenBySalvager": 29996,
+        "takenAll": 30156,
+        "leftAfter30min": 30702,
+        "decayed": 0,
+        "accountingError": 0,
+        "decayFlowEqualsRemovedRemainder": true,
+        "salvagerValueStored": 4743040,
+        "salvagerValueAboard": 87744,
+        "tickMsWith": 56.083,
+        "tickMsWithout": 30.982,
+        "p95With": 78.139,
+        "p95Without": 43.989
+      }
+    }
+  ]
+}
