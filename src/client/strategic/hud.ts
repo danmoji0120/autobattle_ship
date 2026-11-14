@@ -28,6 +28,7 @@ import { TECHS, ITEMS, EQUIPMENT, RECIPES, FACILITIES, itemName, recipeFor, faci
 import { repairQuote, REPAIR_RATE, type RepairQuote } from '../../world/repair';
 import { ESCORT_FOCUS_NAME, autoFocus, type EscortFocus } from '../../world/escort';
 import { REGIONAL_ORIGINS } from '../../world/regional';
+import { OP_NAME as P12_OP_NAME, PHASE_NAME } from '../../world/fleetops';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
@@ -40,7 +41,9 @@ import { STATION_SIZES, facilityProblems, facilityMinStation, facilityCapacity, 
 import { stationPower, storageCap, facilityLoad } from '../../world/production';
 import { storeUsed, listedItem } from '../../world/storage';
 
-type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found';
+type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found'
+  // P12 fleet operations (opsV worlds): one click on the map after the button
+  | 'rally' | 'defend' | 'amove' | 'intercept' | 'blockade' | 'harass' | 'reinforce' | 'recon';
 type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet'; id: string } | null;
 
 const h = (tag: string, cls = '', html = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
@@ -53,7 +56,7 @@ const fieldUses = (w: { regionalV?: number }, item: string) => [...new Set(Objec
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
 
-const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', raid: '약탈', trade: '교역', guard: '경비' };
+const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', raid: '약탈', trade: '교역', guard: '경비', ...P12_OP_NAME };
 
 export interface PmcHudOpts { onOpenBattle: (eng: string) => void; onExit: () => void; onAccount?: () => void }
 
@@ -206,7 +209,7 @@ export class PmcHud {
       this.keys.add(e.code);
       if (e.code === 'Space' && this.c.sp) { e.preventDefault(); this.c.setSpeed(this.c.speed > 0 ? 0 : 1); }
       if (this.c.sp && /^Digit[1-4]$/.test(e.code)) this.c.setSpeed([1, 2, 4, 8][Number(e.code.slice(5)) - 1]);
-      const keyOps: Record<string, string> = { KeyM: 'move', KeyD: 'dock', KeyN: 'mine', KeyP: 'patrol', KeyG: 'escort', KeyA: 'attack', KeyI: 'idle', KeyT: 'release' };
+      const keyOps: Record<string, string> = { KeyM: 'move', KeyD: 'dock', KeyN: 'mine', KeyP: 'patrol', KeyG: 'escort', KeyA: 'attack', KeyI: 'idle', KeyT: 'release', ...(this.st.opsV ? { KeyR: 'return' } : {}) };
       if (keyOps[e.code] && this.group) this.opButton(keyOps[e.code]);
       if (e.code === 'KeyH' && this.group) this.focusSelected();
       if (e.code === 'Tab') { e.preventDefault(); this.toggleGalaxy(); }
@@ -667,6 +670,29 @@ export class PmcHud {
           else if (!og) this.hint(this.st.combatV === 2 ? '해적·다른 PMC 함선이나 은신처를 클릭하세요' : '해적 함선이나 은신처를 클릭하세요'); }
         return; }
       case 'build': if (p?.kind === 'station' && this.st.stations[p.id].owner === this.me) this.setOp({ k: 'build', station: p.id }); else this.hint('자사 정거장을 클릭하세요'); return;
+      case 'rally': { const pt = p?.pos ? { x: p.pos.x, y: c?.y ?? 0, z: p.pos.z } : plane(); if (pt) this.setOp({ k: 'rally', at: pt }); return; }
+      case 'defend': { if (p?.kind === 'field') { const f = this.st.fields[p.id]; this.setOp({ k: 'defend', at: f.pos, radius: Math.min(12000, Math.max(1500, f.radius + 600)) }); return; } const at = p?.kind === 'station' ? this.st.stations[p.id].pos : plane(); if (at) this.setOp({ k: 'defend', at, radius: 2500 }); return; }
+      case 'amove': { const pt = plane(); if (pt) this.setOp({ k: 'amove', to: pt }); return; }
+      case 'harass': { const pt = plane(); if (pt) this.setOp({ k: 'harass', at: pt, radius: 3000 }); return; }
+      case 'recon': { const pt = p?.kind === 'field' ? this.st.fields[p.id].pos : plane(); if (pt) this.setOp({ k: 'recon', at: pt, radius: 2500 }); return; }
+      case 'intercept': {
+        const gid = p?.kind === 'group' ? p.id : p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : undefined;
+        const t = gid ? this.st.groups[gid] : undefined;
+        if (t && t.owner !== this.me) this.setOp({ k: 'intercept', group: t.id }); else this.hint('요격할 다른 회사·해적 함대를 클릭하세요');
+        return; }
+      case 'blockade': {
+        const sys = p?.kind === 'gate' ? Object.values(this.st.systems).find(x => x.gates.some(gt => gt.id === p.id)) : undefined;
+        if (sys) this.setOp({ k: 'blockade', system: sys.id, gate: p!.id }); else this.hint('봉쇄할 점프게이트를 클릭하세요');
+        return; }
+      case 'reinforce': {
+        if (p?.kind === 'battle') { this.setOp({ k: 'reinforce', eng: p.id }); return; }
+        const s = p?.kind === 'ship' ? this.st.ships[p.id] : undefined;
+        if (s?.engagement) { this.setOp({ k: 'reinforce', eng: s.engagement }); return; }
+        const gid = p?.kind === 'group' ? p.id : s?.groupId;
+        const t = gid ? this.st.groups[gid] : undefined;
+        if (t && t.id !== g.id && (t.owner === this.me || coRelation(this.st, this.me, t.owner) === 1)) this.setOp({ k: 'reinforce', group: t.id });
+        else this.hint('지원할 교전 표지 또는 자사·동맹 함대를 클릭하세요');
+        return; }
       case 'found': {
         const pt = plane(); if (!pt) return;
         const name = prompt('새 정거장 이름', `${this.st.companies[this.me].name} 기지`);
@@ -709,6 +735,9 @@ export class PmcHud {
     const txt: Record<string, string> = {
       move: '이동 지점 클릭', dock: '정박할 정거장 클릭', mine: '채굴할 소행성 지대 클릭 → 하역 목적지·방식 설정', haul_from: '운송 출발 정거장 클릭',
       patrol: '순찰 지점 또는 소행성 지대 클릭', escort: '호위할 자사 함선 또는 편대 이름표 클릭', attack: '해적 함선 또는 은신처 클릭', build: growthOn(this.st) ? '자사 건설 현장 클릭 — 공작선은 작업, 화물선은 필요한 자재 반입' : '건설할 자사 정거장 클릭',
+      rally: '집결 지점 클릭', defend: '방어할 지점·정거장·소행성 지대 클릭 (반경 2,500)', amove: '진격 목표 지점 클릭 — 도중의 적대 함대와 교전',
+      intercept: '요격할 다른 회사·해적 함대 클릭', blockade: '봉쇄할 점프게이트 클릭 (실제 배치 — 적대 함대만 교전)', harass: '습격할 항로 지점 클릭 (반경 3,000 · 약탈 없음)',
+      reinforce: '지원할 교전 표지 또는 자사·동맹 함대 클릭', recon: '정찰할 지점 클릭 (반경 2,500)',
       found: growthOn(this.st) ? `${this.foundSize}급 부지 클릭 — 설립비 ${fmt(STATION_SIZES[this.foundSize].credits)} cr 선납 · 자재 직접 운송 · 중단 시 환급` : `정거장 부지 클릭 — 다른 정거장과 2,600 이상 떨어져야 함 (비용 ${fmt(FOUND_COST.credits)} cr + 합금 ${FOUND_COST.alloy})`,
     };
     if (m) { e.textContent = txt[m] + ' · 우클릭/Esc 취소'; e.classList.remove('hidden'); this.v.renderer.domElement.style.cursor = 'crosshair'; }
@@ -735,6 +764,8 @@ export class PmcHud {
     switch (k) {
       case 'idle': this.setOp({ k: 'idle' }); break;
       case 'release': this.cmd({ c: 'release', group: g.id }); break;
+      // P12: one click — the commander chooses the station, the route and when to dock
+      case 'return': this.setOp({ k: 'return' }); break;
       case 'haul': if (growthOn(this.st)) this.openLogistics({ group: g.id, create: true }); else this.setMode('haul_from'); break;
       default: this.setMode(this.mode === k ? null : k as Mode);
     }
@@ -1069,12 +1100,41 @@ export class PmcHud {
         </div>
         ${growthOn(st) && ships.some(s => s.classId === 'constructor') ? `<div class="station-found-choice"><label>정거장 규모 <select data-found-size data-keep>${Object.entries(STATION_SIZES).map(([id, d]) => `<option value="${id}" ${id === this.foundSize ? 'selected' : ''}>${id} · ${d.name}</option>`).join('')}</select></label><span>${fmt(STATION_SIZES[this.foundSize].credits)} cr · ${Object.entries(STATION_SIZES[this.foundSize].mats).map(([r, n]) => `${iname(r)} ${fmt(n)}`).join(' · ')}</span><small>시설 ${STATION_SIZES[this.foundSize].capacity} · 전력 ${STATION_SIZES[this.foundSize].power} · 정박 ${STATION_SIZES[this.foundSize].berths}척 · 운영 ${fmt(STATION_SIZES[this.foundSize].upkeep)} cr/h</small></div>` : ''}
         ${g.parentId ? `<div class="row small"><label class="chk" title="체크하면 이 편대는 본대 진형에서 빠져 자기 속도로 앞서 움직입니다 (정찰·선봉). 해제하면 본대와 함께 가장 느린 함선 속도로 이동합니다."><input type="checkbox" data-detach="${g.id}" ${g.detached ? 'checked' : ''}> 독립 기동 (정찰·선봉 — 본대보다 먼저 움직임)</label></div>` : ''}
+        ${st.opsV ? this.fleetOpsHtml(g, opb, hasMil) : ''}
         ${g.op.k === 'escort' ? this.escortFormHtml(g) : ''}
         ${hasMiner ? this.mineFormHtml(g) : ''}
         ${this.exploreHtml(g, hasCargo)}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}
       </div></div>`;
+  }
+
+  /** P12 fleet operations: order buttons and what the commander is doing (opx is the server's decision) */
+  private fleetOpsHtml(g: WGroup, opb: (k: string, label: string, key: string, show?: boolean, cls?: string) => string, hasMil: boolean): string {
+    const st = this.st;
+    let owner: WGroup = g;
+    while (!owner.override && owner.parentId && st.groups[owner.parentId]) owner = st.groups[owner.parentId];
+    const x = owner.opx;
+    const op = owner.op;
+    const rows: string[] = [];
+    if (x) {
+      if (x.done) rows.push(`<div><span class="tag">완료</span> ${esc(P12_OP_NAME[x.done as Op['k']] ?? x.done)}${x.reason ? ` — ${esc(x.reason)}` : ''}</div>`);
+      else rows.push(`<div><span class="tag ov">${esc(P12_OP_NAME[op.k] ?? op.k)}</span> 단계: <b>${esc(PHASE_NAME[x.phase] ?? x.phase)}</b></div>`);
+      const sname = (id?: string) => id ? esc(st.stations[id]?.name ?? id) : '';
+      if (x.station) rows.push(`<div>귀환지 <b>${sname(x.station)}</b> <span class="dim small">(지휘관 선정${x.score !== undefined && !x.done ? ` · 평가 ${Math.round(x.score)}` : ''})</span></div>`);
+      else if (x.split) rows.push(`<div>편대별 귀환지 ${[...new Set(Object.values(x.split))].map(sname).join(', ')} <span class="dim small">(지휘관 선정)</span></div>`);
+      const tgt = x.target ? st.groups[x.target] : op.k === 'intercept' ? st.groups[op.group] : undefined;
+      if (tgt) rows.push(`<div>목표 <b>${esc(tgt.name)}</b>${x.chaseT !== undefined && !x.done ? ` <span class="dim small">추격 ${Math.round(st.time - x.chaseT)}s</span>` : ''}</div>`);
+      if (x.anchor && !x.done) rows.push(`<div class="dim small">작전 위치 ${Math.round(x.anchor.x)}, ${Math.round(x.anchor.z)}</div>`);
+      if (x.reason && !x.done) rows.push(`<div class="warn">⚠ ${esc(x.reason)}</div>`);
+      if (x.report?.length) rows.push(`<div class="small">정찰 보고 ${x.report.length}건: ${x.report.slice(0, 4).map(r => `<span style="color:${r.rel === -1 ? 'var(--bad)' : r.rel === 1 ? 'var(--good)' : 'inherit'}">${esc(r.name)}${r.n ? ` ${r.n}척` : ''}</span>`).join(', ')}${x.report.length > 4 ? ' …' : ''}</div>`);
+    }
+    return `<div class="fleetops">
+      <div class="row"><button class="btn${op.k === 'return' && owner === g ? ' on' : ''}" data-op="return" title="지휘관이 정박 가능·안전·정비 여건을 따져 귀환 정거장을 직접 정합니다">복귀<span class="key">R</span></button>
+        ${opb('rally', '집결', '')}${opb('defend', '지역 방어', '', hasMil)}${opb('amove', '공격 이동', '', hasMil)}${opb('intercept', '차단 요격', '', hasMil)}
+        ${opb('blockade', '관문 봉쇄', '', hasMil)}${opb('harass', '항로 습격', '', hasMil)}${opb('reinforce', '증원', '', hasMil)}${opb('recon', '정찰', '')}</div>
+      ${rows.length ? `<div class="opstate">${rows.join('')}</div>` : ''}
+    </div>`;
   }
 
   /** escort order: what to protect inside the target group, and the target's protection state */

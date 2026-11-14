@@ -274,6 +274,19 @@ table.gt td.n { font-family: var(--mono); text-align: right; }
 .gh input.gname { background: transparent; border: none; border-bottom: 1px dashed var(--line); color: var(--text); font: 700 15px var(--font); width: 150px; }
 select { background: rgba(5, 10, 18, 0.92); color: var(--text); border: 1px solid var(--line); font-family: var(--font); font-size: 12px; padding: 3px 4px; }
 .status { font-size: 12.5px; } .status.warn { color: var(--warn); }
+/* P12 fleet operations: order row + what the commander decided */
+.fleetops { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 5px; }
+.fleetops .opstate { font-size: 12px; line-height: 1.5; background: #0a192666; border: 1px solid var(--line); padding: 5px 8px; overflow-wrap: anywhere; }
+.fleetops .opstate .warn { color: var(--warn); }
+@media (max-width: 760px) {
+  .fleetops .row .btn { flex: 1 1 30%; min-height: 34px; }
+  /* the selection panel sat between the 316px left and 396px right columns: on a phone it had no width */
+  #sel { left: 4px; right: 4px; bottom: 4px; max-height: 52dvh; z-index: 25; }
+  .gpanel { grid-template-columns: 1fr; }
+  .gpanel .cmdcol { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; }
+  .gpanel .cmdcol .traits, .gpanel .cmdcol .cmdspec { display: none; }
+  .gpanel .cmdcol .portrait { width: 32px; height: 32px; font-size: 12px; }
+}
 .shipd { font-size: 12px; padding: 6px 8px; background: rgba(95,212,255,.05); border-left: 2px solid var(--cyan); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 #toasts { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; z-index: 6; }
 .toast { pointer-events: auto; padding: 8px 16px; font-size: 13px; max-width: 560px; animation: fadeIn .3s; transition: opacity .6s, transform .6s; display: flex; gap: 14px; align-items: center; }
