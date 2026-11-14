@@ -1,0 +1,116 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "client resumes the P13.1 world (salvageV, no derelict sites)",
+      "extra": {
+        "me": "p1",
+        "v": 1,
+        "sites": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "the wreck reaches the client with its contents (the company fought there)",
+      "extra": {
+        "name": "아스트라 전장 잔해 A",
+        "lots": 7
+      }
+    },
+    {
+      "ok": true,
+      "label": "the wreck has a clickable label on the map (map-wreck-1440.png)",
+      "extra": {
+        "labels": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "wreck info shows source ships, lots with original owner, size and time left",
+      "extra": {
+        "head": "✕ 아스트라 전장 잔해 A\n아스트라 · 소형 잔해장 · 격침 1척 · 130분 후 소멸 · 치안 100\n출처: 수송 PMC 짐꾼급×1\n회수 진행 7% (잔여 355 / 382) · 자사 회수: 전자부품 27\n종류\t품목\t수량\t원소유\n화물\t정련 금속\t115\t수송 PMC\n화물\t전자부품\t19\t수송 PMC\n장비\t근접 방어 기관포\t1\t수송 PMC\n선체 고철\t합금\t99\t수송 PMC\n선체 고철\t정련 금속\t77\t수송 PMC\n선체 고철\t전자부품\t22\t수송 PMC\n선체 고철\t무장 "
+      }
+    },
+    {
+      "ok": true,
+      "label": "the 인양 button orders the selected fleet to recover the wreck (server accepted)",
+      "extra": {
+        "op": {
+          "k": "recover",
+          "wreck": "wk_e439_0"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet status reads 지정 인양 with its phase",
+      "extra": {
+        "status": "지정 인양: 잔해로 이동 — 아스트라 전장 잔해 A · 화물칸 0%"
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel has the automatic on-site salvage switch and a stop control",
+      "extra": {
+        "salv": " 현장 자동 인양\n지정 인양 잔해로 이동\n인양 중지\n귀환",
+        "stop": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "automatic on-site salvage turns off and back on per fleet",
+      "extra": {
+        "off": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "no derelict survey / site salvage controls in a P13.1 world",
+      "extra": {
+        "survey": false,
+        "salvage": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "recovered goods appear in the salvage ships' holds (or, after docking, in storage)",
+      "extra": {
+        "held": [
+          {},
+          {},
+          {}
+        ],
+        "taken": {
+          "electronics": 30
+        },
+        "stored": [
+          {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0,
+            "electronics": 30
+          }
+        ],
+        "status": "해적 회피 — 대피 중"
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: wreck info fits the screen without horizontal scrolling",
+      "extra": {
+        "w": 380,
+        "left": 5,
+        "right": 385,
+        "overflow": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    }
+  ],
+  "errors": []
+}

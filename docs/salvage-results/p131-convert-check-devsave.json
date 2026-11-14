@@ -1,0 +1,93 @@
+{
+  "source": "local dev multiplayer save data/mptest.json (copy in scratch; original untouched)",
+  "conversion": {
+    "already": false,
+    "sitesRetired": 20,
+    "sitesKnownUnsalvaged": 0,
+    "groupsStopped": [],
+    "debrisFieldsKept": [
+      "wreck266"
+    ],
+    "pendingLootKept": [],
+    "logistics": {
+      "already": false,
+      "routesConverted": [],
+      "routesCompat": [],
+      "manifestJobs": [],
+      "remainderJobs": [],
+      "haulGroups": []
+    }
+  },
+  "checks": [
+    {
+      "ok": true,
+      "label": "source is a legacy save (no salvageV)",
+      "extra": {
+        "sites": 20,
+        "derelictOps": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "every random derelict site retired",
+      "extra": {
+        "retired": 20,
+        "knownUnsalvaged": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "no derelict sites left in the converted copy"
+    },
+    {
+      "ok": true,
+      "label": "P11 / P12 / P12.5 / P13.1 flags on"
+    },
+    {
+      "ok": true,
+      "label": "no fleet left on a derelict salvage order",
+      "extra": []
+    },
+    {
+      "ok": true,
+      "label": "credits, storage, cargo, blueprints, uniques, pendingLoot, debris fields, ships and positions unchanged"
+    },
+    {
+      "ok": true,
+      "label": "legacy debris fields kept",
+      "extra": [
+        "wreck266"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "pendingLoot holders kept",
+      "extra": []
+    },
+    {
+      "ok": true,
+      "label": "conversion is idempotent"
+    },
+    {
+      "ok": true,
+      "label": "original save untouched"
+    },
+    {
+      "ok": true,
+      "label": "converted copy runs one game hour without error"
+    },
+    {
+      "ok": true,
+      "label": "no random derelict spawns after conversion"
+    },
+    {
+      "ok": true,
+      "label": "no derelict salvage order after an hour"
+    },
+    {
+      "ok": true,
+      "label": "converted copy saves / restores as a P13.1 world"
+    }
+  ],
+  "ok": true
+}

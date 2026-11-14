@@ -1,0 +1,20 @@
+PASS [1s] SALVAGE_P131=1 server creates a P13.1 world (P11+P12+P12.5, no random derelicts) 
+PASS [2s] 1: B's hauler carries 300 metal + 120 electronics with two destroyers and a corvette as escort 
+PASS [2s] 2: A orders its battle group to attack B's convoy (declares hostility) 
+PASS [7s] 2: P11 engagement between A and B {"eng":"e254"}
+PASS [91s] 3: B's destroyed ships became a battlefield wreck (sources = real ships of B) {"name":"아스트라 전장 잔해 A","sources":["destroyer","corvette"],"units":273}
+PASS [160s] 3: (the hauler escaped this time — P11 outcome; cargo-to-wreck is covered by tests A03/A05) {"sunk":false,"cargo":[]}
+PASS [160s] 4: A stands its battle group down (idle) — automatic on-site salvage may now start 
+PASS [160s] 5: C sends its miner on a zone salvage over the battlefield 
+PASS [255s] 6: A (automatic on-site salvage) and C (zone salvage) both take from the same wreck {"initial":273,"A":{"eq_pd_gun":3},"C":{"weapon_parts":26,"electronics":26,"alloy":88},"left":130}
+PASS [255s] 6: each company sees only its own recovered amounts 
+PASS [255s] 6: no blueprint fragments from a PMC hull 
+PASS [255s] 7: C's hold is full of salvage; it is flying to a station to unload {"phase":"unload","station":"astra","salvaged":{"weapon_parts":26,"electronics":26,"alloy":88},"pos":{"x":-256759.25326769272,"y":-115.9035610234838,"z":-10619.59894204723},"status":"구역 인양: 하역하러 이동 — 아스트라 자유항"}
+PASS [255s] 6: server save: A taken + C taken + remaining = what the wreck held, exactly (no duplication) {"initial":273,"taken":{"p123":140,"p1":3},"left":130}
+PASS [256s] 7: after a server restart the order, phase, recovered cargo and position are restored {"salv":"unload","salvaged":{"weapon_parts":26,"electronics":26,"alloy":88}}
+PASS [305s] 8: C docks and unloads exactly what it recovered into its storage {"added":{"weapon_parts":26,"electronics":26,"alloy":88},"carried":{"weapon_parts":26,"electronics":26,"alloy":88}}
+PASS [305s] 8: C returns to the salvage zone after unloading (the operation continues) {"phase":"return"}
+PASS [306s] 8: C sells recovered goods at the market for credits {"item":"alloy","amount":88,"credits":3181.359999999986,"err":null}
+PASS [311s] 9: at expiry the wrecks are removed (remainder destroyed) and C stops following them (holds the zone / unloads) {"leftBefore":130,"phase":"hold"}
+PASS [311s] 10: no wreck left in the save (no duplicate copy anywhere) 
+{"passed":19,"seconds":311}
