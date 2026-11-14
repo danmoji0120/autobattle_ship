@@ -1299,8 +1299,9 @@ export class World {
     if (fighting && !timeUp) return;
     // who is left: a single side wins; several (allied, neutral, or at the time limit) survive together
     const beat = (k: number) => this.sides.some((s, j) => s.out && s.out !== 'withdrawn' && this.hostile(k, j));
-    const winner = !timeUp && live.length === 1 ? live[0] : -1;
-    const reason = timeUp && fighting ? '교전 시간 종료' : live.length === 0 ? '전 진영 이탈' : live.length === 1 ? `${this.sides[live[0]].name} 승리` : `${live.map(k => this.sides[k].name).join(' · ')} 생존`;
+    // a winner must have beaten someone: a side left alone only because every opponent withdrew survives
+    const winner = !timeUp && live.length === 1 && beat(live[0]) ? live[0] : -1;
+    const reason = timeUp && fighting ? '교전 시간 종료' : live.length === 0 ? '전 진영 이탈' : winner >= 0 ? `${this.sides[winner].name} 승리` : `${live.map(k => this.sides[k].name).join(' · ')} 생존`;
     this.outcome = { winner, reason, time: this.time, sides: this.sideResults(k => !timeUp && beat(k) ? 'victor' : 'survived') };
     if (winner >= 0) { const r = this.groupById.get(this.roots[winner]); if (r) this.say(r, 'victory', {}, 2); }
     this.events.push({ t: 'end', outcome: this.outcome });
