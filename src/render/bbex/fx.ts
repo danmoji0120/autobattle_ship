@@ -132,6 +132,9 @@ export class BbexFx {
     this.pass.uniforms.uFlash.value = this.flash; this.pass.uniforms.uFold.value = this.fold;
     this.bloom0 = host.bloom.strength;
   }
+  /** P11: a BB-EX that joined the battle later gets its effects too */
+  sync() { for (const s of this.world.exShips) if (!this.ships.has(s.id)) this.ships.set(s.id, new ShipFx(s, this.host.scene, this.funGeo, this.funMats)); }
+
 
   dispose() {
     for (const s of this.ships.values()) s.dispose(this.host.scene);

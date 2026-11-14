@@ -8,6 +8,8 @@ export interface SessionOptions {
   lockstep?: () => number;
   /** route player orders through the network instead of applying them locally */
   orderSink?: (groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean }) => void;
+  /** P11 viewer: the side this player fights on (null = spectator). Default 0 (single-player battles). */
+  me?: number | null;
 }
 
 /** Runs the fixed-step simulation and drives the renderer at display rate. */
@@ -31,6 +33,7 @@ export class BattleSession {
     this.world = new World(setup);
     this.view = new BattleView(canvas, getScenario(setup.scenarioId).backdrop);
     this.view.audio = audio;
+    this.view.setViewer(opts.me === undefined ? 0 : opts.me);
     this.view.attach(this.world);
   }
 

@@ -95,18 +95,38 @@ export class BattleView implements FxHost {
     this.rig.camera.updateProjectionMatrix();
   }
 
+  /** P11: whose point of view (side index; null = spectator). Hull designs and effect colours follow it. */
+  private viewer: number | null = 0;
+  setViewer(me: number | null) { this.viewer = me; }
+  /** 0 = our/allied look, 1 = hostile look (a spectator sees side 0 vs the rest, as before) */
+  friendly(team: number): boolean {
+    const me = this.viewer, w = this.world;
+    if (me === null || !w) return team === 0;
+    return team === me || w.relation(me, team) === 1;
+  }
+  private addShipView(s: Ship) {
+    const model = buildShip(s.cls, s.loadout, this.friendly(s.team) ? 0 : 1);
+    this.scene.add(model.root);
+    const dp: THREE.Vector3[] = [];
+    for (let i = 0; i < 4; i++) dp.push(new THREE.Vector3((Math.random() - 0.5) * s.radius * 1.4, Math.random() * s.radius * 0.6, (Math.random() - 0.5) * s.cls.length * 0.8));
+    this.views.set(s.id, { ship: s, model, roll: 0, burns: [], damagePts: dp, wpos: new THREE.Vector3(), wfwd: new THREE.Vector3(0, 0, 1), wvel: new THREE.Vector3(), gone: false, flicker: 0, hitFlash: 0 });
+  }
+  /** ships that joined the battle after it started (P11 reinforcements) get their models here — also
+   *  when a fast catch-up skipped the join event itself */
+  private syncShipViews() {
+    const w = this.world!;
+    if (this.views.size === w.ships.length) return;
+    for (const s of w.ships) if (!this.views.has(s.id)) this.addShipView(s);
+    if (w.exShips.length && !this.ex) this.ex = new BbexFx(this, w);
+    else this.ex?.sync();
+  }
+
   attach(world: World) {
     this.world = world;
-    for (const s of world.ships) {
-      const model = buildShip(s.cls, s.loadout, s.team === 0 ? 0 : 1);
-      this.scene.add(model.root);
-      const dp: THREE.Vector3[] = [];
-      for (let i = 0; i < 4; i++) dp.push(new THREE.Vector3((Math.random() - 0.5) * s.radius * 1.4, Math.random() * s.radius * 0.6, (Math.random() - 0.5) * s.cls.length * 0.8));
-      this.views.set(s.id, { ship: s, model, roll: 0, burns: [], damagePts: dp, wpos: new THREE.Vector3(), wfwd: new THREE.Vector3(0, 0, 1), wvel: new THREE.Vector3(), gone: false, flicker: 0, hitFlash: 0 });
-    }
+    for (const s of world.ships) this.addShipView(s);
     if (world.exShips.length) this.ex = new BbexFx(this, world);
     // centre camera on the player fleet
-    const c = world.centroid(world.ships.filter(s => s.team === 0));
+    const c = world.centroid(world.ships.filter(s => this.viewer === null ? s.team === 0 : s.team === this.viewer));
     this.rig.focus.set(c.x * 0.5, 0, c.z * 0.5 + 400);
   }
 
@@ -145,7 +165,7 @@ export class BattleView implements FxHost {
             if (Math.random() < 0.04) this.audio?.play('ex_rain', from, 0.3, 0.9 + Math.random() * 0.4);
             break;
           }
-          if (Math.random() < 0.55) this.beams.push({ a: from, b: to, life: 0.07, max: 0.07, w: 0.35, c: C(src.team === 0 ? 0xa0e8ff : 0xffb070) });
+          if (Math.random() < 0.55) this.beams.push({ a: from, b: to, life: 0.07, max: 0.07, w: 0.35, c: C(this.friendly(src.team) ? 0xa0e8ff : 0xffb070) });
           if (e.hit && Math.random() < 0.5) this.glow.emit(to, { life: 0.15, size: 3, size1: 6, color: 0xffd080, alpha: 0.8 });
           if (Math.random() < 0.08) this.audio?.play('pd', from, 0.35);
           break;
@@ -238,7 +258,7 @@ export class BattleView implements FxHost {
         break;
       }
       case 'torpedo': {
-        this.glow.emit(pos, { life: 0.4, size: 12, size1: 4, color: team === 0 ? 0xa0c8ff : 0xff90c0, alpha: 1.2 });
+        this.glow.emit(pos, { life: 0.4, size: 12, size1: 4, color: this.friendly(team) ? 0xa0c8ff : 0xff90c0, alpha: 1.2 });
         this.audio?.play('torpedo', pos, 0.8);
         this.noteInterest(shipId, 7, 'torpedo', v.ship.mounts[mountIdx]?.targetId);
         break;
@@ -246,7 +266,7 @@ export class BattleView implements FxHost {
       default: {
         // P5 arsenal weapons: muzzle flash and (energy) beam in the weapon's own colour, sized by tier
         const w = WEAPONS[weapon]; if (!w) break;
-        const col = w.vis?.color ?? (w.kind === 'torpedo' ? (team === 0 ? 0xa0c8ff : 0xff90c0) : 0xffd090);
+        const col = w.vis?.color ?? (w.kind === 'torpedo' ? (this.friendly(team) ? 0xa0c8ff : 0xff90c0) : 0xffd090);
         const big = (w.tier ?? 1) >= 4 || w.caliber >= 2;
         const mp = pos.clone().addScaledVector(dir, 2 + w.caliber * 2);
         this.glow.emit(mp, { life: w.kind === 'shell' ? 0.12 : 0.3, size: 4 + w.caliber * 5, size1: 2 + w.caliber * 4, color: col, alpha: 1.2 });
@@ -418,6 +438,7 @@ export class BattleView implements FxHost {
 
   frame(alpha: number, simDt: number, realDt: number, render = true) {
     const w = this.world!;
+    this.syncShipViews();
     this.time += realDt;
     const cam = this.rig.camera;
     // ships
@@ -553,7 +574,7 @@ export class BattleView implements FxHost {
         else { len = 10; wid = 0.5; r = 2; g = 2; b = 2; }
       }
     }
-    if (team === 1 && w.id !== 'rail_cannon') { g *= 0.75; b *= 0.6; }
+    if (!this.friendly(team) && w.id !== 'rail_cannon') { g *= 0.75; b *= 0.6; }
     const k = len / Math.max(sp, 1);
     this.trails.seg(x - m.vel.x * k, y - m.vel.y * k, z - m.vel.z * k, x, y, z, wid * 0.2, wid, r, g, b, 0, 1);
     if (w.pierce) {
@@ -589,7 +610,7 @@ export class BattleView implements FxHost {
       if (!alive || alive.dead) { rec.dead += realDt; if (rec.dead > 1.2) { this.trailRecs.delete(id); continue; } }
       const fade = 1 - rec.dead / 1.2;
       const torp = rec.kind === 'torpedo';
-      const col = rec.col ?? (torp ? (rec.team === 0 ? [0.8, 1.4, 3.2] : [3.0, 0.8, 2.0]) : [1.8, 1.1, 0.6]);
+      const col = rec.col ?? (torp ? (this.friendly(rec.team) ? [0.8, 1.4, 3.2] : [3.0, 0.8, 2.0]) : [1.8, 1.1, 0.6]);
       const n = rec.pts.length;
       for (let i = 1; i < n; i++) {
         const a = rec.pts[i - 1], b = rec.pts[i];
@@ -599,7 +620,7 @@ export class BattleView implements FxHost {
       if (rec.dead === 0) {
         const tail = rec.pts[n - 1] ?? rec.head;
         this.trails.seg(tail.x, tail.y, tail.z, rec.head.x, rec.head.y, rec.head.z, torp ? 2.2 : 0.7, torp ? 2.2 : 0.7, col[0], col[1], col[2], 0.5, 0.5);
-        if (Math.random() < 0.7) this.glow.emit(rec.head, { life: 0.05, size: torp ? 9 : 4, size1: torp ? 7 : 3, color: rec.col ? 0xe0b8ff : torp ? (rec.team === 0 ? 0x80b0ff : 0xff70c0) : 0xfff0c0, alpha: 1.3 });
+        if (Math.random() < 0.7) this.glow.emit(rec.head, { life: 0.05, size: torp ? 9 : 4, size1: torp ? 7 : 3, color: rec.col ? 0xe0b8ff : torp ? (this.friendly(rec.team) ? 0x80b0ff : 0xff70c0) : 0xfff0c0, alpha: 1.3 });
       }
     }
   }

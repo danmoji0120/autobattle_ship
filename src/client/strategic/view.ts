@@ -42,9 +42,15 @@ export class StrategicView {
   private battleFx = new Map<string, { t: number }>();
   /** this frame's live fighters per engagement (positions are the rendered ones) */
   private inBattle = new Map<string, { p: THREE.Vector3; team: number }[]>();
+  /** 0 = the near side of the fight as this player sees it (own company and its sides' partners in a
+   *  legacy coalition; a spectator sees side 0), 1 = everyone else — cosmetic tracers only */
   private battleTeam(s: WShip): number {
     const e = this.client.state?.engagements[s.engagement!];
-    return e && e.sides[1].includes(s.owner) ? 1 : 0;
+    if (!e) return 0;
+    const me = this.client.company;
+    const near = e.sides.findIndex(x => x.includes(me));
+    const k = e.sides.findIndex(x => x.includes(s.owner));
+    return k === (near >= 0 ? near : 0) ? 0 : 1;
   }
   /** a ring + glow at a world position (construction milestones etc.) */
   flashAt(p: V, color: number) {

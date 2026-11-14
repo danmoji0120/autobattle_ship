@@ -3,6 +3,7 @@ import type { BattleSession } from '../game/session';
 import type { Group, Ship, Order, SimEvent, RadioMsg, Team } from '../sim/types';
 import { SPECIALTY_TEXT } from '../sim/data/commanders';
 import { orderKey } from '../sim/ai/commander';
+import { Perspective, REL_TEXT } from './perspective';
 
 type TargetMode = null | 'attack' | 'escort' | 'move' | 'flank_l' | 'flank_r';
 
@@ -24,6 +25,9 @@ export interface HudOptions {
   inspectAll?: boolean;
   /** spectating a battle you have no part in: side names replace "ally/enemy" */
   spectate?: { sides: string[] };
+  /** P11: the viewer's side (null = spectator; default 0, or null when spectating) and the side names */
+  me?: number | null;
+  names?: string[];
   /** persistent world: which tactical groups this player may command */
   canCommand?: (g: Group) => boolean;
   /** persistent world: results screen returns to the strategic map */
@@ -59,9 +63,13 @@ export class BattleHUD {
   private strengthLag = [1, 1];
   private p = new THREE.Vector3();
   private lastSel: number | null = -1;
+  /** whose point of view: own / allied / neutral / hostile sides (or a spectator's neutral view) */
+  readonly P: Perspective;
+  private seenRoots = new Set<number>();
 
   constructor(root: HTMLElement, session: BattleSession, opts: HudOptions) {
     this.s = session; this.root = root; this.opts = opts;
+    this.P = new Perspective(session.world, opts.me !== undefined ? opts.me : opts.spectate ? null : 0, opts.names ?? opts.spectate?.sides ?? []);
     this.overlay = document.createElement('canvas');
     this.overlay.id = 'overlay';
     (opts.overlayParent ?? document.body).appendChild(this.overlay);
@@ -69,19 +77,20 @@ export class BattleHUD {
     this.build();
     if (opts.onSpeed === 'none') document.getElementById('speed')?.classList.add('hidden');
     const w = session.world;
-    // expand player root and enemy root by default so the main groups are visible
-    this.expanded.add(w.roots[0]); this.expanded.add(w.roots[1]);
-    this.selected = w.roots[0];
-    if (opts.canCommand) { const mine = w.groups.find(g => g.team === 0 && opts.canCommand!(g) && w.subtreeShips(g).length); this.selected = mine ? mine.id : w.roots[0]; }
+    // expand every side's root by default so the main groups are visible
+    for (const sd of w.sides) for (const r of sd.roots) { this.expanded.add(r); this.seenRoots.add(r); }
+    this.selected = w.roots[this.P.me ?? 0] ?? w.roots[0];
+    if (opts.canCommand) { const mine = w.groups.find(g => this.P.mine(g.team) && opts.canCommand!(g) && w.subtreeShips(g).length); this.selected = mine ? mine.id : this.selected; }
     this.bindInput();
     this.resize();
     session.onEvents = ev => this.onEvents(ev);
     session.onFrame = dt => this.frame(dt);
     this.refreshTree(); this.refreshCommand();
-    if (opts.replay) this.banner('리플레이', opts.spectate ? `${opts.spectate.sides[0]} vs ${opts.spectate.sides[1]} — 서버 판정 그대로 재현합니다` : '기록된 명령으로 전투를 재현합니다', 'ally', 'REPLAY');
-    else if (opts.spectate) {
-      this.banner('관전 중', `${opts.spectate.sides[0]} vs ${opts.spectate.sides[1]} — 서버 전투를 실시간으로 재현합니다`, 'ally', 'LIVE');
-      const tip = h('div', 'panel', `<b style="color:var(--cyan)">관전 모드</b> — 양측 지휘관이 스스로 싸웁니다.<br>
+    const vs = w.sides.map((_, k) => this.P.name(k)).join(' vs ');
+    if (opts.replay) this.banner('리플레이', opts.spectate || opts.names ? `${vs} — 서버 판정 그대로 재현합니다` : '기록된 명령으로 전투를 재현합니다', 'ally', 'REPLAY');
+    else if (this.P.spectator) {
+      this.banner('관전 중', `${vs} — 서버 전투를 실시간으로 재현합니다`, 'ally', 'LIVE');
+      const tip = h('div', 'panel', `<b style="color:var(--cyan)">관전 모드</b> — 각 진영 지휘관이 스스로 싸웁니다. 어느 진영의 시점도 강제하지 않습니다.<br>
         <b>전술 지도</b> / <b>추적</b>(함선 더블클릭) / <b>시네마틱</b>(C) 시점 · 부대·함선을 클릭하면 상태를 볼 수 있습니다.<br>
         <span style="color:var(--dim)">관전을 끝내도 전투는 서버에서 계속됩니다 · 클릭하여 닫기</span>`);
       Object.assign(tip.style, { position: 'absolute', top: '118px', left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', fontSize: '12.5px', lineHeight: '1.6', maxWidth: '560px', cursor: 'pointer', zIndex: '5' });
@@ -114,9 +123,9 @@ export class BattleHUD {
     const top = h('div', 'panel', '');
     top.id = 'topbar';
     top.innerHTML = `
-      <div class="strength"><div class="lbl"><span>${esc(this.opts.spectate ? this.opts.spectate.sides[0] : '아군')} 전력</span><b id="sa">100%</b></div><div class="bar"><em id="sae"></em><i id="sab"></i></div></div>
+      <div class="strength"><div class="lbl"><span id="sal">${esc(this.leftLabel())} 전력</span><b id="sa">100%</b></div><div class="bar"><em id="sae"></em><i id="sab"></i></div></div>
       <div id="clock">0:00<small>교전 시간</small></div>
-      <div class="strength"><div class="lbl"><b id="se">100%</b><span>${esc(this.opts.spectate ? this.opts.spectate.sides[1] : '적')} 전력</span></div><div class="bar enemy"><em id="see"></em><i id="seb"></i></div></div>
+      <div class="strength"><div class="lbl"><b id="se">100%</b><span id="sel">${esc(this.rightLabel())} 전력</span></div><div class="bar enemy"><em id="see"></em><i id="seb"></i></div></div>
       <div class="speedgrp" id="speed">
         <button class="btn" data-sp="0" title="일시정지 (Space)">❚❚</button>
         <button class="btn" data-sp="0.5">½×</button>
@@ -214,7 +223,7 @@ export class BattleHUD {
     const w = this.s.world;
     if (this.hoverShip && this.hoverShip.state === 'alive') return this.hoverShip;
     const g = this.selected !== null ? w.groupById.get(this.selected) : null;
-    if (!g) return w.ships.find(s => s.team === 0 && s.state === 'alive') ?? null;
+    if (!g) return w.ships.find(s => s.team === (this.P.me ?? 0) && s.state === 'alive') ?? null;
     const ships = w.subtreeShips(g);
     return ships.sort((a, b) => b.value - a.value)[0] ?? null;
   }
@@ -300,7 +309,7 @@ export class BattleHUD {
   private leftClick(x: number, y: number, shift: boolean) {
     const { ship, group } = this.pickUnit(x, y);
     if (this.mode) { this.applyTarget(x, y, ship, group, shift); return; }
-    if (group && (group.team === 0 || this.opts.inspectAll)) { this.select(group.id); if (ship) this.hoverShip = ship; }
+    if (group && this.inspectable(group.team)) { this.select(group.id); if (ship) this.hoverShip = ship; }
     else if (ship) { this.hoverShip = ship; }
   }
 
@@ -310,8 +319,9 @@ export class BattleHUD {
     const g = this.selGroup();
     if (!g || !this.mayCommand(g)) return;
     const { ship, group } = this.pickUnit(x, y);
-    if (group && group.team === 1) this.issue(g, { type: 'attack', targetGroup: group.id, targetShip: shift && ship ? ship.id : undefined });
-    else if (group && group.team === 0 && group.id !== g.id) this.issue(g, { type: 'escort', guardGroup: group.id });
+    if (group && this.P.foe(group.team)) this.issue(g, { type: 'attack', targetGroup: group.id, targetShip: shift && ship ? ship.id : undefined });
+    else if (group && this.P.friend(group.team) && group.id !== g.id) this.issue(g, { type: 'escort', guardGroup: group.id });
+    else if (group && !this.P.friend(group.team)) { this.hint(`${this.P.label(group.team)} — 적대 관계가 아니면 공격할 수 없습니다`); return; }
     else {
       const c = this.s.world.groupCenter(g);
       const p = this.s.view.screenToPlane(x, y, innerWidth, innerHeight, c.y);
@@ -324,18 +334,18 @@ export class BattleHUD {
     if (!g) { this.setMode(null); return; }
     const m = this.mode;
     if (m === 'attack') {
-      if (group && group.team === 1) this.issue(g, { type: 'attack', targetGroup: group.id, targetShip: shift && ship ? ship.id : undefined });
-      else return this.hint('적 함선이나 적 부대를 클릭하세요');
+      if (group && this.P.foe(group.team)) this.issue(g, { type: 'attack', targetGroup: group.id, targetShip: shift && ship ? ship.id : undefined });
+      else return this.hint(group && !this.P.friend(group.team) ? `${this.P.label(group.team)} — 중립 진영은 공격할 수 없습니다` : '적대 진영의 함선이나 부대를 클릭하세요');
     } else if (m === 'escort') {
-      if (group && group.team === 0 && group.id !== g.id && !this.s.world.isAncestor(g, group)) this.issue(g, { type: 'escort', guardGroup: group.id });
-      else return this.hint('호위할 아군 부대를 클릭하세요');
+      if (group && this.P.friend(group.team) && group.id !== g.id && !this.s.world.isAncestor(g, group)) this.issue(g, { type: 'escort', guardGroup: group.id });
+      else return this.hint('호위할 아군·동맹 부대를 클릭하세요');
     } else if (m === 'move') {
       const c = this.s.world.groupCenter(g);
       const p = this.s.view.screenToPlane(x, y, innerWidth, innerHeight, c.y);
       if (p) this.issue(g, { type: 'move', point: { x: p.x, y: c.y, z: p.z } });
     } else if (m === 'flank_l' || m === 'flank_r') {
       const side = m === 'flank_l' ? 1 : -1;
-      this.issue(g, { type: 'flank', side, targetGroup: group && group.team === 1 ? group.id : undefined });
+      this.issue(g, { type: 'flank', side, targetGroup: group && this.P.foe(group.team) ? group.id : undefined });
     }
     this.setMode(null);
   }
@@ -355,7 +365,15 @@ export class BattleHUD {
     this.refreshCommand();
   }
 
-  private mayCommand(g: Group): boolean { return g.team === 0 && !this.opts.replay && (!this.opts.canCommand || this.opts.canCommand(g)); }
+  private mayCommand(g: Group): boolean { return this.P.mine(g.team) && !this.opts.replay && (!this.opts.canCommand || this.opts.canCommand(g)); }
+  /** may this group's details be shown (selection)? own and allied sides; everything for spectators and labs */
+  private inspectable(team: number) { return !!this.opts.inspectAll || this.P.spectator || this.P.friend(team); }
+  private leftLabel() { return this.P.me === null ? this.P.name(0) : this.isClassic() ? '아군' : this.P.name(this.P.me); }
+  private rightLabel() { return this.P.me === null ? (this.s.world.sides.length > 2 ? '그 외 진영' : this.P.name(1)) : this.isClassic() ? '적' : '적대 진영'; }
+  /** the classic two-side battle seen from side 0 (single-player, legacy worlds): labels stay as they were */
+  private isClassic() { return this.P.me === 0 && this.s.world.sides.length === 2 && !this.s.world.dynamic && !this.opts.names; }
+  /** remaining strength of a set of sides, weighted by what they brought */
+  private valueOf(ks: number[]) { const w = this.s.world; let v = 0, t = 0; for (const k of ks) { const iv = w.initialValue[k] ?? 0; v += w.teamValueFrac(k) * iv; t += iv; } return t > 0 ? v / t : 0; }
 
   private selGroup(): Group | null { return this.selected !== null ? this.s.world.groupById.get(this.selected) ?? null : null; }
 
@@ -392,7 +410,7 @@ export class BattleHUD {
     for (const e of ev) {
       if (e.t === 'radio') this.addRadio(e.msg);
       else if (e.t === 'highlight') {
-        if (e.h.score >= 4) this.banner(e.h.title, e.h.text, e.h.team === 0 ? 'ally' : 'lose');
+        if (e.h.score >= 4) this.banner(e.h.title, e.h.text, this.P.spectator || this.P.friend(e.h.team) ? 'ally' : 'lose');
       } else if (e.t === 'end') this.resultTimer = setTimeout(() => this.showResult(), 3500);
     }
     const w = this.s.world;
@@ -401,25 +419,28 @@ export class BattleHUD {
 
   private addRadio(m: RadioMsg) {
     const body = this.els.radioBody;
-    const el = h('div', `msg p${m.priority}${m.team === 1 ? ' enemy' : ''}`);
-    if (m.team === 1 && !this.radioEnemy) el.classList.add('hidden');
-    el.innerHTML = `<div class="stripe" style="background:${m.color}"></div><div><div class="who"><span class="t">${fmtTime(m.time)}</span><span>${esc(m.who)}</span></div><div class="tx">${esc(m.text)}</div></div>`;
+    const other = this.P.spectator ? m.team !== 0 : !this.P.friend(m.team);
+    const el = h('div', `msg p${m.priority}${other ? ' enemy' : ''}`);
+    if (other && !this.radioEnemy) el.classList.add('hidden');
+    const tag = this.s.world.sides.length > 2 || this.s.world.dynamic ? `<span style="color:${this.P.color(m.team)};margin-left:6px;font-size:10.5px">${esc(this.P.label(m.team))}</span>` : '';
+    el.innerHTML = `<div class="stripe" style="background:${m.color}"></div><div><div class="who"><span class="t">${fmtTime(m.time)}</span><span>${esc(m.who)}</span>${tag}</div><div class="tx">${esc(m.text)}</div></div>`;
     el.onclick = () => {
       const rig = this.s.view.rig;
       if (m.pos) { if (rig.mode !== 'tactical') this.setCam('tactical'); rig.focus.set(m.pos.x, 0, m.pos.z); rig.dist = Math.min(rig.dist, 1600); }
-      if (m.team === 0) this.select(m.groupId);
+      if (this.inspectable(m.team)) this.select(m.groupId);
     };
     const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 40;
     body.appendChild(el);
     while (body.children.length > 120) body.firstChild!.remove();
     if (atBottom) body.scrollTop = body.scrollHeight;
-    if (m.team === 0 && (m.priority >= 2 || m.groupId === this.selected)) {
+    const ours = this.P.spectator ? m.team === 0 : this.P.mine(m.team);
+    if (ours && (m.priority >= 2 || m.groupId === this.selected)) {
       const sub = this.els.subtitle;
       sub.innerHTML = '';
       const d = h('div', '', `<span class="w" style="color:${m.color}">${esc(m.who)}</span>${esc(m.text)}`);
       sub.appendChild(d);
     }
-    if (m.team === 0) this.s.view.audio?.play('radio', null, m.priority >= 2 ? 0.5 : 0.25);
+    if (ours) this.s.view.audio?.play('radio', null, m.priority >= 2 ? 0.5 : 0.25);
   }
 
   private banner(title: string, sub: string, kind: 'ally' | 'lose', k = '') {
@@ -452,12 +473,42 @@ export class BattleHUD {
 
   private refreshTop() {
     const w = this.s.world;
-    const a = w.teamValueFrac(0), e = w.teamValueFrac(1);
+    const me = this.P.me;
+    const left = me === null ? [0] : [me];
+    const right = me === null ? w.sides.map((_, k) => k).filter(k => k !== 0) : w.sides.map((_, k) => k).filter(k => this.P.foe(k));
+    const a = this.isClassic() ? w.teamValueFrac(0) : this.valueOf(left), e = this.isClassic() ? w.teamValueFrac(1) : right.length ? this.valueOf(right) : 0;
     this.els.sa.textContent = `${Math.round(a * 100)}%`; this.els.se.textContent = `${Math.round(e * 100)}%`;
     this.els.sab.style.width = `${a * 100}%`; this.els.seb.style.width = `${e * 100}%`;
     this.strengthLag[0] = Math.max(a, this.strengthLag[0] - 0.01); this.strengthLag[1] = Math.max(e, this.strengthLag[1] - 0.01);
     this.els.sae.style.width = `${this.strengthLag[0] * 100}%`; this.els.see.style.width = `${this.strengthLag[1] * 100}%`;
     this.els.clock.innerHTML = `${fmtTime(w.time)}<small>${this.s.paused ? '일시정지' : w.outcome ? '전투 종료' : '교전 시간'}</small>`;
+    this.refreshSides();
+  }
+
+  /** P11: one row per side — name, relation to the viewer, strength, status (shown once there are more
+   *  than two sides or anything dynamic happened) */
+  private sidesKey = '';
+  private refreshSides() {
+    const w = this.s.world;
+    let el = this.els.sides;
+    if (!(w.sides.length > 2 || w.dynamic)) { el?.classList.add('hidden'); return; }
+    if (!el) {
+      el = this.els.sides = h('div', 'panel', '');
+      el.id = 'sides';
+      Object.assign(el.style, { position: 'absolute', top: '104px', left: '50%', transform: 'translateX(-50%)', padding: '6px 10px', fontSize: '11.5px', display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'min(760px, calc(100vw - 32px))', zIndex: '4' });
+      this.root.appendChild(el);
+    }
+    el.classList.remove('hidden');
+    const OUT: Record<string, string> = { victor: '승리', survived: '생존', withdrawn: '철수', routed: '패주', destroyed: '전멸' };
+    const html = this.P.order().map(k => {
+      const sd = w.sides[k];
+      const kind = this.P.kind(k);
+      return `<span style="white-space:nowrap${sd.out ? ';opacity:.45' : ''}"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${this.P.color(k)};margin-right:5px"></i><b style="color:${this.P.color(k)}">${esc(this.P.name(k))}</b>${kind ? ` <span style="color:var(--dim)">${REL_TEXT[kind]}</span>` : ''} <span style="font-family:var(--mono)">${sd.out ? OUT[sd.out] ?? sd.out : Math.round(w.teamValueFrac(k) * 100) + '%'}</span></span>`;
+    }).join('');
+    if (html !== this.sidesKey) { this.sidesKey = html; el.innerHTML = html; }
+    const sal = document.getElementById('sal'), sel = document.getElementById('sel');
+    if (sal) sal.textContent = `${this.leftLabel()} 전력`;
+    if (sel) sel.textContent = `${this.rightLabel()} 전력`;
   }
 
   // ------------------------------------------------------------------ tree
@@ -474,24 +525,25 @@ export class BattleHUD {
       const hpf = w.groupHpFrac(g);
       const hasKids = g.childIds.length > 0 || g.shipIds.length > 0;
       const open = this.expanded.has(g.id);
-      const row = h('div', `node${this.selected === g.id ? ' sel' : ''}${alive === 0 ? ' dead' : ''}${g.team === 1 ? ' enemyn' : ''}`);
+      const row = h('div', `node${this.selected === g.id ? ' sel' : ''}${alive === 0 ? ' dead' : ''}${(this.P.spectator ? g.team !== 0 : !this.P.friend(g.team)) ? ' enemyn' : ''}`);
       row.style.paddingLeft = `${6 + depth * 14}px`;
+      if (depth === 0 && (w.sides.length > 2 || w.dynamic)) row.style.borderLeft = `3px solid ${this.P.color(g.team)}`;
       const o = g.order;
       const ot = ORDER_TEXT[o.type] + (o.type === 'flank' ? (o.side > 0 ? '(좌)' : '(우)') : '');
-      const ordCls = o.type === 'retreat' ? 'ord rt' : g.playerOverride && g.parentId !== null && g.team === 0 ? 'ord ov' : 'ord';
+      const ordCls = o.type === 'retreat' ? 'ord rt' : g.playerOverride && g.parentId !== null && this.P.mine(g.team) ? 'ord ov' : 'ord';
       const phase = o.type === 'flank' && g.ai.phase !== 'none' ? ` · ${{ transit: '이동', staging: '대기', strike: '돌입', none: '' }[g.ai.phase]}` : '';
       row.innerHTML = `<span class="tog">${hasKids ? (open ? '▾' : '▸') : ''}</span>
         <span class="nm">${esc(g.name)}<span class="cmd">${g.hasCommander ? esc(g.commander.name) : ''}</span></span>
-        <span class="meta">${alive}/${all.length}<span class="hp"><i style="width:${Math.round(hpf * 100)}%;background:${hpf > 0.6 ? 'var(--good)' : hpf > 0.3 ? 'var(--warn)' : 'var(--enemy)'}"></i></span>${g.team === 0 ? `<span class="${ordCls}" title="${g.playerOverride && g.parentId !== null ? '직접 지휘 중' : '상급 지휘관 재량'}">${ot}${phase}</span>` : ''}</span>`;
+        <span class="meta">${alive}/${all.length}<span class="hp"><i style="width:${Math.round(hpf * 100)}%;background:${hpf > 0.6 ? 'var(--good)' : hpf > 0.3 ? 'var(--warn)' : 'var(--enemy)'}"></i></span>${this.P.mine(g.team) || this.P.spectator ? `<span class="${ordCls}" title="${g.playerOverride && g.parentId !== null ? '직접 지휘 중' : '상급 지휘관 재량'}">${ot}${phase}</span>` : ''}</span>`;
       row.querySelector('.tog')!.addEventListener('click', ev => { ev.stopPropagation(); if (open) this.expanded.delete(g.id); else this.expanded.add(g.id); this.refreshTree(); });
       row.onclick = () => {
-        if (this.mode && g.team === 1) { this.applyTarget(0, 0, null, g, false); return; }
-        if (this.mode === 'escort' && g.team === 0) { this.applyTarget(0, 0, null, g, false); return; }
-        if (g.team === 0 || this.opts.inspectAll) this.select(g.id);
+        if (this.mode && this.mode !== 'escort' && this.P.foe(g.team)) { this.applyTarget(0, 0, null, g, false); return; }
+        if (this.mode === 'escort' && this.P.friend(g.team)) { this.applyTarget(0, 0, null, g, false); return; }
+        if (this.inspectable(g.team)) this.select(g.id);
         const c = w.groupCenter(g);
         if (alive) { const rig = this.s.view.rig; if (rig.mode === 'tactical') rig.focus.set(c.x, 0, c.z); }
       };
-      row.ondblclick = () => { if (g.team === 0 || this.opts.inspectAll) { this.select(g.id); this.setCam('follow'); } };
+      row.ondblclick = () => { if (this.inspectable(g.team)) { this.select(g.id); this.setCam('follow'); } };
       body.appendChild(row);
       if (!open) return;
       for (const id of g.childIds) addGroup(w.groupById.get(id)!, depth + 1);
@@ -509,11 +561,24 @@ export class BattleHUD {
         }
       }
     };
-    addGroup(w.groupById.get(w.roots[0])!, 0);
-    body.appendChild(h('div', 'treesep', '적 함대 (탐지)'));
-    addGroup(w.groupById.get(w.roots[1])!, 0);
+    // reinforcements bring new roots: show them expanded like the starting fleets
+    for (const sd of w.sides) for (const r of sd.roots) if (!this.seenRoots.has(r)) { this.seenRoots.add(r); this.expanded.add(r); }
+    if (w.sides.length === 2 && !w.dynamic && !this.opts.names) {
+      addGroup(w.groupById.get(w.roots[0])!, 0);
+      body.appendChild(h('div', 'treesep', this.P.spectator ? this.P.name(1) : '적 함대 (탐지)'));
+      addGroup(w.groupById.get(w.roots[1])!, 0);
+    } else {
+      for (const k of this.P.order()) {
+        const kind = this.P.kind(k);
+        const sep = h('div', 'treesep');
+        sep.textContent = `${this.P.name(k)}${kind ? ' · ' + REL_TEXT[kind] : ''}${w.sides[k].out ? ' (이탈)' : ''}`;
+        sep.style.color = this.P.color(k);
+        body.appendChild(sep);
+        for (const r of w.sides[k].roots) { const g = w.groupById.get(r); if (g) addGroup(g, 0); }
+      }
+    }
     body.scrollTop = scroll;
-    this.els.treeInfo.textContent = `${w.ships.filter(s => s.team === 0 && s.state === 'alive').length}척`;
+    this.els.treeInfo.textContent = `${w.ships.filter(s => s.team === (this.P.me ?? 0) && s.state === 'alive').length}척`;
   }
 
   // ------------------------------------------------------------------ command panel
@@ -584,7 +649,7 @@ export class BattleHUD {
     if (o.type === 'escort') doing += ` — ${w.groupById.get(o.guardGroup)?.name ?? ''}`;
     if (g.ai.kiting) doing += ' (거리 유지 후퇴 사격)';
     st.innerHTML = `<span>함선 <b>${ships.length}</b> · 전력 <b>${Math.round(w.groupHpFrac(g) * 100)}%</b> · 격침 <b>${g.stats.kills}</b></span><span>${esc(doing)}${T && o.type !== 'retreat' ? ` → <b style="color:#ff9a8a">${esc(T.name)}</b>` : ''}</span>`;
-    hint.textContent = g.playerOverride && g.parentId !== null && g.team === 0 && !g.ai.routed ? '⚑ 직접 지휘 중 — 상위 지휘관의 명령을 받지 않습니다' : g.childIds.length ? '하위 부대들은 이 지휘관의 판단에 따라 역할을 나눠 맡습니다' : '';
+    hint.textContent = g.playerOverride && g.parentId !== null && this.P.mine(g.team) && !g.ai.routed ? '⚑ 직접 지휘 중 — 상위 지휘관의 명령을 받지 않습니다' : g.childIds.length ? '하위 부대들은 이 지휘관의 판단에 따라 역할을 나눠 맡습니다' : '';
   }
 
   // ------------------------------------------------------------------ overlay
@@ -609,10 +674,13 @@ export class BattleHUD {
       if (!tactical && !isSel && s !== this.hoverShip) continue;
       const dist = view.wpos.distanceTo(v.rig.camera.position);
       const px = Math.max(4, Math.min(40, s.cls.length * 900 / dist * 0.6));
-      const col = s.team === 0 ? (isSel ? '#bff0ff' : 'rgba(95,212,255,0.85)') : 'rgba(255,90,72,0.9)';
+      const classic = this.isClassic() || (this.P.spectator && w.sides.length === 2 && !w.dynamic);
+      const col = classic ? (s.team === 0 ? (isSel ? '#bff0ff' : 'rgba(95,212,255,0.85)') : 'rgba(255,90,72,0.9)') : isSel ? '#e6fbff' : this.P.color(s.team);
       ctx.strokeStyle = col; ctx.lineWidth = isSel ? 1.6 : 1;
       const r = px * 0.6 + 3;
-      if (s.team === 0) {
+      const shape = this.P.spectator ? (s.team === 0 ? 'b' : 'd') : this.P.friend(s.team) ? 'b' : this.P.foe(s.team) ? 'd' : 'o';
+      if (shape === 'o') { ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke(); }
+      else if (shape === 'b') {
         // brackets
         const k = r * 0.45;
         ctx.beginPath();
@@ -647,8 +715,7 @@ export class BattleHUD {
         if (w.directShips(g).length) units.push(g);
       } else units.push(g);
     };
-    collect(w.groupById.get(w.roots[0])!);
-    collect(w.groupById.get(w.roots[1])!);
+    for (const sd of w.sides) for (const r of sd.roots) { const g = w.groupById.get(r); if (g) collect(g); }
     ctx.font = '600 11.5px "Noto Sans KR", sans-serif';
     const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
     for (const g of units) {
@@ -660,11 +727,14 @@ export class BattleHUD {
       this.unitsDrawn.push({ g, x, y });
       const isSel = sel && (g.id === sel.id || w.isAncestor(sel, g));
       // order line
-      if (g.team === 0 && (tactical || isSel)) this.drawOrderLine(g, c, x, y, !!isSel);
+      const ourLine = this.P.spectator ? g.team === 0 : this.P.mine(g.team);
+      if (ourLine && (tactical || isSel)) this.drawOrderLine(g, c, x, y, !!isSel);
       if (!tactical && !isSel) continue;
-      const col = g.team === 0 ? (isSel ? '#e6fbff' : '#8fdcff') : '#ff9a8a';
+      const friendly = this.P.spectator ? g.team === 0 : this.P.friend(g.team);
+      const classicG = this.isClassic() || (this.P.spectator && w.sides.length === 2 && !w.dynamic);
+      const col = classicG ? (g.team === 0 ? (isSel ? '#e6fbff' : '#8fdcff') : '#ff9a8a') : isSel ? '#e6fbff' : this.P.color(g.team);
       // label plate
-      const label = g.team === 0 ? `${g.name}${g.hasCommander ? ' · ' + g.commander.name : ''}` : g.name;
+      const label = friendly || (this.P.spectator && !classicG) ? `${g.name}${g.hasCommander ? ' · ' + g.commander.name : ''}` : g.name;
       const tw = ctx.measureText(label).width;
       let ly = y - 34;
       for (let guard = 0; guard < 8; guard++) {
@@ -673,18 +743,18 @@ export class BattleHUD {
         ly = hit.y0 - 11;
       }
       placed.push({ x0: x - tw / 2 - 6, x1: x + tw / 2 + 6, y0: ly - 12, y1: ly + 10 });
-      ctx.fillStyle = g.team === 0 ? 'rgba(6,20,32,0.72)' : 'rgba(32,8,6,0.65)';
+      ctx.fillStyle = friendly ? 'rgba(6,20,32,0.72)' : 'rgba(32,8,6,0.65)';
       ctx.fillRect(x - tw / 2 - 6, ly - 12, tw + 12, 17);
-      ctx.fillStyle = g.team === 0 ? (g.playerOverride && g.parentId !== null ? '#ffb347' : '#5fd4ff') : '#ff5a48';
+      ctx.fillStyle = ourLine && g.playerOverride && g.parentId !== null ? '#ffb347' : classicG ? (g.team === 0 ? '#5fd4ff' : '#ff5a48') : this.P.color(g.team);
       ctx.fillRect(x - tw / 2 - 6, ly - 12, 2, 17);
       ctx.fillStyle = col; ctx.fillText(label, x - tw / 2, ly);
-      ctx.strokeStyle = g.team === 0 ? 'rgba(95,212,255,0.35)' : 'rgba(255,90,72,0.35)';
+      ctx.strokeStyle = friendly ? 'rgba(95,212,255,0.35)' : 'rgba(255,90,72,0.35)';
       ctx.beginPath(); ctx.moveTo(x, ly + 5); ctx.lineTo(x, y - 8); ctx.stroke();
       // role glyph + hp
       const hpf = w.groupHpFrac(g);
       ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x - 18, ly + 7, 36, 3);
       ctx.fillStyle = hpf > 0.6 ? '#7dffb0' : hpf > 0.3 ? '#ffb347' : '#ff5a48'; ctx.fillRect(x - 18, ly + 7, 36 * hpf, 3);
-      if (g.team === 0 && g.order.type === 'flank' && g.ai.phase === 'staging') { ctx.fillStyle = '#ffb347'; ctx.fillText('대기', x + tw / 2 + 10, ly); }
+      if (ourLine && g.order.type === 'flank' && g.ai.phase === 'staging') { ctx.fillStyle = '#ffb347'; ctx.fillText('대기', x + tw / 2 + 10, ly); }
     }
     if (this.mode) {
       ctx.strokeStyle = 'rgba(255,179,71,0.8)'; ctx.lineWidth = 1;
@@ -726,11 +796,12 @@ export class BattleHUD {
     const s = this.s.view.pickShip(this.pointer.x, this.pointer.y, innerWidth, innerHeight, 16);
     if (!s) { tip.classList.add('hidden'); return; }
     const g = this.s.world.groupById.get(s.groupId)!;
-    const cls = s.team === 0 ? s.cls.name : s.cls.enemyName;
+    const cls = this.s.view.friendly(s.team) ? s.cls.name : s.cls.enemyName;
+    const multi = this.s.world.sides.length > 2 || this.s.world.dynamic;
     const crit = [s.crit.engine > 0 ? '기관 손상' : '', s.crit.fire > 0 ? '화재' : '', s.crit.bridge > 0 ? '함교 피격' : ''].filter(Boolean).join(', ');
-    tip.innerHTML = `<b style="color:${s.team === 0 ? 'var(--ally)' : 'var(--enemy)'}">${esc(s.name)}</b> <span style="color:var(--dim)">${cls} ${s.cls.type} · ${esc(s.loadout.name)}</span><br>
+    tip.innerHTML = `<b style="color:${multi ? this.P.color(s.team) : this.s.view.friendly(s.team) ? 'var(--ally)' : 'var(--enemy)'}">${esc(s.name)}</b> <span style="color:var(--dim)">${cls} ${s.cls.type} · ${esc(s.loadout.name)}</span>${multi ? `<br><span style="color:${this.P.color(s.team)}">${esc(this.P.label(s.team))}</span>` : ''}<br>
       내구 ${Math.max(0, Math.round(s.hp))}/${Math.round(s.maxHp)} · ${esc(g.name)}${crit ? `<br><span style="color:var(--warn)">${crit}</span>` : ''}
-      ${s.team === 0 ? `<br><span style="color:var(--dim)">피해 ${Math.round(s.stats.dmgDealt)} · 격침 ${s.stats.kills} · 요격 ${s.stats.intercepts}</span>` : ''}`;
+      ${this.inspectable(s.team) ? `<br><span style="color:var(--dim)">피해 ${Math.round(s.stats.dmgDealt)} · 격침 ${s.stats.kills} · 요격 ${s.stats.intercepts}</span>` : ''}`;
     tip.style.left = `${this.pointer.x + 16}px`; tip.style.top = `${this.pointer.y + 12}px`;
     tip.classList.remove('hidden');
   }
@@ -742,12 +813,15 @@ export class BattleHUD {
     this.resultShown = true;
     const w = this.s.world;
     const o = w.outcome!;
-    const win = o.winner === 0;
+    const me = this.P.me;
+    const myStatus = me !== null ? o.sides?.[me]?.status : undefined;
+    const win = me !== null && (o.winner === me || myStatus === 'victor');
+    const multi = w.sides.length > 2 || w.dynamic;
     const modal = h('div', 'modal');
     const highlights = w.highlights.slice().sort((a, b) => b.score - a.score).slice(0, 6).sort((a, b) => a.time - b.time);
-    const mine = w.ships.filter(s => s.team === 0);
+    const mine = w.ships.filter(s => s.team === (me ?? 0));
     const mvp = mine.slice().sort((a, b) => (b.stats.dmgDealt + b.stats.killValue * 12 + b.stats.intercepts * 40) - (a.stats.dmgDealt + a.stats.killValue * 12 + a.stats.intercepts * 40))[0];
-    const topGroups = w.groups.filter(g => g.team === 0 && (g.depth === 1 || (g.depth === 2)));
+    const topGroups = w.groups.filter(g => g.team === (me ?? 0) && (g.depth === 1 || (g.depth === 2)));
     const lost = (g: Group) => w.subtreeShips(g, true).filter(s => s.state === 'dead' || s.state === 'dying').length;
     const evalLine = (g: Group): string => {
       const all = w.subtreeShips(g, true);
@@ -766,17 +840,29 @@ export class BattleHUD {
       return `<tr><td><b>${esc(g.name)}</b><br><span style="color:var(--dim);font-size:11px">${esc(c.rank)} ${esc(c.name)}</span></td><td class="n">${g.stats.kills}</td><td class="n">${lost(g)}/${all.length}</td><td class="n">${Math.round(g.stats.dmgDealt / 100) / 10}k</td><td class="n" style="color:${grade === 'S' || grade === 'A' ? 'var(--good)' : grade === 'D' ? 'var(--enemy)' : 'var(--text)'}">${grade}</td><td style="font-size:11.5px;color:var(--dim)">${comment}</td></tr>`;
     };
     const survivors = mine.filter(s => s.state === 'alive' || s.state === 'escaped').length;
-    const enemyLost = w.ships.filter(s => s.team === 1 && (s.state === 'dead' || s.state === 'dying')).length;
-    const enemyTotal = w.ships.filter(s => s.team === 1).length;
+    const foeSide = (k: number) => me === null ? k !== 0 : this.P.foe(k);
+    const enemyLost = w.ships.filter(s => foeSide(s.team) && (s.state === 'dead' || s.state === 'dying')).length;
+    const enemyTotal = w.ships.filter(s => foeSide(s.team)).length;
+    const OUT: Record<string, string> = { victor: '승리', survived: '생존', withdrawn: '철수', routed: '패주', destroyed: '전멸' };
+    // P11: every side's result, the same for everybody; only the relation column depends on the viewer
+    const sideTable = multi && o.sides ? `<h3>진영별 결과</h3><table class="gt"><tr><th>진영</th><th>관계</th><th>결과</th><th>생존</th><th>손실</th><th>이탈</th></tr>${this.P.order().map(k => {
+      const r = o.sides![k]; if (!r) return '';
+      const kind = this.P.kind(k);
+      return `<tr><td><b style="color:${this.P.color(k)}">${esc(this.P.name(k))}</b></td><td>${kind ? REL_TEXT[kind] : '—'}</td><td>${OUT[r.status] ?? r.status}</td><td class="n">${r.alive}</td><td class="n">${r.lost}</td><td class="n">${r.escaped}</td></tr>`;
+    }).join('')}</table>` : '';
+    const myTitle = win ? '작전 성공' : myStatus === 'withdrawn' ? '철수 완료' : (myStatus === 'routed' || myStatus === 'destroyed' || (o.winner >= 0 && o.winner !== me)) ? '작전 실패' : multi ? '교전 종료' : '무승부';
+    const spectTitle = o.winner >= 0 ? esc(this.P.name(o.winner)) + ' 승리' : multi ? esc(o.reason) : '무승부';
+    const classic = !multi && me === 0 && !this.opts.names;
     modal.innerHTML = `<div class="panel result">
-      ${this.opts.spectate ? `<h1 class="${o.winner === 1 ? 'lose' : 'win'}">${o.winner === -1 ? '무승부' : esc(this.opts.spectate.sides[o.winner]) + ' 승리'}</h1>
-      <div class="sub">${esc(o.reason.replace(/^아군/, this.opts.spectate.sides[0]).replace(/^적 /, this.opts.spectate.sides[1] + ' '))} · 교전 시간 ${fmtTime(o.time)} · ${esc(this.opts.spectate.sides[0])} 생존 ${survivors}/${mine.length} · ${esc(this.opts.spectate.sides[1])} 격침 ${enemyLost}/${enemyTotal}</div>`
-      : `<h1 class="${win ? 'win' : 'lose'}">${o.winner === 0 ? '작전 성공' : o.winner === 1 ? '작전 실패' : '무승부'}</h1>
-      <div class="sub">${esc(o.reason)} · 교전 시간 ${fmtTime(o.time)} · 아군 생존 ${survivors}/${mine.length} · 적 격침 ${enemyLost}/${enemyTotal}</div>`}
+      ${me === null ? `<h1 class="win">${spectTitle}</h1>
+      <div class="sub">${multi ? '' : esc(o.reason.replace(/^아군/, this.P.name(0)).replace(/^적 /, this.P.name(1) + ' ')) + ' · '}교전 시간 ${fmtTime(o.time)}${multi ? '' : ` · ${esc(this.P.name(0))} 생존 ${survivors}/${mine.length} · ${esc(this.P.name(1))} 격침 ${enemyLost}/${enemyTotal}`}</div>`
+      : `<h1 class="${win ? 'win' : 'lose'}">${classic ? (o.winner === 0 ? '작전 성공' : o.winner === 1 ? '작전 실패' : '무승부') : myTitle}</h1>
+      <div class="sub">${esc(o.reason)} · 교전 시간 ${fmtTime(o.time)} · ${classic ? '아군' : esc(this.P.name(me))} 생존 ${survivors}/${mine.length} · ${classic ? '적' : '적대 진영'} 격침 ${enemyLost}/${enemyTotal}</div>`}
+      ${sideTable}
       <div class="cols">
         <div>
           <h3>전투 하이라이트</h3>
-          ${highlights.map(hh => `<div class="hl${hh.team === 1 ? ' e' : ''}"><span class="tm">${fmtTime(hh.time)}</span><span class="ht">${esc(hh.title)}</span>${esc(hh.text)}</div>`).join('') || '<div class="eval">특별한 장면이 없었다.</div>'}
+          ${highlights.map(hh => `<div class="hl${(me === null ? hh.team !== 0 : !this.P.friend(hh.team)) ? ' e' : ''}"><span class="tm">${fmtTime(hh.time)}</span><span class="ht">${esc(hh.title)}</span>${esc(hh.text)}</div>`).join('') || '<div class="eval">특별한 장면이 없었다.</div>'}
         </div>
         <div>
           <h3>최우수 함선</h3>
@@ -796,7 +882,7 @@ export class BattleHUD {
     const bind = (k: string, f: () => void) => { const b = modal.querySelector<HTMLButtonElement>(`[data-a="${k}"]`); if (b) b.onclick = f; };
     bind('replay', () => this.opts.onReplay()); bind('restart', () => this.opts.onRestart()); bind('exit', () => this.opts.onExit());
     bind('return', () => this.opts.campaign?.onReturn());
-    this.s.view.audio?.play(this.opts.spectate || win ? 'win' : 'lose', null, 0.8);
+    this.s.view.audio?.play(me === null || win ? 'win' : 'lose', null, 0.8);
   }
 }
 

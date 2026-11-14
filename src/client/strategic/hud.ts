@@ -16,6 +16,8 @@ import { secAt, effSec } from '../../world/security';
 import { FACTION_NAME, LAIR_FOOTHOLD } from '../../world/factions';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
+import { coRelation } from '../../world/battleAuth';
+import { REL_COLOR } from '../../ui/perspective';
 import { CHART_STARS, chartPoint, chartRoute, chartSize, edgeKey } from './galaxyMap';
 import { fieldIntelHtml, territoryHtml, unidentified } from './territoryUi';
 import { FACTIONS } from '../../world/territory';
@@ -252,6 +254,14 @@ export class PmcHud {
     return s && s.owner === 'pirates' ? s.groupId : null;
   }
 
+  /** P11 only: the group of another player company under the cursor (never in the legacy world) */
+  private pmcGroupAt(p: Pick | null): string | null {
+    if (this.st.combatV !== 2) return null;
+    const gid = p?.kind === 'group' ? p.id : p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : undefined;
+    const g = gid ? this.st.groups[gid] : undefined;
+    return g && g.owner !== this.me && this.st.companies[g.owner]?.kind === 'player' ? g.id : null;
+  }
+
   private leftClick(x: number, y: number) {
     const p = this.pickAt(x, y);
     if (this.mode) { this.applyMode(p, x, y); return; }
@@ -374,30 +384,61 @@ export class PmcHud {
     return e.names ?? e.sides.map(s => s.map(c => st.companies[c]?.name ?? c).join(', '));
   }
 
+  /** P11 (combat world): relation to another PMC and the actions that change it. Hostility is one-sided
+   *  (either company's declaration makes the pair hostile); an alliance needs both companies' offer. */
+  private pvpHtml(owner: string, groupId: string): string {
+    const st = this.st, me = this.me;
+    if (st.combatV !== 2 || owner === me || st.companies[owner]?.kind !== 'player') return '';
+    const rel = coRelation(st, me, owner);
+    const mine = st.stance?.[me], theirs = st.stance?.[owner];
+    const iDeclared = !!mine?.hostile?.includes(owner), theyDeclared = !!theirs?.hostile?.includes(me);
+    const iOffer = !!mine?.ally?.includes(owner), theyOffer = !!theirs?.ally?.includes(me);
+    const relTxt = rel === -1 ? `<b style="color:${REL_COLOR.enemy}">적대</b>${theyDeclared && !iDeclared ? ' (상대의 선언)' : ''}` : rel === 1 ? `<b style="color:${REL_COLOR.ally}">동맹</b>` : `<b style="color:${REL_COLOR.neutral}">중립</b>${theyOffer ? ' · 상대가 동맹 제안 중' : iOffer ? ' · 동맹 제안함' : ''}`;
+    return `<div class="dim" style="margin-top:4px">관계: ${relTxt}</div><div class="row" style="gap:4px;flex-wrap:wrap;display:flex">
+      ${this.group && rel !== 1 ? `<button class="btn danger" data-pvp="${groupId}">선택 편대로 공격${rel === -1 ? '' : ' (적대 선언)'}</button>` : ''}
+      ${!iDeclared ? `<button class="btn danger mini" data-stance="${owner}:-1">적대 선언</button>` : `<button class="btn mini" data-stance="${owner}:0">적대 철회</button>`}
+      ${rel !== 1 && !iOffer ? `<button class="btn mini" data-stance="${owner}:1">동맹 제안</button>` : rel === 1 ? `<button class="btn mini" data-stance="${owner}:0">동맹 해제</button>` : ''}</div>`;
+  }
+
+  /** P11 battles with more than two sides: each side in the colour of its relation to this player */
+  private multiSides(e: { sides: string[][]; prog?: { out?: (string | null)[] } }, names: string[]): string {
+    const st = this.st, me = this.me;
+    const col = (k: number) => {
+      const co = e.sides[k]?.[0]; if (!co) return '#cfd8e0';
+      const r = co === me ? 2 : coRelation(st, me, co);
+      return r === 2 ? REL_COLOR.own : r === 1 ? REL_COLOR.ally : r === 0 ? REL_COLOR.neutral : REL_COLOR.enemy;
+    };
+    return names.map((n, k) => `<b style="color:${col(k)}${e.prog?.out?.[k] ? ';opacity:.5' : ''}">${esc(n)}</b>`).join(' <span class="dim">vs</span> ');
+  }
+
   private renderBattles() {
     const el = this.battles; if (!el) return;
     const st = this.st;
     const sysName = (p: V) => sysAt(st.systems, p)?.name ?? '심우주';
     const bar = (a: number, b: number) => `<div class="bbar"><i style="width:${Math.round(a * 100)}%"></i><em style="width:${Math.round(b * 100)}%"></em></div>`;
-    const live = Object.values(st.engagements).filter(e => !e.done).sort((a, b) => (b.prog ? b.prog.total[0] + b.prog.total[1] : 0) - (a.prog ? a.prog.total[0] + a.prog.total[1] : 0));
+    const tot = (e: { prog?: { total: number[] } }) => e.prog ? e.prog.total.reduce((a, b) => a + b, 0) : 0;
+    const live = Object.values(st.engagements).filter(e => !e.done).sort((a, b) => tot(b) - tot(a));
     const rows = live.map(e => {
-      const [na, nb] = this.battleSides(e);
-      const mine = e.sides[0].includes(this.me) || e.sides[1].includes(this.me);
+      const names = this.battleSides(e);
+      const mine = e.sides.some(x => x.includes(this.me));
       const p = e.prog;
       const t = Math.max(0, Math.round((st.time - e.start)));
       const watchable = e.autoEnd === undefined;
+      const multi = names.length > 2;
       return `<div class="brow" data-b="${e.id}">
-        <div class="bh"><b>${esc(na)}</b> <span class="dim">vs</span> <b class="en">${esc(nb)}</b>${mine ? ' <span class="tag">아군 참전</span>' : ''}</div>
-        <div class="bm dim">${esc(sysName(e.pos))} · ${Math.floor(t / 60)}분 ${t % 60}초 경과${p ? ` · 잔존 ${p.alive[0]}/${p.total[0]} 대 ${p.alive[1]}/${p.total[1]}척` : ''}</div>
-        ${p ? bar(p.value[0], p.value[1]) : ''}
+        <div class="bh">${multi ? this.multiSides(e, names) : `<b>${esc(names[0])}</b> <span class="dim">vs</span> <b class="en">${esc(names[1])}</b>`}${mine ? ' <span class="tag">아군 참전</span>' : ''}</div>
+        <div class="bm dim">${esc(sysName(e.pos))} · ${Math.floor(t / 60)}분 ${t % 60}초 경과${p ? ` · 잔존 ${multi ? p.alive.map((a, k) => `${a}/${p.total[k]}`).join(' · ') : `${p.alive[0]}/${p.total[0]} 대 ${p.alive[1]}/${p.total[1]}`}척` : ''}</div>
+        ${p && !multi ? bar(p.value[0], p.value[1]) : ''}
         <div class="bb"><button class="btn mini" data-bfocus="${e.id}">위치 보기</button>${watchable ? `<button class="btn mini go" data-watch="${e.id}">${mine ? '전투 지휘' : '관전'}</button>` : '<span class="dim">원거리 판정 (관전 불가)</span>'}</div></div>`;
     }).join('') || '<div class="dim" style="padding:10px">현재 진행 중인 교전이 없습니다.</div>';
     const log = (st.battleLog ?? []).slice().reverse();
     const recs = log.map(r => {
       const ago = Math.max(0, Math.round((st.time - r.end) / 60));
-      const res = r.winner === 0 ? `<b>${esc(r.names[0])}</b> 승리` : r.winner === 1 ? `<b class="en">${esc(r.names[1])}</b> 승리` : '무승부';
-      return `<div class="brow rec" data-r="${r.id}"><div class="bh">${esc(r.names[0])} <span class="dim">vs</span> <span class="en">${esc(r.names[1])}</span></div>
-        <div class="bm dim">${esc(r.sys ? st.systems[r.sys]?.name ?? '' : sysName(r.pos))} · ${ago ? ago + '분 전' : '방금'} · ${res} · 손실 ${r.losses[0]} / ${r.losses[1]}척 (총 ${r.n}척)</div>
+      const multi = r.names.length > 2;
+      const OUT: Record<string, string> = { victor: '승리', survived: '생존', withdrawn: '철수', routed: '패주', destroyed: '전멸' };
+      const res = multi ? (r.winner >= 0 ? `<b>${esc(r.names[r.winner])}</b> 승리` : (r.sides ?? []).map((x, k) => `${esc(r.names[k])} ${OUT[x.status] ?? x.status}`).join(' · ')) : r.winner === 0 ? `<b>${esc(r.names[0])}</b> 승리` : r.winner === 1 ? `<b class="en">${esc(r.names[1])}</b> 승리` : '무승부';
+      return `<div class="brow rec" data-r="${r.id}"><div class="bh">${multi ? r.names.map(n => esc(n)).join(' <span class="dim">vs</span> ') : `${esc(r.names[0])} <span class="dim">vs</span> <span class="en">${esc(r.names[1])}</span>`}${r.sides?.some(x => x.company === this.me) ? ' <span class="tag">아군 참전</span>' : ''}</div>
+        <div class="bm dim">${esc(r.sys ? st.systems[r.sys]?.name ?? '' : sysName(r.pos))} · ${ago ? ago + '분 전' : '방금'} · ${res} · 손실 ${r.losses.join(' / ')}척 (총 ${r.n}척)</div>
         <div class="bb"><button class="btn mini" data-watch="${r.id}">▶ 리플레이</button></div></div>`;
     }).join('') || '<div class="dim" style="padding:10px">아직 기록된 전투가 없습니다.</div>';
     morph(el, `<div class="box bl">
@@ -617,7 +658,14 @@ export class PmcHud {
       case 'haul_from': if (p?.kind === 'station') { this.haulFrom = p.id; this.mode = 'haul_to'; this.hint('운송 목적지 정거장을 클릭하세요'); } else this.hint('출발 정거장을 클릭하세요'); return;
       case 'haul_to': if (p?.kind === 'station' && this.haulFrom) this.openHaulRes(this.haulFrom, p.id); else this.hint('목적지 정거장을 클릭하세요'); return;
       case 'escort': { const target = p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : p?.kind === 'group' ? p.id : undefined; const tg = target ? this.st.groups[target] : undefined; if (tg && tg.owner === this.me && tg.id !== g.id) this.setOp({ k: 'escort', group: tg.id }); else this.hint('호위할 자사 함선이나 편대 이름표를 클릭하세요'); return; }
-      case 'attack': { const pg = this.pirateGroupAt(p); if (pg) this.setOp({ k: 'attack', group: pg }); else if (p?.kind === 'lair') this.setOp({ k: 'attack', lair: p.id }); else this.hint('해적 함선이나 은신처를 클릭하세요'); return; }
+      case 'attack': {
+        const pg = this.pirateGroupAt(p);
+        if (pg) this.setOp({ k: 'attack', group: pg });
+        else if (p?.kind === 'lair') this.setOp({ k: 'attack', lair: p.id });
+        else { const og = this.pmcGroupAt(p); // P11: another PMC's fleet (counts as declaring hostility)
+          if (og && confirm('다른 PMC 함대를 공격하면 적대 선언으로 기록됩니다(선제 공격). 계속합니까?')) this.setOp({ k: 'attack', group: og });
+          else if (!og) this.hint(this.st.combatV === 2 ? '해적·다른 PMC 함선이나 은신처를 클릭하세요' : '해적 함선이나 은신처를 클릭하세요'); }
+        return; }
       case 'build': if (p?.kind === 'station' && this.st.stations[p.id].owner === this.me) this.setOp({ k: 'build', station: p.id }); else this.hint('자사 정거장을 클릭하세요'); return;
       case 'found': {
         const pt = plane(); if (!pt) return;
@@ -899,6 +947,15 @@ export class PmcHud {
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
     el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
     el.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(b => b.onclick = () => this.setOp(JSON.parse(b.dataset.quick!)));
+    el.querySelectorAll<HTMLButtonElement>('[data-stance]').forEach(b => b.onclick = () => {
+      const [target, v] = b.dataset.stance!.split(':');
+      if (v === '-1' && !confirm(`${this.st.companies[target]?.name ?? target}에 적대를 선언합니다. 상대 함대와 마주치면 교전이 시작되고, 진행 중인 전투에도 즉시 반영됩니다. 계속합니까?`)) return;
+      this.cmd({ c: 'stance', target, v: Number(v) as -1 | 0 | 1 });
+    });
+    el.querySelectorAll<HTMLButtonElement>('[data-pvp]').forEach(b => b.onclick = () => {
+      if (!confirm('다른 PMC 함대를 공격하면 적대 선언으로 기록됩니다(선제 공격). 계속합니까?')) return;
+      this.setOp({ k: 'attack', group: b.dataset.pvp! });
+    });
     el.querySelectorAll<HTMLButtonElement>('[data-salvage]').forEach(b => b.onclick = () => this.setOp({ k: 'salvage', site: b.dataset.salvage! }));
     el.querySelectorAll<HTMLButtonElement>('[data-minehere]').forEach(b => b.onclick = () => { if (!this.group) return; this.mineForm = { group: this.group, field: b.dataset.minehere!, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.refresh(true); });
     const nm = el.querySelector<HTMLInputElement>('[data-rename]'); if (nm) nm.onchange = () => this.cmd({ c: 'renameGroup', group: nm.dataset.rename!, name: nm.value });
@@ -949,7 +1006,8 @@ export class PmcHud {
         <div class="dim">${g ? `${esc(g.name)} (${g.shipIds.length}척, 전력 ${val}) · ${esc(g.status)}` : ''}</div>
         <div class="bar2"><i style="width:${x.hp * 100}%;background:${hpCol(x.hp)}"></i></div>
         ${co?.kind === 'pirate' && this.group ? `<button class="btn danger" data-quick='${JSON.stringify({ k: 'attack', group: x.groupId })}'>선택 편대로 공격</button>` : ''}
-        ${e && !e.done ? `<button class="btn go" data-battle="${e.id}">전투 관전</button>` : ''}</div>`;
+        ${this.pvpHtml(x.owner, x.groupId)}
+        ${e && !e.done ? `<button class="btn go" data-battle="${e.id}">${e.sides.some(z => z.includes(this.me)) ? '전투 지휘' : '전투 관전'}</button>` : ''}</div>`;
     }
     if (s.kind === 'gate') {
       const sys = Object.values(st.systems).find(x => x.gates.some(g => g.id === s.id)); const gt = sys?.gates.find(g => g.id === s.id);
@@ -967,11 +1025,12 @@ export class PmcHud {
     }
     if (s.kind === 'battle') {
       const e = st.engagements[s.id]; if (!e) return '';
-      const [na, nb] = this.battleSides(e);
+      const names = this.battleSides(e);
       const p = e.prog;
-      const mine = e.sides[0].includes(this.me) || e.sides[1].includes(this.me);
-      return `<div class="info"><div class="ih"><b style="color:#ff9a7a">⚔ 교전 중</b></div><div><b>${esc(na)}</b> <span class="dim">vs</span> <b style="color:#ff9a7a">${esc(nb)}</b></div>
-        ${p ? `<div class="dim">잔존 ${p.alive[0]}/${p.total[0]} 대 ${p.alive[1]}/${p.total[1]}척</div><div class="bbar"><i style="width:${Math.round(p.value[0] * 100)}%"></i><em style="width:${Math.round(p.value[1] * 100)}%"></em></div>` : ''}
+      const mine = e.sides.some(x => x.includes(this.me));
+      const multi = names.length > 2;
+      return `<div class="info"><div class="ih"><b style="color:#ff9a7a">⚔ 교전 중</b></div><div>${multi ? this.multiSides(e, names) : `<b>${esc(names[0])}</b> <span class="dim">vs</span> <b style="color:#ff9a7a">${esc(names[1])}</b>`}</div>
+        ${p ? multi ? `<div class="dim">잔존 ${p.alive.map((a, k) => `${esc(names[k] ?? '')} ${a}/${p.total[k]}`).join(' · ')}척</div>` : `<div class="dim">잔존 ${p.alive[0]}/${p.total[0]} 대 ${p.alive[1]}/${p.total[1]}척</div><div class="bbar"><i style="width:${Math.round(p.value[0] * 100)}%"></i><em style="width:${Math.round(p.value[1] * 100)}%"></em></div>` : ''}
         ${e.done ? '<div class="dim">교전 종료</div>' : e.autoEnd !== undefined ? '<div class="dim">원거리 판정 전투 (관전 불가)</div>' : `<button class="btn go" data-battle="${e.id}">${mine ? '전투 지휘' : '전투 관전'}</button>`}</div>`;
     }
     return '';
