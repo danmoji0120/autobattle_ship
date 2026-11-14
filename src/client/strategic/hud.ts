@@ -1,4 +1,5 @@
 import { LogisticsPanel } from './logisticsUi';
+import { AutoLogisticsPanel } from './autoLogisticsUi';
 import { procurementSourceHtml } from './procurementUi';
 import { AnalyticsPanel } from './analyticsUi';
 import { OperationsPanel } from './operationsUi';
@@ -90,7 +91,7 @@ export class PmcHud {
   private modalTab = 'market';
   private ind = newIndUi();
   private gy = newGrowthYardUi();
-  private logisticsPanel: LogisticsPanel | null = null;
+  private logisticsPanel: LogisticsPanel | AutoLogisticsPanel | null = null;
   private analyticsPanel: AnalyticsPanel | null = null;
   private opsPanel: OperationsPanel | null = null;
   private upkOpen = false;
@@ -871,7 +872,7 @@ export class PmcHud {
         : `<div class="kv"><span>접속 중</span><b>${this.c.players.filter(p => p.online).length}명</b></div>${players.map(p => `<span class="dot" title="${esc(p.name)}${p.online ? '' : ' (오프라인)'}" style="background:${p.color};opacity:${p.online ? 1 : 0.3}"></span>`).join('')}`}
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
       ${growthOn(this.st) ? `<button class="btn" id="opsBtn" title="회사 전체 업무 · 목표 · 재고 · 결재">회사 본부${(() => { const n = Object.values(this.st.approvals ?? {}).filter(a => a.owner === this.me && a.state === 'open').length; return n ? ` <span class="ops-dot">${n}</span>` : ''; })()}</button>` : ''}
-      ${growthOn(this.st) ? '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>' : ''}
+      ${growthOn(this.st) ? (this.st.logisticsV ? '<button class="btn" id="logisticsBtn" title="수송선 · 진행 중 운송 · 부족 자재 · 문제">물류 현황</button>' : '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>') : ''}
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
     el.querySelectorAll<HTMLButtonElement>('[data-spd]').forEach(b => b.onclick = () => this.c.setSpeed(Number(b.dataset.spd)));
@@ -1093,7 +1094,7 @@ export class PmcHud {
           <button class="btn mini danger" data-delgroup="${g.id}" title="편대 해체">해체</button></div>
         <div class="status${g.fleeing ? ' warn' : ''}">${!g.override && g.parentId ? `<span class="tag">위임</span> 상위 편대 작전 수행 — ` : `<span class="tag ov">${OP_NAME[g.op.k]}</span> `}${esc(g.status)}</div>
         <div class="row">
-          ${opb('move', '이동', 'M')}${opb('dock', '정박', 'D')}${opb('mine', '채굴', 'N', hasMiner)}${opb('haul', '운송', '', hasCargo)}
+          ${opb('move', '이동', 'M')}${opb('dock', '정박', 'D')}${opb('mine', '채굴', 'N', hasMiner)}${this.st.logisticsV ? '' : opb('haul', '운송', '', hasCargo)}
           ${opb('patrol', '순찰', 'P', hasMil)}${opb('escort', '호위', 'G')}${opb('attack', '공격', 'A', hasMil, 'danger')}
           ${opb('build', growthOn(st) && !hasCon ? '현장 반입' : '건설', '', hasCon || growthOn(st) && hasCargo)}${opb('found', '정거장 설립', '', ships.some(s => s.classId === 'constructor'))}
           ${opb('idle', '대기', 'I')}${g.parentId ? `<button class="btn${!g.override ? ' on' : ''}" data-op="release" title="상위 편대 지휘관에게 위임">위임<span class="key">T</span></button>` : ''}
@@ -1291,6 +1292,15 @@ export class PmcHud {
   openLogistics(options: { station?: string; group?: string; create?: boolean; construction?: boolean } = {}) {
     if (!growthOn(this.st)) return;
     this.closeModal(); this.analyticsPanel?.close(); this.logisticsPanel?.close(); this.opsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
+    if (this.st.logisticsV) {
+      // P12.5: status screen only — no routes, no per-item dispatch
+      this.logisticsPanel = new AutoLogisticsPanel(this.root, this.c, {
+        station: id => this.openStation(id, 'store'),
+        fleet: (id, ship) => { this.select({ kind: 'group', id }); const pos = ship ? this.st.ships[ship]?.pos : this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
+        close: () => { this.logisticsPanel = null; },
+      });
+      return;
+    }
     this.logisticsPanel = new LogisticsPanel(this.root, this.c, {
       station: (id, tab) => this.openStation(id, tab ?? 'store'),
       fleet: (id, ship) => { this.select({ kind: 'group', id }); const pos = ship ? this.st.ships[ship]?.pos : this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
@@ -1651,7 +1661,7 @@ export class PmcHud {
         const traveling = incoming.filter(x => x.manifest.item === item).reduce((n, x) => n + x.amount, 0);
         return `<tr><td>${iname(item)}</td><td class="n"><span class="construction-mobile-label">필요</span>${fmt(required)}</td><td class="n"><span class="construction-mobile-label">투입</span>${fmt(used)}</td><td class="n"><span class="construction-mobile-label">현장 예약</span>${fmt(reserved)}</td><td class="n"><span class="construction-mobile-label">현장 가용</span>${fmt(local)}</td><td class="n ${short > 0 ? 'warn' : 'good'}"><span class="construction-mobile-label">부족</span>${fmt(short)}</td><td class="n"><span class="construction-mobile-label">노선 화물</span>${fmt(traveling)}</td></tr>`;
       }).join('');
-      html += `<section class="construction-supply"><div class="construction-supply-head"><div><h3>건설 자재 공급</h3><p class="dim small">현장에 도착한 자재만 건설에 사용할 수 있습니다. 운송 중 물량은 아직 확보되지 않았습니다.</p></div><button class="btn go" data-logistics-build="${esc(s.id)}">건설 공급 노선 설정 →</button></div>
+      html += `<section class="construction-supply"><div class="construction-supply-head"><div><h3>건설 자재 공급</h3><p class="dim small">현장에 도착한 자재만 건설에 사용할 수 있습니다. 운송 중 물량은 아직 확보되지 않았습니다.</p></div><button class="btn go" data-logistics-build="${esc(s.id)}">${this.st.logisticsV ? '자동 물류 현황 →' : '건설 공급 노선 설정 →'}</button></div>
         <div class="construction-supply-table"><table class="gt"><tr><th>자재</th><th>필요</th><th>투입</th><th>현장 예약</th><th>현장 가용</th><th>부족</th><th>노선 화물</th></tr>${rows}</table></div>
         ${incoming.length ? `<div class="construction-shipments">${incoming.map(x => `<div><b>${iname(x.manifest.item)} ${fmt(x.amount)}</b> · ${esc(this.st.stations[x.manifest.from]?.name ?? '출발지 없음')} → ${esc(s.name)} · ${esc(x.ship.name)} <span class="dim">${x.route.state === 'paused' ? '일시정지 — 재개 필요' : '노선 운송 중'}</span></div>`).join('')}</div>` : '<p class="dim small">이 현장으로 예정된 노선 화물이 없습니다.</p>'}
         ${markets.length ? `<p class="small">구매할 수 있는 시장: ${markets.map(st => `<button class="an-link" data-build-market="${esc(st.id)}">${esc(st.name)} · ${iname(marketItem!)} 재고 ${fmt(st.market![marketItem!].stock)} →</button>`).join(' · ')}</p>` : ''}

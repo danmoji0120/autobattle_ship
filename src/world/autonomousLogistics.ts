@@ -221,7 +221,7 @@ export function dispatchPool(h: Host) {
     const candidates = ships.filter(s => s.owner === j.owner && (external || berthFits(a, econOf(s).berth)) && (j.kind === 'construction' || berthFits(b, econOf(s).berth)) && path(h, s.pos, a.pos, maxRisk));
     candidates.sort((x, y) => pickupDistance(h, x, a) - pickupDistance(h, y, a) || x.id.localeCompare(y.id));
     const s = candidates[0];
-    if (!s) { j.state = 'waiting'; j.reason = '적합한 공용 수송 함선 대기 — 참여 설정, 정박 규격 및 경로 확인'; j.code = 'ship'; continue; }
+    if (!s) { j.state = 'waiting'; j.reason = h.st.logisticsV ? '수송선 대기 — 모든 수송선이 운송 중이거나 정박 규격·경로가 맞지 않습니다. 수송선이 비면 자동 배정' : '적합한 공용 수송 함선 대기 — 참여 설정, 정박 규격 및 경로 확인'; j.code = 'ship'; continue; }
     let amount = Math.min(j.amount - j.cycleDelivered, Math.max(0, econOf(s).cargo * techFx(h.st.companies[j.owner]?.tech).cargoMul - cargoSum(s.cargo)), freeStock);
     if (j.kind === 'construction') amount = Math.min(amount, Math.max(0, constructionRoom(b, j.item, true) - incomingRoutes(h, j.owner, j.to, j.item) - incomingPool(h.st, j.owner, j.to, j.item)));
     if (j.kind !== 'construction') amount = Math.floor(amount + EPS);

@@ -850,3 +850,28 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 @media(max-width:1100px) { .ops-kpi { grid-template-columns:repeat(3,1fr); } .ops-cols { grid-template-columns:1fr; } .ops-body { padding:14px 16px; } .ops-inv-detail { grid-template-columns:1fr; } }
 @media(max-width:760px) { .ops-kpi { grid-template-columns:1fr 1fr; } .ops-kpi>div:nth-child(n+3) { display:flex; } .ops-tabs { overflow-x:auto; white-space:nowrap; } .ops-tabs button { flex-shrink:0; } .ops-option { flex-direction:column; align-items:stretch; } .ops-work-top b { min-width:0; flex-basis:100%; order:3; } }
 @media(max-width:650px) { #ptop #opsBtn { order:-2; font-size:11px; padding:6px; } }
+/* P12.5 logistics status (logisticsV worlds) */
+.autolg-box { overflow-y:auto; }
+.autolg-box .pool-section { padding:14px 24px; border-bottom:1px solid var(--line); }
+.autolg-summary { grid-template-columns:repeat(6,1fr); }
+.autolg-summary b.warn { color:var(--warn,#ffb347); }
+.autolg-note { padding:6px 24px 0; margin:0; }
+.autolg-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:8px; }
+.autolg-list>li { background:#0d1a28; border:1px solid var(--line); padding:9px 11px; display:flex; flex-direction:column; gap:4px; min-width:0; }
+.autolg-list .good { color:var(--good,#7ee0a1); } .autolg-list .warn { color:var(--warn,#ffb347); }
+.autolg-btns { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+.autolg-row { all:unset; cursor:pointer; display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; width:100%; }
+.autolg-row:focus-visible { outline:1px solid var(--accent); }
+.autolg-row>span:nth-child(2) { color:var(--dim); flex:1; min-width:0; overflow-wrap:anywhere; }
+.autolg-adv>summary { cursor:pointer; padding:4px 0; }
+.autolg-form { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; margin-top:10px; align-items:end; }
+.autolg-form label { display:flex; flex-direction:column; gap:4px; font-size:12px; }
+.autolg-form label:has(input[type=checkbox]) { flex-direction:row; align-items:center; gap:6px; }
+.autolg-form p { grid-column:1/-1; margin:0; }
+@media(max-width:760px) {
+  .autolg-box .pool-section { padding:12px; }
+  .autolg-summary { grid-template-columns:repeat(3,1fr); }
+  .autolg .lg-summary>div:nth-child(n+3) { display:flex; }
+  .autolg-note { padding:6px 12px 0; }
+  .autolg-list { grid-template-columns:1fr; }
+}

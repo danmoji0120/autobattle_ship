@@ -5,6 +5,9 @@ import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, obs
 import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
 import { createPoolJob, controlPoolJob, setPoolShips, interruptPoolShips, dispatchPool, maintainPool, stepPoolShip, type PoolRequest } from './autonomousLogistics';
 import { autoLogistics } from './haulers';
+import { pruneLogisticsJobs } from './retention';
+/** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
+const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
 import { planProcurement, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
@@ -186,6 +189,7 @@ export class WorldSim {
   private acc = 0;
   private slow = 0;
   private poolDispatchAt = 0;
+  private pruneAt = 0;
   private procurementAt = 0;
   /** what the content migration did on load (null = not run) */
   contentReport: MigrationReport | null = null;
@@ -1887,7 +1891,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if ((st.logisticsJobs || st.logisticsV) && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } stepOperations(this); }
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if ((st.logisticsJobs || st.logisticsV) && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } stepOperations(this); if (st.logisticsV && this.time >= this.pruneAt) { pruneLogisticsJobs(st, AUTO_JOB_HISTORY); this.pruneAt = this.time + 60; } }
     this.speedCap.clear(); this.escortPlans.clear(); this.escortIdx = null;
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
