@@ -1,0 +1,100 @@
+{
+  "hours": 6,
+  "seed": 1313,
+  "mode": "safe",
+  "error": null,
+  "noDerelictSites": true,
+  "wrecksCreated": 25,
+  "shipsInWrecks": 69,
+  "duplicateSources": 0,
+  "sourcesByOwnerKind": {
+    "union": 23,
+    "pirate": 40,
+    "guild": 6
+  },
+  "accounting": {
+    "initialUnits": 9047,
+    "taken": 3959,
+    "left": 0,
+    "removedRemainder": 5088,
+    "decayed": 5088,
+    "error": 0,
+    "decayFlowEqualsRemovedRemainder": true
+  },
+  "takenByCompanyKind": {
+    "player": 3959
+  },
+  "salvager": {
+    "groups": 3,
+    "ships": 9,
+    "shipsLeft": 9,
+    "fleetReferenceValue": 146400,
+    "dispatched": 42,
+    "refused": {},
+    "takenReferenceValue": 362974,
+    "sales": 199376,
+    "sellErrors": 244,
+    "creditsChange": 163117,
+    "upkeepAndOtherCosts": -36258,
+    "storedValue": 102638,
+    "aboardValue": 0,
+    "netOperating": 265755
+  },
+  "saveRestoreEqual": true,
+  "perHour": [
+    {
+      "hour": 1,
+      "wrecks": 8,
+      "created": 12,
+      "ships": 29,
+      "sTakenValue": 120410,
+      "credits": 379652,
+      "tickMs": 11.08
+    },
+    {
+      "hour": 2,
+      "wrecks": 12,
+      "created": 17,
+      "ships": 47,
+      "sTakenValue": 160644,
+      "credits": 397571,
+      "tickMs": 10.91
+    },
+    {
+      "hour": 3,
+      "wrecks": 6,
+      "created": 20,
+      "ships": 57,
+      "sTakenValue": 260854,
+      "credits": 442912,
+      "tickMs": 11.01
+    },
+    {
+      "hour": 4,
+      "wrecks": 3,
+      "created": 21,
+      "ships": 59,
+      "sTakenValue": 280144,
+      "credits": 444754,
+      "tickMs": 11.26
+    },
+    {
+      "hour": 5,
+      "wrecks": 0,
+      "created": 25,
+      "ships": 69,
+      "sTakenValue": 362974,
+      "credits": 469657,
+      "tickMs": 11.12
+    },
+    {
+      "hour": 6,
+      "wrecks": 0,
+      "created": 25,
+      "ships": 69,
+      "sTakenValue": 362974,
+      "credits": 463117,
+      "tickMs": 10.9
+    }
+  ]
+}
