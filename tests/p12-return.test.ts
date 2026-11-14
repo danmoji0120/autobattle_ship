@@ -179,6 +179,23 @@ describe('P12 auto return', () => {
     expect(ships(sim, other).every(s => s.state === 'space')).toBe(true);
   });
 
+  it('reorganisation mid-return: a group joining follows the order, a group leaving stops following it', () => {
+    const { sim, A } = mk();
+    const at = sysP(sim, 'drake', -20000, 20000);
+    const g = fleet(sim, A, at, ['destroyer', 'frigate'], '본대');
+    const leaver = fleet(sim, A, { x: at.x, y: 0, z: at.z + 500 }, ['frigate'], '이탈대', g.id);
+    const joiner = fleet(sim, A, { x: at.x + 3000, y: 0, z: at.z }, ['corvette'], '합류대');
+    expect(ret(sim, A, g)).toBeNull();
+    run(sim, 5);
+    expect(sim.command(A, { c: 'setParent', group: leaver.id, parent: null } as any)).toBeNull();
+    expect(sim.command(A, { c: 'setParent', group: joiner.id, parent: g.id } as any)).toBeNull();
+    expect(run(sim, 900, () => g.op.k === 'idle')).toBe(true);
+    expect(ships(sim, joiner).every(s => s.state === 'docked' && s.task.k === 'docked' && s.task.station === g.opx!.station)).toBe(true);
+    expect(ships(sim, leaver).every(s => s.state === 'space')).toBe(true);     // left the command: not docked by it
+    expect(leaver.op.k).toBe('idle');
+    expect([...ships(sim, g), ...ships(sim, joiner), ...ships(sim, leaver)].length).toBe(4);
+  });
+
   it('no commander and an injured commander still return (acting captain decides)', () => {
     const { sim, A } = mk();
     const a = fleet(sim, A, sysP(sim, 'drake', 9000, 4000), ['destroyer'], '무지휘', null, false);

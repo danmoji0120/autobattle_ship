@@ -1,0 +1,86 @@
+{
+  "passed": 25,
+  "checks": [
+    "FLEET_OPS_P12=1 server creates a P12 world (with P11 combat)",
+    "A and C declare hostility to B (A–C stay neutral)",
+    "B cannot order A's fleet (server refuses)",
+    "1. A orders its fleet to blockade the Sunder gate (one order: system + gate)",
+    "C rallies its fleet at a holding point in Sunder",
+    "2. A's fleet crosses two gates and holds the post at the gate (\"엠버 성운 점프게이트 관문 봉쇄 — 통제 중 (적대 함대만 교전)\")",
+    "other companies see neither A's order nor its operation state",
+    "3. hostile B sends its fleet toward the gate",
+    "4. A's commander engages B at the gate — P11 battle e197",
+    "   A's blockade order is kept during the battle",
+    "5. C is given a reinforce order for the running battle",
+    "6. C joins the same P11 battle instance (3 sides, no new battle)",
+    "7. B withdraws its side",
+    "   the battle ends",
+    "8. A resumes the gate blockade (\"엠버 성운 점프게이트 관문 봉쇄 — 통제 중 (적대 함대만 교전)\")",
+    "9. C's reinforce ends in its follow-up state: idle, \"증원 완료\"",
+    "10. A presses return (no station in the order)",
+    "11. A's commander picks the destination itself: 포지 구조재 공장 (forge) — Sunder has no station, so a gate must be crossed",
+    "12a. A's fleet jumps through the gate out of Sunder",
+    "the saved world holds the return order and the chosen station",
+    "13. after a server restart the return order and destination are restored",
+    "   every ship of the fleet is restored",
+    "12b. A docks at 포지 구조재 공장 and waits (no previous mission resumed: idle)",
+    "14. the battle is recorded exactly once (before and after the restart)",
+    "   no ship is left pointing at the finished battle"
+  ],
+  "facts": {
+    "blockade": {
+      "status": "엠버 성운 점프게이트 관문 봉쇄 — 통제 중 (적대 함대만 교전)",
+      "phase": "hold"
+    },
+    "engagement": "e197",
+    "returnStation": {
+      "id": "p9_forge_works",
+      "name": "포지 구조재 공장",
+      "system": "forge",
+      "score": 167.3786014063807
+    },
+    "record": [
+      {
+        "names": [
+          "알파 PMC",
+          "브라보 PMC",
+          "찰리 PMC"
+        ],
+        "sides": [
+          {
+            "company": "p1",
+            "status": "victor"
+          },
+          {
+            "company": "p115",
+            "status": "routed"
+          },
+          {
+            "company": "p124",
+            "status": "victor"
+          }
+        ],
+        "losses": [
+          0,
+          1,
+          0
+        ]
+      }
+    ],
+    "credits": {
+      "before": [
+        11812.083333335,
+        11833.281250001,
+        11812.083333335
+      ],
+      "after": [
+        11812.083333335,
+        11833.281250001,
+        11812.083333335
+      ]
+    }
+  },
+  "realWebSockets": 3,
+  "restarts": 1,
+  "seconds": 359
+}

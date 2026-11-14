@@ -1,0 +1,132 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "single-player client resumes as 알파 PMC (P12 world)",
+      "extra": {
+        "me": "p1",
+        "opsV": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "group panel shows the operation, its phase and status",
+      "extra": {
+        "text": "복귀R\n집결\n지역 방어\n공격 이동\n차단 요격\n관문 봉쇄\n항로 습격\n증원\n정찰\n지역 방어 단계: 위치 유지\n작전 위치 -253273, -8536",
+        "status": "지역 방어 방어 구역 경계 중",
+        "op": "defend",
+        "opx": {
+          "phase": "hold"
+        },
+        "docked": false,
+        "buttons": [
+          "복귀R",
+          "집결",
+          "지역 방어",
+          "공격 이동",
+          "차단 요격",
+          "관문 봉쇄",
+          "항로 습격",
+          "증원",
+          "정찰"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "all P12 order buttons are in the existing group panel",
+      "extra": {
+        "buttons": [
+          "복귀R",
+          "집결",
+          "지역 방어",
+          "공격 이동",
+          "차단 요격",
+          "관문 봉쇄",
+          "항로 습격",
+          "증원",
+          "정찰"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "one click on 복귀: order accepted without a station; the commander's chosen station is shown",
+      "extra": {
+        "text": "복귀R\n집결\n지역 방어\n공격 이동\n차단 요격\n관문 봉쇄\n항로 습격\n증원\n정찰\n복귀 단계: 이동\n귀환지 아스트라 자유항 (지휘관 선정 · 평가 37)",
+        "status": "복귀 복귀 — 아스트라 자유항로 귀환 중 · 함대 이동 — 속도 111 (최저속 함선 기준 · 1/1 구간 · 3/3척)",
+        "op": "return",
+        "opx": {
+          "phase": "transit",
+          "station": "astra"
+        },
+        "docked": false,
+        "buttons": [
+          "복귀R",
+          "집결",
+          "지역 방어",
+          "공격 이동",
+          "차단 요격",
+          "관문 봉쇄",
+          "항로 습격",
+          "증원",
+          "정찰"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "return completes: every ship docked, order idle, panel shows 완료",
+      "extra": {
+        "text": "복귀R\n집결\n지역 방어\n공격 이동\n차단 요격\n관문 봉쇄\n항로 습격\n증원\n정찰\n완료 복귀\n귀환지 아스트라 자유항 (지휘관 선정)",
+        "status": "대기 정박 대기",
+        "op": "idle",
+        "opx": {
+          "phase": "done",
+          "station": "astra",
+          "done": "return"
+        },
+        "docked": true,
+        "buttons": [
+          "복귀R",
+          "집결",
+          "지역 방어",
+          "공격 이동",
+          "차단 요격",
+          "관문 봉쇄",
+          "항로 습격",
+          "증원",
+          "정찰"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "two-step order: 관문 봉쇄 asks for a gate",
+      "extra": {
+        "hint": "봉쇄할 점프게이트 클릭 (실제 배치 — 적대 함대만 교전) · 우클릭/Esc 취소"
+      }
+    },
+    {
+      "ok": true,
+      "label": "clicking a gate issues the blockade order",
+      "extra": {
+        "gate": "gate:astra>helios"
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: no horizontal page scroll, 복귀 button on screen",
+      "extra": {
+        "overflow": false,
+        "ret": {
+          "w": 116,
+          "h": 34,
+          "x": 17,
+          "right": 133
+        }
+      }
+    }
+  ],
+  "errors": []
+}
