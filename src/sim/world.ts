@@ -1309,25 +1309,30 @@ export class World {
   }
 
   private checkOutcomeLegacy() {
-    const alive = [0, 0];
+    const alive = [0, 0], escaped = [0, 0];
     for (const s of this.ships) {
       if (s.state === 'alive' || s.state === 'dying' || s.state === 'inbound') alive[s.team]++;
+      else if (s.state === 'escaped') escaped[s.team]++;
       if (s.state === 'alive') {
         const g = this.groupById.get(s.groupId)!;
         const homeZ = s.team === 0 ? -1 : 1;
         if (g.order.type === 'retreat' && (s.pos.z * homeZ > this.spawnZ + 900 || Math.hypot(s.pos.x, s.pos.z) > FIELD_RADIUS + 400)) {
           s.state = 'escaped';
           this.events.push({ t: 'escaped', ship: s.id });
-          alive[s.team]--;
+          alive[s.team]--; escaped[s.team]++;
         }
       }
     }
     const end = (winner: Team | -1, reason: string) => {
-      this.outcome = { winner, reason, time: this.time, sides: this.sideResults(k => winner === -1 ? (alive[k] ? 'survived' : 'destroyed') : k === winner ? 'victor' : this.routed[k] >= 0 ? 'routed' : 'destroyed') };
+      // a side with nobody left here was destroyed only if none of its ships got away (an escaped ship is not a loss)
+      const gone = (k: number): SideStatus => escaped[k] > 0 ? 'withdrawn' : 'destroyed';
+      this.outcome = { winner, reason, time: this.time, sides: this.sideResults(k => winner === -1 ? (alive[k] ? 'survived' : gone(k)) : k === winner ? 'victor' : this.routed[k] >= 0 ? 'routed' : gone(k)) };
       if (winner >= 0) this.say(this.groupById.get(this.roots[winner as Team])!, 'victory', {}, 2);
       this.events.push({ t: 'end', outcome: this.outcome });
     };
     if (alive[0] === 0 && alive[1] === 0) return end(-1, '양측 전멸');
+    // (the reason text stays as recorded in the combat baseline: '전멸' even when some of that side escaped —
+    //  the side status below is the exact one; see docs/P13_1_SALVAGE.md §5)
     if (alive[0] === 0) return end(1, this.routed[0] >= 0 ? '아군 함대 퇴각' : '아군 함대 전멸');
     if (alive[1] === 0) return end(0, this.routed[1] >= 0 ? '적 함대 퇴각' : '적 함대 전멸');
     for (const team of [0, 1] as Team[]) {
