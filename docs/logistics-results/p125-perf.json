@@ -1,0 +1,59 @@
+{
+  "note": "same seed, world, stations and repeating shipments; 1800 sim seconds at dt 1 after 120 s warm-up; other long runs shared the machine",
+  "rows": [
+    {
+      "haulers": 10,
+      "mode": "legacy",
+      "meanMsPerSimSecond": 10.273,
+      "p95Ms": 16.448,
+      "delivered": 65200,
+      "busyAtEnd": 5,
+      "jobs": 5
+    },
+    {
+      "haulers": 10,
+      "mode": "p125",
+      "meanMsPerSimSecond": 9.904,
+      "p95Ms": 14.91,
+      "delivered": 65200,
+      "busyAtEnd": 5,
+      "jobs": 5
+    },
+    {
+      "haulers": 50,
+      "mode": "legacy",
+      "meanMsPerSimSecond": 12.853,
+      "p95Ms": 20.644,
+      "delivered": 223600,
+      "busyAtEnd": 23,
+      "jobs": 25
+    },
+    {
+      "haulers": 50,
+      "mode": "p125",
+      "meanMsPerSimSecond": 13.57,
+      "p95Ms": 20.839,
+      "delivered": 223600,
+      "busyAtEnd": 23,
+      "jobs": 25
+    },
+    {
+      "haulers": 100,
+      "mode": "legacy",
+      "meanMsPerSimSecond": 14.333,
+      "p95Ms": 22.299,
+      "delivered": 11200,
+      "busyAtEnd": 50,
+      "jobs": 50
+    },
+    {
+      "haulers": 100,
+      "mode": "p125",
+      "meanMsPerSimSecond": 15.454,
+      "p95Ms": 24.01,
+      "delivered": 11200,
+      "busyAtEnd": 50,
+      "jobs": 50
+    }
+  ]
+}

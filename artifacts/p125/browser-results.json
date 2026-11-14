@@ -1,0 +1,135 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "single-player client resumes the P12.5 world as 알파 PMC",
+      "extra": {
+        "me": "p1",
+        "v": 1,
+        "routes": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "the HUD button reads 물류 현황 (status), not route management"
+    },
+    {
+      "ok": true,
+      "label": "summary shows haulers, shipments in progress, shortages and problems",
+      "extra": {
+        "head": "SIDERARIUM / LOGISTICS\n물류 현황 대기 중인 수송선이 필요한 자재를 자동으로 운반합니다\n자동 물류 켜짐\n닫기\n가용 수송선\n0\n운송 중\n5\n이용 불가\n0\n진행 중 운송\n10\n부족 자재\n0\n문제\n0\n\n최근 1시간 배송 0 · 손실 0 · 수송선 대기 5건 — 가용 수송선이 없어 운송이 끝나는 대로 배정합니다 (수송선을 늘리면 빨라집니다)\n\n현재 운송\n\n품목 · 수량 · 목적지. 항목을 눌러 자세히 봅니다.\n\n10건\n구조재 340\nA 자재 정거장 → C 조선 정거장\n운송 중\n짐꾼 14호 — C 조선 정거장로 운송\n장갑판"
+      }
+    },
+    {
+      "ok": true,
+      "label": "every automatic shipment of the battleship build is listed",
+      "extra": {
+        "jobs": 10
+      }
+    },
+    {
+      "ok": true,
+      "label": "shipments waiting for a free hauler are shown as queueing (수송선 대기), with no registration wording",
+      "extra": {
+        "note": "최근 1시간 배송 0 · 손실 0 · 수송선 대기 5건 — 가용 수송선이 없어 운송이 끝나는 대로 배정합니다 (수송선을 늘리면 빨라집니다)",
+        "badges": [
+          "운송 중",
+          "운송 중",
+          "운송 중",
+          "운송 중",
+          "운송 중",
+          "수송선 대기",
+          "수송선 대기",
+          "수송선 대기",
+          "수송선 대기",
+          "수송선 대기"
+        ],
+        "legacy": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "no route creation, repeat-route or manual dispatch form exists",
+      "extra": {
+        "route": false,
+        "text": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "advanced settings (procurement / auto-buy) are collapsed by default"
+    },
+    {
+      "ok": true,
+      "label": "a shipment opens to show purpose, delivered and in-transit amounts",
+      "extra": {
+        "t": "목적\nC 조선 정거장 함선 건조\n배송 완료\n0\n적재·운송 중\n340\n출발지 예약\n0\n함선\n짐꾼 14호"
+      }
+    },
+    {
+      "ok": true,
+      "label": "each hauler has a per-ship exclusion control",
+      "extra": {
+        "target": "s11"
+      }
+    },
+    {
+      "ok": true,
+      "label": "excluding a hauler takes it out of automatic logistics (button flips to 포함)",
+      "extra": {
+        "before": {
+          "excluded": false,
+          "job": "lj37"
+        },
+        "ex": {
+          "cargo": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "row": "true"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "including it again returns it to automatic logistics"
+    },
+    {
+      "ok": true,
+      "label": "global switch off: panel says no new shipments start",
+      "extra": {
+        "off": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "global switch back on"
+    },
+    {
+      "ok": true,
+      "label": "the hauler group panel offers no manual haul order",
+      "extra": {
+        "haulBtn": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: panel fits the screen without horizontal scrolling; controls reachable",
+      "extra": {
+        "w": 378,
+        "left": 6,
+        "overflow": false,
+        "toggle": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    }
+  ],
+  "errors": []
+}

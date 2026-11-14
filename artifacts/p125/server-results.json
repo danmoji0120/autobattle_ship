@@ -1,0 +1,157 @@
+{
+  "passed": 18,
+  "checks": [
+    "AUTO_LOGISTICS_P125=1 server creates a P12.5 world (with P12 operations and P11 combat)",
+    "1: five haulers docked at A; no route exists and none was registered",
+    "2: the player orders a battleship at C (real command)",
+    "2: C holds none of the parts; A has the structural parts and weapons, B the electronics",
+    "3: the shortage of every part is planned for the battleship build",
+    "3: all five haulers are dispatched automatically, one shipment each, from A (and B for electronics)",
+    "4: haulers dock at A/B and load real cargo",
+    "5: the player sends the escort group with the haulers (escort order)",
+    "4: haulers travel through the astra→drake jump gate",
+    "5: the pirates at the gate are engaged (P11 engagement)",
+    "7: server restart mid-transport: the shipment, its ship, cargo and position are restored",
+    "7: the restored shipment is delivered after the restart",
+    "6: survivors unload at C, haulers are re-dispatched for the rest, the battleship build starts",
+    "6: deliveries + losses never exceed the planned amount (no duplicate transport)",
+    "8: another company sees none of the shipments or cargo",
+    "8: another company cannot exclude or command the haulers",
+    "8: no route and no haul order existed at any point",
+    "8: haulers were exposed to the raid (in battle, damaged or lost — never invulnerable)"
+  ],
+  "facts": {
+    "needs": {
+      "structure": 340,
+      "armor_plate": 200,
+      "engine": 12,
+      "reactor": 8,
+      "sensor": 6,
+      "electronics": 40,
+      "composite": 80,
+      "eq_heavy_cannon": 3,
+      "eq_medium_gun": 4,
+      "eq_pd_gun": 4
+    },
+    "fixture": {
+      "A": "p125_A",
+      "B": "p125_B",
+      "C": "p125_C",
+      "haulers": [
+        "s124",
+        "s125",
+        "s126",
+        "s127",
+        "s128"
+      ],
+      "hg": "g123",
+      "escort": "g129",
+      "gate": "gate:drake>astra"
+    },
+    "jobs": [
+      {
+        "item": "structure",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 340,
+        "delivered": 340,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "armor_plate",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 200,
+        "delivered": 200,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "engine",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 12,
+        "delivered": 12,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "reactor",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 8,
+        "delivered": 8,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "sensor",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 6,
+        "delivered": 6,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "electronics",
+        "from": "p125_B",
+        "to": "p125_C",
+        "amount": 36,
+        "delivered": 36,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "composite",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 80,
+        "delivered": 80,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "eq_heavy_cannon",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 3,
+        "delivered": 3,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "eq_medium_gun",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 4,
+        "delivered": 4,
+        "lost": 0,
+        "state": "complete"
+      },
+      {
+        "item": "eq_pd_gun",
+        "from": "p125_A",
+        "to": "p125_C",
+        "amount": 3,
+        "delivered": 3,
+        "lost": 0,
+        "state": "complete"
+      }
+    ],
+    "lost": 0,
+    "haulersAlive": 5,
+    "minHaulerHp": 1,
+    "haulersInBattle": [
+      "s124",
+      "s125",
+      "s126",
+      "s127",
+      "s128"
+    ]
+  },
+  "realWebSockets": 2,
+  "restarts": 2,
+  "seconds": 197
+}

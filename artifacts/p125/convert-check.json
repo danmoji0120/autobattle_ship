@@ -1,0 +1,234 @@
+{
+  "source": "generated legacy world (P12 world with every transport kind in flight)",
+  "passed": 21,
+  "failed": 0,
+  "checks": [
+    {
+      "ok": true,
+      "label": "the copy is converted once (logisticsV = 1)",
+      "extra": {
+        "routesBefore": [
+          {
+            "id": "lr24",
+            "mode": "construction",
+            "repeat": true,
+            "manifests": 100
+          },
+          {
+            "id": "lr26",
+            "mode": "transfer",
+            "repeat": false,
+            "manifests": 200
+          },
+          {
+            "id": "lr28",
+            "mode": "sell",
+            "repeat": true,
+            "manifests": 100
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "p1: every unit of every item (stations, holds, reservations) is unchanged",
+      "extra": {
+        "ore": 2000,
+        "alloy": 800,
+        "structure": 200,
+        "machinery": 100
+      }
+    },
+    {
+      "ok": true,
+      "label": "p1: credits and ledger unchanged"
+    },
+    {
+      "ok": true,
+      "label": "p1: hauler ownership, groups, positions and movement state unchanged"
+    },
+    {
+      "ok": true,
+      "label": "p1: construction reservations and consumption unchanged"
+    },
+    {
+      "ok": true,
+      "label": "existing shipment lj31 (active) kept exactly",
+      "extra": {
+        "id": "lj31",
+        "state": "active",
+        "carried": 150,
+        "reserved": 0,
+        "ship": "s19"
+      }
+    },
+    {
+      "ok": true,
+      "label": "existing shipment lj33 (paused) kept exactly",
+      "extra": {
+        "id": "lj33",
+        "state": "paused",
+        "carried": 100,
+        "reserved": 0,
+        "ship": "s21"
+      }
+    },
+    {
+      "ok": true,
+      "label": "existing shipment lj36 (queued) kept exactly",
+      "extra": {
+        "id": "lj36",
+        "state": "queued",
+        "carried": 0,
+        "reserved": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "route cargo aboard is now tracked by a shipment to the same destination",
+      "extra": [
+        {
+          "route": "lr24",
+          "ship": "s11",
+          "job": "lj145",
+          "item": "alloy",
+          "amount": 100
+        },
+        {
+          "route": "lr26",
+          "ship": "s13",
+          "job": "lj146",
+          "item": "ore",
+          "amount": 200
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "label": "repeating sale / transfer loops are kept in compatibility mode, not turned into new loops",
+      "extra": [
+        "lr28"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "construction / supply / one-way routes are replaced by demand-based logistics",
+      "extra": [
+        "lr24",
+        "lr26"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "direct haul orders are released; their cargo is marked for its destination",
+      "extra": [
+        {
+          "group": "g16",
+          "to": "cv_own",
+          "ships": [
+            "s17"
+          ]
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "label": "a second conversion changes nothing (idempotent)"
+    },
+    {
+      "ok": true,
+      "label": "the original save object is never modified"
+    },
+    {
+      "ok": true,
+      "label": "after conversion every tracked cargo reaches a station within an hour",
+      "extra": []
+    },
+    {
+      "ok": true,
+      "label": "a shipment the player paused before conversion stays paused with its cargo aboard",
+      "extra": [
+        [
+          "lj33",
+          100
+        ]
+      ]
+    },
+    {
+      "ok": true,
+      "label": "no cargo was lost while the converted world ran"
+    },
+    {
+      "ok": true,
+      "label": "p1: ore after the run = before conversion + production − consumption − market sales",
+      "extra": {
+        "before": 2000,
+        "flow": -100,
+        "after": 1900
+      }
+    },
+    {
+      "ok": true,
+      "label": "p1: alloy after the run = before conversion + production − consumption − market sales",
+      "extra": {
+        "before": 800,
+        "flow": 0,
+        "after": 800
+      }
+    },
+    {
+      "ok": true,
+      "label": "p1: structure after the run = before conversion + production − consumption − market sales",
+      "extra": {
+        "before": 200,
+        "flow": 0,
+        "after": 200
+      }
+    },
+    {
+      "ok": true,
+      "label": "p1: machinery after the run = before conversion + production − consumption − market sales",
+      "extra": {
+        "before": 100,
+        "flow": 0,
+        "after": 100
+      }
+    }
+  ],
+  "conversion": {
+    "already": false,
+    "routesConverted": [
+      "lr24",
+      "lr26"
+    ],
+    "routesCompat": [
+      "lr28"
+    ],
+    "manifestJobs": [
+      {
+        "route": "lr24",
+        "ship": "s11",
+        "job": "lj145",
+        "item": "alloy",
+        "amount": 100
+      },
+      {
+        "route": "lr26",
+        "ship": "s13",
+        "job": "lj146",
+        "item": "ore",
+        "amount": 200
+      }
+    ],
+    "remainderJobs": [],
+    "haulGroups": [
+      {
+        "group": "g16",
+        "to": "cv_own",
+        "ships": [
+          "s17"
+        ]
+      }
+    ]
+  }
+}
