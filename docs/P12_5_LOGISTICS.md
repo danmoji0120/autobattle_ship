@@ -105,10 +105,25 @@ maintainPool (1초)          — 함선 손실·명령 변경·저장 복원 정
 - 호환 모드 노선(반복 판매·반복 재고 이동)을 회사 무역 목표로 **자동 변환**하는 것은 가격 조건(최대 매입가·최소 매도가)을 새로 정해야 하므로 보류했다. 현재는 기존 경로로 실행한다.
 - 군함을 수송에 쓰는 명시 허용은 서버 명령(`poolShips` + 군함)으로만 가능하며 UI에는 노출하지 않았다.
 - 하나의 편대에 여러 수송선이 있으면 각 함선이 서로 다른 작업을 수행할 수 있다. 위협 회피(`threatCheck`)는 편대 단위이므로 한 함선이 위협을 받으면 편대 전체가 대피한다(기존 규칙).
+- 운송 한 건은 한 품목이다(기존 공용 배차 모델). 소량 부품(예: 센서 6개)도 수송선 한 척이 따로 운반하므로 화물칸이 덜 찬 채 운항할 수 있다. 여러 품목 합적은 운송 모델 변경이므로 이번 범위에서 하지 않았다.
+- 수송선 100척을 한 출발지에 몰면 정박 슬롯이 병목이 되어 처리량이 50척보다 낮아진다. 구 공용 배차도 같은 결과이며(§8 성능) 정거장 정박 규칙 문제라 P12.5에서 바꾸지 않았다.
 
 ## 7. 구현 위치
 
-(구현 후 기록)
+| 파일 | 내용 |
+|---|---|
+| `src/world/haulers.ts` (신규) | 수송선 자격(`poolMember`)·가용성(`haulerAvailability`, 사유 코드 `excluded·busy·building·listed·reserve·recover·group·manual·flee·battle·cargo_work·damaged·off·full`)을 한 곳에서 판정. 배차·조달·운영·UI가 모두 이 함수만 쓴다 |
+| `src/world/autonomousLogistics.ts` | 유일한 운송 실행 엔진. V 월드에서 `free()`가 자동 자격 판정을 쓰고, 직접 명령을 받은 적재 함선은 `hold`(운송 보류, 화물 보존·나머지 분리), 명령이 끝나면 `maintainHeld`가 재연결. 추적되지 않은 화물은 `stowCargo`가 가장 가까운 자사 창고로 하역. `interruptPoolShips`는 V 월드에서 참여 표시를 지우지 않는다 |
+| `src/world/procurement.ts` · `operations.ts` | 수요·부족 계산과 회사 목표는 그대로, 함선 후보만 `poolMember`로 교체 |
+| `src/world/sim.ts` | `WorldSim.create(seed, { logistics: 'p125' })`, `autoLogistics` 명령, V 월드 `haul` 거부, `setOp idle`은 운송을 끊지 않음, 해적 외 적대 PMC도 수송선 위협 감지(V 월드만), 완료 운송 60초마다 정리(최근 100건) |
+| `src/world/logistics.ts` | V 월드에서 새 노선 생성 거부, 기존 반복 노선은 `compat` 표시로 계속 실행 |
+| `src/world/logisticsMigrate.ts` (신규) | `enableAutoLogistics` — 멱등 변환(§5) |
+| `src/server/core.ts` · `node.ts` · `sync.ts` | `AUTO_LOGISTICS_P125=1`(새 월드 전용), 새 함선 필드는 소유 회사에만 노출 |
+| `src/client/strategic/autoLogisticsUi.ts` (신규) · `hud.ts` · `style.css` | 물류 현황 화면: 요약·문제·현재 운송(상세)·부족 자재·수송선(제외/포함, 편대 대기)·호환 노선·고급 설정(접힘). 수동 운송 버튼과 노선 생성 UI는 V 월드에서 숨김 |
+| `tests/p125-logistics.test.ts` | 그룹 A–E 23개 |
+| `scripts/logistics/*` | 실서버 §19(`p125-server`), 브라우저(`p125-browser.cjs`+`p125-sp-save`), 변환 검사(`p125-convert-check`), 장기(`p125-longrun`), 성능(`p125-perf`) |
+
+켜는 방법(개발 월드 전용): `AUTO_LOGISTICS_P125=1 npm run server` 또는 `WorldSim.create(seed, { logistics: 'p125' })`. 운영 월드와 기존 저장에는 적용되지 않는다. 기존 저장 변환은 `enableAutoLogistics`를 **사본**에 적용하는 검사만 했고 운영 데이터 전환은 하지 않았다.
 
 ## 8. 검증 결과
 
