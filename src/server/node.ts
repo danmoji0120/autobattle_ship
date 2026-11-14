@@ -238,7 +238,7 @@ async function main() {
   if (resetTok) {
     if (!/^[A-Za-z0-9_-]{4,40}$/.test(resetTok)) { console.error('[siderarium] !!! WORLD_RESET 토큰 형식 오류 (영숫자·_- 4~40자)'); process.exit(1); }
     const seed = Number(process.env.WORLD_SEED ?? 1);
-    const r = await storage.reset(resetTok, () => ({ v: 1, world: JSON.parse(WorldSim.create(seed, { ...(process.env.ECON_PRICING === 'chain' ? { econ: 'chain' as const } : {}), ...(process.env.COMBAT_P11 === '1' ? { combat: 'p11' as const } : {}), ...(process.env.FLEET_OPS_P12 === '1' ? { ops: 'p12' as const } : {}), ...(process.env.AUTO_LOGISTICS_P125 === '1' ? { logistics: 'p125' as const } : {}) }).serialize()), auth: {}, accounts: {} }));
+    const r = await storage.reset(resetTok, () => ({ v: 1, world: JSON.parse(WorldSim.create(seed, { ...(process.env.ECON_PRICING === 'chain' ? { econ: 'chain' as const } : {}), ...(process.env.COMBAT_P11 === '1' ? { combat: 'p11' as const } : {}), ...(process.env.FLEET_OPS_P12 === '1' ? { ops: 'p12' as const } : {}), ...(process.env.AUTO_LOGISTICS_P125 === '1' ? { logistics: 'p125' as const } : {}), ...(process.env.SALVAGE_P131 === '1' ? { salvage: 'p131' as const } : {}) }).serialize()), auth: {}, accounts: {} }));
     // accounts are separate from the world: they survive; each account simply gets "create your PMC" again
     if (r.done) {
       console.log(`[siderarium] WORLD RESET applied (token ${resetTok}) — previous world kept as ${r.backup ?? '(없음)'}`);
@@ -331,7 +331,7 @@ async function main() {
   }
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1',
+    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1', salvageNew: process.env.SALVAGE_P131 === '1',
     // Verify migration conservation before the intentionally granted BB-EX changes the census.
     deferExclusiveGrant: true,
     adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),

@@ -16,6 +16,7 @@ import type { WorldState, WShip, Station, Site, StarSystem, Field } from '../wor
 import { sysAt } from '../world/geom';
 import { sysLevel, sysStub, knowsField, knowsSystemContents } from '../world/intel';
 import type { WorldView } from './protocol';
+import { wreckFor, type WreckSite } from '../world/wrecks';
 
 export const SYNC_PROTO = 2;
 
@@ -23,7 +24,7 @@ export const SYNC_PROTO = 2;
 export interface Viewer { company?: string; view?: string }
 
 /** keyed collections replicated entity by entity (others are replicated as whole values) */
-const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'uniques', 'ships', 'intel'] as const;
+const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'wrecks', 'uniques', 'ships', 'intel'] as const;
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
@@ -45,8 +46,10 @@ function publicCompany(id: string, co: any) {
 function stationBody(st: Station, own: boolean) {
   return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
 }
-function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined }; }
-function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined }; }
+function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined }; }
+function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined }; }
+/** P13.1 wrecks: news of a battle is public, but under fog only where the viewer can see (or it took part) */
+const wreckVisible = (st: WorldState, w: WreckSite, c: string | undefined) => !st.fog || (!!c && w.seen.includes(c)) || contentsKnown(st, c, w.pos);
 function siteFor(s: Site, company: string) { return { ...s, scan: s.scan[company] !== undefined ? { [company]: s.scan[company] } : {}, seen: [company] }; }
 // ── P10 fog of war (w.fog): per-company knowledge of uncharted systems and unidentified deposits.
 // Worlds without fog take none of these branches, so their replication is unchanged.
@@ -126,6 +129,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
     works: own(base.works), approvals: own(base.approvals),
     grants: undefined, conversions: undefined, exclusive: undefined, econLog: undefined,
+    wrecks: base.wrecks ? Object.fromEntries(Object.values(base.wrecks).filter(w => wreckVisible(st, w, c)).map(w => [w.id, wreckFor(w, c)])) : undefined,
     sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c && s.seen.includes(c)).map(([id, s]) => [id, siteFor(s, c!)])) : undefined,
   } as WorldView;
 }
@@ -307,6 +311,9 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
       return;
     case 'engagements':
       for (const id in map) if (!st.fog || contentsKnown(st, c, map[id].pos) || (!!c && map[id].sides.some((x: string[]) => x.includes(c)))) one(id, 'en', () => { const { setup: _x, orders: _o, ...lite } = map[id]; return lite; });
+      return;
+    case 'wrecks':
+      for (const id in map) { const w = map[id] as WreckSite; if (!wreckVisible(st, w, c)) continue; const k = !!c && w.seen.includes(c); one(id, k ? 'wk:' + c : 'wk.p', () => wreckFor(w, c)); }
       return;
     case 'sites':
       if (!c) return;

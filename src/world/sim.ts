@@ -135,6 +135,8 @@ export type Cmd =
   | { c: 'routeControl'; routes: string[]; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'poolShips'; ships: string[]; on: boolean }
   | { c: 'autoLogistics'; on: boolean }
+  /** P13.1: per-fleet automatic on-site salvage after battles (on by default) */
+  | { c: 'autoSalvage'; group: string; on: boolean }
   | { c: 'poolCreate'; request: PoolRequest }
   | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'procPolicy'; settings: ProcurementSettings }
@@ -170,6 +172,8 @@ const vlerp = (a: V, b: V, t: number): V => ({ x: a.x + (b.x - a.x) * t, y: a.y 
 export { START_CREDITS_GROWTH } from './econConfig';
 import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
+import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
+import { stepSalvage, validateSalvage } from './salvage';
 
 export class WorldSim {
   st: WorldState;
@@ -240,7 +244,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -248,6 +252,8 @@ export class WorldSim {
     if (opts.ops === 'p12') { sim.st.combatV = 2; sim.st.opsV = 1; }
     // P12.5 automatic logistics is opt-in and builds on P12 (escorts, return) and P11 (raids on haulers)
     if (opts.logistics === 'p125') { sim.st.combatV = 2; sim.st.opsV = 1; enableAutoLogistics(sim); }
+    // P13.1 physical battlefield wrecks & salvage is opt-in and builds on P11/P12/P12.5; no random derelicts
+    if (opts.salvage === 'p131') { sim.st.combatV = 2; sim.st.opsV = 1; if (!sim.st.logisticsV) enableAutoLogistics(sim); sim.st.salvageV = 1; }
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -256,6 +262,7 @@ export class WorldSim {
     if (opts.econ === 'chain') enableEconChainNew(sim.st, { eq: opts.eq, alloyDirect: opts.alloyDirect });
     // v2 faction economy is opt-in (new isolated P10 worlds only); enabled after pricing so stockpiles use final prices
     if (opts.factionEcon === 'v2') enableFactionEcon2(sim.st);
+    if (sim.st.salvageV) delete sim.st.sites;
     return sim;
   }
 
@@ -317,7 +324,7 @@ export class WorldSim {
   storage(st: Station, company: string): Cargo { return st.storage[company] ??= emptyCargo(); }
   hasModule(st: Station, kind: string) { return st.modules.some(m => m.kind === kind && m.built); }
   /** P9 system origins are storage coordinates, not a measure of travel distance. */
-  private routeDistance(a: V, b: V): number {
+  routeDistance(a: V, b: V): number {
     if (!expandedLayout(this.st)) return dist(a, b);
     const from = sysAt(this.st.systems, a), to = sysAt(this.st.systems, b);
     if (!from || !to || from.id === to.id) return dist(a, b);
@@ -1425,6 +1432,12 @@ export class WorldSim {
         if (cmd.on) delete co.autoLogistics; else co.autoLogistics = false;
         return null;
       }
+      case 'autoSalvage': {
+        if (!this.st.salvageV || typeof cmd.on !== 'boolean') return '이 월드에서는 현장 자동 인양을 사용할 수 없습니다';
+        const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
+        if (cmd.on) delete g.autoSalvage; else { g.autoSalvage = false; if (g.salv?.mode === 'auto' && g.salv.phase !== 'unload') delete g.salv; }
+        return null;
+      }
       case 'poolCreate': return createPoolJob(this, company, cmd.request);
       case 'poolControl': return controlPoolJob(this, company, cmd.job, cmd.action);
       case 'procPolicy': return setProcurementPolicy(this, company, cmd.settings);
@@ -1649,6 +1662,8 @@ export class WorldSim {
     const sub = this.subtreeShips(g);
     const p12 = validateP12(this, company, g, op, sub.filter(s => econOf(s).cruise > 0).length);
     if (p12 !== undefined) return p12;
+    if (op.k === 'recover' || op.k === 'salvzone') return validateSalvage(this, company, sub, op);
+    if (op.k === 'salvage' && this.st.salvageV) return '이 세계에는 유기선 인양 지점이 없습니다 — 전장 잔해를 지정해 인양하세요';
     switch (op.k) {
       case 'mine': {
         const f = this.st.fields[op.field]; const st = this.st.stations[op.deliver];
@@ -1706,7 +1721,8 @@ export class WorldSim {
       }
       case 'survey': {
         const sys = this.st.systems[op.system];
-        if (!this.st.sites) return '이 세계에는 탐사 지점이 없습니다 (성장 콘텐츠 v4 이후)';
+        if (!this.st.sites && !(this.st.salvageV && this.st.fog)) return this.st.salvageV ? '이 세계에는 성계 탐사로 찾을 유기선이 없습니다 — 격침된 함선의 전장 잔해를 인양하세요' : '이 세계에는 탐사 지점이 없습니다 (성장 콘텐츠 v4 이후)';
+        if (!this.st.sites && (this.st.intel?.[company]?.sys[sys?.id ?? ''] ?? 0) >= 3) return `${sys?.name} 정밀 탐사는 이미 끝났습니다`;
         if (!sys) return '성계 없음';
         if (sys.kind === 'core' || sys.security >= 90) return `${sys.name}은(는) 연합이 정리한 핵심 성계 — 숨은 잔해가 없다`;
         if (!sub.some(s => econOf(s).cruise > 0)) return '기동 가능한 함선이 없음';
@@ -1900,6 +1916,7 @@ export class WorldSim {
     if (this.slow >= 1) {
       this.slow = 0;
       if (growthOn(st)) for (const co of Object.values(st.companies)) if (co.pendingLoot) this.recoverLoot(co);
+      if (st.salvageV && st.wrecks) { markSeen(st); for (const w of expireWrecks(st, this.time)) for (const c of w.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${w.name} ${w.lots.length ? '소멸 — 남은 잔해는 흩어졌습니다' : '회수 완료'}`, { company: c, pos: w.pos, ref: w.id, tag: 'salvage' }); }
       this.npcSlow();
       if (this.st.combatV === 2) this.detectEngagementsP11(); else this.detectEngagements();
       this.resolveAuto();
@@ -1923,6 +1940,14 @@ export class WorldSim {
       const r = surveyIntel(this.st, g.owner, sys.id, power * g.shipIds.length);
       for (const f of r.fields) this.ev('info', `${sys.name}: 미확인 광구 "${f.name}" 발견 — 시험 채굴로 성분을 확인해야 합니다`, { company: g.owner, pos: f.pos, ref: f.id });
       if (r.done) this.ev('info', `${sys.name} 정밀 탐사 완료`, { company: g.owner, ref: sys.id });
+    }
+    if (!this.st.sites) {
+      // P13.1: no derelicts to find — the survey is the P10 field-intel scan only
+      if (g.shipIds[0] !== s.id) return;
+      const lvl = this.st.intel?.[g.owner]?.sys[sys.id] ?? 0;
+      if (lvl >= 3) { g.status = '탐사 완료'; if (g.override) { g.op = { k: 'idle' }; this.say(g, `${sys.name} 정밀 탐사 완료 — 대기합니다.`, 'radio', 0); } }
+      else g.status = `${sys.name} 정밀 탐사 중 (광구 조사)`;
+      return;
     }
     for (const site of surveyStep(this.st, g.owner, sys.id, power)) {
       this.say(g, `탐사 성과: ${site.name} 발견 (${['', '얕은', '깊은', '심층'][site.tier]} 유적). 인양 작전을 지시할 수 있습니다.`, 'info', 0);
@@ -2330,6 +2355,8 @@ export class WorldSim {
       for (const s of ward.hold) if (s.state === 'space') { s.vel.x *= 0.85; s.vel.z *= 0.85; s.pos = vadd(s.pos, s.vel, dt); }
       ships = ships.filter(s => !ward.hold.has(s));
     }
+    // P13.1: recovery orders and on-site pickup after a battle (before the fleet operations it may pause)
+    if (this.st.salvageV && stepSalvage(this, g, ships, op, dt, c)) return;
     if (this.st.opsV && P12_OPS.has(op.k)) {
       // P12: one handler for every fleet operation — the order holder decides once, the command follows
       const owner = this.opOwner(g);
@@ -4073,7 +4100,7 @@ export class WorldSim {
       const ship = st.ships[r.ref]; if (!ship) continue;
       const meta = { company: ship.owner, group: ship.groupId, ship: ship.id, item: ship.classId, system: e.sys, reason: tactical ? 'tactical' : 'strength_model' };
       emit(st, { ...meta, kind: 'combat.participation', amount: 1 });
-      if (r.dead) { emit(st, { ...meta, kind: 'combat.loss', amount: 1 }); for (const [item, amount] of Object.entries(ship.cargo)) if (amount > 0) emit(st, { ...meta, kind: 'consume', reason: 'combat_cargo_loss', item, amount }); }
+      if (r.dead) { emit(st, { ...meta, kind: 'combat.loss', amount: 1 }); if (!st.salvageV || isExclusiveShip(ship)) for (const [item, amount] of Object.entries(ship.cargo)) if (amount > 0) emit(st, { ...meta, kind: 'consume', reason: 'combat_cargo_loss', item, amount }); }
       if (e.v === 2 ? res.sides?.[e.sides.findIndex(x => x.includes(ship.owner))]?.status === 'victor' : e.sides[res.winner]?.includes(ship.owner)) emit(st, { ...meta, kind: 'combat.win', amount: 1 });
       emit(st, { ...meta, kind: 'combat.damage', amount: r.dmg });
     }
@@ -4090,6 +4117,7 @@ export class WorldSim {
     const dmgBy = new Map<string, number>();
     const lostBy = new Map<string, number>();
     let salvage = 0;
+    const deadShips: DeadShip[] = [];
     const killsByGroup = res.groupKills;
     for (const ts of res.ships) {
       const owner = ts.ref.startsWith('lair:') ? 'pirates' : ts.ref.startsWith('station:') ? st.stations[ts.ref.slice(8)]?.owner : st.ships[ts.ref]?.owner;
@@ -4124,6 +4152,7 @@ export class WorldSim {
         if (s.owner === 'pirates') { destroyedPirateValue.set(ts.ref, shipValue(s.classId)); wrecks.push(loadoutEquipment(getLoadout(s.classId, s.loadoutId).mounts)); wreckCls.push(s.classId); }
         lostBy.set(s.owner, (lostBy.get(s.owner) ?? 0) + 1);
         const co = st.companies[s.owner]; if (co) co.stats.lost++;
+        if (st.salvageV) deadShips.push({ ship: s, pos: { ...(Number.isFinite(s.pos.x) ? s.pos : e.pos) } });
         const g = st.groups[s.groupId];
         if (g) g.shipIds = g.shipIds.filter(x => x !== s.id);
         delete st.ships[s.id];
@@ -4201,7 +4230,7 @@ export class WorldSim {
         const foeLost = foes.reduce((a, x) => a + (lostBy.get(x) ?? 0), 0);
         const txt = `${STATUS_KO[status] ?? status} — ${destroyedPirateValue.size ? `해적 ${destroyedPirateValue.size}척 격침, ` : ''}${foes.length ? `적대 회사 손실 ${foeLost}척, ` : ''}아군 손실 ${lost}척${pay ? `, 현상금 +${pay.toLocaleString()} cr` : ''}`;
         this.ev('battle', `전투 종료: ${txt}`, { company: c, pos: e.pos, ref: e.id });
-        if (co.tech?.includes('salvage_ops') && wrecks.length && share > 0) this.salvageWrecks(co, wrecks, share, e.pos, wreckCls);
+        if (!st.salvageV && co.tech?.includes('salvage_ops') && wrecks.length && share > 0) this.salvageWrecks(co, wrecks, share, e.pos, wreckCls);
       }
     };
     // bounties & reputation by damage share
@@ -4226,7 +4255,7 @@ export class WorldSim {
       const lost = lostBy.get(c) ?? 0;
       e.summary = `${won ? '승리' : e.winner === 1 ? '패배' : '교착'} — 해적 ${destroyedPirateValue.size}척 격침, 아군 손실 ${lost}척${pay ? `, 현상금 +${pay.toLocaleString()} cr` : ''}`;
       this.ev('battle', `전투 종료: ${e.summary}`, { company: c, pos: e.pos, ref: e.id });
-      if (co.tech?.includes('salvage_ops') && wrecks.length) this.salvageWrecks(co, wrecks, share, e.pos, wreckCls);
+      if (!st.salvageV && co.tech?.includes('salvage_ops') && wrecks.length) this.salvageWrecks(co, wrecks, share, e.pos, wreckCls);
     }
     // contracts: bounties on bands wiped out
     for (const k of Object.values(st.contracts)) {
@@ -4236,8 +4265,13 @@ export class WorldSim {
       if (k.takenBy && players.includes(k.takenBy) && (e.v === 2 ? vsPir(k.takenBy) > 0 : (dmgBy.get(k.takenBy) ?? 0) > 0)) this.completeContract(k);
       else { k.done = true; if (k.takenBy) this.ev('info', `계약 "${k.title}" 대상이 다른 세력에 의해 소멸했다.`, { company: k.takenBy }); }
     }
-    // wreckage becomes a salvage field (alloy)
-    if (salvage > 300) {
+    // P13.1: the dead ships themselves become wreck fields (real cargo, fitted equipment, hull scrap)
+    if (st.salvageV && deadShips.length) {
+      const made = makeWrecks(st, e.id, deadShips, this.time, () => this.rng.next(), e.sides.flat());
+      for (const w of made) for (const c of w.seen) this.ev('info', `${w.name} 생성 — 격침 ${w.sources.length}척, 회수 가능 ${Math.round(w.initial)}단위 (약 ${Math.round((w.expires - w.created) / 3600 * 10) / 10}시간 후 소멸)`, { company: c, pos: w.pos, ref: w.id, tag: 'salvage' });
+    }
+    // wreckage becomes a salvage field (alloy) — legacy worlds only
+    if (!st.salvageV && salvage > 300) {
       const f: Field = { id: this.id('wreck'), name: '전투 잔해', pos: { ...e.pos }, radius: 220, res: 'alloy', mix: { ...SALVAGE_MIX }, amount: Math.round(salvage), max: Math.round(salvage), regen: 0, rocks: Math.min(40, 8 + Math.round(salvage / 150)), salvage: true, expires: this.time + 1500, danger: 1 };
       st.fields[f.id] = f;
     }

@@ -118,6 +118,11 @@ export type Op =
   /** growth: sweep a star system for hidden derelicts; salvage one the company has found */
   | { k: 'survey'; system: string }
   | { k: 'salvage'; site: string }
+  /** P13.1 (salvageV worlds): recover from one battlefield wreck (unload when full, come back until it is empty).
+   *  `illegal`: also take cargo that belongs to a non-hostile company (a crime where the law reaches) */
+  | { k: 'recover'; wreck: string; illegal?: boolean }
+  /** P13.1: salvage zone — the commander picks wrecks around `at`, unloads at a station and comes back, until told otherwise */
+  | { k: 'salvzone'; at: V; radius: number; illegal?: boolean }
   // P12 fleet operations (opsV worlds only): the order names the purpose, the commander decides how
   | { k: 'rally'; at: V }
   | { k: 'defend'; at: V; radius: number }
@@ -192,6 +197,10 @@ export interface WShip {
   logisticsExcluded?: boolean;
   /** P12.5: preferred destination for untracked cargo still aboard (e.g. a cancelled shipment's target) */
   logisticsStow?: string;
+  /** P13.1 (salvageV): the part of the cargo aboard that came from wrecks — unloaded to company storage at the next dock */
+  salvaged?: Cargo;
+  /** P13.1: salvage work done but not yet a whole unit (per ship, the lot it was working on) */
+  salvAcc?: { lot: string; a: number };
   /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
@@ -226,6 +235,10 @@ export interface WGroup {
   opx?: import('./fleetops').OpState;
   /** state of a group that is being escorted: rally hold and the escorts it last had */
   ward?: import('./escort').WardState;
+  /** P13.1: on-site automatic salvage after a battle (absent = allowed; false = never) */
+  autoSalvage?: false;
+  /** P13.1: salvage execution state (recover / salvage-zone orders, or an automatic on-site pickup) */
+  salv?: import('./salvage').SalvState;
 }
 
 /** coordinated fleet movement: rally → move as one at the slowest ship's pace → stage → attack together */
@@ -557,6 +570,10 @@ export interface WorldState {
   opsV?: 1;
   /** P12.5 automatic logistics (opt-in, new worlds only): idle haulers are dispatched without registration */
   logisticsV?: 1;
+  /** P13.1 battlefield wrecks and physical salvage (new worlds only): no random derelicts, no remote battle loot */
+  salvageV?: 1;
+  /** P13.1: persistent battlefield wrecks (salvageV worlds) */
+  wrecks?: Record<string, import('./wrecks').WreckSite>;
   /** P11: per-company stance toward other player companies. Hostility is unilateral (either side's
    *  declaration makes the pair hostile); an alliance needs both. Pirates are always hostile. */
   stance?: Record<string, { hostile?: string[]; ally?: string[] }>;

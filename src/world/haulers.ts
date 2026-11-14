@@ -41,6 +41,9 @@ export function haulerAvailability(h: Host, s: WShip, cargo = true): HaulerState
   const op = h.opOf(g);
   if (op.k !== 'idle') return { ok: false, code: 'manual', why: `직접 명령 수행 중 (${op.k}) — 대기 명령 시 자동 물류 복귀` };
   if (g.fleeing) return { ok: false, code: 'flee', why: '적대 세력 회피 중' };
+  // P13.1: a fleet picking up wreckage, or carrying recovered goods to a warehouse, is not free for shipments
+  if (g.salv) return { ok: false, code: 'salvage', why: '현장 인양 중' };
+  if (s.salvaged && Object.keys(s.salvaged).some(k => (s.cargo[k] ?? 0) > 1e-9)) return { ok: false, code: 'salvage', why: '인양물 적재 — 하역 대기' };
   if (s.state === 'battle') return { ok: false, code: 'battle', why: '교전 중' };
   if (s.cargoWork) return { ok: false, code: 'cargo_work', why: '화물 작업 중' };
   if (autoLogistics(h.st)) {
