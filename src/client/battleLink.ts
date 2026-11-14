@@ -18,7 +18,7 @@ export class BattleLink {
   private setup: BattleSetup | null = null;
   /** finished battle (or the player asked to rewatch): play back locally from the record */
   private replay = false;
-  private names: [string, string] | null = null;
+  private names: string[] | null = null;
   closed = false;
 
   constructor(private client: GameClient, readonly eng: string, private onClose: () => void) {

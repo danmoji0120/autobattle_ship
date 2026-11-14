@@ -11,7 +11,8 @@ import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
 import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
-import type { Order, OrderRecord } from '../sim/types';
+import type { Order, OrderRecord, BattleEvent, SideSpec, Relation, SideResult } from '../sim/types';
+import { coRelation, canCommandGroup, validateTacticalOrder, refOwner } from './battleAuth';
 import type { March, WorldState, WShip, WGroup, Op, V, Res, Station, Field, Cargo, Engagement, WorldEvent, Contract, WCommander, Company, StarSystem, Gate, Lair } from './types';
 import { emptyCargo, cargoSum, RES, qty, addc, takec, cargoKeys } from './types';
 import { ECON, MODULES, MAX_MODULES, FOUND_COST, RES_NAME, generateCommander, MILESTONES, shipValue } from './data';
@@ -71,11 +72,13 @@ const SCRAMBLE_R = 3000;   // hostile warships this close prevent warping out
 const ALIGN: Record<string, number> = { corvette: 3, frigate: 3.5, destroyer: 4, light_cruiser: 5, cruiser: 6, battlecruiser: 7, battleship: 8, dreadnought: 11, miner: 5, hauler: 6, constructor: 7 };
 
 /** outcome of a battle, from the tactical engine or the NPC auto-resolver */
-interface BattleResult { winner: number; ships: { ref: string; dead: boolean; hp: number; escaped: boolean; dmg: number }[]; groupKills: Map<string, number> }
+interface BattleResult { winner: number; ships: { ref: string; dead: boolean; hp: number; escaped: boolean; dmg: number }[]; groupKills: Map<string, number>; sides?: SideResult[] }
 
 export type Cmd =
   | { c: 'setOp'; group: string; op: Op }
   | { c: 'setDetached'; group: string; on: boolean }
+  /** P11: stance toward another player company: -1 declare hostility, 0 withdraw own declaration / offer, 1 offer alliance */
+  | { c: 'stance'; target: string; v: Relation }
   | { c: 'release'; group: string }
   | { c: 'newGroup'; name: string; parent?: string | null; ships?: string[] }
   | { c: 'renameGroup'; group: string; name: string }
@@ -227,8 +230,10 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
+    // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
+    if (opts.combat === 'p11') sim.st.combatV = 2;
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -666,6 +671,8 @@ export class WorldSim {
         }
         const err = this.validateOp(company, g, cmd.op);
         if (err) return err;
+        // P11: ordering an attack on another PMC's fleet is a declaration of hostility (logged, first strike)
+        if (cmd.op.k === 'attack' && cmd.op.group && this.st.combatV === 2) { const t = this.st.groups[cmd.op.group]; if (t && this.st.companies[t.owner]?.kind === 'player' && coRelation(this.st, company, t.owner) !== -1) this.setStance(company, t.owner, -1, 'attack'); }
         if (cmd.op.k === 'found') {
           if (growthOn(this.st)) {
             // New commands always select a size, including commands from older clients.
@@ -701,6 +708,14 @@ export class WorldSim {
         g.op = cmd.op; g.override = true; g.fleeing = false; g.march = undefined;
         for (const s of this.shipsOf(g)) if (s.state !== 'battle' && s.state !== 'docked') s.task = { k: 'none' };
         this.ackOp(g, cmd.op);
+        return null;
+      }
+      case 'stance': {
+        if (this.st.combatV !== 2) return 'PvP 관계는 P11 전투 월드에서만 사용 가능';
+        const t = this.st.companies[cmd.target];
+        if (!t || t.kind !== 'player' || cmd.target === company) return '대상 회사 오류';
+        if (cmd.v !== -1 && cmd.v !== 0 && cmd.v !== 1) return '관계 값 오류';
+        this.setStance(company, cmd.target, cmd.v, cmd.v === -1 ? 'declare' : cmd.v === 1 ? 'ally' : 'cease');
         return null;
       }
       case 'release': {
@@ -1639,7 +1654,8 @@ export class WorldSim {
       case 'attack': {
         if (op.lair) return this.st.lairs[op.lair]?.alive ? null : '대상 없음';
         const t = op.group ? this.st.groups[op.group] : null;
-        if (!t || this.st.companies[t.owner]?.kind !== 'pirate') return '공격할 수 없는 대상 (현재는 해적만 공격 가능)';
+        if (this.st.combatV === 2 && t && t.owner !== company && this.st.companies[t.owner]?.kind === 'player') return t.shipIds.length ? null : '대상 없음';
+        if (!t || this.st.companies[t.owner]?.kind !== 'pirate') return this.st.combatV === 2 ? '공격할 수 없는 대상 (해적·다른 PMC만 공격 가능)' : '공격할 수 없는 대상 (현재는 해적만 공격 가능)';
         return null;
       }
       case 'build': {
@@ -1768,6 +1784,7 @@ export class WorldSim {
       while (acc >= w.dt && !w.outcome) {
         if (npc && clockMs() - t0 - (observationCostMs() - observerStart) > NPC_BATTLE_BUDGET_MS) break;
         w.step(); acc -= w.dt;
+        if (e.v === 2) this.p11Step(e, w);
         if (observing(this.st)) observedWork(() => { for (const hit of w.events) if (hit.t === 'hit') {
           const attacker = w.shipById.get(hit.attacker), ship = attacker?.ref ? this.st.ships[attacker.ref] : undefined;
           if (ship) emit(this.st, { kind: 'combat.weapon', amount: hit.dmg, value: 1, company: ship.owner, group: ship.groupId, ship: ship.id, system: e.sys, item: hit.weapon, reason: hit.result });
@@ -1787,7 +1804,8 @@ export class WorldSim {
   /** strategic ships follow their tactical counterparts, so the map shows the fight as it happens */
   private mirrorBattle(e: Engagement, w: World) {
     const st = this.st;
-    const alive: [number, number] = [0, 0], total: [number, number] = [0, 0];
+    const n = Math.max(2, w.sides.length);
+    const alive: number[] = new Array(n).fill(0), total: number[] = new Array(n).fill(0);
     for (const ts of w.ships) {
       total[ts.team]++;
       if (ts.state === 'alive') alive[ts.team]++;
@@ -1799,7 +1817,47 @@ export class WorldSim {
       s.heading = Math.atan2(ts.fwd.x, ts.fwd.z);
       s.hp = ts.state === 'dead' || ts.state === 'dying' ? 0 : ts.hp / ts.maxHp;
     }
-    e.prog = { alive, total, value: [Math.round(w.teamValueFrac(0) * 100) / 100, Math.round(w.teamValueFrac(1) * 100) / 100] };
+    e.prog = { alive, total, value: alive.map((_, k) => Math.round(w.teamValueFrac(k) * 100) / 100) };
+    if (e.v === 2) e.prog.out = w.sides.map(x => x.out);
+  }
+
+  /** P11, after every tactical step: damage by company pair (bounties follow damage to pirates) and
+   *  early hand-back of a side that left while the battle goes on */
+  private p11Step(e: Engagement, w: World) {
+    for (const ev of w.events) {
+      if (ev.t === 'hit') {
+        if (!(ev.dmg > 0)) continue;
+        const a = w.shipById.get(ev.attacker), t = w.shipById.get(ev.target);
+        const ka = a ? e.sides[a.team]?.[0] : undefined, kt = t ? e.sides[t.team]?.[0] : undefined;
+        if (!ka || !kt) continue;
+        const m = ((e.dmg ??= {})[ka] ??= {});
+        m[kt] = (m[kt] ?? 0) + ev.dmg;
+      } else if (ev.t === 'sideOut' && (ev.status === 'withdrawn' || ev.status === 'routed') && !w.outcome) this.releaseSide(e, w, ev.side);
+    }
+  }
+
+  /** a withdrawn / routed side's surviving ships return to the persistent world while the others fight on.
+   *  Its groups may not rejoin this battle; losses and rewards are still settled once, at the end. */
+  private releaseSide(e: Engagement, w: World, k: number) {
+    const st = this.st, co = e.sides[k]?.[0];
+    if (!co || e.released?.includes(co)) return;
+    (e.released ??= []).push(co);
+    let n = 0;
+    for (const ts of w.ships) {
+      if (ts.team !== k || ts.state !== 'escaped' || !ts.ref || ts.ref.includes(':')) continue;
+      const s = st.ships[ts.ref];
+      if (!s || s.engagement !== e.id) continue;
+      s.pos = { x: e.pos.x + ts.pos.x, y: e.pos.y + ts.pos.y, z: e.pos.z + ts.pos.z };
+      s.hp = Math.max(0.05, ts.hp / ts.maxHp);
+      s.state = 'space'; s.engagement = undefined; s.task = { k: 'none' }; s.vel = { x: 0, y: 0, z: 0 };
+      n++;
+    }
+    for (const gid of e.groupRefs) {
+      const g = st.groups[gid]; if (!g || g.owner !== co) continue;
+      g.cooldown = 25; g.fleeing = false;
+      if (!(e.left ??= []).includes(gid)) e.left.push(gid);
+    }
+    if (st.companies[co]?.kind === 'player') this.ev('battle', `전장 이탈 — ${n}척이 교전 구역을 벗어났다 (남은 진영의 교전은 계속된다)`, { company: co, pos: e.pos, ref: e.id });
   }
 
   tick(dt: number) {
@@ -1818,7 +1876,7 @@ export class WorldSim {
       this.slow = 0;
       if (growthOn(st)) for (const co of Object.values(st.companies)) if (co.pendingLoot) this.recoverLoot(co);
       this.npcSlow();
-      this.detectEngagements();
+      if (this.st.combatV === 2) this.detectEngagementsP11(); else this.detectEngagements();
       this.resolveAuto();
       this.contracts();
       this.milestones();
@@ -3517,9 +3575,9 @@ export class WorldSim {
     }
   }
 
-  private toGroupSpec(g: WGroup, ships: WShip[], included: Set<string>, team: 0 | 1): GroupSpec[] {
+  private toGroupSpec(g: WGroup, ships: WShip[], included: Set<string>, team: number): GroupSpec[] {
     const c = this.cmdr(g);
-    const cmd: CommanderDef = { ...c, team };
+    const cmd: CommanderDef = { ...c, team: (team % 2) as 0 | 1 };
     const mil = ships.filter(s => s.groupId === g.id && econOf(s).military);
     const civ = ships.filter(s => s.groupId === g.id && !econOf(s).military);
     const spec = (s: WShip): ShipSpec => { const fit = this.fittingSpec(s); return { classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp, ...(this.st.companies[s.owner]?.kind === 'player' ? { fx: this.shipFxOf(s) } : {}), ...(fit ? { fit } : {}) }; };
@@ -3589,12 +3647,242 @@ export class WorldSim {
     return e;
   }
 
+  // ===================================================================== P11 engagements (combatV 2)
+
+  /** set `by`'s stance toward player company `to`, log it, and push the resulting relation into every
+   *  running battle where both fight (a server-stamped 'rel' event, replayed like an order) */
+  setStance(by: string, to: string, v: Relation, kind: 'declare' | 'attack' | 'cease' | 'ally') {
+    const st = this.st;
+    const before = coRelation(st, by, to);
+    const me = ((st.stance ??= {})[by] ??= {});
+    const drop = (k: 'hostile' | 'ally') => { if (me[k]) { me[k] = me[k]!.filter(x => x !== to); if (!me[k]!.length) delete me[k]; } };
+    drop('hostile'); drop('ally');
+    if (v === -1) (me.hostile ??= []).push(to);
+    if (v === 1) (me.ally ??= []).push(to);
+    if (!me.hostile && !me.ally) delete st.stance![by];
+    const sys = this.sysOf(this.groupCenterOfCompany(by) ?? { x: 0, y: 0, z: 0 });
+    const log = (st.attackLog ??= []);
+    log.push({ t: this.time, by, to, kind, ...(sys ? { sys: sys.id, sec: sys.security } : {}) });
+    if (log.length > 200) log.splice(0, log.length - 200);
+    const after = coRelation(st, by, to);
+    const nm = (c: string) => st.companies[c]?.name ?? c;
+    if (after !== before) {
+      const txt = after === -1 ? `${nm(by)} → ${nm(to)} 적대 선언${kind === 'attack' ? ' (공격 명령)' : ''}` : after === 1 ? `${nm(by)} · ${nm(to)} 동맹 성립` : `${nm(by)} · ${nm(to)} 관계 중립`;
+      for (const c of [by, to]) this.ev('warn', txt, { company: c });
+      for (const e of Object.values(st.engagements)) {
+        if (e.done || e.v !== 2) continue;
+        const w = this.battles.get(e.id); if (!w || w.outcome) continue;
+        const a = e.sides.findIndex(x => x[0] === by), b = e.sides.findIndex(x => x[0] === to);
+        if (a < 0 || b < 0) continue;
+        const rec = w.scheduleEvent(w.tick + 4, { k: 'rel', a, b, v: after });
+        e.orders.push(rec); this.onBattleOrder?.(e.id, rec);
+      }
+    } else if (v === 1 && after !== 1) this.ev('info', `${nm(by)}이(가) 동맹을 제안했다 (상대도 동맹을 제안하면 성립)`, { company: to });
+  }
+
+  private groupCenterOfCompany(co: string): V | null {
+    for (const g of Object.values(this.st.groups)) if (g.owner === co) { const c = this.groupCenter(g); if (c) return c; }
+    return null;
+  }
+
+  /** ships of a group that can be pulled into a battle: in open space, not warping, not in any battle */
+  private freeShips(g: WGroup): WShip[] { return this.shipsOf(g).filter(s => s.state === 'space' && s.warp?.phase !== 'warp' && !s.engagement); }
+
+  /**
+   * P11 detection, once per strategic second:
+   *  1. reinforcements — a free group within JOIN_R of a running battle whose company is hostile to a
+   *     company still fighting there joins that same battle instance (server-stamped join event);
+   *  2. new contacts — two free groups of mutually hostile companies within ENGAGE_R start a battle,
+   *     unless one is already running close by (overlapping zones merge into the existing instance);
+   *  3. pirate lairs defend themselves against any non-pirate group.
+   * Neutral companies are never pulled in; nobody is put on a side they did not choose.
+   */
+  private detectEngagementsP11() {
+    const st = this.st;
+    const rel = (a: string, b: string) => coRelation(st, a, b);
+    const cand = new Map<string, WShip[]>();
+    for (const g of Object.values(st.groups)) {
+      if (!g.shipIds.length || g.cooldown > 0) continue;
+      const ss = this.freeShips(g);
+      if (ss.length) cand.set(g.id, ss);
+    }
+    if (!cand.size) return;
+    const used = new Set<string>();
+    const active = Object.values(st.engagements).filter(e => !e.done && e.v === 2 && e.autoEnd === undefined && this.battles.get(e.id)?.joinOpen());
+    const fighting = (e: Engagement) => { const w = this.battles.get(e.id)!; return e.sides.map((x, k) => (k < w.sides.length && w.sides[k].out) ? null : x[0]).filter((x): x is string => !!x); };
+    const near = (ss: WShip[], p: V, r: number) => ss.filter(s => dist(s.pos, p) < r);
+    // 1. reinforcements into running battles
+    for (const e of active) {
+      const joiners = new Map<string, { g: WGroup; ss: WShip[] }[]>();
+      const present = fighting(e);
+      for (const [gid, ss] of cand) {
+        if (used.has(gid) || e.left?.includes(gid)) continue;
+        const g = st.groups[gid];
+        const inR = near(ss, e.pos, JOIN_R);
+        if (!inR.length) continue;
+        if (!present.some(c => rel(g.owner, c) === -1)) continue;
+        used.add(gid);
+        const l = joiners.get(g.owner) ?? []; l.push({ g, ss: inR }); joiners.set(g.owner, l);
+      }
+      for (const [co, list] of joiners) this.joinEngagement(e, co, list);
+    }
+    // 2. new contacts between hostile companies
+    const ids = [...cand.keys()].filter(id => !used.has(id));
+    for (let i = 0; i < ids.length; i++) {
+      const a = st.groups[ids[i]]; if (used.has(a.id)) continue;
+      const as = cand.get(a.id)!;
+      for (let j = i + 1; j < ids.length; j++) {
+        const b = st.groups[ids[j]]; if (used.has(b.id) || rel(a.owner, b.owner) !== -1) continue;
+        const bs = cand.get(b.id)!;
+        let hit: V | null = null;
+        for (const x of as) { for (const y of bs) if (dist(x.pos, y.pos) < ENGAGE_R) { hit = vlerp(x.pos, y.pos, 0.5); break; } if (hit) break; }
+        if (!hit) continue;
+        this.p11Contact(hit, [a, b], cand, used, active);
+        break;
+      }
+    }
+    // 3. lairs defend themselves
+    for (const l of Object.values(st.lairs)) {
+      if (!l.alive || Object.values(st.engagements).some(e => !e.done && e.lairId === l.id)) continue;
+      for (const id of ids) {
+        const g = st.groups[id]; if (used.has(id) || rel(g.owner, 'pirates') !== -1) continue;
+        if (cand.get(id)!.some(s => dist(s.pos, l.pos) < 800)) { this.p11Contact(l.pos, [g], cand, used, active, l); break; }
+      }
+    }
+  }
+
+  /** two hostile groups met at `pos`: merge into a battle already running there, or start one */
+  private p11Contact(pos: V, seed: WGroup[], cand: Map<string, WShip[]>, used: Set<string>, active: Engagement[], lair?: Lair) {
+    const st = this.st;
+    const over = active.find(e => dist(e.pos, pos) < JOIN_R * 1.5);
+    if (over) {
+      // overlapping battle zones: the contact becomes part of the battle already running (one ship, one battle)
+      const byCo = new Map<string, { g: WGroup; ss: WShip[] }[]>();
+      for (const g of seed) {
+        if (over.left?.includes(g.id)) continue;
+        used.add(g.id);
+        const l = byCo.get(g.owner) ?? []; l.push({ g, ss: cand.get(g.id)! }); byCo.set(g.owner, l);
+      }
+      for (const [co, list] of byCo) this.joinEngagement(over, co, list);
+      return;
+    }
+    // gather everyone close by who is hostile to someone already in (repeat: hostility chains)
+    const inBattle: WGroup[] = [...seed];
+    const cos = () => new Set(inBattle.map(g => g.owner).concat(lair ? ['pirates'] : []));
+    for (let pass = 0; pass < 3; pass++) {
+      let added = false;
+      const present = cos();
+      for (const [gid, ss] of cand) {
+        if (used.has(gid) || inBattle.some(g => g.id === gid)) continue;
+        const g = st.groups[gid];
+        if (!ss.some(s => dist(s.pos, pos) < JOIN_R)) continue;
+        if (![...present].some(c => coRelation(st, g.owner, c) === -1)) continue;
+        inBattle.push(g); added = true;
+      }
+      if (!added) break;
+    }
+    for (const g of inBattle) used.add(g.id);
+    this.createEngagementP11(pos, inBattle.map(g => ({ g, ss: cand.get(g.id)!.filter(s => dist(s.pos, pos) < JOIN_R) })), lair);
+  }
+
+  /** one tactical side per company: its groups under a structural root `co:<id>` (owned by nobody, so
+   *  authority always comes from the groups themselves) */
+  private companyFleet(co: string, list: { g: WGroup; ss: WShip[] }[], team: number, extra: GroupSpec[], title?: string): FleetSpec {
+    const groups = list.map(x => x.g), ships = list.flatMap(x => x.ss);
+    const ids = new Set(groups.map(g => g.id));
+    const tops = groups.filter(g => !g.parentId || !ids.has(g.parentId));
+    const children: GroupSpec[] = [...extra];
+    for (const t of tops) children.push(...this.toGroupSpec(t, ships, ids, team));
+    const best = groups.map(g => this.cmdr(g)).sort((a, b) => b.skill - a.skill)[0] ?? { ...ACTING_CAPTAIN };
+    const name = title ?? this.st.companies[co]?.name ?? co;
+    return { name, root: { name, commander: { ...best, team: (team % 2) as 0 | 1 }, ref: 'co:' + co, order: 'engage', retreatAt: 0, ships: [], children } };
+  }
+
+  private sideName(co: string, lair?: Lair) { return co === 'pirates' && lair ? `해적 · ${lair.name}` : this.st.companies[co]?.name ?? co; }
+
+  createEngagementP11(pos: V, list: { g: WGroup; ss: WShip[] }[], lair?: Lair): Engagement {
+    const st = this.st;
+    const order: string[] = [];
+    for (const x of list) if (!order.includes(x.g.owner)) order.push(x.g.owner);
+    if (lair && !order.includes('pirates')) order.push('pirates');
+    const extra = new Map<string, GroupSpec[]>();
+    if (lair) extra.set('pirates', [{ name: lair.name, commander: { ...ACTING_CAPTAIN, name: '은신처 수비대장', team: 1, aggression: 0.8 }, ref: 'lair:' + lair.id, order: 'hold', retreatAt: 0, ships: [{ classId: 'platform', loadoutId: 'std', name: lair.name, ref: 'lair:' + lair.id, hp: lair.hp }], children: [] }]);
+    // a company's own stations with defense batteries fight on its side (only if the company is here)
+    let stationId: string | undefined;
+    for (const x of Object.values(st.stations)) {
+      if (x.public || dist(x.pos, pos) > JOIN_R || !order.includes(x.owner)) continue;
+      const n = stationSupportOnline(x) ? x.modules.filter(m => m.kind === 'defense' && m.built).length : 0;
+      if (!n) continue;
+      stationId ??= x.id;
+      const l = extra.get(x.owner) ?? [];
+      l.push({ name: `${x.name} 방어 포대`, commander: { ...ACTING_CAPTAIN, name: '포대장', team: 0 }, ref: 'station:' + x.id, order: 'hold', retreatAt: 0,
+        ships: Array.from({ length: n }, (_, i) => ({ classId: 'platform', loadoutId: 'std', name: `${x.name} 포대 ${i + 1}`, ref: `station:${x.id}`, hp: x.defenseHp })), children: [] });
+      extra.set(x.owner, l);
+    }
+    const ships = list.flatMap(x => x.ss);
+    const fleets = order.map((co, k) => this.companyFleet(co, list.filter(x => x.g.owner === co), k, extra.get(co) ?? [], this.sideName(co, lair)));
+    const sides: SideSpec[] = order.map(co => ({ key: co, name: this.sideName(co, lair) }));
+    const relM: Relation[][] = order.map(a => order.map(b => coRelation(st, a, b)));
+    const sys = this.sysOf(pos);
+    const setup = { seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720, fleets, sides, rel: relM };
+    const live = order.some(c => st.companies[c]?.kind === 'player');
+    const nStations = [...extra.values()].flat().filter(x => x.ref?.startsWith('station:')).reduce((a, x) => a + x.ships.length, 0);
+    const e: Engagement = {
+      id: this.id('e'), pos: { ...pos }, start: st.time, setup, orders: [], tick: 0, sides: order.map(c => [c]), groupRefs: list.map(x => x.g.id),
+      live, done: false, lairId: lair?.id, stationId, n: ships.length + (lair ? 1 : 0) + nStations, sys: sys?.id, names: sides.map(x => x.name!), v: 2,
+    };
+    st.engagements[e.id] = e;
+    for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; }
+    for (const c of order) if (st.companies[c]?.kind === 'player') this.ev('battle', `교전 발생! ${order.filter(x => x !== c).map(x => this.sideName(x, lair)).join(', ')}와(과) 전투 중`, { company: c, pos, ref: e.id });
+    const npcShips = [...this.battles.keys()].map(id => st.engagements[id]).filter(x => x && !x.live).reduce((a, x) => a + (x.n ?? 0), 0);
+    if (live || npcShips + (e.n ?? 0) <= NPC_BATTLE_CAP) { const w = new World(setup); this.battles.set(e.id, w); this.battleAcc.set(e.id, 0); this.mirrorBattle(e, w); }
+    else e.autoEnd = st.time + Math.min(90, 20 + ships.length * 2.5);
+    if (!live && (e.n ?? 0) >= 4 && sys) this.ev('world', `${sys.name}: ${e.names!.join(' ↔ ')} 교전 발생 (${e.n}척)${e.autoEnd === undefined ? ' — 클릭하여 관전' : ''}`, { pos, ref: e.id });
+    return e;
+  }
+
+  /**
+   * A company's groups arrive in a running battle: one server-stamped join event (tick + 4) in the same
+   * order stream as player orders, so the authority, every client and every replay add them at the same
+   * tick. They enter where they really are (their centroid relative to the battle centre), facing in.
+   * Ships already in any battle are never taken (one ship, one battle).
+   */
+  joinEngagement(e: Engagement, co: string, list: { g: WGroup; ss: WShip[] }[]): OrderRecord | null {
+    const st = this.st, w = this.battles.get(e.id);
+    if (!w || e.done || w.outcome || !w.joinOpen()) return null;
+    list = list.map(x => ({ g: x.g, ss: x.ss.filter(s => s.state === 'space' && !s.engagement && st.ships[s.id] === s) })).filter(x => x.ss.length && !e.left?.includes(x.g.id));
+    if (!list.length) return null;
+    const ships = list.flatMap(x => x.ss);
+    let cx = 0, cz = 0; for (const s of ships) { cx += s.pos.x; cz += s.pos.z; }
+    cx = cx / ships.length - e.pos.x; cz = cz / ships.length - e.pos.z;
+    let k = e.sides.findIndex(x => x.length === 1 && x[0] === co);
+    const team = k >= 0 ? k : e.sides.length;
+    const fleet = this.companyFleet(co, list, team, [], `${this.sideName(co)} 증원`);
+    const side: number | SideSpec = k >= 0 ? k : { key: co, name: this.sideName(co), rel: e.sides.map(x => coRelation(st, co, x[0])) };
+    const rec = w.scheduleEvent(w.tick + 4, { k: 'join', fleet, side, entry: { x: Math.round(cx), z: Math.round(cz) } });
+    e.orders.push(rec);
+    if (k < 0) { k = e.sides.length; e.sides.push([co]); (e.names ??= []).push(this.sideName(co)); }
+    for (const x of list) if (!e.groupRefs.includes(x.g.id)) e.groupRefs.push(x.g.id);
+    for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; }
+    e.n = (e.n ?? 0) + ships.length;
+    if (st.companies[co]?.kind === 'player') e.live = true;
+    (e.joins ??= []).push({ tick: rec.tick, at: this.time, company: co, side: k, groups: list.map(x => x.g.id), ships: ships.length });
+    this.onBattleOrder?.(e.id, rec);
+    const nm = this.sideName(co);
+    for (const c of e.sides.map(x => x[0])) if (st.companies[c]?.kind === 'player') this.ev('battle', c === co ? `교전 합류 — ${ships.length}척이 진행 중인 전투에 진입` : `${nm} 함대 ${ships.length}척이 전투에 합류했다`, { company: c, pos: e.pos, ref: e.id });
+    return rec;
+  }
+
   /** a player's order inside a live battle: validated and stamped a few ticks ahead */
-  battleOrder(company: string, engId: string, groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean }): string | null {
+  battleOrder(company: string, engId: string, groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean; withdraw?: boolean } = {}): string | null {
     const e = this.st.engagements[engId]; const w = this.battles.get(engId);
-    if (!e || !w || e.done) return '전투 없음';
+    if (!e || !w || e.done || w.outcome) return '전투 없음';
+    if (opts?.withdraw) return this.battleWithdraw(company, e, w);
     const tg = w.groupById.get(groupId); if (!tg) return '부대 없음';
-    if (!this.tacticalOwner(tg.ref).includes(company)) return '지휘 권한 없음';
+    // the same rule the client uses to show the buttons — every ref in the subtree must be this company's
+    if (!canCommandGroup(this.st, w, tg, company)) return '지휘 권한 없음';
+    if (tg.team >= w.sides.length || w.sides[tg.team]?.out) return '이미 전장을 이탈한 진영';
+    const bad = validateTacticalOrder(w, tg, order); if (bad) return bad;
     const rec: OrderRecord = { tick: w.tick + 4, groupId, order, retreatAt: opts.retreatAt, release: opts.release };
     w.scheduleOrder(rec);
     e.orders.push(rec);
@@ -3602,14 +3890,23 @@ export class WorldSim {
     return null;
   }
 
-  /** companies allowed to command a tactical group */
+  /** P11: a company pulls its whole side out of a running battle (the others fight on) */
+  private battleWithdraw(company: string, e: Engagement, w: World): string | null {
+    if (e.v !== 2) return '전체 철수는 P11 교전에서만 가능 (부대별 퇴각 명령 사용)';
+    const k = e.sides.findIndex(x => x.length === 1 && x[0] === company);
+    if (k < 0 || this.st.companies[company]?.kind !== 'player') return '지휘 권한 없음';
+    if (k >= w.sides.length || w.sides[k].out) return '이미 전장을 이탈한 진영';
+    const rec = w.scheduleEvent(w.tick + 4, { k: 'withdraw', side: k });
+    e.orders.push(rec);
+    this.onBattleOrder?.(e.id, rec);
+    return null;
+  }
+
+  /** companies that own a tactical ref by itself (structural roots have none: see battleAuth.canCommandGroup) */
   tacticalOwner(ref: string | undefined): string[] {
     if (!ref) return [];
-    if (ref === 'root') return [];
-    if (ref.startsWith('station:')) { const s = this.st.stations[ref.slice(8)]; return s ? [s.owner] : []; }
-    if (ref.startsWith('lair:')) return [];
-    const g = this.st.groups[ref.replace('#civ', '')];
-    return g ? [g.owner] : [];
+    const o = refOwner(this.st, ref);
+    return o && o !== 'pirates' ? [o] : [];
   }
 
   private resultFromWorld(w: World): BattleResult {
@@ -3617,7 +3914,7 @@ export class WorldSim {
     for (const tg of w.groups) if (tg.ref) groupKills.set(tg.ref.replace('#civ', ''), (groupKills.get(tg.ref.replace('#civ', '')) ?? 0) + tg.stats.killValue);
     const ships: BattleResult['ships'] = [];
     for (const ts of w.ships) if (ts.ref) ships.push({ ref: ts.ref, dead: ts.state === 'dead' || ts.state === 'dying', hp: ts.hp / ts.maxHp, escaped: ts.state === 'escaped', dmg: ts.stats.dmgDealt });
-    return { winner: w.outcome?.winner ?? -1, ships, groupKills };
+    return { winner: w.outcome?.winner ?? -1, ships, groupKills, sides: w.outcome?.sides };
   }
 
   private resolveAuto() {
@@ -3626,6 +3923,7 @@ export class WorldSim {
 
   /** strength-model resolution for NPC-only fights (Lanchester square law with noise) */
   private quickResolve(e: Engagement): BattleResult {
+    if (e.v === 2) return this.quickResolveP11(e);
     const st = this.st, r = this.rng;
     type U = { ref: string; side: number; val: number; hp: number; group?: string };
     const units: U[] = [];
@@ -3658,6 +3956,51 @@ export class WorldSim {
     return out;
   }
 
+  /** P11 overload fallback (NPC-only battles past the budget cap), generalized to N sides with an exact
+   *  meaning: the strongest side wins; sides hostile to it lose (Lanchester against their summed
+   *  strength); sides neutral or allied to it are bystanders and come out like the winner. */
+  private quickResolveP11(e: Engagement): BattleResult {
+    const st = this.st, r = this.rng;
+    const n = e.sides.length;
+    const sideOfCo = (c: string | undefined) => { const k = c ? e.sides.findIndex(x => x.includes(c)) : -1; return k; };
+    type U = { ref: string; side: number; val: number; hp: number; group?: string };
+    const units: U[] = [];
+    for (const s of Object.values(st.ships)) {
+      if (s.engagement !== e.id) continue;
+      const k = sideOfCo(s.owner); if (k < 0) continue;
+      const g = st.groups[s.groupId];
+      const skill = g ? this.cmdr(g).skill : 0.3;
+      units.push({ ref: s.id, side: k, val: shipValue(s.classId) * (econOf(s).military ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
+    }
+    if (e.lairId) { const l = st.lairs[e.lairId], k = sideOfCo('pirates'); if (l && k >= 0) units.push({ ref: 'lair:' + l.id, side: k, val: 300 * (0.4 + 0.6 * l.hp), hp: l.hp }); }
+    const S = Array.from({ length: n }, (_, k) => units.filter(u => u.side === k).reduce((a, u) => a + u.val, 0) * r.range(0.82, 1.18));
+    let winner = -1; for (let k = 0; k < n; k++) if (S[k] > 0 && (winner < 0 || S[k] > S[winner])) winner = k;
+    const hostileTo = (k: number) => winner >= 0 && k !== winner && coRelation(st, e.sides[k][0], e.sides[winner][0]) === -1;
+    const W = winner >= 0 ? S[winner] : 0, L = S.reduce((a, v, k) => a + (hostileTo(k) ? v : 0), 0);
+    const rem = Math.sqrt(Math.max(0, 1 - (Math.min(L, W) / Math.max(1, W)) ** 2));
+    const dmgW = Math.max(0.04, Math.min(0.85, 1 - rem));
+    const out: BattleResult = { winner, ships: [], groupKills: new Map(), sides: [] };
+    const winners = units.filter(u => !hostileTo(u.side)).length;
+    for (const u of units) {
+      if (!hostileTo(u.side)) {
+        const hp = u.hp - dmgW * r.range(0.4, 1.6) * (u.side === winner ? 1 : 0.5);
+        out.ships.push({ ref: u.ref, dead: hp < 0.08, hp: Math.max(0.08, hp), escaped: false, dmg: u.side === winner ? u.val : 0 });
+        if (u.group && u.side === winner) out.groupKills.set(u.group, (out.groupKills.get(u.group) ?? 0) + L / Math.max(1, winners));
+      } else {
+        const crushing = 1 - L / Math.max(1, W);
+        const dead = u.ref.startsWith('lair:') ? W > L * 1.6 : r.chance(0.5 + 0.45 * crushing);
+        out.ships.push({ ref: u.ref, dead, hp: u.ref.startsWith('lair:') ? Math.max(0.05, u.hp - 0.4) : Math.max(0.08, u.hp * r.range(0.2, 0.6)), escaped: !dead, dmg: 0 });
+      }
+    }
+    for (let k = 0; k < n; k++) {
+      const mine = out.ships.filter(x => units.find(u => u.ref === x.ref)?.side === k);
+      out.sides!.push({ side: k, status: k === winner ? 'victor' : hostileTo(k) ? (mine.some(x => !x.dead) ? 'routed' : 'destroyed') : 'survived', alive: mine.filter(x => !x.dead && !x.escaped).length, lost: mine.filter(x => x.dead).length, escaped: mine.filter(x => x.escaped).length, value: 0 });
+    }
+    // the strength model only knows who beat whom: damage to pirates goes to the winner if it hunts pirates
+    if (winner >= 0) for (let k = 0; k < n; k++) if (hostileTo(k)) { const m = ((e.dmg ??= {})[e.sides[winner][0]] ??= {}); m[e.sides[k][0]] = (m[e.sides[k][0]] ?? 0) + S[k]; }
+    return out;
+  }
+
   private finishEngagement(e: Engagement, res: BattleResult, tactical = false) { return watchMoney(this.st, 'battle_reward', { system: e.sys, ref: e.id }, () => this.finishEngagementObserved(e, res, tactical)); }
 
   private finishEngagementObserved(e: Engagement, res: BattleResult, tactical: boolean) {
@@ -3670,11 +4013,14 @@ export class WorldSim {
       const meta = { company: ship.owner, group: ship.groupId, ship: ship.id, item: ship.classId, system: e.sys, reason: tactical ? 'tactical' : 'strength_model' };
       emit(st, { ...meta, kind: 'combat.participation', amount: 1 });
       if (r.dead) { emit(st, { ...meta, kind: 'combat.loss', amount: 1 }); for (const [item, amount] of Object.entries(ship.cargo)) if (amount > 0) emit(st, { ...meta, kind: 'consume', reason: 'combat_cargo_loss', item, amount }); }
-      if (e.sides[res.winner]?.includes(ship.owner)) emit(st, { ...meta, kind: 'combat.win', amount: 1 });
+      if (e.v === 2 ? res.sides?.[e.sides.findIndex(x => x.includes(ship.owner))]?.status === 'victor' : e.sides[res.winner]?.includes(ship.owner)) emit(st, { ...meta, kind: 'combat.win', amount: 1 });
       emit(st, { ...meta, kind: 'combat.damage', amount: r.dmg });
     }
-    const sideOf = (ref: string) => ref.startsWith('lair:') ? 1 : ref.startsWith('station:') ? 0 : (st.ships[ref] && e.sides[0].includes(st.ships[ref].owner) ? 0 : 1);
-    const losses: [number, number] = [0, 0];
+    const sideOfP11 = (c: string | undefined) => Math.max(0, c ? e.sides.findIndex(x => x.includes(c)) : 0);
+    const sideOf = e.v === 2
+      ? (ref: string) => sideOfP11(ref.startsWith('lair:') ? 'pirates' : ref.startsWith('station:') ? st.stations[ref.slice(8)]?.owner : st.ships[ref]?.owner)
+      : (ref: string) => ref.startsWith('lair:') ? 1 : ref.startsWith('station:') ? 0 : (st.ships[ref] && e.sides[0].includes(st.ships[ref].owner) ? 0 : 1);
+    const losses: number[] = e.v === 2 ? new Array(Math.max(2, e.sides.length)).fill(0) : [0, 0];
     for (const ts of res.ships) if (ts.dead && !ts.ref.startsWith('station:')) losses[sideOf(ts.ref)]++;
     const sys = this.sysOf(e.pos);
     const destroyedPirateValue = new Map<string, number>();
@@ -3721,6 +4067,8 @@ export class WorldSim {
         if (g) g.shipIds = g.shipIds.filter(x => x !== s.id);
         delete st.ships[s.id];
       } else {
+        // P11: a ship handed back early (its side withdrew) belongs to the world again — never touched twice
+        if (e.v === 2 && s.engagement !== e.id) continue;
         s.hp = Math.max(0.05, ts.hp);
         s.state = 'space'; s.engagement = undefined; s.task = { k: 'none' };
         if (tactical) {
@@ -3764,14 +4112,46 @@ export class WorldSim {
         delete st.groups[g.id];
       }
     }
+    // P11: settled per company, once. Bounties and standing go only to companies that actually damaged
+    // pirates (their share of all damage dealt to pirates); a PvP kill never pays a pirate bounty.
+    const pirCos = new Set(e.sides.flat().filter(c => c === 'pirates' || st.companies[c]?.kind === 'pirate'));
+    const vsPir = (c: string) => { let v = 0; for (const p of pirCos) v += e.dmg?.[c]?.[p] ?? 0; return v; };
+    const statusOf = (c: string) => { const k = e.sides.findIndex(x => x.includes(c)); return res.sides?.[k]?.status ?? (k === res.winner ? 'victor' : 'survived'); };
+    const STATUS_KO: Record<string, string> = { victor: '승리', survived: '교전 종료 (생존)', withdrawn: '철수', routed: '패주', destroyed: '전멸' };
+    const p11Settle = () => {
+      const hunters = players.filter(c => vsPir(c) > 0);
+      const total = hunters.reduce((a, c) => a + vsPir(c), 0);
+      let bounty = 0;
+      for (const v of destroyedPirateValue.values()) bounty += v * 22;
+      if (e.lairId && !st.lairs[e.lairId]?.alive) bounty += 6000;
+      for (const c of players) {
+        const co = st.companies[c];
+        const share = total > 0 ? vsPir(c) / total : 0;
+        const pay = Math.round(bounty * share);
+        if (pay > 0) { co.credits += pay; co.stats.earned += pay; }
+        const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
+        if (standing) emit(st, { kind: 'reputation', reason: 'pirate_bounty', amount: standing, company: co.id, system: e.sys });
+        if (standing && st.factions) { const fsys = st.systems[e.sys ?? '']?.faction; if (fsys && fsys !== 'pirates') bumpStanding(st, co.id, fsys, standing * .5); bumpStanding(st, co.id, 'pirates', -standing); }
+        co.stats.kills += Math.round(destroyedPirateValue.size * share);
+        const status = statusOf(c);
+        if (status === 'victor') { co.stats.battlesWon++; if (!co.milestones.includes('first_victory')) this.milestone(co, 'first_victory'); }
+        const lost = lostBy.get(c) ?? 0;
+        const foes = e.sides.flat().filter(x => x !== c && coRelation(st, c, x) === -1 && !pirCos.has(x));
+        const foeLost = foes.reduce((a, x) => a + (lostBy.get(x) ?? 0), 0);
+        const txt = `${STATUS_KO[status] ?? status} — ${destroyedPirateValue.size ? `해적 ${destroyedPirateValue.size}척 격침, ` : ''}${foes.length ? `적대 회사 손실 ${foeLost}척, ` : ''}아군 손실 ${lost}척${pay ? `, 현상금 +${pay.toLocaleString()} cr` : ''}`;
+        this.ev('battle', `전투 종료: ${txt}`, { company: c, pos: e.pos, ref: e.id });
+        if (co.tech?.includes('salvage_ops') && wrecks.length && share > 0) this.salvageWrecks(co, wrecks, share, e.pos, wreckCls);
+      }
+    };
     // bounties & reputation by damage share
-    const players = e.sides[0].filter(c => st.companies[c]?.kind === 'player');
+    const players = (e.v === 2 ? [...new Set(e.sides.flat())] : e.sides[0]).filter(c => st.companies[c]?.kind === 'player');
     const totalDmg = players.reduce((a, c) => a + (dmgBy.get(c) ?? 0), 0);
     let bounty = 0;
     for (const v of destroyedPirateValue.values()) bounty += v * 22;
     if (e.lairId && !st.lairs[e.lairId]?.alive) bounty += 6000;
-    const won = e.winner === 0;
-    for (const c of players) {
+    const won = e.v === 2 ? e.sides.some(x => x.includes('union')) && statusOf('union') === 'victor' : e.winner === 0;
+    if (e.v === 2) p11Settle();
+    else for (const c of players) {
       const co = st.companies[c];
       const share = totalDmg > 0 ? (dmgBy.get(c) ?? 0) / totalDmg : 1 / players.length;
       const pay = Math.round(bounty * share);
@@ -3792,7 +4172,7 @@ export class WorldSim {
       if (k.done || k.kind !== 'bounty' || !k.target) continue;
       const g = st.groups[k.target];
       if (g && g.shipIds.length) continue;
-      if (k.takenBy && players.includes(k.takenBy) && (dmgBy.get(k.takenBy) ?? 0) > 0) this.completeContract(k);
+      if (k.takenBy && players.includes(k.takenBy) && (e.v === 2 ? vsPir(k.takenBy) > 0 : (dmgBy.get(k.takenBy) ?? 0) > 0)) this.completeContract(k);
       else { k.done = true; if (k.takenBy) this.ev('info', `계약 "${k.title}" 대상이 다른 세력에 의해 소멸했다.`, { company: k.takenBy }); }
     }
     // wreckage becomes a salvage field (alloy)
@@ -3802,18 +4182,20 @@ export class WorldSim {
     }
     if (!players.length && sys) {
       const nPir = res.ships.filter(x => st.ships[x.ref]?.owner === 'pirates' || destroyedPirateValue.has(x.ref)).length;
-      if (e.sides[0].includes('union')) {
+      const lawfulWon = e.v === 2 ? e.sides.some(x => !pirCos.has(x[0]) && statusOf(x[0]) === 'victor') : won;
+      if (e.v === 2 ? e.sides.some(x => x.includes('union')) : e.sides[0].includes('union')) {
         if (!won) this.ev('world', `${sys.name}: 연합군이 해적에게 밀려났다! 주변 항로가 위험해진다.`, { pos: e.pos });
         else if (destroyedPirateValue.size >= 3 || e.lairId) this.ev('world', `${sys.name}: 연합군이 해적 ${destroyedPirateValue.size}척을 격침했다.`, { pos: e.pos });
-      } else if (!won) { sys.stats.raids++; bump(sys, { pirates: 3, guild: -3 }); this.ev('world', `${sys.name}: 길드 상선이 해적에게 약탈당했다.`, { pos: e.pos }); }
+      } else if (!lawfulWon && (e.v !== 2 || pirCos.size)) { sys.stats.raids++; bump(sys, { pirates: 3, guild: -3 }); this.ev('world', `${sys.name}: 길드 상선이 해적에게 약탈당했다.`, { pos: e.pos }); }
       void nPir;
     }
     // a record anyone can replay: the setup (with its seed) and the orders reproduce it exactly
     const names = e.names ?? ['아군', '해적'];
-    if (!e.summary) e.summary = `${e.winner === 0 ? names[0] + ' 승리' : e.winner === 1 ? names[1] + ' 승리' : '교착'} — 손실 ${names[0]} ${losses[0]}척 · ${names[1]} ${losses[1]}척`;
+    if (e.v === 2) e.summary = `${res.winner >= 0 ? names[res.winner] + ' 승리' : (res.sides ?? []).filter(x => x.status === 'victor' || x.status === 'survived').map(x => names[x.side]).join(' · ') + ' 잔존' } — 손실 ${names.map((nm, k) => `${nm} ${losses[k] ?? 0}척`).join(' · ')}`;
+    else if (!e.summary) e.summary = `${e.winner === 0 ? names[0] + ' 승리' : e.winner === 1 ? names[1] + ' 승리' : '교착'} — 손실 ${names[0]} ${losses[0]}척 · ${names[1]} ${losses[1]}척`;
     if (tactical) {
       const log = (st.battleLog ??= []);
-      log.push({ id: e.id, sys: e.sys, pos: { ...e.pos }, start: e.start, end: this.time, names, winner: e.winner ?? -1, summary: e.summary, n: e.n ?? 0, losses, setup: e.setup, orders: e.orders });
+      log.push({ id: e.id, sys: e.sys, pos: { ...e.pos }, start: e.start, end: this.time, names, winner: e.winner ?? -1, summary: e.summary, n: e.n ?? 0, losses, setup: e.setup, orders: e.orders, ...(e.v === 2 ? { sides: e.sides.map((x, k) => ({ company: x[0], status: res.sides?.[k]?.status ?? '' })) } : {}) });
       if (log.length > 30) log.splice(0, log.length - 30);
     }
     this.onBattleEnd?.(e);

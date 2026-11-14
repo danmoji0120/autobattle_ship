@@ -448,7 +448,9 @@ export interface Engagement {
   setup: BattleSetup;
   orders: OrderRecord[];
   tick: number;                // tactical ticks simulated by the authority
-  sides: [string[], string[]]; // company ids per team
+  /** company ids per tactical side. Legacy: two coalitions (0 = everyone but pirates, 1 = pirates).
+   *  P11 (`v: 2`): one company per side, in tactical side order — sides grow as companies join. */
+  sides: string[][];
   groupRefs: string[];         // strategic groups involved
   live: boolean;               // players involved (they may command); NPC-only fights run the same engine
   done: boolean;
@@ -458,19 +460,31 @@ export interface Engagement {
   stationId?: string;
   /** overload fallback only: resolved by the strength model at this time (not watchable) */
   autoEnd?: number;
-  /** side display names, e.g. ['연합 관리청', '해적'] */
-  names?: [string, string];
-  /** live progress for maps and lists: ships alive / at start, remaining strength 0..1 */
-  prog?: { alive: [number, number]; total: [number, number]; value: [number, number] };
+  /** side display names, e.g. ['연합 관리청', '해적'] (one per side) */
+  names?: string[];
+  /** live progress for maps and lists: ships alive / at start, remaining strength 0..1 (one entry per side) */
+  prog?: { alive: number[]; total: number[]; value: number[]; out?: (string | null)[] };
+  /** P11 multi-side engagement (st.combatV 2): one side per company, reinforcements join in place */
+  v?: 2;
+  /** P11: damage dealt, attacker company → target company (bounty goes by damage to pirates) */
+  dmg?: Record<string, Record<string, number>>;
+  /** P11: strategic groups that left this battle (withdrawn / routed side) and may not rejoin it */
+  left?: string[];
+  /** P11: reinforcement log (the join events themselves are in `orders`) */
+  joins?: { tick: number; at: number; company: string; side: number; groups: string[]; ships: number }[];
+  /** P11: companies whose side already left and whose surviving ships were handed back early */
+  released?: string[];
   n?: number;                  // ships involved (for clients; setup is not in snapshots)
   sys?: string;
 }
 
 export interface BattleRecord {
   id: string; sys?: string; pos: V; start: number; end: number;
-  names: [string, string]; winner: number; summary: string; n: number;
+  names: string[]; winner: number; summary: string; n: number;
   /** ships lost per side */
-  losses: [number, number];
+  losses: number[];
+  /** P11: per-side outcome (company, status) */
+  sides?: { company: string; status: string }[];
   setup: BattleSetup; orders: OrderRecord[];
 }
 
@@ -514,6 +528,13 @@ export interface WorldState {
   approvals?: Record<string, import('./operations').Approval>;
   contracts: Record<string, Contract>;
   engagements: Record<string, Engagement>;
+  /** P11 combat (opt-in, new worlds only): multi-side engagements, reinforcements in place, PvP */
+  combatV?: 2;
+  /** P11: per-company stance toward other player companies. Hostility is unilateral (either side's
+   *  declaration makes the pair hostile); an alliance needs both. Pirates are always hostile. */
+  stance?: Record<string, { hostile?: string[]; ally?: string[] }>;
+  /** P11: who declared or attacked whom, when and where (newest last, capped) */
+  attackLog?: { t: number; by: string; to: string; kind: 'declare' | 'attack' | 'cease' | 'ally'; sys?: string; sec?: number }[];
   /** finished tactical battles, replayable from setup + seed + orders (newest last) */
   battleLog?: BattleRecord[];
   events: WorldEvent[];        // rolling log

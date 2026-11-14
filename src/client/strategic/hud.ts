@@ -369,9 +369,9 @@ export class PmcHud {
     this.renderBattles();
   }
 
-  private battleSides(e: { sides: [string[], string[]]; names?: [string, string] }): [string, string] {
+  private battleSides(e: { sides: string[][]; names?: string[] }): string[] {
     const st = this.st;
-    return e.names ?? [0, 1].map(i => e.sides[i].map(c => st.companies[c]?.name ?? c).join(', ')) as [string, string];
+    return e.names ?? e.sides.map(s => s.map(c => st.companies[c]?.name ?? c).join(', '));
   }
 
   private renderBattles() {

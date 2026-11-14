@@ -230,7 +230,7 @@ export class GameClient {
     });
   }
 
-  battleOrder(eng: string, groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean }): Promise<string | null> {
+  battleOrder(eng: string, groupId: number, order: Order | null, opts: { retreatAt?: number; release?: boolean; withdraw?: boolean }): Promise<string | null> {
     const id = this.seq++;
     return new Promise(res => { this.acks.set(id, res); this.t.send({ t: 'border', id, eng, groupId, order, opts }); });
   }

@@ -23,7 +23,7 @@ export interface HudOptions {
   /** Local experiments may inspect either side; commanding still follows mayCommand(). */
   inspectAll?: boolean;
   /** spectating a battle you have no part in: side names replace "ally/enemy" */
-  spectate?: { sides: [string, string] };
+  spectate?: { sides: string[] };
   /** persistent world: which tactical groups this player may command */
   canCommand?: (g: Group) => boolean;
   /** persistent world: results screen returns to the strategic map */

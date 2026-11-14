@@ -10,7 +10,7 @@ export type ClientMsg =
   | { t: 'createPmc'; name: string; legacy?: string }
   | { t: 'cmd'; id: number; cmd: Cmd }
   | { t: 'bjoin'; eng: string }
-  | { t: 'border'; id: number; eng: string; groupId: number; order: Order | null; opts: { retreatAt?: number; release?: boolean } }
+  | { t: 'border'; id: number; eng: string; groupId: number; order: Order | null; opts: { retreatAt?: number; release?: boolean; /** P11: pull the sender's whole side out */ withdraw?: boolean } }
   | { t: 'speed'; v: number }
   | { t: 'ping'; at: number }
   | { t: 'view'; sys: string }
@@ -28,7 +28,7 @@ export type ServerMsg =
   | import('./sync').SyncMsg
   | { t: 'events'; list: WorldEvent[] }
   | { t: 'ack'; id: number; err: string | null }
-  | { t: 'binit'; eng: string; setup: BattleSetup; orders: OrderRecord[]; tick: number; /** finished: play it back as a replay */ replay?: boolean; names?: [string, string] }
+  | { t: 'binit'; eng: string; setup: BattleSetup; orders: OrderRecord[]; tick: number; /** finished: play it back as a replay */ replay?: boolean; names?: string[] }
   | { t: 'border'; eng: string; rec: OrderRecord }
   | { t: 'players'; list: { id: string; name: string; online: boolean; color: string }[] }
   | { t: 'pong'; at: number; serverTime: number }

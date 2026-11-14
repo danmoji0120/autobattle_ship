@@ -38,6 +38,8 @@ export interface ServerOptions {
   migrateEcon?: boolean;
   /** ECON_PRICING=chain: a brand-new world starts with value-chain pricing (opt-in, unapproved default) */
   econNew?: boolean;
+  /** COMBAT_P11=1: a brand-new world uses P11 multi-side combat & PvP (opt-in; existing saves are never converted) */
+  combatNew?: boolean;
   analytics?: AnalyticsOptions;
   /** keep only this many finished logistics jobs per company (see world/retention.ts); unset = keep all */
   logisticsJobRetain?: number;
@@ -92,7 +94,7 @@ export class GameServer {
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
-    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, opts.econNew ? { econ: 'chain' } : {});
+    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, { ...(opts.econNew ? { econ: 'chain' as const } : {}), ...(opts.combatNew ? { combat: 'p11' as const } : {}) });
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }
     this.auth = save?.auth ?? {};
