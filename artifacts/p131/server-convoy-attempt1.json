@@ -1,0 +1,184 @@
+{
+  "failed": "FAIL R2 / E (condition): restart during salvage — wreck lots, taken, C's hold and C's order are restored as saved {\"taken\":{\"p1\":{\"electronics\":46},\"p123\":{\"electronics\":22}},\"hold\":{\"electronics\":22}}",
+  "passed": 13,
+  "checks": [
+    {
+      "label": "0: SALVAGE_P131=1 server, P13.1 world, three real accounts"
+    },
+    {
+      "label": "1: B's hauler carries metal 300 + electronics 120 (escort: 2 destroyers, 1 corvette)"
+    },
+    {
+      "label": "2: A orders its interceptors to attack B's convoy"
+    },
+    {
+      "label": "2: a real P11 engagement A ↔ B started"
+    },
+    {
+      "label": "3: the hauler was SUNK in a real battle (not escaped): it is gone from the world and is a source of a wreck of that battle",
+      "extra": {
+        "eng": "e297",
+        "start": 54,
+        "end": 78.75,
+        "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+        "sides": [
+          {
+            "company": "p10",
+            "status": "destroyed"
+          },
+          {
+            "company": "p1",
+            "status": "victor"
+          }
+        ],
+        "losses": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "label": "3: the wreck records the hauler as a source with B as original owner",
+      "extra": {
+        "wreck": "wk_e297_0",
+        "name": "아스트라 전장 잔해 A",
+        "sources": [
+          "hauler:p10"
+        ]
+      }
+    },
+    {
+      "label": "3: part of the real cargo is in the wreck as B-owned cargo lots, the rest was destroyed",
+      "extra": {
+        "metal": 182,
+        "electronics": 72
+      }
+    },
+    {
+      "label": "R1: after a restart right after the battle the wreck is the same (lots + taken) and the sunk hauler did not come back",
+      "extra": {
+        "totals": {
+          "metal": 259,
+          "electronics": 94,
+          "eq_pd_gun": 2,
+          "alloy": 99,
+          "weapon_parts": 22
+        }
+      }
+    },
+    {
+      "label": "B (condition): cargo at the sinking = destroyed + surviving in the wreck, per item, from the server's own event record",
+      "extra": {
+        "before": {
+          "metal": 300,
+          "electronics": 120
+        },
+        "destroyed": {
+          "metal": 118,
+          "electronics": 48
+        },
+        "toWreck": {
+          "metal": 182,
+          "electronics": 72
+        },
+        "lotsInWreck": {
+          "metal": 182,
+          "electronics": 72
+        }
+      }
+    },
+    {
+      "label": "4: A stands its group down (idle) — automatic on-site salvage may start"
+    },
+    {
+      "label": "4: C declares B hostile (B's cargo becomes legal salvage for C)"
+    },
+    {
+      "label": "4: C orders its hauler to recover the wreck"
+    },
+    {
+      "label": "D (condition): C's recovered goods are in its ship's hold, not in storage, before it docks",
+      "extra": {
+        "hold": {
+          "electronics": 10
+        },
+        "storage": {
+          "metal": 0,
+          "electronics": 0
+        }
+      }
+    }
+  ],
+  "facts": {
+    "seed": "9412",
+    "layout": "close",
+    "ids": {
+      "conv": "g132",
+      "hauler": "s134",
+      "war": "g138",
+      "cg": "g148",
+      "cship": "s150"
+    },
+    "fleets": {
+      "A": [
+        "corvette×6",
+        "destroyer×2"
+      ],
+      "B": [
+        "hauler (metal 300, electronics 120)",
+        "destroyer×2",
+        "corvette"
+      ],
+      "C": [
+        "hauler"
+      ]
+    },
+    "cargoBefore": {
+      "metal": 300,
+      "electronics": 120
+    },
+    "battle": {
+      "eng": "e297",
+      "start": 54,
+      "end": 78.75,
+      "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+      "sides": [
+        {
+          "company": "p10",
+          "status": "destroyed"
+        },
+        {
+          "company": "p1",
+          "status": "victor"
+        }
+      ],
+      "losses": [
+        1,
+        0
+      ]
+    },
+    "cargoInWreck": {
+      "metal": 182,
+      "electronics": 72
+    },
+    "sinking": {
+      "destroyed": {
+        "metal": 118,
+        "electronics": 48
+      },
+      "toWreck": {
+        "metal": 182,
+        "electronics": 72
+      }
+    },
+    "wreckTotals": {
+      "metal": 259,
+      "electronics": 94,
+      "eq_pd_gun": 2,
+      "alloy": 99,
+      "weapon_parts": 22
+    }
+  },
+  "restarts": 2,
+  "seconds": 109
+}

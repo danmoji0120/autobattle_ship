@@ -105,7 +105,10 @@ try {
   const all = wreckOfEng(A.snap(), eng).concat(Object.values<any>(A.snap().wrecks ?? {}).filter(w => w.sources.some((s: any) => s.ship === ids.hauler) && w.eng !== eng));
   const cargoLots = all.flatMap((w: any) => w.lots.filter((l: any) => l.k === 'cargo'));
   facts.cargoInWrecks = cargoLots.map((l: any) => [l.item, l.n]);
-  check(sunk ? cargoLots.length > 0 && cargoLots.every((l: any) => l.n < (l.item === 'metal' ? 300 : 120)) : true, sunk ? '3: the hauler was sunk; part of its real cargo is in the wreck (the rest destroyed)' : '3: (the hauler escaped this time — P11 outcome; cargo-to-wreck is covered by tests A03/A05)', { sunk, cargo: facts.cargoInWrecks });
+  // the escorts' wreck is what this scenario salvages; whether the hauler was sunk is only recorded here.
+  // The cargo-to-wreck path on a real server is verified (strictly, no pass without a sinking) by p131-server-convoy.ts
+  if (sunk) check(cargoLots.length > 0 && cargoLots.every((l: any) => l.n < (l.item === 'metal' ? 300 : 120)), '3: the hauler was sunk; part of its real cargo is in the wreck (the rest destroyed)', { sunk, cargo: facts.cargoInWrecks });
+  else console.log('INFO 3: the hauler escaped in this run — not counted as a check (see p131-server-convoy.ts)');
   check(await A.command({ c: 'setOp', group: ids.war, op: { k: 'idle' } }) === null, '4: A stands its battle group down (idle) — automatic on-site salvage may now start');
   const target = all.sort((x: any, y: any) => units(y) - units(x))[0];
   // 5. C sends a zone salvage at the wreck

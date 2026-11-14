@@ -1,0 +1,484 @@
+{
+  "passed": 27,
+  "checks": [
+    {
+      "label": "0: SALVAGE_P131=1 server, P13.1 world, three real accounts"
+    },
+    {
+      "label": "1: B's hauler carries metal 300 + electronics 120 (escort: 2 destroyers, 1 corvette)"
+    },
+    {
+      "label": "2: A orders its interceptors to attack B's convoy"
+    },
+    {
+      "label": "2: a real P11 engagement A ↔ B started"
+    },
+    {
+      "label": "3: the hauler was SUNK in a real battle (not escaped): it is gone from the world and is a source of a wreck of that battle",
+      "extra": {
+        "eng": "e301",
+        "start": 59,
+        "end": 84,
+        "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+        "sides": [
+          {
+            "company": "p115",
+            "status": "destroyed"
+          },
+          {
+            "company": "p1",
+            "status": "victor"
+          }
+        ],
+        "losses": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "label": "3: the wreck records the hauler as a source with B as original owner",
+      "extra": {
+        "wreck": "wk_e301_0",
+        "name": "아스트라 전장 잔해 A",
+        "sources": [
+          "hauler:p115"
+        ]
+      }
+    },
+    {
+      "label": "3: part of the real cargo is in the wreck as B-owned cargo lots, the rest was destroyed",
+      "extra": {
+        "metal": 180,
+        "electronics": 72
+      }
+    },
+    {
+      "label": "R1: after a restart right after the battle the wreck is the same (lots + taken) and the sunk hauler did not come back",
+      "extra": {
+        "totals": {
+          "alloy": 99,
+          "electronics": 94,
+          "metal": 257,
+          "weapon_parts": 22
+        }
+      }
+    },
+    {
+      "label": "B (condition): cargo at the sinking = destroyed + surviving in the wreck, per item, from the server's own event record",
+      "extra": {
+        "before": {
+          "metal": 300,
+          "electronics": 120
+        },
+        "destroyed": {
+          "metal": 120,
+          "electronics": 48
+        },
+        "toWreck": {
+          "metal": 180,
+          "electronics": 72
+        },
+        "lotsInWreck": {
+          "metal": 180,
+          "electronics": 72
+        }
+      }
+    },
+    {
+      "label": "4: A stands its group down (idle) — automatic on-site salvage may start"
+    },
+    {
+      "label": "4: C declares B hostile (B's cargo becomes legal salvage for C)"
+    },
+    {
+      "label": "4: C orders its hauler to recover the wreck"
+    },
+    {
+      "label": "D (condition): C's recovered goods are in its ship's hold, not in storage, before it docks",
+      "extra": {
+        "hold": {
+          "electronics": 2
+        },
+        "storage": {
+          "metal": 0,
+          "electronics": 0
+        }
+      }
+    },
+    {
+      "label": "R2 / E (condition): restart during salvage — C's recover order and salvage state are restored",
+      "extra": {
+        "phase": "work"
+      }
+    },
+    {
+      "label": "R2 / E: nothing recovered before the restart was lost; what C took after it is exactly what was added to its hold",
+      "extra": {
+        "before": {
+          "taken": {
+            "electronics": 2
+          },
+          "hold": {
+            "electronics": 2
+          }
+        },
+        "after": {
+          "taken": {
+            "electronics": 14
+          },
+          "hold": {
+            "electronics": 14
+          }
+        }
+      }
+    },
+    {
+      "label": "R2: nothing taken was regenerated: lots + taken still equal what the wreck was made with",
+      "extra": {
+        "alloy": 99,
+        "electronics": 94,
+        "metal": 257,
+        "weapon_parts": 22
+      }
+    },
+    {
+      "label": "5: A (automatic on-site) and C (designated recover) both recovered from the same wreck",
+      "extra": {
+        "A": {
+          "electronics": 46
+        },
+        "C": {
+          "electronics": 10
+        }
+      }
+    },
+    {
+      "label": "6: C carries its recovered goods to a station to unload",
+      "extra": {
+        "station": "astra",
+        "salvaged": {
+          "electronics": 26,
+          "metal": 180
+        },
+        "pos": {
+          "x": -255461.492525483,
+          "y": -57.993950934301715,
+          "z": -13388.040542565492
+        }
+      }
+    },
+    {
+      "label": "R3: restart while carrying — the unload phase is restored and hold + storage per item are unchanged",
+      "extra": {
+        "hold": {
+          "electronics": 26,
+          "metal": 180
+        },
+        "phase": "unload"
+      }
+    },
+    {
+      "label": "7: C docks and unloads exactly what it carried into its storage",
+      "extra": {
+        "carried": {
+          "electronics": 26,
+          "metal": 180
+        },
+        "added": {
+          "electronics": 26,
+          "metal": 180
+        }
+      }
+    },
+    {
+      "label": "8: C sells the recovered goods at the market: storage down, credits up",
+      "extra": {
+        "station": "astra",
+        "item": "metal",
+        "amount": 180,
+        "credits": 4252.2
+      }
+    },
+    {
+      "label": "C (condition): what the wreck was made with = left in it + taken by A + taken by C (+ others), per item, at the end",
+      "extra": {
+        "made": {
+          "alloy": 99,
+          "electronics": 94,
+          "metal": 257,
+          "weapon_parts": 22
+        },
+        "left": {
+          "metal": 77,
+          "electronics": 22
+        },
+        "taken": {
+          "p1": {
+            "electronics": 46
+          },
+          "p124": {
+            "electronics": 26,
+            "metal": 180
+          }
+        }
+      }
+    },
+    {
+      "label": "C: only A and C took anything from it"
+    },
+    {
+      "label": "D: everything C took is either unloaded into its storage or still in its hold (server event record = wreck record)",
+      "extra": {
+        "recovered": {
+          "metal": 180,
+          "electronics": 26
+        },
+        "unloaded": {
+          "metal": 180,
+          "electronics": 26
+        },
+        "hold": {}
+      }
+    },
+    {
+      "label": "D: everything A took is in A's holds or unloaded",
+      "extra": {
+        "taken": {
+          "electronics": 46
+        },
+        "hold": {},
+        "unloaded": {
+          "electronics": 46
+        }
+      }
+    },
+    {
+      "label": "no double sinking: the hauler is in exactly one wreck and nowhere else"
+    },
+    {
+      "label": "P11: a side recorded as destroyed lost every ship it brought; a side whose ships partly escaped is not \"destroyed\"",
+      "extra": [
+        "e256: withdrawn 3/4 vs victor 0/8",
+        "e301: destroyed 1/1 vs victor 0/8"
+      ]
+    }
+  ],
+  "facts": {
+    "seed": "9412",
+    "layout": "close",
+    "ids": {
+      "conv": "g133",
+      "hauler": "s135",
+      "war": "g139",
+      "cg": "g149",
+      "cship": "s151"
+    },
+    "fleets": {
+      "A": [
+        "corvette×6",
+        "destroyer×2"
+      ],
+      "B": [
+        "hauler (metal 300, electronics 120)",
+        "destroyer×2",
+        "corvette"
+      ],
+      "C": [
+        "hauler"
+      ]
+    },
+    "cargoBefore": {
+      "metal": 300,
+      "electronics": 120
+    },
+    "battle": {
+      "eng": "e301",
+      "start": 59,
+      "end": 84,
+      "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+      "sides": [
+        {
+          "company": "p115",
+          "status": "destroyed"
+        },
+        {
+          "company": "p1",
+          "status": "victor"
+        }
+      ],
+      "losses": [
+        1,
+        0
+      ]
+    },
+    "cargoInWreck": {
+      "metal": 180,
+      "electronics": 72
+    },
+    "sinking": {
+      "destroyed": {
+        "metal": 120,
+        "electronics": 48
+      },
+      "toWreck": {
+        "metal": 180,
+        "electronics": 72
+      }
+    },
+    "wreckTotals": {
+      "alloy": 99,
+      "electronics": 94,
+      "metal": 257,
+      "weapon_parts": 22
+    },
+    "sale": {
+      "station": "astra",
+      "item": "metal",
+      "amount": 180,
+      "credits": 4252.199999999953
+    },
+    "battleLog": [
+      {
+        "id": "e256",
+        "start": 3,
+        "end": 33.25,
+        "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+        "sides": [
+          {
+            "company": "p115",
+            "status": "withdrawn",
+            "ships": 4,
+            "lost": 3
+          },
+          {
+            "company": "p1",
+            "status": "victor",
+            "ships": 8,
+            "lost": 0
+          }
+        ]
+      },
+      {
+        "id": "e301",
+        "start": 59,
+        "end": 84,
+        "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+        "sides": [
+          {
+            "company": "p115",
+            "status": "destroyed",
+            "ships": 1,
+            "lost": 1
+          },
+          {
+            "company": "p1",
+            "status": "victor",
+            "ships": 8,
+            "lost": 0
+          }
+        ]
+      }
+    ],
+    "ledgerC": [
+      {
+        "h": 0,
+        "inc": {
+          "sales": 4252.2
+        },
+        "exp": {
+          "upkeep": 16.5
+        },
+        "sales": {
+          "metal": 4252.2
+        }
+      }
+    ],
+    "creditsEnd": {
+      "p1": 999787,
+      "p115": 999975,
+      "p124": 1004236
+    },
+    "storageC": {
+      "helios": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "exchange": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "astra": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0,
+        "electronics": 26
+      },
+      "bastion": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "nova": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "barcaco": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "drakeout": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "cinderco": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "rustport": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "p9_lyra_port": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "p9_ceres_works": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "p9_anvil_port": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "p9_harbor_port": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "p9_forge_works": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "p9_junction_port": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      }
+    }
+  },
+  "realWebSockets": 3,
+  "restarts": 4,
+  "seconds": 186
+}

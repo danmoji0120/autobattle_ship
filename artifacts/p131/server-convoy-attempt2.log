@@ -1,0 +1,17 @@
+PASS [1s] 0: SALVAGE_P131=1 server, P13.1 world, three real accounts 
+PASS [2s] 1: B's hauler carries metal 300 + electronics 120 (escort: 2 destroyers, 1 corvette) 
+PASS [2s] 2: A orders its interceptors to attack B's convoy 
+PASS [3s] 2: a real P11 engagement A ↔ B started 
+PASS [80s] 3: the hauler was SUNK in a real battle (not escaped): it is gone from the world and is a source of a wreck of that battle {"eng":"e297","start":54,"end":79,"summary":"A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척","sides":[{"company":"p10","status":"destroyed"},{"company":"p1","status":"victor"}],"losses":[1,0]}
+PASS [80s] 3: the wreck records the hauler as a source with B as original owner {"wreck":"wk_e297_0","name":"아스트라 전장 잔해 A","sources":["hauler:p10"]}
+PASS [80s] 3: part of the real cargo is in the wreck as B-owned cargo lots, the rest was destroyed {"metal":138,"electronics":55}
+PASS [81s] R1: after a restart right after the battle the wreck is the same (lots + taken) and the sunk hauler did not come back {"totals":{"metal":215,"electronics":77,"eq_pd_gun":1,"alloy":99,"weapon_parts":22}}
+-- restart 1 (after battle, wreck created) done
+PASS [81s] B (condition): cargo at the sinking = destroyed + surviving in the wreck, per item, from the server's own event record {"before":{"metal":300,"electronics":120},"destroyed":{"metal":162,"electronics":65},"toWreck":{"metal":138,"electronics":55},"lotsInWreck":{"metal":138,"electronics":55}}
+PASS [82s] 4: A stands its group down (idle) — automatic on-site salvage may start 
+PASS [82s] 4: C declares B hostile (B's cargo becomes legal salvage for C) 
+PASS [82s] 4: C orders its hauler to recover the wreck 
+PASS [107s] D (condition): C's recovered goods are in its ship's hold, not in storage, before it docks {"hold":{"electronics":8},"storage":{"metal":0,"electronics":0}}
+PASS [109s] R2 / E (condition): restart during salvage — C's recover order and salvage state are restored {"phase":"work"}
+PASS [109s] R2 / E: nothing recovered before the restart was lost; what C took after it is exactly what was added to its hold {"before":{"taken":{"electronics":9},"hold":{"electronics":9}},"after":{"taken":{"electronics":9,"metal":12},"hold":{"electronics":9,"metal":12}}}
+FAIL R2: nothing taken was regenerated: lots + taken still equal what the wreck was made with {"metal":215,"eq_pd_gun":1,"alloy":99,"electronics":77,"weapon_parts":22}

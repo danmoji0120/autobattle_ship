@@ -1,12 +1,11 @@
 {
-  "passed": 19,
+  "passed": 18,
   "checks": [
     "SALVAGE_P131=1 server creates a P13.1 world (P11+P12+P12.5, no random derelicts)",
     "1: B's hauler carries 300 metal + 120 electronics with two destroyers and a corvette as escort",
     "2: A orders its battle group to attack B's convoy (declares hostility)",
     "2: P11 engagement between A and B",
     "3: B's destroyed ships became a battlefield wreck (sources = real ships of B)",
-    "3: (the hauler escaped this time — P11 outcome; cargo-to-wreck is covered by tests A03/A05)",
     "4: A stands its battle group down (idle) — automatic on-site salvage may now start",
     "5: C sends its miner on a zone salvage over the battlefield",
     "6: A (automatic on-site salvage) and C (zone salvage) both take from the same wreck",
@@ -47,5 +46,5 @@
   },
   "realWebSockets": 3,
   "restarts": 3,
-  "seconds": 311
+  "seconds": 310
 }
