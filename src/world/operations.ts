@@ -10,6 +10,7 @@
 import { territoryRisk } from './territory';
 import { validateFieldGoal, runFieldGoal, type FieldGoal } from './fieldOps';
 import type { WorldSim, Cmd } from './sim';
+import { poolMember } from './haulers';
 import type { Company, Station, WorldState, Op, WGroup } from './types';
 import { qty, cargoSum } from './types';
 import { ITEMS, EQUIPMENT, RECIPES, TECHS, FACILITIES, recipeFor, facilityBuild } from './industry';
@@ -707,7 +708,7 @@ export function routeRisk(h: WorldSim, a: Station, b: Station, maxRisk = 100): {
   return null;
 }
 function poolShips(h: WorldSim, owner: string) {
-  return Object.values(h.st.ships).filter(s => s.owner === owner && s.logisticsPool && s.hp > 0 && econOf(s).cargo > 0 && !econOf(s).military);
+  return Object.values(h.st.ships).filter(s => s.owner === owner && poolMember(h.st, s) && s.hp > 0 && econOf(s).cargo > 0 && !econOf(s).military);
 }
 const outstanding = (j: { amount: number; cycleDelivered: number }) => Math.max(0, j.amount - j.cycleDelivered);
 const liveJob = (j: { state: string }) => j.state !== 'complete' && j.state !== 'cancelled';

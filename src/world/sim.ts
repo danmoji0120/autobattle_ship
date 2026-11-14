@@ -4,6 +4,8 @@
 import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
 import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
 import { createPoolJob, controlPoolJob, setPoolShips, interruptPoolShips, dispatchPool, maintainPool, stepPoolShip, type PoolRequest } from './autonomousLogistics';
+import { autoLogistics } from './haulers';
+import { enableAutoLogistics } from './logisticsMigrate';
 import { planProcurement, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
 import { Rng } from '../sim/rng';
@@ -129,6 +131,7 @@ export type Cmd =
   | { c: 'putRoute'; group: string; config: RouteConfig; route?: string }
   | { c: 'routeControl'; routes: string[]; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'poolShips'; ships: string[]; on: boolean }
+  | { c: 'autoLogistics'; on: boolean }
   | { c: 'poolCreate'; request: PoolRequest }
   | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'procPolicy'; settings: ProcurementSettings }
@@ -233,12 +236,14 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
     // P12 fleet operations are opt-in too and build on the P11 engagements
     if (opts.ops === 'p12') { sim.st.combatV = 2; sim.st.opsV = 1; }
+    // P12.5 automatic logistics is opt-in and builds on P12 (escorts, return) and P11 (raids on haulers)
+    if (opts.logistics === 'p125') { sim.st.combatV = 2; sim.st.opsV = 1; enableAutoLogistics(sim); }
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -605,7 +610,7 @@ export class WorldSim {
     if (cmd.c === 'setParent' && cmd.parent && growthOn(this.st)) manual.push(...manualRoutes(this, company, cmd.parent));
     const poolManual: WShip[] = [];
     if (growthOn(this.st)) {
-      if (['setOp', 'release', 'setParent', 'setDetached', 'deleteGroup', 'putRoute'].includes(cmd.c) && 'group' in cmd && typeof cmd.group === 'string') {
+      if (['setOp', 'release', 'setParent', 'setDetached', 'deleteGroup', 'putRoute'].includes(cmd.c) && 'group' in cmd && typeof cmd.group === 'string' && !(autoLogistics(this.st) && cmd.c === 'setOp' && cmd.op?.k === 'idle')) {
         const g = this.st.groups[cmd.group]; if (g?.owner === company) poolManual.push(...this.subtreeShipsInOp(g, true));
       }
       if (['moveShip', 'listShip', 'unloadCargo', 'reserve', 'fit', 'fitShip', 'refit', 'buy'].includes(cmd.c) && 'ship' in cmd && typeof cmd.ship === 'string') {
@@ -635,7 +640,7 @@ export class WorldSim {
         if (cmd.c === 'prodOp' && (cmd.op === 'pause' || cmd.op === 'cancel')) stopProcurement(this, company, cmd.op === 'pause' ? 'paused' : 'closed', cmd.station, 'production', cmd.order);
         if (cmd.c === 'buildOp' && (cmd.op === 'pause' || cmd.op === 'cancel')) stopProcurement(this, company, cmd.op === 'pause' ? 'paused' : 'closed', cmd.station, 'ship', cmd.build);
       }
-      if (!err && ['poolCreate', 'poolControl', 'poolShips'].includes(cmd.c)) this.poolDispatchAt = 0;
+      if (!err && ['poolCreate', 'poolControl', 'poolShips', 'autoLogistics'].includes(cmd.c)) this.poolDispatchAt = 0;
       if (!err && ['poolCreate', 'poolControl', 'poolShips', 'procPolicy', 'procSource', 'queueModule', 'planOp', 'prodOrder', 'prodOp', 'buildShip', 'buildOp'].includes(cmd.c)) this.procurementAt = 0;
       if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group });
       return err;
@@ -1410,6 +1415,12 @@ export class WorldSim {
       case 'putRoute': return putRoute(this, company, cmd.group, cmd.config, cmd.route);
       case 'routeControl': return controlRoutes(this, company, cmd.routes, cmd.action);
       case 'poolShips': return setPoolShips(this, company, cmd.ships, cmd.on);
+      case 'autoLogistics': {
+        if (!autoLogistics(this.st) || typeof cmd.on !== 'boolean') return '이 월드에서는 자동 물류 설정을 사용할 수 없습니다';
+        const co = this.st.companies[company]; if (!co) return '회사 없음';
+        if (cmd.on) delete co.autoLogistics; else co.autoLogistics = false;
+        return null;
+      }
       case 'poolCreate': return createPoolJob(this, company, cmd.request);
       case 'poolControl': return controlPoolJob(this, company, cmd.job, cmd.action);
       case 'procPolicy': return setProcurementPolicy(this, company, cmd.settings);
@@ -1644,6 +1655,7 @@ export class WorldSim {
       }
       case 'haul': {
         if (op.route) return '관리형 운송 노선은 물류 관리 화면에서 설정하거나 재개하세요';
+        if (autoLogistics(this.st)) return '자동 물류 월드입니다 — 직접 운송 명령 없이 대기 중인 수송선이 필요한 자재를 자동으로 운반합니다 (물류 현황에서 확인)';
         const a = this.st.stations[op.from], b = this.st.stations[op.to];
         if (!a || !b || a === b || !this.canDock(a, company) || !this.canDock(b, company)) return '운송 경로 오류';
         if (!sub.some(s => econOf(s).cargo > 0)) return '화물 적재 함선이 없음';
@@ -1875,7 +1887,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if (st.logisticsJobs && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } stepOperations(this); }
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if ((st.logisticsJobs || st.logisticsV) && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } stepOperations(this); }
     this.speedCap.clear(); this.escortPlans.clear(); this.escortIdx = null;
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
@@ -2682,7 +2694,7 @@ export class WorldSim {
     const detect = 900 + c.skill * 2300;
     let threat = 0, nearest = Infinity;
     for (const p of Object.values(this.st.groups)) {
-      if (p.owner !== 'pirates' || !p.shipIds.length) continue;
+      if (!p.shipIds.length || (this.st.logisticsV ? p.owner === g.owner || p.cooldown > 0 || coRelation(this.st, g.owner, p.owner) !== -1 || !p.shipIds.some(id => { const x = this.st.ships[id]; return !!x && econOf(x).military; }) : p.owner !== 'pirates')) continue;
       const pc = this.groupCenter(p); if (!pc) continue;
       for (const s of (civ.length ? civ : ships)) { const d = dist(pc, s.pos); if (d < detect) { threat += this.groupValue(p); nearest = Math.min(nearest, d); break; } }
     }

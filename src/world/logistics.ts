@@ -29,6 +29,8 @@ export interface LogisticsRoute {
   state: 'running' | 'paused' | 'complete'; reason?: string; created: number; updated: number;
   manifests: Record<string, RouteManifest>; cursors: Record<string, RouteCursor>; done: string[];
   replenishing?: boolean; stats: RouteStats; recent: ({ t: number } & RouteStats)[];
+  /** P12.5 conversion: a player-set repeating sale/transfer loop kept on this legacy path (pause/cancel only) */
+  compat?: true;
 }
 type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'undock' | 'sellAt' | 'ev'>;
 export const routeShips = (w: Pick<WorldState, 'ships' | 'groups'>, route: Pick<LogisticsRoute, 'group' | 'owner'>): WShip[] => {
@@ -96,6 +98,7 @@ function configError(h: Host, owner: string, group: string, c: RouteConfig): str
   return null;
 }
 export function putRoute(h: Host, owner: string, group: string, config: RouteConfig, id?: string): string | null {
+  if (h.st.logisticsV) return '자동 물류 월드에서는 운송 노선을 만들거나 수정하지 않습니다 — 대기 중인 수송선이 수요에 맞춰 자동으로 운송합니다';
   const existing = id ? h.st.logistics?.[id] : undefined;
   if (id && (!existing || existing.owner !== owner)) return '자사 노선이 아닙니다';
   if (existing && existing.group !== group) return '편대 변경은 기존 노선을 취소한 후 새로 설정하세요 — 화물은 보존됩니다';

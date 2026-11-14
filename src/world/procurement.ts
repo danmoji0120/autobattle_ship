@@ -1,5 +1,6 @@
 // Server-authoritative demand planning; all movement is executed by the existing logistics pool.
 import type { WorldSim } from './sim';
+import { poolMember } from './haulers';
 import type { Cargo, Company, Station, WShip } from './types';
 import { qty } from './types';
 import { missing, planMats, prereqBuilt } from './construction';
@@ -118,7 +119,7 @@ function routeScore(h: WorldSim, a: Station, b: Station, maxRisk: number): numbe
 }
 function poolShips(h: WorldSim, owner: string): WShip[] {
   return Object.values(h.st.ships).filter(s => {
-    const g = h.st.groups[s.groupId]; return s.owner === owner && !!s.logisticsPool && !!g && h.opOf(g).k === 'idle' && s.state !== 'battle' && s.state !== 'building' && !s.reserve && !s.listed && econOf(s).cargo > 0 && !econOf(s).military && s.classId !== 'miner' && s.classId !== 'constructor';
+    const g = h.st.groups[s.groupId]; return s.owner === owner && poolMember(h.st, s) && !!g && h.opOf(g).k === 'idle' && s.state !== 'battle' && s.state !== 'building' && !s.reserve && !s.listed && econOf(s).cargo > 0 && !econOf(s).military && s.classId !== 'miner' && s.classId !== 'constructor';
   });
 }
 function canCarry(ships: WShip[], a: Station, b: Station, construction: boolean, external = false) { return ships.some(s => (external || berthFits(a, econOf(s).berth)) && (construction || berthFits(b, econOf(s).berth))); }

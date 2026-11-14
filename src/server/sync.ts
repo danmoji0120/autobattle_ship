@@ -46,7 +46,7 @@ function stationBody(st: Station, own: boolean) {
   return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
 }
 function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined }; }
-function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, fitting: undefined, fit: undefined }; }
+function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined }; }
 function siteFor(s: Site, company: string) { return { ...s, scan: s.scan[company] !== undefined ? { [company]: s.scan[company] } : {}, seen: [company] }; }
 // ── P10 fog of war (w.fog): per-company knowledge of uncharted systems and unidentified deposits.
 // Worlds without fog take none of these branches, so their replication is unchanged.

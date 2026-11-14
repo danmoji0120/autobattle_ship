@@ -53,6 +53,8 @@ export interface Company {
   lastTrade?: { seq: number; id: string; signature: string };
   /** Optional company procurement policy; absent means transport enabled and purchasing disabled. */
   procurement?: import('./procurement').ProcurementPolicy;
+  /** P12.5 (logisticsV worlds): false stops new automatic hauler dispatch; in-flight shipments finish */
+  autoLogistics?: boolean;
   /** Company operations (works, approvals policy, cash ledger) — see world/operations.ts. Created lazily. */
   ops?: import('./operations').CompanyOps;
   /** P10 standing with each territorial faction (−100..100; absent = 0) */
@@ -186,6 +188,10 @@ export interface WShip {
   /** Explicit opt-in and current individual assignment for company-wide logistics. */
   logisticsPool?: boolean;
   logisticsJob?: string;
+  /** P12.5 (logisticsV worlds): every idle cargo ship hauls automatically unless the player excludes it */
+  logisticsExcluded?: boolean;
+  /** P12.5: preferred destination for untracked cargo still aboard (e.g. a cancelled shipment's target) */
+  logisticsStow?: string;
   /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
@@ -549,6 +555,8 @@ export interface WorldState {
   combatV?: 2;
   /** P12 fleet operations & autonomous command (opt-in, new worlds only; implies combatV 2) */
   opsV?: 1;
+  /** P12.5 automatic logistics (opt-in, new worlds only): idle haulers are dispatched without registration */
+  logisticsV?: 1;
   /** P11: per-company stance toward other player companies. Hostility is unilateral (either side's
    *  declaration makes the pair hostile); an alliance needs both. Pirates are always hostile. */
   stance?: Record<string, { hostile?: string[]; ally?: string[] }>;

@@ -1,7 +1,8 @@
 // Company-owned, opt-in dispatch. Existing managed routes remain on their original execution path.
 import type { WorldSim } from './sim';
 import type { WShip, WGroup, Station, WorldState } from './types';
-import { addc, takec, qty, cargoSum } from './types';
+import { addc, takec, qty, cargoSum, cargoKeys } from './types';
+import { autoLogistics, poolMember, haulerAvailability } from './haulers';
 import { econOf, berthFits, growthOn } from './hullops';
 import { EQUIPMENT, ITEMS, techFx } from './industry';
 import { constructionRoom } from './storage';
@@ -28,6 +29,10 @@ export interface LogisticsJob extends PoolRequest {
   procurement?: string;
   /** The origin was paused while this shipment had cargo; resume only with that origin. */
   procurementSuspended?: boolean;
+  /** P12.5: the loaded ship was taken by a direct command; the cargo stays tracked and the same ship resumes it */
+  held?: { ship: string; since: number; auto: boolean };
+  /** P12.5: delivers untracked cargo already aboard (from === to); never loads anything */
+  stow?: true;
 }
 type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev'>;
 const EPS = 1e-9;
@@ -36,7 +41,7 @@ const compatibleItem = (item: string) => Object.hasOwn(ITEMS, item) || Object.ha
 
 function problem(h: Host, owner: string, r: PoolRequest, external = false, reserved = 0, carrying = false): string | null {
   if (!growthOn(h.st)) return '이 월드에서는 공용 물류를 사용할 수 없습니다';
-  if (!r || typeof r.from !== 'string' || typeof r.to !== 'string' || r.from === r.to || !carrying && !Object.hasOwn(h.st.stations, r.from) || !Object.hasOwn(h.st.stations, r.to)) return '서로 다른 출발지와 목적지를 선택하세요';
+  if (!r || typeof r.from !== 'string' || typeof r.to !== 'string' || r.from === r.to && !(r as LogisticsJob).stow || !carrying && !Object.hasOwn(h.st.stations, r.from) || !Object.hasOwn(h.st.stations, r.to)) return '서로 다른 출발지와 목적지를 선택하세요';
   const a = h.st.stations[r.from], b = h.st.stations[r.to];
   if (!['transfer', 'sell', 'supply', 'construction'].includes(r.kind)) return '운송 목적을 선택하세요';
   if (typeof r.item !== 'string' || !compatibleItem(r.item)) return '운송할 품목을 선택하세요';
@@ -67,13 +72,43 @@ function clearWait(h: Host, j: LogisticsJob, s?: WShip) {
 function detach(h: Host, j: LogisticsJob, reason: string, lost = false) {
   const s = j.ship ? h.st.ships[j.ship] : undefined;
   clearWait(h, j, s);
+  // P12.5: cargo that stays aboard a surviving ship is delivered later by a stow job, to this destination
+  const keeper = s ?? (j.held ? h.st.ships[j.held.ship] : undefined);
+  if (autoLogistics(h.st) && keeper && !lost && j.carried > EPS && keeper.owner === j.owner) keeper.logisticsStow = j.to;
+  delete j.held;
   if (j.carried > 0 && j.ship) emit(h.st, { kind: 'logistics', reason: 'aborted', amount: j.carried, company: j.owner, group: s?.groupId, ship: j.ship, item: j.item });
   if (j.carried > 0) { if (lost) j.lost += j.carried; else j.withdrawn += j.carried; }
   j.carried = 0; releaseReservation(h, j);
   if (s?.logisticsJob === j.id) { delete s.logisticsJob; if (s.cargoWork?.key.startsWith(`pool:${j.id}:`)) delete s.cargoWork; if (s.state !== 'battle') { s.vel = { x: 0, y: 0, z: 0 }; delete s.warp; } }
   delete j.ship; j.reason = j.reserved > EPS ? `${reason} — 출발지 복구 시 예약 재고 반환` : reason; j.updated = h.time;
 }
-export function interruptPoolShips(h: Host, ships: WShip[], reason: string) {
+/** P12.5: a loaded shipment yields to a direct command without losing track of its cargo. */
+function hold(h: Host, j: LogisticsJob, s: WShip, reason: string) {
+  clearWait(h, j, s);
+  if (s.cargoWork?.key.startsWith(`pool:${j.id}:`)) delete s.cargoWork;
+  delete s.logisticsJob; releaseReservation(h, j);
+  const rest = j.amount - j.cycleDelivered - j.carried;
+  if (rest > EPS && !j.repeat) {
+    // the unloaded remainder must not wait for this ship: procurement re-plans it, a direct request is split off
+    if (j.procurement) j.amount = j.cycleDelivered + j.carried;
+    else if (j.kind !== 'sell' && !createPoolJob(h, j.owner, { from: j.from, to: j.to, item: j.item, kind: j.kind, amount: rest, priority: j.priority, repeat: false })) j.amount = j.cycleDelivered + j.carried;
+  }
+  delete j.ship; j.held = { ship: s.id, since: h.time, auto: true };
+  j.state = 'paused'; j.code = 'held'; j.reason = `${reason} — 화물 ${Math.round(j.carried * 10) / 10} 보존 · 함선이 대기 상태로 돌아오면 같은 함선으로 자동 재개`; j.updated = h.time;
+  emit(h.st, { kind: 'logistics', reason: 'held', amount: j.carried, company: j.owner, group: s.groupId, ship: s.id, item: j.item });
+}
+export function interruptPoolShips(h: Host, ships: WShip[], reason: string, keep = true) {
+  if (autoLogistics(h.st)) {
+    // P12.5: membership is not revoked by a command; the ship rejoins once its group is idle again
+    for (const s of ships) {
+      const j = s.logisticsJob ? h.st.logisticsJobs?.[s.logisticsJob] : undefined;
+      if (!j) { delete s.logisticsJob; continue; }
+      if (j.owner !== s.owner || j.ship !== s.id) { delete s.logisticsJob; continue; }
+      if (keep && j.carried > EPS && !j.stow) hold(h, j, s, reason);
+      else { detach(h, j, reason); if (!isTerminal(j) && j.state !== 'paused') j.state = 'queued'; if (j.stow && !isTerminal(j)) j.state = 'cancelled'; }
+    }
+    return;
+  }
   for (const s of ships) {
     if (!s.logisticsPool && !s.logisticsJob) continue;
     s.logisticsPool = false;
@@ -86,6 +121,13 @@ export function setPoolShips(h: Host, owner: string, ids: string[], on: boolean)
   if (!growthOn(h.st) || !Array.isArray(ids) || !ids.length || ids.length > 500 || typeof on !== 'boolean' || ids.some(id => typeof id !== 'string')) return '자사 수송 함선을 선택하세요';
   const ships = [...new Set(ids)].map(id => h.st.ships[id]);
   if (ships.some(s => !s || s.owner !== owner)) return '자사 함선만 설정할 수 있습니다';
+  if (autoLogistics(h.st)) {
+    // P12.5: every idle cargo ship already hauls; this only excludes (off) or re-includes (on) ships
+    if (on && (ships as WShip[]).some(s => econOf(s).cargo <= 0 || s.classId === 'miner' || s.classId === 'constructor')) return '화물칸이 있는 수송 함선만 자동 물류에 포함할 수 있습니다';
+    for (const s of ships as WShip[]) { if (on) { delete s.logisticsExcluded; if (econOf(s).military) s.logisticsPool = true; } else { s.logisticsExcluded = true; delete s.logisticsPool; } }
+    if (!on) interruptPoolShips(h, ships as WShip[], '자동 물류에서 제외됨 — 기존 화물은 함선에 보존', false);
+    return null;
+  }
   if (on) for (const s of ships as WShip[]) {
     const g = h.st.groups[s.groupId];
     if (!g || h.opOf(g).k !== 'idle' || s.state === 'battle' || s.state === 'building' || econOf(s).cargo <= 0 || econOf(s).military || s.classId === 'constructor' || s.classId === 'miner' || s.reserve || s.listed || s.cargoWork || Object.values(h.st.logistics ?? {}).some(r => r.owner === owner && !!r.manifests[s.id])) return '대기 중인 수송 함선만 참여할 수 있습니다. 채굴·건설·전투·기존 노선과 화물 작업을 먼저 정리하세요';
@@ -97,6 +139,11 @@ export function setPoolShips(h: Host, owner: string, ids: string[], on: boolean)
 export function controlPoolJob(h: Host, owner: string, id: string, action: 'pause' | 'resume' | 'cancel'): string | null {
   const j = h.st.logisticsJobs?.[id];
   if (!j || j.owner !== owner || !['pause', 'resume', 'cancel'].includes(action)) return '자사 작업과 동작을 선택하세요';
+  if (j.held && action !== 'cancel') {
+    // P12.5: a held shipment resumes with its own ship; the player can only allow or stop that
+    j.held.auto = action === 'resume';
+    j.reason = action === 'resume' ? '함선이 대기 상태로 돌아오면 같은 함선으로 자동 재개 — 화물 보존' : '플레이어가 일시정지함 — 적재된 화물은 함선에 보존'; j.updated = h.time; return null;
+  }
   if (action === 'resume') {
     if (j.state !== 'paused') return '일시정지된 작업만 재개할 수 있습니다';
     if (j.procurementSuspended && j.procurement) {
@@ -127,15 +174,40 @@ function pickupDistance(h: Host, s: WShip, source: Station): number {
   if (!a || !b) return Infinity;
   return a.id === b.id ? dist(s.pos, source.pos) : jumps(h.st.systems, a.id, b.id) * 200000 + dist(s.pos, a.origin) + dist(source.pos, b.origin);
 }
-function free(h: Host, s: WShip): boolean {
+function free(h: Host, s: WShip, held?: Set<string>): boolean {
+  if (held) return haulerAvailability(h, s).ok && !routeShip(h, s) && !held.has(s.id);
   const g = h.st.groups[s.groupId];
   return !!s.logisticsPool && !s.logisticsJob && !!g && !g.fleeing && h.opOf(g).k === 'idle' && s.state !== 'battle' && s.state !== 'building' && s.hp > 0 && !s.reserve && !s.listed && !s.cargoWork && econOf(s).cargo * techFx(h.st.companies[s.owner]?.tech).cargoMul - cargoSum(s.cargo) > EPS && !Object.values(h.st.logistics ?? {}).some(r => !!r.manifests[s.id]);
 }
+const routeShip = (h: Host, s: WShip) => Object.values(h.st.logistics ?? {}).some(r => !!r.manifests[s.id]);
+/** ships whose tracked cargo belongs to a held shipment (they resume it, nothing else) */
+function heldShips(h: Host): Set<string> {
+  const set = new Set<string>(); for (const j of Object.values(h.st.logisticsJobs ?? {})) if (j.held && !isTerminal(j)) set.add(j.held.ship);
+  return set;
+}
+/** P12.5: an available ship carrying untracked cargo delivers it before taking new work (never creates goods). */
+function stowCargo(h: Host, held: Set<string>) {
+  for (const s of Object.values(h.st.ships)) {
+    if (s.logisticsJob || held.has(s.id) || cargoSum(s.cargo) <= EPS || !haulerAvailability(h, s, false).ok || routeShip(h, s)) continue;
+    const item = cargoKeys(s.cargo).find(k => qty(s.cargo, k) > EPS); if (!item) continue;
+    const amount = qty(s.cargo, item), berth = econOf(s).berth;
+    const fits = (st: Station | undefined) => !!st && h.canDock(st, s.owner) && berthFits(st, berth) && h.intakeRoom(st, s.owner, item, false) > EPS && path(h, s.pos, st.pos);
+    const pref = s.logisticsStow ? h.st.stations[s.logisticsStow] : undefined;
+    const dest = fits(pref) ? pref! : Object.values(h.st.stations).filter(st => st.owner === s.owner && fits(st)).sort((a, b) => pickupDistance(h, s, a) - pickupDistance(h, s, b) || a.id.localeCompare(b.id))[0]
+      ?? Object.values(h.st.stations).filter(st => fits(st) && Object.hasOwn(st.storage, s.owner)).sort((a, b) => pickupDistance(h, s, a) - pickupDistance(h, s, b) || a.id.localeCompare(b.id))[0];
+    if (!dest) continue;
+    const job: LogisticsJob = { id: h.id('lj'), owner: s.owner, from: dest.id, to: dest.id, item, kind: 'transfer', amount, priority: 9, repeat: false, created: h.time, updated: h.time, state: 'active', ship: s.id, reserved: 0, carried: amount, delivered: 0, cycleDelivered: 0, lost: 0, withdrawn: 0, earned: 0, cycles: 0, stow: true };
+    (h.st.logisticsJobs ??= {})[job.id] = job; s.logisticsJob = job.id; delete s.logisticsStow;
+    emit(h.st, { kind: 'logistics', reason: 'stow', amount, company: s.owner, group: s.groupId, ship: s.id, station: dest.id, item });
+  }
+}
 /** Slow, bounded fallback scan; assigned work is never reconsidered for a closer ship. */
 export function dispatchPool(h: Host) {
+  const held = autoLogistics(h.st) ? heldShips(h) : undefined;
+  if (held) stowCargo(h, held);
   const jobs = Object.values(h.st.logisticsJobs ?? {}).filter(j => !j.ship && j.reserved <= EPS && (j.state === 'queued' || j.state === 'waiting')).sort((a, b) => Math.min(9, b.priority + Math.floor((h.time - b.created) / 300)) - Math.min(9, a.priority + Math.floor((h.time - a.created) / 300)) || a.created - b.created || a.id.localeCompare(b.id));
   if (!jobs.length) return;
-  const ships = Object.values(h.st.ships).filter(s => free(h, s)).sort((a, b) => a.id.localeCompare(b.id));
+  const ships = Object.values(h.st.ships).filter(s => free(h, s, held)).sort((a, b) => a.id.localeCompare(b.id));
   for (const j of jobs) {
     const a = h.st.stations[j.from], b = h.st.stations[j.to];
     const maxRisk = j.procurement ? h.st.companies[j.owner]?.procurement?.maxRisk ?? 100 : undefined;
@@ -161,12 +233,31 @@ export function dispatchPool(h: Host) {
 /** Reconcile disappeared ships and non-command state changes, including after JSON restore. */
 export function maintainPool(h: Host) {
   for (const j of Object.values(h.st.logisticsJobs ?? {})) {
+    if (!j.ship && j.held && !isTerminal(j)) { maintainHeld(h, j); continue; }
     if (!j.ship) { if (j.reserved > EPS) releaseReservation(h, j); continue; }
     const s = h.st.ships[j.ship];
     if (!s || s.owner !== j.owner) { detach(h, j, '수송 함선 손실 — 미완료 물량 재배차 대기', !s); if (!isTerminal(j) && j.state !== 'paused') j.state = 'queued'; continue; }
     const g = h.st.groups[s.groupId];
-    if (!s.logisticsPool || s.logisticsJob !== j.id || !g || h.opOf(g).k !== 'idle' || s.state === 'building' || s.reserve || s.listed) { const tracked = j.carried; detach(h, j, '함선이 다른 작업에 사용됨 — 화물 보존, 미완료 물량 재배차'); if (!isTerminal(j)) { if (j.procurement && tracked > 0) { delete j.procurementSuspended; j.state = 'paused'; j.reason = '조달 화물이 함선에 남았습니다 — 화물을 확인한 뒤 작업을 재개하거나 취소하세요'; } else if (j.state !== 'paused') j.state = 'queued'; } }
+    if (autoLogistics(h.st) && j.carried > EPS && !j.stow && s.logisticsJob === j.id && poolMember(h.st, s) && g && (h.opOf(g).k !== 'idle' || s.reserve || s.listed)) { hold(h, j, s, '함선이 다른 작업에 사용됨'); continue; }
+    if (!poolMember(h.st, s) || s.logisticsJob !== j.id || !g || h.opOf(g).k !== 'idle' || s.state === 'building' || s.reserve || s.listed) { const tracked = j.carried; detach(h, j, '함선이 다른 작업에 사용됨 — 화물 보존, 미완료 물량 재배차'); if (!isTerminal(j)) { if (j.procurement && tracked > 0) { delete j.procurementSuspended; j.state = 'paused'; j.reason = '조달 화물이 함선에 남았습니다 — 화물을 확인한 뒤 작업을 재개하거나 취소하세요'; } else if (j.state !== 'paused') j.state = 'queued'; } }
   }
+}
+/** P12.5: account for a held shipment's ship and cargo; rejoin the same ship once it is idle again. */
+function maintainHeld(h: Host, j: LogisticsJob) {
+  const s = h.st.ships[j.held!.ship];
+  if (!s || s.owner !== j.owner) {
+    if (j.carried > EPS) emit(h.st, { kind: 'logistics', reason: 'aborted', amount: j.carried, company: j.owner, ship: j.held!.ship, item: j.item });
+    if (!s) j.lost += j.carried; else j.withdrawn += j.carried;
+    j.carried = 0; delete j.held; delete j.code; j.state = 'queued'; j.reason = !s ? '수송 함선 손실 — 남은 필요량 재배차' : '함선 소유권 변경 — 남은 필요량 재배차'; j.updated = h.time; return;
+  }
+  const present = Math.min(j.carried, qty(s.cargo, j.item));
+  if (present < j.carried - EPS) { j.withdrawn += j.carried - present; j.carried = present; j.updated = h.time; }
+  if (j.carried <= EPS) { j.carried = 0; delete j.held; delete j.code; j.state = 'queued'; j.reason = '화물이 작업에서 회수됨 — 잔량 재배차'; return; }
+  if (!j.held!.auto) return;
+  const g = h.st.groups[s.groupId];
+  if (!poolMember(h.st, s) || s.logisticsJob || !g || h.opOf(g).k !== 'idle' || s.state === 'building' || s.reserve || s.listed || s.cargoWork) return;
+  s.logisticsJob = j.id; j.ship = s.id; delete j.held; delete j.code; delete j.reason; j.state = 'active'; j.updated = h.time;
+  emit(h.st, { kind: 'logistics', reason: 'resumed', amount: j.carried, company: j.owner, group: s.groupId, ship: s.id, item: j.item });
 }
 function wait(h: Host, j: LogisticsJob, s: WShip, code: string, reason: string) {
   if (j.code !== code) { j.attempts = 0; emit(h.st, { kind: 'logistics', reason: `blocked:${reason}`, amount: 0, company: j.owner, group: s.groupId, ship: s.id, station: j.carried ? j.to : j.from }); }
