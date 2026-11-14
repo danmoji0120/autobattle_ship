@@ -1,0 +1,282 @@
+{
+  "hours": 6,
+  "seed": 1313,
+  "mode": "any",
+  "escort": true,
+  "losses": [
+    {
+      "t": 604,
+      "ship": "s16",
+      "cls": "destroyer",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e271"
+    },
+    {
+      "t": 604,
+      "ship": "s30",
+      "cls": "destroyer",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e271"
+    },
+    {
+      "t": 715,
+      "ship": "s12",
+      "cls": "hauler",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e309"
+    },
+    {
+      "t": 715,
+      "ship": "s13",
+      "cls": "miner",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e309"
+    },
+    {
+      "t": 715,
+      "ship": "s14",
+      "cls": "constructor",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e309"
+    },
+    {
+      "t": 715,
+      "ship": "s27",
+      "cls": "miner",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e309"
+    },
+    {
+      "t": 715,
+      "ship": "s28",
+      "cls": "constructor",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e309"
+    },
+    {
+      "t": 873,
+      "ship": "s15",
+      "cls": "destroyer",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e322"
+    },
+    {
+      "t": 873,
+      "ship": "s21",
+      "cls": "constructor",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e322"
+    },
+    {
+      "t": 873,
+      "ship": "s26",
+      "cls": "hauler",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e322"
+    },
+    {
+      "t": 873,
+      "ship": "s29",
+      "cls": "destroyer",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e322"
+    },
+    {
+      "t": 945,
+      "ship": "s22",
+      "cls": "destroyer",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e342"
+    },
+    {
+      "t": 945,
+      "ship": "s23",
+      "cls": "destroyer",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate",
+        "guild"
+      ],
+      "engagement": "e342"
+    },
+    {
+      "t": 1039,
+      "ship": "s19",
+      "cls": "hauler",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate"
+      ],
+      "engagement": "e386"
+    },
+    {
+      "t": 1039,
+      "ship": "s20",
+      "cls": "miner",
+      "system": "ember",
+      "security": 26,
+      "opponents": [
+        "pirate"
+      ],
+      "engagement": "e386"
+    }
+  ],
+  "error": null,
+  "noDerelictSites": true,
+  "wrecksCreated": 36,
+  "shipsInWrecks": 101,
+  "duplicateSources": 0,
+  "sourcesByOwnerKind": {
+    "union": 26,
+    "pirate": 55,
+    "salvager": 15,
+    "guild": 5
+  },
+  "accounting": {
+    "initialUnits": 15300,
+    "taken": 511,
+    "left": 1509,
+    "removedRemainder": 13280,
+    "decayed": 13280,
+    "error": 0,
+    "decayFlowEqualsRemovedRemainder": true
+  },
+  "takenByCompanyKind": {
+    "player": 511
+  },
+  "salvager": {
+    "groups": 3,
+    "ships": 15,
+    "shipsLeft": 0,
+    "fleetReferenceValue": 845400,
+    "dispatched": 6,
+    "refused": {},
+    "takenReferenceValue": 93560,
+    "sales": 12977,
+    "sellErrors": 140,
+    "creditsChange": 25407,
+    "upkeepAndOtherCosts": 12430,
+    "storedValue": 80364,
+    "aboardValue": 0,
+    "netOperating": 105771
+  },
+  "saveRestoreEqual": true,
+  "perHour": [
+    {
+      "hour": 1,
+      "wrecks": 17,
+      "created": 18,
+      "ships": 59,
+      "sTakenValue": 93560,
+      "credits": 325407,
+      "tickMs": 9.09
+    },
+    {
+      "hour": 2,
+      "wrecks": 19,
+      "created": 20,
+      "ships": 63,
+      "sTakenValue": 93560,
+      "credits": 325407,
+      "tickMs": 9.56
+    },
+    {
+      "hour": 3,
+      "wrecks": 15,
+      "created": 27,
+      "ships": 82,
+      "sTakenValue": 93560,
+      "credits": 325407,
+      "tickMs": 9.29
+    },
+    {
+      "hour": 4,
+      "wrecks": 13,
+      "created": 33,
+      "ships": 93,
+      "sTakenValue": 93560,
+      "credits": 325407,
+      "tickMs": 8.71
+    },
+    {
+      "hour": 5,
+      "wrecks": 13,
+      "created": 36,
+      "ships": 101,
+      "sTakenValue": 93560,
+      "credits": 325407,
+      "tickMs": 8.9
+    },
+    {
+      "hour": 6,
+      "wrecks": 5,
+      "created": 36,
+      "ships": 101,
+      "sTakenValue": 93560,
+      "credits": 325407,
+      "tickMs": 9.02
+    }
+  ]
+}

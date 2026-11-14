@@ -2,99 +2,114 @@
   "hours": 6,
   "seed": 1313,
   "mode": "safe",
+  "escort": false,
+  "losses": [
+    {
+      "t": 438,
+      "ship": "s24",
+      "cls": "constructor",
+      "system": "drake",
+      "security": 52,
+      "opponents": [
+        "pirate"
+      ],
+      "engagement": "e262"
+    }
+  ],
   "error": null,
   "noDerelictSites": true,
-  "wrecksCreated": 25,
-  "shipsInWrecks": 69,
+  "wrecksCreated": 31,
+  "shipsInWrecks": 77,
   "duplicateSources": 0,
   "sourcesByOwnerKind": {
-    "union": 23,
-    "pirate": 40,
-    "guild": 6
+    "union": 34,
+    "pirate": 37,
+    "guild": 5,
+    "salvager": 1
   },
   "accounting": {
-    "initialUnits": 9047,
-    "taken": 3959,
+    "initialUnits": 9924,
+    "taken": 4274,
     "left": 0,
-    "removedRemainder": 5088,
-    "decayed": 5088,
+    "removedRemainder": 5650,
+    "decayed": 5650,
     "error": 0,
     "decayFlowEqualsRemovedRemainder": true
   },
   "takenByCompanyKind": {
-    "player": 3959
+    "player": 4274
   },
   "salvager": {
     "groups": 3,
     "ships": 9,
-    "shipsLeft": 9,
+    "shipsLeft": 8,
     "fleetReferenceValue": 146400,
-    "dispatched": 42,
+    "dispatched": 39,
     "refused": {},
-    "takenReferenceValue": 362974,
-    "sales": 199376,
-    "sellErrors": 244,
-    "creditsChange": 163117,
-    "upkeepAndOtherCosts": -36258,
-    "storedValue": 102638,
+    "takenReferenceValue": 390194,
+    "sales": 208561,
+    "sellErrors": 349,
+    "creditsChange": 187266,
+    "upkeepAndOtherCosts": -21296,
+    "storedValue": 167172,
     "aboardValue": 0,
-    "netOperating": 265755
+    "netOperating": 354438
   },
   "saveRestoreEqual": true,
   "perHour": [
     {
       "hour": 1,
-      "wrecks": 8,
-      "created": 12,
-      "ships": 29,
-      "sTakenValue": 120410,
-      "credits": 379652,
-      "tickMs": 11.08
+      "wrecks": 10,
+      "created": 14,
+      "ships": 27,
+      "sTakenValue": 160890,
+      "credits": 399599,
+      "tickMs": 9.71
     },
     {
       "hour": 2,
-      "wrecks": 12,
-      "created": 17,
-      "ships": 47,
-      "sTakenValue": 160644,
-      "credits": 397571,
-      "tickMs": 10.91
+      "wrecks": 15,
+      "created": 21,
+      "ships": 45,
+      "sTakenValue": 221722,
+      "credits": 406981,
+      "tickMs": 9.7
     },
     {
       "hour": 3,
-      "wrecks": 6,
-      "created": 20,
-      "ships": 57,
-      "sTakenValue": 260854,
-      "credits": 442912,
-      "tickMs": 11.01
+      "wrecks": 9,
+      "created": 26,
+      "ships": 61,
+      "sTakenValue": 241012,
+      "credits": 416891,
+      "tickMs": 9.36
     },
     {
       "hour": 4,
-      "wrecks": 3,
-      "created": 21,
-      "ships": 59,
-      "sTakenValue": 280144,
-      "credits": 444754,
-      "tickMs": 11.26
+      "wrecks": 6,
+      "created": 29,
+      "ships": 72,
+      "sTakenValue": 349790,
+      "credits": 479825,
+      "tickMs": 10.58
     },
     {
       "hour": 5,
-      "wrecks": 0,
-      "created": 25,
-      "ships": 69,
-      "sTakenValue": 362974,
-      "credits": 469657,
-      "tickMs": 11.12
+      "wrecks": 3,
+      "created": 30,
+      "ships": 75,
+      "sTakenValue": 375486,
+      "credits": 481279,
+      "tickMs": 9.86
     },
     {
       "hour": 6,
       "wrecks": 0,
-      "created": 25,
-      "ships": 69,
-      "sTakenValue": 362974,
-      "credits": 463117,
-      "tickMs": 10.9
+      "created": 31,
+      "ships": 77,
+      "sTakenValue": 390194,
+      "credits": 487266,
+      "tickMs": 10.33
     }
   ]
 }

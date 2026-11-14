@@ -145,7 +145,9 @@ for (const item of spec.outputs ?? []) {
     const floor = Math.round(c.s.market![item].base * 0.5 * 10) / 10;
     const g = sim.newGroup(p, `판매 수송 ${ITEMS[item]?.name ?? item} → ${c.s.name}`);
     for (let i = 0; i < (spec.outHaulers ?? 1); i++) spawn('hauler_mk1', g.id);
-    expectNull(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'haul', from: own!.id, to: c.s.id, res: item } }), 'haul ' + item);
+    // P12.5 automatic-logistics worlds refuse direct haul orders: the haulers stay idle and the automatic
+    // logistics moves the goods to the sell order instead (what a player in that world does)
+    if (!W.logisticsV) expectNull(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'haul', from: own!.id, to: c.s.id, res: item } }), 'haul ' + item);
     expectNull(sim.command(p, { c: 'workCreate', goal: { k: 'condition', station: c.s.id, item, side: 'sell', price: floor, amount: 1_000_000, repeat: true } }), 'sell ' + item);
   }
 }

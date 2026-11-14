@@ -1,0 +1,172 @@
+{
+ "kestrel.s1": {
+  "digest": "91de97b6",
+  "tick": 6030,
+  "winner": 0,
+  "reason": "적 함대 전멸",
+  "alive": 4,
+  "radio": 99,
+  "hl": 26,
+  "kills": 24
+ },
+ "kestrel.s7": {
+  "digest": "afe6192",
+  "tick": 4185,
+  "winner": 1,
+  "reason": "아군 함대 퇴각",
+  "alive": 5,
+  "radio": 90,
+  "hl": 23,
+  "kills": 22
+ },
+ "kestrel.s42": {
+  "digest": "c3cddd75",
+  "tick": 5430,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 6,
+  "radio": 101,
+  "hl": 24,
+  "kills": 23
+ },
+ "bastion.s1": {
+  "digest": "82e70c3d",
+  "tick": 5340,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 7,
+  "radio": 76,
+  "hl": 22,
+  "kills": 20
+ },
+ "bastion.s7": {
+  "digest": "2f0f99d3",
+  "tick": 6060,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 7,
+  "radio": 84,
+  "hl": 23,
+  "kills": 21
+ },
+ "bastion.s42": {
+  "digest": "54b9ec15",
+  "tick": 6660,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 4,
+  "radio": 77,
+  "hl": 23,
+  "kills": 22
+ },
+ "wolfpack.s1": {
+  "digest": "db5f8ed3",
+  "tick": 2565,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 12,
+  "radio": 76,
+  "hl": 26,
+  "kills": 26
+ },
+ "wolfpack.s7": {
+  "digest": "d9000754",
+  "tick": 5100,
+  "winner": -1,
+  "reason": "양측 전멸",
+  "alive": 0,
+  "radio": 98,
+  "hl": 38,
+  "kills": 37
+ },
+ "wolfpack.s42": {
+  "digest": "7bb0b8c2",
+  "tick": 4350,
+  "winner": 0,
+  "reason": "적 함대 전멸",
+  "alive": 1,
+  "radio": 94,
+  "hl": 37,
+  "kills": 36
+ },
+ "kestrel.orders": {
+  "digest": "8b9ab0b",
+  "tick": 4740,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 7,
+  "radio": 81,
+  "hl": 24,
+  "kills": 22
+ },
+ "spawnz720": {
+  "digest": "dad5d9a6",
+  "tick": 4200,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 10,
+  "radio": 82,
+  "hl": 22,
+  "kills": 21
+ },
+ "trial.bb50": {
+  "digest": "91000fbe",
+  "tick": 3495,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 1,
+  "radio": 230,
+  "hl": 73,
+  "kills": 50
+ },
+ "trial.missile": {
+  "digest": "4eecb33a",
+  "tick": 2775,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 1,
+  "radio": 288,
+  "hl": 143,
+  "kills": 130
+ },
+ "trial.swarm": {
+  "digest": "1237b5ae",
+  "tick": 2535,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 1,
+  "radio": 147,
+  "hl": 160,
+  "kills": 160
+ },
+ "trial.aa": {
+  "digest": "c9fb5e99",
+  "tick": 2970,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 1,
+  "radio": 232,
+  "hl": 133,
+  "kills": 120
+ },
+ "trial.no_bb": {
+  "digest": "403b45f1",
+  "tick": 4590,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 1,
+  "radio": 416,
+  "hl": 207,
+  "kills": 188
+ },
+ "angel": {
+  "digest": "ea4b991d",
+  "tick": 2280,
+  "winner": 0,
+  "reason": "적 함대 퇴각",
+  "alive": 16,
+  "radio": 259,
+  "hl": 77,
+  "kills": 72
+ }
+}

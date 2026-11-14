@@ -1,0 +1,1246 @@
+{
+  "note": "in-process P13.1 world, real attack orders, nothing edited during the battle",
+  "layouts": {
+    "base": {
+      "id": "base",
+      "note": "기존 실서버 배치 — A 구축함 6·호위함 1, B 수송선+구축함 2+초계함 1, 1km 거리",
+      "attack": [
+        "destroyer",
+        "destroyer",
+        "destroyer",
+        "destroyer",
+        "destroyer",
+        "destroyer",
+        "frigate"
+      ],
+      "escort": [
+        "destroyer",
+        "destroyer",
+        "corvette"
+      ],
+      "dx": -1000,
+      "dz": 0,
+      "order": "attack"
+    },
+    "fast": {
+      "id": "fast",
+      "note": "A 초계함 6·구축함 2 (빠른 추격), 1km",
+      "attack": [
+        "corvette",
+        "corvette",
+        "corvette",
+        "corvette",
+        "corvette",
+        "corvette",
+        "destroyer",
+        "destroyer"
+      ],
+      "escort": [
+        "destroyer",
+        "destroyer",
+        "corvette"
+      ],
+      "dx": -1000,
+      "dz": 0,
+      "order": "attack"
+    },
+    "light": {
+      "id": "light",
+      "note": "A 초계함 4·구축함 2, B 호위 초계함 1, 1km",
+      "attack": [
+        "corvette",
+        "corvette",
+        "corvette",
+        "corvette",
+        "destroyer",
+        "destroyer"
+      ],
+      "escort": [
+        "corvette"
+      ],
+      "dx": -1000,
+      "dz": 0,
+      "order": "attack"
+    },
+    "close": {
+      "id": "close",
+      "note": "A 초계함 6·구축함 2, B 구축함 2+초계함 1, 300m",
+      "attack": [
+        "corvette",
+        "corvette",
+        "corvette",
+        "corvette",
+        "corvette",
+        "corvette",
+        "destroyer",
+        "destroyer"
+      ],
+      "escort": [
+        "destroyer",
+        "destroyer",
+        "corvette"
+      ],
+      "dx": -300,
+      "dz": 0,
+      "order": "attack"
+    }
+  },
+  "summary": {
+    "base": {
+      "trials": 4,
+      "sunk": 0
+    },
+    "fast": {
+      "trials": 4,
+      "sunk": 4
+    },
+    "light": {
+      "trials": 4,
+      "sunk": 3
+    },
+    "close": {
+      "trials": 4,
+      "sunk": 4
+    }
+  },
+  "rows": [
+    {
+      "layout": "base",
+      "seed": 9400,
+      "haulerSunk": false,
+      "haulerFate": "alive (space, hp 1.00)",
+      "engagements": [
+        {
+          "id": "e151",
+          "t0": 4,
+          "t1": 201,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e199",
+          "t0": 55,
+          "t1": 120.5,
+          "reason": "적 함대 퇴각",
+          "sides": [
+            {
+              "co": "union",
+              "status": "victor",
+              "alive": 5,
+              "lost": 0,
+              "escaped": 0
+            },
+            {
+              "co": "pirates",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 0
+            }
+          ],
+          "summary": "연합 관리청 승리 — 손실 연합 관리청 0척 · 해적 3척",
+          "strategicLosses": [
+            0,
+            3
+          ]
+        }
+      ],
+      "cargoInWrecks": {},
+      "cargoLost": {}
+    },
+    {
+      "layout": "base",
+      "seed": 9401,
+      "haulerSunk": false,
+      "haulerFate": "alive (space, hp 1.00)",
+      "engagements": [
+        {
+          "id": "e152",
+          "t0": 4,
+          "t1": 150,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e204",
+          "t0": 175,
+          "t1": 197,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {},
+      "cargoLost": {}
+    },
+    {
+      "layout": "base",
+      "seed": 9402,
+      "haulerSunk": false,
+      "haulerFate": "alive (space, hp 1.00)",
+      "engagements": [
+        {
+          "id": "e149",
+          "t0": 4,
+          "t1": 127.5,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e204",
+          "t0": 191,
+          "t1": 213,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {},
+      "cargoLost": {}
+    },
+    {
+      "layout": "base",
+      "seed": 9403,
+      "haulerSunk": false,
+      "haulerFate": "alive (space, hp 1.00)",
+      "engagements": [
+        {
+          "id": "e149",
+          "t0": 4,
+          "t1": 104.5,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 2,
+              "escaped": 2
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 2척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            2,
+            0
+          ]
+        },
+        {
+          "id": "e202",
+          "t0": 130,
+          "t1": 150,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "e205",
+          "t0": 175,
+          "t1": 195,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {},
+      "cargoLost": {}
+    },
+    {
+      "layout": "fast",
+      "seed": 9400,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e152",
+          "t0": 4,
+          "t1": 32.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e193",
+          "t0": 58,
+          "t1": 80.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 194,
+        "electronics": 77
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "fast",
+      "seed": 9401,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e153",
+          "t0": 4,
+          "t1": 56,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 1,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 1척",
+          "strategicLosses": [
+            3,
+            1
+          ]
+        },
+        {
+          "id": "e201",
+          "t0": 81,
+          "t1": 104.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 160,
+        "electronics": 64
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "fast",
+      "seed": 9402,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e150",
+          "t0": 4,
+          "t1": 58,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e195",
+          "t0": 83,
+          "t1": 107.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 106,
+        "electronics": 42
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "fast",
+      "seed": 9403,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e150",
+          "t0": 4,
+          "t1": 48,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 1,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 1척",
+          "strategicLosses": [
+            3,
+            1
+          ]
+        },
+        {
+          "id": "e203",
+          "t0": 73,
+          "t1": 93,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        },
+        {
+          "id": "e205",
+          "t0": 118,
+          "t1": 141.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 106,
+        "electronics": 42
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "light",
+      "seed": 9400,
+      "haulerSunk": false,
+      "haulerFate": "alive (space, hp 0.89)",
+      "engagements": [
+        {
+          "id": "e149",
+          "t0": 4,
+          "t1": 52,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "e194",
+          "t0": 77,
+          "t1": 97,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        },
+        {
+          "id": "e196",
+          "t0": 122,
+          "t1": 142,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        },
+        {
+          "id": "e197",
+          "t0": 167,
+          "t1": 187,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {},
+      "cargoLost": {}
+    },
+    {
+      "layout": "light",
+      "seed": 9401,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e146",
+          "t0": 4,
+          "t1": 47,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 2,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 2척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            2,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 144,
+        "electronics": 57
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "light",
+      "seed": 9402,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e146",
+          "t0": 4,
+          "t1": 51,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 2,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 2척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            2,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 121,
+        "electronics": 48
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "light",
+      "seed": 9403,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e148",
+          "t0": 4,
+          "t1": 49.5,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        },
+        {
+          "id": "e196",
+          "t0": 75,
+          "t1": 95,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "withdrawn",
+              "alive": 0,
+              "lost": 0,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 0척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            0,
+            0
+          ]
+        },
+        {
+          "id": "e200",
+          "t0": 120,
+          "t1": 142.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 6,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 187,
+        "electronics": 74
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "close",
+      "seed": 9400,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e145",
+          "t0": 1,
+          "t1": 32.5,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e203",
+          "t0": 58,
+          "t1": 81.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 140,
+        "electronics": 56
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "close",
+      "seed": 9401,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e145",
+          "t0": 1,
+          "t1": 32,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e196",
+          "t0": 57,
+          "t1": 81.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 172,
+        "electronics": 68
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "close",
+      "seed": 9402,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e145",
+          "t0": 1,
+          "t1": 39.5,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 3,
+              "escaped": 1
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 3척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            3,
+            0
+          ]
+        },
+        {
+          "id": "e193",
+          "t0": 65,
+          "t1": 90.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 1,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 8,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 1척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            1,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 109,
+        "electronics": 43
+      },
+      "cargoLost": {}
+    },
+    {
+      "layout": "close",
+      "seed": 9403,
+      "haulerSunk": true,
+      "haulerFate": "sunk",
+      "engagements": [
+        {
+          "id": "e145",
+          "t0": 1,
+          "t1": 52,
+          "reason": "아군 함대 퇴각",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "routed",
+              "alive": 0,
+              "lost": 2,
+              "escaped": 2
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 1,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 2척 · A 군사 PMC 1척",
+          "strategicLosses": [
+            2,
+            1
+          ]
+        },
+        {
+          "id": "e205",
+          "t0": 77,
+          "t1": 100.5,
+          "reason": "아군 함대 전멸",
+          "sides": [
+            {
+              "co": "p10",
+              "status": "destroyed",
+              "alive": 0,
+              "lost": 2,
+              "escaped": 0
+            },
+            {
+              "co": "p1",
+              "status": "victor",
+              "alive": 7,
+              "lost": 0,
+              "escaped": 0
+            }
+          ],
+          "summary": "A 군사 PMC 승리 — 손실 B 운송 PMC 2척 · A 군사 PMC 0척",
+          "strategicLosses": [
+            2,
+            0
+          ]
+        }
+      ],
+      "cargoInWrecks": {
+        "metal": 148,
+        "electronics": 59
+      },
+      "cargoLost": {}
+    }
+  ]
+}

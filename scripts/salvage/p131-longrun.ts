@@ -10,16 +10,22 @@ import { WorldSim } from '../../src/world/sim';
 import { observeWorld } from '../../src/world/observe';
 import { wreckUnits, lotValue, type WreckSite } from '../../src/world/wrecks';
 import { protectedLot } from '../../src/world/salvage';
+import { sysAt } from '../../src/world/geom';
 
 import { assetReferenceValue, hullPrice } from '../../src/world/valuation';
 
 const [hours = 6, seed = 1313] = process.argv.slice(2).map(Number).filter(n => n > 0);
 // 'safe': only wrecks in systems with security >= 50 (a cautious salvage company); 'any': every wreck
 const MODE = process.argv.includes('safe') ? 'safe' : 'any';
+// 'escort': each salvage group also carries two destroyers (same dispatch rule) — what an escort changes
+const ESCORT = process.argv.includes('escort');
 const sim = WorldSim.create(seed, { salvage: 'p131' });
 const S = sim.addPlayer('인양 산업'); const co = sim.st.companies[S]; co.credits = 300000;
+// clean start like scripts/econ/companies.ts: the starter ships are removed so upkeep is only the salvage fleet
+for (const s of Object.values(sim.st.ships)) if (s.owner === S) delete sim.st.ships[s.id];
+for (const g of Object.values(sim.st.groups)) if (g.owner === S) delete sim.st.groups[g.id];
 const a = sim.st.stations.astra;
-const gs = [0, 1, 2].map(i => { const g = sim.newGroup(S, `인양${i}`); g.commanderId = sim.newCommander(S, 2).id; for (const cl of ['hauler', 'miner', 'constructor']) { const s = sim.spawnShip(S, cl, 'std', g.id, a.pos); (sim as any).dockShip(s, a); } return g; });
+const gs = [0, 1, 2].map(i => { const g = sim.newGroup(S, `인양${i}`); g.commanderId = sim.newCommander(S, 2).id; for (const cl of ['hauler', 'miner', 'constructor', ...(ESCORT ? ['destroyer', 'destroyer'] : [])]) { const s = sim.spawnShip(S, cl, 'std', g.id, a.pos); (sim as any).dockShip(s, a); } return g; });
 const mine = new Set(gs.map(g => g.id));
 const fleetValue = Object.values(sim.st.ships).filter(s => mine.has(s.groupId)).reduce((n, s) => n + hullPrice(s.hull ?? `${s.classId}_mk1`, s.variant).price, 0);
 const flow: Record<string, number> = {};
@@ -29,11 +35,21 @@ let sales = 0, sellErrors = 0, dispatched = 0, refused: Record<string, number> =
 const perHour: { hour: number; wrecks: number; created: number; ships: number; sTakenValue: number; credits: number; tickMs: number }[] = [];
 const credits0 = co.credits;
 let tickMs = 0, err: unknown = null;
+// every salvage ship lost: where (system, security), when, and who was on the other side of the engagement
+const losses: { t: number; ship: string; cls: string; system: string; security: number; opponents: string[]; engagement: string | null }[] = [];
+let alive = new Map(Object.values(sim.st.ships).filter(s => s.owner === S).map(s => [s.id, { cls: s.classId, system: sysAt(sim.st.systems, s.pos)?.id ?? '?', pos: { ...s.pos } }]));
 const legalValue = (w: WreckSite) => w.lots.filter(l => !protectedLot(sim, S, l)).reduce((n, l) => n + l.n * lotValue(sim.st, l), 0);
 try {
   for (let t = 1; t <= hours * 3600; t++) {
     const s0 = performance.now(); sim.update(1); tickMs += performance.now() - s0;
     for (const w of Object.values(sim.st.wrecks ?? {})) refs.set(w.id, w);
+    const now = new Map(Object.values(sim.st.ships).filter(s => s.owner === S).map(s => [s.id, { cls: s.classId, system: sysAt(sim.st.systems, s.pos)?.id ?? '?', pos: { ...s.pos } }]));
+    for (const [id, v] of alive) if (!now.has(id)) {
+      const e = Object.values(sim.st.engagements).filter(x => x.sides.some(sd => sd.includes(S))).sort((x, y) => (y.start ?? 0) - (x.start ?? 0))[0];
+      const opp = e ? [...new Set(e.sides.filter(sd => !sd.includes(S)).flat().map(c => sim.st.companies[c]?.kind ?? c))] : [];
+      losses.push({ t, ship: id, cls: v.cls, system: v.system, security: sim.st.systems[v.system]?.security ?? -1, opponents: opp, engagement: e?.id ?? null });
+    }
+    alive = now;
     if (t % 60 === 0) for (const g of gs) {
       if (!sim.st.groups[g.id] || !['idle', 'dock'].includes(g.op.k) || g.salv) continue;
       const ships = Object.values(sim.st.ships).filter(s => s.groupId === g.id);
@@ -78,11 +94,11 @@ const sTaken = all.reduce((n, w) => n + Object.entries(w.taken[S] ?? {}).reduce(
 const salvShipsLeft = Object.values(sim.st.ships).filter(s => mine.has(s.groupId)).length;
 const restored = new WorldSim(JSON.parse(sim.serialize()), { migrateContent: false });
 const out = {
-  hours, seed, mode: MODE, error: err ? String(err) : null, noDerelictSites: !sim.st.sites,
+  hours, seed, mode: MODE, escort: ESCORT, losses, error: err ? String(err) : null, noDerelictSites: !sim.st.sites,
   wrecksCreated: all.length, shipsInWrecks: ids.length, duplicateSources: ids.length - new Set(ids).size, sourcesByOwnerKind: bySourceKind,
   accounting: { initialUnits: +initial.toFixed(3), taken: +taken.toFixed(3), left: +left.toFixed(3), removedRemainder: +removedLeft.toFixed(3), decayed, error: +(initial - taken - left - removedLeft).toFixed(6), decayFlowEqualsRemovedRemainder: Math.abs(decayed - removedLeft) < 1e-6 },
   takenByCompanyKind: takenBy,
-  salvager: { groups: 3, ships: 9, shipsLeft: salvShipsLeft, fleetReferenceValue: Math.round(fleetValue), dispatched, refused, takenReferenceValue: Math.round(sTaken), sales: Math.round(sales), sellErrors,
+  salvager: { groups: 3, ships: ESCORT ? 15 : 9, shipsLeft: salvShipsLeft, fleetReferenceValue: Math.round(fleetValue), dispatched, refused, takenReferenceValue: Math.round(sTaken), sales: Math.round(sales), sellErrors,
     creditsChange: Math.round(co.credits - credits0), upkeepAndOtherCosts: Math.round(co.credits - credits0 - sales), storedValue: Math.round(stored), aboardValue: Math.round(aboard),
     netOperating: Math.round(co.credits - credits0 + stored + aboard) },
   saveRestoreEqual: JSON.stringify(restored.st.wrecks) === JSON.stringify(sim.st.wrecks),
@@ -90,4 +106,4 @@ const out = {
 };
 console.log(JSON.stringify(out));
 mkdirSync('docs/salvage-results', { recursive: true });
-writeFileSync(`docs/salvage-results/p131-longrun-${hours}h-s${seed}-${MODE}.json`, JSON.stringify(out, null, 2));
+writeFileSync(`docs/salvage-results/p131-longrun-${hours}h-s${seed}-${MODE}${ESCORT ? '-escort' : ''}.json`, JSON.stringify(out, null, 2));
