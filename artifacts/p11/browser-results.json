@@ -1,0 +1,76 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "single-player client resumes as 알파 PMC",
+      "extra": {
+        "me": "p1"
+      }
+    },
+    {
+      "ok": true,
+      "label": "the 4-side battle is still running after the save is loaded",
+      "extra": {
+        "eng": "e153"
+      }
+    },
+    {
+      "ok": true,
+      "label": "strategic info for a 브라보 ship shows the relation 적대 and stance actions",
+      "extra": {
+        "hostile": true,
+        "stanceBtns": 2,
+        "pvpBtn": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "side panel lists every side with its relation to 알파 (own/ally/enemy)",
+      "extra": {
+        "sides": "알파 PMC 자사 86%\n찰리 PMC 동맹 100%\n브라보 PMC 적대 98%\n델타 PMC 적대 100%"
+      }
+    },
+    {
+      "ok": true,
+      "label": "command tree is grouped own → ally → enemy",
+      "extra": {
+        "order": [
+          0,
+          64,
+          118,
+          172
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "participant sees the \"전 함대 철수\" button"
+    },
+    {
+      "ok": true,
+      "label": "strength labels present",
+      "extra": {
+        "left": "알파 PMC 전력",
+        "right": "적대 진영 전력"
+      }
+    },
+    {
+      "ok": true,
+      "label": "battle HUD has no horizontal page scroll at 390px"
+    },
+    {
+      "ok": true,
+      "label": "spectator sees all four sides by name with no forced relation labels",
+      "extra": {
+        "sides": "알파 PMC 100%\n브라보 PMC 99%\n찰리 PMC 100%\n델타 PMC 100%",
+        "withdraw": false,
+        "right": "그 외 진영 전력"
+      }
+    },
+    {
+      "ok": true,
+      "label": "spectator gets no withdraw button"
+    }
+  ],
+  "errors": []
+}

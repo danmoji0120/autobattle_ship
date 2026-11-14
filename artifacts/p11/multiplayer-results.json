@@ -1,0 +1,71 @@
+{
+  "passed": 24,
+  "checks": [
+    "COMBAT_P11=1 server creates a P11 combat world",
+    "A declares hostility to B over the socket",
+    "A and C both offer alliance",
+    "C declares hostility to B",
+    "B cannot order A's fleet (server refuses)",
+    "A and B send their own fleets to the same point",
+    "A and B meet in the world and a P11 battle starts (e174)",
+    "A orders its own group to attack B",
+    "A ordering B's group is refused by the server",
+    "after orders: 알파 PMC/브라보 PMC agree at tick 70 (e2665aef)",
+    "C sends its fleet to the running battle",
+    "C joins the same battle instance (no new battle, no restart)",
+    "A, B and C replicas all apply C's join (3 sides in every client simulation)",
+    "C commands its own reinforcement",
+    "C cannot command its ally A",
+    "C cannot attack its ally A",
+    "after join: 알파 PMC/브라보 PMC/찰리 PMC agree at tick 574 (dc35c2de)",
+    "the running battle is in the saved world",
+    "after a server restart the same battle (3 sides) is restored",
+    "the restored order log still carries C's join",
+    "after restart: 알파 PMC/브라보 PMC/찰리 PMC agree at tick 574 (dc35c2de)",
+    "B withdraws its whole side",
+    "B is out of the battle (battle ended)",
+    "the battle is recorded at most once in the visible log"
+  ],
+  "facts": {
+    "engagement": "e174",
+    "record": [
+      {
+        "names": [
+          "알파 PMC",
+          "브라보 PMC",
+          "찰리 PMC"
+        ],
+        "sides": [
+          {
+            "company": "p1",
+            "status": "survived"
+          },
+          {
+            "company": "p10",
+            "status": "withdrawn"
+          },
+          {
+            "company": "p123",
+            "status": "survived"
+          }
+        ],
+        "losses": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "알파 PMC": {
+      "credits": 11962.416666667
+    },
+    "브라보 PMC": {
+      "credits": 11962.416666667
+    },
+    "찰리 PMC": {
+      "credits": 11962.416666667
+    }
+  },
+  "realWebSockets": 3,
+  "restarts": 1
+}

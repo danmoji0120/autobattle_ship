@@ -1,0 +1,5 @@
+{"id":"legacy 2-side 100 (50v50)","ships":100,"steps":1800,"meanMs":0.702,"p95Ms":1.219,"maxMs":2.92,"budgetPct30Hz":2.1,"deterministic":true,"digest":"af8527f2"}
+{"id":"legacy 2-side 200 (100v100)","ships":200,"steps":1800,"meanMs":1.776,"p95Ms":3.297,"maxMs":6.12,"budgetPct30Hz":5.3,"deterministic":true,"digest":"d34949d4"}
+{"id":"P11 3-side 100 (34/33/33)","ships":100,"steps":1800,"meanMs":0.614,"p95Ms":1.138,"maxMs":3.76,"budgetPct30Hz":1.8,"deterministic":true,"digest":"a6a7e015"}
+{"id":"P11 3-side 200 (70/70/60)","ships":200,"steps":1800,"meanMs":1.993,"p95Ms":3.05,"maxMs":8.03,"budgetPct30Hz":6,"deterministic":true,"digest":"960de679"}
+{"id":"P11 2-side 140 + join 60 @10s","ships":200,"steps":1800,"meanMs":2.182,"p95Ms":3.884,"maxMs":10.58,"budgetPct30Hz":6.5,"deterministic":true,"digest":"7b36665a"}

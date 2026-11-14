@@ -21,6 +21,8 @@ node scripts/mptest.mjs      # 실제 WebSocket 클라이언트 2개로 동기�
 
 P8 함선·성장·경제 분석·물류를 합친 개발 브랜치는 `integration/growth-p8-logistics`입니다. [통합 검증 보고서](docs/INTEGRATION_VERIFICATION.md)에 실제 플레이·저장·권한 검사와 남은 성능 한계를 기록합니다.
 
+**P11 전투(옵트인, `COMBAT_P11=1`인 새 월드 전용)**: 3개 이상 진영의 다자간 교전(적대·중립·동맹), 진행 중인 전투로의 실위치 증원, PMC 간 PvP(적대 선언·동맹 제안), 회사별 독립 지휘(서버 검증), 진영별 철수, 회사별 1회 정산을 지원합니다. 기존 월드·저장은 그대로입니다. [P11 설계·검증](docs/P11_COMBAT_MULTISIDE.md)을 참조하세요.
+
 계정 전용 실험함 **BB-EX**와 지휘관 **BB**(세계 유일, 서버가 지정 계정에만 지급)는 [BB-EX 문서](docs/BBEX.md)를 참조하세요. 운영 서버는 `SIDERARIUM_BB_OWNER_ACCOUNT`를 설정하기 전까지 누구에게도 지급하지 않습니다.
 
 ## 구조 (멀티플레이 전제)

@@ -1,0 +1,2 @@
+{"id":"legacy 2-side 100 (50v50)","ships":100,"steps":1800,"meanMs":0.657,"p95Ms":1.252,"maxMs":3.01,"budgetPct30Hz":2,"deterministic":true,"digest":"af8527f2"}
+{"id":"legacy 2-side 200 (100v100)","ships":200,"steps":1800,"meanMs":1.638,"p95Ms":2.934,"maxMs":5.6,"budgetPct30Hz":4.9,"deterministic":true,"digest":"d34949d4"}
