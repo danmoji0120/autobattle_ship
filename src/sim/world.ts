@@ -4,7 +4,7 @@ import { SHIP_CLASSES, getLoadout, shipCost, SHIP_NAMES, type LoadoutDef } from 
 import { WEAPONS, type WeaponDef } from './data/weapons';
 import { getCommander, ACTING_CAPTAIN, type CommanderDef } from './data/commanders';
 import type { FleetSpec, GroupSpec, ShipFx, ShipSpec } from './fleet';
-import type { Group, Ship, Munition, Mount, Order, SimEvent, RadioMsg, Highlight, Outcome, OrderRecord, Team } from './types';
+import type { Group, Ship, Munition, Mount, Order, SimEvent, RadioMsg, Highlight, Outcome, OrderRecord, Team, Relation, BattleEvent, SideSpec, SideStatus, SideResult } from './types';
 import { line } from './ai/lines';
 import { updateAI, orderKey, groupRoleOf } from './ai/commander';
 import { BBEX, BBEX_CLASS } from './bbex/data';
@@ -13,7 +13,14 @@ import { initEx, placeEx, updateEx, exSteer, exWeaponsFree, exIncoming, exGraze,
 export interface BattleSetup {
   seed: number;
   scenarioId: string;
-  fleets: [FleetSpec, FleetSpec];
+  /** one fleet per side at the start (ordinary battles: two). Reinforcements join later through
+   *  'join' battle events in the order log (P11). */
+  fleets: FleetSpec[];
+  /** P11: per starting side display name / key (default '진영 k') */
+  sides?: SideSpec[];
+  /** P11: initial relations between the starting sides (-1 hostile, 0 neutral, 1 allied; symmetric).
+   *  Absent = every pair hostile (the two-sided battle). */
+  rel?: Relation[][];
   /** half-distance between the two fleets at start (default SPAWN_Z) */
   spawnZ?: number;
   /** Optional local experiment limit; ordinary and persistent battles retain TIME_LIMIT. */
@@ -29,6 +36,25 @@ export const DT = 1 / 30;
 export const FIELD_RADIUS = 3600;
 export const SPAWN_Z = 1450;
 export const TIME_LIMIT = 540;
+/** P11: after a reinforcement the battle runs at least this long … */
+export const JOIN_GRACE = 180;
+/** … but never beyond this multiple of its time limit (and joins close a minute before) */
+export const HARD_LIMIT_MUL = 2;
+
+/** one side of a battle (P11). Ordinary battles: side 0 at -z, side 1 at +z. */
+export interface SideInfo {
+  key: string; name: string;
+  /** unit direction (flat) from the battle centre toward this side's own edge: where it retreats to */
+  home: Vec3;
+  /** -home, exact: the direction it faces when it arrives */
+  face: Vec3;
+  /** top-level groups of this side (one per fleet that joined it) */
+  roots: number[];
+  joinedAt: number;
+  /** set once the side has left the battle (it no longer counts for the outcome) */
+  out: SideStatus | null;
+  outAt: number;
+}
 
 const tmpA = new Vec3(), tmpB = new Vec3(), tmpC = new Vec3(), tmpD = new Vec3();
 
@@ -50,9 +76,18 @@ export class World {
   outcome: Outcome | null = null;
   orderLog: OrderRecord[] = [];
   pending: OrderRecord[] = [];
-  roots: [number, number] = [-1, -1];
-  initialValue: [number, number] = [0, 0];
-  routed: [number, number] = [-1, -1];
+  /** root group of each side (its first fleet) */
+  roots: number[] = [];
+  initialValue: number[] = [];
+  routed: number[] = [];
+  sides: SideInfo[] = [];
+  /** relation matrix (symmetric); see hostile() */
+  private rel: Relation[][] = [];
+  /** something an ordinary two-sided battle never has: more than two sides, a relation other than
+   *  hostile, a reinforcement, a withdrawal. Until then every rule runs exactly as before P11. */
+  dynamic = false;
+  /** world time of the last reinforcement (time limit extension) */
+  lastJoin = -1;
   firstContact = -1;
   intensity = 0;
   /** BB-EX hulls in this battle (empty in every ordinary battle: none of the exotic code runs) */
@@ -68,11 +103,14 @@ export class World {
     this.spawnZ = setup.spawnZ ?? SPAWN_Z;
     this.rng = new Rng(setup.seed);
     this.lineRng = new Rng(setup.seed ^ 0x5bd1e995);
-    this.spawnTeam(0, setup.fleets[0]);
-    this.spawnTeam(1, setup.fleets[1]);
+    const n = setup.fleets.length;
+    for (let k = 0; k < n; k++) this.addSide(setup.sides?.[k], this.startHome(k, n));
+    for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) if (a !== b) this.rel[a][b] = setup.rel?.[a]?.[b] ?? -1;
+    this.dynamic = n !== 2 || this.rel[0][1] !== -1 || this.rel[1][0] !== -1;
+    for (let k = 0; k < n; k++) this.spawnTeam(k, setup.fleets[k], n === 2 ? undefined : { origin: this.sides[k].home.clone().scale(this.spawnZ), fwd: this.sides[k].face });
     if (this.exShips.length) placeEx(this);
     for (const g of this.groups) g.role = groupRoleOf(this, g);
-    this.resolveInitialOrders();
+    this.resolveInitialOrders(this.groups);
     for (const g of this.groups) {
       const ships = this.subtreeShips(g, true);
       g.initialHp = ships.reduce((a, s) => a + s.maxHp, 0);
@@ -81,19 +119,121 @@ export class World {
     for (const s of this.ships) this.initialValue[s.team] += s.value;
   }
 
+  // ---------------------------------------------------------------- sides (P11)
+  /** where a starting side stands: two sides face each other along z (exactly as before P11), more
+   *  sides are spread evenly around the centre */
+  private startHome(k: number, n: number): Vec3 {
+    if (n === 2) return new Vec3(0, 0, k === 0 ? -1 : 1);
+    const a = 2 * Math.PI * k / n;
+    return new Vec3(Math.sin(a), 0, -Math.cos(a));
+  }
+
+  private addSide(spec: SideSpec | undefined, home: Vec3): number {
+    const k = this.sides.length;
+    this.sides.push({ key: spec?.key ?? `side${k}`, name: spec?.name ?? `진영 ${k + 1}`, home, face: new Vec3(-home.x || 0, 0, -home.z || 0), roots: [], joinedAt: this.time, out: null, outAt: -1 });
+    this.roots.push(-1); this.initialValue.push(0); this.routed.push(-1);
+    for (const row of this.rel) row.push(-1);
+    this.rel.push(Array.from({ length: k + 1 }, (_, j) => (j === k ? 1 : (spec?.rel?.[j] ?? -1)) as Relation));
+    for (let j = 0; j < k; j++) this.rel[j][k] = this.rel[k][j];
+    return k;
+  }
+
+  /** will these two sides fight each other? (allied and neutral sides never do) */
+  hostile(a: number, b: number): boolean { return a !== b && this.rel[a][b] < 0; }
+  relation(a: number, b: number): Relation { return a === b ? 1 : this.rel[a][b]; }
+
+  private setRelation(a: number, b: number, v: Relation) {
+    if (a === b || !this.sides[a] || !this.sides[b] || this.rel[a][b] === v) return;
+    this.rel[a][b] = this.rel[b][a] = v;
+    this.events.push({ t: 'rel', a, b, v });
+    // weapons let go of ships that are no longer enemies; commanders re-think soon
+    for (const s of this.ships) if ((s.team === a || s.team === b) && s.state === 'alive') {
+      for (const m of s.mounts) if (m.targetId >= 0) { const t = m.targetIsMunition ? this.munitionById.get(m.targetId) : this.shipById.get(m.targetId); if (t && !this.hostile(s.team, t.team)) { m.targetId = -1; m.retarget = 0; } }
+      const t = this.shipById.get(s.ai.targetId); if (t && !this.hostile(s.team, t.team)) s.ai.targetId = -1;
+    }
+    for (const g of this.groups) if (g.team === a || g.team === b) {
+      if (g.ai.mainTarget >= 0) { const t = this.groupById.get(g.ai.mainTarget); if (t && !this.hostile(g.team, t.team)) g.ai.mainTarget = -1; }
+      if (g.order.type === 'attack' && !this.hostile(g.team, this.groupById.get(g.order.targetGroup)?.team ?? g.team)) { g.order = { type: 'engage' }; g.ai.lastOrderKey = 'engage'; }
+      g.ai.nextThink = Math.min(g.ai.nextThink, this.time + 0.3);
+    }
+  }
+
+  /** the time limit in force: a reinforcement extends it, up to a hard cap */
+  timeLimit(): number {
+    const base = this.setup.timeLimit ?? TIME_LIMIT;
+    if (this.lastJoin < 0) return base;
+    return Math.min(base * HARD_LIMIT_MUL, Math.max(base, this.lastJoin + JOIN_GRACE));
+  }
+  /** can a reinforcement still join? (not after the end, not in the last minute before the hard cap) */
+  joinOpen(): boolean { return !this.outcome && this.time < (this.setup.timeLimit ?? TIME_LIMIT) * HARD_LIMIT_MUL - 60; }
+
+  /** schedule a battle event at an explicit tick (server-stamped, like an order) */
+  scheduleEvent(tick: number, ev: BattleEvent): OrderRecord {
+    const rec: OrderRecord = { tick, groupId: -1, order: null, ev: JSON.parse(JSON.stringify(ev)) };
+    this.scheduleOrder(rec);
+    return rec;
+  }
+
+  private applyEvent(ev: BattleEvent) {
+    if (this.outcome) return;
+    this.dynamic = true;
+    if (ev.k === 'rel') { this.setRelation(ev.a, ev.b, ev.v); return; }
+    if (ev.k === 'withdraw') {
+      const side = this.sides[ev.side]; if (!side || side.out) return;
+      for (const g of this.groups) if (g.team === ev.side) { g.order = { type: 'retreat' }; g.ai.lastOrderKey = 'retreat'; g.playerOverride = true; }
+      const root = this.groupById.get(this.roots[ev.side]); if (root) { root.ai.lastRadio = -99; this.say(root, 'retreat_auto', {}, 2); }
+      return;
+    }
+    this.join(ev);
+  }
+
+  /** a fleet arrives in the running battle (P11): it is built exactly like a starting fleet, placed at
+   *  its entry point facing the fight, and joins an existing side or forms a new one. Nothing that is
+   *  already in the battle is touched. */
+  private join(ev: Extract<BattleEvent, { k: 'join' }>) {
+    const ex = ev.entry;
+    let k: number;
+    const at = new Vec3(ex.x, 0, ex.z);
+    const fwd = ex.fx !== undefined && ex.fz !== undefined && Math.hypot(ex.fx, ex.fz) > 1e-6 ? new Vec3(ex.fx, 0, ex.fz).normalize() : at.lengthSq() > 1 ? at.clone().scale(-1).normalize() : new Vec3(0, 0, 1);
+    if (typeof ev.side === 'number') {
+      k = ev.side;
+      if (!this.sides[k]) return;
+      if (this.sides[k].out) { this.sides[k].out = null; this.sides[k].outAt = -1; this.routed[k] = -1; }
+    } else {
+      k = this.addSide(ev.side, new Vec3(-fwd.x, 0, -fwd.z));
+      this.sides[k].face = new Vec3(fwd.x || 0, 0, fwd.z || 0);
+    }
+    const g0 = this.groups.length, s0 = this.ships.length, x0 = this.exShips.length;
+    this.spawnTeam(k, ev.fleet, { origin: at, fwd });
+    const groups = this.groups.slice(g0), ships = this.ships.slice(s0);
+    if (this.exShips.length > x0) placeEx(this, this.exShips.slice(x0));
+    for (const g of groups) g.role = groupRoleOf(this, g);
+    this.resolveInitialOrders(groups);
+    for (const g of groups) {
+      const ss = this.subtreeShips(g, true);
+      g.initialHp = ss.reduce((a, s) => a + s.maxHp, 0);
+      g.initialValue = ss.reduce((a, s) => a + s.value, 0);
+    }
+    for (const s of ships) this.initialValue[k] += s.value;
+    this.lastJoin = this.time;
+    this.events.push({ t: 'join', side: k, groups: groups.map(g => g.id), ships: ships.map(s => s.id) });
+    const root = groups[0];
+    if (root) { root.ai.lastRadio = -99; this.say(root, 'engage_start', {}, 2); }
+  }
+
   // ---------------------------------------------------------------- spawning
-  private spawnTeam(team: Team, fleet: FleetSpec) {
+  private spawnTeam(team: Team, fleet: FleetSpec, frame?: { origin: Vec3; fwd: Vec3 }) {
     const nameRng = new Rng(hashString(fleet.name) ^ (this.setup.seed * 7919));
-    const names = [...SHIP_NAMES[team]];
+    const names = [...SHIP_NAMES[team % 2]];
     const takeName = () => (names.length ? names.splice(nameRng.int(names.length), 1)[0] : `함선-${this.nextId}`);
     const build = (spec: GroupSpec, parent: Group | null, depth: number): Group => {
       const cmd = spec.commander ?? getCommander(spec.commanderId);
-      const commander: CommanderDef = cmd ?? { ...ACTING_CAPTAIN, team };
+      const commander: CommanderDef = cmd ?? { ...ACTING_CAPTAIN, team: (team % 2) as 0 | 1 };
       const g: Group = {
         id: this.nextId++, team, name: spec.name, parentId: parent ? parent.id : null, childIds: [], shipIds: [],
         commander, hasCommander: !!cmd, order: { type: 'engage' }, playerOverride: false, retreatAt: spec.retreatAt ?? 0,
         initialHp: 0, initialValue: 0, depth, escortHint: spec.escortTarget ?? null, role: 'line',
-        stats: { kills: 0, killValue: 0, lost: 0, dmgDealt: 0 }, ref: spec.ref,
+        stats: { kills: 0, killValue: 0, lost: 0, dmgDealt: 0 }, ref: spec.ref, ...(spec.independent ? { independent: true } : {}),
         ai: {
           nextThink: 0.5 + this.rng.range(0, 1.2), mainTarget: -1, shipTarget: -1, phase: 'none', waypoint: null, goal: new Vec3(), face: null,
           preferredRange: 900, lastRadio: -99, threatGroup: -1, lastOrderKey: '', committedAt: 0, kiting: false, confused: 0, reactDelay: 0,
@@ -112,9 +252,11 @@ export class World {
       for (const c of spec.children) build(c, g, depth + 1);
       return g;
     };
+    const g0 = this.groups.length;
     const root = build(fleet.root, null, 0);
-    this.roots[team] = root.id;
-    this.layoutTeam(team, root);
+    if (this.roots[team] < 0) this.roots[team] = root.id;
+    this.sides[team].roots.push(root.id);
+    this.layoutTeam(team, this.groups.slice(g0).filter(g => g.shipIds.length > 0), frame);
   }
 
   private createShip(team: Team, classId: string, loadoutId: string, name: string, g: Group, fx: ShipFx = {}, fit?: ShipSpec['fit'], exSpec?: ShipSpec['ex']): Ship {
@@ -167,10 +309,12 @@ export class World {
     return s;
   }
 
-  private layoutTeam(team: Team, root: Group) {
-    const leaves = this.groups.filter(g => g.team === team && g.shipIds.length > 0);
-    const zSign = team === 0 ? -1 : 1;
-    const baseZ = this.spawnZ * zSign;
+  /** formation of a fleet's leaf groups. Without a frame: the classic layout (side 0 at -z facing +z,
+   *  side 1 mirrored at +z). With a frame (more than two sides, reinforcements): the side-0 layout
+   *  around the origin, turned to face `fwd`. */
+  private layoutTeam(team: Team, leaves: Group[], frame?: { origin: Vec3; fwd: Vec3 }) {
+    const zSign = team === 0 || frame ? -1 : 1;
+    const baseZ = frame ? 0 : this.spawnZ * zSign;
     const roleOf = (g: Group) => groupRoleOf(this, g);
     const lines = leaves.filter(g => roleOf(g) === 'line');
     const escorts = leaves.filter(g => roleOf(g) === 'escort');
@@ -188,7 +332,7 @@ export class World {
         s.pos.set(cx + lat, ((i % 3) - 1) * 14 + this.rng.range(-4, 4), cz + (i % 2) * 18 * zSign);
         s.prevPos.copy(s.pos);
         s.ai.moveTo.copy(s.pos);
-        s.yaw = team === 0 ? 0 : Math.PI; s.prevYaw = s.yaw;
+        s.yaw = team === 0 || frame ? 0 : Math.PI; s.prevYaw = s.yaw;
         dirFromYawPitch(s.yaw, 0, s.fwd);
         s.vel.copy(s.fwd).scale(s.maxSpeed * 0.3);
       });
@@ -226,14 +370,28 @@ export class World {
       else { place(g, wingL - w / 2, baseZ + zSign * 60); wingL -= w + 120; }
     });
     civilians.forEach((g, i) => place(g, (i - (civilians.length - 1) / 2) * 260, baseZ + zSign * 320));
+    if (frame) {
+      // canonical +z forward, +x → right of the new facing
+      const f = frame.fwd, O = frame.origin, rx = f.z, rz = -f.x;
+      const tx = (v: Vec3) => { const x = v.x, z = v.z; v.x = O.x + rx * x + f.x * z; v.z = O.z + rz * x + f.z * z; };
+      const yaw = Math.atan2(f.x, f.z);
+      for (const g of leaves) {
+        for (const id of g.shipIds) {
+          const s = this.shipById.get(id)!;
+          tx(s.pos); s.prevPos.copy(s.pos); s.ai.moveTo.copy(s.pos);
+          s.yaw = yaw; s.prevYaw = yaw; dirFromYawPitch(yaw, 0, s.fwd); s.vel.copy(s.fwd).scale(s.maxSpeed * 0.3);
+        }
+        if (g.ai.holdPoint) { tx(g.ai.holdPoint); tx(g.ai.goal); }
+      }
+      return;
+    }
     // team 1 mirrors x so its "left" matches its own facing
     if (team === 1) for (const g of leaves) for (const id of g.shipIds) { const s = this.shipById.get(id)!; s.pos.x *= -1; s.prevPos.copy(s.pos); s.ai.moveTo.copy(s.pos); }
     if (team === 1) for (const g of leaves) if (g.ai.holdPoint) { g.ai.holdPoint.x *= -1; g.ai.goal.x *= -1; }
-    void root;
   }
 
-  private resolveInitialOrders() {
-    for (const g of this.groups) {
+  private resolveInitialOrders(groups: Group[]) {
+    for (const g of groups) {
       const init = (g as any)._initial as string;
       const isRoot = g.parentId === null;
       let order: Order | null = null;
@@ -264,6 +422,7 @@ export class World {
     for (const o of this.groups) {
       if (o.team !== g.team || o.id === g.id || o.shipIds.length === 0) continue;
       if (this.isAncestor(g, o)) continue;
+      if (this.topOf(o) !== this.topOf(g)) continue;   // never another fleet's (company's) group
       const ships = this.subtreeShips(o);
       const v = ships.reduce((a, s) => a + (s.role === 'line' ? s.value : 0), 0);
       // prefer siblings
@@ -271,6 +430,13 @@ export class World {
       if (v * bonus > bestV) { bestV = v * bonus; best = o; }
     }
     return best;
+  }
+
+  /** the top-level group a group belongs to (its fleet root, or an independent fleet under a shared root) */
+  topOf(g: Group): number {
+    let x = g;
+    while (x.parentId !== null && !x.independent) x = this.groupById.get(x.parentId)!;
+    return x.id;
   }
 
   isAncestor(a: Group, b: Group): boolean {
@@ -304,7 +470,12 @@ export class World {
 
   groupCenter(g: Group, out = new Vec3()): Vec3 { return this.centroid(this.subtreeShips(g), out); }
 
-  aliveEnemyShips(team: Team): Ship[] { return this.ships.filter(s => s.team !== team && s.state === 'alive'); }
+  aliveEnemyShips(team: Team): Ship[] { return this.ships.filter(s => this.hostile(team, s.team) && s.state === 'alive'); }
+
+  /** leaf groups (with live ships) of every side hostile to `team`, in creation order */
+  hostileLeafGroups(team: Team): Group[] {
+    return this.groups.filter(g => this.hostile(team, g.team) && g.shipIds.some(id => this.shipById.get(id)!.state === 'alive'));
+  }
 
   leafGroups(team: Team): Group[] {
     return this.groups.filter(g => g.team === team && g.shipIds.some(id => this.shipById.get(id)!.state === 'alive'));
@@ -347,6 +518,7 @@ export class World {
   }
 
   private applyOrderRecord(rec: OrderRecord) {
+    if (rec.ev) { this.applyEvent(rec.ev); return; }
     const g = this.groupById.get(rec.groupId);
     if (!g) return;
     if (rec.retreatAt !== undefined) g.retreatAt = rec.retreatAt;
@@ -637,7 +809,7 @@ export class World {
     if (w.kind === 'pd') {
       let best = -1, bestScore = -Infinity;
       for (const mu of this.munitions) {
-        if (mu.dead || mu.team === s.team || mu.kind === 'shell') continue;
+        if (mu.dead || !this.hostile(s.team, mu.team) || mu.kind === 'shell') continue;
         if (mu.ghost !== undefined && mu.age < mu.ghost) continue;   // mid-skip (SERAPH-EX): nothing to shoot at
         const d = muzzle.distTo(mu.pos);
         if (d > w.range) continue;
@@ -654,7 +826,7 @@ export class World {
       m.targetId = -1;
       let bd = w.range;
       for (const t of this.ships) {
-        if (t.team === s.team || t.state !== 'alive' || t.role !== 'raider') continue;
+        if (!this.hostile(s.team, t.team) || t.state !== 'alive' || t.role !== 'raider') continue;
         const d = muzzle.distTo(t.pos);
         if (d < bd && inArc(t.pos)) { bd = d; m.targetId = t.id; }
       }
@@ -665,12 +837,12 @@ export class World {
     const range = w.range * (w.kind === 'torpedo' ? this.torpRangeFactor(s) : 1);
     // prefer commander-assigned target
     const pri = this.shipById.get(s.ai.targetId);
-    if (pri && pri.state === 'alive' && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > (w.kind === 'torpedo' ? 0 : 0.2)) {
+    if (pri && pri.state === 'alive' && this.hostile(s.team, pri.team) && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > (w.kind === 'torpedo' ? 0 : 0.2)) {
       m.targetId = pri.id; return;
     }
     let best = -1, bestScore = 0;
     for (const t of this.ships) {
-      if (t.team === s.team || t.state !== 'alive') continue;
+      if (!this.hostile(s.team, t.team) || t.state !== 'alive') continue;
       const d = muzzle.distTo(t.pos);
       if (d > range) continue;
       // Torpedoes strongly prefer large targets, but can engage escorts and raiders when needed.
@@ -791,7 +963,9 @@ export class World {
       // collision against enemy ships
       const speed = mu.vel.length();
       for (const t of this.ships) {
-        if (t.team === mu.team || (t.state !== 'alive' && t.state !== 'dying')) continue;
+        // shells and missiles only strike ships of sides hostile to the shooter (allied and neutral
+        // hulls are passed through, as friendly ones always were)
+        if (!this.hostile(mu.team, t.team) || (t.state !== 'alive' && t.state !== 'dying')) continue;
         if (mu.through && mu.through.includes(t.id)) continue;
         const reach = t.halfLen + t.radius + speed * dt + 4;
         if (Math.abs(t.pos.x - mu.pos.x) > reach || Math.abs(t.pos.z - mu.pos.z) > reach || Math.abs(t.pos.y - mu.pos.y) > reach) continue;
@@ -842,7 +1016,7 @@ export class World {
       // retarget to nearest enemy
       let bd = 900, best: Ship | undefined;
       for (const s of this.ships) {
-        if (s.team === mu.team || s.state !== 'alive') continue;
+        if (!this.hostile(mu.team, s.team) || s.state !== 'alive') continue;
         const d = s.pos.distTo(mu.pos);
         if (d < bd) { bd = d; best = s; }
       }
@@ -931,7 +1105,7 @@ export class World {
     } else if (r < 0.9) { crit = 'fire'; t.crit.fire = 12; }
     else { crit = 'bridge'; t.crit.bridge = 10; }
     this.events.push({ t: 'crit', ship: t.id, crit, pos: t.pos.clone() });
-    if (t.role !== 'raider' && t.team === 0) {
+    if (t.role !== 'raider' && (t.team === 0 || this.dynamic)) {
       const g = this.groupById.get(t.groupId)!;
       if (this.time - g.ai.lastRadio > 7 && (crit !== 'fire' || t.value >= 250)) {
         g.ai.lastRadio = this.time;
@@ -1025,14 +1199,15 @@ export class World {
       caught.push(o);
       if (o.hp <= 0) this.startDying(o, s.killedBy >= 0 ? s.killedBy : s.id, false, 'blast');
     }
-    const g = this.groupById.get(this.roots[s.team === 0 ? 1 : 0])!;
-    g.ai.lastRadio = -99;
-    this.say(g, 'magazine', { t: s.name }, 2, s.pos);
+    const killer = this.shipById.get(s.killedBy);
+    const by = !this.dynamic ? (s.team === 0 ? 1 : 0) : killer && killer.team !== s.team ? killer.team : this.sides.findIndex((_, k) => this.hostile(k, s.team));
+    const g = this.groupById.get(this.roots[by]);
+    if (g) { g.ai.lastRadio = -99; this.say(g, 'magazine', { t: s.name }, 2, s.pos); }
     const killed = caught.filter(c => c.state !== 'alive').length;
     this.addHighlight({
       time: this.time, score: 6 + caught.length * 2 + killed * 4, title: '탄약고 유폭',
       text: `${s.cls.type} ${s.name}의 탄약고가 유폭${caught.length ? `, 주변 함선 ${caught.length}척 휘말림` : ''}${killed ? ` (${killed}척 연쇄 격침)` : ''}`,
-      pos: { x: s.pos.x, y: s.pos.y, z: s.pos.z }, shipId: s.id, team: s.team === 0 ? 1 : 0,
+      pos: { x: s.pos.x, y: s.pos.y, z: s.pos.z }, shipId: s.id, team: Math.max(0, by),
     });
   }
 
@@ -1045,7 +1220,7 @@ export class World {
     if (rear) { score *= 1.3; tags.push('배후 일격'); }
     const kg = this.groupById.get(killer.groupId)!;
     const title = tags[0] ?? (t.value >= 250 ? '거함 격침' : '격침');
-    const text = `${kg.name}의 ${killer.cls.type} ${killer.name} → ${t.team === 0 ? '아군' : '적'} ${t.cls.type} ${t.name} 격침${tags.length > 1 ? ` (${tags.slice(1).join(', ')})` : ''}`;
+    const text = `${kg.name}의 ${killer.cls.type} ${killer.name} → ${this.dynamic ? this.sides[t.team].name : t.team === 0 ? '아군' : '적'} ${t.cls.type} ${t.name} 격침${tags.length > 1 ? ` (${tags.slice(1).join(', ')})` : ''}`;
     this.addHighlight({ time: this.time, score, title, text, pos: { x: t.pos.x, y: t.pos.y, z: t.pos.z }, shipId: t.id, team: killer.team });
   }
 
@@ -1056,6 +1231,83 @@ export class World {
 
   // ---------------------------------------------------------------- outcome
   private checkOutcome() {
+    if (!this.dynamic) return this.checkOutcomeLegacy();
+    return this.checkOutcomeSides();
+  }
+
+  /** per-side summary for the outcome */
+  private sideResults(status: (k: number) => SideStatus): SideResult[] {
+    return this.sides.map((_, k) => {
+      let alive = 0, lost = 0, escaped = 0;
+      for (const s of this.ships) if (s.team === k) { if (s.state === 'alive' || s.state === 'inbound') alive++; else if (s.state === 'escaped') escaped++; else lost++; }
+      return { side: k, status: this.sides[k].out ?? status(k), alive, lost, escaped, value: Math.round(this.teamValueFrac(k) * 100) / 100 };
+    });
+  }
+
+  /** a side leaves the battle (it no longer counts for the outcome; its ships that are still here go) */
+  private sideOut(k: number, status: SideStatus) {
+    const side = this.sides[k];
+    if (side.out) return;
+    side.out = status; side.outAt = this.time;
+    for (const s of this.ships) if (s.team === k && s.state === 'alive') { s.state = 'escaped'; this.events.push({ t: 'escaped', ship: s.id }); }
+    this.events.push({ t: 'sideOut', side: k, status });
+  }
+
+  /** N sides (P11): sides leave when they are destroyed, withdrawn or routed; the battle goes on while
+   *  two sides hostile to each other remain, and ends when no hostile pair is left. A time limit ends it
+   *  as a stalemate — it never picks a winner by remaining strength. */
+  private checkOutcomeSides() {
+    const n = this.sides.length;
+    const alive = new Array<number>(n).fill(0), escaped = new Array<number>(n).fill(0), dead = new Array<number>(n).fill(0);
+    for (const s of this.ships) {
+      if (s.state === 'alive') {
+        const g = this.groupById.get(s.groupId)!;
+        const h = this.sides[s.team].home;
+        if (g.order.type === 'retreat' && (s.pos.x * h.x + s.pos.z * h.z > this.spawnZ + 900 || Math.hypot(s.pos.x, s.pos.z) > FIELD_RADIUS + 400)) {
+          s.state = 'escaped';
+          this.events.push({ t: 'escaped', ship: s.id });
+        }
+      }
+      if (s.state === 'alive' || s.state === 'dying' || s.state === 'inbound') alive[s.team]++;
+      else if (s.state === 'escaped') escaped[s.team]++;
+      else dead[s.team]++;
+    }
+    for (let k = 0; k < n; k++) if (!this.sides[k].out && alive[k] === 0) this.sideOut(k, this.routed[k] >= 0 ? 'routed' : escaped[k] > 0 ? 'withdrawn' : 'destroyed');
+    const active = (k: number) => !this.sides[k].out;
+    // rout: a side reduced to a fraction of its strength while a hostile side is still strong breaks off
+    for (let k = 0; k < n; k++) {
+      if (!active(k)) continue;
+      if (this.routed[k] < 0) {
+        const f = this.teamValueFrac(k);
+        if (f < 0.18 && this.time > 30) {
+          const strong = this.sides.findIndex((_, j) => active(j) && this.hostile(k, j) && this.teamValueFrac(j) > 0.3);
+          if (strong >= 0) {
+            this.routed[k] = this.time;
+            for (const g of this.groups) if (g.team === k) { g.order = { type: 'retreat' }; g.ai.lastOrderKey = 'retreat'; g.ai.routed = true; g.playerOverride = true; }
+            const root = this.groupById.get(this.roots[k]);
+            if (root) { root.ai.lastRadio = -99; this.say(root, 'rout_self', {}, 2); }
+            const oroot = this.groupById.get(this.roots[strong]);
+            if (oroot) { oroot.ai.lastRadio = -99; this.say(oroot, 'rout_enemy', {}, 2); }
+          }
+        }
+      } else if (this.time - this.routed[k] > 35) this.sideOut(k, 'routed');
+    }
+    const live = this.sides.map((_, k) => k).filter(active);
+    let fighting = false;
+    for (const a of live) for (const b of live) if (a < b && this.hostile(a, b)) fighting = true;
+    const timeUp = this.time >= this.timeLimit();
+    if (fighting && !timeUp) return;
+    // who is left: a single side wins; several (allied, neutral, or at the time limit) survive together
+    const beat = (k: number) => this.sides.some((s, j) => s.out && s.out !== 'withdrawn' && this.hostile(k, j));
+    const winner = !timeUp && live.length === 1 ? live[0] : -1;
+    const reason = timeUp && fighting ? '교전 시간 종료' : live.length === 0 ? '전 진영 이탈' : live.length === 1 ? `${this.sides[live[0]].name} 승리` : `${live.map(k => this.sides[k].name).join(' · ')} 생존`;
+    this.outcome = { winner, reason, time: this.time, sides: this.sideResults(k => !timeUp && beat(k) ? 'victor' : 'survived') };
+    if (winner >= 0) { const r = this.groupById.get(this.roots[winner]); if (r) this.say(r, 'victory', {}, 2); }
+    this.events.push({ t: 'end', outcome: this.outcome });
+    void dead;
+  }
+
+  private checkOutcomeLegacy() {
     const alive = [0, 0];
     for (const s of this.ships) {
       if (s.state === 'alive' || s.state === 'dying' || s.state === 'inbound') alive[s.team]++;
@@ -1070,7 +1322,7 @@ export class World {
       }
     }
     const end = (winner: Team | -1, reason: string) => {
-      this.outcome = { winner, reason, time: this.time };
+      this.outcome = { winner, reason, time: this.time, sides: this.sideResults(k => winner === -1 ? (alive[k] ? 'survived' : 'destroyed') : k === winner ? 'victor' : this.routed[k] >= 0 ? 'routed' : 'destroyed') };
       if (winner >= 0) this.say(this.groupById.get(this.roots[winner as Team])!, 'victory', {}, 2);
       this.events.push({ t: 'end', outcome: this.outcome });
     };

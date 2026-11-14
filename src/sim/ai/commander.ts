@@ -36,13 +36,14 @@ function isAlive(w: World, g: Group): boolean { return w.subtreeShips(g).length 
 export function fleetAxis(w: World, team: Team, out = new Vec3()): Vec3 {
   // based on the heavy ships only so raiders swinging around don't rotate the frame
   let mine = w.ships.filter(s => s.team === team && s.state === 'alive' && s.role !== 'raider');
-  let theirs = w.ships.filter(s => s.team !== team && s.state === 'alive' && s.role !== 'raider');
+  let theirs = w.ships.filter(s => w.hostile(team, s.team) && s.state === 'alive' && s.role !== 'raider');
   if (!mine.length) mine = w.ships.filter(s => s.team === team && s.state === 'alive');
-  if (!theirs.length) theirs = w.ships.filter(s => s.team !== team && s.state === 'alive');
-  if (!mine.length || !theirs.length) return out.set(0, 0, team === 0 ? 1 : -1);
+  if (!theirs.length) theirs = w.ships.filter(s => w.hostile(team, s.team) && s.state === 'alive');
+  const face = w.sides[team].face;
+  if (!mine.length || !theirs.length) return out.copy(face);
   const a = w.centroid(mine, tmp3), b = w.centroid(theirs, new Vec3());
   out.subVectors(b, a); out.y = 0;
-  if (out.lengthSq() < 100) return out.set(0, 0, team === 0 ? 1 : -1);
+  if (out.lengthSq() < 100) return out.copy(face);
   return out.normalize();
 }
 
@@ -96,7 +97,8 @@ function effectiveSelfOrder(w: World, g: Group): Order {
 
 export function chooseEnemyGroup(w: World, g: Group, ships: Ship[], role: Role, prev: number): Group | null {
   const c = g.commander;
-  const enemyLeaves = w.leafGroups((1 - g.team) as Team);
+  // every side hostile to us (allied and neutral sides are never targets)
+  const enemyLeaves = w.hostileLeafGroups(g.team);
   if (!enemyLeaves.length) return null;
   const C = w.centroid(ships, new Vec3());
   let best: Group | null = null, bestScore = -Infinity;
@@ -143,7 +145,8 @@ function sideAway(w: World, g: Group, target: Group, from: Vec3): -1 | 1 {
 
 function thinkComposite(w: World, g: Group) {
   const c = g.commander;
-  const kids = g.childIds.map(id => w.groupById.get(id)!).filter(k => isAlive(w, k));
+  // an independent child (another company's fleet under a shared side root) commands itself
+  const kids = g.childIds.map(id => w.groupById.get(id)!).filter(k => !k.independent && isAlive(w, k));
   if (!kids.length) return;
   const myShips = w.subtreeShips(g);
   const C = w.centroid(myShips, new Vec3());
@@ -264,7 +267,7 @@ function preferredRange(w: World, g: Group, ships: Ship[]): number {
 
 function enemyThreatNear(w: World, team: Team, p: Vec3, radius: number, roleFilter?: Role): { group: Group | null; count: number } {
   let best: Group | null = null, bd = Infinity, count = 0;
-  for (const e of w.leafGroups((1 - team) as Team)) {
+  for (const e of w.hostileLeafGroups(team)) {
     if (roleFilter && e.role !== roleFilter) continue;
     const es = w.directShips(e);
     const ec = w.centroid(es, tmp);
@@ -310,7 +313,7 @@ function thinkLeaf(w: World, g: Group, ships: Ship[], order: Order) {
       // missile/torpedo warnings
       let missiles = 0, torps = 0;
       for (const m of w.munitions) {
-        if (m.dead || m.team === g.team || m.kind === 'shell') continue;
+        if (m.dead || !w.hostile(g.team, m.team) || m.kind === 'shell') continue;
         if (m.pos.distTo(gc) < 900) { if (m.kind === 'torpedo') torps++; else missiles++; }
       }
       if (torps >= 2 && c.skill > 0.4) w.say(g, 'torpedo_alert', {}, 1);
@@ -386,7 +389,7 @@ function thinkLeaf(w: World, g: Group, ships: Ship[], order: Order) {
   // --- enemy flank detection (skilled commanders notice raiders swinging around)
   const fw = (g as any)._flankWarn as number | undefined;
   if (c.skill > 0.6 && g.role === 'line' && (fw === undefined || w.time - fw > 40)) {
-    for (const e of w.leafGroups((1 - g.team) as Team)) {
+    for (const e of w.hostileLeafGroups(g.team)) {
       if (e.role !== 'raider') continue;
       const ec = w.groupCenter(e, tmp);
       if (ec.distTo(C) < 1100 && e.order.type === 'flank') {
@@ -501,14 +504,14 @@ function steer(w: World, g: Group) {
   const Tc = tShips.length ? w.centroid(tShips, new Vec3()) : null;
   const minSpeed = Math.min(...ships.map(s => s.maxSpeed * (s.crit.engine > 0 ? 0.5 : 1)));
   const cohesive = c.skill >= 0.5;
-  const homeZ = g.team === 0 ? -1 : 1;
+  const home = w.sides[g.team].home, ownFace = w.sides[g.team].face;
 
   let anchor: Vec3 = C.clone();
   let face: Vec3 | null = null;
   let mode: 'formation' | 'runs' | 'escort' = 'formation';
   let speedCap = cohesive ? minSpeed * 1.03 : Infinity;
   // follow the parent's fleet pace while advancing under delegated orders
-  if (!g.playerOverride && g.parentId !== null && g.role === 'line') {
+  if (!g.playerOverride && g.parentId !== null && !g.independent && g.role === 'line') {
     const pace = (w.groupById.get(g.parentId) as any)._pace as number | undefined;
     if (pace && isFinite(pace)) speedCap = Math.min(speedCap, pace);
   }
@@ -516,7 +519,9 @@ function steer(w: World, g: Group) {
   switch (o.type) {
     case 'retreat': {
       for (const s of ships) {
-        s.ai.moveTo.set(s.pos.x * 1.02, s.pos.y, homeZ * (w.spawnZ + 1600));
+        // run for this side's own edge (classic sides: straight back along z)
+        const d = s.pos.x * home.x + s.pos.z * home.z, D = w.spawnZ + 1600;
+        s.ai.moveTo.set((s.pos.x - home.x * d) * 1.02 + home.x * D, s.pos.y, (s.pos.z - home.z * d) * 1.02 + home.z * D);
         s.ai.faceTo = null; s.ai.speedCap = s.maxSpeed; s.ai.run = null;
       }
       return;
@@ -530,7 +535,7 @@ function steer(w: World, g: Group) {
         mode = 'escort';
         const gc = w.centroid(gs, new Vec3());
         const threat = ai.threatGroup >= 0 ? w.groupById.get(ai.threatGroup) : undefined;
-        const tc = threat ? w.groupCenter(threat, new Vec3()) : (Tc ?? gc.clone().add(new Vec3(0, 0, -homeZ * 1000)));
+        const tc = threat ? w.groupCenter(threat, new Vec3()) : (Tc ?? gc.clone().addScaled(ownFace, 1000));
         const dir = tmp.subVectors(tc, gc); dir.y = 0; dir.normalize();
         const gRad = Math.max(60, ...gs.map(s => s.pos.distTo(gc) + s.radius * 2));
         // skilled escorts stand closer, inside PD coverage of the guarded ships
@@ -565,7 +570,7 @@ function steer(w: World, g: Group) {
               const ad = w.centroid(as, tmp3).distTo(Tc);
               const myD = C.distTo(Tc);
               let nearest = Infinity;
-              for (const e of w.ships) if (e.team !== g.team && e.state === 'alive') nearest = Math.min(nearest, e.pos.distTo(C));
+              for (const e of w.ships) if (w.hostile(g.team, e.team) && e.state === 'alive') nearest = Math.min(nearest, e.pos.distTo(C));
               if (myD < ad + 150 && nearest > 1150) speedCap = Math.min(minSpeed, 45);
             }
           }
@@ -580,7 +585,7 @@ function steer(w: World, g: Group) {
       if (!Tc) break;
       if (g.role === 'raider') { mode = 'runs'; break; }
       const away = tmp.subVectors(C, Tc); away.y *= 0.3;
-      if (away.lengthSq() < 1) away.set(0, 0, homeZ);
+      if (away.lengthSq() < 1) away.copy(home);
       away.normalize();
       anchor = Tc.clone().addScaled(away, ai.preferredRange);
       anchor.y = lerp(C.y, Tc.y, 0.3);
@@ -593,7 +598,7 @@ function steer(w: World, g: Group) {
 
   // formation slots: line abreast facing the target / travel direction
   const heading = tmp.subVectors(face ?? anchor, C); heading.y = 0;
-  if (heading.lengthSq() < 4) heading.set(0, 0, -homeZ);
+  if (heading.lengthSq() < 4) heading.copy(ownFace);
   heading.normalize();
   const right = tmp2.crossVectors(heading, UP).normalize();
   const spacing = Math.max(...ships.map(s => s.radius)) * 9 + 30;

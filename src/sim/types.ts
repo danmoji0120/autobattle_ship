@@ -3,7 +3,22 @@ import type { ShipClassDef, LoadoutDef, MountDef, Role } from './data/ships';
 import type { WeaponDef } from './data/weapons';
 import type { CommanderDef } from './data/commanders';
 
-export type Team = 0 | 1;
+/** a battle side (index into World.sides). Ordinary battles have two (0, 1); P11 battles any number.
+ *  Side ≠ company ≠ owner: several companies can share a side, relations are per side pair. */
+export type Team = number;
+/** relation between two sides: -1 hostile, 0 neutral, 1 allied (symmetric) */
+export type Relation = -1 | 0 | 1;
+
+/** a new side created by a reinforcement (P11) */
+export interface SideSpec { key?: string; name?: string; /** relation to every existing side (by index); missing = hostile */ rel?: Relation[] }
+
+/** server-stamped battle events carried in the order log (P11): they are applied at their tick on the
+ *  authority and on every client, so a reinforcement or a change of relations is part of the replay */
+export type BattleEvent =
+  | { k: 'join'; fleet: import('./fleet').FleetSpec; /** existing side index or a new side */ side: number | SideSpec;
+      /** formation centre (battle-local) and the direction it faces (default: toward the centre) */ entry: { x: number; z: number; fx?: number; fz?: number } }
+  | { k: 'rel'; a: number; b: number; v: Relation }
+  | { k: 'withdraw'; side: number };
 
 export type Order =
   | { type: 'engage' }
@@ -160,6 +175,8 @@ export interface Group {
   escortHint: string | null;
   role: Role;
   ref?: string;
+  /** P11: a top-level group of another company under a shared side root — the root AI never orders it */
+  independent?: boolean;
 }
 
 export type SimEvent =
@@ -176,6 +193,9 @@ export type SimEvent =
   | { t: 'radio'; msg: RadioMsg }
   | { t: 'highlight'; h: Highlight }
   | { t: 'end'; outcome: Outcome }
+  | { t: 'join'; side: number; groups: number[]; ships: number[] }
+  | { t: 'rel'; a: number; b: number; v: Relation }
+  | { t: 'sideOut'; side: number; status: SideStatus }
   | import('./bbex/state').ExEvent;
 
 export interface RadioMsg {
@@ -202,10 +222,15 @@ export interface Highlight {
   team: Team;
 }
 
+export type SideStatus = 'victor' | 'survived' | 'withdrawn' | 'routed' | 'destroyed';
+export interface SideResult { side: number; status: SideStatus; alive: number; lost: number; escaped: number; value: number }
 export interface Outcome {
+  /** the single winning side, or -1 (draw, stalemate, or several sides still standing) */
   winner: Team | -1;
   reason: string;
   time: number;
+  /** per side (every battle): what became of it */
+  sides?: SideResult[];
 }
 
-export interface OrderRecord { tick: number; groupId: number; order: Order | null; retreatAt?: number; release?: boolean }
+export interface OrderRecord { tick: number; groupId: number; order: Order | null; retreatAt?: number; release?: boolean; /** P11 battle event (groupId -1) */ ev?: BattleEvent }

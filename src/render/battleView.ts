@@ -98,7 +98,7 @@ export class BattleView implements FxHost {
   attach(world: World) {
     this.world = world;
     for (const s of world.ships) {
-      const model = buildShip(s.cls, s.loadout, s.team);
+      const model = buildShip(s.cls, s.loadout, s.team === 0 ? 0 : 1);
       this.scene.add(model.root);
       const dp: THREE.Vector3[] = [];
       for (let i = 0; i < 4; i++) dp.push(new THREE.Vector3((Math.random() - 0.5) * s.radius * 1.4, Math.random() * s.radius * 0.6, (Math.random() - 0.5) * s.cls.length * 0.8));

@@ -97,8 +97,8 @@ export function initEx(w: World, s: Ship, spec: ExSpec | undefined, causal: bool
 }
 
 /** the spawn slot is only known after the fleet layout: remember where the hull will emerge */
-export function placeEx(w: World) {
-  for (const s of w.exShips) {
+export function placeEx(w: World, ships: Ship[] = w.exShips) {
+  for (const s of ships) {
     const ex = s.ex!, at = (ex as ExState & { _at?: ExSpec['at'] })._at;
     if (at) { s.pos.set(at.x, at.y, at.z); s.prevPos.copy(s.pos); s.ai.moveTo.copy(s.pos); }
     ex.arrivePos.copy(s.pos);
@@ -126,7 +126,7 @@ export function exSteer(w: World) {
     // value-weighted centre of the enemy mass and the nearest hull
     let cx = 0, cy = 0, cz = 0, cw = 0, near: Ship | null = null, nd = Infinity;
     for (const e of w.ships) {
-      if (e.team === s.team || e.state !== 'alive') continue;
+      if (!w.hostile(s.team, e.team) || e.state !== 'alive') continue;
       const d = e.pos.distTo(s.pos);
       if (d < nd) { nd = d; near = e; }
       if (d > 5200) continue;
@@ -223,7 +223,7 @@ function arrive(w: World, s: Ship, ex: ExState) {
   s.state = 'alive';
   s.pos.copy(ex.arrivePos); s.prevPos.copy(s.pos);
   let cx = 0, cz = 0, n = 0;
-  for (const e of w.ships) if (e.team !== s.team && e.state === 'alive') { cx += e.pos.x; cz += e.pos.z; n++; }
+  for (const e of w.ships) if (w.hostile(s.team, e.team) && e.state === 'alive') { cx += e.pos.x; cz += e.pos.z; n++; }
   if (n) { s.yaw = Math.atan2(cx / n - s.pos.x, cz / n - s.pos.z); s.prevYaw = s.yaw; }
   s.pitch = 0; s.prevPitch = 0;
   dirFromYawPitch(s.yaw, 0, s.fwd);
@@ -253,7 +253,7 @@ function tactics(w: World, s: Ship, ex: ExState) {
   let nearCount = 0, close = 0, far = Infinity, tx = 0, ty = 0, tz = 0;
   let nearest: Ship | null = null;
   for (const e of w.ships) {
-    if (e.team === s.team || e.state !== 'alive') continue;
+    if (!w.hostile(s.team, e.team) || e.state !== 'alive') continue;
     const d = e.pos.distTo(s.pos);
     if (d < far) { far = d; nearest = e; }
     if (d < 2800) nearCount++;
@@ -261,7 +261,7 @@ function tactics(w: World, s: Ship, ex: ExState) {
   }
   let inbound = 0, torps = 0;
   for (const mu of w.munitions) {
-    if (mu.dead || mu.team === s.team || mu.kind === 'shell') continue;
+    if (mu.dead || !w.hostile(s.team, mu.team) || mu.kind === 'shell') continue;
     const d2 = mu.pos.distSq(s.pos);
     if (d2 < 900 * 900) inbound++;
     if (mu.kind === 'torpedo' && d2 < 300 * 300) torps++;
@@ -309,10 +309,10 @@ function tactics(w: World, s: Ship, ex: ExState) {
 
 function assignHunters(w: World, s: Ship, ex: ExState) {
   const cands: Ship[] = [];
-  for (const e of w.ships) if (e.team !== s.team && e.state === 'alive' && e.pos.distSq(s.pos) < 1700 * 1700) cands.push(e);
+  for (const e of w.ships) if (w.hostile(s.team, e.team) && e.state === 'alive' && e.pos.distSq(s.pos) < 1700 * 1700) cands.push(e);
   if (!cands.length) {
     let best: Ship | null = null, bd = Infinity;
-    for (const e of w.ships) if (e.team !== s.team && e.state === 'alive') { const d = e.pos.distSq(s.pos); if (d < bd) { bd = d; best = e; } }
+    for (const e of w.ships) if (w.hostile(s.team, e.team) && e.state === 'alive') { const d = e.pos.distSq(s.pos); if (d < bd) { bd = d; best = e; } }
     if (best) cands.push(best);
   }
   const load = new Map<number, number>();
@@ -446,7 +446,7 @@ function funnelShot(w: World, s: Ship, ex: ExState, f: Funnel, t: Ship) {
 function funnelGuard(w: World, s: Ship, ex: ExState, f: Funnel): Vec3 | null {
   let best: Munition | null = null, bd = BBEX.fInterceptRange * BBEX.fInterceptRange;
   for (const mu of w.munitions) {
-    if (mu.dead || mu.team === s.team || mu.kind === 'shell') continue;
+    if (mu.dead || !w.hostile(s.team, mu.team) || mu.kind === 'shell') continue;
     if (mu.ghost !== undefined && mu.age < mu.ghost) continue;
     const d = mu.pos.distSq(f.pos) - (mu.targetId === s.id ? 6000 : 0) - (mu.kind === 'torpedo' ? 20000 : 0) - ((mu.id * 7 + f.i * 13) % 11) * 900;
     if (d < bd) { bd = d; best = mu; }
@@ -466,7 +466,7 @@ function funnelGuard(w: World, s: Ship, ex: ExState, f: Funnel): Vec3 | null {
   }
   let near: Ship | null = null, nd: number = BBEX.fRange;
   for (const e of w.ships) {
-    if (e.team === s.team || e.state !== 'alive') continue;
+    if (!w.hostile(s.team, e.team) || e.state !== 'alive') continue;
     const d = e.pos.distTo(f.pos) - e.halfLen;
     if (d < nd) { nd = d; near = e; }
   }
@@ -487,7 +487,7 @@ function funnelAttrition(w: World, s: Ship, ex: ExState) {
     if (!f.alive || f.launchAt >= 0) continue;
     let ships = 0;
     for (const e of w.ships) {
-      if (e.team === s.team || e.state !== 'alive') continue;
+      if (!w.hostile(s.team, e.team) || e.state !== 'alive') continue;
       const reach = 320 + e.halfLen;
       if (Math.abs(e.pos.x - f.pos.x) > reach || Math.abs(e.pos.z - f.pos.z) > reach || e.pos.distSq(f.pos) > reach * reach) continue;
       let pd = 0;
@@ -520,12 +520,12 @@ function blackout(w: World, s: Ship, ex: ExState) {
   let jammed = 0;
   const r2 = BBEX.boRadius * BBEX.boRadius;
   for (const e of w.ships) {
-    if (e.team === s.team || e.state !== 'alive' || e.pos.distSq(s.pos) > r2) continue;
+    if (!w.hostile(s.team, e.team) || e.state !== 'alive' || e.pos.distSq(s.pos) > r2) continue;
     e.jamUntil = w.time + BBEX.boTime; jammed++;
     for (const m of e.mounts) m.retarget += 0.35 + w.rng.range(0, 0.5);
   }
   for (const mu of w.munitions) {
-    if (mu.dead || mu.team === s.team || mu.kind === 'shell' || mu.pos.distSq(s.pos) > r2) continue;
+    if (mu.dead || !w.hostile(s.team, mu.team) || mu.kind === 'shell' || mu.pos.distSq(s.pos) > r2) continue;
     if (w.rng.chance(BBEX.boMissileLoss)) { mu.targetId = -1; mu.life = Math.min(mu.life, 0.4 + w.rng.range(0, 1.2)); mu.ricochet = true; }
   }
   w.events.push({ t: 'exBlackout', ship: s.id, pos: s.pos.clone(), radius: BBEX.boRadius, jammed });
@@ -536,7 +536,7 @@ function updateWell(w: World, s: Ship, ex: ExState) {
   if (W.until > w.time) {
     const r2 = BBEX.gwRadius * BBEX.gwRadius;
     for (const e of w.ships) {
-      if (e.team === s.team || e.state !== 'alive') continue;
+      if (!w.hostile(s.team, e.team) || e.state !== 'alive') continue;
       const d2 = e.pos.distSq(W.pos);
       if (d2 > r2 || d2 < 400) continue;
       const d = Math.sqrt(d2), k = 1 - d / BBEX.gwRadius;
@@ -547,7 +547,7 @@ function updateWell(w: World, s: Ship, ex: ExState) {
     }
     // guided munitions crossing the well are bent off course
     for (const mu of w.munitions) {
-      if (mu.dead || mu.team === s.team || mu.kind === 'shell') continue;
+      if (mu.dead || !w.hostile(s.team, mu.team) || mu.kind === 'shell') continue;
       const d2 = mu.pos.distSq(W.pos);
       if (d2 > r2 || d2 < 100) continue;
       const d = Math.sqrt(d2);
@@ -561,7 +561,7 @@ function updateWell(w: World, s: Ship, ex: ExState) {
   if (w.time < W.next || !soon || overActive(ex)) return;
   const cand: Ship[] = [];
   const r2 = BBEX.gwRange * BBEX.gwRange;
-  for (const e of w.ships) if (e.team !== s.team && e.state === 'alive' && e.pos.distSq(s.pos) < r2 && e.pos.distSq(s.pos) > 500 * 500) cand.push(e);
+  for (const e of w.ships) if (w.hostile(s.team, e.team) && e.state === 'alive' && e.pos.distSq(s.pos) < r2 && e.pos.distSq(s.pos) > 500 * 500) cand.push(e);
   if (cand.length < 4) { W.next = w.time + 3; return; }
   let best: Ship | null = null, bs = 0;
   const rr = BBEX.gwRadius * BBEX.gwRadius;
@@ -597,7 +597,7 @@ function phantomShift(w: World, s: Ship, ex: ExState, to: Vec3, emergency = fals
   }
   // whatever was homing on the old position has nothing to home on
   for (const mu of w.munitions) if (!mu.dead && mu.targetId === s.id && mu.kind !== 'shell') { mu.targetId = -1; mu.ricochet = true; }
-  for (const e of w.ships) if (e.team !== s.team && e.state === 'alive') for (const m of e.mounts) if (m.targetId === s.id && !m.targetIsMunition) m.retarget = Math.max(m.retarget, 0.5);
+  for (const e of w.ships) if (w.hostile(s.team, e.team) && e.state === 'alive') for (const m of e.mounts) if (m.targetId === s.id && !m.targetIsMunition) m.retarget = Math.max(m.retarget, 0.5);
   ex.shift.next = w.time + (emergency ? 6 : BBEX.psCool); ex.shift.n++;
   w.events.push({ t: 'exShift', ship: s.id, from, to: to.clone() });
 }
@@ -656,7 +656,7 @@ function planDcp(w: World, s: Ship, ex: ExState, over: boolean, lead: number): b
   const C: Cand[] = [];
   const range2 = (BBEX.dcpRange + 500) ** 2;
   for (const e of w.ships) {
-    if (e.team === s.team || e.state !== 'alive' || e.pos.distSq(origin) > range2) continue;
+    if (!w.hostile(s.team, e.team) || e.state !== 'alive' || e.pos.distSq(origin) > range2) continue;
     // whatever the lattice touches is held by the dimension lock at once, so hulls barely drift
     const k = Math.min(0.5, lead * 0.14);
     C.push({ e, x: e.pos.x + e.vel.x * k, y: e.pos.y + e.vel.y * k, z: e.pos.z + e.vel.z * k, r: e.radius + e.halfLen * 0.3, hit: 0, v: 30 + e.value * (0.6 + 0.4 * e.hp / e.maxHp) });
@@ -795,7 +795,7 @@ function pulseDcp(w: World, s: Ship, ex: ExState) {
     const dir = new Vec3().subVectors(g.b, g.a).normalize();
     const minX = Math.min(g.a.x, g.b.x) - 60, maxX = Math.max(g.a.x, g.b.x) + 60, minZ = Math.min(g.a.z, g.b.z) - 60, maxZ = Math.max(g.a.z, g.b.z) + 60;
     for (const e of w.ships) {
-      if (e.team === s.team || e.state !== 'alive') continue;
+      if (!w.hostile(s.team, e.team) || e.state !== 'alive') continue;
       if (e.pos.x < minX || e.pos.x > maxX || e.pos.z < minZ || e.pos.z > maxZ) continue;
       a.copy(e.pos).addScaled(e.fwd, e.halfLen * 0.92); b.copy(e.pos).addScaled(e.fwd, -e.halfLen * 0.92);
       const rr = g.w * 0.9 + e.radius;
@@ -954,9 +954,9 @@ export function exVeto(w: World, t: Ship): boolean {
   // and it is somewhere else
   const away = new Vec3(-t.fwd.x, 0, -t.fwd.z);
   let cx = 0, cz = 0, n = 0;
-  for (const e of w.ships) if (e.team !== t.team && e.state === 'alive' && e.pos.distSq(t.pos) < 1500 * 1500) { cx += e.pos.x; cz += e.pos.z; n++; }
+  for (const e of w.ships) if (w.hostile(t.team, e.team) && e.state === 'alive' && e.pos.distSq(t.pos) < 1500 * 1500) { cx += e.pos.x; cz += e.pos.z; n++; }
   if (n) away.set(t.pos.x - cx / n, 0, t.pos.z - cz / n);
-  if (away.lengthSq() < 1) away.set(0, 0, t.team === 0 ? -1 : 1);
+  if (away.lengthSq() < 1) away.copy(w.sides[t.team].home);
   away.normalize();
   if (ex.phase === 'combat' && ex.dcp.state !== 'fire') phantomShift(w, t, ex, new Vec3().copy(t.pos).addScaled(away, BBEX.psRange), true);
   return true;

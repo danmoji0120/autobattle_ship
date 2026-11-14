@@ -34,6 +34,8 @@ export interface GroupSpec {
   /** for escort: index path of the group to protect; empty → nearest line sibling */
   escortTarget?: string;
   retreatAt: number; // 0 = never
+  /** P11: this group commands itself even under a shared side root (another company's fleet) */
+  independent?: boolean;
   ships: ShipSpec[];
   children: GroupSpec[];
 }
