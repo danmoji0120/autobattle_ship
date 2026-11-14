@@ -163,6 +163,7 @@ const vlerp = (a: V, b: V, t: number): V => ({ x: a.x + (b.x - a.x) * t, y: a.y 
  *  small hull on top of its starter fleet */
 export { START_CREDITS_GROWTH } from './econConfig';
 import { START_CREDITS_GROWTH } from './econConfig';
+import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 
 export class WorldSim {
   st: WorldState;
@@ -174,6 +175,8 @@ export class WorldSim {
   private speedCap = new Map<string, number>();
   private escortPlans = new Map<string, EscortPlan>();
   private escortIdx: Map<string, WGroup[]> | null = null;
+  /** P12: the order holder's plan for the current tick */
+  private opPlans = new Map<string, { t: number; p: ReturnType<typeof planOp> }>();
   private npcRot = 0;
   /** wall time spent stepping NPC battles (diagnostics) */
   npcBattleMs = 0;
@@ -230,10 +233,12 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
+    // P12 fleet operations are opt-in too and build on the P11 engagements
+    if (opts.ops === 'p12') { sim.st.combatV = 2; sim.st.opsV = 1; }
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -707,6 +712,8 @@ export class WorldSim {
         for (const s of this.subtreeShipsInOp(g, true)) delete s.cargoWork;
         g.op = cmd.op; g.override = true; g.fleeing = false; g.march = undefined;
         for (const s of this.shipsOf(g)) if (s.state !== 'battle' && s.state !== 'docked') s.task = { k: 'none' };
+        // P12 return while ships of this command fight: only their tactical groups retreat (no side-wide withdraw)
+        if (this.st.opsV && cmd.op.k === 'return') this.retreatCommand(company, g);
         this.ackOp(g, cmd.op);
         return null;
       }
@@ -1625,6 +1632,8 @@ export class WorldSim {
   validateOp(company: string, g: WGroup, op: Op): string | null {
     const ships = this.shipsOf(g);
     const sub = this.subtreeShips(g);
+    const p12 = validateP12(this, company, g, op, sub.filter(s => econOf(s).cruise > 0).length);
+    if (p12 !== undefined) return p12;
     switch (op.k) {
       case 'mine': {
         const f = this.st.fields[op.field]; const st = this.st.stations[op.deliver];
@@ -2305,6 +2314,15 @@ export class WorldSim {
       for (const s of ward.hold) if (s.state === 'space') { s.vel.x *= 0.85; s.vel.z *= 0.85; s.pos = vadd(s.pos, s.vel, dt); }
       ships = ships.filter(s => !ward.hold.has(s));
     }
+    if (this.st.opsV && P12_OPS.has(op.k)) {
+      // P12: one handler for every fleet operation — the order holder decides once, the command follows
+      const owner = this.opOwner(g);
+      let plan = this.opPlans.get(owner.id);
+      if (!plan || plan.t !== this.time) { plan = { t: this.time, p: planOp(this, owner, op, this.cmdr(owner)) }; this.opPlans.set(owner.id, plan); }
+      if (plan.p) stepOpShips(this, g, ships, op, plan.p, dt, c);
+      if (ward?.note) g.status = ward.note;
+      return;
+    }
     if ((op.k === 'move' || op.k === 'attack') && this.st.companies[g.owner]?.kind === 'player') {
       const m = this.fleetMarch(g, op, dt);
       if (m) { for (const s of ships) this.marchShip(s, g, op, m, dt, c); if (ward?.note) g.status = ward.note; return; }
@@ -2469,7 +2487,8 @@ export class WorldSim {
     const detect = ESCORT.detect + c.skill * ESCORT.detectSkill;
     let threat: V | null = null, best = Infinity;
     for (const p of Object.values(this.st.groups)) {
-      if (this.st.companies[p.owner]?.kind !== 'pirate' || p.cooldown > 0 || !p.shipIds.length) continue;
+      // P12 worlds: the escort answers every hostile fleet (P11 relations), not only pirates
+      if (p.cooldown > 0 || !p.shipIds.length || (this.st.opsV ? p.owner === g.owner || coRelation(this.st, g.owner, p.owner) !== -1 : this.st.companies[p.owner]?.kind !== 'pirate')) continue;
       const pc = this.groupCenter(p); if (!pc || dist(pc, wc) > ESCORT.leash) continue;
       const dw = Math.min(...live.map(s => dist(pc, s.pos)));
       if (dw < detect || dist(pc, ec) < ESCORT.detectEscort) if (dw < best) { best = dw; threat = pc; }
@@ -2519,7 +2538,7 @@ export class WorldSim {
   // does it go in. Commanders set how tight the formation is and how long they wait for stragglers.
 
   /** ships that move with this fleet (not detached, not fighting) */
-  private fleetMembers(owner: WGroup): { ships: WShip[]; groups: WGroup[] } {
+  fleetMembers(owner: WGroup): { ships: WShip[]; groups: WGroup[] } {
     const groups: WGroup[] = [], ships: WShip[] = [];
     const walk = (x: WGroup) => {
       groups.push(x);
@@ -2567,21 +2586,22 @@ export class WorldSim {
   }
 
   /** update (once per tick) and return the fleet's march state; null → no coordinated move */
-  private fleetMarch(g: WGroup, op: Op, dt: number): March | null {
+  /** `goal` (P12 operations): march to an arbitrary point under a key instead of the move/attack order */
+  fleetMarch(g: WGroup, op: Op, dt: number, goal?: { key: string; to: V }): March | null {
     const owner = this.marchOwner(g);
-    if ((owner as any)._marchT === this.time && owner.march) return owner.march;
+    if ((owner as any)._marchT === this.time && owner.march && (!goal || owner.march.key === goal.key)) return owner.march;
     (owner as any)._marchT = this.time;
     const { ships } = this.fleetMembers(owner);
     (owner as any)._members = ships;
     if (!ships.length) return null;
     const c = this.cmdr(owner);
-    const target = this.attackTarget(op);
-    if (op.k === 'attack' && !target) return null;
-    const key = op.k === "move" ? `m:${Math.round(op.to.x)}:${Math.round(op.to.z)}` : op.k === "attack" ? `a:${op.lair ?? op.group}` : "";
+    const target = goal ? null : this.attackTarget(op);
+    if (!goal && op.k === 'attack' && !target) return null;
+    const key = goal ? goal.key : op.k === "move" ? `m:${Math.round(op.to.x)}:${Math.round(op.to.z)}` : op.k === "attack" ? `a:${op.lair ?? op.group}` : "";
     const cen = this.centroid(ships);
     let m = owner.march;
     if (!m || m.key !== key) {
-      const dest = op.k === 'move' ? op.to : target!;
+      const dest = goal ? goal.to : op.k === 'move' ? op.to : target!;
       m = owner.march = { key, phase: 'assemble', wp: this.marchRoute(cen, dest), i: 0, at: cen, since: this.time, warpGo: false, speed: 0, members: ships.length, inPlace: 0 };
       if (ships.length > 1) this.say(owner, `함대 집결 — ${ships.length}척, 가장 느린 함선에 맞춰 함께 이동한다.`, 'radio', 5);
     }
@@ -2614,19 +2634,20 @@ export class WorldSim {
         m.warpGo = ships.every(s => !s.warp || s.warp.phase === 'warp' || s.warp.t >= (ALIGN[s.classId] ?? 5)) || this.time - m.since > patience;
         if (m.inPlace >= ships.length || (m.inPlace >= ships.length * 0.75 && this.time - m.since > patience * 3)) {
           if (!last) { m.i++; m.since = this.time; m.warpGo = false; break; }
-          m.phase = op.k === 'move' ? 'arrived' : 'ready'; m.since = this.time;
-          if (op.k === 'attack') this.say(owner, `집결 완료 (${m.inPlace}/${ships.length}척). 전 함대 교전 준비 — 공격 개시!`, 'radio', 0);
+          m.phase = op.k === 'move' || goal ? 'arrived' : 'ready'; m.since = this.time;
+          if (op.k === 'attack' && !goal) this.say(owner, `집결 완료 (${m.inPlace}/${ships.length}척). 전 함대 교전 준비 — 공격 개시!`, 'radio', 0);
           else this.say(owner, `함대 전원 목적지 도착 (${m.inPlace}/${ships.length}척).`, 'radio', 0);
         }
         break;
       }
       case 'ready': if (this.time - m.since > 2) m.phase = 'engage'; break;
     }
-    if (op.k === 'move' && m.phase === 'arrived') m.at = op.to;
+    if (goal && m.phase === 'arrived') m.at = goal.to;
+    else if (op.k === 'move' && m.phase === 'arrived') m.at = op.to;
     return m;
   }
 
-  private centroid(ships: WShip[]): V {
+  centroid(ships: WShip[]): V {
     let x = 0, y = 0, z = 0; for (const s of ships) { x += s.pos.x; y += s.pos.y; z += s.pos.z; }
     const n = ships.length || 1; return { x: x / n, y: y / n, z: z / n };
   }
@@ -2638,7 +2659,7 @@ export class WorldSim {
     return cur;
   }
 
-  private marchShip(s: WShip, g: WGroup, op: Op, m: March, dt: number, c: CommanderDef) {
+  marchShip(s: WShip, g: WGroup, op: Op, m: March, dt: number, c: CommanderDef) {
     const owner = this.marchOwner(g);
     const members: WShip[] = (owner as any)._members ?? this.fleetMembers(owner).ships;
     const own = this.cruiseOf(s) * (0.6 + 0.4 * s.hp);
@@ -2699,7 +2720,7 @@ export class WorldSim {
   secAt(p: V): number { return secAt(this.st, p); }
 
   /** move toward `to`, routing through jump gates when it lies in another system */
-  private moveTo(s: WShip, to: V, speed: number, dt: number, arrive = 40, managed = false): boolean {
+  moveTo(s: WShip, to: V, speed: number, dt: number, arrive = 40, managed = false): boolean {
     if (s.state === 'docked') this.undock(s);
     const here = this.sysOf(s.pos), there = this.sysOf(to);
     if (here && there && here.id !== there.id) {
@@ -2854,13 +2875,20 @@ export class WorldSim {
     return this.moveTo(s, { x: st.pos.x + Math.cos(a) * (st.radius + 120), y: st.pos.y + 30, z: st.pos.z + Math.sin(a) * (st.radius + 120) }, speed, dt, 70, true);
   }
 
-  private formationSlot(s: WShip, g: WGroup, center: V, spread = 70): V {
+  formationSlot(s: WShip, g: WGroup, center: V, spread = 70): V {
     const idx = g.shipIds.indexOf(s.id);
     const a = idx * 2.4;
     const r = idx === 0 ? 0 : spread * (0.6 + Math.floor(idx / 6) * 0.6);
     return { x: center.x + Math.cos(a) * r, y: center.y + ((idx % 3) - 1) * 18, z: center.z + Math.sin(a) * r };
   }
 
+  /** P12: value of one ship (same scale as groupValue) */
+  shipValueOf(s: WShip): number { return shipValue(s.classId) * (0.4 + 0.6 * s.hp); }
+  /** P12: march speed of the group's mobile ships outside battle */
+  groupSpeedOf(g: WGroup): number {
+    const s = this.shipsOf(g).filter(x => x.state !== 'battle' && econOf(x).cruise > 0);
+    return s.length ? Math.min(...s.map(x => this.cruiseOf(x) * (0.6 + 0.4 * x.hp))) : 100;
+  }
   private groupSpeed(g: WGroup, military: boolean): number {
     const s = this.shipsOf(g).filter(x => x.state !== 'battle' && econOf(x).military === military);
     return s.length ? Math.min(...s.map(x => this.cruiseOf(x) * (0.6 + 0.4 * x.hp))) : 100;
@@ -2993,7 +3021,8 @@ export class WorldSim {
     let best: V | null = null, bd = r;
     for (const g of Object.values(this.st.groups)) {
       const k = this.st.companies[g.owner]?.kind;
-      if (enemyKind ? k !== enemyKind : k === 'pirate') continue;
+      // P12 worlds: NPC guard/garrison/respond/raid recognise threats by the same relation rule as every fleet
+      if (this.st.opsV ? g.owner === owner || coRelation(this.st, owner, g.owner) !== -1 : enemyKind ? k !== enemyKind : k === 'pirate') continue;
       if (g.cooldown > 0) continue;
       const c = this.groupCenter(g); if (!c) continue;
       const d = dist(c, p);
@@ -3494,7 +3523,7 @@ export class WorldSim {
   }
 
   /** damaged Union forces fall back to their base for repairs; returns true while doing so */
-  private unionRepair(s: WShip, g: WGroup, speed: number, dt: number): boolean {
+  unionRepair(s: WShip, g: WGroup, speed: number, dt: number): boolean {
     if (!g.npc) return false;
     const ships = this.shipsOf(g).filter(x => x.state !== 'battle');
     const hp = ships.reduce((a, x) => a + x.hp, 0) / Math.max(1, ships.length);
@@ -3888,6 +3917,22 @@ export class WorldSim {
     e.orders.push(rec);
     this.onBattleOrder?.(engId, rec);
     return null;
+  }
+
+  /** P12: the tactical groups of every group following `g`'s order retreat from their battles (other groups and sides untouched) */
+  retreatCommand(company: string, g: WGroup): number {
+    const ids = new Set(Object.values(this.st.groups).filter(x => x.owner === company && this.opOwner(x) === g).map(x => x.id));
+    let n = 0;
+    for (const e of Object.values(this.st.engagements)) {
+      if (e.done) continue;
+      const w = this.battles.get(e.id); if (!w || w.outcome) continue;
+      for (const tg of w.groups) {
+        const ref = tg.ref?.replace('#civ', '');
+        if (!ref || !ids.has(ref) || tg.order?.type === 'retreat') continue;
+        if (!this.battleOrder(company, e.id, tg.id, { type: 'retreat' })) n++;
+      }
+    }
+    return n;
   }
 
   /** P11: a company pulls its whole side out of a running battle (the others fight on) */

@@ -105,7 +105,8 @@ export type Op =
    *  auto: the server picks (and re-picks) the most suitable reachable station */
   | { k: 'mine'; field: string; deliver: string; sell: boolean; auto?: boolean }
   | { k: 'haul'; from: string; to: string; res: Res; route?: string }   // res '*auto' = supply what `to` lacks, '*all' = move everything
-  | { k: 'patrol'; at: V; radius: number }
+  /** route (P12 worlds): waypoints patrolled in a loop instead of the circle around `at` */
+  | { k: 'patrol'; at: V; radius: number; route?: V[] }
   /** focus: which of the target's ships to protect (absent = auto: miners on a mining op, carriers on cargo work) */
   | { k: 'escort'; group: string; focus?: import('./escort').EscortFocus }
   | { k: 'attack'; group?: string; lair?: string }
@@ -115,6 +116,20 @@ export type Op =
   /** growth: sweep a star system for hidden derelicts; salvage one the company has found */
   | { k: 'survey'; system: string }
   | { k: 'salvage'; site: string }
+  // P12 fleet operations (opsV worlds only): the order names the purpose, the commander decides how
+  | { k: 'rally'; at: V }
+  | { k: 'defend'; at: V; radius: number }
+  /** attack-move: advance to `to`, fighting hostile fleets met on the way */
+  | { k: 'amove'; to: V }
+  | { k: 'intercept'; group: string }
+  | { k: 'blockade'; system: string; gate: string }
+  /** raid a lane: hunt vulnerable hostile targets around `at` (or along `route`) — no looting (P13) */
+  | { k: 'harass'; at: V; radius: number; route?: V[] }
+  /** support a running battle (eng) or a friendly fleet (group) */
+  | { k: 'reinforce'; eng?: string; group?: string }
+  | { k: 'recon'; at: V; radius: number }
+  /** return to base: no station in the order — the commander picks it (see docs/P12_FLEET_OPERATIONS.md) */
+  | { k: 'return' }
   // NPC-only
   | { k: 'raid'; target?: string; home: string }
   | { k: 'trade'; route: string[]; leg: number }
@@ -201,6 +216,8 @@ export interface WGroup {
   march?: March;
   /** escort mission state of an escorting group (world/escort.ts) */
   escort?: import('./escort').EscortState;
+  /** P12: execution state of the operation this group holds (server-side, saved) */
+  opx?: import('./fleetops').OpState;
   /** state of a group that is being escorted: rally hold and the escorts it last had */
   ward?: import('./escort').WardState;
 }
@@ -530,6 +547,8 @@ export interface WorldState {
   engagements: Record<string, Engagement>;
   /** P11 combat (opt-in, new worlds only): multi-side engagements, reinforcements in place, PvP */
   combatV?: 2;
+  /** P12 fleet operations & autonomous command (opt-in, new worlds only; implies combatV 2) */
+  opsV?: 1;
   /** P11: per-company stance toward other player companies. Hostility is unilateral (either side's
    *  declaration makes the pair hostile); an alliance needs both. Pirates are always hostile. */
   stance?: Record<string, { hostile?: string[]; ally?: string[] }>;
