@@ -96,6 +96,9 @@ describe('P13.2.1 §7 status words follow the real target', () => {
     ra.op = { k: 'plunder', group: 'x', policy: 'nonlethal' } as any;
     ra.plx = { key: 'k', phase: 'collect', since: 0, next: 0 } as any;
     expect(groupPiracyHtml(f.sim.st as any, f.A, ra, 'nonlethal', false, true)).toContain('약탈품 회수 중');
+    ra.salv = { mode: 'recover', key: 'collect:x', phase: 'unload', since: 0, next: 0 } as any;
+    expect(groupPiracyHtml(f.sim.st as any, f.A, ra, 'nonlethal', false, true)).toContain('회수품 하역 중');
+    delete ra.salv;
     ra.plx!.phase = 'loot';
     expect(groupPiracyHtml(f.sim.st as any, f.A, ra, 'nonlethal', false, true)).toContain('전장 잔해 인양');
   });

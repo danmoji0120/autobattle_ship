@@ -190,6 +190,33 @@ describe('P13.2.1 truce: only the parties of the plunder event', () => {
   });
 });
 
+describe('P13.2.1 truce follows its parties', () => {
+  it('T12: the parties stay covered away from the jettison point (same dock approach, 12 km off) until the truce ends; then normal contact', () => {
+    const f = fixture(); hostile(f, f.A, f.B);
+    const pos = f.at(20000, 15000);
+    const p = plunder(f, pos);
+    const t = f.sim.st.piracy!.truces.find(x => x.id === p.drop.id)!;
+    // both end up next to each other 12 km from where the cargo was jettisoned (e.g. the same nearest dock)
+    const far = { x: pos.x + 12000, y: 0, z: pos.z };
+    ships(f, p.b1).forEach(s => { s.pos = { ...far }; });
+    ships(f, p.a1).forEach((s, i) => { s.pos = { x: far.x + 150 + i * 30, y: 0, z: far.z }; });
+    expect(truceBlocks(f.sim.st, p.a1, p.b1, far, f.sim.time)).toBe(true);
+    runPinned(f, 20, [p.a1, p.b1]);
+    expect(inEng(f, p.a1) || inEng(f, p.b1)).toBe(false);
+    // after the truce: ordinary P11 contact on the spot
+    runPinned(f, t.until - f.sim.time + 4, [p.a1, p.b1]);
+    expect(truceBlocks(f.sim.st, p.a1, p.b1, far, f.sim.time)).toBe(false);
+    expect(inEng(f, p.a1) && inEng(f, p.b1)).toBe(true);
+  });
+  it('T11b: an old company-pair truce (P13.2 save) keeps its radius around the jettison point', () => {
+    const f = fixture(); hostile(f, f.A, f.B);
+    const a = fleet(f, f.A, f.at(5000, 5000), ['destroyer']), b = fleet(f, f.B, f.at(5100, 5000), ['destroyer']);
+    f.sim.st.piracy = { seq: 0, log: [], truces: [{ a: f.A, b: f.B, pos: f.at(5000, 5000), r: 4000, until: f.sim.time + 100 }] };
+    expect(truceBlocks(f.sim.st, a, b, f.at(5000, 5000), f.sim.time)).toBe(true);
+    expect(truceBlocks(f.sim.st, a, b, f.at(15000, 5000), f.sim.time)).toBe(false);
+  });
+});
+
 describe('P13.2.1 force chase: escape counting', () => {
   function chase(f: F) {
     hostile(f, f.A, f.B);

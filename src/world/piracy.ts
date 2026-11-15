@@ -86,7 +86,9 @@ export interface PiracyLog {
  * A post-surrender truce between the parties of one plunder event (P13.2.1): the raiding group (with its parent /
  * sub-groups and any group of the raider recovering that very container) and the surrendered group (with its
  * parent / sub-groups and the groups escorting it). Other groups of the same companies are not covered.
- * `id` is the container id (one truce per event). Truces without `pa`/`pb` come from P13.2 saves: company pair.
+ * `id` is the container id (one truce per event). It follows its parties wherever they go for `PIR.truceFor`
+ * seconds (a surrendered hauler that runs for the dock the raider also heads to is still covered); `pos`/`r`
+ * only bound truces without `pa`/`pb`, which come from P13.2 saves (company pair, within r of the jettison).
  */
 export interface Truce { id?: string; a: string; b: string; pa?: string[]; pb?: string[]; ship?: string; pos: V; r: number; until: number }
 export interface PiracyBook { seq: number; truces: Truce[]; log: PiracyLog[] }
@@ -168,7 +170,12 @@ function pairs(st: WorldState, t: Truce, x: WGroup, y: WGroup): boolean {
 /** P11 contact between groups x and y at p is held back by an active truce of their plunder event */
 export function truceBlocks(st: WorldState, x: WGroup, y: WGroup, p: V, time: number): boolean {
   const ts = st.piracy?.truces; if (!ts?.length) return false;
-  for (const t of ts) if (t.until > time && Math.abs(t.pos.x - p.x) < t.r && dist(t.pos, p) < t.r && pairs(st, t, x, y)) return true;
+  for (const t of ts) {
+    if (t.until <= time) continue;
+    // a party truce covers its parties anywhere; an old company-pair truce only around the jettison point
+    if (!(t.pa || t.pb) && !(Math.abs(t.pos.x - p.x) < t.r && dist(t.pos, p) < t.r)) continue;
+    if (pairs(st, t, x, y)) return true;
+  }
   return false;
 }
 /** group g would only meet truce partners among `others` (all of them covered): it must not be pulled in against them */
