@@ -63,3 +63,11 @@ PASS [80s] S2-8: C orders its hauler to the wreck
 PASS [105s] S1: no P11 engagement anywhere near the raid during the whole scenario {"engagements":0}
 PASS [105s] S1-9/10/11: the hauler survived; the job completed with 300 delivered, the plundered amount re-loaded from B's own stock (nothing bought or created) {"drop":"cd_pv21","initial":150,"carriedBefore":300,"carriedAfter":150,"lost":150,"pirated":150,"cargoAfter":150,"job":{"delivered":300,"lost":150,"pirated":150,"amount":300},"storage":{"src":450,"dst":300}}
 PASS [118s] S3-5: container and wreck are separate objects, each recovered on its own (totals from the save) {"drop":"cd_pv4","dropped":300,"kept":300,"end":"sunk","sunk":true,"wreck":{"id":"wk_e270_0","composite":154},"aTook":8,"cTook":2}
+PASS [1010s] S2-8: the wreck's goods are recovered by A and/or C (accounting checked from the save) {"C":{"electronics":58,"metal":147}}
+PASS [1010s] S7: A is hostile to B 
+PASS [1010s] S7: B hauler g233 answers 생존 우선 
+PASS [1010s] S7: B hauler g241 answers 생존 우선 
+PASS [1010s] S7: B sends hauler g233 out of its dock (real move order) {"state":"docked"}
+PASS [1010s] S7: B sends hauler g241 out of its dock (real move order) {"state":"docked"}
+PASS [1011s] S7-1: A5 plunders B5 
+PASS [1011s] S7-1: A6 plunders B6 
