@@ -1,0 +1,135 @@
+{
+  "base": "http://127.0.0.1:5199",
+  "checks": [
+    {
+      "ok": true,
+      "label": "client resumes the P13.2 world (piracyV)",
+      "extra": {
+        "me": "p1",
+        "v": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel: 약탈 회수 지원 only for a hauler group without warships (tooltip states the 4,000 m rule and no combat power)",
+      "extra": {
+        "onRaid": false,
+        "onTender": {
+          "btn": true,
+          "title": "자사 약탈 편대를 클릭: 그 편대를 뒤따라가며 그 편대가 받아낸 투하 화물을 회수·하역합니다. 약탈 대상 근처(4,000m)에 있으면 회수 능력에 반영됩니다 (전투력은 늘지 않습니다)."
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "UI mode: 약탈 회수 지원 + click on the raid sends lootTender (server accepted)",
+      "extra": {
+        "hint": "지원할 자사 약탈 편대 클릭 — 뒤따라가며 투하 화물 회수 · 우클릭/Esc 취소",
+        "op": {
+          "k": "lootTender",
+          "group": "g19"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel shows the tender state (supported raid, status) with 지원 중단",
+      "extra": {
+        "text": "약탈 회수 지원 약탈대 약탈 회수 지원 — 약탈대 동행\n지원 중단",
+        "stop": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "UI mode: clicking the tender itself is refused with a hint",
+      "extra": {
+        "hint2": "지원할 자사 약탈 편대를 클릭하세요"
+      }
+    },
+    {
+      "ok": true,
+      "label": "UI lane raid: 항로 약탈 + map click sends a lane plunder order around the clicked point (server accepted)",
+      "extra": {
+        "op": {
+          "k": "harass",
+          "at": {
+            "x": -244621.42215266055,
+            "y": 0,
+            "z": -34480.95661783817
+          },
+          "radius": 3000,
+          "plunder": "nonlethal"
+        },
+        "fromVictim": 2458,
+        "focus": {
+          "cx": 720,
+          "cy": 450,
+          "plane": {
+            "x": -244621,
+            "z": -34481
+          }
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel shows the target and the estimate line (응낙 % · 실판매 · 위험 · 기대 수익) once the lane raid picks it",
+      "extra": {
+        "estLine": "약탈 · 비파괴 우선 요격·접근 — 수송 화물선\n예상: 응낙 100% · 실판매 9,557 cr · 위험 0 · 기대 수익 9,557 cr\n작전 중단\n복귀",
+        "est": {
+          "p": 1,
+          "sale": 9557,
+          "risk": 0,
+          "profit": 9557
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "the tender keeps its order and stays close behind the raid",
+      "extra": {
+        "op": {
+          "k": "lootTender",
+          "group": "g19"
+        },
+        "d": 1823,
+        "status": "약탈 회수 지원 — 약탈대 동행"
+      }
+    },
+    {
+      "ok": true,
+      "label": "지원 중단 ends the tender order (server state)",
+      "extra": {
+        "k": "idle"
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the hauler group panel with 약탈 회수 지원 fits",
+      "extra": {
+        "w": 356,
+        "left": 17,
+        "right": 373,
+        "overflow": false,
+        "buttonsOut": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors (warnings listed in browser-results.json)",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": []
+}

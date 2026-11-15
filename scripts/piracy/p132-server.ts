@@ -15,7 +15,9 @@ import WebSocket from 'ws';
 import { WorldSim } from '../../src/world/sim';
 import { place, scenario1, scenario2, scenario3, scenario4, sum, type Driver } from './p132-scenarios';
 import { placeP1321, scenario5, scenario6, scenario7a, s7compare, P1321_ITEMS } from './p1321-scenarios';
+import { placeP1322, scenario8, scenario9, P1322_ITEMS } from './p1322-scenarios';
 const P1321 = !process.env.NO_P1321;   // P13.2.1: also run S5–S7 (truce isolation, direct attack, restart with active truces)
+const P1322 = P1321 && !process.env.NO_P1322;   // P13.2.2: also run S8 (split recovery fleet) and S9 (target choice)
 
 const SEED = process.env.SEED ?? '9413';
 const label = process.argv[2] ?? 'run';
@@ -91,7 +93,7 @@ try {
   // starting assets, placed once with the server stopped
   const file = JSON.parse(readFileSync(save, 'utf8'));
   const sim = new WorldSim(file.world, { migrateContent: false });
-  const ids = { ...place(sim, A.id, B.id, C.id), ...(P1321 ? placeP1321(sim, A.id, B.id, C.id) : {}) };
+  const ids = { ...place(sim, A.id, B.id, C.id), ...(P1321 ? placeP1321(sim, A.id, B.id, C.id) : {}), ...(P1322 ? placeP1322(sim, A.id, B.id, C.id) : {}) };
   file.world = JSON.parse(sim.serialize()); writeFileSync(save, JSON.stringify(file));
   facts.ids = ids;
   await start(); await A.connect(); await B.connect(); await C.connect();
@@ -104,7 +106,7 @@ try {
     info: (l, extra) => { infos.push({ label: l, ...(extra === undefined ? {} : { extra }) }); console.log('INFO', l, extra !== undefined ? JSON.stringify(extra) : ''); },
   };
   const saveNow = () => readWorld();
-  const list = [scenario1, scenario2, scenario3, scenario4, ...(P1321 ? [scenario5, scenario6] : [])];
+  const list = [scenario1, scenario2, scenario3, scenario4, ...(P1321 ? [scenario5, scenario6] : []), ...(P1322 ? [scenario8, scenario9] : [])];
   const runs = await Promise.allSettled(list.map(f => (f as any)(d, ids, A.id, B.id, C.id, facts, saveNow)));
   runs.forEach((r, i) => { if (r.status === 'rejected') check(false, `scenario ${i + 1} ran to the end`, { error: String(r.reason).slice(0, 300) }); });
   if (P1321) {
@@ -145,7 +147,7 @@ try {
   };
   const gone = (item: string) => Object.entries(flows).filter(([k]) => /^consume\/(combat_cargo_loss|drop_decay|wreck_decay)\//.test(k) && co.some(c => k.endsWith(`/${c}/${item}`))).reduce((a, [, n]) => a + n, 0);
   const acct: Record<string, any> = {};
-  const extra = P1321 ? Object.values(P1321_ITEMS) : [];
+  const extra = [...(P1321 ? Object.values(P1321_ITEMS) : []), ...(P1322 ? Object.values(P1322_ITEMS) : [])];
   for (const [item, start0] of [['ore', 900], ['metal', 300], ['electronics', 120], ['composite', 600], ['machinery', 2000], ...extra] as const) {
     const h = held(w2, item), g = gone(item);
     acct[item] = { start: start0, heldNow: +h.toFixed(3), destroyed: +g.toFixed(3) };
@@ -169,7 +171,7 @@ try {
 } catch (e) { check(false, 'run', { error: String((e as Error)?.stack ?? e).slice(0, 800) }); }
 finally {
   await stop();
-  const outDir = P1321 ? 'artifacts/p1321' : 'artifacts/p132';
+  const outDir = P1322 ? 'artifacts/p1322' : P1321 ? 'artifacts/p1321' : 'artifacts/p132';
   mkdirSync(outDir, { recursive: true });
   const passed = checks.filter(c => c.ok).length, failed = checks.filter(c => !c.ok).length;
   writeFileSync(`${outDir}/server-${label}.json`, JSON.stringify({ passed, failed, checks, infos, facts, realWebSockets: 3, restarts: P1321 ? 3 : 2, seconds: Math.round((Date.now() - T0) / 1000) }, null, 2));
