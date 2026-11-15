@@ -88,7 +88,13 @@ export interface LawCase {
   value: number; sev: number;
   known: boolean; how?: LawHow; reportAt?: number;
   warrant: boolean;
+  /** fine assessed (total) and paid so far: unpaid = fine − paid, always ≥ 0 */
   fine: number; paid: number;
+  /** P13.4.1: the fine was fixed when the case was made (a seizure fine) — never recomputed from the case value */
+  fixed?: boolean;
+  /** P13.4.1: the public station whose authority billed this fine: payments go to its budget, and a ship near it can
+   *  always pay (also where no Union guard enforces) */
+  creditor?: string;
   /** the authority's last sighting of the suspect group (not its true position) */
   seen?: LawSeen;
   /** this case was already enforced once (stop + inspection, or a battle): it no longer starts dispatches */
@@ -116,9 +122,10 @@ export interface LawStop {
   answerBy?: number; guardSeen?: { pos: V; t: number };
   end?: string; note?: string; until?: number;
 }
-export interface LawCaseView { id: string; kind: LawKind; t: number; sys: string; juris: string | null; auth: LawAuth | null; value: number; sev: number; how?: LawHow; fine: number; paid: number; state: LawCase['state']; until?: number; end?: string; served?: boolean; group?: string }
-/** the company's own view of its record with the authority (private: never in publicCompany) */
-export interface CoLaw { level: number; score: number; unpaid: number; cases: LawCaseView[]; pursuits: { group: string; phase: LawStop['phase'] }[] }
+export interface LawCaseView { id: string; kind: LawKind; t: number; sys: string; juris: string | null; auth: LawAuth | null; value: number; sev: number; how?: LawHow; fine: number; paid: number; state: LawCase['state']; until?: number; end?: string; served?: boolean; group?: string; creditor?: string }
+/** the company's own view of its record with the authority (private: never in publicCompany). `fined` / `paid`: totals
+ *  over the cases listed (fined = paid + unpaid of those cases) */
+export interface CoLaw { level: number; score: number; unpaid: number; fined?: number; paid?: number; cases: LawCaseView[]; pursuits: { group: string; phase: LawStop['phase'] }[] }
 
 export const LEVEL_KO = ['없음', '감시', '수배', '고위험', '무장 위험'];
 export const KIND_KO: Record<LawKind, string> = { extortion: '화물 갈취', salvage: '무단 인양', smuggling: '밀수 적발', strike: '치안 구역 선제공격', guard_attack: '경비대 공격', flee: '정선 불응·도주', resist: '정선 무장 저항' };
@@ -197,9 +204,17 @@ function observe(h: Host, g: WGroup, ships: Map<string, WShip[]>): LawSeen | nul
 const sevOf = (k: LawKind, value: number) => LAW.sev[k] + Math.min(LAW.valueCap[k], value / LAW.valueScale);
 const fineOf = (k: LawKind, value: number) => Math.round((LAW.fineBase[k] + value * LAW.fineRate[k]) / 10) * 10;
 const unpaid = (c: LawCase) => Math.max(0, c.fine - c.paid);
+/** a debt the company can settle: billed by the Union authority, or by a named station's authority */
+const payable = (c: LawCase) => c.known && unpaid(c) > 0 && (!!c.auth || !!c.creditor);
 const serious = (c: LawCase) => LAW.serious.includes(c.kind);
 
-export interface CrimeInput { kind: LawKind; by: string; group?: string; ship?: string; victim?: string; vgroup?: string; sys: string; pos: V; value: number; key: string; how?: LawHow }
+export interface CrimeInput {
+  kind: LawKind; by: string; group?: string; ship?: string; victim?: string; vgroup?: string; sys: string; pos: V; value: number; key: string; how?: LawHow;
+  /** P13.4.1: a fine already assessed by the event itself (a seizure) and what was collected at once */
+  fine?: number; paid?: number; creditor?: string;
+  /** P13.4.1: the event already enforced the case (goods seized at an inspection): no dispatch for it */
+  served?: boolean;
+}
 
 /**
  * Record a crime. Idempotent by `key` (a drop, a salvage site per company, an inspection window, a battle, a stop):
@@ -224,12 +239,21 @@ export function lawCrime(h: Host, c: CrimeInput): LawCase | null {
     sys: c.sys, pos: { ...c.pos }, juris: j.juris, auth: j.auth, value: Math.round(c.value), sev: sevOf(c.kind, c.value),
     known: false, warrant: false, fine: 0, paid: 0, state: 'unreported',
   };
+  if (c.fine !== undefined) {
+    cs.fixed = true; cs.fine = Math.max(0, Math.round(c.fine)); cs.paid = Math.min(cs.fine, Math.max(0, Math.round(c.paid ?? 0)));
+  }
+  if (c.creditor) cs.creditor = c.creditor;
+  if (c.served) cs.served = h.time;
   b.cases[cs.id] = cs; b.keys[c.key] = cs.id;
   emit(st, { kind: 'law', reason: 'crime', amount: cs.sev, company: c.by, group: c.group, system: c.sys, ref: cs.id, item: c.kind, value: cs.value });
-  if (!j.juris) { close(h, cs, 'lawless'); return cs; }
+  if (cs.paid > 0) emit(st, { kind: 'law', reason: 'fine_paid', amount: cs.paid, company: c.by, ref: cs.id });
+  // no law here: nothing to prosecute — but a fine already billed stays owed (payable at its creditor station)
+  if (!j.juris) { if (cs.fixed && unpaid(cs) > 0) { cs.known = true; cs.how = c.how; } close(h, cs, 'lawless'); refresh(h, c.by); return cs; }
   const how = c.how ?? witness(h, c.pos, c.sys);
   if (how) makeKnown(h, cs, how, { pos: { ...c.pos }, sys: c.sys, t: h.time, group: c.group });
   else if (c.victim && reporter(st, c.victim)) cs.reportAt = h.time + LAW.reportDelay;
+  // an enforced case paid in full at once (a seizure fine collected) is closed: no lingering wanted score
+  if (cs.served !== undefined) settleCase(h, cs);
   refresh(h, c.by);
   return cs;
 }
@@ -239,7 +263,7 @@ function makeKnown(h: Host, c: LawCase, how: LawHow, seen?: LawSeen) {
   if (c.known) return;
   c.known = true; c.how = how; c.state = 'open'; delete c.reportAt;
   if (seen) c.seen = seen;
-  if (c.auth) { c.warrant = true; c.fine = fineOf(c.kind, c.value); }
+  if (c.auth) { c.warrant = true; if (!c.fixed) c.fine = fineOf(c.kind, c.value); }
   emit(h.st, { kind: 'law', reason: 'known', amount: c.sev, company: c.by, system: c.sys, ref: c.id, item: c.kind });
   const sys = h.st.systems[c.sys]?.name ?? c.sys;
   const src = { victim: '피해 신고', guard: '경비함 목격', station: '정거장 감시망', inspection: '검문', combat: '교전 기록' }[how];
@@ -273,13 +297,14 @@ export function wanted(st: WorldState, co: string): { score: number; level: numb
 function refresh(h: Host, co: string) {
   const c = h.st.companies[co]; if (!c || c.kind !== 'player') return;
   const w = wanted(h.st, co);
-  const mine = Object.values(h.st.law?.cases ?? {}).filter(x => x.by === co && x.known && x.juris);
+  const mine = Object.values(h.st.law?.cases ?? {}).filter(x => x.by === co && x.known && (x.juris || unpaid(x) > 0));
   const recent = mine.filter(x => x.state !== 'closed').concat(mine.filter(x => x.state === 'closed').sort((a, b) => (b.endT ?? 0) - (a.endT ?? 0)).slice(0, 8));
   const pursuits: CoLaw['pursuits'] = [];
   for (const g of Object.values(h.st.groups)) if (g.owner === co && g.lawStop && g.lawStop.phase !== 'released') pursuits.push({ group: g.id, phase: g.lawStop.phase });
   const view: CoLaw = {
-    level: w.level, score: Math.round(w.score * 10) / 10, unpaid: mine.reduce((a, x) => a + (x.auth ? unpaid(x) : 0), 0), pursuits,
-    cases: recent.map(x => ({ id: x.id, kind: x.kind, t: x.t, sys: x.sys, juris: x.juris, auth: x.auth, value: x.value, sev: Math.round(x.sev * 10) / 10, how: x.how, fine: x.fine, paid: x.paid, state: x.state, until: x.until, end: x.end, served: x.served !== undefined, group: x.group })),
+    level: w.level, score: Math.round(w.score * 10) / 10, unpaid: mine.reduce((a, x) => a + (payable(x) ? unpaid(x) : 0), 0), pursuits,
+    fined: recent.reduce((a, x) => a + x.fine, 0), paid: recent.reduce((a, x) => a + x.paid, 0),
+    cases: recent.map(x => ({ id: x.id, kind: x.kind, t: x.t, sys: x.sys, juris: x.juris, auth: x.auth, value: x.value, sev: Math.round(x.sev * 10) / 10, how: x.how, fine: x.fine, paid: x.paid, state: x.state, until: x.until, end: x.end, served: x.served !== undefined, group: x.group, ...(x.creditor ? { creditor: x.creditor } : {}) })),
   };
   if (!view.level && !view.unpaid && !view.cases.length && !pursuits.length) { delete c.law; return; }
   c.law = view;
@@ -501,8 +526,8 @@ function inspectAndSettle(h: Host, op: LawOp, t: WGroup) {
   const st = h.st, co = st.companies[t.owner];
   const sysId = h.sysOf(h.groupCenter(t) ?? op.last.pos)?.id ?? op.last.sys, sys = st.systems[sysId];
   let seized = 0;
-  for (const s of h.shipsOf(t)) if (sys) seized += guardInspect(h, s, sys, op.id);
   const home = st.stations[op.home];
+  for (const s of h.shipsOf(t)) if (sys) seized += guardInspect(h, s, sys, op.id, home);
   let billed = 0;
   const open = Object.values(lawBook(st).cases).filter(c => c.by === t.owner && c.auth && c.known && (c.state === 'open' || c.state === 'probation')).sort((a, b) => a.t - b.t);
   watchMoney(st, 'law_fine', { company: t.owner, station: home?.id }, () => {
@@ -511,7 +536,8 @@ function inspectAndSettle(h: Host, op: LawOp, t: WGroup) {
       const pay = Math.min(due, Math.floor(co.credits));
       co.credits -= pay; c.paid += pay; billed += pay;
       book(h, t.owner, 'law_fines', -pay, c.id);
-      if (home?.public) fundsIn(home, pay);
+      const to = (c.creditor && st.stations[c.creditor]) || home;
+      if (to?.public) fundsIn(to, pay);
     }
   });
   if (billed) emit(st, { kind: 'law', reason: 'fine_paid', amount: billed, company: t.owner, ref: op.id });
@@ -678,25 +704,36 @@ export function lawPay(h: Host, company: string, caseId: unknown, amount: unknow
   const st = h.st; if (!st.lawV) return '이 월드에는 치안 집행이 없습니다';
   const co = st.companies[company]; if (!co) return '회사 없음';
   if (amount !== undefined && (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 1)) return '금액이 올바르지 않습니다';
-  const cases = Object.values(lawBook(st).cases).filter(c => c.by === company && c.auth && c.known && unpaid(c) > 0 && (caseId === undefined || c.id === caseId)).sort((a, b) => a.t - b.t);
-  if (!cases.length) return caseId === undefined ? '미납 벌금이 없습니다' : '해당 사건의 미납 벌금이 없습니다';
+  const all = Object.values(lawBook(st).cases).filter(c => c.by === company && payable(c) && (caseId === undefined || c.id === caseId)).sort((a, b) => a.t - b.t);
+  if (!all.length) return caseId === undefined ? '미납 벌금이 없습니다' : '해당 사건의 미납 벌금이 없습니다';
+  // where each debt can be paid: a Union case wherever the Union takes payments (payPlace); a case billed by a station
+  // also next to that station (no docking needed); with no ships at all, from HQ
   const place = payPlace(h, company);
-  if (!place) return '치안 구역(연합 경비대 주둔 성계)의 공공 정거장 근처에 자사 함선이 있어야 납부할 수 있습니다';
+  const mine = Object.values(st.ships).filter(s => s.owner === company);
+  const nearSt = (x: Station | undefined) => !!x && mine.some(s => dist(s.pos, x.pos) < LAW.payR + x.radius);
+  const ok = (c: LawCase) => (!!c.auth && !!place) || (!!c.creditor && (place === 'hq' || nearSt(st.stations[c.creditor]) || (!st.stations[c.creditor] && !!place)));
+  const cases = all.filter(ok);
+  if (!cases.length) {
+    const cr = all.find(c => c.creditor && st.stations[c.creditor]);
+    return cr && !cr.auth ? `${st.stations[cr.creditor!].name} 근처(${LAW.payR / 1000} km 이내)에 자사 함선이 있어야 이 벌금을 납부할 수 있습니다` : '치안 구역(연합 경비대 주둔 성계)의 공공 정거장 근처에 자사 함선이 있어야 납부할 수 있습니다';
+  }
   let budget = Math.min(Math.floor(co.credits), amount === undefined ? Infinity : Math.floor(amount as number));
   if (budget < 1) return '잔액 부족';
   let paid = 0;
-  const station = typeof place === 'object' ? place : st.stations[co.homeStation];
+  const station = typeof place === 'object' && place ? place : st.stations[co.homeStation];
   watchMoney(st, 'law_fine', { company, station: station?.id }, () => {
     for (const c of cases) {
       const pay = Math.min(unpaid(c), budget); if (pay <= 0) break;
       co.credits -= pay; c.paid += pay; budget -= pay; paid += pay;
       book(h, company, 'law_fines', -pay, c.id);
-      if (station?.public) fundsIn(station, pay);
+      // the money goes to the authority that billed it
+      const to = (c.creditor && st.stations[c.creditor]) || station;
+      if (to?.public) fundsIn(to, pay);
       settleCase(h, c);
     }
   });
   emit(st, { kind: 'law', reason: 'fine_paid', amount: paid, company });
-  const left = Object.values(lawBook(st).cases).filter(c => c.by === company && c.auth && c.known).reduce((a, c) => a + unpaid(c), 0);
+  const left = Object.values(lawBook(st).cases).filter(c => c.by === company && payable(c)).reduce((a, c) => a + unpaid(c), 0);
   h.ev('money', `연합 보안국 벌금 납부 -${paid.toLocaleString()} cr${left ? ` (미납 ${left.toLocaleString()} cr)` : ' — 미납 없음'}`, { company, tag: 'law' });
   refresh(h, company);
   return { paid, left };

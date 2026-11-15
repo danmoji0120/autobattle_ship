@@ -31,14 +31,27 @@ export function companyLawHtml(st: WorldView, me: string): string {
   const L = (st.companies[me] as any)?.law as CoLaw | undefined;
   const lv = L?.level ?? 0;
   const sysName = (id: string) => esc((st.systems as any)[id]?.name ?? id);
-  const rows = (L?.cases ?? []).map(c => `<tr><td>${esc(KIND[c.kind] ?? c.kind)}</td><td>${sysName(c.sys)}<br><span class="dim">${c.auth ? '연합 보안국' : `기록만 (${esc(c.juris ?? '무법')})`}</span></td><td>${esc(c.how ? HOW[c.how] ?? c.how : '')}</td>
-    <td>${c.fine ? `${fmt(c.paid)}/${fmt(c.fine)}` : '—'}</td><td>${esc(STATE[c.state] ?? c.state)}${c.end ? ` · ${esc(END[c.end] ?? c.end)}` : ''}${c.served && c.state === 'open' ? ' · 집행됨' : ''}${c.state === 'probation' && c.until ? `<br><span class="dim">~${Math.max(0, Math.round((c.until - st.time) / 60))}분</span>` : ''}</td></tr>`).join('');
+  const stName = (id?: string) => id ? esc((st.stations as any)[id]?.name ?? id) : '';
+  // enforcement status of a case: not yet enforced / enforced with a debt / enforced and paid / closed
+  const status = (c: CoLaw['cases'][number]) => {
+    const owe = Math.max(0, c.fine - c.paid);
+    if (c.state === 'closed') return { k: owe > 0 ? 'closed-owed' : 'closed', t: owe > 0 ? '종결 · 미납 있음' : '종결' };
+    if (!c.served) return { k: 'pending', t: '단속 전' };
+    return owe > 0 ? { k: 'served-owed', t: '단속 완료 · 미납 있음' } : { k: 'served-paid', t: '단속 완료 · 완납' };
+  };
+  const rows = (L?.cases ?? []).map(c => {
+    const owe = Math.max(0, c.fine - c.paid), s = status(c);
+    const where = c.auth ? '연합 보안국' : c.creditor ? `${stName(c.creditor)} 당국` : `기록만 (${esc(c.juris ?? '무법')})`;
+    const payBtn = owe > 0 && (c.auth || c.creditor) ? `<div class="law-pay-row"><button class="btn mini go" data-a="lawpay" data-law-case="${esc(c.id)}" title="${c.creditor ? `${stName(c.creditor)} 근처(4km)에 자사 함선이 있으면 납부할 수 있습니다${c.auth ? ' (치안 구역 공공 정거장 근처·정선 중에도 가능)' : ''}` : '치안 구역 공공 정거장 근처(4km)·정선 중에 납부할 수 있습니다'}">완납</button><button class="btn mini" data-a="lawpay" data-law-case="${esc(c.id)}" data-law-amount="ask" data-law-max="${Math.floor(owe)}">일부</button></div>` : '';
+    return `<tr data-law-case-row="${esc(c.id)}" data-law-status="${s.k}"><td>${esc(KIND[c.kind] ?? c.kind)}</td><td>${sysName(c.sys)}<br><span class="dim">${where}</span></td><td>${esc(c.how ? HOW[c.how] ?? c.how : '')}</td>
+    <td class="law-money">${c.fine ? `<span>부과 ${fmt(c.fine)}</span><span>납부 ${fmt(c.paid)}</span><span class="${owe > 0 ? 'warn' : 'dim'}" data-law-owe="${owe}">미납 ${fmt(owe)}</span>${payBtn}` : '—'}</td><td><b>${s.t}</b><br><span class="dim">${esc(STATE[c.state] ?? c.state)}${c.end ? ` · ${esc(END[c.end] ?? c.end)}` : ''}</span>${c.state === 'probation' && c.until ? `<br><span class="dim">~${Math.max(0, Math.round((c.until - st.time) / 60))}분</span>` : ''}</td></tr>`;
+  }).join('');
   return `<h3 class="ops-h3">치안 기록 (연합 보안국)</h3><div class="proc-policy-form law-panel" data-law-panel>
-    <div class="proc-policy-status"><span>수배 등급<b class="${lv >= 3 ? 'warn' : lv >= 2 ? 'warn' : ''}" data-law-level="${lv}">${LEVEL[lv]}</b></span><span>점수<b>${L?.score ?? 0}</b></span><span>미납 벌금<b class="${(L?.unpaid ?? 0) > 0 ? 'warn' : ''}" data-law-unpaid="${L?.unpaid ?? 0}">${fmt(L?.unpaid ?? 0)} cr</b></span></div>
+    <div class="proc-policy-status"><span>수배 등급<b class="${lv >= 3 ? 'warn' : lv >= 2 ? 'warn' : ''}" data-law-level="${lv}">${LEVEL[lv]}</b></span><span>점수<b>${L?.score ?? 0}</b></span><span>총 부과<b data-law-fined="${L?.fined ?? 0}">${fmt(L?.fined ?? 0)} cr</b></span><span>납부<b data-law-paid="${L?.paid ?? 0}">${fmt(L?.paid ?? 0)} cr</b></span><span>미납<b class="${(L?.unpaid ?? 0) > 0 ? 'warn' : ''}" data-law-unpaid="${L?.unpaid ?? 0}">${fmt(L?.unpaid ?? 0)} cr</b></span></div>
     <div class="dim small">${LEVEL_NOTE[lv]}. 관할: 연합 경비대가 주둔한 성계(주둔 정거장이 있는 치안 15 이상)에서만 집행합니다. 그 밖의 세력 영역은 기록만, 무법·미개척 구역은 수배가 생기지 않습니다.
-      경범죄는 시간이 지나면 등급이 내려가지만 미납 벌금은 사라지지 않습니다(감시 등급 유지). 선제공격·경비대 공격·무장 저항은 납부 후 보호관찰 기간이 지나야 해제됩니다.</div>
-    ${(L?.unpaid ?? 0) > 0 ? `<div class="row"><button class="btn go" data-a="lawpay" title="치안 구역 공공 정거장 근처(4km)에 자사 함선이 있거나, 정선 중인 편대가 있으면 납부할 수 있습니다. 입항이 거부된 상태에서도 접근만으로 납부 가능합니다.">벌금 납부 (${fmt(L!.unpaid)} cr)</button></div>` : ''}
-    ${rows ? `<div class="ops-table-wrap"><table class="ops-table law-cases"><thead><tr><th>사건</th><th>장소·관할</th><th>인지</th><th>벌금</th><th>상태</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="dim">당국에 알려진 사건이 없습니다.</p>'}
+      검문 압수 벌금은 잔액이 모자라도 사라지지 않고 미납으로 남습니다(부과한 정거장 근처에서 납부). 경범죄는 시간이 지나면 등급이 내려가지만 미납 벌금은 사라지지 않습니다(감시 등급 유지). 선제공격·경비대 공격·무장 저항은 납부 후 보호관찰 기간이 지나야 해제됩니다.</div>
+    ${(L?.unpaid ?? 0) > 0 ? `<div class="row"><button class="btn go" data-a="lawpay" title="납부할 수 있는 곳의 미납 벌금을 오래된 사건부터 모두 납부합니다. 연합 사건: 치안 구역 공공 정거장 근처(4km)·정선 중. 정거장이 부과한 압수 벌금: 그 정거장 근처(4km). 입항하지 않아도 됩니다.">미납 벌금 납부 (${fmt(L!.unpaid)} cr)</button></div>` : ''}
+    ${rows ? `<div class="ops-table-wrap"><table class="ops-table law-cases"><thead><tr><th>사건</th><th>장소·관할</th><th>인지</th><th>벌금 (cr)</th><th>단속·상태</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="dim">당국에 알려진 사건이 없습니다.</p>'}
     ${L?.pursuits?.length ? `<p class="warn small">진행 중인 단속: ${L.pursuits.map(p => `${esc((st.groups as any)[p.group]?.name ?? p.group)} — ${PHASE[p.phase]}`).join(', ')}</p>` : ''}
   </div>`;
 }

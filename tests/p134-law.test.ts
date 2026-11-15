@@ -145,7 +145,7 @@ describe('P13.4 A — crimes, jurisdiction, witnesses, wanted level', () => {
     expect(ops(f).length).toBe(0);
   });
 
-  it('A04: a real dock inspection that seizes stolen goods is a smuggling case known by inspection: the BM fine once, no law fine, watch level only, no dispatch', () => {
+  it('A04: a real dock inspection that seizes stolen goods is a smuggling case known by inspection: the BM fine once (it is the case fine — P13.4.1), paid at once → closed, no wanted level, no dispatch', () => {
     const f = fixture();
     BM.dockBase = 1; BM.maxChance = 1;
     const g = fleet(f, f.A, f.at(300, 0), ['hauler']); const s = ships(f, g)[0]; s.logisticsExcluded = true;
@@ -156,11 +156,12 @@ describe('P13.4 A — crimes, jurisdiction, witnesses, wanted level', () => {
     expect(fineBm).toBeGreaterThan(0);
     const cs = cases(f, f.A);
     expect(cs.length).toBe(1);
-    expect(cs[0]).toMatchObject({ kind: 'smuggling', how: 'inspection', fine: 0 });
+    expect(cs[0]).toMatchObject({ kind: 'smuggling', how: 'inspection', fine: fineBm, paid: fineBm, state: 'closed', end: 'paid', creditor: 'astra' });
     // the same window again: replayed outcome, nothing left to seize, no new case
     inspect(f.sim, s, 'dock', f.sim.st.systems.astra, f.a);
     expect(cases(f, f.A).length).toBe(1);
-    expect(levelOf(wanted(f.sim.st, f.A).score)).toBe(1);
+    expect(f.sim.st.companies[f.A].credits).toBe(cr0 - fineBm);
+    expect(levelOf(wanted(f.sim.st, f.A).score)).toBe(0);
     run(f.sim, 30);
     expect(ops(f).length).toBe(0);
     // stolen goods went to the owner's customs at this station (exactly)

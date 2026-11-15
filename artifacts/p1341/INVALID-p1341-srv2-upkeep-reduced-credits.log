@@ -1,0 +1,9 @@
+PASS [2s] 0: LAW_P134=1 server creates a P13.4 law world {"lawV":1}
+PASS [2s] S-0: A is wanted for one extortion case seen by Helios station (recorded with the server stopped) {"fine":12000,"state":"open","known":true}
+INFO inspection result {"stop":{"op":"lop144","phase":"released","guard":"g30","guardName":"헬리오스 순찰대 2","since":86.25,"level":2,"guardSeen":{"pos":{"x":-477863.40219100984,"y":-3.965135071561055,"z":7006.214730137539},"t":86.25},"answerBy":70.25,"note":"검문 완료 — 압수 42단위, 벌금 납부 0 cr, 미납 22,562 cr","end":"inspected","until":386.25},"smug":[{"id":"law2","fine":11483,"paid":921,"state":"open","served":86.25,"creditor":"helios","auth":"union","fixed":true}],"seizeLog":[{"t":86.25,"k":"seize","at":"helios","items":{"hot:electronics:p115":40,"eq_heavy_cannon":2},"value":38276.6,"fine":921,"owed":10562,"why":"헬리오스 연합 경비대 정선 
+PASS [88s] I-1: the stop inspection seized the stolen electronics and the heavy cannons (banned in Union open space) {"mod_ecm":3,"ore":30}
+PASS [88s] I-2: ECM cargo (only a station import ban — legal in open space) and ore (legal) stay aboard {"mod_ecm":3,"ore":30}
+PASS [88s] I-3: the heavy cannons FITTED to A's battlecruiser are equipment, not cargo — untouched by the inspection {"before":{"eq_heavy_cannon":2,"eq_medium_gun":4,"eq_pd_gun":4},"after":{"eq_heavy_cannon":2,"eq_medium_gun":4,"eq_pd_gun":4}}
+PASS [88s] I-4: B's 40 electronics wait for B at customs (conserved) {"custB":40}
+FAIL [88s] I-5: one smuggling case: full fine assessed (30% of the seized value), A's 1,000 cr collected at once, the rest owed on the case, open, served (enforced), with a creditor station [{"id":"law2","fine":11483,"paid":921,"state":"open","served":86.25,"creditor":"helios","auth":"union","fixed":true}]
+FAIL [88s] I-6: A's credits went to 0 — never negative — and the 1,000 cr is in A's ledger (fines) {"credits":0.6822916669999586,"ledger":{"fines":921}}

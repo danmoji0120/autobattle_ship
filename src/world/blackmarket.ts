@@ -84,6 +84,26 @@ export function restrictedAt(w: WorldState, st: Station | undefined): readonly s
   return list.filter(k => !st.market?.[k]);
 }
 
+/**
+ * P13.4.1: goods whose transport in open space is banned by a jurisdiction — an explicit rule of its own, separate from
+ * the station import bans above (a station's ban is never widened to its whole system). A P10 faction by name; a world
+ * without factions: systems at security ≥ P9_RESTRICT_SEC use the `union` list.
+ */
+export const TRANSIT_BANS: Record<string, readonly string[]> = { union: ['eq_heavy_cannon'], iron: ['eq_heavy_cannon'] };
+/**
+ * Items the law forbids at an inspection made at this place: docked at (or entering) a public station its import ban;
+ * in open space the transit ban of the system's jurisdiction. An item any public market of the system trades openly is
+ * never banned in its space. Fitted equipment is not cargo and is never part of this (contraband() reads the hold).
+ */
+export function bansAt(w: WorldState, sys: StarSystem | undefined, st?: Station): readonly string[] {
+  if (!w.blackMarketV || !sys) return [];
+  if (st) return restrictedAt(w, st);
+  const list = w.factions && sys.faction ? TRANSIT_BANS[sys.faction] ?? [] : sys.security >= P9_RESTRICT_SEC ? TRANSIT_BANS.union ?? [] : [];
+  if (!list.length) return list;
+  const open = Object.values(w.stations).filter(x => x.public && x.market && sysAt(w.systems, x.pos)?.id === sys.id);
+  return list.filter(k => !open.some(x => x.market![k]));
+}
+
 // ------------------------------------------------------------------ black markets
 
 export type BmTier = 'lawless' | 'border' | 'neutral' | 'secure';
@@ -252,7 +272,7 @@ export function bmQuote(w: WorldState, b: BlackMarket, key: string, n: number): 
 }
 
 function log(co: Company, e: BmLog) { const b = (co.bm ??= { known: [] }); (b.log ??= []).push(e); if (b.log.length > BM.logCap) b.log.splice(0, b.log.length - BM.logCap); }
-export interface BmLog { t: number; k: 'sell' | 'buy' | 'pass' | 'seize' | 'return' | 'found' | 'held' | 'claim'; at: string; items?: Cargo; value?: number; fine?: number; why?: string }
+export interface BmLog { t: number; k: 'sell' | 'buy' | 'pass' | 'seize' | 'return' | 'found' | 'held' | 'claim'; at: string; items?: Cargo; value?: number; fine?: number; /** P13.4.1: part of the fine left unpaid (kept on the smuggling case) */ owed?: number; why?: string }
 
 /**
  * P13.3.1 customs return lot: stolen goods of a player company that the authorities seized from someone else.
@@ -435,23 +455,38 @@ export function inspect(h: Host, s: WShip, kind: 'gate' | 'dock', sys: StarSyste
  * P13.4: the inspection a Union guard group makes after a stop it was complied with. Every stolen unit aboard is
  * found (a real inspection, no roll); the P13.3 seizure rules apply (owner's goods to customs, fine on the seized
  * value). Once per ship and operation — repeating it never seizes or fines twice. Returns the units seized.
+ * P13.4.1: besides stolen goods it finds what the law of this place bans in open space (`bansAt`, transit bans) — not
+ * the import bans of stations (the ship is not docking). `office`: the guards' home station, which bills the fine.
  */
-export function guardInspect(h: Host, s: WShip, sys: StarSystem, ref: string): number {
+export function guardInspect(h: Host, s: WShip, sys: StarSystem, ref: string, office?: Station): number {
   const w = h.st; if (!w.blackMarketV) return 0;
   const co = w.companies[s.owner]; if (!co || co.kind !== 'player') return 0;
   const key = `stop:${ref}`;
   if (s.insp?.[key]) return 0;
-  const c = contraband(w, s, []);
+  const c = contraband(w, s, w.lawV ? bansAt(w, sys) : []);
   const n = cargoSum(c);
   s.insp = { ...(s.insp ?? {}), [key]: n > 0 ? 'seize' : 'pass' };
   emit(w, { kind: 'blackmarket', reason: n > 0 ? 'inspect_seize' : 'inspect_pass', amount: n, company: s.owner, ship: s.id, system: sys.id, ref });
   if (n <= 0) { log(co, { t: h.time, k: 'pass', at: sys.id, why: '연합 경비대 정선 검문 — 불법 화물 없음' }); return 0; }
-  seize(h, s, c, sys, undefined, `${sys.name} 연합 경비대 정선`, 1, key);
+  seize(h, s, c, sys, undefined, `${sys.name} 연합 경비대 정선`, 1, key, office);
   return n;
 }
 
 /** confiscation: every illicit unit found leaves the hold (stolen goods go back to a player owner), fine, reputation */
-function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undefined, where: string, p: number, key: string) {
+/** P13.4.1 (lawV): the public station whose authority bills a seizure here — the inspecting station, the guards' home,
+ *  else the nearest public station of this system, else the nearest one anywhere (a debt always has a place to pay) */
+export function fineOffice(h: Host, sys: StarSystem, pos: { x: number; y: number; z: number }, st?: Station, office?: Station): Station | undefined {
+  if (st?.public) return st;
+  if (office?.public) return office;
+  const pub = Object.values(h.st.stations).filter(x => x.public);
+  const here = pub.filter(x => sysAt(h.st.systems, x.pos)?.id === sys.id);
+  const d2 = (x: Station) => (x.pos.x - pos.x) ** 2 + (x.pos.y - pos.y) ** 2 + (x.pos.z - pos.z) ** 2;
+  let best: Station | undefined;
+  for (const x of here.length ? here : pub) if (!best || d2(x) < d2(best) || (d2(x) === d2(best) && x.id < best.id)) best = x;
+  return best;
+}
+
+function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undefined, where: string, p: number, key: string, office?: Station) {
   const w = h.st, co = w.companies[s.owner];
   watchMoney(w, 'black_market_fine', { company: s.owner, station: st?.id }, () => {
     const value = cargoValue(w, c);
@@ -472,18 +507,23 @@ function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undef
         emit(w, { kind: 'blackmarket', reason: 'customs_hold', amount: n, company: hot.owner, from: s.owner, system: sys.id, item: hot.item });
       } else emit(w, { kind: 'blackmarket', reason: 'confiscate', amount: n, company: s.owner, ship: s.id, station: st?.id, system: sys.id, item: k });
     }
-    const fine = Math.min(Math.max(0, co.credits), Math.round(value * BM.fine));
+    // the fine assessed on the seized value; what the company cannot pay now is kept as a debt on its smuggling case
+    // (P13.4.1, lawV worlds) — P13.3 worlds keep their rule (collected up to the balance, no debt record)
+    const assessed = Math.round(value * BM.fine);
+    const cred = w.lawV ? fineOffice(h, sys, s.pos, st, office) : st?.public ? st : undefined;
+    const fine = w.lawV ? Math.min(Math.floor(Math.max(0, co.credits)), assessed) : Math.min(Math.max(0, co.credits), assessed);
     if (fine > 0) {
       co.credits -= fine; book(h, s.owner, 'fines', -fine);
-      if (st?.public) fundsIn(st, fine);
-      emit(w, { kind: 'blackmarket', reason: 'fine', amount: fine, company: s.owner, station: st?.id, system: sys.id });
+      if (cred) fundsIn(cred, fine);
+      emit(w, { kind: 'blackmarket', reason: 'fine', amount: fine, company: s.owner, station: cred?.id, system: sys.id });
     }
     const sec = effSec(sys);
     co.rep = Math.max(0, co.rep - value * BM.repPerCr * (sec / 100));
     const fac = st?.faction ?? sys.faction;
     if (w.factions && fac && fac !== 'pirates') bumpStanding(w, s.owner, fac, -Math.min(BM.standingCap, value * BM.standingPerCr));
-    log(co, { t: h.time, k: 'seize', at: st?.id ?? sys.id, items: c, value, fine, why: `${where} 검문 적발 (확률 ${pctOf(p)})` });
-    h.ev('warn', `${s.name}: ${where} 검문에 적발 — 불법 화물 ${Math.round(cargoSum(c))}단위 압수, 벌금 ${fine.toLocaleString()} cr`, { company: s.owner, pos: s.pos, tag: 'blackmarket' });
+    const owe = w.lawV ? assessed - fine : 0;
+    log(co, { t: h.time, k: 'seize', at: st?.id ?? sys.id, items: c, value, fine, ...(owe > 0 ? { owed: owe } : {}), why: `${where} 검문 적발 (확률 ${pctOf(p)})` });
+    h.ev('warn', `${s.name}: ${where} 검문에 적발 — 불법 화물 ${Math.round(cargoSum(c))}단위 압수, 벌금 ${(w.lawV ? assessed : fine).toLocaleString()} cr${owe > 0 ? ` (즉시 징수 ${fine.toLocaleString()} cr, 미납 ${owe.toLocaleString()} cr — ${cred?.name ?? sys.name} 근처에서 납부)` : ''}`, { company: s.owner, pos: s.pos, tag: 'blackmarket' });
     for (const [owner, items] of Object.entries(returned)) {
       const office = customsOffice(h, owner, st, sys, s.pos);
       const list = Object.entries(items).map(([k, n]) => `${itemNameOf(k)} ${Math.round(n)}`).join(', ');
@@ -495,7 +535,13 @@ function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undef
         h.ev('info', `당국이 도난 화물을 회수했습니다 (${list}) — ${sys.name}에 세관 정거장이 없어 압수 지점에 보관 중. 자사 함선을 보내 인수하세요`, { company: owner, pos: s.pos, tag: 'blackmarket' });
       }
     }
-    if (w.lawV) lawCrime(h, { kind: 'smuggling', by: s.owner, group: s.groupId, ship: s.id, sys: sys.id, pos: s.pos, value, key: `smug:${s.id}:${key}`, how: 'inspection' });
+    if (w.lawV) {
+      // one case per seizure: a second seizure in the same inspection window is a new case (never a reopened one)
+      const base = `smug:${s.id}:${key}`, keys = w.law?.keys ?? {};
+      let k = base; for (let i = 2; keys[k]; i++) k = `${base}#${i}`;
+      // already enforced (goods seized, fine assessed): it never starts a dispatch; paid in full it closes at once
+      lawCrime(h, { kind: 'smuggling', by: s.owner, group: s.groupId, ship: s.id, sys: sys.id, pos: s.pos, value, key: k, how: 'inspection', fine: assessed, paid: fine, creditor: cred?.id, served: true });
+    }
   });
 }
 

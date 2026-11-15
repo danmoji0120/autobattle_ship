@@ -1,0 +1,1690 @@
+{
+  "passed": 57,
+  "failed": 0,
+  "checks": [
+    {
+      "ok": true,
+      "label": "0: BLACKMARKET_P133=1 server creates a P13.3 world (P13.2 + black markets); no account sees an undiscovered market",
+      "extra": {
+        "known": []
+      },
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S1: A declares B hostile",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1: B sets hauler 1 to 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1: B's hauler 1 is under way",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2: B sets hauler 2 to 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2: B's hauler 2 is under way",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5: B's valuable hauler is under way in high-security Astra",
+      "t": 4
+    },
+    {
+      "ok": true,
+      "label": "S5: A orders a plunder of B 화물선 5 in high-security space",
+      "t": 5
+    },
+    {
+      "ok": true,
+      "label": "S1: A orders a non-destructive plunder of B 화물선 1 (lawless region)",
+      "t": 5
+    },
+    {
+      "ok": true,
+      "label": "S2: A orders a non-destructive plunder of B 화물선 2 (border region)",
+      "t": 5
+    },
+    {
+      "ok": true,
+      "label": "S3: C sends its hauler to the lawless station",
+      "t": 6
+    },
+    {
+      "ok": true,
+      "label": "S3: C sends its scout to the secure station",
+      "t": 6
+    },
+    {
+      "ok": true,
+      "label": "S4: A sends its scout to the secure station",
+      "t": 6
+    },
+    {
+      "ok": true,
+      "label": "S1-1: A's loot arrived in its storage as B's stolen goods (hot:<item>:<B>), never as plain goods",
+      "extra": {
+        "store": {
+          "alloy": 1,
+          "electronics": 51
+        },
+        "plain": {
+          "alloy": 0,
+          "electronics": 0
+        }
+      },
+      "t": 66
+    },
+    {
+      "ok": true,
+      "label": "S1-2: what A holds as stolen + what B still carries never exceeds what B had",
+      "extra": {
+        "unloaded": {
+          "store": {
+            "alloy": 1,
+            "electronics": 51
+          },
+          "plain": {
+            "alloy": 0,
+            "electronics": 0
+          }
+        },
+        "at": 66,
+        "victimLeft": {
+          "ore": 0,
+          "alloy": 199,
+          "crystal": 0,
+          "electronics": 9
+        },
+        "sells": {
+          "item": "electronics",
+          "n": 25
+        },
+        "sale": {
+          "sold": 25,
+          "paidByMarket": 2140.35,
+          "fundsDrop": 2137.225,
+          "storage": 25,
+          "credits": 2140.35,
+          "log": {
+            "items": {
+              "hot:electronics:p115": 25
+            },
+            "value": 2140.35,
+            "fee": 112.65
+          },
+          "otherFinesBetween": 0
+        }
+      },
+      "t": 66
+    },
+    {
+      "ok": true,
+      "label": "S1-3: A's hauler docking at the lawless station found its black market (now replicated to A only)",
+      "extra": {
+        "known": [
+          "bm_secure",
+          "bm_lawless"
+        ]
+      },
+      "t": 66
+    },
+    {
+      "ok": true,
+      "label": "S1-4: the normal market refuses B's stolen goods",
+      "extra": {
+        "err": "거래 불가"
+      },
+      "t": 67
+    },
+    {
+      "ok": true,
+      "label": "S1-5: A sells part of the stolen goods at the lawless black market (bmSell from storage)",
+      "extra": {
+        "err": null,
+        "amount": 25
+      },
+      "t": 68
+    },
+    {
+      "ok": true,
+      "label": "S1-6: exactly the sold units left A's storage; the market booked the sale it paid (took/paid = log)",
+      "extra": {
+        "sold": 25,
+        "paidByMarket": 2140.35,
+        "fundsDrop": 2137.225,
+        "storage": 25,
+        "credits": 2140.35,
+        "log": {
+          "items": {
+            "hot:electronics:p115": 25
+          },
+          "value": 2140.35,
+          "fee": 112.65
+        },
+        "otherFinesBetween": 0
+      },
+      "t": 69
+    },
+    {
+      "ok": true,
+      "label": "S1-7: A's credits rose by what the market paid (no more; at most a running-cost tick less; fines from other scenarios in the same moment taken out)",
+      "extra": {
+        "sold": 25,
+        "paidByMarket": 2140.35,
+        "fundsDrop": 2137.225,
+        "storage": 25,
+        "credits": 2140.35,
+        "log": {
+          "items": {
+            "hot:electronics:p115": 25
+          },
+          "value": 2140.35,
+          "fee": 112.65
+        },
+        "otherFinesBetween": 0
+      },
+      "t": 69
+    },
+    {
+      "ok": true,
+      "label": "S1-8: the market's budget fell by what it paid (regeneration may add back)",
+      "extra": {
+        "sold": 25,
+        "paidByMarket": 2140.35,
+        "fundsDrop": 2137.225,
+        "storage": 25,
+        "credits": 2140.35,
+        "log": {
+          "items": {
+            "hot:electronics:p115": 25
+          },
+          "value": 2140.35,
+          "fee": 112.65
+        },
+        "otherFinesBetween": 0
+      },
+      "t": 69
+    },
+    {
+      "ok": true,
+      "label": "S1-9: re-sending the same sale request is acknowledged without selling again",
+      "extra": {
+        "dup": null,
+        "took": 25
+      },
+      "t": 70
+    },
+    {
+      "ok": true,
+      "label": "S1-10: C cannot trade at a black market it never found",
+      "t": 70
+    },
+    {
+      "ok": true,
+      "label": "S5-1: the plunder's automatic unloading in high-security space was blocked (P13.3.1 safe unloading): the stolen electronics stay aboard and no hauler docked",
+      "extra": {
+        "aboard": 150,
+        "docked": [
+          "space",
+          "space"
+        ],
+        "inspections": 0,
+        "storedInAstra": 0,
+        "victimLeft": 150,
+        "customsB": 0,
+        "status": "대기"
+      },
+      "t": 73
+    },
+    {
+      "ok": true,
+      "label": "S5-2: blocked automatic unloading means no dock inspection and nothing stored as stolen at a risky station",
+      "extra": {
+        "aboard": 150,
+        "docked": [
+          "space",
+          "space"
+        ],
+        "inspections": 0,
+        "storedInAstra": 0,
+        "victimLeft": 150,
+        "customsB": 0,
+        "status": "대기"
+      },
+      "t": 73
+    },
+    {
+      "ok": true,
+      "label": "S5-3: B's 300 electronics = still on B's hauler + aboard A's raid group (haulers and warships) — exactly",
+      "extra": {
+        "aboard": 150,
+        "docked": [
+          "space",
+          "space"
+        ],
+        "inspections": 0,
+        "storedInAstra": 0,
+        "victimLeft": 150,
+        "customsB": 0,
+        "status": "대기"
+      },
+      "t": 73
+    },
+    {
+      "ok": true,
+      "label": "S5-4: A explicitly orders the loaded raiders to dock at Astra (a risky station)",
+      "t": 73
+    },
+    {
+      "ok": true,
+      "label": "S5-5: the explicit dock at Astra was inspected (dock event)",
+      "extra": {
+        "inspections": [
+          {
+            "k": "pass",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 6
+            },
+            "why": "입항 검문 통과 (적발 확률 20%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 70
+            },
+            "fine": 3515,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 8
+            },
+            "fine": 402,
+            "why": "아스트라 자유항 검문 적발 (확률 21%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 66
+            },
+            "fine": 3311,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          }
+        ],
+        "seized": 144,
+        "customsB": 144,
+        "lots": [
+          {
+            "station": "astra",
+            "n": 144
+          }
+        ],
+        "heldLog": 3,
+        "toBHome": 0,
+        "aboard": 0,
+        "stolenStoredInAstra": 6,
+        "victimLeft": 150
+      },
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "S5-6: every seized unit waits at the Astra customs office for B (B sees 'held' in its log); nothing moved to B's home storage",
+      "extra": {
+        "inspections": [
+          {
+            "k": "pass",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 6
+            },
+            "why": "입항 검문 통과 (적발 확률 20%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 70
+            },
+            "fine": 3515,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 8
+            },
+            "fine": 402,
+            "why": "아스트라 자유항 검문 적발 (확률 21%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 66
+            },
+            "fine": 3311,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          }
+        ],
+        "seized": 144,
+        "customsB": 144,
+        "lots": [
+          {
+            "station": "astra",
+            "n": 144
+          }
+        ],
+        "heldLog": 3,
+        "toBHome": 0,
+        "aboard": 0,
+        "stolenStoredInAstra": 6,
+        "victimLeft": 150
+      },
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "S5-7: B's 300 electronics = on B's hauler + at customs for B + stolen in A's storage + aboard — exactly",
+      "extra": {
+        "inspections": [
+          {
+            "k": "pass",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 6
+            },
+            "why": "입항 검문 통과 (적발 확률 20%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 70
+            },
+            "fine": 3515,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 8
+            },
+            "fine": 402,
+            "why": "아스트라 자유항 검문 적발 (확률 21%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 66
+            },
+            "fine": 3311,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          }
+        ],
+        "seized": 144,
+        "customsB": 144,
+        "lots": [
+          {
+            "station": "astra",
+            "n": 144
+          }
+        ],
+        "heldLog": 3,
+        "toBHome": 0,
+        "aboard": 0,
+        "stolenStoredInAstra": 6,
+        "victimLeft": 150
+      },
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "S5-8 (inspection outcome: seized): A was fined",
+      "extra": [
+        {
+          "k": "pass",
+          "at": "astra",
+          "items": {
+            "hot:electronics:p115": 6
+          },
+          "why": "입항 검문 통과 (적발 확률 20%)"
+        },
+        {
+          "k": "seize",
+          "at": "astra",
+          "items": {
+            "hot:electronics:p115": 70
+          },
+          "fine": 3515,
+          "why": "아스트라 자유항 검문 적발 (확률 30%)"
+        },
+        {
+          "k": "seize",
+          "at": "astra",
+          "items": {
+            "hot:electronics:p115": 8
+          },
+          "fine": 402,
+          "why": "아스트라 자유항 검문 적발 (확률 21%)"
+        },
+        {
+          "k": "seize",
+          "at": "astra",
+          "items": {
+            "hot:electronics:p115": 66
+          },
+          "fine": 3311,
+          "why": "아스트라 자유항 검문 적발 (확률 30%)"
+        }
+      ],
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "S4-1: A orders the rest of the stolen electronics from the lawless station to the secure market (through high-security gates)",
+      "extra": {
+        "carried": 26,
+        "homeB": "astra",
+        "log": [
+          {
+            "k": "pass",
+            "at": "ember",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 0.3%)"
+          },
+          {
+            "k": "pass",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 13%)"
+          },
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 18%)"
+          },
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "입항 검문 통과 (적발 확률 15%)"
+          },
+          {
+            "k": "sell",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "value": 1433,
+            "fine": 195
+          }
+        ],
+        "sold": 26,
+        "seized": 0,
+        "aboard": 0,
+        "stored": 0,
+        "toBHome": 0,
+        "customsB": 0,
+        "bHeldLog": [],
+        "aCredits": 1206,
+        "marketTook": 26
+      },
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "S4-2: every carried stolen unit is sold, seized, still aboard or still stored — exactly",
+      "extra": {
+        "carried": 26,
+        "homeB": "astra",
+        "log": [
+          {
+            "k": "pass",
+            "at": "ember",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 0.3%)"
+          },
+          {
+            "k": "pass",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 13%)"
+          },
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 18%)"
+          },
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "입항 검문 통과 (적발 확률 15%)"
+          },
+          {
+            "k": "sell",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "value": 1433,
+            "fine": 195
+          }
+        ],
+        "sold": 26,
+        "seized": 0,
+        "aboard": 0,
+        "stored": 0,
+        "toBHome": 0,
+        "customsB": 0,
+        "bHeldLog": [],
+        "aCredits": 1206,
+        "marketTook": 26
+      },
+      "t": 183
+    },
+    {
+      "ok": true,
+      "label": "S4-3 (inspection outcome: passed): the stolen electronics were sold at the secure market",
+      "extra": {
+        "carried": 26,
+        "homeB": "astra",
+        "log": [
+          {
+            "k": "pass",
+            "at": "ember",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 0.3%)"
+          },
+          {
+            "k": "pass",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 13%)"
+          },
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "관문 검문 통과 (적발 확률 18%)"
+          },
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "why": "입항 검문 통과 (적발 확률 15%)"
+          },
+          {
+            "k": "sell",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 26
+            },
+            "value": 1433,
+            "fine": 195
+          }
+        ],
+        "sold": 26,
+        "seized": 0,
+        "aboard": 0,
+        "stored": 0,
+        "toBHome": 0,
+        "customsB": 0,
+        "bHeldLog": [],
+        "aCredits": 1206,
+        "marketTook": 26
+      },
+      "t": 183
+    },
+    {
+      "ok": true,
+      "label": "S2-0: the plunder's automatic unloading avoided the border station (dock inspection risk > 0) and stored the loot as stolen goods at the zero-risk lawless station",
+      "extra": {
+        "unloaded": {
+          "stolen": 76,
+          "plain": 0,
+          "atBorder": 0,
+          "victimLeft": 75
+        },
+        "loaded": 76,
+        "run": {
+          "status": "밀수 완료 — 엠버 광산 조합 암시장 처분 76단위 +1,388 cr",
+          "gameSeconds": 82,
+          "log": [
+            {
+              "k": "pass",
+              "at": "ember",
+              "items": {
+                "hot:alloy:p115": 76
+              },
+              "why": "관문 검문 통과 (적발 확률 0.3%)"
+            },
+            {
+              "k": "pass",
+              "at": "cinderco",
+              "items": {
+                "hot:alloy:p115": 76
+              },
+              "why": "입항 검문 통과 (적발 확률 0.5%)"
+            },
+            {
+              "k": "sell",
+              "at": "cinderco",
+              "items": {
+                "hot:alloy:p115": 76
+              },
+              "value": 1388,
+              "fine": 121
+            }
+          ],
+          "aboard": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "took": 76,
+          "paid": 1388,
+          "credits": 1293
+        }
+      },
+      "t": 183
+    },
+    {
+      "ok": true,
+      "label": "S2-1: A docks the (now empty) raiders at the border station",
+      "t": 184
+    },
+    {
+      "ok": true,
+      "label": "S2-1b: docking there found the border market; nothing stolen was carried there",
+      "extra": {
+        "unloaded": {
+          "stolen": 76,
+          "plain": 0,
+          "atBorder": 0,
+          "victimLeft": 75
+        },
+        "loaded": 76,
+        "run": {
+          "status": "밀수 완료 — 엠버 광산 조합 암시장 처분 76단위 +1,388 cr",
+          "gameSeconds": 82,
+          "log": [
+            {
+              "k": "pass",
+              "at": "ember",
+              "items": {
+                "hot:alloy:p115": 76
+              },
+              "why": "관문 검문 통과 (적발 확률 0.3%)"
+            },
+            {
+              "k": "pass",
+              "at": "cinderco",
+              "items": {
+                "hot:alloy:p115": 76
+              },
+              "why": "입항 검문 통과 (적발 확률 0.5%)"
+            },
+            {
+              "k": "sell",
+              "at": "cinderco",
+              "items": {
+                "hot:alloy:p115": 76
+              },
+              "value": 1388,
+              "fine": 121
+            }
+          ],
+          "aboard": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          },
+          "took": 76,
+          "paid": 1388,
+          "credits": 1293
+        }
+      },
+      "t": 215
+    },
+    {
+      "ok": true,
+      "label": "S2-2: A orders a smuggling run: load the stolen alloy at the lawless station, fly to the border market, sell",
+      "t": 216
+    },
+    {
+      "ok": true,
+      "label": "S2-3: the stolen alloy physically left storage into the hauler's hold (hold + what stayed = what was stored)",
+      "extra": {
+        "loaded": 76,
+        "left": 0,
+        "stored": 76
+      },
+      "t": 256
+    },
+    {
+      "ok": true,
+      "label": "S2-4: the smuggled stolen alloy was carried to the border market and sold there from the hold; sold + still aboard = loaded, exactly",
+      "extra": {
+        "soldUnits": 76,
+        "aboard": 0,
+        "loaded": 76
+      },
+      "t": 297
+    },
+    {
+      "ok": true,
+      "label": "S2-5: A's credits rose by what the market paid during the run (no more; running costs may take some)",
+      "extra": {
+        "status": "밀수 완료 — 엠버 광산 조합 암시장 처분 76단위 +1,388 cr",
+        "gameSeconds": 82,
+        "log": [
+          {
+            "k": "pass",
+            "at": "ember",
+            "items": {
+              "hot:alloy:p115": 76
+            },
+            "why": "관문 검문 통과 (적발 확률 0.3%)"
+          },
+          {
+            "k": "pass",
+            "at": "cinderco",
+            "items": {
+              "hot:alloy:p115": 76
+            },
+            "why": "입항 검문 통과 (적발 확률 0.5%)"
+          },
+          {
+            "k": "sell",
+            "at": "cinderco",
+            "items": {
+              "hot:alloy:p115": 76
+            },
+            "value": 1388,
+            "fine": 121
+          }
+        ],
+        "aboard": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        },
+        "took": 76,
+        "paid": 1388,
+        "credits": 1293
+      },
+      "t": 297
+    },
+    {
+      "ok": true,
+      "label": "S2-6: every inspection on the way is in A's own black-market log",
+      "extra": [
+        {
+          "k": "pass",
+          "at": "ember",
+          "items": {
+            "hot:alloy:p115": 76
+          },
+          "why": "관문 검문 통과 (적발 확률 0.3%)"
+        },
+        {
+          "k": "pass",
+          "at": "cinderco",
+          "items": {
+            "hot:alloy:p115": 76
+          },
+          "why": "입항 검문 통과 (적발 확률 0.5%)"
+        },
+        {
+          "k": "sell",
+          "at": "cinderco",
+          "items": {
+            "hot:alloy:p115": 76
+          },
+          "value": 1388,
+          "fine": 121
+        }
+      ],
+      "t": 297
+    },
+    {
+      "ok": true,
+      "label": "S3-1: C's ships docked at the lawless and the secure stations and found both markets",
+      "t": 297
+    },
+    {
+      "ok": true,
+      "label": "S3-2: C bought restricted ECM modules from the lawless market's real stock into its hold, paying credits (stock fell by the amount, less a restock tick)",
+      "extra": {
+        "err": null,
+        "stock": 7.999667,
+        "credits": 26861,
+        "hold": 8
+      },
+      "t": 300
+    },
+    {
+      "ok": true,
+      "label": "S3-3: C orders the hauler to run them to the secure market (gate and dock inspections on the way)",
+      "t": 301
+    },
+    {
+      "ok": true,
+      "label": "S3-4 (inspection outcome: passed): the modules reached the secure market; sold + still aboard = bought, exactly",
+      "extra": {
+        "status": "정박 대기",
+        "gameSeconds": 95,
+        "log": [
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "mod_ecm": 8
+            },
+            "why": "입항 검문 통과 (적발 확률 28%)"
+          },
+          {
+            "k": "sell",
+            "at": "helios",
+            "items": {
+              "mod_ecm": 7
+            },
+            "value": 42710,
+            "fine": 5824
+          }
+        ],
+        "aboard": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0,
+          "mod_ecm": 1
+        },
+        "credits": 42688,
+        "marketPaid": 42710
+      },
+      "t": 395
+    },
+    {
+      "ok": true,
+      "label": "D-1: B (victim) sees only the markets its own ships found (its fleeing haulers docked at the nearest stations), nobody's trade/inspection log, no inspection records, no smuggling state",
+      "extra": {
+        "markets": [
+          "bm_lawless",
+          "bm_border"
+        ],
+        "otherBm": [],
+        "insp": [],
+        "smug": [],
+        "known": [
+          "bm_border",
+          "bm_lawless"
+        ],
+        "found": [
+          {
+            "at": "cinderco",
+            "why": "짐꾼 44호 입항 중 접선"
+          },
+          {
+            "at": "rustport",
+            "why": "짐꾼 36호 입항 중 접선"
+          }
+        ]
+      },
+      "t": 395
+    },
+    {
+      "ok": true,
+      "label": "D-2: C sees only the two markets it found (not the border one A found) and nothing private of A or B",
+      "extra": {
+        "markets": [
+          "bm_lawless",
+          "bm_secure"
+        ],
+        "otherBm": [],
+        "insp": [],
+        "smug": []
+      },
+      "t": 395
+    },
+    {
+      "ok": true,
+      "label": "D-3: A sees exactly the markets it found, nothing private of C",
+      "extra": {
+        "markets": [
+          "bm_lawless",
+          "bm_border",
+          "bm_secure"
+        ],
+        "otherBm": [],
+        "insp": [],
+        "smug": [],
+        "known": [
+          "bm_secure",
+          "bm_lawless",
+          "bm_border"
+        ]
+      },
+      "t": 395
+    },
+    {
+      "ok": true,
+      "label": "D-4: the raw snapshot bytes sent to B carry no market B did not find, no inspection record, no smuggling state",
+      "extra": {
+        "bytes": 138706,
+        "markets": [
+          "bm_lawless",
+          "bm_border"
+        ]
+      },
+      "t": 395
+    },
+    {
+      "ok": true,
+      "label": "R-1: after a restart the black markets (placement and books), every company's known list, logs and the stolen goods in storage are exactly as saved",
+      "extra": {
+        "before": {
+          "known": {
+            "p1": [
+              "bm_secure",
+              "bm_lawless",
+              "bm_border"
+            ],
+            "p115": [
+              "bm_border",
+              "bm_lawless"
+            ],
+            "p124": [
+              "bm_secure",
+              "bm_lawless"
+            ]
+          },
+          "logs": {
+            "p1": 16,
+            "p124": 5
+          },
+          "markets": {
+            "bm_lawless": {
+              "station": "rustport",
+              "took": 25,
+              "paid": 2140,
+              "sold": 8
+            },
+            "bm_border": {
+              "station": "cinderco",
+              "took": 76,
+              "paid": 1388,
+              "sold": 0
+            },
+            "bm_neutral": {
+              "station": "drakeout",
+              "took": 0,
+              "paid": 0,
+              "sold": 0
+            },
+            "bm_secure": {
+              "station": "helios",
+              "took": 33,
+              "paid": 44143,
+              "sold": 0
+            }
+          },
+          "hot": {
+            "astra/p1/hot:electronics:p115": 6
+          }
+        },
+        "after": {
+          "known": {
+            "p1": [
+              "bm_secure",
+              "bm_lawless",
+              "bm_border"
+            ],
+            "p115": [
+              "bm_border",
+              "bm_lawless"
+            ],
+            "p124": [
+              "bm_secure",
+              "bm_lawless"
+            ]
+          },
+          "logs": {
+            "p1": 16,
+            "p124": 5
+          },
+          "markets": {
+            "bm_lawless": {
+              "station": "rustport",
+              "took": 25,
+              "paid": 2140,
+              "sold": 8
+            },
+            "bm_border": {
+              "station": "cinderco",
+              "took": 76,
+              "paid": 1388,
+              "sold": 0
+            },
+            "bm_neutral": {
+              "station": "drakeout",
+              "took": 0,
+              "paid": 0,
+              "sold": 0
+            },
+            "bm_secure": {
+              "station": "helios",
+              "took": 33,
+              "paid": 44143,
+              "sold": 0
+            }
+          },
+          "hot": {
+            "astra/p1/hot:electronics:p115": 6
+          }
+        }
+      },
+      "t": 399
+    },
+    {
+      "ok": true,
+      "label": "R-2: after reconnecting, each account again receives exactly the markets it knows",
+      "extra": {
+        "A": [
+          "bm_lawless",
+          "bm_border",
+          "bm_secure"
+        ],
+        "C": [
+          "bm_lawless",
+          "bm_secure"
+        ]
+      },
+      "t": 399
+    },
+    {
+      "ok": true,
+      "label": "ACC alloy: placed + bought = held (ships, storage, containers, wrecks) + sold to black markets + confiscated + destroyed — exactly",
+      "extra": {
+        "placed": 350,
+        "boughtFromBlackMarket": 0,
+        "heldNow": 274,
+        "soldToBlackMarket": 76,
+        "confiscatedDestroyed": 0,
+        "lostOtherwise": 0
+      },
+      "t": 399
+    },
+    {
+      "ok": true,
+      "label": "ACC electronics: placed + bought = held (ships, storage, containers, wrecks) + sold to black markets + confiscated + destroyed — exactly",
+      "extra": {
+        "placed": 360,
+        "boughtFromBlackMarket": 0,
+        "heldNow": 309,
+        "soldToBlackMarket": 51,
+        "confiscatedDestroyed": 0,
+        "lostOtherwise": 0
+      },
+      "t": 399
+    },
+    {
+      "ok": true,
+      "label": "ACC mod_ecm: placed + bought = held (ships, storage, containers, wrecks) + sold to black markets + confiscated + destroyed — exactly",
+      "extra": {
+        "placed": 0,
+        "boughtFromBlackMarket": 8,
+        "heldNow": 1,
+        "soldToBlackMarket": 7,
+        "confiscatedDestroyed": 0,
+        "lostOtherwise": 0
+      },
+      "t": 399
+    },
+    {
+      "ok": true,
+      "label": "ACC: the markets' own books (took) equal the sale events in the server analytics",
+      "extra": {
+        "soldAll": 134,
+        "tookAll": 134
+      },
+      "t": 399
+    },
+    {
+      "ok": true,
+      "label": "REQUIRED: real plunder goods were tracked as stolen, physically transported and sold at a black market (P13.3 Pass condition)",
+      "extra": {
+        "placed": 350,
+        "boughtFromBlackMarket": 0,
+        "heldNow": 274,
+        "soldToBlackMarket": 76,
+        "confiscatedDestroyed": 0,
+        "lostOtherwise": 0
+      },
+      "t": 399
+    }
+  ],
+  "infos": [],
+  "facts": {
+    "seed": "133",
+    "label": "p1341-reg",
+    "clock": "server real time, speed 1 (multiplayer)",
+    "load": "3 accounts, ~12 scenario ships, no NPC fleets",
+    "markets": [
+      {
+        "id": "bm_lawless",
+        "station": "rustport",
+        "tier": "lawless",
+        "funds": 30003
+      },
+      {
+        "id": "bm_border",
+        "station": "cinderco",
+        "tier": "border",
+        "funds": 30003
+      },
+      {
+        "id": "bm_neutral",
+        "station": "drakeout",
+        "tier": "neutral",
+        "funds": 30003
+      },
+      {
+        "id": "bm_secure",
+        "station": "helios",
+        "tier": "secure",
+        "funds": 45005
+      }
+    ],
+    "ids": {
+      "L": "rustport",
+      "Bd": "cinderco",
+      "S": "helios",
+      "v1": "g133",
+      "v1s": "s135",
+      "a1": "g136",
+      "a1h": "s140",
+      "v2": "g141",
+      "v2s": "s143",
+      "a2": "g144",
+      "a2h": "s148",
+      "c1": "g149",
+      "c1s": "s151",
+      "c2": "g152",
+      "a4": "g164",
+      "v5": "g155",
+      "v5s": "s157",
+      "a5": "g158",
+      "a5h": "s162,s163"
+    },
+    "stations": {
+      "lawless": "녹슨 정박지",
+      "border": "엠버 광산 조합",
+      "secure": "헬리오스 조선소"
+    },
+    "s1": {
+      "unloaded": {
+        "store": {
+          "alloy": 1,
+          "electronics": 51
+        },
+        "plain": {
+          "alloy": 0,
+          "electronics": 0
+        }
+      },
+      "at": 66,
+      "victimLeft": {
+        "ore": 0,
+        "alloy": 199,
+        "crystal": 0,
+        "electronics": 9
+      },
+      "sells": {
+        "item": "electronics",
+        "n": 25
+      },
+      "sale": {
+        "sold": 25,
+        "paidByMarket": 2140.35,
+        "fundsDrop": 2137.225,
+        "storage": 25,
+        "credits": 2140.35,
+        "log": {
+          "items": {
+            "hot:electronics:p115": 25
+          },
+          "value": 2140.35,
+          "fee": 112.65
+        },
+        "otherFinesBetween": 0
+      }
+    },
+    "s5": {
+      "auto": {
+        "aboard": 150,
+        "docked": [
+          "space",
+          "space"
+        ],
+        "inspections": 0,
+        "storedInAstra": 0,
+        "victimLeft": 150,
+        "customsB": 0,
+        "status": "대기"
+      },
+      "explicit": {
+        "inspections": [
+          {
+            "k": "pass",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 6
+            },
+            "why": "입항 검문 통과 (적발 확률 20%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 70
+            },
+            "fine": 3515,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 8
+            },
+            "fine": 402,
+            "why": "아스트라 자유항 검문 적발 (확률 21%)"
+          },
+          {
+            "k": "seize",
+            "at": "astra",
+            "items": {
+              "hot:electronics:p115": 66
+            },
+            "fine": 3311,
+            "why": "아스트라 자유항 검문 적발 (확률 30%)"
+          }
+        ],
+        "seized": 144,
+        "customsB": 144,
+        "lots": [
+          {
+            "station": "astra",
+            "n": 144
+          }
+        ],
+        "heldLog": 3,
+        "toBHome": 0,
+        "aboard": 0,
+        "stolenStoredInAstra": 6,
+        "victimLeft": 150
+      }
+    },
+    "s4": {
+      "carried": 26,
+      "homeB": "astra",
+      "log": [
+        {
+          "k": "pass",
+          "at": "ember",
+          "items": {
+            "hot:electronics:p115": 26
+          },
+          "why": "관문 검문 통과 (적발 확률 0.3%)"
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "items": {
+            "hot:electronics:p115": 26
+          },
+          "why": "관문 검문 통과 (적발 확률 13%)"
+        },
+        {
+          "k": "pass",
+          "at": "helios",
+          "items": {
+            "hot:electronics:p115": 26
+          },
+          "why": "관문 검문 통과 (적발 확률 18%)"
+        },
+        {
+          "k": "pass",
+          "at": "helios",
+          "items": {
+            "hot:electronics:p115": 26
+          },
+          "why": "입항 검문 통과 (적발 확률 15%)"
+        },
+        {
+          "k": "sell",
+          "at": "helios",
+          "items": {
+            "hot:electronics:p115": 26
+          },
+          "value": 1433,
+          "fine": 195
+        }
+      ],
+      "sold": 26,
+      "seized": 0,
+      "aboard": 0,
+      "stored": 0,
+      "toBHome": 0,
+      "customsB": 0,
+      "bHeldLog": [],
+      "aCredits": 1206,
+      "marketTook": 26
+    },
+    "s2": {
+      "unloaded": {
+        "stolen": 76,
+        "plain": 0,
+        "atBorder": 0,
+        "victimLeft": 75
+      },
+      "loaded": 76,
+      "run": {
+        "status": "밀수 완료 — 엠버 광산 조합 암시장 처분 76단위 +1,388 cr",
+        "gameSeconds": 82,
+        "log": [
+          {
+            "k": "pass",
+            "at": "ember",
+            "items": {
+              "hot:alloy:p115": 76
+            },
+            "why": "관문 검문 통과 (적발 확률 0.3%)"
+          },
+          {
+            "k": "pass",
+            "at": "cinderco",
+            "items": {
+              "hot:alloy:p115": 76
+            },
+            "why": "입항 검문 통과 (적발 확률 0.5%)"
+          },
+          {
+            "k": "sell",
+            "at": "cinderco",
+            "items": {
+              "hot:alloy:p115": 76
+            },
+            "value": 1388,
+            "fine": 121
+          }
+        ],
+        "aboard": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        },
+        "took": 76,
+        "paid": 1388,
+        "credits": 1293
+      }
+    },
+    "s3": {
+      "buy": {
+        "err": null,
+        "stock": 7.999667,
+        "credits": 26861,
+        "hold": 8
+      },
+      "run": {
+        "status": "정박 대기",
+        "gameSeconds": 95,
+        "log": [
+          {
+            "k": "pass",
+            "at": "helios",
+            "items": {
+              "mod_ecm": 8
+            },
+            "why": "입항 검문 통과 (적발 확률 28%)"
+          },
+          {
+            "k": "sell",
+            "at": "helios",
+            "items": {
+              "mod_ecm": 7
+            },
+            "value": 42710,
+            "fine": 5824
+          }
+        ],
+        "aboard": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0,
+          "mod_ecm": 1
+        },
+        "credits": 42688,
+        "marketPaid": 42710
+      }
+    },
+    "privacy": {
+      "B": {
+        "markets": [
+          "bm_lawless",
+          "bm_border"
+        ],
+        "otherBm": [],
+        "insp": [],
+        "smug": []
+      },
+      "C": {
+        "markets": [
+          "bm_lawless",
+          "bm_secure"
+        ],
+        "otherBm": [],
+        "insp": [],
+        "smug": []
+      },
+      "A": {
+        "markets": [
+          "bm_lawless",
+          "bm_border",
+          "bm_secure"
+        ],
+        "otherBm": [],
+        "insp": [],
+        "smug": []
+      },
+      "Bfound": [
+        {
+          "at": "cinderco",
+          "why": "짐꾼 44호 입항 중 접선"
+        },
+        {
+          "at": "rustport",
+          "why": "짐꾼 36호 입항 중 접선"
+        }
+      ]
+    },
+    "restart": {
+      "before": {
+        "known": {
+          "p1": [
+            "bm_secure",
+            "bm_lawless",
+            "bm_border"
+          ],
+          "p115": [
+            "bm_border",
+            "bm_lawless"
+          ],
+          "p124": [
+            "bm_secure",
+            "bm_lawless"
+          ]
+        },
+        "logs": {
+          "p1": 16,
+          "p124": 5
+        },
+        "markets": {
+          "bm_lawless": {
+            "station": "rustport",
+            "took": 25,
+            "paid": 2140,
+            "sold": 8
+          },
+          "bm_border": {
+            "station": "cinderco",
+            "took": 76,
+            "paid": 1388,
+            "sold": 0
+          },
+          "bm_neutral": {
+            "station": "drakeout",
+            "took": 0,
+            "paid": 0,
+            "sold": 0
+          },
+          "bm_secure": {
+            "station": "helios",
+            "took": 33,
+            "paid": 44143,
+            "sold": 0
+          }
+        },
+        "hot": {
+          "astra/p1/hot:electronics:p115": 6
+        }
+      },
+      "after": {
+        "known": {
+          "p1": [
+            "bm_secure",
+            "bm_lawless",
+            "bm_border"
+          ],
+          "p115": [
+            "bm_border",
+            "bm_lawless"
+          ],
+          "p124": [
+            "bm_secure",
+            "bm_lawless"
+          ]
+        },
+        "logs": {
+          "p1": 16,
+          "p124": 5
+        },
+        "markets": {
+          "bm_lawless": {
+            "station": "rustport",
+            "took": 25,
+            "paid": 2140,
+            "sold": 8
+          },
+          "bm_border": {
+            "station": "cinderco",
+            "took": 76,
+            "paid": 1388,
+            "sold": 0
+          },
+          "bm_neutral": {
+            "station": "drakeout",
+            "took": 0,
+            "paid": 0,
+            "sold": 0
+          },
+          "bm_secure": {
+            "station": "helios",
+            "took": 33,
+            "paid": 44143,
+            "sold": 0
+          }
+        },
+        "hot": {
+          "astra/p1/hot:electronics:p115": 6
+        }
+      }
+    },
+    "accounting": {
+      "alloy": {
+        "placed": 350,
+        "boughtFromBlackMarket": 0,
+        "heldNow": 274,
+        "soldToBlackMarket": 76,
+        "confiscatedDestroyed": 0,
+        "lostOtherwise": 0
+      },
+      "electronics": {
+        "placed": 360,
+        "boughtFromBlackMarket": 0,
+        "heldNow": 309,
+        "soldToBlackMarket": 51,
+        "confiscatedDestroyed": 0,
+        "lostOtherwise": 0
+      },
+      "mod_ecm": {
+        "placed": 0,
+        "boughtFromBlackMarket": 8,
+        "heldNow": 1,
+        "soldToBlackMarket": 7,
+        "confiscatedDestroyed": 0,
+        "lostOtherwise": 0
+      }
+    }
+  },
+  "realWebSockets": 3,
+  "restarts": 2,
+  "seconds": 399
+}

@@ -1,0 +1,238 @@
+{
+  "base": "http://127.0.0.1:5191",
+  "checks": [
+    {
+      "ok": true,
+      "label": "client state: the player's own record only (fined = paid + unpaid); no other company's record, no law book",
+      "extra": {
+        "fined": 31758,
+        "paid": 4000,
+        "unpaid": 27758,
+        "rival": {
+          "book": false
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "재무 → 치안 기록: 총 부과 / 납부 / 미납 shown, equal to the record",
+      "extra": {
+        "fined": 31758,
+        "paid": 4000,
+        "unpaid": 27758
+      }
+    },
+    {
+      "ok": true,
+      "label": "smuggling seizure: 단속 완료 · 미납 있음, 부과/납부/미납 (owed = fine − 1,000 collected at once), 완납 and 일부 buttons",
+      "extra": {
+        "id": "law2",
+        "status": "served-owed",
+        "owe": 10758,
+        "text": "밀수 적발 헬리오스 연합 보안국 검문 부과 11,758 납부 1,000 미납 10,758 완납 일부 단속 완료 · 미납 있음 진행",
+        "pay": true,
+        "part": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "extortion not yet enforced: 단속 전",
+      "extra": {
+        "id": "law3",
+        "status": "pending",
+        "owe": 17000,
+        "text": "화물 갈취 아스트라 연합 보안국 정거장 감시 부과 17,000 납부 0 미납 17,000 완납 일부 단속 전 진행",
+        "pay": true,
+        "part": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "paid salvage: 종결, nothing owed, no pay button",
+      "extra": {
+        "id": "law1",
+        "status": "closed",
+        "owe": 0,
+        "text": "무단 인양 헬리오스 연합 보안국 정거장 감시 부과 3,000 납부 3,000 미납 0 종결 종결 · 벌금 완납",
+        "pay": false,
+        "part": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "일부 2,000 cr: credits −2,000, the case stays 단속 완료 · 미납 있음 with 2,000 less owed; totals updated (fined unchanged)",
+      "extra": {
+        "case": {
+          "id": "law2",
+          "kind": "smuggling",
+          "t": 0,
+          "sys": "helios",
+          "juris": "union",
+          "auth": "union",
+          "value": 39192,
+          "sev": 1,
+          "how": "inspection",
+          "fine": 11758,
+          "paid": 3000,
+          "state": "open",
+          "served": true,
+          "group": "g22",
+          "creditor": "helios"
+        },
+        "cr": [
+          60000,
+          58000
+        ],
+        "row": {
+          "id": "law2",
+          "status": "served-owed",
+          "owe": 8758,
+          "text": "밀수 적발 헬리오스 연합 보안국 검문 부과 11,758 납부 3,000 미납 8,758 완납 일부 단속 완료 · 미납 있음 진행",
+          "pay": true,
+          "part": true
+        },
+        "totals": [
+          31758,
+          6000,
+          25758
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "the 일부 prompt offers the amount still owed on that case as its default",
+      "extra": {
+        "type": "prompt",
+        "message": "납부할 금액 (cr, 최대 10758)",
+        "default": "10758",
+        "answer": "2000"
+      }
+    },
+    {
+      "ok": true,
+      "label": "완납: exactly the rest is paid, the smuggling case becomes 종결 (no pay button)",
+      "extra": {
+        "case": {
+          "id": "law2",
+          "kind": "smuggling",
+          "t": 0,
+          "sys": "helios",
+          "juris": "union",
+          "auth": "union",
+          "value": 39192,
+          "sev": 1,
+          "how": "inspection",
+          "fine": 11758,
+          "paid": 11758,
+          "state": "closed",
+          "end": "paid",
+          "served": true,
+          "group": "g22",
+          "creditor": "helios"
+        },
+        "cr": [
+          58000,
+          49242
+        ],
+        "row": {
+          "id": "law2",
+          "status": "closed",
+          "owe": 0,
+          "text": "밀수 적발 헬리오스 연합 보안국 검문 부과 11,758 납부 11,758 미납 0 종결 종결 · 벌금 완납",
+          "pay": false,
+          "part": false
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "the per-case payment touched no other case; the totals now show only the extortion fine as unpaid",
+      "extra": {
+        "ext": {
+          "id": "law3",
+          "kind": "extortion",
+          "t": 0,
+          "sys": "astra",
+          "juris": "union",
+          "auth": "union",
+          "value": 30000,
+          "sev": 4.5,
+          "how": "station",
+          "fine": 17000,
+          "paid": 0,
+          "state": "open",
+          "served": false,
+          "group": "g26"
+        },
+        "totals": [
+          31758,
+          14758,
+          17000
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "no stale \"미납 있음\" guidance on the closed case",
+      "extra": {
+        "t": "밀수 적발 헬리오스 연합 보안국 검문 부과 11,758 납부 11,758 미납 0 종결 종결 · 벌금 완납"
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the law record panel fits (no page scroll, no container pushed sideways; the table scrolls inside its own box)",
+      "extra": {
+        "w": 344,
+        "left": 23,
+        "right": 367,
+        "pageOverflow": false,
+        "worst": 0,
+        "out": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: 미납 벌금 납부 pays everything left exactly once; 미납 0, the pay button disappears",
+      "extra": {
+        "before": {
+          "cr": 60000,
+          "unpaid": 27758
+        },
+        "after": {
+          "cr": 32242,
+          "unpaid": 0
+        },
+        "totals": [
+          31758,
+          31758,
+          0
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors (warnings listed in browser-results.json)",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": [],
+  "dialogs": [
+    {
+      "type": "prompt",
+      "message": "납부할 금액 (cr, 최대 10758)",
+      "default": "10758",
+      "answer": "2000"
+    }
+  ]
+}

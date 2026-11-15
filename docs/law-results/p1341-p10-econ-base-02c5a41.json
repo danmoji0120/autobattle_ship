@@ -1,0 +1,884 @@
+{
+ "A": {
+  "scenario": "A",
+  "seed": 133,
+  "hours": 0.5,
+  "dt": 0.5,
+  "code": "02c5a41",
+  "start": {
+   "time": 1,
+   "factions": {
+    "union": {
+     "strength": 60,
+     "infra": 50,
+     "stock": 14233.2,
+     "budget": 1036800,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "guild": {
+     "strength": 25,
+     "infra": 40,
+     "stock": 10612.5,
+     "budget": 910800,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "ceres": {
+     "strength": 30,
+     "infra": 45,
+     "stock": 7191,
+     "budget": 745200,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "miners": {
+     "strength": 25,
+     "infra": 30,
+     "stock": 7392.5,
+     "budget": 486000,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "iron": {
+     "strength": 70,
+     "infra": 45,
+     "stock": 6091.8,
+     "budget": 1260000,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "pirates": {
+     "strength": 45,
+     "infra": 15,
+     "stock": 3495.3,
+     "budget": 151200,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    }
+   },
+   "marketStock": 130396.3,
+   "marketTop": {
+    "ore": 41892.6,
+    "alloy": 22776.4,
+    "metal": 10674.1,
+    "titanium_ore": 10442.6,
+    "silicate": 10220.2,
+    "gas": 8666,
+    "chemicals": 8403,
+    "machinery": 4038
+   },
+   "stationFunds": 2073066,
+   "money": 2073066,
+   "unionShips": 81,
+   "ships": 82,
+   "haulers": 1,
+   "npcGroups": {
+    "union:garrison": 9,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "guild": 1
+   }
+  },
+  "end": {
+   "time": 1801,
+   "factions": {
+    "union": {
+     "strength": 60.8,
+     "infra": 56,
+     "stock": 35129.9,
+     "budget": 619906,
+     "income": 43200,
+     "spent": 519213,
+     "exportRev": 59118,
+     "extracted": 5820,
+     "made": 4224.9,
+     "used": 2017.1,
+     "bought": 23251.1
+    },
+    "guild": {
+     "strength": 25.5,
+     "infra": 46,
+     "stock": 20236.3,
+     "budget": 711565,
+     "income": 37950,
+     "spent": 267381,
+     "exportRev": 30196,
+     "extracted": 3300,
+     "made": 2327.4,
+     "used": 1541.8,
+     "bought": 11667.2
+    },
+    "ceres": {
+     "strength": 30.7,
+     "infra": 51,
+     "stock": 21736.9,
+     "budget": 121736,
+     "income": 31050,
+     "spent": 697592,
+     "exportRev": 43079,
+     "extracted": 575,
+     "made": 17388.7,
+     "used": 1134.2,
+     "bought": 31585.1
+    },
+    "miners": {
+     "strength": 25.4,
+     "infra": 36,
+     "stock": 14538.5,
+     "budget": 517057,
+     "income": 20250,
+     "spent": 240322,
+     "exportRev": 251129,
+     "extracted": 26113.4,
+     "made": 743.1,
+     "used": 1136.5,
+     "bought": 3196.7
+    },
+    "iron": {
+     "strength": 67.8,
+     "infra": 47.5,
+     "stock": 13988,
+     "budget": 435786,
+     "income": 48300,
+     "spent": 922084,
+     "exportRev": 49570,
+     "extracted": 598,
+     "made": 995.9,
+     "used": 1741.8,
+     "bought": 12264.4
+    },
+    "pirates": {
+     "strength": 31.8,
+     "infra": 16.2,
+     "stock": 5966.8,
+     "budget": 40,
+     "income": 5796,
+     "spent": 166254,
+     "exportRev": 9298,
+     "extracted": 1203,
+     "made": 264.1,
+     "used": 955.4,
+     "bought": 2604.2
+    }
+   },
+   "marketStock": 63115.1,
+   "marketTop": {
+    "ore": 17393.2,
+    "alloy": 9100.7,
+    "metal": 5474.1,
+    "chemicals": 4798.8,
+    "titanium_ore": 4609.4,
+    "silicate": 4364.6,
+    "gas": 4073.8,
+    "rare_ore": 2488.8
+   },
+   "stationFunds": 3606792,
+   "money": 3606792,
+   "unionShips": 78,
+   "ships": 157,
+   "haulers": 5,
+   "npcGroups": {
+    "union:garrison": 8,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "pirates": 10,
+    "guild": 5
+   }
+  },
+  "flows": {
+   "combat.damage:tactical": {
+    "n": 142,
+    "amount": 60964.1927505904
+   },
+   "combat.engagement:tactical": {
+    "n": 14,
+    "amount": 14
+   },
+   "combat.loss:tactical": {
+    "n": 22,
+    "amount": 22
+   },
+   "combat.participation:tactical": {
+    "n": 142,
+    "amount": 142
+   },
+   "combat.weapon:pen": {
+    "n": 2429,
+    "amount": 60964.19275059042
+   },
+   "combat.win:tactical": {
+    "n": 113,
+    "amount": 113
+   },
+   "currency.create:regional_budget": {
+    "n": 85597,
+    "amount": 82816.75926991671
+   },
+   "currency.destroy:regional_budget": {
+    "n": 271,
+    "amount": 738742.7813651788
+   },
+   "market.net_consumption:npc_economy": {
+    "n": 25292,
+    "amount": 8429.43154671131
+   },
+   "market.net_supply:npc_economy": {
+    "n": 103267,
+    "amount": 4860.221502501531
+   },
+   "piracy:comply": {
+    "n": 11,
+    "amount": 13702
+   },
+   "piracy:drop": {
+    "n": 11,
+    "amount": 13702
+   },
+   "piracy:lair_store": {
+    "n": 115,
+    "amount": 576
+   },
+   "piracy:store": {
+    "n": 21,
+    "amount": 26172
+   },
+   "piracy:threat": {
+    "n": 11,
+    "amount": 13702
+   },
+   "piracy:to_drop": {
+    "n": 11,
+    "amount": 415
+   }
+  },
+  "fineMoney": {},
+  "meanTickMs": 6.262,
+  "worstTickMs": 20.1,
+  "saveBytes": 351734
+ },
+ "B": {
+  "scenario": "B",
+  "seed": 133,
+  "hours": 0.5,
+  "dt": 0.5,
+  "code": "02c5a41",
+  "start": {
+   "time": 1,
+   "factions": {
+    "union": {
+     "strength": 60,
+     "infra": 50,
+     "stock": 14233.2,
+     "budget": 1036800,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "guild": {
+     "strength": 25,
+     "infra": 40,
+     "stock": 10612.5,
+     "budget": 910800,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "ceres": {
+     "strength": 30,
+     "infra": 45,
+     "stock": 7191,
+     "budget": 745200,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "miners": {
+     "strength": 25,
+     "infra": 30,
+     "stock": 7392.5,
+     "budget": 486000,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "iron": {
+     "strength": 70,
+     "infra": 45,
+     "stock": 6091.8,
+     "budget": 1260000,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    },
+    "pirates": {
+     "strength": 45,
+     "infra": 15,
+     "stock": 3495.3,
+     "budget": 151200,
+     "income": 0,
+     "spent": 0,
+     "exportRev": 0,
+     "extracted": 0,
+     "made": 0,
+     "used": 0,
+     "bought": 0
+    }
+   },
+   "marketStock": 130396.3,
+   "marketTop": {
+    "ore": 41892.6,
+    "alloy": 22776.4,
+    "metal": 10674.1,
+    "titanium_ore": 10442.6,
+    "silicate": 10220.2,
+    "gas": 8666,
+    "chemicals": 8403,
+    "machinery": 4038
+   },
+   "stationFunds": 2073066,
+   "money": 2073066,
+   "unionShips": 81,
+   "ships": 82,
+   "haulers": 1,
+   "npcGroups": {
+    "union:garrison": 9,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "guild": 1
+   }
+  },
+  "end": {
+   "time": 1801,
+   "factions": {
+    "union": {
+     "strength": 60.8,
+     "infra": 56,
+     "stock": 35095.3,
+     "budget": 611384,
+     "income": 43200,
+     "spent": 526785,
+     "exportRev": 58169,
+     "extracted": 5820,
+     "made": 4207.4,
+     "used": 2017.1,
+     "bought": 23171.3
+    },
+    "guild": {
+     "strength": 25.5,
+     "infra": 46,
+     "stock": 19842.1,
+     "budget": 716268,
+     "income": 37950,
+     "spent": 262405,
+     "exportRev": 29924,
+     "extracted": 3300,
+     "made": 2327.4,
+     "used": 1541.8,
+     "bought": 11273.1
+    },
+    "ceres": {
+     "strength": 30.7,
+     "infra": 51,
+     "stock": 21902.5,
+     "budget": 113994,
+     "income": 31050,
+     "spent": 704770,
+     "exportRev": 42514,
+     "extracted": 575,
+     "made": 17398.7,
+     "used": 1134,
+     "bought": 31713.6
+    },
+    "miners": {
+     "strength": 25.4,
+     "infra": 36,
+     "stock": 14744.2,
+     "budget": 507558,
+     "income": 20250,
+     "spent": 249838,
+     "exportRev": 251145,
+     "extracted": 26113.4,
+     "made": 743.1,
+     "used": 1136.5,
+     "bought": 3402.2
+    },
+    "iron": {
+     "strength": 81.6,
+     "infra": 51,
+     "stock": 13998.2,
+     "budget": 543195,
+     "income": 52500,
+     "spent": 820020,
+     "exportRev": 50714,
+     "extracted": 650,
+     "made": 1001.1,
+     "used": 1568.7,
+     "bought": 11914.3
+    },
+    "pirates": {
+     "strength": 51,
+     "infra": 20,
+     "stock": 6229.1,
+     "budget": 158,
+     "income": 6300,
+     "spent": 166715,
+     "exportRev": 9373,
+     "extracted": 1303.6,
+     "made": 289.4,
+     "used": 832.9,
+     "bought": 2899.1
+    }
+   },
+   "marketStock": 63010.6,
+   "marketTop": {
+    "ore": 17085.8,
+    "alloy": 8888.9,
+    "metal": 5495.3,
+    "chemicals": 4797.8,
+    "titanium_ore": 4715.2,
+    "silicate": 4367.6,
+    "gas": 4067,
+    "rare_ore": 2488.8
+   },
+   "stationFunds": 3568012,
+   "money": 5524536,
+   "unionShips": 78,
+   "ships": 184,
+   "haulers": 12,
+   "npcGroups": {
+    "union:garrison": 8,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "guild": 5,
+    "pirates": 11
+   }
+  },
+  "flows": {
+   "blackmarket:customs_hold": {
+    "n": 3,
+    "amount": 120
+   },
+   "blackmarket:fine": {
+    "n": 3,
+    "amount": 6936
+   },
+   "blackmarket:inspect_pass": {
+    "n": 1,
+    "amount": 27
+   },
+   "blackmarket:inspect_seize": {
+    "n": 3,
+    "amount": 120
+   },
+   "combat.damage:tactical": {
+    "n": 201,
+    "amount": 72482.24956738295
+   },
+   "combat.engagement:tactical": {
+    "n": 32,
+    "amount": 32
+   },
+   "combat.loss:tactical": {
+    "n": 26,
+    "amount": 26
+   },
+   "combat.participation:tactical": {
+    "n": 201,
+    "amount": 201
+   },
+   "combat.weapon:blocked": {
+    "n": 3,
+    "amount": 9.70033761014136
+   },
+   "combat.weapon:pen": {
+    "n": 2074,
+    "amount": 72470.35957251757
+   },
+   "combat.weapon:ricochet": {
+    "n": 3,
+    "amount": 2.189657255351543
+   },
+   "combat.win:tactical": {
+    "n": 144,
+    "amount": 144
+   },
+   "currency.create:company_creation": {
+    "n": 4,
+    "amount": 48000
+   },
+   "currency.create:maintenance_accrual": {
+    "n": 1,
+    "amount": 0.7000000000116415
+   },
+   "currency.create:regional_budget": {
+    "n": 91758,
+    "amount": 86219.45047143035
+   },
+   "currency.create:upkeep_settlement": {
+    "n": 2,
+    "amount": 63.70000000001164
+   },
+   "currency.destroy:black_market_fine": {
+    "n": 3,
+    "amount": 6936
+   },
+   "currency.destroy:law_fine": {
+    "n": 2,
+    "amount": 14557.200000000012
+   },
+   "currency.destroy:regional_budget": {
+    "n": 270,
+    "amount": 741501.5319062318
+   },
+   "currency.destroy:upkeep_settlement": {
+    "n": 64,
+    "amount": 2952.3916666469995
+   },
+   "currency.transfer:law_fine": {
+    "n": 2,
+    "amount": 33966.79999999999
+   },
+   "currency.transfer:upkeep_settlement": {
+    "n": 2,
+    "amount": 63.70000000001164
+   },
+   "law:answer_comply": {
+    "n": 3,
+    "amount": 3
+   },
+   "law:battle": {
+    "n": 23,
+    "amount": 93
+   },
+   "law:close": {
+    "n": 15,
+    "amount": 15
+   },
+   "law:crime": {
+    "n": 15,
+    "amount": 51
+   },
+   "law:dispatch": {
+    "n": 26,
+    "amount": 26
+   },
+   "law:end_battle_over": {
+    "n": 18,
+    "amount": 18
+   },
+   "law:end_inspected": {
+    "n": 3,
+    "amount": 3
+   },
+   "law:end_suppressed": {
+    "n": 5,
+    "amount": 5
+   },
+   "law:fine_paid": {
+    "n": 4,
+    "amount": 144000
+   },
+   "law:known": {
+    "n": 15,
+    "amount": 51
+   },
+   "law:stop": {
+    "n": 3,
+    "amount": 3
+   },
+   "market.net_consumption:npc_economy": {
+    "n": 26277,
+    "amount": 8842.732065655011
+   },
+   "market.net_supply:npc_economy": {
+    "n": 104766,
+    "amount": 5143.097462532511
+   },
+   "piracy:comply": {
+    "n": 7,
+    "amount": 26190
+   },
+   "piracy:drop": {
+    "n": 7,
+    "amount": 26190
+   },
+   "piracy:lair_store": {
+    "n": 72,
+    "amount": 278
+   },
+   "piracy:store": {
+    "n": 14,
+    "amount": 28742
+   },
+   "piracy:threat": {
+    "n": 7,
+    "amount": 26190
+   },
+   "piracy:to_drop": {
+    "n": 10,
+    "amount": 272
+   }
+  },
+  "fineMoney": {
+   "currency.destroy:black_market_fine:-": 6936,
+   "currency.transfer:law_fine:st:drakeout": 366.79999999998836,
+   "currency.destroy:law_fine:-": 14557.200000000012,
+   "currency.transfer:law_fine:st:bastion": 33600
+  },
+  "meanTickMs": 8.351,
+  "worstTickMs": 21.7,
+  "saveBytes": 460787,
+  "enforcement": {
+   "players": [
+    {
+     "company": "p143",
+     "credits0": 0,
+     "seizures": 0,
+     "seized": {},
+     "aboard": {
+      "ore": 57,
+      "hot:electronics:p134": 67,
+      "eq_heavy_cannon": 3,
+      "mod_ecm": 4
+     },
+     "seizureValue": 0,
+     "seizureFineCollected": 0,
+     "seizureFineOwedLogged": 0,
+     "smugglingCases": [],
+     "lawCases": [
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      }
+     ],
+     "before": {
+      "credits": 0,
+      "unpaid": 48000
+     },
+     "payErr": null,
+     "paidLater": 48000,
+     "owedAfter": 0,
+     "creditsEnd": 952000
+    },
+    {
+     "company": "p164",
+     "credits0": 3000,
+     "seizures": 1,
+     "seized": {
+      "hot:electronics:p134": 40
+     },
+     "aboard": {
+      "ore": 60,
+      "eq_heavy_cannon": 4,
+      "mod_ecm": 6,
+      "hot:electronics:p134": 40
+     },
+     "seizureValue": 7708,
+     "seizureFineCollected": 2312,
+     "seizureFineOwedLogged": 0,
+     "smugglingCases": [
+      {
+       "fine": 0,
+       "paid": 0,
+       "state": "closed",
+       "end": "paid",
+       "served": true
+      }
+     ],
+     "lawCases": [
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      }
+     ],
+     "before": {
+      "credits": 0,
+      "unpaid": 47476
+     },
+     "payErr": null,
+     "paidLater": 47476,
+     "owedAfter": 0,
+     "creditsEnd": 952524
+    },
+    {
+     "company": "p185",
+     "credits0": 2000000,
+     "seizures": 2,
+     "seized": {
+      "hot:electronics:p134": 80
+     },
+     "aboard": {
+      "ore": 90,
+      "eq_heavy_cannon": 6,
+      "mod_ecm": 9,
+      "hot:electronics:p134": 40
+     },
+     "seizureValue": 15416,
+     "seizureFineCollected": 4624,
+     "seizureFineOwedLogged": 0,
+     "smugglingCases": [
+      {
+       "fine": 0,
+       "paid": 0,
+       "state": "closed",
+       "end": "paid",
+       "served": true
+      },
+      {
+       "fine": 0,
+       "paid": 0,
+       "state": "closed",
+       "end": "paid",
+       "served": true
+      }
+     ],
+     "lawCases": [
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      },
+      {
+       "kind": "extortion",
+       "fine": 12000,
+       "paid": 12000,
+       "state": "closed"
+      }
+     ],
+     "before": {
+      "credits": 1945697,
+      "unpaid": 0
+     },
+     "payErr": "미납 벌금이 없습니다",
+     "paidLater": 0,
+     "owedAfter": 0,
+     "creditsEnd": 2945697
+    }
+   ],
+   "victimCustomsHeld": 120,
+   "victimLots": [
+    {
+     "item": "electronics",
+     "n": 40,
+     "station": "drakeout"
+    },
+    {
+     "item": "electronics",
+     "n": 40,
+     "station": "astra"
+    },
+    {
+     "item": "electronics",
+     "n": 40,
+     "station": "bastion"
+    }
+   ],
+   "ops": 0,
+   "opsEnded": []
+  }
+ }
+}

@@ -99,7 +99,17 @@ export class OperationsPanel {
       case 'goal': return this.createGoal();
       case 'form': this.formOpen = !this.formOpen; return this.render();
       case 'policy': return this.savePolicy();
-      case 'lawpay': return void this.send({ c: 'lawPay' }, '벌금을 납부했습니다');
+      case 'lawpay': {
+        const cs = b.dataset.lawCase;
+        let amount: number | undefined;
+        if (b.dataset.lawAmount === 'ask') {
+          const v = prompt(`납부할 금액 (cr, 최대 ${b.dataset.lawMax ?? ''})`, b.dataset.lawMax ?? '');
+          if (v === null) return;
+          amount = Math.floor(Number(v));
+          if (!(amount >= 1)) { this.error = '납부 금액이 올바르지 않습니다'; return this.render(); }
+        }
+        return void this.send({ c: 'lawPay', ...(cs ? { case: cs } : {}), ...(amount ? { amount } : {}) } as Cmd, '벌금을 납부했습니다');
+      }
       case 'inv-stock': {
         const row = id; const station = this.val('inv-station'), target = this.numv('inv-target');
         if (!station || !(target > 0)) { this.error = '정거장과 목표 수량을 입력하세요'; return this.render(); }

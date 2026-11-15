@@ -1,0 +1,57 @@
+PASS [2s] 0: LAW_P134=1 server creates a P13.4 world (P13.3 + law enforcement); the law book itself is never replicated {"lawV":1,"law":"undefined"}
+PASS [3s] L1: B sets hauler 1 to 생존 우선 
+PASS [3s] L1: B's hauler 1 is under way 
+PASS [4s] L1: A orders a non-destructive plunder of B 화물선 1 (neutral company — explicit permission; extortion where the law reaches) 
+PASS [44s] L1-1: A's real cargo demand in Astra became one extortion case under Union authority with a fine {"case":{"id":"law1","kind":"extortion","t":42.5,"sys":"astra","juris":"union","auth":"union","value":1500,"sev":3.1,"how":"guard","fine":2750,"paid":0,"state":"open","served":false,"group":"g136"},"level":2,"score":3.1}
+PASS [44s] L1-2: the case was known to the authority (seen / reported) and A is wanted (level ≥ 2) {"case":{"id":"law1","kind":"extortion","t":42.5,"sys":"astra","juris":"union","auth":"union","value":1500,"sev":3.1,"how":"guard","fine":2750,"paid":0,"state":"open","served":false,"group":"g136"},"level":2,"score":3.1}
+PASS [51s] L1-3: the guards who stopped A are existing Union fleets of this world (no new ship was created) {"guards":["g66:patrol:astra"],"level":2,"t0":44,"sys":"astra"}
+PASS [51s] L1-4: the guards physically reached A's group before demanding the stop {"nearest":635}
+INFO L1: A disconnected during the stop demand {"answerBy":110.25,"now":50.25}
+PASS [128s] L1-5: with A offline the unanswered demand was treated as compliance — the group held still and was inspected {"stop":{"op":"lop208","phase":"released","guard":"g66","guardName":"아스트라 순찰대 1","since":126.25,"level":2,"guardSeen":{"pos":{"x":-257308.94354827696,"y":-17.075169178907267,"z":-16807.294309679703},"t":126.25},"answerBy":110.25,"note":"검문 완료 — 압수 150단위, 벌금 납부 4,500 cr","end":"inspected","until":426.25},"case":{"state":"closed","paid":2750,"fine":2750,"served":126.25,"end":"paid"},"resist":0,"customsB":[{"item":"ore","n":150,"station":"astra"}],"aboard":{"ore":0,"alloy":0,"crystal":0}}
+PASS [128s] L1-6: being offline / not answering never created a flee or resist case {"stop":{"op":"lop208","phase":"released","guard":"g66","guardName":"아스트라 순찰대 1","since":126.25,"level":2,"guardSeen":{"pos":{"x":-257308.94354827696,"y":-17.075169178907267,"z":-16807.294309679703},"t":126.25},"answerBy":110.25,"note":"검문 완료 — 압수 150단위, 벌금 납부 4,500 cr","end":"inspected","until":426.25},"case":{"state":"closed","paid":2750,"fine":2750,"served":126.25,"end":"paid"},"resist":0,"customsB":[{"item":"ore","n":150,"station":"astra"}],"aboard":{"ore":0,"alloy":0,"crystal":0}}
+PASS [128s] L1-7: the extortion fine was billed from A's credits at the inspection and the minor case closed as paid {"state":"closed","paid":2750,"fine":2750,"served":126.25,"end":"paid"}
+PASS [128s] L1-8: the stolen ore aboard A's hauler was seized and waits for B at customs in the same system (not shipped elsewhere) {"hotLeft":0,"customs":[{"item":"ore","n":150,"station":"astra"}]}
+PASS [128s] L1-9: after reconnecting A sees its group released (stop record shown to the owner) {"op":"lop208","phase":"released","guard":"g66","guardName":"아스트라 순찰대 1","since":126.25,"level":2,"guardSeen":{"pos":{"x":-257308.94354827696,"y":-17.075169178907267,"z":-16807.294309679703},"t":126.25},"answerBy":110.25,"note":"검문 완료 — 압수 150단위, 벌금 납부 4,500 cr","end":"inspected","until":426.25}
+PASS [128s] L2: B sets hauler 2 to 생존 우선 
+PASS [129s] L2: B's hauler 2 is under way 
+PASS [129s] L2: A orders a non-destructive plunder of B 화물선 2 (neutral company — explicit permission; extortion where the law reaches) 
+INFO L2: extortion case {"id":"law6","kind":"extortion","t":170.75,"sys":"drake","juris":"union","auth":"union","value":1500,"sev":3.1,"how":"victim","fine":2750,"paid":0,"state":"open","served":false,"group":"g144"}
+PASS [211s] L2-1: A's plunder in Drake became a Union case and guards were dispatched and stopped A {"case":{"id":"law6","kind":"extortion","t":170.75,"sys":"drake","juris":"union","auth":"union","value":1500,"sev":3.1,"how":"victim","fine":2750,"paid":0,"state":"open","served":false,"group":"g144"},"stop":{"op":"lop249","phase":"demand","guard":"g90","guardName":"드레이크 변경 순찰대 1","since":210.25,"level":2,"guardSeen":{"pos":{"x":33001.4325083106,"y":-37.75298171033649,"z":-2034.7725699292052},"t":210.25},"answerBy":270.25},"op":{"guards":["g90:patrol:drake"],"level":2}}
+PASS [212s] L2-2: A answers the stop demand: flee 
+PASS [212s] L2-3: A flies its group toward Junction (no Union garrison) 
+PASS [212s] L2-4: fleeing the stop is its own case (flee, fine) {"id":"law8","kind":"flee","t":210.75,"sys":"drake","juris":"union","auth":"union","value":0,"sev":4,"how":"guard","fine":3000,"paid":0,"state":"open","served":false,"group":"g144"}
+PASS [212s] L2-5: A's group is under pursuit (its stop state says so) {"op":"lop249","phase":"pursuit","guard":"g90","guardName":"드레이크 변경 순찰대 1","since":210.75,"level":3,"guardSeen":{"pos":{"x":33001.4325083106,"y":-37.75298171033649,"z":-2034.7725699292052},"t":210.25},"answerBy":270.25,"note":"도주 — 경비대 추격"}
+PASS [215s] L2-6: the pursuit ended by its own limits (left jurisdiction / lost / time / distance) or the guards caught up and fought — never an endless chase {"phase":"fight","stop":{"op":"lop249","phase":"fight","guard":"g90","guardName":"드레이크 변경 순찰대 1","since":212.25,"level":3,"guardSeen":{"pos":{"x":33263.91000510054,"y":-11.678436914543228,"z":-1740.5073584697104},"t":214.25},"answerBy":270.25,"note":"연합 경비대와 교전 중"},"sys":{"x":33406.336275295675,"y":-29.668785132214424,"z":-577.095378279146}}
+INFO L2: the guards caught the fleeing group and fought it {}
+PASS [335s] L2-7: A owes fines after the flight (extortion + flee) {"unpaid":22500,"level":4}
+PASS [336s] L2-8: A moves its first group out to Fang (lawless) 
+PASS [336s] L2-8b: A's reserve and third group move away from every policed station 
+PASS [1237s] L2-9: lawPay is refused while no A ship is near a policed public station (no stop running) {"err":"치안 구역(연합 경비대 주둔 성계)의 공공 정거장 근처에 자사 함선이 있어야 납부할 수 있습니다","nearPol":false}
+PASS [1237s] L2-10: A brings a ship close to Helios shipyard (it does not need to dock) 
+PASS [1250s] L2-11: near Helios A pays every outstanding fine with lawPay (credits fall by the amount; nothing left unpaid) {"err":null,"unpaidAfter":0,"level":2,"credits":{"before":993619.277083333,"after":971119.277083333},"cases":["guard_attack:probation:","extortion:closed:paid","salvage:closed:paid","flee:closed:paid","extortion:closed:paid","salvage:closed:paid","smuggling:closed:paid","smuggling:closed:paid","smuggling:closed:paid"]}
+PASS [1250s] L2-12: paid minor cases (extortion, flee) close {"err":null,"unpaidAfter":0,"level":2,"credits":{"before":993619.277083333,"after":971119.277083333},"cases":["guard_attack:probation:","extortion:closed:paid","salvage:closed:paid","flee:closed:paid","extortion:closed:paid","salvage:closed:paid","smuggling:closed:paid","smuggling:closed:paid","smuggling:closed:paid"]}
+PASS [1250s] L3: A3 returns to its post 
+PASS [1269s] L3: B sets hauler 3 to 생존 우선 
+PASS [1269s] L3: B's hauler 3 is under way 
+PASS [1269s] L3: A orders a non-destructive plunder of B 화물선 3 (neutral company — explicit permission; extortion where the law reaches) 
+PASS [1376s] L3: A's reserve and C's armed fleet fly next to the stop 
+PASS [1408s] L3-1: A answers the stop demand: resist 
+PASS [1408s] L3-2: armed resistance is its own serious case {"id":"law12","kind":"resist","t":1407.75,"sys":"helios","juris":"union","auth":"union","value":0,"sev":8,"how":"guard","fine":8000,"paid":0,"state":"open","served":false,"group":"g152"}
+PASS [1409s] L3-3: a real P11 engagement between the Union guards and A's stopped group only {"id":"e945","law":{"op":"lop890","co":"p1"},"sides":[["union"],["p1"]],"groups":["union:g37","p1:g152"],"v":2}
+PASS [1471s] L3-4: A's other group, C's armed fleet and B's victim hauler next to it were never pulled into the law battle {"intruders":[]}
+PASS [1471s] L3-5: the law battle created no hostility between A and C (no diplomacy side effect) {"AB":false,"AC":false,"unionA":false}
+PASS [1471s] L3-6: the Union is not made permanently hostile to A (hostility existed only inside that engagement) {"AB":false,"AC":false,"unionA":false}
+PASS [1473s] L3-7: the operation settled after the battle (battle over / suppressed) {"opEnd":"battle_over","guardAttack":[{"fine":15000,"how":"combat","state":"probation"},{"fine":15000,"how":"combat","state":"open"}],"a3Ships":1,"stop":{"op":"lop890","phase":"released","guard":"g37","guardName":"헬리오스 신속대응함대","since":1472.25,"level":4,"guardSeen":{"pos":{"x":-483068.1774057041,"y":-22.484218399476713,"z":5348.884408217352},"t":1408.25},"answerBy":1434.25,"note":"교전 종료 — 수배 유지","end":"battle_over","until":1772.25}}
+INFO L3: guard damage → guard_attack case [{"fine":15000,"how":"combat","state":"probation"},{"fine":15000,"how":"combat","state":"open"}]
+PASS [1473s] L3-8: the enforcement did not restart a fight between A and the victim B {"n":0}
+PASS [1474s] L3-9: after resisting A stays wanted (serious case open, fine owed) {"level":4,"score":27.9,"unpaid":27500}
+PASS [1476s] P-1: B and C never receive A's law record, case ids, or its fleets' stop state {"leakB":false,"leakC":false}
+PASS [1476s] P-2: even A never receives the law book or the guards' operation tags {}
+PASS [1479s] R-1: after a server restart every case (fines, payments, states), the duplicate-key index and B's customs lots are exactly as saved {"cases":13}
+INFO ore accounting (lost cargo in sunk ships is destroyed in battle) {"held":734,"customs":150}
+PASS [1479s] ACC: no ore was created — B's 900 = what is still held + at customs (+ what was destroyed with sunk ships) {"held":734,"customs":150}
+PASS [1479s] M-0: no dispatch loop — at most a few operations per suspect group over the whole run {"g152":1,"g136":1,"g144":2}
+PASS [1479s] M-1: sampled from the server's save, every dispatched guard ship moved no faster than the real warp drive (no teleport) {"samples":2094,"worstRatio":0.993,"worst":{"ship":"s98","op":"lop281","d":7000,"dt":1,"warp":true},"gateJumps":0,"ops":4,"guards":["g66","g90","g95","g37"],"unionShipsStart":63,"unionShipsMax":63,"newUnionShips":3}
+PASS [1479s] M-2: no Union ship appeared in the field — the only new hulls are the existing refit rule replacing losses at the group's own home station {"newUnionShips":[{"id":"s641","t":935,"group":"g90","fromHome":505},{"id":"s642","t":935,"group":"g90","fromHome":524},{"id":"s643","t":935,"group":"g90","fromHome":477}]}
+PASS [1479s] REQUIRED chain: real crime → report → physical dispatch → stop → comply (offline) / flee / resist → settlement, on one server world {"missing":[]}
+{"passed":51,"failed":0,"seconds":1479}

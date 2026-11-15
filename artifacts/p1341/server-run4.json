@@ -1,0 +1,792 @@
+{
+  "passed": 30,
+  "failed": 0,
+  "checks": [
+    {
+      "ok": true,
+      "label": "0: LAW_P134=1 server creates a P13.4 law world",
+      "extra": {
+        "lawV": 1
+      },
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S-0: A is wanted for one extortion case seen by Helios station (recorded with the server stopped)",
+      "extra": {
+        "fine": 12000,
+        "state": "open",
+        "known": true
+      },
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "I-1: the stop inspection seized the stolen electronics and the heavy cannons (banned in Union open space)",
+      "extra": {
+        "mod_ecm": 3,
+        "ore": 30
+      },
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "I-2: ECM cargo (only a station import ban — legal in open space) and ore (legal) stay aboard",
+      "extra": {
+        "mod_ecm": 3,
+        "ore": 30
+      },
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "I-3: the heavy cannons FITTED to A's battlecruiser are equipment, not cargo — untouched by the inspection",
+      "extra": {
+        "before": {
+          "eq_heavy_cannon": 2,
+          "eq_medium_gun": 4,
+          "eq_pd_gun": 4
+        },
+        "after": {
+          "eq_heavy_cannon": 2,
+          "eq_medium_gun": 4,
+          "eq_pd_gun": 4
+        }
+      },
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "I-4: B's 40 electronics wait for B at customs (conserved)",
+      "extra": {
+        "custB": 40
+      },
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "I-5: one smuggling case: full fine assessed (30% of the seized value), everything A had (its 1,000 cr less upkeep since the start, whole credits) collected at once, the rest owed on the case, open, served (enforced), with a creditor station",
+      "extra": [
+        {
+          "id": "law2",
+          "fine": 11483,
+          "paid": 921,
+          "state": "open",
+          "served": 86.25,
+          "creditor": "helios",
+          "auth": "union",
+          "fixed": true
+        }
+      ],
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "I-6: A's credits went to 0.xx (whole credits collected) — never negative from the fine — and the amount collected is in A's ledger (fines)",
+      "extra": {
+        "credits": 0.6822916669999586,
+        "ledger": {
+          "fines": 921
+        }
+      },
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "I-7: with the debt still owed no new dispatch / stop / smuggling case followed in 120 s (served cases are not re-enforced)",
+      "extra": {
+        "t": 120,
+        "newOps": [],
+        "cases": [
+          "extortion:open:12000/0",
+          "smuggling:open:11483/921"
+        ],
+        "seq": [
+          2,
+          2
+        ],
+        "stop": {
+          "op": "lop144",
+          "phase": "released",
+          "guard": "g30",
+          "guardName": "헬리오스 순찰대 2",
+          "since": 86.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -477863.40219100984,
+              "y": -3.965135071561055,
+              "z": 7006.214730137539
+            },
+            "t": 86.25
+          },
+          "answerBy": 70.25,
+          "note": "검문 완료 — 압수 42단위, 벌금 납부 0 cr, 미납 22,562 cr",
+          "end": "inspected",
+          "until": 386.25
+        }
+      },
+      "t": 208
+    },
+    {
+      "ok": true,
+      "label": "I-8: C's ordinary hauler (ore + ECM cargo, no crime) was never stopped or inspected — no case",
+      "extra": {
+        "cargo": {
+          "ore": 30,
+          "mod_ecm": 3
+        }
+      },
+      "t": 208
+    },
+    {
+      "ok": true,
+      "label": "V-1: A's own view: total fined = paid + unpaid; unpaid = smuggling rest + extortion fine",
+      "extra": {
+        "fined": 23483,
+        "paid": 921,
+        "unpaid": 22562
+      },
+      "t": 209
+    },
+    {
+      "ok": true,
+      "label": "V-2: the smuggling case shows as enforced (served) and still open with its creditor",
+      "extra": {
+        "id": "law2",
+        "kind": "smuggling",
+        "t": 86.25,
+        "sys": "helios",
+        "juris": "union",
+        "auth": "union",
+        "value": 38277,
+        "sev": 1,
+        "how": "inspection",
+        "fine": 11483,
+        "paid": 921,
+        "state": "open",
+        "served": true,
+        "group": "g133",
+        "creditor": "helios"
+      },
+      "t": 209
+    },
+    {
+      "ok": true,
+      "label": "P-1: lawPay is refused while A has no money and no ship near a station that takes it — no case or ledger entry changes",
+      "extra": {
+        "err": "치안 구역(연합 경비대 주둔 성계)의 공공 정거장 근처에 자사 함선이 있어야 납부할 수 있습니다",
+        "ledger": {
+          "fines": 921
+        }
+      },
+      "t": 211
+    },
+    {
+      "ok": true,
+      "label": "R-1: after restart #1 every case (fine, paid, state, served, creditor) and the key index are exactly as saved",
+      "extra": {
+        "cases": 2
+      },
+      "t": 214
+    },
+    {
+      "ok": true,
+      "label": "R-2: the unpaid amount survived the restart (not lost, not doubled, no retroactive bill)",
+      "extra": {
+        "unpaid": 22562
+      },
+      "t": 214
+    },
+    {
+      "ok": true,
+      "label": "P-2: A flies its hauler next to the creditor station (no docking needed)",
+      "extra": {
+        "creditor": "helios"
+      },
+      "t": 214
+    },
+    {
+      "ok": true,
+      "label": "P-3: a partial payment of 500 cr: exactly 500 booked (law_fines), credits −500 (± upkeep drift), case paid +500, still open with the rest owed",
+      "extra": {
+        "err": null,
+        "credits": [
+          29764.182291668,
+          29264.182291668
+        ],
+        "ledgerLawFines": [
+          0,
+          500
+        ],
+        "case": {
+          "id": "law2",
+          "kind": "smuggling",
+          "t": 86.25,
+          "sys": "helios",
+          "juris": "union",
+          "auth": "union",
+          "value": 38277,
+          "sev": 1,
+          "how": "inspection",
+          "fine": 11483,
+          "paid": 1421,
+          "state": "open",
+          "served": true,
+          "group": "g133",
+          "creditor": "helios"
+        }
+      },
+      "t": 268
+    },
+    {
+      "ok": true,
+      "label": "P-4: the same full payment sent twice (and the first command id resent): the remainder was taken exactly once, the duplicate refused",
+      "extra": {
+        "r1": null,
+        "r2": "해당 사건의 미납 벌금이 없습니다",
+        "credits": [
+          29264.182291668,
+          19202.182291668
+        ],
+        "ledgerLawFines": [
+          500,
+          10562
+        ],
+        "case": {
+          "id": "law2",
+          "kind": "smuggling",
+          "t": 86.25,
+          "sys": "helios",
+          "juris": "union",
+          "auth": "union",
+          "value": 38277,
+          "sev": 1,
+          "how": "inspection",
+          "fine": 11483,
+          "paid": 11483,
+          "state": "closed",
+          "end": "paid",
+          "served": true,
+          "group": "g133",
+          "creditor": "helios"
+        },
+        "rest": 10062
+      },
+      "t": 271
+    },
+    {
+      "ok": true,
+      "label": "P-5: fully paid, the smuggling case closed (종결, paid)",
+      "extra": {
+        "id": "law2",
+        "kind": "smuggling",
+        "t": 86.25,
+        "sys": "helios",
+        "juris": "union",
+        "auth": "union",
+        "value": 38277,
+        "sev": 1,
+        "how": "inspection",
+        "fine": 11483,
+        "paid": 11483,
+        "state": "closed",
+        "end": "paid",
+        "served": true,
+        "group": "g133",
+        "creditor": "helios"
+      },
+      "t": 271
+    },
+    {
+      "ok": true,
+      "label": "P-6: the money went to the creditor station (never more than was paid)",
+      "extra": {
+        "creditor": "helios",
+        "before": 211264,
+        "after": 218771,
+        "paidLater": 10562,
+        "heliosAtStart": 207028
+      },
+      "t": 273
+    },
+    {
+      "ok": true,
+      "label": "R-3: after restart #2 the law book, A's credits, A's fine ledger and B's customs lot are exactly as saved",
+      "extra": {
+        "k1": 1176
+      },
+      "t": 276
+    },
+    {
+      "ok": true,
+      "label": "P-7: A pays the extortion fine; nothing owed any more",
+      "extra": {
+        "err": null,
+        "credits": [
+          19202.182291668,
+          7202.182291667999
+        ],
+        "level": 0,
+        "unpaid": 0,
+        "fined": 23483,
+        "paid": 23483,
+        "cases": [
+          "extortion:closed:paid:12000/12000",
+          "smuggling:closed:paid:11483/11483"
+        ]
+      },
+      "t": 279
+    },
+    {
+      "ok": true,
+      "label": "P-8: a further payment request is refused — nothing more booked, no double collection",
+      "extra": {
+        "err": "미납 벌금이 없습니다",
+        "ledger": [
+          22562,
+          22562
+        ]
+      },
+      "t": 282
+    },
+    {
+      "ok": true,
+      "label": "ACC-1: the cases' paid amounts and A's ledger (fines at the seizure + law_fines later) both equal the total assessed — every credit collected once",
+      "extra": {
+        "ledger": {
+          "fines": 921,
+          "law_fines": 22562
+        },
+        "paidCases": 23483,
+        "totalFines": 23483,
+        "otherExpenses": 314.82,
+        "income": 0,
+        "spent": 23797.82,
+        "credits": 7202.182291667999
+      },
+      "t": 283
+    },
+    {
+      "ok": true,
+      "label": "ACC-1b: A's balance change (1,000 start + 30,000 deposit − end) = fines + the other expenses booked meanwhile (ship upkeep; the setup cut and the deposit, booked as other, excluded) — nothing else moved A's money",
+      "extra": {
+        "ledger": {
+          "fines": 921,
+          "law_fines": 22562
+        },
+        "paidCases": 23483,
+        "totalFines": 23483,
+        "otherExpenses": 314.82,
+        "income": 0,
+        "spent": 23797.82,
+        "credits": 7202.182291667999
+      },
+      "t": 283
+    },
+    {
+      "ok": true,
+      "label": "ACC-2: every A case is fine = paid, none open",
+      "extra": [
+        "extortion:closed:12000/12000",
+        "smuggling:closed:11483/11483"
+      ],
+      "t": 283
+    },
+    {
+      "ok": true,
+      "label": "ACC-3: B's 40 electronics are conserved (customs), no unit created or lost through the restarts",
+      "extra": {
+        "hotLeft": 0,
+        "cust": 40
+      },
+      "t": 283
+    },
+    {
+      "ok": true,
+      "label": "PR-1: B and C never receive A's law record, case ids or fines",
+      "extra": {},
+      "t": 285
+    },
+    {
+      "ok": true,
+      "label": "PR-2: C, a normal company, has no case of its own",
+      "t": 285
+    },
+    {
+      "ok": true,
+      "label": "PR-3: B sees its own customs lot",
+      "extra": {},
+      "t": 285
+    }
+  ],
+  "infos": [
+    {
+      "label": "inspection result",
+      "extra": {
+        "stop": {
+          "op": "lop144",
+          "phase": "released",
+          "guard": "g30",
+          "guardName": "헬리오스 순찰대 2",
+          "since": 86.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -477863.40219100984,
+              "y": -3.965135071561055,
+              "z": 7006.214730137539
+            },
+            "t": 86.25
+          },
+          "answerBy": 70.25,
+          "note": "검문 완료 — 압수 42단위, 벌금 납부 0 cr, 미납 22,562 cr",
+          "end": "inspected",
+          "until": 386.25
+        },
+        "smug": [
+          {
+            "id": "law2",
+            "fine": 11483,
+            "paid": 921,
+            "state": "open",
+            "served": 86.25,
+            "creditor": "helios",
+            "auth": "union",
+            "fixed": true
+          }
+        ],
+        "seizeLog": [
+          {
+            "t": 86.25,
+            "k": "seize",
+            "at": "helios",
+            "items": {
+              "hot:electronics:p115": 40,
+              "eq_heavy_cannon": 2
+            },
+            "value": 38276.6,
+            "fine": 921,
+            "owed": 10562,
+            "why": "헬리오스 연합 경비대 정선 검문 적발 (확률 100%)"
+          }
+        ],
+        "cargoA": {
+          "mod_ecm": 3,
+          "ore": 30
+        },
+        "fitA": [],
+        "creditsA": 0.6822916669999586,
+        "customsB": [
+          {
+            "id": "cu201",
+            "item": "electronics",
+            "n": 40,
+            "station": "helios",
+            "from": "p1",
+            "t": 86.25
+          }
+        ],
+        "ledgerA": {
+          "fines": 921
+        },
+        "ops": 1,
+        "opKeys": [
+          "lop144"
+        ]
+      }
+    },
+    {
+      "label": "creditor station funds (fundsIn has its own inflow factor / cap — partial sink by design)",
+      "extra": {
+        "creditor": "helios",
+        "before": 211264,
+        "after": 218771,
+        "paidLater": 10562,
+        "heliosAtStart": 207028
+      }
+    }
+  ],
+  "facts": {
+    "seed": "133",
+    "label": "run4",
+    "clock": "server real time, speed 1 (multiplayer)",
+    "load": "3 accounts, scenario fleets + the world's own Union forces (other NPC fleets removed)",
+    "ids": {
+      "a1": "g133",
+      "ah": "s135",
+      "c1": "g137",
+      "cs": "s139",
+      "ex": "law1",
+      "hk": "hot:electronics:p115"
+    },
+    "start": {
+      "creditsA": 1000,
+      "setupDrop": 11000,
+      "cargoA": {
+        "hot:electronics:p115": 40,
+        "eq_heavy_cannon": 2,
+        "mod_ecm": 3,
+        "ore": 30
+      },
+      "fitA": {
+        "eq_heavy_cannon": 2,
+        "eq_medium_gun": 4,
+        "eq_pd_gun": 4
+      },
+      "bc": "s136",
+      "cargoC": {
+        "ore": 30,
+        "mod_ecm": 3
+      },
+      "extortion": {
+        "fine": 12000,
+        "state": "open",
+        "known": true
+      }
+    },
+    "inspect": {
+      "stop": {
+        "op": "lop144",
+        "phase": "released",
+        "guard": "g30",
+        "guardName": "헬리오스 순찰대 2",
+        "since": 86.25,
+        "level": 2,
+        "guardSeen": {
+          "pos": {
+            "x": -477863.40219100984,
+            "y": -3.965135071561055,
+            "z": 7006.214730137539
+          },
+          "t": 86.25
+        },
+        "answerBy": 70.25,
+        "note": "검문 완료 — 압수 42단위, 벌금 납부 0 cr, 미납 22,562 cr",
+        "end": "inspected",
+        "until": 386.25
+      },
+      "smug": [
+        {
+          "id": "law2",
+          "fine": 11483,
+          "paid": 921,
+          "state": "open",
+          "served": 86.25,
+          "creditor": "helios",
+          "auth": "union",
+          "fixed": true
+        }
+      ],
+      "seizeLog": [
+        {
+          "t": 86.25,
+          "k": "seize",
+          "at": "helios",
+          "items": {
+            "hot:electronics:p115": 40,
+            "eq_heavy_cannon": 2
+          },
+          "value": 38276.6,
+          "fine": 921,
+          "owed": 10562,
+          "why": "헬리오스 연합 경비대 정선 검문 적발 (확률 100%)"
+        }
+      ],
+      "cargoA": {
+        "mod_ecm": 3,
+        "ore": 30
+      },
+      "fitA": [],
+      "creditsA": 0.6822916669999586,
+      "customsB": [
+        {
+          "id": "cu201",
+          "item": "electronics",
+          "n": 40,
+          "station": "helios",
+          "from": "p1",
+          "t": 86.25
+        }
+      ],
+      "ledgerA": {
+        "fines": 921
+      },
+      "ops": 1,
+      "opKeys": [
+        "lop144"
+      ]
+    },
+    "paid0": 921,
+    "noRedispatch": {
+      "t": 120,
+      "newOps": [],
+      "cases": [
+        "extortion:open:12000/0",
+        "smuggling:open:11483/921"
+      ],
+      "seq": [
+        2,
+        2
+      ],
+      "stop": {
+        "op": "lop144",
+        "phase": "released",
+        "guard": "g30",
+        "guardName": "헬리오스 순찰대 2",
+        "since": 86.25,
+        "level": 2,
+        "guardSeen": {
+          "pos": {
+            "x": -477863.40219100984,
+            "y": -3.965135071561055,
+            "z": 7006.214730137539
+          },
+          "t": 86.25
+        },
+        "answerBy": 70.25,
+        "note": "검문 완료 — 압수 42단위, 벌금 납부 0 cr, 미납 22,562 cr",
+        "end": "inspected",
+        "until": 386.25
+      }
+    },
+    "viewA1": {
+      "level": 1,
+      "score": 2,
+      "unpaid": 22562,
+      "pursuits": [],
+      "fined": 23483,
+      "paid": 921,
+      "cases": [
+        {
+          "id": "law1",
+          "kind": "extortion",
+          "t": 1.5,
+          "sys": "helios",
+          "juris": "union",
+          "auth": "union",
+          "value": 20000,
+          "sev": 4,
+          "how": "station",
+          "fine": 12000,
+          "paid": 0,
+          "state": "open",
+          "served": true,
+          "group": "g133"
+        },
+        {
+          "id": "law2",
+          "kind": "smuggling",
+          "t": 86.25,
+          "sys": "helios",
+          "juris": "union",
+          "auth": "union",
+          "value": 38277,
+          "sev": 1,
+          "how": "inspection",
+          "fine": 11483,
+          "paid": 921,
+          "state": "open",
+          "served": true,
+          "group": "g133",
+          "creditor": "helios"
+        }
+      ]
+    },
+    "partial": {
+      "err": null,
+      "credits": [
+        29764.182291668,
+        29264.182291668
+      ],
+      "ledgerLawFines": [
+        0,
+        500
+      ],
+      "case": {
+        "id": "law2",
+        "kind": "smuggling",
+        "t": 86.25,
+        "sys": "helios",
+        "juris": "union",
+        "auth": "union",
+        "value": 38277,
+        "sev": 1,
+        "how": "inspection",
+        "fine": 11483,
+        "paid": 1421,
+        "state": "open",
+        "served": true,
+        "group": "g133",
+        "creditor": "helios"
+      }
+    },
+    "dup": {
+      "r1": null,
+      "r2": "해당 사건의 미납 벌금이 없습니다",
+      "credits": [
+        29264.182291668,
+        19202.182291668
+      ],
+      "ledgerLawFines": [
+        500,
+        10562
+      ],
+      "case": {
+        "id": "law2",
+        "kind": "smuggling",
+        "t": 86.25,
+        "sys": "helios",
+        "juris": "union",
+        "auth": "union",
+        "value": 38277,
+        "sev": 1,
+        "how": "inspection",
+        "fine": 11483,
+        "paid": 11483,
+        "state": "closed",
+        "end": "paid",
+        "served": true,
+        "group": "g133",
+        "creditor": "helios"
+      },
+      "rest": 10062
+    },
+    "funds": {
+      "creditor": "helios",
+      "before": 211264,
+      "after": 218771,
+      "paidLater": 10562,
+      "heliosAtStart": 207028
+    },
+    "final": {
+      "err": null,
+      "credits": [
+        19202.182291668,
+        7202.182291667999
+      ],
+      "level": 0,
+      "unpaid": 0,
+      "fined": 23483,
+      "paid": 23483,
+      "cases": [
+        "extortion:closed:paid:12000/12000",
+        "smuggling:closed:paid:11483/11483"
+      ]
+    },
+    "acc": {
+      "ledger": {
+        "fines": 921,
+        "law_fines": 22562
+      },
+      "paidCases": 23483,
+      "totalFines": 23483,
+      "otherExpenses": 314.82,
+      "income": 0,
+      "spent": 23797.82,
+      "credits": 7202.182291667999
+    }
+  },
+  "realWebSockets": 3,
+  "seconds": 285
+}
