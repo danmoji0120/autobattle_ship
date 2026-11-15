@@ -291,3 +291,29 @@ describe('P13.3 D/E — privacy and legacy', () => {
     void isHot; void bmAt; void ({} as BlackMarket);
   });
 });
+
+describe('P13.3 D — protocol 2 replication', () => {
+  it('D02: a protocol 2 client holds exactly the legacy view (only known black markets) before and after a discovery', async () => {
+    const { GameServer } = await import('../src/server/core');
+    const { applySync, SYNC_PROTO } = await import('../src/server/sync');
+    const g = new GameServer(null, { singleplayer: false, snapInterval: 1, blackMarketNew: true } as any, 133);
+    const wire = (x: unknown) => JSON.parse(JSON.stringify(x));
+    const mk = (id: string, proto: number | undefined) => {
+      const cl: { conn: any; state: any } = { conn: null, state: null };
+      cl.conn = { id, lastEvent: 0, battles: new Set(), send: (m: any) => { if (m.t === 'snap') cl.state = wire(m.state); }, sendText: (s: string) => { const m = JSON.parse(s); if (m.t === 'sd') cl.state = applySync(cl.state, m); else if (m.t === 'snap') cl.state = m.state; } };
+      g.connect(cl.conn); g.handle(id, { t: 'hello', name: `PMC ${id}`, proto } as any); return cl;
+    };
+    const A = mk('a', SYNC_PROTO), B = mk('b', SYNC_PROTO), L = mk('l', undefined);
+    const st = g.sim.st, b = st.blackMarkets!.bm_lawless;
+    const same = () => { for (const c of [A, B, L]) expect(wire(c.state)).toEqual(wire(legacyView(st, c.conn, (g as any).viewOf(c.conn)))); };
+    for (let i = 0; i < 40; i++) g.step(0.05);
+    same(); expect(Object.keys(A.state.blackMarkets ?? {})).toEqual([]);
+    discover(g.sim, A.conn.company, b, 'test');
+    for (let i = 0; i < 400; i++) g.step(0.05);          // budgets regenerate, glut decays: the known market keeps changing
+    same();
+    expect(Object.keys(A.state.blackMarkets)).toEqual([b.id]);
+    expect(A.state.blackMarkets[b.id].funds).toBe(wire(b).funds);
+    expect(Object.keys(B.state.blackMarkets ?? {})).toEqual([]);
+    expect(B.state.companies[A.conn.company].bm).toBeUndefined();
+  });
+});

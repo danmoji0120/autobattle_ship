@@ -1,0 +1,57 @@
+{
+ "note": "single process; a real-server run (p133-server) ran concurrently on the same machine for part of run 1, so this is the second, quieter run",
+ "runs": [
+  {
+   "label": "P13.2 world (no black markets)",
+   "seed": 133,
+   "hours": 1,
+   "dt": 0.5,
+   "wallMsPerSimHour": 34800,
+   "meanTickMs": 4.833,
+   "worstTickMs": 23.9,
+   "saveBytes": 265801,
+   "bmBytes": 2,
+   "haulers": 0,
+   "inspectionsLogged": 0
+  },
+  {
+   "label": "P13.3 world",
+   "seed": 133,
+   "hours": 1,
+   "dt": 0.5,
+   "wallMsPerSimHour": 33783,
+   "meanTickMs": 4.692,
+   "worstTickMs": 15.4,
+   "saveBytes": 266983,
+   "bmBytes": 840,
+   "haulers": 0,
+   "inspectionsLogged": 0
+  },
+  {
+   "label": "P13.2 world + 40 haulers",
+   "seed": 133,
+   "hours": 1,
+   "dt": 0.5,
+   "wallMsPerSimHour": 59182,
+   "meanTickMs": 8.22,
+   "worstTickMs": 33.8,
+   "saveBytes": 525678,
+   "bmBytes": 2,
+   "haulers": 40,
+   "inspectionsLogged": 0
+  },
+  {
+   "label": "P13.3 world + 40 smuggling haulers",
+   "seed": 133,
+   "hours": 1,
+   "dt": 0.5,
+   "wallMsPerSimHour": 57893,
+   "meanTickMs": 8.041,
+   "worstTickMs": 35.3,
+   "saveBytes": 556763,
+   "bmBytes": 840,
+   "haulers": 40,
+   "inspectionsLogged": 76
+  }
+ ]
+}

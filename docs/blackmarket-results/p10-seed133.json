@@ -1,0 +1,119 @@
+{
+ "seed": 133,
+ "hours": 0.5,
+ "layout": "p10",
+ "fog": true,
+ "place": [
+  {
+   "id": "bm_lawless",
+   "tier": "lawless",
+   "station": "rustport",
+   "name": "녹슨 정박지",
+   "faction": "pirates",
+   "system": "fang",
+   "region": "lawless",
+   "security": 8,
+   "tierOfSystem": "lawless",
+   "restrictedHere": [],
+   "funds": 30000,
+   "hostFundsAfter": 48000,
+   "lairs": [
+    "fang",
+    "hollow"
+   ]
+  },
+  {
+   "id": "bm_border",
+   "tier": "border",
+   "station": "cinderco",
+   "name": "엠버 광산 조합",
+   "faction": "miners",
+   "system": "ember",
+   "region": "border",
+   "security": 26,
+   "tierOfSystem": "border",
+   "restrictedHere": [],
+   "funds": 30000,
+   "hostFundsAfter": 60000,
+   "lairs": [
+    "redclaw",
+    "gravel"
+   ]
+  },
+  {
+   "id": "bm_neutral",
+   "tier": "neutral",
+   "station": "p10_meridian_port",
+   "name": "자오선 교역항",
+   "faction": "guild",
+   "system": "meridian",
+   "region": "neutral",
+   "security": 58,
+   "tierOfSystem": "neutral",
+   "restrictedHere": [],
+   "funds": 27000,
+   "hostFundsAfter": 27000,
+   "lairs": [
+    "p9_dusk_lair",
+    "p10_scar_lair"
+   ]
+  },
+  {
+   "id": "bm_secure",
+   "tier": "secure",
+   "station": "helios",
+   "name": "헬리오스 조선소",
+   "faction": "union",
+   "system": "helios",
+   "region": "capital",
+   "security": 96,
+   "tierOfSystem": "secure",
+   "restrictedHere": [
+    "mod_ecm",
+    "eq_heavy_cannon"
+   ],
+   "funds": 45000,
+   "hostFundsAfter": 207000,
+   "lairs": [
+    "gravel",
+    "redclaw"
+   ]
+  }
+ ],
+ "after": [
+  {
+   "id": "bm_lawless",
+   "funds": 34500,
+   "stock": {
+    "mod_ecm": 24,
+    "eq_heavy_cannon": 6
+   }
+  },
+  {
+   "id": "bm_border",
+   "funds": 34500,
+   "stock": {
+    "mod_ecm": 10,
+    "eq_heavy_cannon": 2
+   }
+  },
+  {
+   "id": "bm_neutral",
+   "funds": 31391,
+   "stock": {}
+  },
+  {
+   "id": "bm_secure",
+   "funds": 51750,
+   "stock": {}
+  }
+ ],
+ "knownByIntel": {},
+ "players": [
+  "p1",
+  "p10"
+ ],
+ "meanTickMs": 6.58,
+ "worstTickMs": 29.9,
+ "saveBytes": 384591
+}
