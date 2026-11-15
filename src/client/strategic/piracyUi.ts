@@ -12,6 +12,8 @@ const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<
 const fmt = (n: number) => Math.round(n).toLocaleString();
 
 export const piracyOn = (st: WorldView) => !!(st as any).piracyV;
+/** P13.3.1: black-market world where the viewer knows no black market (the server sends only the ones it found) */
+const noBlackMarket = (st: WorldView) => !!(st as any).blackMarketV && !Object.keys((st as any).blackMarkets ?? {}).length;
 export const dropsOf = (st: WorldView): DropView[] => Object.values(((st as any).drops ?? {}) as Record<string, DropView>);
 export const dropOf = (st: WorldView, id: string): DropView | undefined => ((st as any).drops ?? {})[id];
 const minutes = (st: WorldView, d: DropView) => Math.max(0, Math.round((d.expires - st.time) / 60));
@@ -55,7 +57,8 @@ export function groupPiracyHtml(st: WorldView, me: string, g: WGroup, plunder: P
   return `<div class="bdr small pir-panel">
     ${hasMil ? `<div class="pir-row"><span class="pir-l">약탈 방식</span><span class="pir-seg">${(Object.keys(PLUNDER_NAME) as PlunderPolicy[]).map(k => `<button class="btn mini${plunder === k ? ' on' : ''}${k === 'destroy' ? ' danger' : ''}" data-pir-plunder="${k}">${PLUNDER_NAME[k]}</button>`).join('')}</span></div>
     <div class="pir-row"><button class="btn" data-op="plunder" title="다른 회사 편대를 클릭: 화물 투하를 요구하고 투하된 컨테이너를 회수합니다">대상 약탈</button><button class="btn" data-op="plunder_lane" title="항로 지점을 클릭: 반경 3km를 순회하며 지나는 화물선에 요구합니다">항로 약탈</button>
-      <label class="chk" title="중립 회사도 대상으로 삼습니다. 치안 구역에서는 갈취로 평판이 떨어지고, 무력을 쓰면 적대 선언으로 기록됩니다."><input type="checkbox" data-pir-neutral ${neutral ? 'checked' : ''}> 중립 포함</label></div>` : ''}
+      <label class="chk" title="중립 회사도 대상으로 삼습니다. 치안 구역에서는 갈취로 평판이 떨어지고, 무력을 쓰면 적대 선언으로 기록됩니다."><input type="checkbox" data-pir-neutral ${neutral ? 'checked' : ''}> 중립 포함</label></div>
+    ${noBlackMarket(st) ? '<div class="dim small pir-nobm">⚠ 아는 암시장이 없습니다 — 다른 회사에게서 빼앗은 화물은 장물이 되어 일반 시장에서 팔 수 없으므로, 항로 약탈은 목표를 자동으로 고르지 않습니다. 암시장 정거장에 입항하거나 성계 정밀 정보로 암시장을 찾으세요. 대상 약탈(직접 지정)은 가능합니다.</div>' : ''}` : ''}
     ${cur ? `<div class="pir-state"><span class="tag ov">약탈 · ${PLUNDER_NAME[cur]}</span> ${P ? esc(P.phase === 'collect' && g.salv?.phase === 'unload' ? '회수품 하역 중' : PHASE[P.phase] ?? P.phase) : '준비'}${tgt ? ` — <b>${esc(tgt.name)}</b>` : ''}${P?.why ? ` <span class="dim">(${esc(P.why)})</span>` : ''}${P?.est && P.target ? `<div class="dim small" title="항로 약탈의 목표 선택 근거: 투하 응낙 확률 × 현재 시장에서 실제로 팔 수 있는 금액 − 거부 시 위험. 직접 지정한 대상·수송망 파괴에는 적용하지 않습니다.">예상: 응낙 ${Math.round(P.est.p * 100)}% · 실판매 ${fmt(P.est.sale)} cr · 위험 ${fmt(P.est.risk)} · 기대 수익 ${fmt(P.est.profit)} cr</div>` : ''}
       <div class="row"><button class="btn mini" data-quick='{"k":"idle"}'>작전 중단</button>${st.opsV ? `<button class="btn mini" data-quick='{"k":"return"}'>복귀</button>` : ''}</div></div>` : ''}
     ${hasHauler && !hasMil ? `<div class="pir-row"><button class="btn" data-op="loot_tender" title="자사 약탈 편대를 클릭: 그 편대를 뒤따라가며 그 편대가 받아낸 투하 화물을 회수·하역합니다. 약탈 대상 근처(${(4000).toLocaleString()}m)에 있으면 회수 능력에 반영됩니다 (전투력은 늘지 않습니다).">약탈 회수 지원</button></div>` : ''}

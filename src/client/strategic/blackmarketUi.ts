@@ -67,7 +67,7 @@ export function blackMarketHtml(v: View, s: Station, me: string, groups: WGroup[
   const sources = Object.values(w.stations).filter(st => st.id !== s.id && Object.keys(st.storage[me] ?? {}).some(k => (isHot(k) || (RESTRICTED_ITEMS as readonly string[]).includes(k)) && qty(st.storage[me], k) >= 1));
   const haulers = groups.filter(g => g.shipIds.some(id => { const x = w.ships[id]; return !!x && econOf(x).cargo > 0; }));
   const log = (co.bm?.log ?? []).slice(-8).reverse();
-  const L: Record<BmLog['k'], string> = { sell: '처분', buy: '구매', pass: '검문 통과', seize: '압수', return: '반환', found: '발견' };
+  const L: Record<BmLog['k'], string> = { sell: '처분', buy: '구매', pass: '검문 통과', seize: '압수', return: '반환', found: '발견', held: '세관 보관', claim: '세관 인수' };
   return `<div class="bm" data-bm="${b.id}">
     <div class="bdr small"><b>${esc(def.name)}</b> · 수수료 ${pct(def.fee)} · 매입 자금 <b class="money">${fmt(b.funds)}</b> / ${fmt(b.fundsMax)} cr
       <div class="dim">장물은 시세의 약 ${pct(def.disc)}에 매입하고, 많이 받을수록 값이 내려갑니다. 매입 자금은 이 정거장의 공공 예산에서 넘어오며, 바닥나면 처분이 멈춥니다.</div>
@@ -82,5 +82,26 @@ export function blackMarketHtml(v: View, s: Station, me: string, groups: WGroup[
       <div class="dim small">함대가 출발지 보관함의 장물을 화물칸에 싣고 실제 항로로 이동합니다. 치안 성계의 관문과 공공 정거장 입항 때 검문을 받으며, 적발되면 불법 화물은 모두 압수되고 벌금·평판 하락이 따릅니다.</div>`
       : '<div class="dim small">장물을 보관 중인 다른 정거장과 화물칸이 있는 편대가 있으면 이곳으로 밀수 운송을 지시할 수 있습니다.</div>'}
     ${log.length ? `<h3>최근 암거래·검문 기록</h3><table class="gt small">${log.map(e => `<tr><td>${L[e.k]}</td><td>${esc(w.stations[e.at]?.name ?? w.systems[e.at]?.name ?? e.at)}</td><td>${Object.entries(e.items ?? {}).map(([k, n]) => `${esc(itemName(k))} ${fmt(n)}`).join(', ')}</td><td class="n">${e.value !== undefined ? fmt(e.value) + ' cr' : ''}${e.fine ? ` <span class="dim">(${e.k === 'seize' ? '벌금' : '수수료'} ${fmt(e.fine)})</span>` : ''}</td><td class="dim">${esc(e.why ?? '')}</td></tr>`).join('')}</table>` : ''}
+  </div>`;
+}
+
+/**
+ * P13.3.1 customs return lots of the viewer (stolen goods of its own the authorities seized from someone else).
+ * Shown in the station's storage tab: where they wait, and claim buttons when an own ship is docked here.
+ */
+export function customsHtml(v: View, s: Station, me: string): string {
+  const w = W(v); if (!w.blackMarketV) return '';
+  const lots = w.companies[me]?.bm?.customs ?? [];
+  if (!lots.length) return '';
+  const here = lots.filter(l => l.station === s.id), away = lots.filter(l => l.station !== s.id);
+  const docked = Object.values(w.ships).filter(x => x.owner === me && x.state === 'docked' && x.task.k === 'docked' && (x.task as { station: string }).station === s.id);
+  const pick = docked.length ? `<select data-cu-ship data-keep>${docked.map(x => `<option value="${x.id}">${esc(x.name)} (여유 ${fmt(Math.max(0, econOf(x).cargo - Object.values(x.cargo).reduce((a, n) => a + n, 0)))})</option>`).join('')}</select>` : '';
+  const rows = here.map(l => `<tr><td><b>${esc(itemName(l.item))}</b><div class="dim small">${esc(w.companies[l.from]?.name ?? l.from)}에게서 압수</div></td><td class="n">${fmt(l.n)}</td>
+    <td>${docked.length ? `<button class="btn mini" data-cuclaim="${l.id}|hold">함선 화물칸으로</button><button class="btn mini" data-cuclaim="${l.id}|store">이 정거장 보관함으로</button>` : '<span class="dim small">자사 함선 정박 필요</span>'}</td></tr>`).join('');
+  const far = away.map(l => `<tr><td>${esc(itemName(l.item))}</td><td class="n">${fmt(l.n)}</td><td>${esc(w.stations[l.station]?.name ?? l.station)}</td></tr>`).join('');
+  return `<div class="bdr small customs"><h3>세관 반환 대기</h3>
+    <div class="dim">당국이 다른 회사에게서 압수한 자사 도난품입니다. 압수된 정거장 세관에 보관되며, 생산·판매·건설에 쓸 수 없습니다. 그 정거장에 자사 함선을 정박시킨 뒤 화물칸 여유나 보관함 공간만큼 인수할 수 있고, 남은 수량은 계속 보관됩니다.</div>
+    ${rows ? `${pick}<table class="gt"><tr><th>품목</th><th class="n">수량</th><th></th></tr>${rows}</table>` : ''}
+    ${far ? `<div>다른 정거장 세관</div><table class="gt"><tr><th>품목</th><th class="n">수량</th><th>보관 정거장</th></tr>${far}</table>` : ''}
   </div>`;
 }

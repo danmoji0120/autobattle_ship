@@ -27,7 +27,7 @@ import { isExclusive } from '../content/registry';
 import { SALV, salvageRoom, stepCollect, canCollect } from './salvage';
 import { cargoLost } from './autonomousLogistics';
 import type { CommanderDef } from '../sim/data/commanders';
-import { recoveredKey, isHot, bmBestSale } from './blackmarket';
+import { recoveredKey, isHot, bmBestSale, knownBmCount, NO_BM_WHY } from './blackmarket';
 
 type Host = WorldSim;
 
@@ -584,7 +584,9 @@ function search(h: Host, g: WGroup, op: PlunderOp, P: PlunderState, from: V): WG
   }
   if (op.policy !== 'destroy') {
     if (bestEst) P.est = { p: round2(bestEst.p), sale: Math.round(bestEst.sale), risk: Math.round(bestEst.risk), profit: Math.round(bestEst.profit) };
-    else if (seen) P.why = `수익성 있는 목표 없음 (${seen}척 검토)`;
+    // P13.3.1: say so when the only reason is that no known black market would buy stolen goods (the AI is not told
+    // where undiscovered markets are or what they pay)
+    else if (seen) P.why = h.st.blackMarketV && h.st.companies[g.owner]?.kind === 'player' && !knownBmCount(h, g.owner) ? `${NO_BM_WHY} · ${seen}척 검토` : `수익성 있는 목표 없음 (${seen}척 검토)`;
   }
   return best;
 }
@@ -629,7 +631,7 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
     else if (site && canCollect(h, mobile, site, illegal) || g.salv?.key === `collect:${site}`) {
       const ph = stepCollect(h, g, mobile, site!, illegal, dt, nounload);
       if (ph !== 'done' && ph !== 'blocked') { /* status text comes from the salvage engine (약탈품 회수 중 / 회수품 하역 중) */ return true; }
-      if (ph === 'blocked') { delete g.salv; h.say(g, '약탈품 하역 불가 — 정거장 창고·정박 규격 확인', 'warn', 30); }
+      if (ph === 'blocked') { const why = g.salv?.why; delete g.salv; h.say(g, `약탈품 하역 불가 — ${why ?? '정거장 창고·정박 규격 확인'}`, 'warn', 30); }
     }
     delete g.salv;
     P.site = undefined; P.target = undefined; P.ship = undefined;
@@ -766,7 +768,7 @@ export function stepTender(h: Host, g: WGroup, ships: WShip[], op: TenderOp, dt:
   if (site) {
     const ph = stepCollect(h, g, mobile, site, illegal, dt);
     if (ph !== 'done' && ph !== 'blocked') return true;
-    if (ph === 'blocked') h.say(g, '회수품 하역 불가 — 정거장 창고·정박 규격 확인', 'warn', 30);
+    if (ph === 'blocked') h.say(g, `회수품 하역 불가 — ${g.salv?.why ?? '정거장 창고·정박 규격 확인'}`, 'warn', 30);
     delete g.salv;
   }
   if (!raid) return true;

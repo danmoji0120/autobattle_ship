@@ -25,7 +25,7 @@ import { bumpStanding } from './territory';
 import { emit } from './observe';
 import { stationCargoRate } from './stations';
 import { opKey } from './fleetops';
-import { recoveredKey, isHot, inspectChance } from './blackmarket';
+import { recoveredKey, unloadRisk, warnNoSafeUnload } from './blackmarket';
 import type { CommanderDef } from '../sim/data/commanders';
 
 type Host = WorldSim;
@@ -212,22 +212,29 @@ export function unloadSalvage(h: Host, s: WShip, st: Station): number {
 const mobileOrDocked = (ships: WShip[]) => ships.filter(s => (s.state === 'space' || s.state === 'docked') && econOf(s).cruise > 0 && !s.logisticsJob && !s.cargoWork);
 const salvageAboard = (s: WShip) => !!s.salvaged && Object.keys(s.salvaged).some(k => qty(s.cargo, k) > 1e-9);
 
-/** a station to unload at: dockable, storage room for what is aboard, berths for the fleet; nearest (own preferred) */
-function pickStation(h: Host, g: WGroup, ships: WShip[], from: V, ignore: Record<string, number> = {}): Station | null {
+/** a station to unload at: dockable, storage room for what is aboard, berths for the fleet; nearest (own preferred).
+ *  P13.3.1: never a station an automatic run would reach through an inspection (route gates or the dock) with
+ *  contraband aboard — `skip.risky` counts such stations so the caller can say why it waits with the cargo. */
+function pickStation(h: Host, g: WGroup, ships: WShip[], from: V, ignore: Record<string, number> = {}, skip?: { risky: number }): Station | null {
   const items = new Set<string>(); for (const s of ships) for (const k of Object.keys(s.salvaged ?? {})) items.add(k);
-  let hot: Cargo | undefined;
-  if (h.st.blackMarketV) for (const s of ships) for (const [k, n] of Object.entries(s.salvaged ?? {})) if (isHot(k) && n > 0) (hot ??= {})[k] = (hot[k] ?? 0) + n;
   let best: Station | null = null, bd = Infinity;
   for (const st of Object.values(h.st.stations)) {
     if ((ignore[st.id] ?? 0) > h.time || !h.canDock(st, g.owner)) continue;
     if (!ships.every(s => berthFits(st, econOf(s).berth))) continue;
     if (items.size && ![...items].some(k => h.intakeRoom(st, g.owner, k) > 1)) continue;
-    let d = h.routeDistance(from, st.pos) * (st.owner === g.owner ? 0.8 : 1);
-    // P13.3: with stolen goods aboard, a station where they are likely seized counts as much farther
-    if (hot) d *= 1 + 4 * inspectChance(h.st, g.owner, sysAt(h.st.systems, st.pos), 'dock', hot, st);
-    if (d < bd) { bd = d; best = st; }
+    const d = h.routeDistance(from, st.pos) * (st.owner === g.owner ? 0.8 : 1);
+    if (d >= bd) continue;
+    if (unloadRisk(h, g.owner, from, st, ships) > 0) { if (skip) skip.risky++; continue; }
+    bd = d; best = st;
   }
   return best;
+}
+const NO_SAFE = '장물 안전 하역지 없음 — 검문 위험이 없는 자사·안전 정거장이 없어 화물을 보존한 채 대기 (밀수 운송·직접 입항 하역 지시 가능)';
+const NO_ROOM = '하역 가능한 정거장이 없습니다 — 창고 공간·정박 규격 확인';
+/** blocked: say why (no safe station vs. no room), and warn the owner when stolen goods are what holds it up */
+function blockUnload(h: Host, g: WGroup, S: SalvState, skip: { risky: number }) {
+  if (skip.risky > 0) { setPhase(h, S, 'blocked', NO_SAFE); warnNoSafeUnload(h, g); }
+  else setPhase(h, S, 'blocked', NO_ROOM);
 }
 
 const MODE_NAME = { recover: '지정 인양', zone: '구역 인양', auto: '현장 자동 인양' } as const;
@@ -295,10 +302,12 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
     // stay on the unloading run until everything recovered is in a warehouse (or the station is full)
     if (loaded) {
       const sta = S.station ? st.stations[S.station] : null;
-      if (sta && h.canDock(sta, g.owner) && !S.nounload) return;
-      const next = S.nounload ? null : pickStation(h, g, ships, center, S.ignore);
+      if (sta && h.canDock(sta, g.owner) && !S.nounload && unloadRisk(h, g.owner, center, sta, ships) <= 0) return;
+      const skip = { risky: 0 };
+      const next = S.nounload ? null : pickStation(h, g, ships, center, S.ignore, skip);
       if (next) { S.station = next.id; return; }
-      setPhase(h, S, 'blocked', '하역 가능한 정거장이 없습니다 — 창고 공간·정박 규격 확인'); return;
+      S.station = undefined;
+      blockUnload(h, g, S, skip); return;
     }
     S.station = undefined;
     setPhase(h, S, 'return');
@@ -307,7 +316,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
   if (op.k === 'recover') {
     target = siteOf(st, op.wreck);
     if (!target || !workable(h, ships, target, illegal)) {
-      if (loaded && !S.nounload) { const sta = pickStation(h, g, ships, center, S.ignore); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); return; } }
+      if (loaded && !S.nounload) { const skip = { risky: 0 }; const sta = pickStation(h, g, ships, center, S.ignore, skip); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); return; } if (skip.risky > 0) { blockUnload(h, g, S, skip); return; } }
       finish(h, g, S, !target ? '잔해가 소멸했거나 모두 회수되었습니다' : '이 함대가 회수할 수 있는 물품이 남지 않았습니다');
       return;
     }
@@ -334,7 +343,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
     return;
   }
   if (loaded && S.nounload) { finish(h, g, S, '화물칸이 가득 찼습니다'); return; }
-  if (loaded) { const sta = pickStation(h, g, ships, center, S.ignore); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); } else setPhase(h, S, 'blocked', '하역 가능한 정거장이 없습니다 — 창고 공간·정박 규격 확인'); return; }
+  if (loaded) { const skip = { risky: 0 }; const sta = pickStation(h, g, ships, center, S.ignore, skip); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); } else blockUnload(h, g, S, skip); return; }
   if (op.k === 'salvzone') { S.wreck = undefined; setPhase(h, S, 'hold', '구역에 회수 가능한 잔해가 없습니다 — 새 잔해를 기다립니다'); return; }
   setPhase(h, S, 'blocked', '화물칸이 가득 찼고 하역할 화물이 없습니다');
 }
@@ -423,7 +432,7 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
     // after an on-site pickup an idle fleet takes what it recovered to a warehouse; any order takes over
     const loaded = mobileOrDocked(ships).some(salvageAboard);
     if (op.k !== 'idle' || !loaded) { delete g.salv; return false; }
-    if (h.time >= S.next) { S.next = h.time + 1; const sta = S.station ? st.stations[S.station] : null; if (!sta || !h.canDock(sta, g.owner)) { const nx = pickStation(h, g, ships, h.groupCenter(g) ?? ships[0].pos, S.ignore); if (!nx) { delete g.salv; return false; } S.station = nx.id; } }
+    if (h.time >= S.next) { S.next = h.time + 1; const sta = S.station ? st.stations[S.station] : null; const at = h.groupCenter(g) ?? ships[0].pos; if (!sta || !h.canDock(sta, g.owner) || unloadRisk(h, g.owner, at, sta, ships) > 0) { const skip = { risky: 0 }; const nx = pickStation(h, g, ships, at, S.ignore, skip); if (!nx) { if (skip.risky > 0) warnNoSafeUnload(h, g); delete g.salv; return false; } S.station = nx.id; } }
     move(h, g, mobileOrDocked(ships), S, false, dt);
     g.status = status(h, g, S, op);
     return true;
@@ -437,7 +446,9 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
     h.say(g, `현장 인양 종료 (${why})${got.length ? ` — 적재: ${got.map(([k, n]) => `${itemLabel(k)} ${Math.round(n)}`).join(', ')}` : ''}`, 'radio', 0);
     // an idle fleet (no order, no threat) carries what it picked up to the nearest warehouse
     if (got.length && op.k === 'idle' && why !== '적대 함대 접근') {
-      const sta = pickStation(h, g, mobile, h.groupCenter(g) ?? mobile[0].pos);
+      const skip = { risky: 0 };
+      const sta = pickStation(h, g, mobile, h.groupCenter(g) ?? mobile[0].pos, {}, skip);
+      if (!sta && skip.risky > 0) warnNoSafeUnload(h, g);
       if (sta) { g.salv = { mode: 'auto', key: opKey(op), phase: 'unload', station: sta.id, wreck: S.wreck, since: h.time, next: h.time + 1 }; g.status = status(h, g, g.salv, op); }
     }
     return false;

@@ -98,6 +98,8 @@ export type Cmd =
   | { c: 'bmSell'; station: string; res: string; amount: number; ship?: string; request?: { seq: number; id: string } }
   /** P13.3: buy restricted goods a black market stocks */
   | { c: 'bmBuy'; station: string; res: string; amount: number; ship?: string; request?: { seq: number; id: string } }
+  /** P13.3.1: take a customs return lot back with a ship docked at its station (into its hold, or storage there) */
+  | { c: 'customsClaim'; lot: string; ship: string; amount?: number; toStorage?: boolean }
   | { c: 'buy'; station: string; res: Res; amount: number; /** growth: load straight into this docked ship's hold */ ship?: string; request?: { seq: number; id: string } }
   | { c: 'lease'; station: string; blocks: number }
   | { c: 'repair'; ship: string; /** the cost the client showed; refused when the server charge differs */ quote?: number }
@@ -180,7 +182,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
-import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle } from './blackmarket';
+import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 
 export class WorldSim {
@@ -889,6 +891,10 @@ export class WorldSim {
           this.ev('money', `${RES_NAME[cmd.res]} ${a} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
         }
         return null;
+      }
+      case 'customsClaim': {
+        const r = customsClaim(this, company, cmd.lot, cmd.amount, cmd.ship, cmd.toStorage);
+        return typeof r === 'string' ? r : null;
       }
       case 'bmSell': case 'bmBuy': {
         let receipt: Company['lastTrade'];

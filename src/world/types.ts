@@ -60,7 +60,7 @@ export interface Company {
   /** P10 standing with each territorial faction (−100..100; absent = 0) */
   standing?: Record<string, number>;
   /** P13.3 (blackMarketV): black markets this company found, and its private trade / inspection log */
-  bm?: { known: string[]; log?: import('./blackmarket').BmLog[] };
+  bm?: { known: string[]; log?: import('./blackmarket').BmLog[]; customs?: import('./blackmarket').CustomsLot[] };
   /** P13.2: default answer of this company's cargo ships to a cargo demand (absent = balanced) */
   piracyPolicy?: import('./piracy').VictimPolicy;
 }

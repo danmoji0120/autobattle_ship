@@ -48,6 +48,7 @@ function world(f: F, item: string) {
   for (const d of Object.values(f.sim.st.drops ?? {})) n += d.lots.filter(l => l.item === item || parseHot(l.item)?.item === item).reduce((a, l) => a + l.n, 0);
   for (const w of Object.values(f.sim.st.wrecks ?? {})) n += w.lots.filter(l => l.k === 'cargo' && (l.item === item || parseHot(l.item)?.item === item)).reduce((a, l) => a + l.n, 0);
   for (const l of Object.values(f.sim.st.lairs)) n += of(l.hold);
+  for (const c of [f.A, f.B, f.C]) n += (f.sim.st.companies[c].bm?.customs ?? []).filter(l => l.item === item).reduce((a, l) => a + l.n, 0);   // P13.3.1 customs lots
   return n;
 }
 const storeOf = (f: F, co: string, key: string) => Object.values(f.sim.st.stations).reduce((a, st) => a + qty(st.storage[co], key), 0);
@@ -199,7 +200,7 @@ describe('P13.3 C — inspections and smuggling', () => {
     expect(inspectChance(f.sim.st, f.A, sys, 'dock', { [hotKey('alloy', f.B)]: 50 }, st)).toBeGreaterThan(0);
     expect(restrictedAt(f.sim.st, st)).toEqual(expect.arrayContaining(['mod_ecm', 'eq_heavy_cannon']));
   });
-  it('C02: a seizure takes exactly the illicit units, returns stolen goods to their owner, fines; normal cargo stays', () => {
+  it('C02: a seizure takes exactly the illicit units, holds stolen goods at customs for their owner, fines; normal cargo stays', () => {
     const f = fixture(133, 100); BM.dockBase = 10; BM.maxChance = 1;
     const st = f.sim.st.stations.helios; const k = hotKey('alloy', f.B);
     const { s } = dockHauler(f, f.A, st, { [k]: 70, alloy: 30, mod_ecm: 4 });
@@ -207,12 +208,13 @@ describe('P13.3 C — inspections and smuggling', () => {
     const back0 = qty(home.storage[f.B], 'alloy'), cr = f.sim.st.companies[f.A].credits, funds0 = st.funds ?? 0, rep0 = f.sim.st.companies[f.A].rep;
     f.sim.dockShip(s, st);
     expect(qty(s.cargo, k)).toBe(0); expect(qty(s.cargo, 'mod_ecm')).toBe(0); expect(qty(s.cargo, 'alloy')).toBe(30);
-    expect(qty(home.storage[f.B], 'alloy') - back0).toBe(70);
+    expect(qty(home.storage[f.B], 'alloy') - back0).toBe(0);                      // P13.3.1: no instant transfer home
+    expect(f.sim.st.companies[f.B].bm?.customs).toEqual([expect.objectContaining({ item: 'alloy', n: 70, station: st.id, from: f.A })]);
     const fine = cr - f.sim.st.companies[f.A].credits;
     expect(fine).toBeGreaterThan(0); expect((st.funds ?? 0) - funds0).toBeCloseTo(fine * 0.7, 3);
     expect(f.sim.st.companies[f.A].rep).toBeLessThanOrEqual(rep0);
     expect(f.sim.st.companies[f.A].bm?.log?.some(e => e.k === 'seize')).toBe(true);
-    expect(f.sim.st.companies[f.B].bm?.log?.some(e => e.k === 'return')).toBe(true);
+    expect(f.sim.st.companies[f.B].bm?.log?.some(e => e.k === 'held')).toBe(true);
     expect(world(f, 'alloy')).toBe(100);
   });
   it('C03: undock/redock and restart in the same window replay the recorded outcome (no new roll)', () => {

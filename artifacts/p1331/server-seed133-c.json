@@ -1,0 +1,317 @@
+{
+  "passed": 22,
+  "failed": 0,
+  "checks": [
+    {
+      "ok": true,
+      "label": "H-0: A orders its hauler with stolen goods to dock at 바르카 채굴 조합",
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "H-1: the dock inspection seized all 200 stolen units from A's hold (A fined, logged)",
+      "extra": {
+        "lot": {
+          "id": "cu167",
+          "item": "electronics",
+          "n": 200,
+          "station": "barcaco",
+          "from": "p1",
+          "t": 11.25
+        },
+        "aHold": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        },
+        "bHome": 0,
+        "aLog": [
+          {
+            "k": "seize",
+            "at": "barcaco",
+            "fine": 10482
+          }
+        ]
+      },
+      "t": 14
+    },
+    {
+      "ok": true,
+      "label": "H-2: B gets a customs return lot of 200 plain electronics at the seizing station, not at its home",
+      "extra": {
+        "id": "cu167",
+        "item": "electronics",
+        "n": 200,
+        "station": "barcaco",
+        "from": "p1",
+        "t": 11.25
+      },
+      "t": 14
+    },
+    {
+      "ok": true,
+      "label": "H-3: nothing arrived in B's home-station storage (no instant transfer)",
+      "extra": {
+        "before": 0,
+        "after": 0
+      },
+      "t": 14
+    },
+    {
+      "ok": true,
+      "label": "H-4: A never receives B's customs lots",
+      "t": 14
+    },
+    {
+      "ok": true,
+      "label": "H-5: B sees the held lot in its own log",
+      "t": 14
+    },
+    {
+      "ok": true,
+      "label": "C-1: claiming without a ship docked at that station is refused",
+      "extra": {
+        "err": "바르카 채굴 조합에 정박 중인 함선이 있어야 인수할 수 있습니다"
+      },
+      "t": 14
+    },
+    {
+      "ok": true,
+      "label": "C-2: B orders its hauler to dock at 바르카 채굴 조합",
+      "t": 14
+    },
+    {
+      "ok": true,
+      "label": "C-3: a claim into the hold moves only the free hold (60); 140 keep waiting at customs",
+      "extra": {
+        "err": null,
+        "hold1": 60,
+        "left1": 140
+      },
+      "t": 24
+    },
+    {
+      "ok": true,
+      "label": "C-4: with a full hold the claim is refused and nothing moves",
+      "extra": {
+        "err": "화물칸 부족 — 여유 0"
+      },
+      "t": 25
+    },
+    {
+      "ok": true,
+      "label": "C-5: another company cannot claim B's lot",
+      "extra": {
+        "err": "세관 반환 대기 화물이 없습니다"
+      },
+      "t": 25
+    },
+    {
+      "ok": true,
+      "label": "R-1: after a restart the customs lot (140 at the seizing station) is exactly as saved and B receives it again",
+      "extra": {
+        "saved": [
+          {
+            "id": "cu167",
+            "item": "electronics",
+            "n": 140,
+            "station": "barcaco",
+            "from": "p1",
+            "t": 11.25
+          }
+        ],
+        "view": [
+          {
+            "id": "cu167",
+            "item": "electronics",
+            "n": 140,
+            "station": "barcaco",
+            "from": "p1",
+            "t": 11.25
+          }
+        ]
+      },
+      "t": 28
+    },
+    {
+      "ok": true,
+      "label": "C-6: the rest is claimed into B's storage at that station (room permitting); the lot is gone",
+      "extra": {
+        "err": null,
+        "moved": 140
+      },
+      "t": 29
+    },
+    {
+      "ok": true,
+      "label": "U-0: A orders its salvager (90 stolen alloy aboard) to recover a container (auto-unload afterwards)",
+      "extra": {
+        "err": null,
+        "drop": true
+      },
+      "t": 29
+    },
+    {
+      "ok": true,
+      "label": "U-1: with no safe station the salvager keeps all 90 stolen units aboard and does not dock anywhere (no inspection)",
+      "extra": {
+        "status": "전장 잔해 인양: 작업 불가 — 장물 안전 하역지 없음 — 검문 위험이 없는 자사·안전 정거장이 없어 화물을 보존한 채 대기 (밀수 운송·직접 입항 하역 지시 가능)",
+        "state": "space",
+        "cargo": {
+          "ore": 5,
+          "alloy": 0,
+          "crystal": 0,
+          "hot:alloy:p10": 90
+        },
+        "warnEvents": 1
+      },
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "U-2: the fleet panel status says why, and the owner got a warning",
+      "extra": {
+        "status": "전장 잔해 인양: 작업 불가 — 장물 안전 하역지 없음 — 검문 위험이 없는 자사·안전 정거장이 없어 화물을 보존한 채 대기 (밀수 운송·직접 입항 하역 지시 가능)",
+        "state": "space",
+        "cargo": {
+          "ore": 5,
+          "alloy": 0,
+          "crystal": 0,
+          "hot:alloy:p10": 90
+        },
+        "warnEvents": 1
+      },
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "L-0: A declares B hostile",
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "L-1: B's loaded hauler passes along the lane",
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "L-2: A orders a lane raid",
+      "t": 86
+    },
+    {
+      "ok": true,
+      "label": "L-3: the raid picks no target and says that a black market must be found first; A still knows no market",
+      "extra": {
+        "why": "암시장 미발견 — 약탈품은 장물이 되어 아는 암시장에서만 처분할 수 있습니다. 암시장 정거장에 입항하거나 성계 정밀 정보를 얻어 찾아야 자동 목표 선정이 가능합니다 (목표 직접 지정 약탈은 가능) · 1척 검토",
+        "target": null,
+        "known": []
+      },
+      "t": 87
+    },
+    {
+      "ok": true,
+      "label": "ACC: every seized unit is accounted for (B hold 60 + B storage at the station 140; nothing created or lost)",
+      "extra": {
+        "placed": 200,
+        "held": 200
+      },
+      "t": 89
+    },
+    {
+      "ok": true,
+      "label": "ACC: server analytics record 200 held at customs and 200 claimed",
+      "extra": [
+        {
+          "reason": "customs_hold",
+          "amount": 200,
+          "station": "barcaco"
+        },
+        {
+          "reason": "customs_claim",
+          "amount": 200,
+          "station": "barcaco"
+        }
+      ],
+      "t": 89
+    }
+  ],
+  "infos": [],
+  "facts": {
+    "seed": "133",
+    "label": "seed133-c",
+    "clock": "server real time, speed 1 (multiplayer)",
+    "load": "2 accounts, ~8 scenario ships, no NPC fleets",
+    "ids": {
+      "X": "barcaco",
+      "sysX": "astra",
+      "homeB": "astra",
+      "ah": "g19",
+      "ahs": "s21",
+      "bh": "g22",
+      "bhs": "s24",
+      "au": "g25",
+      "aus": "s27",
+      "bv": "g28",
+      "ar": "g31"
+    },
+    "station": "바르카 채굴 조합",
+    "h": {
+      "lot": {
+        "id": "cu167",
+        "item": "electronics",
+        "n": 200,
+        "station": "barcaco",
+        "from": "p1",
+        "t": 11.25
+      },
+      "aHold": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "bHome": 0,
+      "aLog": [
+        {
+          "k": "seize",
+          "at": "barcaco",
+          "fine": 10482
+        }
+      ]
+    },
+    "u": {
+      "status": "전장 잔해 인양: 작업 불가 — 장물 안전 하역지 없음 — 검문 위험이 없는 자사·안전 정거장이 없어 화물을 보존한 채 대기 (밀수 운송·직접 입항 하역 지시 가능)",
+      "state": "space",
+      "cargo": {
+        "ore": 5,
+        "alloy": 0,
+        "crystal": 0,
+        "hot:alloy:p10": 90
+      },
+      "warnEvents": 1
+    },
+    "l": {
+      "why": "암시장 미발견 — 약탈품은 장물이 되어 아는 암시장에서만 처분할 수 있습니다. 암시장 정거장에 입항하거나 성계 정밀 정보를 얻어 찾아야 자동 목표 선정이 가능합니다 (목표 직접 지정 약탈은 가능) · 1척 검토",
+      "target": null,
+      "known": []
+    },
+    "acc": {
+      "placed": 200,
+      "held": 200
+    },
+    "flows": [
+      {
+        "reason": "customs_hold",
+        "amount": 200,
+        "station": "barcaco"
+      },
+      {
+        "reason": "customs_claim",
+        "amount": 200,
+        "station": "barcaco"
+      }
+    ]
+  },
+  "realWebSockets": 2,
+  "restarts": 2,
+  "seconds": 89
+}

@@ -1,0 +1,111 @@
+{
+  "base": "http://127.0.0.1:5391",
+  "checks": [
+    {
+      "ok": true,
+      "label": "client resumes the P13.3 world: two customs lots, no known black market",
+      "extra": {
+        "me": "p1",
+        "v": 1,
+        "known": [],
+        "lots": 2
+      }
+    },
+    {
+      "ok": true,
+      "label": "storage tab: 세관 반환 대기 shows the lot here (120, seized from 약탈 PMC) with hold/storage claim buttons, the docked ship picker, and the lot waiting at another station",
+      "extra": {
+        "t": "세관 반환 대기\n당국이 다른 회사에게서 압수한 자사 도난품입니다. 압수된 정거장 세관에 보관되며, 생산·판매·건설에 쓸 수 없습니다. 그 정거장에 자사 함선을 정박시킨 뒤 화물칸 여유나 보관함 공간만큼 인수할 수 있고, 남은 수량은 계속 보관됩니다.\n짐꾼 30호 (여유 350)\n품목\t수량\t\n합금\n약탈 PMC에게서 압수\n\t120\t함선 화물칸으로이 정거장 보관함으로\n다른 정거장 세관\n품목\t수량\t보관 정거장\n전자부품\t40\t헬리오스 조선소",
+        "claims": [
+          "cu22|hold",
+          "cu22|store"
+        ],
+        "ship": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "the 함선 화물칸으로 button moved all 120 units into the docked hauler’s hold; the lot is gone, the other station’s lot stays",
+      "extra": {
+        "hold0": 0,
+        "hold1": 120,
+        "before": [
+          {
+            "id": "cu22",
+            "item": "alloy",
+            "n": 120,
+            "station": "astra"
+          },
+          {
+            "id": "cu26",
+            "item": "electronics",
+            "n": 40,
+            "station": "helios"
+          }
+        ],
+        "after": [
+          {
+            "id": "cu26",
+            "item": "electronics",
+            "n": 40,
+            "station": "helios"
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "the section updates: no claim buttons here any more, the remote lot still listed",
+      "extra": {
+        "after": "세관 반환 대기\n당국이 다른 회사에게서 압수한 자사 도난품입니다. 압수된 정거장 세관에 보관되며, 생산·판매·건설에 쓸 수 없습니다. 그 정거장에 자사 함선을 정박시킨 뒤 화물칸 여유나 보관함 공간만큼 인수할 수 있고, 남은 수량은 계속 보관됩니다.\n다른 정거장 세관\n품목\t수량\t보관 정거장\n전자부품\t40\t헬리오스 조선소"
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel: the lane raid says it picks no target until a black market is found (direct plunder still possible), with a hint under the raid buttons",
+      "extra": {
+        "state": "약탈 · 비파괴 우선 목표 탐색 (암시장 미발견 — 약탈품은 장물이 되어 아는 암시장에서만 처분할 수 있습니다. 암시장 정거장에 입항하거나 성계 정밀 정보를 얻어 찾아야 자동 목표 선정이 가능합니다 (목표 직접 지정 약탈은 가능) · 1척 검토)\n작전 중단\n복귀",
+        "hint": "⚠ 아는 암시장이 없습니다 — 다른 회사에게서 빼앗은 화물은 장물이 되어 일반 시장에서 팔 수 없으므로, 항로 약탈은 목표를 자동으로 고르지 않습니다. 암시장 정거장에 입항하거나 성계 정밀 정보로 암시장을 찾으세요. 대상 약탈(직접 지정)은 가능합니다."
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the customs section fits (no horizontal page scroll, nothing outside the screen)",
+      "extra": {
+        "w": 333,
+        "left": 29,
+        "right": 361,
+        "overflow": false,
+        "out": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the raid panel with the hint fits",
+      "extra": {
+        "w": 356,
+        "left": 17,
+        "right": 373,
+        "overflow": false,
+        "out": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors (warnings listed in browser-results.json)",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": []
+}

@@ -35,7 +35,7 @@ import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
 import { growthOn, econOf, miningCargoCapacity, shipWorth } from '../../world/hullops';
 import { priceOf } from '../../world/market';
-import { blackMarketHtml, contrabandNote, knownBmAt } from './blackmarketUi';
+import { blackMarketHtml, contrabandNote, customsHtml, knownBmAt } from './blackmarketUi';
 import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml, storageGrowthHtml, sitesHtml } from './growthUi';
 import { STATION_CREW_RATE, type ModuleDef } from '../../world/data';
 import type { Size } from '../../content/schema';
@@ -1422,7 +1422,7 @@ export class PmcHud {
       case 'recruit': body = this.recruitHtml(s); break;
       case 'contracts': body = this.contractsHtml(s); break;
       case 'build': body = this.buildHtml(s); break;
-      case 'store': body = (growthOn(this.st) ? storageGrowthHtml(this.st, s, this.me) : '') + storeHtml(this.st, s, this.me, this.ind); break;
+      case 'store': body = customsHtml(this.st, s, this.me) + (growthOn(this.st) ? storageGrowthHtml(this.st, s, this.me) : '') + storeHtml(this.st, s, this.me, this.ind); break;
       case 'prod': body = prodHtml(this.st, s, this.me, this.ind); break;
       case 'research': body = researchHtml(this.st, s, this.me, this.ind); break;
     }
@@ -1448,6 +1448,11 @@ export class PmcHud {
     m.querySelectorAll<HTMLButtonElement>('[data-bmsell]').forEach(b => b.onclick = async () => {
       const [res, n, ship] = b.dataset.bmsell!.split('|');
       if (await this.cmd({ c: 'bmSell', station: s.id, res, amount: Number(n), ...(ship ? { ship } : {}) })) sfx.play('confirm', null, 0.3);
+    });
+    m.querySelectorAll<HTMLButtonElement>('[data-cuclaim]').forEach(b => b.onclick = async () => {
+      const [lot, to] = b.dataset.cuclaim!.split('|');
+      const ship = m.querySelector<HTMLSelectElement>('[data-cu-ship]')?.value;
+      if (ship && await this.cmd({ c: 'customsClaim', lot, ship, ...(to === 'store' ? { toStorage: true } : {}) })) sfx.play('confirm', null, 0.3);
     });
     m.querySelectorAll<HTMLButtonElement>('[data-bmbuy]').forEach(b => b.onclick = async () => {
       const [res, n] = b.dataset.bmbuy!.split('|');
