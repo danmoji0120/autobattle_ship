@@ -139,8 +139,8 @@ try {
     let n = 0;
     for (const s of Object.values<any>(w.ships)) if (co.includes(s.owner)) n += s.cargo?.[item] ?? 0;
     for (const st of Object.values<any>(w.stations)) for (const c of co) n += st.storage?.[c]?.[item] ?? 0;
-    for (const x of Object.values<any>(w.drops ?? {})) n += x.lots.filter((l: any) => l.item === item).reduce((a: number, l: any) => a + l.n, 0);
-    for (const x of Object.values<any>(w.wrecks ?? {})) n += x.lots.filter((l: any) => l.item === item && l.k === 'cargo').reduce((a: number, l: any) => a + l.n, 0);
+    for (const x of Object.values<any>(w.drops ?? {})) if (co.includes(x.owner)) n += x.lots.filter((l: any) => l.item === item).reduce((a: number, l: any) => a + l.n, 0);
+    for (const x of Object.values<any>(w.wrecks ?? {})) n += x.lots.filter((l: any) => l.item === item && l.k === 'cargo' && (!l.owner || co.includes(l.owner))).reduce((a: number, l: any) => a + l.n, 0);
     return n;
   };
   const gone = (item: string) => Object.entries(flows).filter(([k]) => /^consume\/(combat_cargo_loss|drop_decay|wreck_decay)\//.test(k) && co.some(c => k.endsWith(`/${c}/${item}`))).reduce((a, [, n]) => a + n, 0);

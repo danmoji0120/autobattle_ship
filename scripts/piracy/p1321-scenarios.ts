@@ -126,6 +126,16 @@ export async function scenario6(d: Driver, ids: Ids, A: string, B: string, _C: s
 export async function scenario7a(d: Driver, ids: Ids, A: string, B: string, _C: string, facts: any, save: Save) {
   d.log(await d.cmd('A', { c: 'stance', target: B, v: -1 }) === null, 'S7: A is hostile to B');
   for (const g of [ids.s7b5, ids.s7b6]) d.log(await d.cmd('B', { c: 'piracyPolicy', group: g, policy: 'survive' }) === null, `S7: B hauler ${g} answers 생존 우선`);
+  // S7 runs after S1–S6 (~1000 s), by then the idle haulers have auto-returned to a dock. B sends them out again
+  // (real move order towards their raiders' waiting point) and A plunders them on the way
+  const vb = d.view('B'), va = d.view('A');
+  const posOf = (v: any, g: string) => { const s = v.ships[v.groups[g]?.shipIds?.[0]]; return s?.pos; };
+  for (const [b, a] of [[ids.s7b5, ids.s7a5], [ids.s7b6, ids.s7a6]]) {
+    const pb = posOf(vb, b), pa = posOf(va, a);
+    if (!pb || !pa) { d.info('S7: hauler/raider position not visible, move order skipped', { b, a, pb: !!pb, pa: !!pa }); continue; }
+    const to = { x: (pb.x + pa.x) / 2, y: 0, z: (pb.z + pa.z) / 2 };
+    d.log(await d.cmd('B', { c: 'setOp', group: b, op: { k: 'move', to } }) === null, `S7: B sends hauler ${b} out of its dock (real move order)`, { state: vb.ships[vb.groups[b]?.shipIds?.[0]]?.state });
+  }
   d.log(await d.cmd('A', { c: 'setOp', group: ids.s7a5, op: { k: 'plunder', group: ids.s7b5, policy: 'nonlethal' } }) === null, 'S7-1: A5 plunders B5');
   d.log(await d.cmd('A', { c: 'setOp', group: ids.s7a6, op: { k: 'plunder', group: ids.s7b6, policy: 'nonlethal' } }) === null, 'S7-1: A6 plunders B6');
   const d5 = await d.wait(() => dropOf(d.view('A'), A, 'S7-5'), 'S7: no container 5', 600);

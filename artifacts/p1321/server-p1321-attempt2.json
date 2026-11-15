@@ -1,0 +1,1188 @@
+{
+  "passed": 80,
+  "failed": 2,
+  "checks": [
+    {
+      "ok": true,
+      "label": "0: PIRACY_P132=1 server creates a P13.2 world (P11+P12+P12.5+P13.1); the raid book is not sent to clients",
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S1-1: B sets its hauler group to 생존 우선 (group override)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2-1: B sets its convoy to 화물 보호 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3: B's lone hauler (600 composite) is under way",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S4: B's hauler near the 자갈 해적단 lair is set to 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5: A is hostile to B",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6: A is hostile to B",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-1: B's corvette escorts the hauler group",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2: A is hostile to B (declaration)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3: B sets it to 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S4: the hauler (2000 machinery) flies past the lair",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5: B1 (hauler, 300 crystal) answers 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6: B hauler g214 answers 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-2: A declares B hostile",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2-2: A orders a plunder with force allowed",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2-3: B refused the demand (protect policy, escort present)",
+      "extra": {
+        "resp": "resist"
+      },
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3: A is hostile to B (declaration)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5: B2 (2 corvettes) holds a defence point 2.9 km from B1",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6: B hauler g222 answers 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-2: A sets a lane plunder (항로 약탈, non-destructive) on the approach to B's destination",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-1: A demands part of the cargo",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5: A2 holds its position 2.2 km from B2 (out of contact)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6: B's escort group follows B4",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-1: B creates a real logistics job: 300 ore B 광산 기지 → B 제련 기지",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-1: B jettisoned part; hauler + container = 600 composite",
+      "extra": {
+        "drop": "cd_pv4",
+        "dropped": 300,
+        "kept": 300,
+        "end": "sunk",
+        "sunk": true,
+        "wreck": {
+          "id": "wk_e270_0",
+          "composite": 172
+        },
+        "aTook": 8,
+        "cTook": 8
+      },
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5-1: A1 plunders B1 (non-destructive)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6-1: A3 plunders B3",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-2: A sends its hauler to recover the container",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6-1: A4 plunders B4",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-3: A then switches its warships to 수송망 파괴 우선 on the same hauler (force without a demand, ends the truce, P11)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5-2: the server's truce names A1 and B1 only (not A2, not B2)",
+      "extra": {
+        "pa": [
+          "g200"
+        ],
+        "pb": [
+          "g197"
+        ],
+        "r": 4000,
+        "left": 180
+      },
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6-1: two concurrent truces of the same company pair live side by side (neither overwrote the other)",
+      "extra": {
+        "drops": [
+          "cd_pv10",
+          "cd_pv13"
+        ],
+        "truces": [
+          {
+            "id": "cd_pv4",
+            "pa": [
+              "g169"
+            ],
+            "pb": [
+              "g166"
+            ]
+          },
+          {
+            "id": "cd_pv7",
+            "pa": [
+              "g200"
+            ],
+            "pb": [
+              "g197"
+            ]
+          },
+          {
+            "id": "cd_pv10",
+            "pa": [
+              "g217"
+            ],
+            "pb": [
+              "g214"
+            ]
+          },
+          {
+            "id": "cd_pv13",
+            "pa": [
+              "g228"
+            ],
+            "pb": [
+              "g222",
+              "g225"
+            ]
+          }
+        ],
+        "afterAttack": [
+          "cd_pv7",
+          "cd_pv13"
+        ],
+        "battle3": {
+          "id": "e291",
+          "groups": [
+            "g217",
+            "g225"
+          ],
+          "pos": {
+            "x": -280550,
+            "z": 8182
+          },
+          "fromTruce4": 9265
+        },
+        "cargo": {
+          "b3": 100,
+          "b4": 100
+        }
+      },
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S6-1: B4's escort group is a party of the A4↔B4 truce",
+      "extra": [
+        {
+          "id": "cd_pv4",
+          "pa": [
+            "g169"
+          ],
+          "pb": [
+            "g166"
+          ]
+        },
+        {
+          "id": "cd_pv7",
+          "pa": [
+            "g200"
+          ],
+          "pb": [
+            "g197"
+          ]
+        },
+        {
+          "id": "cd_pv10",
+          "pa": [
+            "g217"
+          ],
+          "pb": [
+            "g214"
+          ]
+        },
+        {
+          "id": "cd_pv13",
+          "pa": [
+            "g228"
+          ],
+          "pb": [
+            "g222",
+            "g225"
+          ]
+        }
+      ],
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S5-3: A2 moves onto B2 (no attack order — contact only)",
+      "t": 4
+    },
+    {
+      "ok": true,
+      "label": "S6-2: A orders A3 to attack B3 directly",
+      "t": 4
+    },
+    {
+      "ok": true,
+      "label": "S6-2: only the A3↔B3 truce ended; A4↔B4 is still active",
+      "extra": [
+        "cd_pv7",
+        "cd_pv13"
+      ],
+      "t": 4
+    },
+    {
+      "ok": true,
+      "label": "S6-2: the raid book records the use of force (attack order) for A3",
+      "extra": [
+        {
+          "policy": "attack:g214",
+          "t": 3
+        }
+      ],
+      "t": 4
+    },
+    {
+      "ok": true,
+      "label": "S1-1: the P12.5 job loaded the hauler and it undocked (real cargo under way)",
+      "extra": {
+        "carried": 300,
+        "cargo": 300,
+        "job": "lj256"
+      },
+      "t": 5
+    },
+    {
+      "ok": true,
+      "label": "S2-4/5: A used force — a real P11 engagement",
+      "extra": {
+        "eng": "e268",
+        "after": 4
+      },
+      "t": 7
+    },
+    {
+      "ok": true,
+      "label": "S4-1/2/3: an NPC pirate band threatened B's hauler; B surrendered; the real cargo was jettisoned",
+      "extra": {
+        "drop": "cd_pv18",
+        "initial": 1000,
+        "kept": 1000,
+        "leftAfterPirates": 983,
+        "bTook": 1
+      },
+      "t": 17
+    },
+    {
+      "ok": true,
+      "label": "S1-4/5/6/10: B surrendered: the hauler's ore fell by exactly the container's amount; the job settled carried −, lost +, pirated + at that moment",
+      "extra": {
+        "drop": "cd_pv21",
+        "initial": 150,
+        "carriedBefore": 300,
+        "carriedAfter": 150,
+        "lost": 150,
+        "pirated": 150,
+        "cargoAfter": 150,
+        "job": {
+          "delivered": 300,
+          "lost": 150,
+          "pirated": 150,
+          "amount": 300
+        },
+        "storage": {
+          "src": 450,
+          "dst": 300
+        }
+      },
+      "t": 18
+    },
+    {
+      "ok": true,
+      "label": "S1: no P11 engagement near the raid (non-destructive plunder)",
+      "extra": {
+        "engagements": 0
+      },
+      "t": 18
+    },
+    {
+      "ok": true,
+      "label": "S5-3: A2↔B2 started a real P11 battle while the A1↔B1 truce was still active (same two companies, inside the truce radius)",
+      "extra": {
+        "id": "e290",
+        "after": 17,
+        "groups": [
+          "g205",
+          "g209"
+        ],
+        "truceStillActive": true
+      },
+      "t": 21
+    },
+    {
+      "ok": true,
+      "label": "S5-3: neither A1 nor B1 was pulled into that battle by contact",
+      "extra": {
+        "id": "e290",
+        "after": 17,
+        "groups": [
+          "g205",
+          "g209"
+        ],
+        "truceStillActive": true
+      },
+      "t": 21
+    },
+    {
+      "ok": true,
+      "label": "S6-2: B4 (surrendered hauler, A4↔B4 truce) is not in any battle",
+      "extra": {
+        "b4": "docked"
+      },
+      "t": 21
+    },
+    {
+      "ok": true,
+      "label": "S5-4: A1 heads into the A2↔B2 battle",
+      "t": 21
+    },
+    {
+      "ok": true,
+      "label": "S6-3: B orders B4's escort to attack A4 (the victim side attacks)",
+      "t": 21
+    },
+    {
+      "ok": true,
+      "label": "S6-3: the victim side's attack ended the A4↔B4 truce",
+      "extra": {
+        "left": [
+          "cd_pv7",
+          "cd_pv18",
+          "cd_pv21"
+        ]
+      },
+      "t": 21
+    },
+    {
+      "ok": true,
+      "label": "S1-7: A's warships recovered part of the container (their salvage hold), the rest stays",
+      "extra": {
+        "aTook": 3,
+        "initial": 150
+      },
+      "t": 27
+    },
+    {
+      "ok": true,
+      "label": "S1-8: C orders its hauler to the container (unauthorised recovery of B's cargo, lawless zone)",
+      "t": 27
+    },
+    {
+      "ok": true,
+      "label": "S4-5: B sends its own escorted hauler to take back what is left (owner — always allowed)",
+      "t": 30
+    },
+    {
+      "ok": true,
+      "label": "S5-4: A1 reinforced the running battle against B2 (A1↔B2 is not under truce); B1 is not in it",
+      "extra": {
+        "eng": "e290",
+        "same": true,
+        "groups": [
+          "g205",
+          "g209",
+          "g200"
+        ]
+      },
+      "t": 31
+    },
+    {
+      "ok": true,
+      "label": "S5-5: B1 (the surrendered hauler) was never in a battle; hauler + container = 300 crystal",
+      "extra": {
+        "alive": true,
+        "crystal": 150,
+        "engaged": false
+      },
+      "t": 31
+    },
+    {
+      "ok": true,
+      "label": "S3-4: the wreck holds only part of what was still aboard (not the jettisoned composite)",
+      "extra": {
+        "kept": 300,
+        "inWreck": 172
+      },
+      "t": 32
+    },
+    {
+      "ok": true,
+      "label": "S4-5: B recovered its own jettisoned cargo",
+      "extra": {
+        "drop": "cd_pv18",
+        "initial": 1000,
+        "kept": 1000,
+        "leftAfterPirates": 983,
+        "bTook": 1
+      },
+      "t": 41
+    },
+    {
+      "ok": true,
+      "label": "S3-2: A recovered from the container",
+      "extra": {
+        "aTook": 8
+      },
+      "t": 56
+    },
+    {
+      "ok": true,
+      "label": "S3-5: C salvages the hauler's wreck",
+      "t": 56
+    },
+    {
+      "ok": true,
+      "label": "S1-8: C recovered from the same container",
+      "extra": {
+        "cTook": 2
+      },
+      "t": 79
+    },
+    {
+      "ok": true,
+      "label": "S2-6: B's hauler was sunk",
+      "t": 80
+    },
+    {
+      "ok": true,
+      "label": "S2-7: a P13.1 wreck holds the surviving part of the hauler's real cargo",
+      "extra": {
+        "id": "wk_e320_0",
+        "cargo": {
+          "metal": 178,
+          "electronics": 71
+        }
+      },
+      "t": 80
+    },
+    {
+      "ok": true,
+      "label": "S2-8: C orders its hauler to the wreck",
+      "t": 80
+    },
+    {
+      "ok": true,
+      "label": "S1: no P11 engagement anywhere near the raid during the whole scenario",
+      "extra": {
+        "engagements": 0
+      },
+      "t": 105
+    },
+    {
+      "ok": true,
+      "label": "S1-9/10/11: the hauler survived; the job completed with 300 delivered, the plundered amount re-loaded from B's own stock (nothing bought or created)",
+      "extra": {
+        "drop": "cd_pv21",
+        "initial": 150,
+        "carriedBefore": 300,
+        "carriedAfter": 150,
+        "lost": 150,
+        "pirated": 150,
+        "cargoAfter": 150,
+        "job": {
+          "delivered": 300,
+          "lost": 150,
+          "pirated": 150,
+          "amount": 300
+        },
+        "storage": {
+          "src": 450,
+          "dst": 300
+        }
+      },
+      "t": 105
+    },
+    {
+      "ok": true,
+      "label": "S3-5: container and wreck are separate objects, each recovered on its own (totals from the save)",
+      "extra": {
+        "drop": "cd_pv4",
+        "dropped": 300,
+        "kept": 300,
+        "end": "sunk",
+        "sunk": true,
+        "wreck": {
+          "id": "wk_e270_0",
+          "composite": 172
+        },
+        "aTook": 8,
+        "cTook": 8
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "S2-8: the wreck's goods are recovered by A and/or C (accounting checked from the save)",
+      "extra": {
+        "C": {
+          "electronics": 71,
+          "metal": 178
+        }
+      },
+      "t": 1010
+    },
+    {
+      "ok": true,
+      "label": "S7: A is hostile to B",
+      "t": 1010
+    },
+    {
+      "ok": true,
+      "label": "S7: B hauler g233 answers 생존 우선",
+      "t": 1010
+    },
+    {
+      "ok": true,
+      "label": "S7: B hauler g241 answers 생존 우선",
+      "t": 1010
+    },
+    {
+      "ok": true,
+      "label": "S7-1: A5 plunders B5",
+      "t": 1011
+    },
+    {
+      "ok": true,
+      "label": "S7-1: A6 plunders B6",
+      "t": 1011
+    },
+    {
+      "ok": false,
+      "label": "scenario 7 ran to the end",
+      "extra": {
+        "error": "Error: S7: no container 5"
+      },
+      "t": 1641
+    },
+    {
+      "ok": true,
+      "label": "restart: containers, wrecks, the raid book (saved entries are an exact prefix after the restart; the world keeps running) and the response policies are restored from the save",
+      "extra": {
+        "before": {
+          "drops": [
+            "cd_pv10",
+            "cd_pv38",
+            "cd_pv42",
+            "cd_pv49",
+            "cd_pv7"
+          ],
+          "dropLots": [
+            128,
+            100,
+            227,
+            21,
+            102
+          ],
+          "wrecks": [
+            "wk_e268_0",
+            "wk_e270_0",
+            "wk_e290_0",
+            "wk_e291_0",
+            "wk_e320_0",
+            "wk_e367_0",
+            "wk_e382_0",
+            "wk_e452_0",
+            "wk_e548_0",
+            "wk_e692_0"
+          ],
+          "log": 52,
+          "pol": [
+            "survive",
+            "protect"
+          ]
+        },
+        "after": {
+          "drops": [
+            "cd_pv10",
+            "cd_pv38",
+            "cd_pv42",
+            "cd_pv49",
+            "cd_pv7"
+          ],
+          "dropLots": [
+            128,
+            100,
+            227,
+            21,
+            102
+          ],
+          "wrecks": [
+            "wk_e268_0",
+            "wk_e270_0",
+            "wk_e290_0",
+            "wk_e291_0",
+            "wk_e320_0",
+            "wk_e367_0",
+            "wk_e382_0",
+            "wk_e452_0",
+            "wk_e548_0",
+            "wk_e692_0"
+          ],
+          "log": 52,
+          "pol": [
+            "survive",
+            "protect"
+          ]
+        },
+        "newAfterRestart": []
+      },
+      "t": 1645
+    },
+    {
+      "ok": false,
+      "label": "accounting ore: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 900,
+        "heldNow": 1127,
+        "destroyed": 0
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "accounting metal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 300,
+        "heldNow": 178,
+        "destroyed": 122
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "accounting electronics: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 120,
+        "heldNow": 71,
+        "destroyed": 49
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "accounting composite: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 600,
+        "heldNow": 472,
+        "destroyed": 128
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "accounting crystal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 300,
+        "heldNow": 300,
+        "destroyed": 0
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "accounting armor_plate: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 400,
+        "heldNow": 400,
+        "destroyed": 0
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "accounting structure: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 400,
+        "heldNow": 400,
+        "destroyed": 0
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "S4-4/6: what reached the lair is never more than the pirates physically recovered (server analytics)",
+      "extra": {
+        "recoveredByPirates": 179,
+        "storedAtLair": 179
+      },
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "REQUIRED: a plunder succeeded without any P11 battle (S1)",
+      "t": 1645
+    },
+    {
+      "ok": true,
+      "label": "REQUIRED: a plunder that turned into a real P11 battle and a sinking (S2 or S3)",
+      "t": 1645
+    }
+  ],
+  "infos": [
+    {
+      "label": "S6-2: the battle A3 got into after its attack order (groups, distance from the A4↔B4 truce point)",
+      "extra": {
+        "id": "e291",
+        "groups": [
+          "g217",
+          "g225"
+        ],
+        "pos": {
+          "x": -280550,
+          "z": 8182
+        },
+        "fromTruce4": 9265
+      }
+    },
+    {
+      "label": "S4 container gone from the save (exhausted or expired) — its totals are in the analytics",
+      "extra": {
+        "piracy/to_drop/guild/machinery": 38,
+        "salvage/recover/pirates/machinery": 73,
+        "piracy/lair_store/pirates/machinery": 73,
+        "salvage/to_wreck/guild/machinery": 23,
+        "consume/combat_cargo_loss/guild/machinery": 16.950182617130295,
+        "piracy/to_drop/p116/machinery": 1000,
+        "salvage/recover/p116/machinery": 983,
+        "logistics/salvage_unload/p116/machinery": 967,
+        "salvage/to_wreck/p116/machinery": 468,
+        "consume/combat_cargo_loss/p116/machinery": 548
+      }
+    }
+  ],
+  "facts": {
+    "seed": "9413",
+    "label": "p1321-attempt2",
+    "ids": {
+      "src": "p132_src",
+      "dst": "p132_dst",
+      "s1h": "g134",
+      "s1hs": "s136",
+      "s1e": "g137",
+      "s1a": "g140",
+      "s1c": "g144",
+      "s2v": "g147",
+      "s2h": "s149",
+      "s2a": "g153",
+      "s2c": "g163",
+      "s3v": "g166",
+      "s3h": "s168",
+      "s3a": "g169",
+      "s3r": "g179",
+      "s3c": "g182",
+      "s4band": "g185",
+      "s4v": "g189",
+      "s4h": "s191",
+      "s4r": "g192",
+      "lair": "gravel",
+      "s3to": "{\"x\":-280272.87241727224,\"y\":0,\"z\":-57536.049906158565}",
+      "s1amb": "{\"x\":-228172.87241727224,\"y\":0,\"z\":-10086.049906158563}",
+      "s4to": "{\"x\":56122.929425014634,\"y\":0,\"z\":8741.450554982694}",
+      "s5": "{\"x\":-239272.87241727224,\"y\":0,\"z\":27463.950093841435}",
+      "s5b1": "g197",
+      "s5b1s": "s199",
+      "s5a1": "g200",
+      "s5b2": "g205",
+      "s5a2": "g209",
+      "s5b2at": "{\"x\":-236372.87241727224,\"y\":0,\"z\":27463.950093841435}",
+      "s5a2at": "{\"x\":-236372.87241727224,\"y\":0,\"z\":25263.950093841435}",
+      "s6b3": "g214",
+      "s6b3s": "s216",
+      "s6a3": "g217",
+      "s6b4": "g222",
+      "s6b4s": "s224",
+      "s6e4": "g225",
+      "s6a4": "g228",
+      "s7b5": "g233",
+      "s7a5": "g236",
+      "s7b6": "g241",
+      "s7a6": "g244"
+    },
+    "s2": {
+      "response": "resist",
+      "end": "sunk",
+      "sunk": true,
+      "wreck": {
+        "id": "wk_e320_0",
+        "cargo": {
+          "metal": 178,
+          "electronics": 71
+        }
+      },
+      "takenC": {
+        "electronics": 71,
+        "metal": 178
+      }
+    },
+    "s3": {
+      "drop": "cd_pv4",
+      "dropped": 300,
+      "kept": 300,
+      "end": "sunk",
+      "sunk": true,
+      "wreck": {
+        "id": "wk_e270_0",
+        "composite": 172
+      },
+      "aTook": 8,
+      "cTook": 8
+    },
+    "s5": {
+      "drop": "cd_pv7",
+      "initial": 150,
+      "truce": {
+        "pa": [
+          "g200"
+        ],
+        "pb": [
+          "g197"
+        ],
+        "r": 4000,
+        "left": 180
+      },
+      "battle": {
+        "id": "e290",
+        "after": 17,
+        "groups": [
+          "g205",
+          "g209"
+        ],
+        "truceStillActive": true
+      },
+      "reinforce": {
+        "eng": "e290",
+        "same": true,
+        "groups": [
+          "g205",
+          "g209",
+          "g200"
+        ]
+      },
+      "b1": {
+        "alive": true,
+        "crystal": 150,
+        "engaged": false
+      }
+    },
+    "s6": {
+      "drops": [
+        "cd_pv10",
+        "cd_pv13"
+      ],
+      "truces": [
+        {
+          "id": "cd_pv4",
+          "pa": [
+            "g169"
+          ],
+          "pb": [
+            "g166"
+          ]
+        },
+        {
+          "id": "cd_pv7",
+          "pa": [
+            "g200"
+          ],
+          "pb": [
+            "g197"
+          ]
+        },
+        {
+          "id": "cd_pv10",
+          "pa": [
+            "g217"
+          ],
+          "pb": [
+            "g214"
+          ]
+        },
+        {
+          "id": "cd_pv13",
+          "pa": [
+            "g228"
+          ],
+          "pb": [
+            "g222",
+            "g225"
+          ]
+        }
+      ],
+      "afterAttack": [
+        "cd_pv7",
+        "cd_pv13"
+      ],
+      "battle3": {
+        "id": "e291",
+        "groups": [
+          "g217",
+          "g225"
+        ],
+        "pos": {
+          "x": -280550,
+          "z": 8182
+        },
+        "fromTruce4": 9265
+      },
+      "cargo": {
+        "b3": 100,
+        "b4": 100
+      }
+    },
+    "s4": {
+      "drop": "cd_pv18",
+      "initial": 1000,
+      "kept": 1000,
+      "leftAfterPirates": 983,
+      "bTook": 1
+    },
+    "s1": {
+      "drop": "cd_pv21",
+      "initial": 150,
+      "carriedBefore": 300,
+      "carriedAfter": 150,
+      "lost": 150,
+      "pirated": 150,
+      "cargoAfter": 150,
+      "job": {
+        "delivered": 300,
+        "lost": 150,
+        "pirated": 150,
+        "amount": 300
+      },
+      "storage": {
+        "src": 450,
+        "dst": 300
+      }
+    },
+    "flows": {
+      "piracy/to_drop/guild/machinery": 38,
+      "salvage/recover/pirates/machinery": 73,
+      "piracy/lair_store/pirates/machinery": 73,
+      "salvage/recover/pirates/alloy": 85,
+      "piracy/lair_store/pirates/alloy": 85,
+      "salvage/to_wreck/guild/machinery": 23,
+      "consume/combat_cargo_loss/guild/machinery": 16.950182617130295,
+      "salvage/wreck_hull/guild/alloy": 198,
+      "salvage/wreck_hull/guild/metal": 154,
+      "salvage/wreck_hull/guild/electronics": 44,
+      "salvage/wreck_hull/guild/weapon_parts": 44,
+      "piracy/to_drop/guild/alloy": 119,
+      "piracy/to_drop/p116/composite": 300,
+      "piracy/to_drop/p116/crystal": 150,
+      "piracy/to_drop/p116/armor_plate": 200,
+      "logistics/depart/p116/ore": 450,
+      "salvage/recover/p1/crystal": 22,
+      "salvage/recover/p1/armor_plate": 100,
+      "piracy/to_drop/p116/machinery": 1000,
+      "logistics/pirated/p116/ore": 150,
+      "piracy/to_drop/p116/ore": 150,
+      "salvage/recover/p1/ore": 44,
+      "salvage/wreck_equip/p116/eq_pd_gun": 12,
+      "salvage/wreck_hull/p116/alloy": 833,
+      "salvage/wreck_hull/p116/metal": 645,
+      "salvage/wreck_hull/p116/electronics": 179,
+      "salvage/wreck_hull/p116/weapon_parts": 179,
+      "salvage/wreck_equip/p116/eq_torpedo": 4,
+      "salvage/wreck_equip/p116/eq_autocannon": 4,
+      "salvage/to_wreck/p116/composite": 172,
+      "consume/combat_cargo_loss/p116/composite": 128,
+      "salvage/recover/p1/composite": 429,
+      "salvage/wreck_equip/p1/eq_autocannon": 1,
+      "salvage/wreck_equip/p1/eq_pd_gun": 1,
+      "salvage/wreck_hull/p1/alloy": 44,
+      "salvage/wreck_hull/p1/metal": 34,
+      "salvage/wreck_hull/p1/electronics": 9,
+      "salvage/wreck_hull/p1/weapon_parts": 9,
+      "logistics/salvage_unload/p1/armor_plate": 100,
+      "salvage/recover/p116/machinery": 983,
+      "logistics/unload/p116/ore": 300,
+      "logistics/salvage_unload/p1/ore": 44,
+      "logistics/salvage_unload/p1/composite": 429,
+      "salvage/recover/p125/ore": 106,
+      "salvage/unauthorized/p125/ore": 106,
+      "salvage/to_wreck/p116/metal": 178,
+      "consume/combat_cargo_loss/p116/metal": 122,
+      "salvage/to_wreck/p116/electronics": 71,
+      "consume/combat_cargo_loss/p116/electronics": 49,
+      "salvage/recover/p125/electronics": 71,
+      "salvage/unauthorized/p125/electronics": 71,
+      "salvage/recover/p125/metal": 178,
+      "salvage/unauthorized/p125/metal": 178,
+      "logistics/salvage_unload/p125/ore": 106,
+      "salvage/recover/p125/composite": 43,
+      "salvage/unauthorized/p125/composite": 43,
+      "logistics/salvage_unload/p116/machinery": 967,
+      "salvage/recover/p1/eq_torpedo": 1,
+      "logistics/salvage_unload/p125/electronics": 71,
+      "logistics/salvage_unload/p125/metal": 178,
+      "logistics/salvage_unload/p125/composite": 43,
+      "salvage/recover/p1/eq_pd_gun": 6,
+      "logistics/salvage_unload/p1/eq_pd_gun": 6,
+      "salvage/to_wreck/p116/machinery": 468,
+      "consume/combat_cargo_loss/p116/machinery": 548,
+      "salvage/recover/p1/eq_autocannon": 1,
+      "logistics/salvage_unload/p1/eq_autocannon": 1,
+      "logistics/salvage_unload/p1/eq_torpedo": 1,
+      "salvage/recover/pirates/eq_pd_gun": 4,
+      "piracy/lair_store/pirates/eq_pd_gun": 4,
+      "salvage/to_wreck/guild/alloy": 128,
+      "consume/combat_cargo_loss/guild/alloy": 111.375,
+      "piracy/to_drop/guild/ore": 244,
+      "salvage/recover/pirates/ore": 17,
+      "piracy/lair_store/pirates/ore": 17
+    },
+    "accounting": {
+      "ore": {
+        "start": 900,
+        "heldNow": 1127,
+        "destroyed": 0
+      },
+      "metal": {
+        "start": 300,
+        "heldNow": 178,
+        "destroyed": 122
+      },
+      "electronics": {
+        "start": 120,
+        "heldNow": 71,
+        "destroyed": 49
+      },
+      "composite": {
+        "start": 600,
+        "heldNow": 472,
+        "destroyed": 128
+      },
+      "machinery": {
+        "start": 2000,
+        "heldNow": 1440,
+        "destroyed": 548
+      },
+      "crystal": {
+        "start": 300,
+        "heldNow": 300,
+        "destroyed": 0
+      },
+      "armor_plate": {
+        "start": 400,
+        "heldNow": 400,
+        "destroyed": 0
+      },
+      "structure": {
+        "start": 400,
+        "heldNow": 400,
+        "destroyed": 0
+      }
+    },
+    "lairHold": [
+      {
+        "machinery": 73,
+        "eq_pd_gun": 4,
+        "alloy": 85,
+        "ore": 17
+      }
+    ],
+    "npc": {
+      "recoveredByPirates": 179,
+      "storedAtLair": 179
+    }
+  },
+  "realWebSockets": 3,
+  "restarts": 3,
+  "seconds": 1645
+}
