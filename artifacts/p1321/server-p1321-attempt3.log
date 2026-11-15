@@ -71,3 +71,17 @@ PASS [1010s] S7: B sends hauler g233 out of its dock (real move order) {"state":
 PASS [1010s] S7: B sends hauler g241 out of its dock (real move order) {"state":"docked"}
 PASS [1011s] S7-1: A5 plunders B5 
 PASS [1011s] S7-1: A6 plunders B6 
+FAIL [1641s] scenario 7 ran to the end {"error":"Error: S7: no container 5"}
+PASS [1645s] restart: containers, wrecks, the raid book (saved entries are an exact prefix after the restart; the world keeps running) and the response policies are restored from the save {"before":{"drops":["cd_pv11","cd_pv29","cd_pv33","cd_pv48","cd_pv52","cd_pv8"],"dropLots":[128,100,483,19,22,250],"wrecks":["wk_e268_0","wk_e270_0","wk_e290_0","wk_e291_0","wk_e320_0","wk_e367_0","wk_e383_0","wk_e573_0","wk_e673_0"],"log":55,"pol":["survive","protect"]},"after":{"drops":["cd_pv11","cd_pv29","cd_pv33","cd_pv48","cd_pv52","cd_pv8"],"dropLots":[128,100,483,19,22,250],"wrecks":["wk_e268_0","wk_e270_0","wk_e290_0","wk_e291_0","wk_e320_0","wk_e367_0","wk_e383_0","wk_e573_0","wk_e673_0"],"log":55,"pol":["survive","protect"]},"newAfterRestart":[]}
+PASS [1645s] accounting ore: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":900,"heldNow":900,"destroyed":0}
+PASS [1645s] accounting metal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":300,"heldNow":147,"destroyed":153}
+PASS [1645s] accounting electronics: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":120,"heldNow":58,"destroyed":62}
+PASS [1645s] accounting composite: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":600,"heldNow":460,"destroyed":140}
+PASS [1645s] accounting crystal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":300,"heldNow":300,"destroyed":0}
+PASS [1645s] accounting armor_plate: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":400,"heldNow":400,"destroyed":0}
+PASS [1645s] accounting structure: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":400,"heldNow":400,"destroyed":0}
+PASS [1645s] S4-6: the pirates' container in the save: taken (pirates, B) + left = what was jettisoned {"initial":500,"taken":{"pirates":{"machinery":17}},"left":483}
+PASS [1645s] S4-4/6: what reached the lair is never more than the pirates physically recovered (server analytics) {"recoveredByPirates":132,"storedAtLair":132}
+PASS [1645s] REQUIRED: a plunder succeeded without any P11 battle (S1) 
+PASS [1645s] REQUIRED: a plunder that turned into a real P11 battle and a sinking (S2 or S3) 
+{"passed":84,"failed":1,"seconds":1645}

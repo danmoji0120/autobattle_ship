@@ -133,9 +133,12 @@ export async function scenario7a(d: Driver, ids: Ids, A: string, B: string, _C: 
   for (const [b, a] of [[ids.s7b5, ids.s7a5], [ids.s7b6, ids.s7a6]]) {
     const pb = posOf(vb, b), pa = posOf(va, a);
     if (!pb || !pa) { d.info('S7: hauler/raider position not visible, move order skipped', { b, a, pb: !!pb, pa: !!pa }); continue; }
-    const to = { x: (pb.x + pa.x) / 2, y: 0, z: (pb.z + pa.z) / 2 };
+    const to = { x: pa.x, y: 0, z: pa.z };   // towards its raider (the raiders wait in open space)
     d.log(await d.cmd('B', { c: 'setOp', group: b, op: { k: 'move', to } }) === null, `S7: B sends hauler ${b} out of its dock (real move order)`, { state: vb.ships[vb.groups[b]?.shipIds?.[0]]?.state });
   }
+  // a targeted plunder on a docked hauler ends at once ("대상이 없거나 약탈할 수 없습니다", engine rule) — order it once both are out
+  const out = await d.wait(() => { const v = d.view('B'); const st = [ids.s7b5, ids.s7b6].map(g => v.ships[v.groups[g]?.shipIds?.[0]]?.state); return st.every(x => x === 'space') ? st : null; }, 'S7: haulers did not leave the dock', 120);
+  d.log(!!out, 'S7: both haulers are out in space before the plunder orders', out);
   d.log(await d.cmd('A', { c: 'setOp', group: ids.s7a5, op: { k: 'plunder', group: ids.s7b5, policy: 'nonlethal' } }) === null, 'S7-1: A5 plunders B5');
   d.log(await d.cmd('A', { c: 'setOp', group: ids.s7a6, op: { k: 'plunder', group: ids.s7b6, policy: 'nonlethal' } }) === null, 'S7-1: A6 plunders B6');
   const d5 = await d.wait(() => dropOf(d.view('A'), A, 'S7-5'), 'S7: no container 5', 600);
