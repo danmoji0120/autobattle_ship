@@ -1,0 +1,434 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/home/user/autobattle_ship[39m
+
+[90mstdout[2m | tests/faction-econ2.test.ts[2m > [22m[2mfaction economy v2: accounting and visibility[2m > [22m[2mmultiplayer: two companies replicate exactly the legacy view, with no ledger, and frames stay small
+[22m[39mv2 sync: first frame 125329 B, later frames ≤ 27133 B
+
+ [32m✓[39m tests/faction-econ2.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 104420[2mms[22m[39m
+     [33m[2m✓[22m[39m is opt-in: c0, P9 and default P10 worlds never get it, and keep the v1 rules [33m 3857[2mms[22m[39m
+     [33m[2m✓[22m[39m managed goods stop refilling for free in faction markets; other goods keep the old rules [33m 926[2mms[22m[39m
+     [33m[2m✓[22m[39m 3 h: ledger identity, no negative stock, bounded budgets and station funds [33m 37506[2mms[22m[39m
+     [33m[2m✓[22m[39m purchases never lift a stockpile above its target (no buying without demand) [33m 6009[2mms[22m[39m
+     [33m[2m✓[22m[39m goods a player sells into a faction market are bought by the faction and rebuild its fleet [33m 12823[2mms[22m[39m
+     [33m[2m✓[22m[39m a world saved mid-run continues exactly like the uninterrupted one [33m 23084[2mms[22m[39m
+     [33m[2m✓[22m[39m the cycle grid does not depend on the tick length [33m 17159[2mms[22m[39m
+     [33m[2m✓[22m[39m totals barely depend on the cycle length (rates are per hour) [33m 1797[2mms[22m[39m
+     [33m[2m✓[22m[39m multiplayer: two companies replicate exactly the legacy view, with no ledger, and frames stay small [33m 1050[2mms[22m[39m
+[90mstdout[2m | tests/company-ops.test.ts[2m > [22m[2mH — long autonomous run[2m > [22m[2mruns goals unattended for 6 game hours with bounded state and consistent money
+[22m[39m{"ticks":86400,"ms":111668,"worstTickMs":24,"works":151,"live":2,"approvals":0,"credits":1982689,"alloyHome":1508,"trade":{"lastRun":21591,"phase":"buy","cycles":1,"losses":0,"profit":2094.6000000000004,"cycleJob":"lj22","cycleCost":12870,"sellQuote":54.6,"bought":300,"sellRatio":0.9135897435897437},"hourlySpend":[9012,2016]}
+
+ [32m✓[39m tests/company-ops.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 148463[2mms[22m[39m
+     [33m[2m✓[22m[39m uses company stock first, asks once for the purchase, then buys and moves the rest without duplicates [33m 1730[2mms[22m[39m
+     [33m[2m✓[22m[39m production path: plans an order for the shortfall and asks once (on the goal) to buy its inputs [33m 2373[2mms[22m[39m
+     [33m[2m✓[22m[39m the founding order becomes a work that follows the constructor to a finished core [33m 1113[2mms[22m[39m
+     [33m[2m✓[22m[39m a fleet goal asks once for the build cost, then builds and launches with procured parts [33m 13191[2mms[22m[39m
+     [33m[2m✓[22m[39m a queued project is a work that completes when the technology is learned [33m 9326[2mms[22m[39m
+     [33m[2m✓[22m[39m buys, carries and sells per cycle, tracks real profit, and stops after two losing cycles [33m 396[2mms[22m[39m
+     [33m[2m✓[22m[39m does not repeat at a loss: learns the realised sale price and stops buying when it no longer pays [33m 2597[2mms[22m[39m
+     [33m[2m✓[22m[39m two consecutive realised losses pause the goal and raise one loss report [33m 1542[2mms[22m[39m
+     [33m[2m✓[22m[39m stops at the budget, asks once, honours reject (no re-ask) and a modified approval amount [33m 1998[2mms[22m[39m
+     [33m[2m✓[22m[39m minimum balance is never breached without approval and splitting purchases does not bypass the limit [33m 379[2mms[22m[39m
+     [33m[2m✓[22m[39m facility order from the station screen becomes a work and asks to buy materials once [33m 1666[2mms[22m[39m
+     [33m[2m✓[22m[39m runs goals unattended for 6 game hours with bounded state and consistent money [33m 111679[2mms[22m[39m
+ [32m✓[39m tests/econ-chain-exploits.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 95246[2mms[22m[39m
+     [33m[2m✓[22m[39m 6 h of world time with a busy company: no negative or non-finite credits, stock, funds or prices [33m 95105[2mms[22m[39m
+ [32m✓[39m tests/company-ops-2.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 79965[2mms[22m[39m
+     [33m[2m✓[22m[39m an escort order is an open-ended work; a finished move is recorded as done [33m 743[2mms[22m[39m
+     [33m[2m✓[22m[39m orders, builds, construction, research, shipments, routes and fleet orders each get exactly one work [33m 378[2mms[22m[39m
+     [33m[2m✓[22m[39m a station goal is made at another own station, with the intermediate made at a third, then delivered — no purchases, no excess [33m 3641[2mms[22m[39m
+     [33m[2m✓[22m[39m a company-wide goal spreads batches over every station with the lines and counts stock wherever it is [33m 4261[2mms[22m[39m
+     [33m[2m✓[22m[39m rejecting leads to one follow-up with the alternatives only; rejecting that ends asking for 6 hours [33m 34794[2mms[22m[39m
+     [33m[2m✓[22m[39m two hours of mixed play raise only the one approval that is really needed [33m 35536[2mms[22m[39m
+ [32m✓[39m tests/sync.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 67559[2mms[22m[39m
+     [33m[2m✓[22m[39m legacyView equals the original per-client snapshot [33m 2080[2mms[22m[39m
+     [33m[2m✓[22m[39m a protocol 2 client always holds exactly what the original snapshot would have shown it [33m 60139[2mms[22m[39m
+     [33m[2m✓[22m[39m field patches reproduce the target exactly, including key order (fuzz) [33m 484[2mms[22m[39m
+     [33m[2m✓[22m[39m shared mov rows carry exactly the ships the per-client rows did [33m 4774[2mms[22m[39m
+ [32m✓[39m tests/industry.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 67880[2mms[22m[39m
+     [33m[2m✓[22m[39m ore → metal, titanium ore → titanium, metal+titanium → alloy, alloy+metal → structure: exact recipe accounting [33m 7775[2mms[22m[39m
+     [33m[2m✓[22m[39m an order waits with the exact missing input, then starts on its own when it arrives [33m 1814[2mms[22m[39m
+     [33m[2m✓[22m[39m no facility / research / storage full are reported, never silently ignored [33m 816[2mms[22m[39m
+     [33m[2m✓[22m[39m more instances = more parallel lines; low power slows production [33m 1907[2mms[22m[39m
+     [33m[2m✓[22m[39m stock-target orders keep a level, pause/resume/reorder/cancel work [33m 6228[2mms[22m[39m
+     [33m[2m✓[22m[39m nothing is created or destroyed except by recipes: long mixed run conserves every item [33m 15394[2mms[22m[39m
+     [33m[2m✓[22m[39m fields yield their mixture; miners deliver several goods [33m 5400[2mms[22m[39m
+     [33m[2m✓[22m[39m hauling: one item, everything, and automatic supply of what the destination lacks [33m 10145[2mms[22m[39m
+     [33m[2m✓[22m[39m own warehouse capacity: unloading stops at the limit and keeps the rest aboard [33m 5735[2mms[22m[39m
+     [33m[2m✓[22m[39m public markets trade the new goods; regional production restocks and pirate pressure slows it [33m 7991[2mms[22m[39m
+     [33m[2m✓[22m[39m production state survives a restart exactly; old saves are upgraded in place [33m 4667[2mms[22m[39m
+ [32m✓[39m tests/growth.test.ts [2m([22m[2m16 tests[22m[2m)[22m[33m 302492[2mms[22m[39m
+     [33m[2m✓[22m[39m grants blueprints for existing build rights, seeds budgets and stock, conserves every asset, round-trips [33m 1069[2mms[22m[39m
+     [33m[2m✓[22m[39m without the flag a c2 save stays c2: no blueprints, no upkeep, legacy commands [33m 3850[2mms[22m[39m
+     [33m[2m✓[22m[39m public yards sell from real stock: no duplication, the last unit goes to one buyer only, restock uses materials [33m 60408[2mms[22m[39m
+     [33m[2m✓[22m[39m own builds check blueprint, research, yard, facilities and materials; the launched ship carries the preset [33m 36037[2mms[22m[39m
+     [33m[2m✓[22m[39m unpaid upkeep goes through the stages; ships are never deleted, ships in space are never recalled, consent before reserve [33m 46762[2mms[22m[39m
+     [33m[2m✓[22m[39m reserve and reactivation by command [33m 3078[2mms[22m[39m
+     [33m[2m✓[22m[39m dumping ore: price falls to the floor, the budget caps payment, the rest stays stored, budgets recover [33m 18638[2mms[22m[39m
+     [33m[2m✓[22m[39m stock, listings, blueprints, upkeep and wear survive a restart exactly [33m 4209[2mms[22m[39m
+     [33m[2m✓[22m[39m a long unattended mining run stays sane: no negative stock or budgets, no NaN, positive net [33m 72431[2mms[22m[39m
+     [33m[2m✓[22m[39m miners that never dock (a hauler carries their ore) are still maintained: automation is not penalised [33m 55960[2mms[22m[39m
+ [32m✓[39m tests/p131-salvage.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 38712[2mms[22m[39m
+     [33m[2m✓[22m[39m A05: a real P11 battle leaves a wreck where the hauler died, with its surviving cargo; once per engagement [33m 12700[2mms[22m[39m
+     [33m[2m✓[22m[39m B01: a recover order flies, works and fills the real hold; nothing reaches storage before docking; exact accounting [33m 442[2mms[22m[39m
+     [33m[2m✓[22m[39m B02: full hold → dock and unload only salvage → return → continue until the wreck is empty → stand by [33m 1674[2mms[22m[39m
+     [33m[2m✓[22m[39m B05: a miner strips hull scrap a warship cannot; a constructor pulls equipment [33m 1804[2mms[22m[39m
+     [33m[2m✓[22m[39m B07/B08: automatic logistics never takes a salvaging hauler; P12 return beats salvage [33m 475[2mms[22m[39m
+     [33m[2m✓[22m[39m C01: after a real battle the idle winners pick up what is close and legal, then carry it home [33m 15279[2mms[22m[39m
+     [33m[2m✓[22m[39m C02/C03/C04: the toggle, protected cargo and a hostile fleet nearby all stop automatic pickup [33m 1336[2mms[22m[39m
+     [33m[2m✓[22m[39m C05: a fleet under a move order does not stop to salvage [33m 404[2mms[22m[39m
+     [33m[2m✓[22m[39m C06/C07: zone salvage chooses wrecks inside the zone, unloads, comes back, waits, and takes new wrecks [33m 1099[2mms[22m[39m
+     [33m[2m✓[22m[39m D01: two companies on one wreck never take the same unit (sums are exact) [33m 1933[2mms[22m[39m
+     [33m[2m✓[22m[39m E01: a salvage operation survives save / restore with the same accounting [33m 808[2mms[22m[39m
+ [32m✓[39m tests/research.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 68013[2mms[22m[39m
+     [33m[2m✓[22m[39m needs a lab of the right field; credits at registration, materials consumed at start, then the tech is known [33m 9199[2mms[22m[39m
+     [33m[2m✓[22m[39m prerequisites: refused unless known or queued earlier; a queued follow-up waits, then starts by itself [33m 8715[2mms[22m[39m
+     [33m[2m✓[22m[39m parallel projects use separate slots; slot-limited projects queue; power and research techs change speed [33m 1826[2mms[22m[39m
+     [33m[2m✓[22m[39m pause, reorder and cancel (full refund before start, pro-rata after; materials are not returned) [33m 4839[2mms[22m[39m
+     [33m[2m✓[22m[39m unlocks are enforced: facility, recipe and hull design need the tech [33m 805[2mms[22m[39m
+     [33m[2m✓[22m[39m blueprints: bought from a broker, learned from storage; known techs can be copied into tradeable blueprints [33m 3388[2mms[22m[39m
+     [33m[2m✓[22m[39m salvage: wrecks yield parts and captured equipment; captured equipment can be reverse-engineered faster [33m 22684[2mms[22m[39m
+     [33m[2m✓[22m[39m projects survive a restart and finish identically [33m 16548[2mms[22m[39m
+ [32m✓[39m tests/growth2.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 42819[2mms[22m[39m
+     [33m[2m✓[22m[39m limit + leases: over the limit nothing new comes in, nothing stored is removed; ship holds and leases are the way out [33m 375[2mms[22m[39m
+     [33m[2m✓[22m[39m shared public docks: a crowd of ships is only partly maintained, and the dock recovers over the hour [33m 28394[2mms[22m[39m
+     [33m[2m✓[22m[39m sites are deterministic, found by survey, salvaged into the holds; deep sites can hold unsold blueprints [33m 13823[2mms[22m[39m
+[90mstdout[2m | tests/p963-large-logistics.test.ts[2m > [22m[2mP9.6.3 large construction with physical logistics[2m > [22m[2mbuilds a L station and its complete yard chain with multi-gate deliveries
+[22m[39m{"size":"L","simulatedSeconds":4672.75,"needs":{"alloy":39500,"structure":3340,"machinery":1185,"electronics":310,"composite":300},"trips":{"alloy":6,"structure":4,"machinery":4,"electronics":2,"composite":1}}
+
+ [32m✓[39m tests/construction.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 36419[2mms[22m[39m
+     [33m[2m✓[22m[39m 3,000 alloy but no structure is a structure shortage, not an alloy one; when it arrives it builds [33m 4018[2mms[22m[39m
+     [33m[2m✓[22m[39m a plan can be registered with no materials; credits are charged, it waits, then auto-starts when they arrive [33m 2917[2mms[22m[39m
+     [33m[2m✓[22m[39m credit and material shortfalls are reported separately [33m 814[2mms[22m[39m
+     [33m[2m✓[22m[39m several plans never double-spend: queue order decides, reserved stock cannot buy ships or be sold [33m 5296[2mms[22m[39m
+     [33m[2m✓[22m[39m pause keeps the reservation and stops work; resume continues; reorder changes who gets materials first [33m 2428[2mms[22m[39m
+     [33m[2m✓[22m[39m cancel returns reserved materials and refunds credits (in full before work starts) [33m 1018[2mms[22m[39m
+     [33m[2m✓[22m[39m miners unloading at the station feed the waiting plan, which then builds itself [33m 16643[2mms[22m[39m
+     [33m[2m✓[22m[39m plans, reservations and progress survive a restart [33m 2422[2mms[22m[39m
+     [33m[2m✓[22m[39m old saves: an unbuilt module without plan data is migrated without losing paid progress [33m 858[2mms[22m[39m
+[90mstdout[2m | tests/p963-large-logistics.test.ts[2m > [22m[2mP9.6.3 large construction with physical logistics[2m > [22m[2mbuilds a XL station and its complete yard chain with multi-gate deliveries
+[22m[39m{"size":"XL","simulatedSeconds":13597.25,"needs":{"alloy":132500,"structure":11940,"machinery":4035,"electronics":1310,"composite":1900,"precision":350},"trips":{"alloy":17,"structure":5,"machinery":5,"electronics":4,"composite":2,"precision":1}}
+
+ [32m✓[39m tests/p963-large-logistics.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 36872[2mms[22m[39m
+     [33m[2m✓[22m[39m builds a L station and its complete yard chain with multi-gate deliveries [33m 9106[2mms[22m[39m
+     [33m[2m✓[22m[39m builds a XL station and its complete yard chain with multi-gate deliveries [33m 27765[2mms[22m[39m
+ [32m✓[39m tests/shipyard.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 40252[2mms[22m[39m
+     [33m[2m✓[22m[39m a corvette: registered without parts, waits with the exact shortage, then builds and launches with its fitting [33m 10620[2mms[22m[39m
+     [33m[2m✓[22m[39m yard size and slots: bigger hulls need bigger yards, more yards build in parallel, big yards take small hulls [33m 1075[2mms[22m[39m
+     [33m[2m✓[22m[39m designs need research; cancel refunds in full before the keel, partially after (parts are not returned) [33m 4824[2mms[22m[39m
+     [33m[2m✓[22m[39m own facilities never sell finished ships for credits; public yards still sell complete hulls [33m 1060[2mms[22m[39m
+     [33m[2m✓[22m[39m fitting moves modules between ship and storage all-or-nothing, within the hull slots [33m 3129[2mms[22m[39m
+     [33m[2m✓[22m[39m builds survive a restart and finish identically [33m 19527[2mms[22m[39m
+ [32m✓[39m tests/p10-universe.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 31198[2mms[22m[39m
+     [33m[2m✓[22m[39m mines discrete units from the hidden composition and conserves the extracted amount [33m 1086[2mms[22m[39m
+     [33m[2m✓[22m[39m a border conflict closes its gates; ships and managed routes detour [33m 707[2mms[22m[39m
+     [33m[2m✓[22m[39m long-run faction activity is bounded and observable [33m 24728[2mms[22m[39m
+     [33m[2m✓[22m[39m develop_field keeps mining and tracks value; a player re-order pauses it [33m 4118[2mms[22m[39m
+ [32m✓[39m tests/bbex-combat.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 39926[2mms[22m[39m
+     [33m[2m✓[22m[39m kestrel:1 [33m 1467[2mms[22m[39m
+     [33m[2m✓[22m[39m kestrel:7 [33m 588[2mms[22m[39m
+     [33m[2m✓[22m[39m kestrel:42 [33m 552[2mms[22m[39m
+     [33m[2m✓[22m[39m bastion:1 [33m 862[2mms[22m[39m
+     [33m[2m✓[22m[39m bastion:7 [33m 557[2mms[22m[39m
+     [33m[2m✓[22m[39m bastion:42 [33m 473[2mms[22m[39m
+     [33m[2m✓[22m[39m wolfpack:1 [33m 534[2mms[22m[39m
+     [33m[2m✓[22m[39m wolfpack:7 [33m 725[2mms[22m[39m
+     [33m[2m✓[22m[39m wolfpack:42 [33m 563[2mms[22m[39m
+     [33m[2m✓[22m[39m same seed → same state, events and lattice; different seed diverges [33m 9651[2mms[22m[39m
+     [33m[2m✓[22m[39m recorded orders replay to the same digest (lockstep spectators see the authority's battle) [33m 5330[2mms[22m[39m
+     [33m[2m✓[22m[39m arrives through the rift, then fights: 45 mounts, 12 funnels, every exclusive weapon scores [33m 5169[2mms[22m[39m
+     [33m[2m✓[22m[39m the lattice that is drawn is the lattice that cuts: every DCP hit lies on an announced segment [33m 7719[2mms[22m[39m
+     [33m[2m✓[22m[39m commander BB changes outcomes: vetoes a lethal blow, strikes out a landed hit, rewrites a glancing shot [33m 378[2mms[22m[39m
+     [33m[2m✓[22m[39m options isolate systems: no DCP-Ω, lost funnels, an overloaded PARADOX, the decisive protocol [33m 5350[2mms[22m[39m
+ [32m✓[39m tests/mining.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 28586[2mms[22m[39m
+     [33m[2m✓[22m[39m own station + store: ore goes into the PMC storage there, then the miners go back and repeat [33m 10268[2mms[22m[39m
+     [33m[2m✓[22m[39m refuses to sell at a station without a market (no silent fallback) [33m 1044[2mms[22m[39m
+     [33m[2m✓[22m[39m automatic destination + sale still works (the quick right-click order) [33m 2936[2mms[22m[39m
+     [33m[2m✓[22m[39m a vanished destination: warns, holds the ore, never sells it elsewhere; re-targeting resumes [33m 6203[2mms[22m[39m
+     [33m[2m✓[22m[39m another system’s station is a valid destination (warp + gate routing) [33m 8120[2mms[22m[39m
+ [32m✓[39m tests/p12-ops.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 16513[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-09: area defence chases an intruder, fights it (P11), then returns to its zone and keeps defending [33m 814[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-10: patrol follows its waypoints in a loop, fights on the way and resumes the route [33m 3309[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-12: attack-move fights hostiles met on the way, then resumes the advance and arrives [33m 373[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-13: blockade holds a real position at the gate, engages hostiles there and lets neutrals pass [33m 805[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-15: reinforce joins a running P11 battle mid-way (one battle, no reset), then idles [33m 1966[2mms[22m[39m
+     [33m[2m✓[22m[39m recon sweeps the area, records only what its sensors saw, and reports on completion [33m 508[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-16/18: an operation interrupted by a battle and a save/restore resumes with the same state [33m 7388[2mms[22m[39m
+ [32m✓[39m tests/factions.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 32074[2mms[22m[39m
+     [33m[2m✓[22m[39m pirate raids push pirates up and the guild down; influence drifts back toward the situation [33m 7629[2mms[22m[39m
+     [33m[2m✓[22m[39m delivery contracts ask for the new goods too, and influence survives a restart [33m 24242[2mms[22m[39m
+[90mstdout[2m | tests/p963-industrial-progression.test.ts[2m > [22m[2mP9.6.3 medium industrial progression[2m > [22m[2mphysically supplies an M station, researches hulls, produces electronics and builds a medium yard
+[22m[39m{"size":"M","simulatedSeconds":14057.25,"sourceFixture":{"alloy":16640,"structure":555,"machinery":395,"electronics":159,"composite":50,"silicon":180,"precision":4,"ore":40,"silicate":40,"crystal":1},"mediumResearch":["frigate_design","medium_hulls"]}
+
+ [32m✓[39m tests/p963-industrial-progression.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 28198[2mms[22m[39m
+     [33m[2m✓[22m[39m physically supplies an M station, researches hulls, produces electronics and builds a medium yard [33m 28197[2mms[22m[39m
+[90mstdout[2m | tests/p11-edge.test.ts[2m > [22m[2mP11 edge cases[2m > [22m[2mNPC-only fights past the load cap fall back to the light resolution (N-side), players are never throttled
+[22m[39m[budget] live [33m10[39m light [33m2[39m
+
+ [32m✓[39m tests/p5.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 18313[2mms[22m[39m
+     [33m[2m✓[22m[39m a c0 world refuses P5 research, facilities and recipes; a growth world accepts them [33m 2800[2mms[22m[39m
+     [33m[2m✓[22m[39m works end to end [33m 15325[2mms[22m[39m
+ [32m✓[39m tests/p11-edge.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 13601[2mms[22m[39m
+     [33m[2m✓[22m[39m when the last hostile side withdraws, the remaining (allied) sides end the battle together, nobody routed [33m 374[2mms[22m[39m
+     [33m[2m✓[22m[39m a fleet reaching the zone as the battle ends is never left stuck in the finished engagement [33m 308[2mms[22m[39m
+     [33m[2m✓[22m[39m NPC-only fights past the load cap fall back to the light resolution (N-side), players are never throttled [33m 3697[2mms[22m[39m
+     [33m[2m✓[22m[39m T18: a 200-ship three-way battle with a mid-battle reinforcement stays deterministic across save/restore [33m 8753[2mms[22m[39m
+ [32m✓[39m tests/save-path.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 14952[2mms[22m[39m
+     [33m[2m✓[22m[39m is exactly the JSON of the save file (with analytics), built without a parse/stringify round-trip [33m 891[2mms[22m[39m
+     [33m[2m✓[22m[39m restores the same world, accounts and analytics (and keeps loading saves of the previous format) [33m 2651[2mms[22m[39m
+     [33m[2m✓[22m[39m survives many restarts without drift or growth beyond the world itself [33m 3342[2mms[22m[39m
+     [33m[2m✓[22m[39m a world restored from a later save records the unobserved interval as a gap and still reconciles [33m 734[2mms[22m[39m
+     [33m[2m✓[22m[39m is ignored for a different or reset world, and an older copy loses to the one inside the world save [33m 6878[2mms[22m[39m
+ [32m✓[39m tests/p981-autonomous-logistics.test.ts [2m([22m[2m21 tests[22m[2m)[22m[33m 12483[2mms[22m[39m
+     [33m[2m✓[22m[39m dispatches three ships of one group independently to different jobs [33m 936[2mms[22m[39m
+     [33m[2m✓[22m[39m runs transfer, production supply and construction supply independently in the same group [33m 756[2mms[22m[39m
+     [33m[2m✓[22m[39m automatically assigns the next job to one ship and respects priority [33m 872[2mms[22m[39m
+     [33m[2m✓[22m[39m competing requests never take more than the same physical stock, including restore [33m 656[2mms[22m[39m
+     [33m[2m✓[22m[39m holds cargo when a destination is full and resumes when space returns [33m 715[2mms[22m[39m
+     [33m[2m✓[22m[39m pause and cancellation do not teleport loaded goods; restored in-flight jobs complete once [33m 641[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps legacy routes and their manifests intact and rejects mining ships and foreign commands [33m 569[2mms[22m[39m
+     [33m[2m✓[22m[39m sells only this job’s cargo, waits for market funds, and repeats only when explicitly requested [33m 1118[2mms[22m[39m
+     [33m[2m✓[22m[39m restores a sized station’s in-progress physical loading without moving the same goods twice [33m 742[2mms[22m[39m
+     [33m[2m✓[22m[39m loads the actual base-commit P9.7 in-flight save idempotently and runs new pool jobs beside it [33m 728[2mms[22m[39m
+     [33m[2m✓[22m[39m returns a destroyed ship’s uncollected reservation before assigning another ship [33m 840[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the source stock unreserved when a gate is unavailable and recovers after reconnection [33m 2928[2mms[22m[39m
+     [33m[2m✓[22m[39m reports a full dock and resumes its loaded shipment when a berth opens [33m 688[2mms[22m[39m
+ [32m✓[39m tests/integration-p8-logistics.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 15323[2mms[22m[39m
+     [33m[2m✓[22m[39m runs actual P8 mining with a separate P8 hauler, sells and records real income without currency drift [33m 10081[2mms[22m[39m
+     [33m[2m✓[22m[39m supplies real production and exports it with L-berth P8 hulls, preserving ownership and analytics [33m 3896[2mms[22m[39m
+     [33m[2m✓[22m[39m round-trips research, construction, P8 build, fitted ships and live route manifests without resubmission [33m 544[2mms[22m[39m
+     [33m[2m✓[22m[39m dry-runs a synthetic c0 copy without touching its source and conserves its migration census [33m 799[2mms[22m[39m
+ [32m✓[39m tests/p982-procurement.test.ts [2m([22m[2m25 tests[22m[2m)[22m[33m 14288[2mms[22m[39m
+     [33m[2m✓[22m[39m automatically combines multiple company warehouses and completes construction [33m 936[2mms[22m[39m
+     [33m[2m✓[22m[39m supplies a real production order using its world-version recipe and finishes a batch [33m 403[2mms[22m[39m
+     [33m[2m✓[22m[39m delivers the registered hull, preset and equipment needs and launches the real ship [33m 7239[2mms[22m[39m
+     [33m[2m✓[22m[39m purchases once through the real market, restores, physically delivers and produces [33m 506[2mms[22m[39m
+     [33m[2m✓[22m[39m does not count a manual outbound claim as local supply for a production order [33m 646[2mms[22m[39m
+     [33m[2m✓[22m[39m supplies production without requiring an optional logistics centre and bounds repeat orders to one batch [33m 368[2mms[22m[39m
+     [33m[2m✓[22m[39m transports a fractional construction shortfall without rounding it away or fabricating stock [33m 586[2mms[22m[39m
+     [33m[2m✓[22m[39m resumes an origin-paused shipment with its original loaded cargo and completes construction [33m 795[2mms[22m[39m
+     [33m[2m✓[22m[39m waits with real cargo when a destination fills, then recovers and produces [33m 431[2mms[22m[39m
+     [33m[2m✓[22m[39m uses only the company-owned stock at an external private warehouse [33m 791[2mms[22m[39m
+     [33m[2m✓[22m[39m resumes already loaded cargo even if its external source becomes empty or disappears [33m 681[2mms[22m[39m
+     [33m[2m✓[22m[39m records only destroyed cargo as lost and reassigns the remaining material from real stock [33m 409[2mms[22m[39m
+ [32m✓[39m tests/p132-piracy.test.ts [2m([22m[2m33 tests[22m[2m)[22m[33m 10995[2mms[22m[39m
+     [33m[2m✓[22m[39m A10: one demand per ship in the re-demand time (any raider); a refusing hauler is not asked every tick [33m 636[2mms[22m[39m
+     [33m[2m✓[22m[39m B04/B05: partial recovery by several companies — initial = Σ taken + left, no unit twice [33m 449[2mms[22m[39m
+     [33m[2m✓[22m[39m B08: a restart in the middle of a recovery keeps the exact quantities (no second drop) [33m 392[2mms[22m[39m
+     [33m[2m✓[22m[39m D02: harass with a plunder policy raids a lane; plain harass stays the P12 military raid [33m 1194[2mms[22m[39m
+     [33m[2m✓[22m[39m D06: warships alone carry only their small salvage hold; nothing beyond it is gained [33m 2924[2mms[22m[39m
+     [33m[2m✓[22m[39m F01/F05: destroy policy sinks without a demand; P11 decides; the wreck holds real cargo only [33m 2393[2mms[22m[39m
+     [33m[2m✓[22m[39m F07: two raiders on one hauler — one demand, one container, exact totals [33m 896[2mms[22m[39m
+     [33m[2m✓[22m[39m F04: a battle interrupts collection; the container keeps what was not taken [33m 830[2mms[22m[39m
+ [32m✓[39m tests/sim.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 9796[2mms[22m[39m
+     [33m[2m✓[22m[39m same seed produces identical state [33m 1441[2mms[22m[39m
+     [33m[2m✓[22m[39m different seeds diverge [33m 668[2mms[22m[39m
+     [33m[2m✓[22m[39m recorded player orders replay exactly [33m 856[2mms[22m[39m
+     [33m[2m✓[22m[39m scenario kestrel ends with an outcome [33m 484[2mms[22m[39m
+     [33m[2m✓[22m[39m scenario bastion ends with an outcome [33m 831[2mms[22m[39m
+     [33m[2m✓[22m[39m scenario wolfpack ends with an outcome [33m 470[2mms[22m[39m
+     [33m[2m✓[22m[39m named commanders beat acting captains with identical ships [33m 4079[2mms[22m[39m
+     [33m[2m✓[22m[39m a skilled admiral coordinates hammer & anvil (raiders wait for the line) [33m 528[2mms[22m[39m
+     [33m[2m✓[22m[39m retreating groups leave the battlefield [33m 374[2mms[22m[39m
+ [32m✓[39m tests/example-pack.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 9520[2mms[22m[39m
+     [33m[2m✓[22m[39m is in the game tables, growth-only, and hidden from a legacy world [33m 1041[2mms[22m[39m
+     [33m[2m✓[22m[39m research → production → fitting → combat → save/reload [33m 8228[2mms[22m[39m
+ [32m✓[39m tests/accounts.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 8941[2mms[22m[39m
+     [33m[2m✓[22m[39m passwords are stored only as salted scrypt hashes and verified in constant time [33m 969[2mms[22m[39m
+     [33m[2m✓[22m[39m sign-up validates the login ID and password, rejects duplicates case-insensitively [33m 376[2mms[22m[39m
+     [33m[2m✓[22m[39m login: wrong password and unknown IDs give the same error; throttled after repeated failures [33m 3618[2mms[22m[39m
+     [33m[2m✓[22m[39m sessions expire, slide while used, and end on logout [33m 561[2mms[22m[39m
+     [33m[2m✓[22m[39m password change signs out every other session; recovery code resets the password once [33m 2779[2mms[22m[39m
+     [33m[2m✓[22m[39m an open connection keeps its session alive past the idle lifetime [33m 364[2mms[22m[39m
+ [32m✓[39m tests/p125-logistics.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 8494[2mms[22m[39m
+     [33m[2m✓[22m[39m A1–A3: a bought hauler works for construction with no route and no registration [33m 1279[2mms[22m[39m
+     [33m[2m✓[22m[39m A6: waits when every hauler is busy and resumes when a ship becomes free [33m 344[2mms[22m[39m
+     [33m[2m✓[22m[39m B1: production inputs arrive from two stations without double counting in-transit goods [33m 388[2mms[22m[39m
+     [33m[2m✓[22m[39m C7: conservation over a busy run — initial + production − consumption = final, loading creates nothing [33m 1558[2mms[22m[39m
+     [33m[2m✓[22m[39m D1: pirates raid a loaded hauler for real (P11 engagement); the hauler flees by the existing rule [33m 1834[2mms[22m[39m
+     [33m[2m✓[22m[39m D2: a blockaded gate stops dispatch with a visible cause; lifting it resumes [33m 536[2mms[22m[39m
+ [32m✓[39m tests/logistics-p2.test.ts [2m([22m[2m14 tests[22m[2m)[22m[33m 8824[2mms[22m[39m
+     [33m[2m✓[22m[39m repeated transfer preserves existing cargo, ownership and resources; duplicate execution at the same time cannot load twice [33m 1489[2mms[22m[39m
+     [33m[2m✓[22m[39m one-way, edit, pause/resume and cancellation are explicit and keep cargo aboard [33m 1003[2mms[22m[39m
+     [33m[2m✓[22m[39m full destination and lost leased capacity hold cargo with bounded retries and resume when space returns [33m 957[2mms[22m[39m
+     [33m[2m✓[22m[39m automatic sale retains unsold shipment on board, retries budgets, and never sells pre-existing cargo [33m 377[2mms[22m[39m
+     [33m[2m✓[22m[39m partial market fills conserve currency, survive reload and cannot sell a shipment twice [33m 671[2mms[22m[39m
+     [33m[2m✓[22m[39m construction-reserved inputs stay unavailable until an explicit plan cancellation releases them [33m 678[2mms[22m[39m
+     [33m[2m✓[22m[39m supply requires existing logistics infrastructure and reserves incoming shipments across fleets [33m 942[2mms[22m[39m
+     [33m[2m✓[22m[39m blocked jump paths preserve shipment, recover automatically, and missing destinations can be edited safely [33m 2216[2mms[22m[39m
+     [33m[2m✓[22m[39m manual cargo unloading resolves a full hold without sales, consumption or duplicate delivery [33m 311[2mms[22m[39m
+ [32m✓[39m tests/p131-p11-outcome.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 7569[2mms[22m[39m
+     [33m[2m✓[22m[39m escorts lost then the rest flees = routed; a lone hauler that escapes a second attack = withdrawn with 0 losses (was "destroyed") [33m 2441[2mms[22m[39m
+     [33m[2m✓[22m[39m a hauler caught and sunk = destroyed with its loss counted; the victor keeps its living ships [33m 1102[2mms[22m[39m
+     [33m[2m✓[22m[39m three sides: the side whose only ship escapes leaves as withdrawn (0 lost) while the other two fight on [33m 4019[2mms[22m[39m
+[90mstdout[2m | tests/p11-server.test.ts[2m > [22m[2mP11 §14 on the multiplayer server[2m > [22m[2mfour PMCs, reinforcements, late spectator, reconnect, withdrawal, server restart, replay — all consistent
+[22m[39m[§14] {"seed":1158914836,"sides":[{"company":"p1","status":"victor"},{"company":"p10","status":"withdrawn"},{"company":"p19","status":"victor"},{"company":"p28","status":"routed"}],"names":["PMC-a","PMC-b","PMC-c","PMC-d"],"losses":[1,1,0,2],"summary":"PMC-a · PMC-c 잔존 — 손실 PMC-a 1척 · PMC-b 1척 · PMC-c 0척 · PMC-d 2척","joins":[{"co":"PMC-c","tick":334,"ships":2},{"co":"PMC-d","tick":484,"ships":2}],"orders":9,"finalTick":6270,"hash":"c1959b15","credits":{"PMC-a":-220,"PMC-b":-203,"PMC-c":-175,"PMC-d":-188}}
+
+ [32m✓[39m tests/p11-server.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 8255[2mms[22m[39m
+     [33m[2m✓[22m[39m four PMCs, reinforcements, late spectator, reconnect, withdrawal, server restart, replay — all consistent [33m 8253[2mms[22m[39m
+ [32m✓[39m tests/econ-chain-ops.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 6740[2mms[22m[39m
+     [33m[2m✓[22m[39m a goal approved at the old unit price stops buying and asks again instead of paying the new price [33m 902[2mms[22m[39m
+     [33m[2m✓[22m[39m total budget, hourly limit and minimum credits still cap spending at the new prices [33m 5039[2mms[22m[39m
+     [33m[2m✓[22m[39m a price rise above maxBuy makes it wait (no unconditional purchase); same-market trade is refused [33m 505[2mms[22m[39m
+ [32m✓[39m tests/p10-save-compat.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 6841[2mms[22m[39m
+     [33m[2m✓[22m[39m a P9 save reloads and runs without gaining factions, fog, intel or new systems [33m 2389[2mms[22m[39m
+     [33m[2m✓[22m[39m a legacy five-system world stays legacy [33m 597[2mms[22m[39m
+     [33m[2m✓[22m[39m P10 state (territory, factions, conflicts, intel, deposit depth) round-trips and continues identically [33m 3852[2mms[22m[39m
+ [32m✓[39m tests/p11-combat-engine.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 8264[2mms[22m[39m
+     [33m[2m✓[22m[39m T03: three independent sides fight each other and the battle ends [33m 1044[2mms[22m[39m
+     [33m[2m✓[22m[39m T04/T05: allied sides never shoot each other; A+B vs C and A+B vs C+D end with the coalition statuses [33m 1268[2mms[22m[39m
+     [33m[2m✓[22m[39m T08: a side neutral to both belligerents is never attacked and never attacks [33m 595[2mms[22m[39m
+     [33m[2m✓[22m[39m T09: A is hostile to B and C, B and C are neutral to each other — no B↔C fire [33m 706[2mms[22m[39m
+     [33m[2m✓[22m[39m T06/T07: reinforcements join a running battle at their tick; nothing already there is reset [33m 839[2mms[22m[39m
+     [33m[2m✓[22m[39m T16: a battle with reinforcements, a relation change, a withdrawal and orders replays to the same state [33m 945[2mms[22m[39m
+     [33m[2m✓[22m[39m a join after the end is ignored; joins close before the hard time cap [33m 414[2mms[22m[39m
+     [33m[2m✓[22m[39m time limit with reinforcements: extended, capped, and a stalemate — never a strength-based winner [33m 817[2mms[22m[39m
+     [33m[2m✓[22m[39m T17: BB-EX in a three-way battle (and joining one) only fights hostile sides [33m 1329[2mms[22m[39m
+ [32m✓[39m tests/retention.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 5929[2mms[22m[39m
+     [33m[2m✓[22m[39m keeps the newest finished jobs, every live one, and leaves the world otherwise identical [33m 5918[2mms[22m[39m
+ [32m✓[39m tests/p97-regional-resources.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 6561[2mms[22m[39m
+     [33m[2m✓[22m[39m retains a usable starting fleet, basic hull purchase and ordinary mining without rare materials [33m 1211[2mms[22m[39m
+     [33m[2m✓[22m[39m mines Anvil, hauls through gates, processes an alloy and fits a produced armor module [33m 2405[2mms[22m[39m
+     [33m[2m✓[22m[39m lets a company that mines nothing buy a processed regional material, haul it and manufacture equipment [33m 1911[2mms[22m[39m
+     [33m[2m✓[22m[39m physically supplies Shard crystals, makes optics and a lance, and uses that fitting in battle [33m 631[2mms[22m[39m
+ [32m✓[39m tests/world.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 5947[2mms[22m[39m
+     [33m[2m✓[22m[39m mining orders move ships into the field and turn ore into credits [33m 2749[2mms[22m[39m
+     [33m[2m✓[22m[39m a constructor founds a station and builds its docking hub [33m 1062[2mms[22m[39m
+     [33m[2m✓[22m[39m pirate encounters become battles whose results persist on the PMC [33m 623[2mms[22m[39m
+     [33m[2m✓[22m[39m save/load round-trips the world, including a battle in progress [33m 697[2mms[22m[39m
+     [33m[2m✓[22m[39m battle orders are stamped ahead and replay deterministically on clients [33m 766[2mms[22m[39m
+ [32m✓[39m tests/dev1-auth.test.ts [2m([22m[2m2 tests[22m[2m)[22m[33m 5593[2mms[22m[39m
+     [33m[2m✓[22m[39m requires a live allowlisted account, configured scrypt hash, correct password, and rate limits concurrent failures [33m 2186[2mms[22m[39m
+     [33m[2m✓[22m[39m revokes on logout, account-password change, lab-password change and removal from the admin allowlist [33m 3406[2mms[22m[39m
+ [32m✓[39m tests/company-ops-long.test.ts [2m([22m[2m3 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[33m 5245[2mms[22m[39m
+     [33m[2m✓[22m[39m restores works, open approvals, paused operations and goal plans exactly; nothing is raised or planned twice [33m 902[2mms[22m[39m
+     [33m[2m✓[22m[39m each company sees and controls only its own works, approvals and ledger; one company's pending approval stalls nobody else [33m 4341[2mms[22m[39m
+ [32m✓[39m tests/p12-return.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 6386[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-02: the nearest station is unusable → another one is chosen automatically [33m 354[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-03: a hull too large for the nearby berth → a station whose berth fits [33m 366[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-05: the destination is lost on the way → a replacement is found (no flip-flopping otherwise) [33m 350[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-07: completion docks, idles, and never resumes the previous mission [33m 773[2mms[22m[39m
+     [33m[2m✓[22m[39m cross-system return goes through gates and docks; a blockaded gate is routed around [33m 326[2mms[22m[39m
+     [33m[2m✓[22m[39m a server restart mid-return continues exactly like the uninterrupted run [33m 711[2mms[22m[39m
+     [33m[2m✓[22m[39m return during a battle: only this group retreats (no side-wide withdraw), then it returns home; settled once [33m 2270[2mms[22m[39m
+ [32m✓[39m tests/p96-industrial-flow.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 4962[2mms[22m[39m
+     [33m[2m✓[22m[39m founds an S station, supplies and builds its facilities, mines, refines and ships the product [33m 4960[2mms[22m[39m
+ [32m✓[39m tests/dev1-combat.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 4252[2mms[22m[39m
+     [33m[2m✓[22m[39m aggregates 1,000 real engine runs without a fleet budget [33m 4013[2mms[22m[39m
+[90mstdout[2m | tests/p11-world.test.ts[2m > [22m[2mP11 persistent world: save/restore, replay, settlement[2m > [22m[2mT02/T20: pirate bounty goes only to companies that damaged pirates; a PvP kill pays no bounty
+[22m[39m[T20 bounty] dmg {"p1":{"pirates":4117.636507905265},"pirates":{"p1":183.51109679979726},"p19":{"pirates":352.7908770855516}} gain [ [33m2432[39m, [33m0[39m, [33m208[39m ] summary PMC-A · PMC-C 잔존 — 손실 PMC-A 0척 · 해적 2척 · PMC-B 0척 · PMC-C 0척
+[T20 pvp] PMC-A 승리 — 손실 PMC-A 0척 · PMC-B 1척 credits [33m12000[39m → [33m11921.166666667[39m rep [33m0[39m
+
+ [32m✓[39m tests/p11-world.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 3808[2mms[22m[39m
+     [33m[2m✓[22m[39m T06/T07/T09/T10/T11 + §14: B vs A running, C joins in place for A, D joins hostile to all, B withdraws, the rest fight on [33m 723[2mms[22m[39m
+     [33m[2m✓[22m[39m T15/T16/T20: restore mid-battle after a join continues identically; the record replays to the same hash; settled once [33m 1648[2mms[22m[39m
+     [33m[2m✓[22m[39m T02/T20: pirate bounty goes only to companies that damaged pirates; a PvP kill pays no bounty [33m 1176[2mms[22m[39m
+ [32m✓[39m tests/content.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 4378[2mms[22m[39m
+     [33m[2m✓[22m[39m the validator rejects broken content [33m 1181[2mms[22m[39m
+     [33m[2m✓[22m[39m fills hull + variant on every ship, conserves every asset, is idempotent and round-trips [33m 704[2mms[22m[39m
+     [33m[2m✓[22m[39m census catches duplicated or lost equipment unless the migration recorded it as granted [33m 640[2mms[22m[39m
+     [33m[2m✓[22m[39m dry-run mode leaves an old save untouched; new ships stay unmarked until the migration is applied [33m 546[2mms[22m[39m
+     [33m[2m✓[22m[39m rollback and roll forward: ships created by the previous code version are repaired on load [33m 659[2mms[22m[39m
+[90mstderr[2m | tests/bbex-exclusive.test.ts[2m > [22m[2m5–7. restart, repeated grants and save/load keep one owner and one copy[2m > [22m[2mownership never moves to another account, by grant or by a changed setting
+[22m[39m[siderarium] BB/BB-EX는 이미 다른 계정에 귀속되어 있습니다 — 소유권은 이전되지 않습니다 (SIDERARIUM_BB_OWNER_ACCOUNT 확인 필요).
+[siderarium] BB/BB-EX는 이미 다른 계정에 귀속되어 있습니다 — 소유권은 이전되지 않습니다 (SIDERARIUM_BB_OWNER_ACCOUNT 확인 필요).
+
+ [32m✓[39m tests/escort.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 3517[2mms[22m[39m
+     [33m[2m✓[22m[39m same station: the escort leads to the field and pickets it while the miners work [33m 418[2mms[22m[39m
+     [33m[2m✓[22m[39m escort lost or released: the miners keep working and are told once [33m 1001[2mms[22m[39m
+     [33m[2m✓[22m[39m escort order and wait state survive a save/restore [33m 411[2mms[22m[39m
+     [33m[2m✓[22m[39m a pirate band warping in is fought by the escort; no miner is lost [33m 1358[2mms[22m[39m
+ [32m✓[39m tests/bbex-exclusive.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 4067[2mms[22m[39m
+     [33m[2m✓[22m[39m survives restart and save/load exactly; a restart with the setting removed keeps it too [33m 893[2mms[22m[39m
+     [33m[2m✓[22m[39m goes to the home port in recovery, cannot depart, comes back as the same ship [33m 891[2mms[22m[39m
+     [33m[2m✓[22m[39m a world battle: BB-EX fights pirates with its exotic systems, others can spectate, the ledger is never sent [33m 1851[2mms[22m[39m
+ [32m✓[39m tests/analytics.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 3907[2mms[22m[39m
+     [33m[2m✓[22m[39m compacts old intervals, bounds bytes and metadata, and explicitly reports retention loss [33m 1642[2mms[22m[39m
+     [33m[2m✓[22m[39m collecting statistics does not change c0 or growth simulation state or RNG [33m 1969[2mms[22m[39m
+ [32m✓[39m tests/p962-core-economy.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 3159[2mms[22m[39m
+     [33m[2m✓[22m[39m pre-pays and completes 'S' only after the exact on-site materials are delivered [33m 527[2mms[22m[39m
+     [33m[2m✓[22m[39m pre-pays and completes 'M' only after the exact on-site materials are delivered [33m 629[2mms[22m[39m
+     [33m[2m✓[22m[39m pre-pays and completes 'L' only after the exact on-site materials are delivered [33m 653[2mms[22m[39m
+     [33m[2m✓[22m[39m pre-pays and completes 'XL' only after the exact on-site materials are delivered [33m 1255[2mms[22m[39m
+ [32m✓[39m tests/p9-world.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 2685[2mms[22m[39m
+     [33m[2m✓[22m[39m continues the same seeded P9 simulation after saving and restoring [33m 919[2mms[22m[39m
+     [33m[2m✓[22m[39m moves an actual fleet to the distant lawless endpoint and back through eight gates [33m 685[2mms[22m[39m
+     [33m[2m✓[22m[39m repeats a four-jump freight route, recovers after a gate outage and reloads the in-flight manifest [33m 833[2mms[22m[39m
+ [32m✓[39m tests/faction-econ2-stab.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 3044[2mms[22m[39m
+     [33m[2m✓[22m[39m pirates smuggle through the embargo (they buy in markets of factions hostile to them) [33m 385[2mms[22m[39m
+     [33m[2m✓[22m[39m raids move goods from hostile neighbours to the pirates; nothing is created [33m 1499[2mms[22m[39m
+     [33m[2m✓[22m[39m the munitions maker keeps exporting armour plate during a war (strategic goods do not stop) [33m 800[2mms[22m[39m
+ [32m✓[39m tests/fitting.test.ts [2m([22m[2m20 tests[22m[2m)[22m[33m 2744[2mms[22m[39m
+     [33m[2m✓[22m[39m new player ships carry a fitting equal to their preset; NPC ships stay on legacy loadouts [33m 558[2mms[22m[39m
+     [33m[2m✓[22m[39m every legacy module set still fits every legacy preset, and the bays never allow more than the old slots [33m 554[2mms[22m[39m
+     [33m[2m✓[22m[39m for all 25 presets, the fitting spec builds the identical ship and the identical battle [33m 543[2mms[22m[39m
+ [32m✓[39m tests/p1321-truce.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 1872[2mms[22m[39m
+     [33m[2m✓[22m[39m T08: after the truce time the same parties meet in P11 normally [33m 580[2mms[22m[39m
+     [33m[2m✓[22m[39m T12: the parties stay covered away from the jettison point (same dock approach, 12 km off) until the truce ends; then normal contact [33m 372[2mms[22m[39m
+ [32m✓[39m tests/p963-facility-economy.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 1927[2mms[22m[39m
+     [33m[2m✓[22m[39m allows an existing S communication facility plan to finish but blocks new ones [33m 1548[2mms[22m[39m
+ [32m✓[39m tests/model-pipeline.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1503[2mms[22m[39m
+     [33m[2m✓[22m[39m reports missing files, changed files, broken files and bad axes [33m 499[2mms[22m[39m
+     [33m[2m✓[22m[39m a legacy (c0) world never meets a model [33m 398[2mms[22m[39m
+ [32m✓[39m tests/econ-baseline.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1463[2mms[22m[39m
+     [33m[2m✓[22m[39m own builds pay labour + the yard fee; cancelling before the keel refunds exactly that and nothing more [33m 1381[2mms[22m[39m
+[90mstdout[2m | tests/fleetmarch.test.ts[2m > [22m[2mfleet moves as one[2m > [22m[2m17-ship mixed fleet crosses two jump gates and arrives together (no ship runs ahead)
+[22m[39marrival window 0 s, max in-flight spread 597 u, total 61 s
+
+[90mstdout[2m | tests/fleetmarch.test.ts[2m > [22m[2mfleet moves as one[2m > [22m[2mattack: the fleet stages, assembles, then the whole fleet enters the battle together
+[22m[39mphases transit→ready→engage ships in the first battle: [33m17[39m
+
+ [32m✓[39m tests/p8-ships.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 2001[2mms[22m[39m
+     [33m[2m✓[22m[39m acquires blueprints, enforces research and builds the five hulls with real parts and presets [33m 1868[2mms[22m[39m
+[90mstdout[2m | tests/fleetmarch.test.ts[2m > [22m[2mfleet moves as one[2m > [22m[2man explicitly detached vanguard moves on its own, ahead of the main body
+[22m[39mvanguard 39 s, main body 60 s
+
+ [32m✓[39m tests/fleetmarch.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 1616[2mms[22m[39m
+     [33m[2m✓[22m[39m 17-ship mixed fleet crosses two jump gates and arrives together (no ship runs ahead) [33m 582[2mms[22m[39m
+     [33m[2m✓[22m[39m attack: the fleet stages, assembles, then the whole fleet enters the battle together [33m 646[2mms[22m[39m
+     [33m[2m✓[22m[39m an explicitly detached vanguard moves on its own, ahead of the main body [33m 386[2mms[22m[39m
+ [32m✓[39m tests/lease-policy.test.ts [2m([22m[2m12 tests[22m[2m)[22m[33m 1832[2mms[22m[39m
+     [33m[2m✓[22m[39m shipless zero-credit 45cr/h accounts owe exactly 45 after one hour for every caller interval, then stop charging without losing goods [33m 621[2mms[22m[39m
+     [33m[2m✓[22m[39m sale repayment and rent preserve identical state with collection disabled/enabled and reconcile real cash [33m 547[2mms[22m[39m
+ [32m✓[39m tests/econ-chain.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 1146[2mms[22m[39m
+     [33m[2m✓[22m[39m chain worlds run alloy_direct at the recorded output; a batch started before migration keeps its terms [33m 1041[2mms[22m[39m
+ [32m✓[39m tests/p95-construction-logistics.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 1607[2mms[22m[39m
+     [33m[2m✓[22m[39m buys at the market, carries a reserved multi-gate shipment through restart, and consumes exactly once [33m 658[2mms[22m[39m
+ [32m✓[39m tests/p1321-ui.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 780[2mms[22m[39m
+ [32m✓[39m tests/p9631-cargo-safety.test.ts [2m([22m[2m7 tests[22m[2m)[22m[33m 864[2mms[22m[39m
+     [33m[2m✓[22m[39m returns 81,850 exactly once, blocks intake and exploits, survives restart, and resumes after physical outbound freight [33m 816[2mms[22m[39m
+ [32m✓[39m tests/dev11-combat.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 320[2mms[22m[39m
+ [32m✓[39m tests/p96-stations.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 626[2mms[22m[39m
+     [33m[2m✓[22m[39m physically transports purchased construction materials across gates and resumes handling after restart [33m 322[2mms[22m[39m
+ [32m✓[39m tests/p9632-trade-cargo.test.ts [2m([22m[2m19 tests[22m[2m)[22m[33m 438[2mms[22m[39m
+ [32m✓[39m tests/p9631-yard.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 271[2mms[22m[39m
+ [32m✓[39m tests/storage-stability.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 188[2mms[22m[39m
+ [32m✓[39m tests/security.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 179[2mms[22m[39m
+ [32m✓[39m tests/analytics-p2.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 206[2mms[22m[39m
+ [32m✓[39m tests/npcbattle.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 819[2mms[22m[39m
+     [33m[2m✓[22m[39m battle ships move on the strategic map while fighting (mirrored from the engine) [33m 612[2mms[22m[39m
+ [32m✓[39m tests/p9632-trade-client.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 121[2mms[22m[39m
+ [32m✓[39m tests/p961-comms.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+[90mstdout[2m | tests/interp.test.ts[2m > [22m[2mclient interpolation[2m > [22m[2mnever draws a ship moving backwards under jitter and stalls (packets every 0.2s)
+[22m[39minterval 0.2s: backwards frames old=169 new=0
+
+[90mstdout[2m | tests/interp.test.ts[2m > [22m[2mclient interpolation[2m > [22m[2mnever draws a ship moving backwards under jitter and stalls (packets every 0.5s)
+[22m[39minterval 0.5s: backwards frames old=84 new=0
+
+ [32m✓[39m tests/interp.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m tests/repair-quote.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 76[2mms[22m[39m
+[90mstderr[2m | tests/wsguard.test.ts[2m > [22m[2mWebSocket guard[2m > [22m[2mlimits from the environment; invalid values keep the defaults
+[22m[39m[siderarium] WS_MSG_BURST=abc 무시 (양수가 아님) — 기본값 120 사용
+[siderarium] WS_CMD_RATE=0 무시 (양수가 아님) — 기본값 10 사용
+
+ [32m✓[39m tests/wsguard.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32m✓[39m tests/p95-purchase-client.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 54[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/dev1-pg.test.ts [2m([22m[2m1 test[22m[2m | [22m[33m1 skipped[39m[2m)[22m
+ [32m✓[39m tests/galaxy-map.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 27[2mms[22m[39m
+ [32m✓[39m tests/p95-yard-equivalence.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 30[2mms[22m[39m
+ [2m[90m↓[39m[22m tests/pg-migrate.test.ts [2m([22m[2m14 tests[22m[2m | [22m[33m14 skipped[39m[2m)[22m
+
+[2m Test Files [22m [1m[32m80 passed[39m[22m[2m | [22m[33m2 skipped[39m[90m (82)[39m
+[2m      Tests [22m [1m[32m778 passed[39m[22m[2m | [22m[33m16 skipped[39m[90m (794)[39m
+[2m   Start at [22m 08:08:05
+[2m   Duration [22m 543.21s[2m (transform 7.77s, setup 0ms, import 31.34s, tests 1585.10s, environment 11ms)[22m
+
