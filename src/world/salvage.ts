@@ -18,13 +18,14 @@ import { lotValue, itemLabel, siteOf, allSites } from './wrecks';
 import { coRelation } from './battleAuth';
 import { econOf, berthFits } from './hullops';
 import { shipValue } from './data';
-import { dist } from './geom';
+import { dist, sysAt } from './geom';
 import { techFx } from './industry';
 import { effSec } from './security';
 import { bumpStanding } from './territory';
 import { emit } from './observe';
 import { stationCargoRate } from './stations';
 import { opKey } from './fleetops';
+import { recoveredKey, isHot, inspectChance } from './blackmarket';
 import type { CommanderDef } from '../sim/data/commanders';
 
 type Host = WorldSim;
@@ -142,12 +143,14 @@ function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number):
   const take = Math.min(Math.floor(a + 1e-9), lot.n, weightless(lot) ? Infinity : Math.floor(salvageRoom(h, s) + 1e-9));
   if (take > 0) {
     lot.n -= take; a -= take;
-    addc(s.cargo, lot.item, take);
-    addc((s.salvaged ??= {}), lot.item, take);
+    // P13.3: another company's cargo becomes stolen goods (its own key), the owner's own goods come back plain
+    const k = recoveredKey(h.st, s.owner, lot);
+    addc(s.cargo, k, take);
+    addc((s.salvaged ??= {}), k, take);
     const t = (w.taken[s.owner] ??= {}); t[lot.item] = (t[lot.item] ?? 0) + take;
     if (!w.seen.includes(s.owner)) w.seen.push(s.owner);
     recovered(h, s, w, lot, take);
-    emit(h.st, { kind: 'salvage', reason: 'recover', item: lot.item, amount: take, company: s.owner, group: s.groupId, ship: s.id, system: w.system, ref: w.id, from: lot.owner });
+    emit(h.st, { kind: 'salvage', reason: 'recover', item: k, amount: take, company: s.owner, group: s.groupId, ship: s.id, system: w.system, ref: w.id, from: lot.owner });
     if (protectedLot(h, s.owner, lot)) crime(h, s, w, lot, take);
   }
   s.salvAcc = { lot: key, a: Math.min(a, 1) };
@@ -212,12 +215,16 @@ const salvageAboard = (s: WShip) => !!s.salvaged && Object.keys(s.salvaged).some
 /** a station to unload at: dockable, storage room for what is aboard, berths for the fleet; nearest (own preferred) */
 function pickStation(h: Host, g: WGroup, ships: WShip[], from: V, ignore: Record<string, number> = {}): Station | null {
   const items = new Set<string>(); for (const s of ships) for (const k of Object.keys(s.salvaged ?? {})) items.add(k);
+  let hot: Cargo | undefined;
+  if (h.st.blackMarketV) for (const s of ships) for (const [k, n] of Object.entries(s.salvaged ?? {})) if (isHot(k) && n > 0) (hot ??= {})[k] = (hot[k] ?? 0) + n;
   let best: Station | null = null, bd = Infinity;
   for (const st of Object.values(h.st.stations)) {
     if ((ignore[st.id] ?? 0) > h.time || !h.canDock(st, g.owner)) continue;
     if (!ships.every(s => berthFits(st, econOf(s).berth))) continue;
     if (items.size && ![...items].some(k => h.intakeRoom(st, g.owner, k) > 1)) continue;
-    const d = h.routeDistance(from, st.pos) * (st.owner === g.owner ? 0.8 : 1);
+    let d = h.routeDistance(from, st.pos) * (st.owner === g.owner ? 0.8 : 1);
+    // P13.3: with stolen goods aboard, a station where they are likely seized counts as much farther
+    if (hot) d *= 1 + 4 * inspectChance(h.st, g.owner, sysAt(h.st.systems, st.pos), 'dock', hot, st);
     if (d < bd) { bd = d; best = st; }
   }
   return best;

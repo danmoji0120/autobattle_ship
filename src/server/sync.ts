@@ -25,7 +25,7 @@ export const SYNC_PROTO = 2;
 export interface Viewer { company?: string; view?: string }
 
 /** keyed collections replicated entity by entity (others are replicated as whole values) */
-const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'wrecks', 'drops', 'uniques', 'ships', 'intel'] as const;
+const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'wrecks', 'drops', 'uniques', 'ships', 'intel', 'blackMarkets'] as const;
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
@@ -47,8 +47,8 @@ function publicCompany(id: string, co: any) {
 function stationBody(st: Station, own: boolean) {
   return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
 }
-function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined }; }
-function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined, pir: undefined }; }
+function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined, smug: undefined }; }
+function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined, pir: undefined, insp: undefined }; }
 /** P13.2: what pirates carried home stays with them (not replicated) */
 const lairBody = (l: any) => l.hold === undefined ? l : { ...l, hold: undefined };
 /** P13.1 wrecks: news of a battle is public, but under fog only where the viewer can see (or it took part) */
@@ -129,6 +129,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   return {
     ...base, engagements: eng, battleLog: log, companies, stations, ships, groups, lairs: st.fog ? undefined : Object.fromEntries(Object.values(st.lairs).map(l => [l.id, lairBody(l)])), ...fog, factions: publicFactions(base.factions),
     intel: base.intel ? (c && base.intel[c] ? { [c]: base.intel[c] } : {}) : undefined,
+    blackMarkets: base.blackMarkets ? Object.fromEntries(Object.entries(base.blackMarkets).filter(([id]) => !!c && !!st.companies[c]?.bm?.known.includes(id))) : undefined,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
     works: own(base.works), approvals: own(base.approvals),
     grants: undefined, conversions: undefined, exclusive: undefined, econLog: undefined, piracy: undefined,
@@ -312,6 +313,11 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
       return;
     case 'intel':
       if (c && map[c]) one(c, 'in:' + c, () => map[c]);
+      return;
+    case 'blackMarkets':
+      // P13.3: a black market exists for a company only once it found it
+      if (!c) return;
+      for (const id in map) if (st.companies[c]?.bm?.known.includes(id)) one(id, 'bm', () => map[id]);
       return;
     case 'engagements':
       for (const id in map) if (!st.fog || contentsKnown(st, c, map[id].pos) || (!!c && map[id].sides.some((x: string[]) => x.includes(c)))) one(id, 'en', () => { const { setup: _x, orders: _o, ...lite } = map[id]; return lite; });

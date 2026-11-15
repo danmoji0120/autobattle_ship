@@ -59,6 +59,8 @@ export interface Company {
   ops?: import('./operations').CompanyOps;
   /** P10 standing with each territorial faction (−100..100; absent = 0) */
   standing?: Record<string, number>;
+  /** P13.3 (blackMarketV): black markets this company found, and its private trade / inspection log */
+  bm?: { known: string[]; log?: import('./blackmarket').BmLog[] };
   /** P13.2: default answer of this company's cargo ships to a cargo demand (absent = balanced) */
   piracyPolicy?: import('./piracy').VictimPolicy;
 }
@@ -141,6 +143,9 @@ export type Op =
    *  It follows the raid at a distance, recovers the containers that raid made jettison and unloads them;
    *  within PIR.tenderR of a victim its free hold counts in the victim's judgement (never its guns). */
   | { k: 'lootTender'; group: string }
+  /** P13.3 (blackMarketV worlds): carry stolen / restricted goods (optionally loaded at `from`) to the black market at
+   *  station `to`, through the real gates and inspections, and sell them there when `sell` */
+  | { k: 'smuggle'; to: string; from?: string; items?: string[]; sell?: boolean }
   /** support a running battle (eng) or a friendly fleet (group) */
   | { k: 'reinforce'; eng?: string; group?: string }
   | { k: 'recon'; at: V; radius: number }
@@ -212,6 +217,8 @@ export interface WShip {
   salvAcc?: { lot: string; a: number };
   /** P13.2: the last cargo demand made to this ship (one demand per ship per PIR.redemand seconds) */
   pir?: { t: number; by: string; ev: string; act: import('./piracy').Response; dropped?: number };
+  /** P13.3: inspection outcomes recorded per place and 30-minute window (a retry replays the outcome) */
+  insp?: Record<string, 'pass' | 'seize'>;
   /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
@@ -250,6 +257,8 @@ export interface WGroup {
   autoSalvage?: false;
   /** P13.1: salvage execution state (recover / salvage-zone orders, or an automatic on-site pickup) */
   salv?: import('./salvage').SalvState;
+  /** P13.3: smuggling run state (op smuggle) */
+  smug?: import('./blackmarket').SmuggleState;
   /** P13.2: plunder operation state (the group holding a plunder order, or a raiding pirate band) */
   plx?: import('./piracy').PlunderState;
   /** P13.2: this fleet's answer to cargo demands (absent = the company default) */
@@ -595,6 +604,10 @@ export interface WorldState {
   piracyV?: 1;
   /** P13.2: cargo jettisoned by ships that gave in to a demand (recovered with the P13.1 salvage engine) */
   drops?: Record<string, import('./piracy').CargoDrop>;
+  /** P13.3 black markets & smuggling (new worlds only; implies piracyV) */
+  blackMarketV?: 1;
+  /** P13.3: hidden black markets, one per region type (replicated only to companies that found them) */
+  blackMarkets?: Record<string, import('./blackmarket').BlackMarket>;
   /** P13.2: server-side bookkeeping (truces, event log, sequence) — never replicated */
   piracy?: import('./piracy').PiracyBook;
   /** P11: per-company stance toward other player companies. Hostility is unilateral (either side's

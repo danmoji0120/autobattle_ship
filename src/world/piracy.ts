@@ -27,6 +27,7 @@ import { isExclusive } from '../content/registry';
 import { SALV, salvageRoom, stepCollect, canCollect } from './salvage';
 import { cargoLost } from './autonomousLogistics';
 import type { CommanderDef } from '../sim/data/commanders';
+import { recoveredKey, isHot, bmBestSale } from './blackmarket';
 
 type Host = WorldSim;
 
@@ -497,7 +498,13 @@ export function saleQuote(h: Host, st: Station, item: string, n: number): { sold
   return { sold, value: total * tax };
 }
 /** best real sale of these goods at a station the company may dock at (each item at its best market) */
-function bestSale(h: Host, company: string, goods: Cargo, cache: Map<string, { st: Station; bid: number }[]>): number {
+function bestSale(h: Host, company: string, goods: Cargo, cache: Map<string, { st: Station; bid: number }[]>, victim?: string): number {
+  // P13.3: what the raid takes from another company becomes stolen goods — only black markets it knows buy those
+  if (h.st.blackMarketV && victim) {
+    const hot: Cargo = {}, plain: Cargo = {};
+    for (const [k, n] of Object.entries(goods)) { const key = recoveredKey(h.st, company, { k: 'cargo', item: k, owner: victim }); if (isHot(key)) hot[key] = (hot[key] ?? 0) + n; else plain[key] = (plain[key] ?? 0) + n; }
+    return bmBestSale(h, company, hot) + bestSale(h, company, plain, cache);
+  }
   let total = 0;
   for (const [item, n] of Object.entries(goods)) {
     if (n <= 0) continue;
@@ -528,7 +535,7 @@ export function estimateTarget(h: Host, g: WGroup, t: WGroup, s: WShip, op: Plun
   const recover = units <= 0 ? 0 : a.room >= units ? units : a.room + 0.5 * (units - a.room);
   const share = units > 0 ? recover / units : 0;
   const goods: Cargo = {}; for (const [k, n] of Object.entries(want)) goods[k] = Math.floor(n * share);
-  const sale = bestSale(h, g.owner, goods, cache);
+  const sale = bestSale(h, g.owner, goods, cache, s.owner);
   const opposed = Math.min(a.attack, a.defense + a.support);
   const risk = (1 - p) * opposed * (op.policy === 'force' ? PIR.aiForceRisk : PIR.aiExposure);
   const profit = p * sale - risk;
@@ -561,7 +568,7 @@ function search(h: Host, g: WGroup, op: PlunderOp, P: PlunderState, from: V): WG
     seen++;
     // exact upper bound first: profit ≤ the real sale of everything demanded (p ≤ 1, risk ≥ 0, recovered ≤ demanded),
     // so a cheap quote skips the costly judgement (escape route search) without changing any choice
-    const ub = bestSale(h, g.owner, wanted(h, s, op.demand, op.item), cache);
+    const ub = bestSale(h, g.owner, wanted(h, s, op.demand, op.item), cache, s.owner);
     if (ub < PIR.aiMinProfit) continue;
     cands.push({ t, s, ub: ub / (dist(s.pos, from) / speed + PIR.aiFixedTime), i: cands.length });
   }

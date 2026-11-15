@@ -94,6 +94,10 @@ export type Cmd =
   /** contentV ≥ 3: `hull` (+ `preset`) picks a hull from the yard's stock; classId/loadoutId stay for older clients */
   | { c: 'buyShip'; station: string; classId: string; loadoutId: string; group?: string; hull?: string; variant?: string; preset?: string; request?: { seq: number; id: string } }
   | { c: 'sell'; station: string; res: Res; amount: number; request?: { seq: number; id: string } }
+  /** P13.3: sell stolen / restricted goods to a black market (from a docked ship's hold, else company storage there) */
+  | { c: 'bmSell'; station: string; res: string; amount: number; ship?: string; request?: { seq: number; id: string } }
+  /** P13.3: buy restricted goods a black market stocks */
+  | { c: 'bmBuy'; station: string; res: string; amount: number; ship?: string; request?: { seq: number; id: string } }
   | { c: 'buy'; station: string; res: Res; amount: number; /** growth: load straight into this docked ship's hold */ ship?: string; request?: { seq: number; id: string } }
   | { c: 'lease'; station: string; blocks: number }
   | { c: 'repair'; ship: string; /** the cost the client showed; refused when the server charge differs */ quote?: number }
@@ -176,6 +180,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
+import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 
 export class WorldSim {
@@ -247,7 +252,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -258,7 +263,9 @@ export class WorldSim {
     // P13.1 physical battlefield wrecks & salvage is opt-in and builds on P11/P12/P12.5; no random derelicts
     if (opts.salvage === 'p131' || opts.piracy === 'p132') { sim.st.combatV = 2; sim.st.opsV = 1; if (!sim.st.logisticsV) enableAutoLogistics(sim); sim.st.salvageV = 1; }
     // P13.2 cargo raiding builds on all of the above (threat → jettison → physical recovery, or force → P11 → wreck)
-    if (opts.piracy === 'p132') { sim.st.piracyV = 1; sim.st.drops = {}; }
+    if (opts.piracy === 'p132' || opts.blackMarket === 'p133') { sim.st.combatV = 2; sim.st.opsV = 1; if (!sim.st.logisticsV) enableAutoLogistics(sim); sim.st.salvageV = 1; sim.st.piracyV = 1; sim.st.drops = {}; }
+    // P13.3 black markets & smuggling build on P13.2 (stolen goods come from real plunder and salvage)
+    if (opts.blackMarket === 'p133') sim.st.blackMarketV = 1;
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -268,6 +275,7 @@ export class WorldSim {
     // v2 faction economy is opt-in (new isolated P10 worlds only); enabled after pricing so stockpiles use final prices
     if (opts.factionEcon === 'v2') enableFactionEcon2(sim.st);
     if (sim.st.salvageV) delete sim.st.sites;
+    if (sim.st.blackMarketV) seedBlackMarkets(sim);
     return sim;
   }
 
@@ -882,6 +890,20 @@ export class WorldSim {
         }
         return null;
       }
+      case 'bmSell': case 'bmBuy': {
+        let receipt: Company['lastTrade'];
+        if (cmd.request !== undefined) {
+          const checked = tradeRequest(co.lastTrade, cmd.request, JSON.stringify([cmd.c, cmd.station, cmd.res, cmd.amount, cmd.ship ?? null]));
+          if (checked.error) return checked.error;
+          if (checked.duplicate) return null;
+          receipt = checked.receipt;
+        }
+        if (cmd.ship !== undefined && typeof cmd.ship !== 'string') return '함선이 올바르지 않습니다';
+        const r = cmd.c === 'bmSell' ? bmSell(this, company, cmd.station, cmd.res, cmd.amount, cmd.ship) : bmBuy(this, company, cmd.station, cmd.res, cmd.amount, cmd.ship);
+        if (typeof r === 'string') return r;
+        if (receipt) co.lastTrade = receipt;
+        return null;
+      }
       case 'repair': {
         const s = this.st.ships[cmd.ship];
         const q = s ? repairQuote(this.st, s, co) : null;
@@ -1086,6 +1108,7 @@ export class WorldSim {
         const n = Math.floor(cmd.qty), price = Math.round(cmd.price * 10) / 10;
         if (typeof cmd.qty !== 'number' || !Number.isFinite(cmd.qty) || !(n >= 1) || !(price > 0 && price < 1e8)) return '수량·가격 오류';
         if (!safeCargoItem(cmd.item)) return '알 수 없는 품목';
+        if (isHot(cmd.item)) return '장물은 거래소에 내놓을 수 없습니다 — 암시장에서 처분하세요';
         const store = this.storage(st, company);
         if (!Object.hasOwn(store, cmd.item) || !Number.isFinite(store[cmd.item]) || store[cmd.item] < n) return '보관함에 수량 부족';
         if ((st.listings ?? []).filter(l => l.seller === company).length >= 20) return '정거장당 매물은 20개까지';
@@ -1683,6 +1706,7 @@ export class WorldSim {
     if (p12 !== undefined) return p12;
     if (op.k === 'lootTender') return validateTender(this, company, g, op, sub);
     if (op.k === 'recover' || op.k === 'salvzone') return validateSalvage(this, company, sub, op);
+    if (op.k === 'smuggle') return validateSmuggle(this, company, sub, op);
     if (op.k === 'salvage' && this.st.salvageV) return '이 세계에는 유기선 인양 지점이 없습니다 — 전장 잔해를 지정해 인양하세요';
     switch (op.k) {
       case 'mine': {
@@ -2103,6 +2127,8 @@ export class WorldSim {
         }
       }
     }
+    // P13.3: black-market budgets (moved from host budgets), glut absorption, restock; P10 intel reveals them
+    if (st.blackMarketV) { stepBlackMarkets(this, dt); if (st.fog && Math.floor(this.time / 60) !== Math.floor((this.time - dt) / 60)) discoverByIntel(this); }
     if (growthOn(st)) for (const co of Object.values(st.companies)) {
       if (co.kind !== 'player') continue;
       const before = co.credits;
@@ -2383,6 +2409,8 @@ export class WorldSim {
       else if (op.k === 'raid' && g.owner === 'pirates' && stepPirateRaid(this, g, ships, op, dt, c)) return;
       else if (op.k === 'lootTender') { if (stepTender(this, g, ships, op, dt)) return; }
     }
+    // P13.3: a smuggling run (load → gates → dock → sell)
+    if (op.k === 'smuggle') { if (stepSmuggle(this, g, ships, op, dt)) return; }
     // P13.1: recovery orders and on-site pickup after a battle (before the fleet operations it may pause)
     if (this.st.salvageV && stepSalvage(this, g, ships, op, dt, c)) return;
     if (this.st.opsV && P12_OPS.has(op.k)) {
@@ -2821,6 +2849,8 @@ export class WorldSim {
     s.vel = { x: dx * 40, y: 0, z: dz * 40 };
     s.heading = Math.atan2(dx, dz);
     s.jumpT = this.time; s.warp = undefined;
+    // P13.3: entering a policed system through its gate is an inspection event
+    if (this.st.blackMarketV) onJump(this, s, dest);
   }
 
   /** hostile warships close enough to block a warp-out */
@@ -2914,6 +2944,8 @@ export class WorldSim {
     let b = hashId(s.id) % (BERTH_MAX); let n = 0; while (used.has(b) && n++ < BERTH_MAX) b = (b + 1) % BERTH_MAX;
     s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
     s.heading = Math.atan2(st.pos.x - s.pos.x, st.pos.z - s.pos.z) + Math.PI / 2;
+    // P13.3: docking is a black-market contact and an inspection event
+    if (this.st.blackMarketV) onDock(this, s, st);
     // growth P4: automatic maintenance wherever the station can do it (no order needed)
     if (!growthOn(this.st)) return true;
     const capable = st.services.repair || (st.owner === s.owner && (this.hasModule(st, 'repair') || this.hasModule(st, 'hangar')));
