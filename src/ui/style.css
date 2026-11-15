@@ -875,3 +875,12 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
   .autolg-note { padding:6px 12px 0; }
   .autolg-list { grid-template-columns:1fr; }
 }
+
+/* P13.2 cargo raiding: fleet-panel section and container info (cyan, distinct from amber wrecks) */
+.pir-panel { display: flex; flex-direction: column; gap: 4px; }
+.pir-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.pir-l { color: var(--dim, #8aa); margin-right: 2px; }
+.pir-seg { display: flex; flex-wrap: wrap; gap: 3px; }
+.pir-row select { max-width: 100%; min-width: 0; }
+.pir-state { border-left: 2px solid #5fe0d0; padding-left: 6px; }
+.drop-info .ih b { color: #5fe0d0; }

@@ -102,6 +102,7 @@ export function cargoLost(h: Host, s: WShip, item: string, n: number): number {
     if (j.ship === s.id) { detach(h, j, '화물 약탈 — 남은 필요량 재배차', true); if (!isTerminal(j) && j.state !== 'paused') j.state = 'queued'; }
     else { delete j.held; delete j.code; j.state = 'queued'; j.reason = '화물 약탈 — 남은 필요량 재배차'; }
   }
+  if (settled > EPS) h.ev('warn', `물류 손실: ${s.name} 화물 ${Math.round(settled)} 약탈 — 남은 필요량은 다시 배차합니다`, { company: s.owner, pos: s.pos, ref: s.groupId, tag: 'logistics' });
   return settled;
 }
 /** P12.5: a loaded shipment yields to a direct command without losing track of its cargo. */

@@ -51,6 +51,8 @@ export interface PlunderState {
   ignore?: Record<string, number>;
   /** the victim's last known position (to find its wreck after a fight) */
   last?: V;
+  /** the victim group that was told a raider is closing in (it is told again when the raider leaves) */
+  warned?: string;
   why?: string;
 }
 
@@ -69,6 +71,8 @@ export interface CargoDrop {
   taken: Record<string, Record<string, number>>;
   seen: string[];
   crime?: Record<string, number>;
+  /** companies whose recovery the owner was told about (server bookkeeping) */
+  told?: string[];
 }
 
 export interface PiracyLog {
@@ -82,6 +86,8 @@ export interface PiracyBook { seq: number; truces: Truce[]; log: PiracyLog[] }
 export const PIR = {
   /** demands are made within this distance of the victim ship (P11 contact is 420 m) */
   threatR: 1200,
+  /** a victim is warned when the raider's warships come this close */
+  warnR: 3500,
   /** the raider keeps this far from the victim while it has not used force */
   standoff: 850,
   /** one demand per ship in this time (whoever demands); after a stall the raider may ask again sooner */
@@ -480,6 +486,10 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
   // the threat is the warships: their distance counts (a raider's own hauler may fly ahead)
   const guns = mobile.filter(x => econOf(x).military && x.state === 'space');
   const d = guns.length ? Math.min(...guns.map(x => dist(x.pos, s!.pos))) : Infinity;
+  if (d <= PIR.warnR && P.warned !== t.id) {
+    P.warned = t.id;
+    h.ev('warn', `${t.name}: 무장 함대 접근 — 화물 약탈 위험 (${st.companies[g.owner]?.name ?? g.owner})`, { company: t.owner, pos: s.pos, ref: t.id, tag: 'piracy' });
+  }
   if (op.policy === 'destroy') return force(h, g, t, s, P, mobile, dt, 'destroy');
   // in warp or fighting someone: out of reach for now, keep after it (the chase limit decides)
   if (d > PIR.threatR || s.warp?.phase === 'warp' || s.engagement) {
@@ -506,8 +516,18 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
   return conclude(h, g, P, op, `요구 거부 (${RESPONSE_NAME[r.response]})`, '약탈 실패 — 철수', 'warn');
 }
 
+/** the victim that was warned hears that the raider has gone (its own state is not disclosed) */
+function leave(h: Host, g: WGroup, P: PlunderState) {
+  const t = P.warned ? h.st.groups[P.warned] : undefined;
+  P.warned = undefined;
+  if (!t || t.owner === g.owner) return;
+  const c = h.groupCenter(g);
+  h.ev('info', `${t.name}: ${h.st.companies[g.owner]?.name ?? g.owner} 무장 함대 이탈`, { company: t.owner, ...(c ? { pos: c } : {}), ref: t.id, tag: 'piracy' });
+}
+
 /** a designated raid ends here (report, stand by); a zone raid looks for the next target */
 function conclude(h: Host, g: WGroup, P: PlunderState, op: PlunderOp, why: string, head: string, kind: 'info' | 'warn' = 'info'): boolean {
+  leave(h, g, P);
   P.target = undefined; P.ship = undefined; P.site = undefined;
   if (!op.group) { setPhase(h, P, 'search', why); return true; }
   if (P.key === 'raid') { delete g.plx; return true; }   // a pirate band goes back to its raid

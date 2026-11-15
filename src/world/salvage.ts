@@ -146,11 +146,25 @@ function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number):
     addc((s.salvaged ??= {}), lot.item, take);
     const t = (w.taken[s.owner] ??= {}); t[lot.item] = (t[lot.item] ?? 0) + take;
     if (!w.seen.includes(s.owner)) w.seen.push(s.owner);
+    recovered(h, s, w, lot, take);
     emit(h.st, { kind: 'salvage', reason: 'recover', item: lot.item, amount: take, company: s.owner, group: s.groupId, ship: s.id, system: w.system, ref: w.id, from: lot.owner });
     if (protectedLot(h, s.owner, lot)) crime(h, s, w, lot, take);
   }
   s.salvAcc = { lot: key, a: Math.min(a, 1) };
   return take;
+}
+
+/** P13.2: the owner of jettisoned cargo hears (once per recovering company) that someone is taking it */
+function recovered(h: Host, s: WShip, w: SalvSite, lot: WreckLot, n: number) {
+  const d = h.st.drops?.[w.id]; if (!d || n <= 0) return;
+  const key = s.owner, told = (d.told ??= []);
+  if (told.includes(key)) return; told.push(key);
+  const co = h.st.companies[s.owner]?.name ?? s.owner;
+  if (s.owner === d.owner) h.ev('info', `${d.name}: 자사 투하 화물 회수 시작`, { company: d.owner, pos: d.pos, ref: d.id, tag: 'piracy' });
+  else {
+    h.ev('info', `${d.name}: 화물 회수 시작 (${itemLabel(lot.item)})`, { company: s.owner, pos: d.pos, ref: d.id, tag: 'piracy' });
+    if (h.st.companies[d.owner]?.kind === 'player') h.ev('warn', `${d.name}: ${co}이(가) 귀사 투하 화물을 회수했습니다 — 소유권 이전`, { company: d.owner, pos: d.pos, ref: d.id, tag: 'piracy' });
+  }
 }
 
 /** unauthorised recovery of another company's cargo: reputation / standing where the law reaches */

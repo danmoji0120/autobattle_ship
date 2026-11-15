@@ -60,7 +60,7 @@ export interface OpState {
 export const P12_OPS = new Set<Op['k']>(['rally', 'defend', 'amove', 'intercept', 'blockade', 'harass', 'reinforce', 'recon', 'return', 'patrol']);
 export const OP_NAME: Partial<Record<Op['k'], string>> = {
   idle: '대기', move: '이동', dock: '정박', patrol: '순찰', escort: '호위', attack: '공격', rally: '집결', defend: '지역 방어',
-  amove: '공격 이동', intercept: '차단 요격', blockade: '관문 봉쇄', harass: '항로 습격', reinforce: '증원', recon: '정찰', return: '복귀',
+  amove: '공격 이동', intercept: '차단 요격', blockade: '관문 봉쇄', harass: '항로 습격', reinforce: '증원', recon: '정찰', return: '복귀', plunder: '화물 약탈',
 };
 export const PHASE_NAME: Record<OpPhase, string> = {
   transit: '이동', hold: '위치 유지', engage: '교전 기동', alert: '경계 (우세한 적)', evade: '회피 이탈', docking: '정박 진입',

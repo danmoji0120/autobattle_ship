@@ -1,0 +1,154 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "client resumes the P13.2 world (piracyV)",
+      "extra": {
+        "me": "p1",
+        "v": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "the container reaches the client with its contents; the raid book stays on the server",
+      "extra": {
+        "name": "아스트라 투하 화물 (수송 호송대)",
+        "lots": [
+          {
+            "id": "l0",
+            "k": "cargo",
+            "item": "electronics",
+            "n": 84,
+            "owner": "p10"
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "the container has its own clickable ◈ label on the map (map-drop-1440.png)",
+      "extra": {
+        "labels": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "container info: position, contents, original owner, drop time, time left",
+      "extra": {
+        "text": "◈ 아스트라 투하 화물 (수송 호송대)\n아스트라 · 위치 -249276, -37529 · 투하 0분 전 · 30분 후 소멸\n원소유 수송 PMC · 요구 측 약탈 PMC (자사)\n잔여 70 / 84 · 자사 회수: 전자부품 14\n품목\t수량\n전자부품\t70\n투하된 화물은 실제로 회수해 정거장에 하역해야 소유가 넘어갑니다. 수송선이 가장 빨리 싣습니다. 소멸 시각까지 남은 화물은 사라집니다.\n선택 편대로 회수"
+      }
+    },
+    {
+      "ok": true,
+      "label": "the recover button orders the selected fleet to the container (server accepted)",
+      "extra": {
+        "op": {
+          "k": "recover",
+          "wreck": "cd_pv1"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel: three plunder policies, target / lane plunder, neutral toggle, victim response policy",
+      "extra": {
+        "text": "약탈 방식\n비파괴 우선\n무력 사용 허용\n수송망 파괴 우선\n대상 약탈\n항로 약탈\n 중립 포함\n요구 대응\n회사 기본 (균형 대응)\n생존 우선\n균형 대응\n화물 보호 우선",
+        "pol": 3,
+        "target": true,
+        "lane": true,
+        "neutral": true,
+        "victim": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "group victim policy override is set from the fleet panel (server state)",
+      "extra": {
+        "vp": "protect"
+      }
+    },
+    {
+      "ok": true,
+      "label": "UI plunder mode sends a plunder order on the clicked convoy with the chosen policy (server accepted)",
+      "extra": {
+        "hint": "약탈할 다른 회사 편대(수송선) 클릭 — 화물 투하 요구 · 우클릭/Esc 취소",
+        "op": {
+          "k": "plunder",
+          "group": "g39",
+          "policy": "force"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel shows the raid with its phase and a stop control",
+      "extra": {
+        "st2": "약탈 · 무력 사용 허용 요격·접근 — 제2 호송대\n작전 중단\n복귀"
+      }
+    },
+    {
+      "ok": true,
+      "label": "raid events appear in the event log",
+      "extra": {
+        "log": [
+          "신생 PMC \"약탈 PMC\"가 아스트라 자유항에 등록했다.",
+          "약탈 PMC 접속.",
+          "약탈 PMC → 수송 PMC 적대 선언",
+          "대령 노박 사샤 · 약탈대",
+          "약탈대: 수송 PMC 수송 호송대에 화물 요구 — 화물 투하(응낙)",
+          "대령 노박 사샤 · 약탈대"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "HQ → 재무·결재 sets the company default response policy (server state)",
+      "extra": {
+        "has": true,
+        "cp": "survive"
+      }
+    },
+    {
+      "ok": true,
+      "label": "the recovered cargo is in the spare hauler's hold (and leaves the container)",
+      "extra": {
+        "held": [
+          {
+            "electronics": 70
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: container info fits without horizontal scrolling",
+      "extra": {
+        "w": 380,
+        "left": 5,
+        "right": 385,
+        "overflow": false,
+        "buttonsOut": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: raid section fits, no overlapping controls",
+      "extra": {
+        "w": 356,
+        "left": 17,
+        "right": 373,
+        "overflow": false,
+        "buttonsOut": false,
+        "overlap": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    }
+  ],
+  "errors": []
+}

@@ -42,11 +42,15 @@ import { STATION_SIZES, facilityProblems, facilityMinStation, facilityCapacity, 
 import { stationPower, storageCap, facilityLoad } from '../../world/production';
 import { storeUsed, listedItem } from '../../world/storage';
 import { wrecksOf, wreckOf, wreckLabel, wreckInfoHtml, groupSalvageHtml, salvageOn } from './salvageUi';
+import { piracyOn, dropsOf, dropOf, dropLabel, dropInfoHtml, groupPiracyHtml } from './piracyUi';
+import type { PlunderPolicy } from '../../world/piracy';
 
 type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol' | 'escort' | 'attack' | 'build' | 'found'
   // P12 fleet operations (opsV worlds): one click on the map after the button
-  | 'rally' | 'defend' | 'amove' | 'intercept' | 'blockade' | 'harass' | 'reinforce' | 'recon';
-type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet' | 'wreck'; id: string } | null;
+  | 'rally' | 'defend' | 'amove' | 'intercept' | 'blockade' | 'harass' | 'reinforce' | 'recon'
+  // P13.2 cargo raiding (piracyV worlds)
+  | 'plunder' | 'plunder_lane';
+type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet' | 'wreck' | 'drop'; id: string } | null;
 
 const h = (tag: string, cls = '', html = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -84,6 +88,8 @@ export class PmcHud {
   group: string | null = null;      // own group receiving orders
   private mode: Mode = null;
   private foundSize: Size = 'S';
+  /** P13.2: policy and neutral flag the next plunder order is sent with */
+  private plunderPolicy: PlunderPolicy = 'nonlethal'; private plunderNeutral = false;
   private haulFrom: string | null = null;
   private refreshT = 0;
   private expanded = new Set<string>();
@@ -247,6 +253,7 @@ export class PmcHud {
       case 'field': return !!st.fields[p.id];
       case 'lair': return !!st.lairs[p.id];
       case 'wreck': return !!wreckOf(st, p.id);
+      case 'drop': return !!dropOf(st, p.id);
       case 'battle': return !!st.engagements[p.id];
       case 'gate': return !!this.v.sys?.gates.some(g => g.id === p.id);
       default: return true;
@@ -304,7 +311,7 @@ export class PmcHud {
       return void this.setOp({ k: 'dock', station: p.id });
     }
     if (p?.kind === 'lair') return void this.setOp({ k: 'attack', lair: p.id });
-    if (p?.kind === 'wreck') return void this.setOp({ k: 'recover', wreck: p.id });
+    if (p?.kind === 'wreck' || p?.kind === 'drop') return void this.setOp({ k: 'recover', wreck: p.id });
     if (p?.kind === 'gate') { const to = this.arrivalPoint(p.id); if (to) return void this.setOp({ k: 'move', to }); }
     if (p?.kind === 'ship') { const s = this.st.ships[p.id]; if (s.owner === this.me && s.groupId !== g.id) return void this.setOp({ k: 'escort', group: s.groupId }); }
     if (p?.kind === 'group') { const t = this.st.groups[p.id]; if (t?.owner === this.me && t.id !== g.id) return void this.setOp({ k: 'escort', group: t.id }); }
@@ -678,6 +685,20 @@ export class PmcHud {
       case 'defend': { if (p?.kind === 'field') { const f = this.st.fields[p.id]; this.setOp({ k: 'defend', at: f.pos, radius: Math.min(12000, Math.max(1500, f.radius + 600)) }); return; } const at = p?.kind === 'station' ? this.st.stations[p.id].pos : plane(); if (at) this.setOp({ k: 'defend', at, radius: 2500 }); return; }
       case 'amove': { const pt = plane(); if (pt) this.setOp({ k: 'amove', to: pt }); return; }
       case 'harass': { const pt = plane(); if (pt) this.setOp({ k: 'harass', at: pt, radius: 3000 }); return; }
+      case 'plunder_lane': { const pt = plane(); if (pt) this.setOp({ k: 'harass', at: pt, radius: 3000, plunder: this.plunderPolicy, ...(this.plunderNeutral ? { neutral: true } : {}) }); return; }
+      case 'plunder': {
+        const gid = p?.kind === 'group' ? p.id : p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : undefined;
+        const t = gid ? this.st.groups[gid] : undefined;
+        if (!t || t.owner === this.me) { this.hint('약탈할 다른 회사 편대를 클릭하세요'); return; }
+        const rel = coRelation(this.st, this.me, t.owner), player = this.st.companies[t.owner]?.kind === 'player';
+        let neutral = this.plunderNeutral;
+        if (rel !== -1 && t.owner !== 'pirates') {
+          if (rel === 1) { this.hint('동맹 회사는 약탈할 수 없습니다'); return; }
+          if (!neutral && !confirm(`${this.st.companies[t.owner]?.name ?? t.owner}은(는) 중립입니다. 화물을 요구하면 갈취로 기록되고 치안 구역에서는 평판이 떨어집니다.${this.plunderPolicy !== 'nonlethal' && player ? ' 무력을 쓰면 적대 선언으로 기록됩니다.' : ''} 계속합니까?`)) return;
+          neutral = true;
+        }
+        this.setOp({ k: 'plunder', group: t.id, policy: this.plunderPolicy, ...(neutral ? { neutral: true } : {}) });
+        return; }
       case 'recon': { const pt = p?.kind === 'field' ? this.st.fields[p.id].pos : plane(); if (pt) this.setOp({ k: 'recon', at: pt, radius: 2500 }); return; }
       case 'intercept': {
         const gid = p?.kind === 'group' ? p.id : p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : undefined;
@@ -741,6 +762,7 @@ export class PmcHud {
       patrol: '순찰 지점 또는 소행성 지대 클릭', escort: '호위할 자사 함선 또는 편대 이름표 클릭', attack: '해적 함선 또는 은신처 클릭', build: growthOn(this.st) ? '자사 건설 현장 클릭 — 공작선은 작업, 화물선은 필요한 자재 반입' : '건설할 자사 정거장 클릭',
       rally: '집결 지점 클릭', defend: '방어할 지점·정거장·소행성 지대 클릭 (반경 2,500)', amove: '진격 목표 지점 클릭 — 도중의 적대 함대와 교전',
       intercept: '요격할 다른 회사·해적 함대 클릭', blockade: '봉쇄할 점프게이트 클릭 (실제 배치 — 적대 함대만 교전)', harass: '습격할 항로 지점 클릭 (반경 3,000 · 약탈 없음)',
+      plunder: '약탈할 다른 회사 편대(수송선) 클릭 — 화물 투하 요구', plunder_lane: '약탈할 항로 지점 클릭 (반경 3,000 · 지나는 화물선에 요구)',
       reinforce: '지원할 교전 표지 또는 자사·동맹 함대 클릭', recon: '정찰할 지점 클릭 (반경 2,500)',
       found: growthOn(this.st) ? `${this.foundSize}급 부지 클릭 — 설립비 ${fmt(STATION_SIZES[this.foundSize].credits)} cr 선납 · 자재 직접 운송 · 중단 시 환급` : `정거장 부지 클릭 — 다른 정거장과 2,600 이상 떨어져야 함 (비용 ${fmt(FOUND_COST.credits)} cr + 합금 ${FOUND_COST.alloy})`,
     };
@@ -784,6 +806,7 @@ export class PmcHud {
       if (e.kind === 'battle' && e.text.startsWith('교전 발생') && e.ref) this.battleToast(e);
       else if (e.kind === 'milestone') { this.toast(`★ ${e.text}`, 'good'); sfx.play('win', null, 0.35); }
       else if (e.kind === 'world' && e.text.includes('파괴되었다')) this.toast(e.text, 'world');
+      if (e.tag === 'piracy' && e.company === this.me) { this.toast(`◈ ${e.text}`, e.kind === 'warn' ? 'warn' : 'info'); if (e.pos) this.v.flashAt(e.pos, 0x5fe0d0); }
       if (e.tag === 'build_secured') { this.toast(`▣ ${e.text}`, 'good'); sfx.play('confirm', null, 0.35); }
       else if (e.tag === 'build_start') { sfx.play('drum', null, 0.4); if (e.pos) this.v.flashAt(e.pos, 0x60d0ff); }
       else if (e.tag === 'build_done') { this.toast(`✔ ${e.text}`, 'good'); sfx.play('win', null, 0.3); if (e.pos) this.v.flashAt(e.pos, 0x9fffb0); }
@@ -994,6 +1017,9 @@ export class PmcHud {
     el.querySelectorAll<HTMLButtonElement>('[data-salvage]').forEach(b => b.onclick = () => this.setOp({ k: 'salvage', site: b.dataset.salvage! }));
     el.querySelectorAll<HTMLButtonElement>('[data-salv-recover]').forEach(b => b.onclick = () => this.setOp({ k: 'recover', wreck: b.dataset.salvRecover! }));
     el.querySelectorAll<HTMLButtonElement>('[data-salv-illegal]').forEach(b => b.onclick = () => { if (confirm('중립·우호 회사 소유 화물까지 회수합니다. 치안 구역에서는 평판과 세력 우호도가 떨어지고 소유 회사에 통보됩니다. 계속합니까?')) this.setOp({ k: 'recover', wreck: b.dataset.salvIllegal!, illegal: true }); });
+    el.querySelectorAll<HTMLButtonElement>('[data-pir-plunder]').forEach(b => b.onclick = () => { this.plunderPolicy = b.dataset.pirPlunder as PlunderPolicy; this.renderSel(true); });
+    el.querySelectorAll<HTMLInputElement>('[data-pir-neutral]').forEach(b => b.onchange = () => { this.plunderNeutral = b.checked; });
+    el.querySelectorAll<HTMLSelectElement>('[data-pir-policy]').forEach(b => b.onchange = () => this.cmd({ c: 'piracyPolicy', group: b.dataset.pirPolicy!, policy: (b.value || null) as never }));
     el.querySelectorAll<HTMLInputElement>('[data-salv-auto]').forEach(b => b.onchange = () => this.cmd({ c: 'autoSalvage', group: b.dataset.salvAuto!, on: b.checked }));
     el.querySelectorAll<HTMLButtonElement>('[data-minehere]').forEach(b => b.onclick = () => { if (!this.group) return; this.mineForm = { group: this.group, field: b.dataset.minehere!, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.refresh(true); });
     const nm = el.querySelector<HTMLInputElement>('[data-rename]'); if (nm) nm.onchange = () => this.cmd({ c: 'renameGroup', group: nm.dataset.rename!, name: nm.value });
@@ -1028,6 +1054,10 @@ export class PmcHud {
         <div class="svc">위험 지표 ${f.danger} · ${this.secLine(f.pos)}</div>
         ${unidentified(f) ? fieldIntelHtml(st, this.me, f) : `<div class="small">${parts}</div><div class="dim small">혼합비는 채굴물과 재생량에 적용됩니다. 실제 위협은 치안과 해적 활동에 따라 달라집니다.</div>`}
         ${this.group ? `<button class="btn" data-minehere="${f.id}">이 지대 채굴 설정…</button><button class="btn" data-quick='${JSON.stringify({ k: 'patrol', at: f.pos, radius: f.radius + 400 })}'>이 지역 순찰</button>` : '<div class="dim">편대를 선택하고 우클릭하면 채굴을 지시합니다.</div>'}</div>`;
+    }
+    if (s.kind === 'drop') {
+      const d = dropOf(st, s.id); if (!d) return '<div class="info"><div class="dim">컨테이너가 소멸했거나 모두 회수되었습니다.</div></div>';
+      return dropInfoHtml(st, this.me, d, this.group ? st.groups[this.group] ?? null : null);
     }
     if (s.kind === 'wreck') {
       const w = wreckOf(st, s.id); if (!w) return '<div class="info"><div class="dim">잔해가 소멸했거나 모두 회수되었습니다.</div></div>';
@@ -1116,6 +1146,7 @@ export class PmcHud {
         ${hasMiner ? this.mineFormHtml(g) : ''}
         ${this.exploreHtml(g, hasCargo)}
         ${salvageOn(st) && st.companies[g.owner]?.kind === 'player' ? groupSalvageHtml(st, g) : ''}
+        ${piracyOn(st) && g.owner === this.me ? groupPiracyHtml(st, this.me, g, this.plunderPolicy, this.plunderNeutral, hasMil) : ''}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}
       </div></div>`;
@@ -1830,6 +1861,11 @@ export class PmcHud {
       const lb = wreckLabel(st, w);
       label(p.x, p.y - 18, lb.text, '#e8c070', 'rgba(24,16,4,0.7)', lb.sub, { kind: 'wreck', id: w.id, pos: new THREE.Vector3(w.pos.x, w.pos.y, w.pos.z) });
     }
+    for (const d of dropsOf(st)) {
+      if (!v.project(d.pos, p)) continue;
+      const lb = dropLabel(st, d);
+      label(p.x, p.y - 18, lb.text, '#5fe0d0', 'rgba(2,22,24,0.72)', lb.sub, { kind: 'drop', id: d.id, pos: new THREE.Vector3(d.pos.x, d.pos.y, d.pos.z) });
+    }
     for (const l of Object.values(st.lairs)) {
       if (!v.project(l.pos, p)) continue;
       label(p.x, p.y - 22, `☠ ${l.name}`, l.alive ? '#ff5040' : '#666', 'rgba(30,4,4,0.7)', l.alive ? `요새 ${Math.round(l.hp * 100)}%` : '파괴됨', { kind: 'lair', id: l.id, pos: new THREE.Vector3(l.pos.x, l.pos.y, l.pos.z) });
@@ -1930,6 +1966,7 @@ export class PmcHud {
     else if (pk.kind === 'field') { const f = st.fields[pk.id]; html = `<b>${esc(f.name)}</b> ${RES_NAME[f.res]} ${fmt(f.amount)}<br><span class="dim">우클릭: 선택 편대 채굴</span>`; }
     else if (pk.kind === 'lair') html = `<b>☠ ${esc(st.lairs[pk.id].name)}</b>`;
     else if (pk.kind === 'wreck') { const w = wreckOf(st, pk.id); const lb = w ? wreckLabel(st, w) : null; html = lb ? `<b>${esc(lb.text)}</b><br>${esc(lb.sub)}<br><span class="dim">클릭: 정보 · 우클릭: 선택 편대 인양</span>` : ''; }
+    else if (pk.kind === 'drop') { const d = dropOf(st, pk.id); const lb = d ? dropLabel(st, d) : null; html = lb ? `<b>${esc(lb.text)}</b><br>${esc(lb.sub)}<br><span class="dim">클릭: 정보 · 우클릭: 선택 편대 회수</span>` : ''; }
     else if (pk.kind === 'battle') html = '<b>⚔ 교전 중</b><br><span class="dim">클릭하여 전투 화면</span>';
     else if (pk.kind === 'gate') { const gt = this.v.sys?.gates.find(g => g.id === pk.id); html = `<b>⟁ ${esc(gt?.name ?? '')}</b><br><span class="dim">우클릭: 선택 편대 점프</span>`; }
     else if (pk.kind === 'group') { const g = st.groups[pk.id], co = st.companies[g?.owner ?? '']; html = `<b style="color:${co?.color}">${esc(g?.name ?? '')}</b> <span class="dim">${esc(co?.name ?? '')} · ${g?.shipIds.length ?? 0}척</span>${g?.owner === this.me ? `<br>${esc(g.status)}` : ''}`; }

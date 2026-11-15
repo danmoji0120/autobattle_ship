@@ -21,7 +21,7 @@ import type { StarSystem } from '../../world/types';
 
 interface ShipView { model: ShipModel; pos: THREE.Vector3; raw: THREE.Vector3; heading: number; roll: number; key: string; cls: string; seen: number; speed: number; warp: number; sys: string; jumpT: number; hp: number }
 
-export type Pick = { kind: 'ship' | 'group' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet' | 'wreck'; id: string; pos: THREE.Vector3 };
+export type Pick = { kind: 'ship' | 'group' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet' | 'wreck' | 'drop'; id: string; pos: THREE.Vector3 };
 
 const lerpAngle = (a: number, b: number, t: number) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * t; };
 
@@ -404,6 +404,7 @@ export class StrategicView {
     for (const s of Object.values(st.stations)) test('station', s.id, s.pos, s.radius, 22);
     for (const l of Object.values(st.lairs)) test('lair', l.id, l.pos, 200, 22);
     for (const w of Object.values(((st as any).wrecks ?? {}) as Record<string, { id: string; pos: V }>)) test('wreck', w.id, w.pos, 300, 20);
+    for (const d of Object.values(((st as any).drops ?? {}) as Record<string, { id: string; pos: V }>)) test('drop', d.id, d.pos, 200, 20);
     for (const f of Object.values(st.fields)) test('field', f.id, f.pos, f.radius * 0.8, 26);
     for (const g of this.sys?.gates ?? []) test('gate', g.id, g.pos, 300, 22);
     for (const pl of this.sys?.planets ?? []) if (!best) test('planet', pl.id, pl.pos, pl.size, 18);
