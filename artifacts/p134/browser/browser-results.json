@@ -1,0 +1,188 @@
+{
+  "base": "http://127.0.0.1:5199",
+  "checks": [
+    {
+      "ok": true,
+      "label": "client resumes the P13.4 world: the raid fleet is under a stop demand, A is wanted with unpaid fines; the law book itself is not in the client state",
+      "extra": {
+        "me": "p1",
+        "v": 1,
+        "stop": "demand",
+        "level": 2,
+        "unpaid": 17000,
+        "book": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "fleet panel: stop demand with the guard name, countdown, \"no answer = comply\" and the three answers",
+      "extra": {
+        "phase": "demand",
+        "t": "연합 보안국 정선 요구 받음 — 아스트라 순찰대 2 (수배 등급 수배 · 마지막 확인: 0초 전)\n정선 요구: 60초 안에 선택하세요. 응답이 없으면 협조로 처리됩니다(정지·검문). 정선 지점에서 멀리 벗어나면 도주로 기록됩니다.\n협조 (정지·검문)\n도주\n저항 (교전)",
+        "btns": [
+          "comply",
+          "flee",
+          "resist"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "system bar: Astra is an enforcement area and the bar warns about this fleet's stop (short badge, details in the tooltip)",
+      "extra": {
+        "area": "policed",
+        "pursuit": true,
+        "bar": "아스트라\n주요 거주 성계 · 치안 84\n치안 집행 · 단속 위험\n⚠ 단속 1"
+      }
+    },
+    {
+      "ok": true,
+      "label": "협조 button: the fleet holds for inspection (server state changed)",
+      "extra": {
+        "op": "lop128",
+        "phase": "hold",
+        "guard": "g89",
+        "guardName": "아스트라 순찰대 2",
+        "since": 19.5,
+        "level": 2,
+        "guardSeen": {
+          "pos": {
+            "x": -254694.2809425078,
+            "y": -5.085147064956923,
+            "z": -15115.020018942882
+          },
+          "t": 18.25
+        },
+        "answerBy": 74.25,
+        "note": "협조 — 정지 후 검문"
+      }
+    },
+    {
+      "ok": true,
+      "label": "the panel now shows the inspection hold",
+      "extra": {
+        "t": "연합 보안국 정지 — 검문 중 — 아스트라 순찰대 2 (수배 등급 수배 · 마지막 확인: 2초 전)\n협조 — 정지 후 검문\n도주\n저항 (교전)"
+      }
+    },
+    {
+      "ok": true,
+      "label": "after the inspection: released, stolen goods seized, the fines were paid from credits",
+      "extra": {
+        "stop": {
+          "op": "lop128",
+          "phase": "released",
+          "guard": "g89",
+          "guardName": "아스트라 순찰대 2",
+          "since": 36.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -254742.76169727385,
+              "y": -5.055908426138709,
+              "z": -15067.946805605343
+            },
+            "t": 36.25
+          },
+          "answerBy": 74.25,
+          "note": "검문 완료 — 압수 40단위, 벌금 납부 17,000 cr",
+          "end": "inspected",
+          "until": 336.25
+        },
+        "unpaid": 0,
+        "hot": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "finance tab: law record panel present",
+      "extra": {
+        "t": "수배 등급없음\n점수0\n미납 벌금0 cr\n현재 수배 없음. 관할: 연합 경비대가 주둔한 성계(주둔 정거장이 있는 치안 15 이상)에서만 집행합니다. 그 밖의 세력 영역은 기록만, 무법·미개척 구역은 수배가 생기지 않습니다. 경범죄는 시간이 지나면 등급이 내려가지만 미납 벌금은 사라지지 않습니다(감시 등급 유지). 선제공격·경비대 공격·무장 저항은 납부 후 보"
+      }
+    },
+    {
+      "ok": true,
+      "label": "finance tab: case table lists the paid salvage case and the extortion case with jurisdiction and fine",
+      "extra": {
+        "rows": 3,
+        "t": "수배 등급없음\n점수0\n미납 벌금0 cr\n현재 수배 없음. 관할: 연합 경비대가 주둔한 성계(주둔 정거장이 있는 치안 15 이상)에서만 집행합니다. 그 밖의 세력 영역은 기록만, 무법·미개척 구역은 수배가 생기지 않습니다. 경범죄는 시간이 지나면 등급이 내려가지만 미납 벌금은 사라지지 않습니다(감시 등급 유지). 선제공격·경비대 공격·무장 저항은 납부 후 보호관찰 기간이 지나야 해제됩니다.\n사건\t장소·관할\t인지\t벌금\t상태\n화물 갈취\t아스트라\n연합 보안국\t정거장 감시\t17,000/17,000\t종결 · 벌금 완납\n밀수 적발\t아스트라\n연합 보안국\t검문\t—\t종결 · 벌금 완납\n무단 인양\t아스트라\n연합 보안국\t정거장 감시\t3,000/3,000\t종결 · 벌금 완납"
+      }
+    },
+    {
+      "ok": true,
+      "label": "Rime collector panel: the on-site held goods (60, no customs station in Rime) with a claim button",
+      "extra": {
+        "t": "압수 지점 현장 보관 화물\n합금 60 — 서리 변경 현장 보관\n짐꾼 53호 화물칸으로 인수",
+        "btn": "cu149|s152"
+      }
+    },
+    {
+      "ok": true,
+      "label": "the claim button moved all 60 units into the collector's real hold; the lot is gone",
+      "extra": {
+        "hold0": 0,
+        "hold1": {
+          "n": 60,
+          "lots": 0
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the stop demand panel with its three buttons fits",
+      "extra": {
+        "w": 356,
+        "left": 17,
+        "right": 373,
+        "overflow": false,
+        "out": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the finance law panel fits (no horizontal page scroll, no container pushed sideways; the case table scrolls inside its own box)",
+      "extra": {
+        "w": 344,
+        "left": 23,
+        "right": 367,
+        "overflow": false,
+        "out": true,
+        "inner": {
+          "worst": 0,
+          "left": 23,
+          "right": 367
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "벌금 납부 button pays every unpaid fine (credits fall by at least that amount)",
+      "extra": {
+        "p0": {
+          "cr": 4997000,
+          "unpaid": 17000
+        },
+        "p1": {
+          "cr": 4980000,
+          "unpaid": 0
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors (warnings listed in browser-results.json)",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": []
+}

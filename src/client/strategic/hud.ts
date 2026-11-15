@@ -43,6 +43,7 @@ import { STATION_SIZES, facilityProblems, facilityMinStation, facilityCapacity, 
 import { stationPower, storageCap, facilityLoad } from '../../world/production';
 import { storeUsed, listedItem } from '../../world/storage';
 import { wrecksOf, wreckOf, wreckLabel, wreckInfoHtml, groupSalvageHtml, salvageOn } from './salvageUi';
+import { lawOn, groupLawHtml, heldLotsHtml, sysLawBadge } from './lawUi';
 import { piracyOn, dropsOf, dropOf, dropLabel, dropInfoHtml, groupPiracyHtml } from './piracyUi';
 import type { PlunderPolicy } from '../../world/piracy';
 
@@ -365,12 +366,13 @@ export class PmcHud {
     const live = this.st.systems[sys.id] ?? sys;
     const eff = effSec(live), band = secBand(eff);
     const nb = Object.values(this.st.engagements).filter(e => !e.done).length;
-    const key = `${sys.id}|${Math.round(eff)}|${Math.round(live.heat)}|${this.v.showSecurity}|${nb}`;
+    const law = lawOn(this.st) ? sysLawBadge(this.st, this.me, sys.id) : '';
+    const key = `${sys.id}|${Math.round(eff)}|${Math.round(live.heat)}|${this.v.showSecurity}|${nb}|${law}`;
     if (key === this.sysKey) return;
     this.sysKey = key;
     const el = document.getElementById('sysbar')!;
     const heat = live.heat > 25 ? `<span class="warn">해적 활동 증가</span>` : live.heat > 8 ? '<span class="dim">해적 활동 있음</span>' : '';
-    el.innerHTML = `<div class="sysname"><b>${esc(sys.name)}</b> <span class="secb" style="background:${band.color}">${band.name} · 치안 ${Math.round(eff)}</span> ${heat}</div>
+    el.innerHTML = `<div class="sysname"><b>${esc(sys.name)}</b> <span class="secb" style="background:${band.color}">${band.name} · 치안 ${Math.round(eff)}</span> ${heat} ${law}</div>
       <div class="sysbtns"><button class="btn mini" id="galBtn" title="Tab">성계 지도</button><button class="btn mini${this.v.showSecurity ? ' on' : ''}" id="secBtn" title="V">치안 지도</button><button class="btn mini${nb ? ' hot' : ''}" id="batBtn" title="B">⚔ 교전${nb ? ` ${nb}` : ''}</button></div>`;
     (document.getElementById('batBtn') as HTMLButtonElement).onclick = () => this.toggleBattles();
     (document.getElementById('galBtn') as HTMLButtonElement).onclick = () => this.toggleGalaxy();
@@ -1014,6 +1016,12 @@ export class PmcHud {
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
     el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
     el.querySelectorAll<HTMLButtonElement>('[data-quick]').forEach(b => b.onclick = () => this.setOp(JSON.parse(b.dataset.quick!)));
+    el.querySelectorAll<HTMLButtonElement>('[data-heldclaim]').forEach(b => b.onclick = async () => { const [lot, ship] = b.dataset.heldclaim!.split('|'); if (await this.cmd({ c: 'customsClaim', lot, ship })) sfx.play('confirm', null, 0.3); });
+    el.querySelectorAll<HTMLButtonElement>('[data-law]').forEach(b => b.onclick = async () => {
+      const choice = b.dataset.law as 'comply' | 'flee' | 'resist';
+      if (choice === 'resist' && !confirm('연합 경비대에 무장 저항합니다. 이 편대와 경비대 사이에 실제 전투가 벌어지고 무장 저항 사건이 기록됩니다. 계속합니까?')) return;
+      if (await this.cmd({ c: 'lawAnswer', group: b.dataset.lawGroup!, choice })) sfx.play('confirm', null, 0.3);
+    });
     el.querySelectorAll<HTMLButtonElement>('[data-stance]').forEach(b => b.onclick = () => {
       const [target, v] = b.dataset.stance!.split(':');
       if (v === '-1' && !confirm(`${this.st.companies[target]?.name ?? target}에 적대를 선언합니다. 상대 함대와 마주치면 교전이 시작되고, 진행 중인 전투에도 즉시 반영됩니다. 계속합니까?`)) return;
@@ -1142,6 +1150,7 @@ export class PmcHud {
           <select data-parent="${g.id}" title="상위 편대"><option value="">최상위 편대</option>${groups.filter(x => !banned.has(x.id)).map(x => `<option value="${x.id}"${x.id === g.parentId ? ' selected' : ''}>↳ ${esc(x.name)} 소속</option>`).join('')}</select>
           <button class="btn mini danger" data-delgroup="${g.id}" title="편대 해체">해체</button></div>
         <div class="status${g.fleeing ? ' warn' : ''}">${!g.override && g.parentId ? `<span class="tag">위임</span> 상위 편대 작전 수행 — ` : `<span class="tag ov">${OP_NAME[g.op.k]}</span> `}${esc(g.status)}</div>
+        ${lawOn(st) && g.owner === this.me ? groupLawHtml(st, g) + heldLotsHtml(st, this.me, g) : ''}
         <div class="row">
           ${opb('move', '이동', 'M')}${opb('dock', '정박', 'D')}${opb('mine', '채굴', 'N', hasMiner)}${this.st.logisticsV ? '' : opb('haul', '운송', '', hasCargo)}
           ${opb('patrol', '순찰', 'P', hasMil)}${opb('escort', '호위', 'G')}${opb('attack', '공격', 'A', hasMil, 'danger')}

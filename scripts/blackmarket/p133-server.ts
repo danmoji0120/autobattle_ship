@@ -190,23 +190,47 @@ try {
   // C cannot sell anything stolen of A's — nor at a market C does not know
   check(await C.command({ c: 'bmSell', station: ids.Bd, res: hotA('alloy'), amount: 1 }) !== null, 'S1-10: C cannot trade at a black market it never found');
 
-  // ---- S5: what happened when A's haulers unloaded the high-security loot
+  // ---- S5 (P13.3.1 rules): automatic unloading of stolen goods never picks a risky station. In high-security Astra
+  //      every reachable public station inspects at the dock, so the plunder's unloading is blocked: the goods stay
+  //      aboard and nothing docks (S5-1/2/3). Then the player explicitly docks there (S5-4..7): that is inspected —
+  //      seized goods wait at that station's customs for B (never moved to B's home), or the inspection passes.
+  const custB = (v: any, item = 'electronics') => ((v.companies[B.id].bm?.customs ?? []) as any[]).filter(l => l.item === item).reduce((a, l) => a + l.n, 0);
   const s5 = await until(() => { const v = view(A), g = v.groups[ids.a5]; return g?.op?.k === 'idle' && !g.plx ? v : null; }, 'S5: the plunder did not finish', 600000);
   await delay(1500);
+  const astraIds = ['astra', 'bastion', 'nova', 'barcaco'];
+  const hauls5 = ids.a5h.split(',');
   const v5A = await A.fresh(), v5B = await B.fresh();
-  const homeB5 = v5B.companies[B.id].homeStation;
-  const lg5 = (v5A.companies[A.id].bm?.log ?? []).filter((x: any) => (x.k === 'seize' || x.k === 'pass') && Object.keys(x.items ?? {}).some(k => k === hotA('electronics')) && ['astra', 'bastion', 'nova', 'barcaco'].includes(x.at));
-  const seized5 = lg5.filter((x: any) => x.k === 'seize').reduce((a: number, x: any) => a + (x.items[hotA('electronics')] ?? 0), 0);
-  const back5 = (v5B.stations[homeB5]?.storage?.[B.id]?.electronics ?? 0) - bHome5;
-  const stolenAstra = ['astra', 'bastion', 'nova', 'barcaco'].reduce((a, id) => a + (v5A.stations[id]?.storage?.[A.id]?.[hotA('electronics')] ?? 0), 0);
-  const aboard5 = ids.a5h.split(',').reduce((a, id) => a + (v5A.ships[id]?.cargo?.[hotA('electronics')] ?? 0), 0);
+  const aboard5a = hauls5.reduce((a, id) => a + (v5A.ships[id]?.cargo?.[hotA('electronics')] ?? 0), 0);
+  const insp5a = (v5A.companies[A.id].bm?.log ?? []).filter((x: any) => (x.k === 'seize' || x.k === 'pass') && astraIds.includes(x.at));
+  const stored5a = astraIds.reduce((a, id) => a + (v5A.stations[id]?.storage?.[A.id]?.[hotA('electronics')] ?? 0), 0);
   const left5 = v5B.ships[ids.v5s]?.cargo?.electronics ?? 0;
-  facts.s5 = { inspections: lg5.map((x: any) => ({ k: x.k, at: x.at, items: x.items, fine: x.fine && Math.round(x.fine), why: x.why })), seized: seized5, returnedToBHome: back5, homeB: homeB5, stolenStoredInAstra: stolenAstra, aboard: aboard5, victimLeft: left5, bReturnLog: (v5B.companies[B.id].bm?.log ?? []).filter((x: any) => x.k === 'return') };
-  check(lg5.length > 0, 'S5-1: A\'s haulers carrying stolen goods were inspected when docking in high-security space (dock event)', facts.s5);
-  check(Math.abs(back5 - seized5) < 1e-9 && (seized5 === 0 || facts.s5.bReturnLog.length > 0), 'S5-2: every seized stolen unit went back to B\'s home-station storage as plain goods (B sees the return in its log); none created or lost', facts.s5);
-  check(Math.abs(seized5 + stolenAstra + aboard5 + left5 - 300) < 1e-9, 'S5-3: B\'s 300 electronics = still on B\'s hauler + seized-and-returned + stolen in A\'s storage + aboard A\'s haulers — exactly', facts.s5);
-  if (seized5 > 0) check(lg5.some((x: any) => x.k === 'seize' && x.fine > 0), 'S5-4 (inspection outcome: seized): A was fined', facts.s5.inspections);
-  else info('S5: every dock inspection in this run passed (deterministic roll per ship, station and 30-minute window) — the return path was not exercised on the server in this run', facts.s5.inspections);
+  const cust5a = custB(v5B);
+  facts.s5 = { auto: { aboard: aboard5a, docked: hauls5.map(id => v5A.ships[id]?.state), inspections: insp5a.length, storedInAstra: stored5a, victimLeft: left5, customsB: cust5a, status: v5A.groups[ids.a5]?.status } };
+  check(aboard5a > 0 && hauls5.every(id => v5A.ships[id]?.state !== 'docked'), 'S5-1: the plunder\'s automatic unloading in high-security space was blocked (P13.3.1 safe unloading): the stolen electronics stay aboard and no hauler docked', facts.s5.auto);
+  check(insp5a.length === 0 && stored5a === 0, 'S5-2: blocked automatic unloading means no dock inspection and nothing stored as stolen at a risky station', facts.s5.auto);
+  check(Math.abs(aboard5a + left5 + cust5a - 300) < 1e-9, 'S5-3: B\'s 300 electronics = still on B\'s hauler + aboard A\'s haulers — exactly', facts.s5.auto);
+  // the player explicitly docks the loaded haulers at Astra: an explicit order is not filtered — it is inspected
+  const t5 = time();
+  check(await A.command({ c: 'setOp', group: ids.a5, op: { k: 'dock', station: 'astra' } }) === null, 'S5-4: A explicitly orders the loaded raiders to dock at Astra (a risky station)');
+  await until(() => { const v = view(A); return hauls5.every(id => v.ships[id]?.state === 'docked') ? v : null; }, 'S5: the explicit dock did not complete', 600000);
+  await delay(1500);
+  const v5Ae = await A.fresh(), v5Be = await B.fresh();
+  const lg5 = (v5Ae.companies[A.id].bm?.log ?? []).filter((x: any) => x.t >= t5 && (x.k === 'seize' || x.k === 'pass') && Object.keys(x.items ?? {}).includes(hotA('electronics')));
+  const seized5 = lg5.filter((x: any) => x.k === 'seize').reduce((a: number, x: any) => a + (x.items[hotA('electronics')] ?? 0), 0);
+  const aboard5 = hauls5.reduce((a, id) => a + (v5Ae.ships[id]?.cargo?.[hotA('electronics')] ?? 0), 0);
+  const stolenAstra = astraIds.reduce((a, id) => a + (v5Ae.stations[id]?.storage?.[A.id]?.[hotA('electronics')] ?? 0), 0);
+  const cust5 = custB(v5Be) - cust5a;
+  const lots5 = ((v5Be.companies[B.id].bm?.customs ?? []) as any[]).filter(l => l.item === 'electronics' && l.t >= t5);
+  const held5 = (v5Be.companies[B.id].bm?.log ?? []).filter((x: any) => x.k === 'held' && x.t >= t5);
+  const homeB5 = v5Be.companies[B.id].homeStation;
+  const back5 = (v5Be.stations[homeB5]?.storage?.[B.id]?.electronics ?? 0) - bHome5;
+  const left5e = v5Be.ships[ids.v5s]?.cargo?.electronics ?? 0;
+  facts.s5.explicit = { inspections: lg5.map((x: any) => ({ k: x.k, at: x.at, items: x.items, fine: x.fine && Math.round(x.fine), why: x.why })), seized: seized5, customsB: cust5, lots: lots5.map(l => ({ station: l.station, n: l.n })), heldLog: held5.length, toBHome: back5, aboard: aboard5, stolenStoredInAstra: stolenAstra, victimLeft: left5e };
+  check(lg5.length > 0, 'S5-5: the explicit dock at Astra was inspected (dock event)', facts.s5.explicit);
+  check(Math.abs(cust5 - seized5) < 1e-9 && back5 === 0 && (seized5 === 0 || (held5.length > 0 && lots5.every(l => l.station === 'astra'))), 'S5-6: every seized unit waits at the Astra customs office for B (B sees \'held\' in its log); nothing moved to B\'s home storage', facts.s5.explicit);
+  check(Math.abs(seized5 + stolenAstra + aboard5 + left5e - 300) < 1e-9, 'S5-7: B\'s 300 electronics = on B\'s hauler + at customs for B + stolen in A\'s storage + aboard — exactly', facts.s5.explicit);
+  if (seized5 > 0) check(lg5.some((x: any) => x.k === 'seize' && x.fine > 0), 'S5-8 (inspection outcome: seized): A was fined', facts.s5.explicit.inspections);
+  else info('S5: the explicit dock inspection passed in this run (deterministic roll per ship, station and 30-minute window) — the customs path was not exercised by S5', facts.s5.explicit.inspections);
   void s5;
 
   // ---- S4: the rest of the stolen electronics on a run to the secure market (high-security gates and dock):
@@ -215,7 +239,7 @@ try {
   const s4pre = await A.fresh(), bpre = await B.fresh();
   const homeB = bpre.companies[B.id].homeStation;
   const eLeft = s4pre.stations[ids.L].storage[A.id]?.[hotA('electronics')] ?? 0;
-  const bHome0 = bpre.stations[homeB]?.storage?.[B.id]?.electronics ?? 0, aCr0 = s4pre.companies[A.id].credits, sec0 = s4pre.blackMarkets[secure.id];
+  const bHome0 = bpre.stations[homeB]?.storage?.[B.id]?.electronics ?? 0, bCust0 = custB(bpre), aCr0 = s4pre.companies[A.id].credits, sec0 = s4pre.blackMarkets[secure.id];
   facts.s4 = { carried: eLeft, homeB };
   check(eLeft > 0 && await A.command({ c: 'setOp', group: ids.a1, op: { k: 'smuggle', from: ids.L, to: ids.S, items: [hotA('electronics')], sell: true } }) === null, 'S4-1: A orders the rest of the stolen electronics from the lawless station to the secure market (through high-security gates)', facts.s4);
   await until(() => { const g = view(A).groups[ids.a1]; return g?.op?.k === 'smuggle' ? null : g; }, 'S4: run did not finish', 900000);
@@ -225,12 +249,13 @@ try {
   const sold4 = lg4.filter((x: any) => x.k === 'sell').reduce((a: number, x: any) => a + (x.items[hotA('electronics')] ?? 0), 0);
   const seized4 = lg4.filter((x: any) => x.k === 'seize').reduce((a: number, x: any) => a + (x.items[hotA('electronics')] ?? 0), 0);
   const back4 = (b4.stations[homeB]?.storage?.[B.id]?.electronics ?? 0) - bHome0;
-  const retLog = (b4.companies[B.id].bm?.log ?? []).filter((x: any) => x.k === 'return' && x.t >= s4pre.time);
-  Object.assign(facts.s4, { log: lg4.map((x: any) => ({ k: x.k, at: x.at, items: x.items, value: x.value && Math.round(x.value), fine: x.fine && Math.round(x.fine), why: x.why })), sold: sold4, seized: seized4, aboard: aboard4, stored: stored4, returnedToB: back4, bReturnLog: retLog, aCredits: Math.round(s4.companies[A.id].credits - aCr0), marketTook: s4.blackMarkets[secure.id].took - sec0.took });
+  const retLog = (b4.companies[B.id].bm?.log ?? []).filter((x: any) => x.k === 'held' && x.t >= s4pre.time);
+  const cust4 = custB(b4) - bCust0;
+  Object.assign(facts.s4, { log: lg4.map((x: any) => ({ k: x.k, at: x.at, items: x.items, value: x.value && Math.round(x.value), fine: x.fine && Math.round(x.fine), why: x.why })), sold: sold4, seized: seized4, aboard: aboard4, stored: stored4, toBHome: back4, customsB: cust4, bHeldLog: retLog, aCredits: Math.round(s4.companies[A.id].credits - aCr0), marketTook: s4.blackMarkets[secure.id].took - sec0.took });
   check(Math.abs(sold4 + seized4 + aboard4 + stored4 - eLeft) < 1e-9, 'S4-2: every carried stolen unit is sold, seized, still aboard or still stored — exactly', facts.s4);
   if (seized4 > 0) {
     const fine = lg4.find((x: any) => x.k === 'seize').fine;
-    check(Math.abs(back4 - seized4) < 1e-9 && retLog.length > 0 && fine > 0, 'S4-3 (inspection outcome: seized): the seized stolen electronics went back to B\'s home-station storage as plain goods (B sees the return in its own log); A was fined', facts.s4);
+    check(Math.abs(cust4 - seized4) < 1e-9 && back4 === 0 && retLog.length > 0 && fine > 0, 'S4-3 (inspection outcome: seized): the seized stolen electronics wait at customs for B (B sees \'held\' in its own log; nothing moved to B\'s home storage); A was fined', facts.s4);
   } else check(sold4 > 0 && s4.blackMarkets[secure.id].took - sec0.took >= sold4, 'S4-3 (inspection outcome: passed): the stolen electronics were sold at the secure market', facts.s4);
 
   // ---- S2: loot of the second plunder at the border station → physical smuggling run to the lawless market
@@ -324,13 +349,15 @@ try {
     for (const s of Object.values<any>(w.stations)) for (const c of co) n += of(s.storage?.[c]);
     for (const x of Object.values<any>(w.drops ?? {})) n += x.lots.filter((l: any) => l.item === item || hotOf(l.item)?.item === item).reduce((a: number, l: any) => a + l.n, 0);
     for (const x of Object.values<any>(w.wrecks ?? {})) n += x.lots.filter((l: any) => l.k === 'cargo' && (l.item === item || hotOf(l.item)?.item === item)).reduce((a: number, l: any) => a + l.n, 0);
+    // P13.3.1: seized stolen goods waiting at customs for their owner
+    for (const c of co) n += (w.companies[c]?.bm?.customs ?? []).filter((l: any) => l.item === item).reduce((a: number, l: any) => a + l.n, 0);
     return n;
   };
   const flow = (item: string, kind: string, reasons: string[]) => rows.filter(r => r.kind === kind && reasons.includes(r.reason) && co.includes(r.company) && (r.item === item || hotOf(r.item ?? '')?.item === item)).reduce((a, r) => a + r.amount, 0);
   const acct: Record<string, any> = {};
   for (const item of ['alloy', 'electronics', 'mod_ecm'] as const) {
     const h = held(w2, item), sold = flow(item, 'blackmarket', ['sell']), bought = flow(item, 'blackmarket', ['buy']), confiscated = flow(item, 'blackmarket', ['confiscate']), lost = flow(item, 'consume', ['combat_cargo_loss', 'drop_decay', 'wreck_decay']);
-    acct[item] = { placed: START[item], boughtFromBlackMarket: bought, heldNow: +h.toFixed(6), soldToBlackMarket: sold, confiscatedDestroyed: confiscated, lostOtherwise: lost };
+    acct[item] = { placed: START[item], boughtFromBlackMarket: bought, heldNow: +h.toFixed(6) /* incl. customs lots */, soldToBlackMarket: sold, confiscatedDestroyed: confiscated, lostOtherwise: lost };
     check(Math.abs(START[item] + bought - h - sold - confiscated - lost) < 1e-6, `ACC ${item}: placed + bought = held (ships, storage, containers, wrecks) + sold to black markets + confiscated + destroyed — exactly`, acct[item]);
   }
   facts.accounting = acct;

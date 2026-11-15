@@ -63,6 +63,8 @@ export interface Company {
   bm?: { known: string[]; log?: import('./blackmarket').BmLog[]; customs?: import('./blackmarket').CustomsLot[] };
   /** P13.2: default answer of this company's cargo ships to a cargo demand (absent = balanced) */
   piracyPolicy?: import('./piracy').VictimPolicy;
+  /** P13.4 (lawV): this company's record with the authority (wanted level, unpaid fines, recent cases) — private */
+  law?: import('./law').CoLaw;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -263,6 +265,10 @@ export interface WGroup {
   plx?: import('./piracy').PlunderState;
   /** P13.2: this fleet's answer to cargo demands (absent = the company default) */
   piracyPolicy?: import('./piracy').VictimPolicy;
+  /** P13.4: Union guard group on a law-enforcement operation (operation id; server-side) */
+  lawx?: string;
+  /** P13.4: a stop demand / pursuit this fleet is under (owner-only) */
+  lawStop?: import('./law').LawStop;
 }
 
 /** coordinated fleet movement: rally → move as one at the slowest ship's pace → stage → attack together */
@@ -532,6 +538,8 @@ export interface Engagement {
   dmg?: Record<string, Record<string, number>>;
   /** P11: strategic groups that left this battle (withdrawn / routed side) and may not rejoin it */
   left?: string[];
+  /** P13.4: a law-enforcement battle — the Union and this company are enemies here only (never a stance change) */
+  law?: { op: string; co: string; ships?: [string, number][] };
   /** P11: reinforcement log (the join events themselves are in `orders`) */
   joins?: { tick: number; at: number; company: string; side: number; groups: string[]; ships: number }[];
   /** P11: companies whose side already left and whose surviving ships were handed back early */
@@ -608,6 +616,10 @@ export interface WorldState {
   blackMarketV?: 1;
   /** P13.3: hidden black markets, one per region type (replicated only to companies that found them) */
   blackMarkets?: Record<string, import('./blackmarket').BlackMarket>;
+  /** P13.4 law enforcement (new worlds only; implies blackMarketV): crimes, wanted levels, guard dispatch */
+  lawV?: 1;
+  /** P13.4: cases and running enforcement operations — server-side, never replicated */
+  law?: import('./law').LawBook;
   /** P13.2: server-side bookkeeping (truces, event log, sequence) — never replicated */
   piracy?: import('./piracy').PiracyBook;
   /** P11: per-company stance toward other player companies. Hostility is unilateral (either side's

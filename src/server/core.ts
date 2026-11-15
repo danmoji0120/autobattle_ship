@@ -50,6 +50,8 @@ export interface ServerOptions {
   piracyNew?: boolean;
   /** BLACKMARKET_P133=1: a brand-new world uses P13.3 black markets & smuggling (implies P13.2; opt-in, saves are never converted) */
   blackMarketNew?: boolean;
+  /** LAW_P134=1: a brand-new world uses P13.4 law enforcement (implies P13.3; opt-in, saves are never converted) */
+  lawNew?: boolean;
   analytics?: AnalyticsOptions;
   /** keep only this many finished logistics jobs per company (see world/retention.ts); unset = keep all */
   logisticsJobRetain?: number;
@@ -104,7 +106,7 @@ export class GameServer {
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
-    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, { ...(opts.econNew ? { econ: 'chain' as const } : {}), ...(opts.combatNew ? { combat: 'p11' as const } : {}), ...(opts.opsNew ? { ops: 'p12' as const } : {}), ...(opts.logisticsNew ? { logistics: 'p125' as const } : {}), ...(opts.salvageNew ? { salvage: 'p131' as const } : {}), ...(opts.piracyNew ? { piracy: 'p132' as const } : {}), ...(opts.blackMarketNew ? { blackMarket: 'p133' as const } : {}) });
+    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, { ...(opts.econNew ? { econ: 'chain' as const } : {}), ...(opts.combatNew ? { combat: 'p11' as const } : {}), ...(opts.opsNew ? { ops: 'p12' as const } : {}), ...(opts.logisticsNew ? { logistics: 'p125' as const } : {}), ...(opts.salvageNew ? { salvage: 'p131' as const } : {}), ...(opts.piracyNew ? { piracy: 'p132' as const } : {}), ...(opts.blackMarketNew ? { blackMarket: 'p133' as const } : {}), ...(opts.lawNew ? { law: 'p134' as const } : {}) });
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }
     this.auth = save?.auth ?? {};

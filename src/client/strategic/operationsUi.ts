@@ -13,6 +13,7 @@ import { priceOf } from '../../world/market';
 import { fieldPanelHtml } from './territoryUi';
 import { econOf } from '../../world/hullops';
 import { companyPiracyHtml } from './piracyUi';
+import { companyLawHtml } from './lawUi';
 
 type Tab = 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance';
 const TABS: [Tab, string][] = [['hq', '본부'], ['works', '업무'], ['stock', '재고'], ['industry', '산업'], ['research', '연구'], ['logistics', '물류'], ['build', '건설·조선'], ['fields', '광구'], ['finance', '재무·결재']];
@@ -98,6 +99,7 @@ export class OperationsPanel {
       case 'goal': return this.createGoal();
       case 'form': this.formOpen = !this.formOpen; return this.render();
       case 'policy': return this.savePolicy();
+      case 'lawpay': return void this.send({ c: 'lawPay' }, '벌금을 납부했습니다');
       case 'inv-stock': {
         const row = id; const station = this.val('inv-station'), target = this.numv('inv-target');
         if (!station || !(target > 0)) { this.error = '정거장과 목표 수량을 입력하세요'; return this.render(); }
@@ -352,7 +354,7 @@ export class OperationsPanel {
         <label>위임 구매 예산<input type="number" name="p-deleg" min="0" value="${pol.delegatedBudget}"> <small class="dim">사용 ${n0(pol.delegatedSpent)} cr</small></label></div>
         <label class="ops-check"><input type="checkbox" name="p-produce" ${pol.preferProduce ? 'checked' : ''}> 구매보다 자체 생산 우선</label>
         <p class="dim">위임 품목: ${Object.entries(pol.autoBuy).map(([i, p]) => `${esc(itemName(i))} ≤ ${n0(p)} cr`).join(', ') || '없음'} — 결재에서 "정책 위임"을 고르면 추가됩니다.</p>
-        <button class="btn go" data-a="policy">정책 저장</button></div>${companyPiracyHtml(this.w as never, this.me)}</section></div>`;
+        <button class="btn go" data-a="policy">정책 저장</button></div>${companyPiracyHtml(this.w as never, this.me)}${companyLawHtml(this.w as never, this.me)}</section></div>`;
   }
   /** value-chain migration: what the company's goods were worth before vs now (reference, NOT cash) */
   private valuationNote() {

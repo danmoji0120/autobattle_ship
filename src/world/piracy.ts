@@ -21,6 +21,7 @@ import { shipValue } from './data';
 import { dist, sysAt } from './geom';
 import { effSec } from './security';
 import { bumpStanding } from './territory';
+import { lawCrime } from './law';
 import { emit } from './observe';
 import { isExclusiveEquip, isExclusiveShip } from './exclusive';
 import { isExclusive } from '../content/registry';
@@ -413,6 +414,8 @@ export function jettison(h: Host, s: WShip, by: string, ev: string, want: Cargo,
   if (by !== 'pirates' && coRelation(st, by, s.owner) !== -1) {
     const sec = sys ? effSec(sys) : 0;
     log(h, { kind: 'extortion', by, to: s.owner, ship: s.id, system: d.system, value });
+    // P13.4: the same event as a law case (its own jurisdiction & witness rules; the reputation loss below is not repeated)
+    if (st.lawV) { const rg = raider ? st.groups[raider] : undefined; lawCrime(h, { kind: 'extortion', by, group: raider, ship: rg?.shipIds[0], victim: s.owner, vgroup: s.groupId, sys: d.system, pos: d.pos, value, key: `ext:${id}` }); }
     const co = st.companies[by];
     if (sec >= PIR.lawSec && co) {
       const rep = value * SALV.repPerCr * (sec / 100);

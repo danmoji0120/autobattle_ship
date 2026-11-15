@@ -27,6 +27,8 @@ import { stationCargoRate } from './stations';
 import { sysAt } from './geom';
 import { routeSystems } from './fleetops';
 import { gateOpen } from './territory';
+import { lawCrime } from './law';
+import { dist } from './geom';
 
 type Host = WorldSim;
 
@@ -260,7 +262,9 @@ export interface BmLog { t: number; k: 'sell' | 'buy' | 'pass' | 'seize' | 'retu
  * construction and logistics never see it; it lives in the owner's private company record (saved, never sent to
  * other companies) and is never destroyed.
  */
-export interface CustomsLot { id: string; item: string; n: number; station: string; from: string; t: number }
+/** `station` '' (P13.4 worlds): held by the authorities in system `sys` at `pos` (the seizure point) — no customs
+ *  station there; the owner collects it there with a ship, it never moves to another system by itself */
+export interface CustomsLot { id: string; item: string; n: number; station: string; from: string; t: number; sys?: string; pos?: { x: number; y: number; z: number } }
 
 /** the company learns where this black market is (docking at its station; P10 deep intel of its system) */
 export function discover(h: Pick<Host, 'st' | 'time' | 'ev'>, company: string, b: BlackMarket, how: string) {
@@ -423,12 +427,31 @@ export function inspect(h: Host, s: WShip, kind: 'gate' | 'dock', sys: StarSyste
     h.ev('info', `${s.name}: ${where} 검문 통과 — 불법 화물 미적발`, { company: s.owner, pos: s.pos, tag: 'blackmarket' });
     return 'pass';
   }
-  seize(h, s, c, sys, st, where, p);
+  seize(h, s, c, sys, st, where, p, key);
   return 'seize';
 }
 
+/**
+ * P13.4: the inspection a Union guard group makes after a stop it was complied with. Every stolen unit aboard is
+ * found (a real inspection, no roll); the P13.3 seizure rules apply (owner's goods to customs, fine on the seized
+ * value). Once per ship and operation — repeating it never seizes or fines twice. Returns the units seized.
+ */
+export function guardInspect(h: Host, s: WShip, sys: StarSystem, ref: string): number {
+  const w = h.st; if (!w.blackMarketV) return 0;
+  const co = w.companies[s.owner]; if (!co || co.kind !== 'player') return 0;
+  const key = `stop:${ref}`;
+  if (s.insp?.[key]) return 0;
+  const c = contraband(w, s, []);
+  const n = cargoSum(c);
+  s.insp = { ...(s.insp ?? {}), [key]: n > 0 ? 'seize' : 'pass' };
+  emit(w, { kind: 'blackmarket', reason: n > 0 ? 'inspect_seize' : 'inspect_pass', amount: n, company: s.owner, ship: s.id, system: sys.id, ref });
+  if (n <= 0) { log(co, { t: h.time, k: 'pass', at: sys.id, why: '연합 경비대 정선 검문 — 불법 화물 없음' }); return 0; }
+  seize(h, s, c, sys, undefined, `${sys.name} 연합 경비대 정선`, 1, key);
+  return n;
+}
+
 /** confiscation: every illicit unit found leaves the hold (stolen goods go back to a player owner), fine, reputation */
-function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undefined, where: string, p: number) {
+function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undefined, where: string, p: number, key: string) {
   const w = h.st, co = w.companies[s.owner];
   watchMoney(w, 'black_market_fine', { company: s.owner, station: st?.id }, () => {
     const value = cargoValue(w, c);
@@ -442,6 +465,11 @@ function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undef
         holdLot(h, hot.owner, office, hot.item, n, s.owner);
         (returned[hot.owner] ??= {})[hot.item] = (returned[hot.owner][hot.item] ?? 0) + n;
         emit(w, { kind: 'blackmarket', reason: 'customs_hold', amount: n, company: hot.owner, from: s.owner, station: office.id, item: hot.item });
+      } else if (hot && w.lawV && owner && owner.kind === 'player' && hot.owner !== s.owner) {
+        // P13.4: no customs station in this system — the authorities keep it here, conserved, until the owner comes
+        holdLot(h, hot.owner, { sys: sys.id, pos: s.pos }, hot.item, n, s.owner);
+        (returned[hot.owner] ??= {})[hot.item] = (returned[hot.owner][hot.item] ?? 0) + n;
+        emit(w, { kind: 'blackmarket', reason: 'customs_hold', amount: n, company: hot.owner, from: s.owner, system: sys.id, item: hot.item });
       } else emit(w, { kind: 'blackmarket', reason: 'confiscate', amount: n, company: s.owner, ship: s.id, station: st?.id, system: sys.id, item: k });
     }
     const fine = Math.min(Math.max(0, co.credits), Math.round(value * BM.fine));
@@ -457,10 +485,17 @@ function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undef
     log(co, { t: h.time, k: 'seize', at: st?.id ?? sys.id, items: c, value, fine, why: `${where} 검문 적발 (확률 ${pctOf(p)})` });
     h.ev('warn', `${s.name}: ${where} 검문에 적발 — 불법 화물 ${Math.round(cargoSum(c))}단위 압수, 벌금 ${fine.toLocaleString()} cr`, { company: s.owner, pos: s.pos, tag: 'blackmarket' });
     for (const [owner, items] of Object.entries(returned)) {
-      const office = customsOffice(h, owner, st, sys, s.pos)!;
-      log(w.companies[owner], { t: h.time, k: 'held', at: office.id, items, why: `${co.name} 화물 압수 — 도난품 세관 반환 대기` });
-      h.ev('info', `당국이 도난 화물을 회수했습니다 (${Object.entries(items).map(([k, n]) => `${itemNameOf(k)} ${Math.round(n)}`).join(', ')}) — ${office.name} 세관 반환 대기. 자사 함선을 입항시켜 인수하세요`, { company: owner, pos: office.pos, ref: office.id, tag: 'blackmarket' });
+      const office = customsOffice(h, owner, st, sys, s.pos);
+      const list = Object.entries(items).map(([k, n]) => `${itemNameOf(k)} ${Math.round(n)}`).join(', ');
+      if (office) {
+        log(w.companies[owner], { t: h.time, k: 'held', at: office.id, items, why: `${co.name} 화물 압수 — 도난품 세관 반환 대기` });
+        h.ev('info', `당국이 도난 화물을 회수했습니다 (${list}) — ${office.name} 세관 반환 대기. 자사 함선을 입항시켜 인수하세요`, { company: owner, pos: office.pos, ref: office.id, tag: 'blackmarket' });
+      } else {
+        log(w.companies[owner], { t: h.time, k: 'held', at: sys.id, items, why: `${co.name} 화물 압수 — ${sys.name} 현장 보관 (세관 정거장 없음)` });
+        h.ev('info', `당국이 도난 화물을 회수했습니다 (${list}) — ${sys.name}에 세관 정거장이 없어 압수 지점에 보관 중. 자사 함선을 보내 인수하세요`, { company: owner, pos: s.pos, tag: 'blackmarket' });
+      }
     }
+    if (w.lawV) lawCrime(h, { kind: 'smuggling', by: s.owner, group: s.groupId, ship: s.id, sys: sys.id, pos: s.pos, value, key: `smug:${s.id}:${key}`, how: 'inspection' });
   });
 }
 
@@ -473,6 +508,8 @@ export function customsOffice(h: Host, owner: string, st: Station | undefined, s
   const pub = Object.values(h.st.stations).filter(x => x.public && h.canDock(x, owner));
   const d2 = (x: Station) => (x.pos.x - pos.x) ** 2 + (x.pos.y - pos.y) ** 2 + (x.pos.z - pos.z) ** 2;
   const here = pub.filter(x => sysAt(h.st.systems, x.pos)?.id === sys.id);
+  // P13.4: goods never jump to a station in another system — without one here they stay held in this system
+  if (h.st.lawV && !here.length) return undefined;
   const pool = here.length ? here : pub.length ? pub : Object.values(h.st.stations).filter(x => x.public);
   let best: Station | undefined;
   for (const x of pool) if (!best || d2(x) < d2(best) || (d2(x) === d2(best) && x.id < best.id)) best = x;
@@ -481,12 +518,21 @@ export function customsOffice(h: Host, owner: string, st: Station | undefined, s
 export const customsLots = (co: Company | undefined): CustomsLot[] => co?.bm?.customs ?? [];
 /** units of `item` (all items when omitted) waiting at customs for this company */
 export function customsHeld(co: Company | undefined, item?: string): number { return customsLots(co).reduce((a, l) => a + (item === undefined || l.item === item ? l.n : 0), 0); }
-function holdLot(h: Host, owner: string, office: Station, item: string, n: number, from: string) {
+function holdLot(h: Host, owner: string, office: Station | { sys: string; pos: { x: number; y: number; z: number } }, item: string, n: number, from: string) {
   const b = (h.st.companies[owner].bm ??= { known: [] }), lots = (b.customs ??= []);
+  if ('sys' in office) {
+    // in-system hold: one lot per item and system, at the first seizure point there
+    const same = lots.find(l => !l.station && l.sys === office.sys && l.item === item);
+    if (same) { same.n += n; same.t = h.time; same.from = from; }
+    else lots.push({ id: h.id('cu'), item, n, station: '', sys: office.sys, pos: { x: office.pos.x, y: office.pos.y, z: office.pos.z }, from, t: h.time });
+    return;
+  }
   const same = lots.find(l => l.station === office.id && l.item === item);
   if (same) { same.n += n; same.t = h.time; same.from = from; }
   else lots.push({ id: h.id('cu'), item, n, station: office.id, from, t: h.time });
 }
+/** a ship can collect an in-system customs lot: in space in that system, within this distance of the hold point */
+export const HOLD_R = 3000;
 
 /**
  * The owner takes a customs lot back: one of its ships must be docked at the lot's station (the pick-up), and the
@@ -500,6 +546,7 @@ export function customsClaim(h: Host, company: string, lotId: unknown, amount: u
   if (!lot || !lots) return '세관 반환 대기 화물이 없습니다';
   if (amount !== undefined && (typeof amount !== 'number' || !Number.isFinite(amount) || amount < 1)) return '인수 수량이 올바르지 않습니다';
   if (typeof ship !== 'string') return '인수할 함선을 지정하세요';
+  if (!lot.station) return claimHeld(h, co, lots, lot, amount, ship, toStorage);
   const st = w.stations[lot.station]; if (!st) return '보관 정거장이 없습니다';
   const s = w.ships[ship];
   if (!s || s.owner !== company) return '자사 함선이 아닙니다';
@@ -518,6 +565,26 @@ export function customsClaim(h: Host, company: string, lotId: unknown, amount: u
   emit(w, { kind: 'blackmarket', reason: 'customs_claim', amount: n, company, station: st.id, ship: s.id, item: lot.item });
   log(co, { t: h.time, k: 'claim', at: st.id, items: { [lot.item]: n }, why: toStorage === true ? '세관 인수 → 보관함' : `세관 인수 → ${s.name}` });
   h.ev('info', `${st.name} 세관: ${itemNameOf(lot.item)} ${n} 인수 (${toStorage === true ? '보관함' : s.name})${lot.n > 1e-9 ? ` — ${Math.round(lot.n)} 대기 중` : ''}`, { company, pos: st.pos, ref: st.id, tag: 'blackmarket' });
+  return { moved: n, left: Math.max(0, lot.n) };
+}
+
+/** P13.4: collect an in-system hold — a ship of the owner in space at the hold point, into its free hold only */
+function claimHeld(h: Host, co: Company, lots: CustomsLot[], lot: CustomsLot, amount: unknown, ship: string, toStorage: unknown): { moved: number; left: number } | string {
+  const w = h.st, s = w.ships[ship], sys = lot.sys ? w.systems[lot.sys] : undefined;
+  if (!s || s.owner !== co.id) return '자사 함선이 아닙니다';
+  if (toStorage === true) return '현장 보관 화물은 함선 화물칸으로만 인수할 수 있습니다';
+  if (!sys || !lot.pos || s.state !== 'space' || sysAt(w.systems, s.pos)?.id !== sys.id || dist(s.pos, lot.pos) > HOLD_R) return `${sys?.name ?? lot.sys} 압수 지점(${HOLD_R / 1000} km 이내)에 자사 함선이 있어야 인수할 수 있습니다`;
+  const want = Math.min(lot.n, amount === undefined ? lot.n : Math.floor(amount as number));
+  const room = Math.floor(econOf(s).cargo - cargoSum(s.cargo) + 1e-9);
+  const n = Math.min(want, Math.max(0, room));
+  if (n < 1) return `화물칸 부족 — 여유 ${Math.max(0, room)}`;
+  addc(s.cargo, lot.item, n);
+  lot.n -= n;
+  if (lot.n <= 1e-9) lots.splice(lots.indexOf(lot), 1);
+  if (!lots.length) delete co.bm!.customs;
+  emit(w, { kind: 'blackmarket', reason: 'customs_claim', amount: n, company: co.id, system: sys.id, ship: s.id, item: lot.item });
+  log(co, { t: h.time, k: 'claim', at: sys.id, items: { [lot.item]: n }, why: `${sys.name} 현장 보관 인수 → ${s.name}` });
+  h.ev('info', `${sys.name} 현장 보관: ${itemNameOf(lot.item)} ${n} 인수 (${s.name})${lot.n > 1e-9 ? ` — ${Math.round(lot.n)} 대기 중` : ''}`, { company: co.id, pos: lot.pos, tag: 'blackmarket' });
   return { moved: n, left: Math.max(0, lot.n) };
 }
 

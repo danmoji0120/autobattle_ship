@@ -100,6 +100,8 @@ export type Cmd =
   | { c: 'bmBuy'; station: string; res: string; amount: number; ship?: string; request?: { seq: number; id: string } }
   /** P13.3.1: take a customs return lot back with a ship docked at its station (into its hold, or storage there) */
   | { c: 'customsClaim'; lot: string; ship: string; amount?: number; toStorage?: boolean }
+  | { c: 'lawAnswer'; group: string; choice: 'comply' | 'flee' | 'resist' }
+  | { c: 'lawPay'; case?: string; amount?: number }
   | { c: 'buy'; station: string; res: Res; amount: number; /** growth: load straight into this docked ship's hold */ ship?: string; request?: { seq: number; id: string } }
   | { c: 'lease'; station: string; blocks: number }
   | { c: 'repair'; ship: string; /** the cost the client showed; refused when the server charge differs */ quote?: number }
@@ -182,6 +184,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
+import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 
@@ -254,7 +257,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -265,9 +268,12 @@ export class WorldSim {
     // P13.1 physical battlefield wrecks & salvage is opt-in and builds on P11/P12/P12.5; no random derelicts
     if (opts.salvage === 'p131' || opts.piracy === 'p132') { sim.st.combatV = 2; sim.st.opsV = 1; if (!sim.st.logisticsV) enableAutoLogistics(sim); sim.st.salvageV = 1; }
     // P13.2 cargo raiding builds on all of the above (threat → jettison → physical recovery, or force → P11 → wreck)
+    // P13.4 law enforcement builds on P13.3 (smuggling inspections, stolen goods) and everything below it
+    if (opts.law === 'p134') opts = { ...opts, blackMarket: 'p133' };
     if (opts.piracy === 'p132' || opts.blackMarket === 'p133') { sim.st.combatV = 2; sim.st.opsV = 1; if (!sim.st.logisticsV) enableAutoLogistics(sim); sim.st.salvageV = 1; sim.st.piracyV = 1; sim.st.drops = {}; }
     // P13.3 black markets & smuggling build on P13.2 (stolen goods come from real plunder and salvage)
     if (opts.blackMarket === 'p133') sim.st.blackMarketV = 1;
+    if (opts.law === 'p134') { sim.st.lawV = 1; sim.st.law = { seq: 0, next: 0, cases: {}, keys: {}, ops: {} }; }
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -892,6 +898,8 @@ export class WorldSim {
         }
         return null;
       }
+      case 'lawAnswer': return lawAnswer(this, company, cmd.group, cmd.choice);
+      case 'lawPay': { const r = lawPay(this, company, cmd.case, cmd.amount); return typeof r === 'string' ? r : null; }
       case 'customsClaim': {
         const r = customsClaim(this, company, cmd.lot, cmd.amount, cmd.ship, cmd.toStorage);
         return typeof r === 'string' ? r : null;
@@ -2134,6 +2142,8 @@ export class WorldSim {
       }
     }
     // P13.3: black-market budgets (moved from host budgets), glut absorption, restock; P10 intel reveals them
+    // P13.4: reports, sightings, wanted levels, guard dispatch and pursuit limits
+    if (st.lawV) stepLaw(this);
     if (st.blackMarketV) { stepBlackMarkets(this, dt); if (st.fog && Math.floor(this.time / 60) !== Math.floor((this.time - dt) / 60)) discoverByIntel(this); }
     if (growthOn(st)) for (const co of Object.values(st.companies)) {
       if (co.kind !== 'player') continue;
@@ -2389,6 +2399,8 @@ export class WorldSim {
       const held = ships.filter(s => s.state === 'docked' && departureHeld(this.st, s));
       if (held.length) { ships = ships.filter(s => !held.includes(s)); if (!ships.length) { g.status = departureHeld(this.st, held[0])!; return; } }
     }
+    // P13.4: a dispatched guard group flies its law operation; a stopped fleet holds still for the inspection
+    if (this.st.lawV && lawGroup(this, g, ships, dt)) return;
     const op = this.opOf(g);
     const c = this.cmdr(g);
     // ---- commander threat assessment for civilian work
@@ -2998,7 +3010,7 @@ export class WorldSim {
     const s = this.shipsOf(g).filter(x => x.state !== 'battle' && econOf(x).cruise > 0);
     return s.length ? Math.min(...s.map(x => this.cruiseOf(x) * (0.6 + 0.4 * x.hp))) : 100;
   }
-  private groupSpeed(g: WGroup, military: boolean): number {
+  groupSpeed(g: WGroup, military: boolean): number {
     const s = this.shipsOf(g).filter(x => x.state !== 'battle' && econOf(x).military === military);
     return s.length ? Math.min(...s.map(x => this.cruiseOf(x) * (0.6 + 0.4 * x.hp))) : 100;
   }
@@ -3826,7 +3838,7 @@ export class WorldSim {
   }
 
   /** ships of a group that can be pulled into a battle: in open space, not warping, not in any battle */
-  private freeShips(g: WGroup): WShip[] { return this.shipsOf(g).filter(s => s.state === 'space' && s.warp?.phase !== 'warp' && !s.engagement); }
+  freeShips(g: WGroup): WShip[] { return this.shipsOf(g).filter(s => s.state === 'space' && s.warp?.phase !== 'warp' && !s.engagement); }
 
   /**
    * P11 detection, once per strategic second:
@@ -3861,8 +3873,10 @@ export class WorldSim {
         const g = st.groups[gid];
         const inR = near(ss, e.pos, JOIN_R);
         if (!inR.length) continue;
+        // P13.4: a law battle takes in only the dispatched guards (explicitly) — never the suspect company's other fleets
+        if (st.lawV && !lawJoinAllowed(e, g)) continue;
         // P13.2.1: a truce keeps a group out only when every group of that company here is its truce partner
-        if (!present.some(c => rel(g.owner, c) === -1 && !(st.piracyV && truceShields(st, g, groupsIn(e, c), e.pos, this.time)))) continue;
+        if (!present.some(c => engRel(st, e, g.owner, c) === -1 && !(st.piracyV && truceShields(st, g, groupsIn(e, c), e.pos, this.time)))) continue;
         used.add(gid);
         const l = joiners.get(g.owner) ?? []; l.push({ g, ss: inR }); joiners.set(g.owner, l);
       }
@@ -3898,7 +3912,7 @@ export class WorldSim {
   /** two hostile groups met at `pos`: merge into a battle already running there, or start one */
   private p11Contact(pos: V, seed: WGroup[], cand: Map<string, WShip[]>, used: Set<string>, active: Engagement[], lair?: Lair) {
     const st = this.st;
-    const over = active.find(e => dist(e.pos, pos) < JOIN_R * 1.5);
+    const over = active.find(e => !e.law && dist(e.pos, pos) < JOIN_R * 1.5);
     if (over) {
       // overlapping battle zones: the contact becomes part of the battle already running (one ship, one battle)
       const byCo = new Map<string, { g: WGroup; ss: WShip[] }[]>();
@@ -3946,7 +3960,7 @@ export class WorldSim {
 
   private sideName(co: string, lair?: Lair) { return co === 'pirates' && lair ? `해적 · ${lair.name}` : this.st.companies[co]?.name ?? co; }
 
-  createEngagementP11(pos: V, list: { g: WGroup; ss: WShip[] }[], lair?: Lair): Engagement {
+  createEngagementP11(pos: V, list: { g: WGroup; ss: WShip[] }[], lair?: Lair, law?: Engagement['law']): Engagement {
     const st = this.st;
     const order: string[] = [];
     for (const x of list) if (!order.includes(x.g.owner)) order.push(x.g.owner);
@@ -3968,7 +3982,7 @@ export class WorldSim {
     const ships = list.flatMap(x => x.ss);
     const fleets = order.map((co, k) => this.companyFleet(co, list.filter(x => x.g.owner === co), k, extra.get(co) ?? [], this.sideName(co, lair)));
     const sides: SideSpec[] = order.map(co => ({ key: co, name: this.sideName(co, lair) }));
-    const relM: Relation[][] = order.map(a => order.map(b => coRelation(st, a, b)));
+    const relM: Relation[][] = order.map(a => order.map(b => engRel(st, law ? { law } : undefined, a, b)));
     const sys = this.sysOf(pos);
     const setup = { seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720, fleets, sides, rel: relM };
     const live = order.some(c => st.companies[c]?.kind === 'player');
@@ -3976,14 +3990,17 @@ export class WorldSim {
     const e: Engagement = {
       id: this.id('e'), pos: { ...pos }, start: st.time, setup, orders: [], tick: 0, sides: order.map(c => [c]), groupRefs: list.map(x => x.g.id),
       live, done: false, lairId: lair?.id, stationId, n: ships.length + (lair ? 1 : 0) + nStations, sys: sys?.id, names: sides.map(x => x.name!), v: 2,
+      ...(law ? { law: { ...law } } : {}),
     };
     st.engagements[e.id] = e;
+    if (law) noteLawShips(e, ships);
     for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; }
     for (const c of order) if (st.companies[c]?.kind === 'player') this.ev('battle', `교전 발생! ${order.filter(x => x !== c).map(x => this.sideName(x, lair)).join(', ')}와(과) 전투 중`, { company: c, pos, ref: e.id });
     const npcShips = [...this.battles.keys()].map(id => st.engagements[id]).filter(x => x && !x.live).reduce((a, x) => a + (x.n ?? 0), 0);
     if (live || npcShips + (e.n ?? 0) <= NPC_BATTLE_CAP) { const w = new World(setup); this.battles.set(e.id, w); this.battleAcc.set(e.id, 0); this.mirrorBattle(e, w); }
     else e.autoEnd = st.time + Math.min(90, 20 + ships.length * 2.5);
     if (!live && (e.n ?? 0) >= 4 && sys) this.ev('world', `${sys.name}: ${e.names!.join(' ↔ ')} 교전 발생 (${e.n}척)${e.autoEnd === undefined ? ' — 클릭하여 관전' : ''}`, { pos, ref: e.id });
+    if (st.lawV) lawOnBattle(this, e);
     return e;
   }
 
@@ -4004,12 +4021,13 @@ export class WorldSim {
     let k = e.sides.findIndex(x => x.length === 1 && x[0] === co);
     const team = k >= 0 ? k : e.sides.length;
     const fleet = this.companyFleet(co, list, team, [], `${this.sideName(co)} 증원`);
-    const side: number | SideSpec = k >= 0 ? k : { key: co, name: this.sideName(co), rel: e.sides.map(x => coRelation(st, co, x[0])) };
+    const side: number | SideSpec = k >= 0 ? k : { key: co, name: this.sideName(co), rel: e.sides.map(x => engRel(st, e, co, x[0])) };
     const rec = w.scheduleEvent(w.tick + 4, { k: 'join', fleet, side, entry: { x: Math.round(cx), z: Math.round(cz) } });
     e.orders.push(rec);
     if (k < 0) { k = e.sides.length; e.sides.push([co]); (e.names ??= []).push(this.sideName(co)); }
     for (const x of list) if (!e.groupRefs.includes(x.g.id)) e.groupRefs.push(x.g.id);
     for (const s of ships) { s.state = 'battle'; s.engagement = e.id; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; }
+    if (e.law) noteLawShips(e, ships); else if (st.lawV) lawOnBattle(this, e);
     e.n = (e.n ?? 0) + ships.length;
     if (st.companies[co]?.kind === 'player') e.live = true;
     (e.joins ??= []).push({ tick: rec.tick, at: this.time, company: co, side: k, groups: list.map(x => x.g.id), ships: ships.length });
@@ -4137,7 +4155,7 @@ export class WorldSim {
     if (e.lairId) { const l = st.lairs[e.lairId], k = sideOfCo('pirates'); if (l && k >= 0) units.push({ ref: 'lair:' + l.id, side: k, val: 300 * (0.4 + 0.6 * l.hp), hp: l.hp }); }
     const S = Array.from({ length: n }, (_, k) => units.filter(u => u.side === k).reduce((a, u) => a + u.val, 0) * r.range(0.82, 1.18));
     let winner = -1; for (let k = 0; k < n; k++) if (S[k] > 0 && (winner < 0 || S[k] > S[winner])) winner = k;
-    const hostileTo = (k: number) => winner >= 0 && k !== winner && coRelation(st, e.sides[k][0], e.sides[winner][0]) === -1;
+    const hostileTo = (k: number) => winner >= 0 && k !== winner && engRel(st, e, e.sides[k][0], e.sides[winner][0]) === -1;
     const W = winner >= 0 ? S[winner] : 0, L = S.reduce((a, v, k) => a + (hostileTo(k) ? v : 0), 0);
     const rem = Math.sqrt(Math.max(0, 1 - (Math.min(L, W) / Math.max(1, W)) ** 2));
     const dmgW = Math.max(0.04, Math.min(0.85, 1 - rem));
@@ -4300,7 +4318,7 @@ export class WorldSim {
         const status = statusOf(c);
         if (status === 'victor') { co.stats.battlesWon++; if (!co.milestones.includes('first_victory')) this.milestone(co, 'first_victory'); }
         const lost = lostBy.get(c) ?? 0;
-        const foes = e.sides.flat().filter(x => x !== c && coRelation(st, c, x) === -1 && !pirCos.has(x));
+        const foes = e.sides.flat().filter(x => x !== c && engRel(st, e, c, x) === -1 && !pirCos.has(x));
         const foeLost = foes.reduce((a, x) => a + (lostBy.get(x) ?? 0), 0);
         const txt = `${STATUS_KO[status] ?? status} — ${destroyedPirateValue.size ? `해적 ${destroyedPirateValue.size}척 격침, ` : ''}${foes.length ? `적대 회사 손실 ${foeLost}척, ` : ''}아군 손실 ${lost}척${pay ? `, 현상금 +${pay.toLocaleString()} cr` : ''}`;
         this.ev('battle', `전투 종료: ${txt}`, { company: c, pos: e.pos, ref: e.id });

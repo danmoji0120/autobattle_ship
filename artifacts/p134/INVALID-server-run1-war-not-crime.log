@@ -1,0 +1,5 @@
+PASS [2s] 0: LAW_P134=1 server creates a P13.4 world (P13.3 + law enforcement); the law book itself is never replicated {"lawV":1,"law":"undefined"}
+PASS [3s] A declares B hostile 
+PASS [3s] L1: B sets hauler 1 to 생존 우선 
+PASS [4s] L1: B's hauler 1 is under way 
+PASS [4s] L1: A orders a non-destructive plunder of B 화물선 1 

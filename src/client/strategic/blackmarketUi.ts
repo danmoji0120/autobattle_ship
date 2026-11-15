@@ -98,10 +98,10 @@ export function customsHtml(v: View, s: Station, me: string): string {
   const pick = docked.length ? `<select data-cu-ship data-keep>${docked.map(x => `<option value="${x.id}">${esc(x.name)} (여유 ${fmt(Math.max(0, econOf(x).cargo - Object.values(x.cargo).reduce((a, n) => a + n, 0)))})</option>`).join('')}</select>` : '';
   const rows = here.map(l => `<tr><td><b>${esc(itemName(l.item))}</b><div class="dim small">${esc(w.companies[l.from]?.name ?? l.from)}에게서 압수</div></td><td class="n">${fmt(l.n)}</td>
     <td>${docked.length ? `<button class="btn mini" data-cuclaim="${l.id}|hold">함선 화물칸으로</button><button class="btn mini" data-cuclaim="${l.id}|store">이 정거장 보관함으로</button>` : '<span class="dim small">자사 함선 정박 필요</span>'}</td></tr>`).join('');
-  const far = away.map(l => `<tr><td>${esc(itemName(l.item))}</td><td class="n">${fmt(l.n)}</td><td>${esc(w.stations[l.station]?.name ?? l.station)}</td></tr>`).join('');
+  const far = away.map(l => `<tr><td>${esc(itemName(l.item))}</td><td class="n">${fmt(l.n)}</td><td>${l.station ? esc(w.stations[l.station]?.name ?? l.station) : `${esc(w.systems[l.sys ?? '']?.name ?? l.sys ?? '')} 압수 지점 현장 보관 <span class="dim small">(세관 정거장 없음 — 그 지점 3km 안에서 편대 패널로 인수)</span>`}</td></tr>`).join('');
   return `<div class="bdr small customs"><h3>세관 반환 대기</h3>
     <div class="dim">당국이 다른 회사에게서 압수한 자사 도난품입니다. 압수된 정거장 세관에 보관되며, 생산·판매·건설에 쓸 수 없습니다. 그 정거장에 자사 함선을 정박시킨 뒤 화물칸 여유나 보관함 공간만큼 인수할 수 있고, 남은 수량은 계속 보관됩니다.</div>
     ${rows ? `${pick}<table class="gt"><tr><th>품목</th><th class="n">수량</th><th></th></tr>${rows}</table>` : ''}
-    ${far ? `<div>다른 정거장 세관</div><table class="gt"><tr><th>품목</th><th class="n">수량</th><th>보관 정거장</th></tr>${far}</table>` : ''}
+    ${far ? `<div>다른 곳에 보관 중</div><table class="gt"><tr><th>품목</th><th class="n">수량</th><th>보관 장소</th></tr>${far}</table>` : ''}
   </div>`;
 }

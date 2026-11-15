@@ -29,7 +29,7 @@ const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
-const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive', 'econLog', 'piracy']);
+const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive', 'econLog', 'piracy', 'law']);
 /** factions as clients see them: the v2 economy ledger stays on the server (it is large and changes every cycle) */
 export function publicFactions(fs: WorldState['factions']) {
   if (!fs) return fs;
@@ -47,7 +47,7 @@ function publicCompany(id: string, co: any) {
 function stationBody(st: Station, own: boolean) {
   return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
 }
-function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined, smug: undefined }; }
+function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined, smug: undefined, lawStop: undefined, lawx: undefined }; }
 function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined, pir: undefined, insp: undefined }; }
 /** P13.2: what pirates carried home stays with them (not replicated) */
 const lairBody = (l: any) => l.hold === undefined ? l : { ...l, hold: undefined };
@@ -132,7 +132,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
     blackMarkets: base.blackMarkets ? Object.fromEntries(Object.entries(base.blackMarkets).filter(([id]) => !!c && !!st.companies[c]?.bm?.known.includes(id))) : undefined,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
     works: own(base.works), approvals: own(base.approvals),
-    grants: undefined, conversions: undefined, exclusive: undefined, econLog: undefined, piracy: undefined,
+    grants: undefined, conversions: undefined, exclusive: undefined, econLog: undefined, piracy: undefined, law: undefined,
     drops: base.drops ? Object.fromEntries(Object.values(base.drops).map(d => [d.id, dropFor(d, c)] as const).filter(([, d]) => d)) : undefined,
     wrecks: base.wrecks ? Object.fromEntries(Object.values(base.wrecks).filter(w => wreckVisible(st, w, c)).map(w => [w.id, wreckFor(w, c)])) : undefined,
     sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c && s.seen.includes(c)).map(([id, s]) => [id, siteFor(s, c!)])) : undefined,

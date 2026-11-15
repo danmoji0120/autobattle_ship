@@ -22,6 +22,7 @@ import { dist, sysAt } from './geom';
 import { techFx } from './industry';
 import { effSec } from './security';
 import { bumpStanding } from './territory';
+import { lawCrime } from './law';
 import { emit } from './observe';
 import { stationCargoRate } from './stations';
 import { opKey } from './fleetops';
@@ -177,6 +178,8 @@ function crime(h: Host, s: WShip, w: SalvSite, lot: WreckLot, n: number) {
   const sys = h.st.systems[w.system], sec = sys ? effSec(sys) : 0;
   const co = h.st.companies[s.owner];
   emit(h.st, { kind: 'salvage', reason: 'unauthorized', item: lot.item, amount: n, value, company: s.owner, ref: w.id, from: lot.owner, system: w.system });
+  // P13.4: one law case per site and company, growing with what is really taken (the reputation rule below stays as is)
+  if (h.st.lawV) lawCrime(h, { kind: 'salvage', by: s.owner, group: s.groupId, ship: s.id, victim: lot.owner, sys: w.system, pos: s.pos, value, key: `salv:${w.id}:${s.owner}` });
   if (sec >= SALV.lawSec && co) {
     const rep = value * SALV.repPerCr * (sec / 100);
     co.rep = Math.max(0, co.rep - rep);
