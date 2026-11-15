@@ -1,0 +1,234 @@
+{
+  "seed": 134,
+  "dt": 0.5,
+  "fixedClock": "n/a (no NPC battles: lairs off, no NPC ships; fixed dt)",
+  "load": "single process, no other runs",
+  "layout": "p9 (server default)",
+  "B": {
+    "before": {
+      "world": "P13.2.2 (no black market)",
+      "seed": 134,
+      "plunderSeconds": 62,
+      "unitsTaken": 69,
+      "unloadedAt": {
+        "astra": {
+          "alloy": 9,
+          "electronics": 60
+        }
+      },
+      "mode": "정상 시장 즉시 판매",
+      "revenue": 9737,
+      "unsold": {},
+      "seconds": 62,
+      "creditsDelta": 9708
+    },
+    "after": {
+      "world": "P13.3 (blackMarketV)",
+      "seed": 134,
+      "plunderSeconds": 62,
+      "unitsTaken": 14,
+      "unloadedAt": {
+        "astra": {
+          "hot:electronics:p10": 14
+        }
+      },
+      "stolenUnits": 14,
+      "seizedOnUnload": [
+        {
+          "k": "seize",
+          "at": "astra",
+          "why": "아스트라 자유항 검문 적발 (확률 27%)",
+          "items": {
+            "hot:electronics:p10": 46,
+            "hot:alloy:p10": 9
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 20%)",
+          "items": {
+            "hot:electronics:p10": 6
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 21%)",
+          "items": {
+            "hot:electronics:p10": 8
+          }
+        }
+      ],
+      "mode": "암시장 처분",
+      "b1": [],
+      "smuggle": {
+        "from": "astra",
+        "to": "rustport",
+        "discoverySeconds": 69,
+        "runSeconds": 139,
+        "result": "녹슨 정박지 암시장 처분 14단위 +1,135 cr",
+        "aboardAfter": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        }
+      },
+      "revenue": 1078,
+      "unsold": {},
+      "inspections": [
+        {
+          "k": "seize",
+          "at": "astra",
+          "why": "아스트라 자유항 검문 적발 (확률 27%)",
+          "items": {
+            "hot:electronics:p10": 46,
+            "hot:alloy:p10": 9
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 20%)",
+          "items": {
+            "hot:electronics:p10": 6
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 21%)",
+          "items": {
+            "hot:electronics:p10": 8
+          }
+        },
+        {
+          "k": "pass",
+          "at": "ember",
+          "why": "관문 검문 통과 (적발 확률 0.3%)",
+          "items": {
+            "hot:electronics:p10": 14
+          }
+        }
+      ],
+      "seconds": 270,
+      "creditsDelta": -1443,
+      "returnedToVictim": [
+        {
+          "electronics": 46,
+          "alloy": 9
+        }
+      ]
+    }
+  },
+  "A": {
+    "before": {
+      "world": "P13.2.2",
+      "seed": 134,
+      "item": "alloy",
+      "units": 200,
+      "from": "exchange",
+      "to": "rustport",
+      "seconds": 91,
+      "profit": 1565,
+      "unsold": 0
+    },
+    "after": {
+      "world": "P13.3",
+      "seed": 134,
+      "item": "alloy",
+      "units": 200,
+      "from": "exchange",
+      "to": "rustport",
+      "seconds": 91,
+      "profit": 1565,
+      "unsold": 0
+    }
+  },
+  "C": {
+    "full": {
+      "seed": 134,
+      "item": "mod_ecm",
+      "units": 24,
+      "from": "rustport",
+      "to": "nova",
+      "destSecurity": 84,
+      "cost": 84907,
+      "seconds": 76,
+      "profit": -108833,
+      "result": "처분 실패 — 실은 장물이 없습니다",
+      "aboardAfter": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "log": [
+        {
+          "k": "found",
+          "at": "rustport",
+          "why": "짐꾼 31호 입항 중 접선"
+        },
+        {
+          "k": "found",
+          "at": "nova",
+          "why": "짐꾼 33호 입항 중 접선"
+        },
+        {
+          "k": "buy",
+          "at": "rustport",
+          "value": 84907
+        },
+        {
+          "k": "seize",
+          "at": "nova",
+          "value": 79716,
+          "fine": 23915,
+          "why": "노바 정제소 검문 적발 (확률 29%)"
+        }
+      ],
+      "discoverySetup": 0
+    },
+    "third": {
+      "seed": 134,
+      "item": "mod_ecm",
+      "units": 8,
+      "from": "rustport",
+      "to": "nova",
+      "destSecurity": 84,
+      "cost": 28302,
+      "seconds": 76,
+      "profit": -36285,
+      "result": "처분 실패 — 실은 장물이 없습니다",
+      "aboardAfter": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0
+      },
+      "log": [
+        {
+          "k": "found",
+          "at": "rustport",
+          "why": "짐꾼 31호 입항 중 접선"
+        },
+        {
+          "k": "found",
+          "at": "nova",
+          "why": "짐꾼 33호 입항 중 접선"
+        },
+        {
+          "k": "buy",
+          "at": "rustport",
+          "value": 28302
+        },
+        {
+          "k": "seize",
+          "at": "nova",
+          "value": 26572,
+          "fine": 7972,
+          "why": "노바 정제소 검문 적발 (확률 22%)"
+        }
+      ],
+      "discoverySetup": 0
+    }
+  }
+}

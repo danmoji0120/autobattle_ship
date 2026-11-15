@@ -103,9 +103,9 @@ export interface BmTierDef { name: string; disc: number; fee: number; premium: n
 export const BM_TIERS: Record<BmTier, BmTierDef> = {
   // disc: share of the reference price paid for stolen goods; premium: for restricted goods where they are forbidden
   lawless: { name: '무법 지대 장물아비', disc: 0.55, fee: 0.05, premium: 1.0, ask: 1.05, fundsMax: 60000, stock: { mod_ecm: 24, eq_heavy_cannon: 6 } },
-  border: { name: '국경 밀거래상', disc: 0.5, fee: 0.08, premium: 1.15, ask: 1.2, fundsMax: 50000, stock: { mod_ecm: 10, eq_heavy_cannon: 2 } },
-  neutral: { name: '중립 지대 뒷거래소', disc: 0.45, fee: 0.1, premium: 1.35, ask: 1.4, fundsMax: 45000, stock: {} },
-  secure: { name: '치안 구역 밀매 조직', disc: 0.4, fee: 0.12, premium: 1.7, ask: 1.9, fundsMax: 40000, stock: {} },
+  border: { name: '국경 밀거래상', disc: 0.5, fee: 0.08, premium: 1.15, ask: 1.2, fundsMax: 60000, stock: { mod_ecm: 10, eq_heavy_cannon: 2 } },
+  neutral: { name: '중립 지대 뒷거래소', disc: 0.45, fee: 0.1, premium: 1.35, ask: 1.4, fundsMax: 60000, stock: {} },
+  secure: { name: '치안 구역 밀매 조직', disc: 0.4, fee: 0.12, premium: 2.2, ask: 1.9, fundsMax: 90000, stock: {} },
 };
 export const BM = {
   /** host budget the black market never draws below (share of the station's fundsMax) */
@@ -135,6 +135,7 @@ export const BM = {
   logCap: 30,
 };
 
+const pctOf = (p: number) => `${(p * 100).toFixed(p < 0.1 ? 1 : 0)}%`;
 const hash32 = (s: string) => { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; };
 
 /** the region type of a system (P10 region; without one, by security) — undefined: no black market tier */
@@ -369,7 +370,7 @@ export function inspectChance(w: WorldState, company: string, sys: StarSystem | 
   const size = Math.max(0.5, Math.min(1.5, 0.5 + cargoValue(w, c) / 40000));
   const fac = st?.faction ?? sys.faction;
   const stand = w.factions && fac ? Math.max(0.4, Math.min(1.6, 1 - standingOf(w, company, fac) / 150)) : 1;
-  const covert = st && bmAt(w, st.id) && knowsBm(w.companies[company], bmAt(w, st.id)!.id) ? 0.6 : 1;   // contacts at the black market's own station
+  const covert = st && bmAt(w, st.id) && knowsBm(w.companies[company], bmAt(w, st.id)!.id) ? 0.5 : 1;   // contacts at the black market's own station
   const base = kind === 'gate' ? BM.gateBase * secW ** 1.5 : BM.dockBase * secW ** 1.2;
   return Math.max(0, Math.min(BM.maxChance, base * size * stand * covert));
 }
@@ -396,7 +397,7 @@ export function inspect(h: Host, s: WShip, kind: 'gate' | 'dock', sys: StarSyste
   const at = kind === 'dock' ? st!.id : sys.id, where = kind === 'dock' ? st!.name : `${sys.name} 관문`;
   emit(w, { kind: 'blackmarket', reason: caught ? 'inspect_seize' : 'inspect_pass', amount: cargoSum(c), company: s.owner, ship: s.id, system: sys.id, station: st?.id, value: Math.round(p * 1000) / 1000 });
   if (!caught) {
-    log(co, { t: h.time, k: 'pass', at, items: c, why: `${kind === 'dock' ? '입항' : '관문'} 검문 통과 (적발 확률 ${Math.round(p * 100)}%)` });
+    log(co, { t: h.time, k: 'pass', at, items: c, why: `${kind === 'dock' ? '입항' : '관문'} 검문 통과 (적발 확률 ${pctOf(p)})` });
     h.ev('info', `${s.name}: ${where} 검문 통과 — 불법 화물 미적발`, { company: s.owner, pos: s.pos, tag: 'blackmarket' });
     return 'pass';
   }
@@ -431,7 +432,7 @@ function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undef
     co.rep = Math.max(0, co.rep - value * BM.repPerCr * (sec / 100));
     const fac = st?.faction ?? sys.faction;
     if (w.factions && fac && fac !== 'pirates') bumpStanding(w, s.owner, fac, -Math.min(BM.standingCap, value * BM.standingPerCr));
-    log(co, { t: h.time, k: 'seize', at: st?.id ?? sys.id, items: c, value, fine, why: `${where} 검문 적발 (확률 ${Math.round(p * 100)}%)` });
+    log(co, { t: h.time, k: 'seize', at: st?.id ?? sys.id, items: c, value, fine, why: `${where} 검문 적발 (확률 ${pctOf(p)})` });
     h.ev('warn', `${s.name}: ${where} 검문에 적발 — 불법 화물 ${Math.round(cargoSum(c))}단위 압수, 벌금 ${fine.toLocaleString()} cr`, { company: s.owner, pos: s.pos, tag: 'blackmarket' });
     for (const [owner, items] of Object.entries(returned)) {
       log(w.companies[owner], { t: h.time, k: 'return', at: w.companies[owner].homeStation, items, why: `${co.name} 화물 압수 — 도난품 반환` });

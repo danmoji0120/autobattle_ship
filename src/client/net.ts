@@ -190,11 +190,12 @@ export class GameClient {
 
   cmd(cmd: Cmd): Promise<string | null> {
     let transaction: { bookKey: string; signature: string; request: BuyRequest; kind: 'buy' | 'trade' } | undefined;
-    if (growthOn(this.state ?? undefined) && (cmd.c === 'buy' || cmd.c === 'sell' || cmd.c === 'buyListing' || cmd.c === 'list' || cmd.c === 'delist' || cmd.c === 'buyShip' || cmd.c === 'buyShipListing') && !cmd.request) {
+    if (growthOn(this.state ?? undefined) && (cmd.c === 'buy' || cmd.c === 'sell' || cmd.c === 'buyListing' || cmd.c === 'list' || cmd.c === 'delist' || cmd.c === 'buyShip' || cmd.c === 'buyShipListing' || cmd.c === 'bmSell' || cmd.c === 'bmBuy') && !cmd.request) {
       const kind = cmd.c === 'buy' ? 'buy' : 'trade';
       const bookKey = `siderarium.${kind}.${this.state?.seed ?? 'unknown'}.${this.company}`;
       const signature = cmd.c === 'buy' ? JSON.stringify([cmd.station, cmd.res, cmd.amount, cmd.ship ?? null])
         : cmd.c === 'sell' ? JSON.stringify(['sell', cmd.station, cmd.res, cmd.amount])
+        : cmd.c === 'bmSell' || cmd.c === 'bmBuy' ? JSON.stringify([cmd.c, cmd.station, cmd.res, cmd.amount, cmd.ship ?? null])
         : cmd.c === 'buyListing' ? JSON.stringify(['buyListing', cmd.station, cmd.listing, cmd.qty])
         : cmd.c === 'list' ? JSON.stringify(['list', cmd.station, cmd.item, cmd.qty, cmd.price])
         : cmd.c === 'delist' ? JSON.stringify(['delist', cmd.station, cmd.listing])

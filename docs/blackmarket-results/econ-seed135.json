@@ -1,0 +1,241 @@
+{
+  "seed": 135,
+  "dt": 0.5,
+  "fixedClock": "n/a (no NPC battles: lairs off, no NPC ships; fixed dt)",
+  "load": "single process, no other runs",
+  "layout": "p9 (server default)",
+  "B": {
+    "before": {
+      "world": "P13.2.2 (no black market)",
+      "seed": 135,
+      "plunderSeconds": 63,
+      "unitsTaken": 69,
+      "unloadedAt": {
+        "astra": {
+          "alloy": 9,
+          "electronics": 60
+        }
+      },
+      "mode": "정상 시장 즉시 판매",
+      "revenue": 9736,
+      "unsold": {},
+      "seconds": 63,
+      "creditsDelta": 9708
+    },
+    "after": {
+      "world": "P13.3 (blackMarketV)",
+      "seed": 135,
+      "plunderSeconds": 63,
+      "unitsTaken": 69,
+      "unloadedAt": {
+        "astra": {
+          "hot:electronics:p10": 60,
+          "hot:alloy:p10": 9
+        }
+      },
+      "stolenUnits": 69,
+      "seizedOnUnload": [
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 27%)",
+          "items": {
+            "hot:electronics:p10": 46,
+            "hot:alloy:p10": 9
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 20%)",
+          "items": {
+            "hot:electronics:p10": 6
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 21%)",
+          "items": {
+            "hot:electronics:p10": 8
+          }
+        }
+      ],
+      "mode": "암시장 처분",
+      "b1": [],
+      "smuggle": {
+        "from": "astra",
+        "to": "rustport",
+        "discoverySeconds": 69,
+        "runSeconds": 138,
+        "result": "녹슨 정박지 암시장 처분 69단위 +4,719 cr",
+        "aboardAfter": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        }
+      },
+      "revenue": 4662,
+      "unsold": {},
+      "inspections": [
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 27%)",
+          "items": {
+            "hot:electronics:p10": 46,
+            "hot:alloy:p10": 9
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 20%)",
+          "items": {
+            "hot:electronics:p10": 6
+          }
+        },
+        {
+          "k": "pass",
+          "at": "astra",
+          "why": "입항 검문 통과 (적발 확률 21%)",
+          "items": {
+            "hot:electronics:p10": 8
+          }
+        },
+        {
+          "k": "pass",
+          "at": "ember",
+          "why": "관문 검문 통과 (적발 확률 0.4%)",
+          "items": {
+            "hot:alloy:p10": 9,
+            "hot:electronics:p10": 60
+          }
+        }
+      ],
+      "seconds": 270,
+      "creditsDelta": 4593,
+      "returnedToVictim": []
+    }
+  },
+  "A": {
+    "before": {
+      "world": "P13.2.2",
+      "seed": 135,
+      "item": "alloy",
+      "units": 200,
+      "from": "exchange",
+      "to": "rustport",
+      "seconds": 92,
+      "profit": 1560,
+      "unsold": 0
+    },
+    "after": {
+      "world": "P13.3",
+      "seed": 135,
+      "item": "alloy",
+      "units": 200,
+      "from": "exchange",
+      "to": "rustport",
+      "seconds": 92,
+      "profit": 1560,
+      "unsold": 0
+    }
+  },
+  "C": {
+    "full": {
+      "seed": 135,
+      "item": "mod_ecm",
+      "units": 24,
+      "from": "rustport",
+      "to": "p9_ceres_works",
+      "destSecurity": 80,
+      "cost": 84907,
+      "seconds": 92,
+      "profit": -40036,
+      "result": "세레스 제련단지 암시장 처분 7단위 +44,882 cr (일부 남음: 매입 자금 소진)",
+      "aboardAfter": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0,
+        "mod_ecm": 17
+      },
+      "log": [
+        {
+          "k": "found",
+          "at": "rustport",
+          "why": "짐꾼 31호 입항 중 접선"
+        },
+        {
+          "k": "found",
+          "at": "p9_ceres_works",
+          "why": "짐꾼 33호 입항 중 접선"
+        },
+        {
+          "k": "buy",
+          "at": "rustport",
+          "value": 84907
+        },
+        {
+          "k": "pass",
+          "at": "p9_ceres_works",
+          "why": "입항 검문 통과 (적발 확률 27%)"
+        },
+        {
+          "k": "sell",
+          "at": "p9_ceres_works",
+          "value": 44882,
+          "fine": 6120
+        }
+      ],
+      "discoverySetup": 0
+    },
+    "third": {
+      "seed": 135,
+      "item": "mod_ecm",
+      "units": 8,
+      "from": "rustport",
+      "to": "p9_ceres_works",
+      "destSecurity": 80,
+      "cost": 28302,
+      "seconds": 92,
+      "profit": 16568,
+      "result": "세레스 제련단지 암시장 처분 7단위 +44,882 cr (일부 남음: 매입 자금 소진)",
+      "aboardAfter": {
+        "ore": 0,
+        "alloy": 0,
+        "crystal": 0,
+        "mod_ecm": 1
+      },
+      "log": [
+        {
+          "k": "found",
+          "at": "rustport",
+          "why": "짐꾼 31호 입항 중 접선"
+        },
+        {
+          "k": "found",
+          "at": "p9_ceres_works",
+          "why": "짐꾼 33호 입항 중 접선"
+        },
+        {
+          "k": "buy",
+          "at": "rustport",
+          "value": 28302
+        },
+        {
+          "k": "pass",
+          "at": "p9_ceres_works",
+          "why": "입항 검문 통과 (적발 확률 21%)"
+        },
+        {
+          "k": "sell",
+          "at": "p9_ceres_works",
+          "value": 44882,
+          "fine": 6120
+        }
+      ],
+      "discoverySetup": 0
+    }
+  }
+}

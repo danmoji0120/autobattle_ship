@@ -156,7 +156,7 @@ export function marketHtml(w: WorldState, s: Station, me: string, ui: IndUi, pri
 /** PMC-to-PMC listings at this station (escrow) */
 function exchangeHtml(w: WorldState, s: Station, me: string, store: Cargo, ui: IndUi): string {
   const ls = (s.listings ?? []).filter(l => (ui.mkCat === 'all' || itemCat(l.item) === ui.mkCat) && match(l.item, ui.mkQ));
-  const mine = cargoKeys(store).filter(k => store[k] >= 1);
+  const mine = cargoKeys(store).filter(k => store[k] >= 1 && !k.startsWith('hot:'));   // stolen goods are never listed
   return `<h3>PMC 거래소</h3>${ls.length ? `<table class="gt"><tr><th>품목</th><th>판매사</th><th class="n">수량</th><th class="n">개당</th><th></th></tr>${ls.map(l => {
     const own = l.seller === me;
     return `<tr><td>${iname(l.item)}</td><td>${esc(w.companies[l.seller]?.name ?? '?')}</td><td class="n">${fmt(l.qty)}</td><td class="n">${fmt(l.price)}</td><td>${own ? `<button class="btn mini" data-delist="${l.id}">회수</button>` : `<button class="btn mini" data-buyl="${l.id}:1">1 구매</button><button class="btn mini" data-buyl="${l.id}:${l.qty}">전량 ${fmt(l.qty * l.price)} cr</button>`}</td></tr>`;
