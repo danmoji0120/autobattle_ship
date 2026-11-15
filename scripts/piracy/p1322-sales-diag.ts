@@ -23,6 +23,9 @@ import { econOf } from '../../src/world/hullops';
 import { repairQuote } from '../../src/world/repair';
 import { opsOf } from '../../src/world/operations';
 import { priceOf } from '../../src/world/market';
+// DETCLOCK=1: a fixed clock for the experiment, so NPC battles never run out of their wall-time budget
+// (WorldSim.update, NPC_BATTLE_BUDGET_MS) and the run does not depend on machine load. No game code changes.
+if (process.env.DETCLOCK) { const t = { v: 0 }; (globalThis.performance as any).now = () => t.v; }
 
 const [hours = 8, seed = 13210] = process.argv.slice(2).map(Number).filter(n => n > 0);
 const CARGO = (process.env.CARGO ?? 'C') as 'A' | 'B' | 'C' | 'D';
