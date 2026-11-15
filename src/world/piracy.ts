@@ -82,7 +82,13 @@ export interface PiracyLog {
   kind: 'threat' | Response | 'drop' | 'withdraw' | 'force' | 'sunk' | 'extortion' | 'store';
   by: string; to?: string; group?: string; ship?: string; system?: string; value?: number; items?: Cargo; policy?: string; pressure?: number;
 }
-export interface Truce { a: string; b: string; pos: V; r: number; until: number }
+/**
+ * A post-surrender truce between the parties of one plunder event (P13.2.1): the raiding group (with its parent /
+ * sub-groups and any group of the raider recovering that very container) and the surrendered group (with its
+ * parent / sub-groups and the groups escorting it). Other groups of the same companies are not covered.
+ * `id` is the container id (one truce per event). Truces without `pa`/`pb` come from P13.2 saves: company pair.
+ */
+export interface Truce { id?: string; a: string; b: string; pa?: string[]; pb?: string[]; ship?: string; pos: V; r: number; until: number }
 export interface PiracyBook { seq: number; truces: Truce[]; log: PiracyLog[] }
 
 export const PIR = {
@@ -144,25 +150,61 @@ const valueOf = (st: WorldState, c: Cargo) => Object.entries(c).reduce((a, [k, n
 
 // ------------------------------------------------------------------ truce
 
-/** a local truce between two companies near a drop (no new P11 contact there) */
-export function truceBlocks(st: WorldState, a: string, b: string, p: V, time: number): boolean {
+/** is group g one of the parties of side `side` of truce t (see Truce) */
+function inParty(st: WorldState, t: Truce, side: 'a' | 'b', g: WGroup): boolean {
+  if (g.owner !== (side === 'a' ? t.a : t.b)) return false;
+  const ids = side === 'a' ? t.pa : t.pb;
+  if (!ids) return true;   // P13.2 save: the whole company
+  if (ids.includes(g.id) || (g.parentId && ids.includes(g.parentId))) return true;
+  const op = g.op;
+  if (op.k === 'escort' && ids.includes(op.group)) return true;
+  if (side === 'a' && t.id && (op.k === 'recover' && op.wreck === t.id || g.salv?.key === `collect:${t.id}`)) return true;
+  return false;
+}
+/** does truce t stand between groups x and y (one on each side) */
+function pairs(st: WorldState, t: Truce, x: WGroup, y: WGroup): boolean {
+  return (inParty(st, t, 'a', x) && inParty(st, t, 'b', y)) || (inParty(st, t, 'a', y) && inParty(st, t, 'b', x));
+}
+/** P11 contact between groups x and y at p is held back by an active truce of their plunder event */
+export function truceBlocks(st: WorldState, x: WGroup, y: WGroup, p: V, time: number): boolean {
   const ts = st.piracy?.truces; if (!ts?.length) return false;
-  return ts.some(t => t.until > time && ((t.a === a && t.b === b) || (t.a === b && t.b === a)) && Math.abs(t.pos.x - p.x) < t.r && dist(t.pos, p) < t.r);
+  for (const t of ts) if (t.until > time && Math.abs(t.pos.x - p.x) < t.r && dist(t.pos, p) < t.r && pairs(st, t, x, y)) return true;
+  return false;
 }
-function truce(h: Host, a: string, b: string, pos: V) {
+/** group g would only meet truce partners among `others` (all of them covered): it must not be pulled in against them */
+export function truceShields(st: WorldState, g: WGroup, others: WGroup[], p: V, time: number): boolean {
+  if (!st.piracy?.truces?.length || !others.length) return false;
+  return others.every(o => truceBlocks(st, g, o, p, time));
+}
+/** the parties of one side: the group, its parent and sub-groups (and, for the victim, its escorts) */
+function partyIds(h: Host, g: WGroup | undefined, escorts: boolean): string[] {
+  if (!g) return [];
+  const out = new Set<string>([g.id]);
+  if (g.parentId) out.add(g.parentId);
+  for (const x of Object.values(h.st.groups)) {
+    if (x.owner !== g.owner) continue;
+    if (x.parentId === g.id || (escorts && x.op.k === 'escort' && x.op.group === g.id)) out.add(x.id);
+  }
+  return [...out];
+}
+function truce(h: Host, id: string, a: string, b: string, raider: WGroup | undefined, victim: WGroup | undefined, ship: string, pos: V) {
   const B = book(h.st);
-  B.truces = B.truces.filter(t => t.until > h.time && !((t.a === a && t.b === b) || (t.a === b && t.b === a)));
-  B.truces.push({ a, b, pos: { ...pos }, r: PIR.truceR, until: h.time + PIR.truceFor });
+  B.truces = B.truces.filter(t => t.until > h.time);
+  if (B.truces.some(t => t.id === id)) return;   // one truce per plunder event (a replayed event adds nothing)
+  B.truces.push({ id, a, b, pa: partyIds(h, raider, false), pb: partyIds(h, victim, true), ship, pos: { ...pos }, r: PIR.truceR, until: h.time + PIR.truceFor });
 }
-function breakTruce(h: Host, a: string, b: string) {
-  const B = h.st.piracy; if (!B) return;
-  B.truces = B.truces.filter(t => t.until > h.time && !((t.a === a && t.b === b) || (t.a === b && t.b === a)));
+/** end the truces standing between groups x and y (only those); returns how many ended */
+function breakTruce(h: Host, x: WGroup, y: WGroup): number {
+  const B = h.st.piracy; if (!B) return 0;
+  const n = B.truces.length;
+  B.truces = B.truces.filter(t => t.until > h.time && !pairs(h.st, t, x, y));
+  return n - B.truces.length;
 }
-/** a direct attack order on a group of `b`: any truce of the two ends, and it is recorded as force */
-export function endTruce(h: Host, a: string, b: string, group: string, target: string) {
-  const had = (h.st.piracy?.truces ?? []).some(t => t.until > h.time && ((t.a === a && t.b === b) || (t.a === b && t.b === a)));
-  breakTruce(h, a, b);
-  if (had) log(h, { kind: 'force', by: a, to: b, group, policy: `attack:${target}` });
+/** a direct attack order by group `g` on group `target`: the truces between those two end, recorded as force */
+export function endTruce(h: Host, g: WGroup, target: WGroup) {
+  const live = (h.st.piracy?.truces ?? []).filter(t => t.until > h.time).length;
+  if (!live) return;
+  if (breakTruce(h, g, target)) log(h, { kind: 'force', by: g.owner, to: target.owner, group: g.id, policy: `attack:${target.id}` });
 }
 
 // ------------------------------------------------------------------ the victim's decision
@@ -276,7 +318,7 @@ export function demand(h: Host, raider: WGroup, s: WShip, opts: { kind?: DemandK
   h.ev('info', `${raider.name}: ${vName} ${victim.name}에 화물 요구 — ${RESPONSE_NAME[j.response]}`, { company: raider.owner, pos: s.pos, ref: raider.id, tag: 'piracy' });
   if (j.response === 'flee') flee(h, victim);
   if (j.response !== 'comply') return { response: j.response, j };
-  const drop = jettison(h, s, raider.owner, tl.id, want);
+  const drop = jettison(h, s, raider.owner, tl.id, want, raider.id);
   if (drop) s.pir.dropped = drop.initial;
   return { response: 'comply', drop: drop ?? undefined, j };
 }
@@ -289,7 +331,7 @@ function flee(h: Host, g: WGroup) {
 }
 
 /** the cargo physically leaves the ship into a container (idempotent per demand event) */
-export function jettison(h: Host, s: WShip, by: string, ev: string, want: Cargo): CargoDrop | null {
+export function jettison(h: Host, s: WShip, by: string, ev: string, want: Cargo, raider?: string): CargoDrop | null {
   const st = h.st, drops = (st.drops ??= {});
   const id = `cd_${ev}`; if (drops[id]) return drops[id];
   const sys = sysAt(st.systems, s.pos);
@@ -311,7 +353,7 @@ export function jettison(h: Host, s: WShip, by: string, ev: string, want: Cargo)
   };
   drops[id] = d;
   log(h, { kind: 'drop', by, to: s.owner, ship: s.id, system: d.system, value, items: moved });
-  truce(h, by, s.owner, d.pos);
+  truce(h, id, by, s.owner, raider ? h.st.groups[raider] : undefined, st.groups[s.groupId], s.id, d.pos);
   // extortion of a company that is not at war with the raider, where the law reaches
   if (by !== 'pirates' && coRelation(st, by, s.owner) !== -1) {
     const sec = sys ? effSec(sys) : 0;
@@ -531,6 +573,11 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
 }
 
 /** the victim that was warned hears that the raider has gone (its own state is not disclosed) */
+/** a new order replaces a plunder: its state (chase, escape count, warning) ends with it */
+export function endPlunder(h: Host, g: WGroup, nextKey: string) {
+  const P = g.plx; if (!P || P.key === nextKey || P.key === 'raid') return;
+  leave(h, g, P); delete g.plx;
+}
 function leave(h: Host, g: WGroup, P: PlunderState) {
   const t = P.warned ? h.st.groups[P.warned] : undefined;
   P.warned = undefined;
@@ -558,7 +605,7 @@ function force(h: Host, g: WGroup, t: WGroup, s: WShip, P: PlunderState, mobile:
     if (k !== 'player' || st.companies[g.owner]?.kind !== 'player') { (P.ignore ??= {})[t.id] = h.time + PIR.redemand; setPhase(h, P, 'search', '중립 NPC에는 무력을 사용할 수 없습니다'); return true; }
     h.setStance(g.owner, t.owner, -1, 'attack');
   }
-  breakTruce(h, g.owner, t.owner);
+  breakTruce(h, g, t);
   log(h, { kind: 'force', by: g.owner, to: t.owner, group: g.id, ship: s.id, system: sysAt(st.systems, s.pos)?.id, policy: why });
   h.ev('warn', `${t.name}: ${st.companies[g.owner]?.name ?? g.owner}이(가) 무력을 사용합니다`, { company: t.owner, pos: s.pos, ref: t.id, tag: 'piracy' });
   h.say(g, why === 'destroy' ? `${t.name} 격침에 나선다.` : `${t.name} 요구 거부 — 무력을 사용한다.`, 'warn', 4);

@@ -176,7 +176,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
-import { plunderOrder, stepPlunder, stepPirateRaid, validatePlunder, truceBlocks, endTruce, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
+import { plunderOrder, stepPlunder, stepPirateRaid, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 
 export class WorldSim {
   st: WorldState;
@@ -699,8 +699,8 @@ export class WorldSim {
         if (err) return err;
         // P11: ordering an attack on another PMC's fleet is a declaration of hostility (logged, first strike)
         if (cmd.op.k === 'attack' && cmd.op.group && this.st.combatV === 2) { const t = this.st.groups[cmd.op.group]; if (t && this.st.companies[t.owner]?.kind === 'player' && coRelation(this.st, company, t.owner) !== -1) this.setStance(company, t.owner, -1, 'attack'); }
-        // P13.2: a direct attack order ends a post-surrender truce with that company (a direct command outranks it)
-        if (cmd.op.k === 'attack' && cmd.op.group && this.st.piracyV) { const t = this.st.groups[cmd.op.group]; if (t) endTruce(this, company, t.owner, g.id, cmd.op.group); }
+        // P13.2.1: a direct attack order ends the post-surrender truce between that group and its target (only that one)
+        if (cmd.op.k === 'attack' && cmd.op.group && this.st.piracyV) { const t = this.st.groups[cmd.op.group]; if (t) endTruce(this, g, t); }
         if (cmd.op.k === 'found') {
           if (growthOn(this.st)) {
             // New commands always select a size, including commands from older clients.
@@ -733,6 +733,7 @@ export class WorldSim {
           }
         }
         for (const s of this.subtreeShipsInOp(g, true)) delete s.cargoWork;
+        if (this.st.piracyV) endPlunder(this, g, JSON.stringify(cmd.op));
         g.op = cmd.op; g.override = true; g.fleeing = false; g.march = undefined;
         for (const s of this.shipsOf(g)) if (s.state !== 'battle' && s.state !== 'docked') s.task = { k: 'none' };
         // P12 return while ships of this command fight: only their tactical groups retreat (no side-wide withdraw)
@@ -3810,6 +3811,7 @@ export class WorldSim {
     const active = Object.values(st.engagements).filter(e => !e.done && e.v === 2 && e.autoEnd === undefined && this.battles.get(e.id)?.joinOpen());
     const fighting = (e: Engagement) => { const w = this.battles.get(e.id)!; return e.sides.map((x, k) => (k < w.sides.length && w.sides[k].out) ? null : x[0]).filter((x): x is string => !!x); };
     const near = (ss: WShip[], p: V, r: number) => ss.filter(s => dist(s.pos, p) < r);
+    const groupsIn = (e: Engagement, c: string) => e.groupRefs.map(id => st.groups[id]).filter((x): x is WGroup => !!x && x.owner === c && !e.left?.includes(x.id));
     // 1. reinforcements into running battles
     for (const e of active) {
       const joiners = new Map<string, { g: WGroup; ss: WShip[] }[]>();
@@ -3819,7 +3821,8 @@ export class WorldSim {
         const g = st.groups[gid];
         const inR = near(ss, e.pos, JOIN_R);
         if (!inR.length) continue;
-        if (!present.some(c => rel(g.owner, c) === -1 && !(st.piracyV && truceBlocks(st, g.owner, c, e.pos, this.time)))) continue;
+        // P13.2.1: a truce keeps a group out only when every group of that company here is its truce partner
+        if (!present.some(c => rel(g.owner, c) === -1 && !(st.piracyV && truceShields(st, g, groupsIn(e, c), e.pos, this.time)))) continue;
         used.add(gid);
         const l = joiners.get(g.owner) ?? []; l.push({ g, ss: inR }); joiners.set(g.owner, l);
       }
@@ -3836,8 +3839,8 @@ export class WorldSim {
         let hit: V | null = null;
         for (const x of as) { for (const y of bs) if (dist(x.pos, y.pos) < ENGAGE_R) { hit = vlerp(x.pos, y.pos, 0.5); break; } if (hit) break; }
         if (!hit) continue;
-        // P13.2: a local truce while a complied raid picks up its container (not global, expires)
-        if (st.piracyV && truceBlocks(st, a.owner, b.owner, hit, this.time)) continue;
+        // P13.2.1: the truce of one plunder event holds back its own parties only (not their companies' other groups)
+        if (st.piracyV && truceBlocks(st, a, b, hit, this.time)) continue;
         this.p11Contact(hit, [a, b], cand, used, active);
         break;
       }
@@ -3878,6 +3881,8 @@ export class WorldSim {
         const g = st.groups[gid];
         if (!ss.some(s => dist(s.pos, pos) < JOIN_R)) continue;
         if (![...present].some(c => coRelation(st, g.owner, c) === -1)) continue;
+        // P13.2.1: not pulled in when everyone hostile to it here is its truce partner
+        if (st.piracyV && st.piracy?.truces?.length && !(lair && coRelation(st, g.owner, 'pirates') === -1) && !inBattle.some(o => coRelation(st, g.owner, o.owner) === -1 && !truceBlocks(st, g, o, pos, this.time))) continue;
         inBattle.push(g); added = true;
       }
       if (!added) break;
