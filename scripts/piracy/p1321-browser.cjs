@@ -39,6 +39,12 @@ const data = JSON.parse(fs.readFileSync(savePath, 'utf8'));
     const r2 = await page.evaluate(g => { const gr = window.siderarium.client.state.groups[g]; return { status: gr?.status, salv: document.querySelector('.salv-panel .salv-state')?.innerText ?? '', pir: document.querySelector('.pir-state')?.innerText ?? '' }; }, data.raid2);
     check(/^약탈품 회수 중/.test(r2.status ?? '') && /약탈품 회수 중/.test(r2.salv) && /약탈품 회수 중/.test(r2.pir), 'P13.2.1: a raid recovering its plunder container reads 약탈품 회수 중 (status line, salvage tag, raid panel phase)', r2);
     await page.screenshot({ path: `${outDir}/raid-collect-1440.png` });
+    // the unload leg of the raid is short (about 20 s of game time) — watched right away with the raid selected
+    const un = await page.waitForFunction(g => /^회수품 하역 중/.test(window.siderarium.client.state.groups[g]?.status ?? '') ? window.siderarium.client.state.groups[g].status : null, data.raid2, { timeout: 120000, polling: 100 }).then(h => h.jsonValue()).catch(() => null);
+    await page.waitForTimeout(300);
+    const unp = await page.evaluate(() => document.querySelector('.salv-panel .salv-state')?.innerText ?? '');
+    check(!!un && /회수품 하역 중/.test(unp), 'P13.2.1: after recovery the raid heading for a warehouse reads 회수품 하역 중', { status: un, panel: unp });
+    if (un) await page.screenshot({ path: `${outDir}/raid-unload-1440.png` });
     check(!!w.drop && w.drop.kind === 'drop' && w.drop.lots.length > 0 && w.piracy === undefined, 'the container reaches the client with its contents; the raid book stays on the server', { name: w.drop?.name, lots: w.drop?.lots, piracy: w.piracy });
     await page.evaluate(id => { const S = window.siderarium, d = S.client.state.drops[id]; S.hud.v.focusOn(d.pos, 3500); }, data.drop);
     await page.waitForTimeout(1500);
@@ -65,11 +71,9 @@ const data = JSON.parse(fs.readFileSync(savePath, 'utf8'));
     const sp = await page.evaluate(g => ({ status: window.siderarium.client.state.groups[g]?.status, panel: document.querySelector('.salv-panel .salv-state')?.innerText ?? '' }), data.spare);
     check(/^투하 화물 회수/.test(sp.status ?? '') && /투하 화물 회수/.test(sp.panel) && !/전장 잔해|약탈품/.test(sp.status + sp.panel), 'P13.2.1: recovering a jettisoned container reads 투하 화물 회수 (status line + fleet panel)', sp);
     await page.screenshot({ path: `${outDir}/salvage-drop-status-1440.png` });
-    const un = await page.waitForFunction(g => /^회수품 하역 중/.test(window.siderarium.client.state.groups[g]?.status ?? '') ? window.siderarium.client.state.groups[g].status : null, data.raid2, { timeout: 240000 }).then(h => h.jsonValue()).catch(() => null);
-    if (un) { await sel(page, 'group', data.raid2); await page.waitForTimeout(400); }
-    const unp = await page.evaluate(() => document.querySelector('.salv-panel .salv-state')?.innerText ?? '');
-    check(!!un && /회수품 하역 중/.test(unp), 'P13.2.1: after recovery the raid heading for a warehouse reads 회수품 하역 중', { status: un, panel: unp });
-    if (un) await page.screenshot({ path: `${outDir}/raid-unload-1440.png` });
+    // after the container is emptied and removed, unloading its goods still reads 투하 화물 회수 (never 전장 잔해 인양)
+    const spU = await page.waitForFunction(g => { const gr = window.siderarium.client.state.groups[g]; return gr?.salv?.phase === 'unload' ? { status: gr.status, panel: document.querySelector('.salv-panel .salv-state')?.innerText ?? '' } : null; }, data.spare, { timeout: 180000, polling: 100 }).then(h => h.jsonValue()).catch(() => null);
+    check(!!spU && /^투하 화물 회수/.test(spU.status ?? '') && /투하 화물 회수/.test(spU.panel) && !/전장 잔해|약탈품/.test(spU.status + spU.panel), 'P13.2.1: unloading the goods of an emptied container still reads 투하 화물 회수', spU);
     // raid panel
     await sel(page, 'group', data.raid); await page.waitForTimeout(500);
     const pan = await page.evaluate(() => { const p = document.querySelector('.pir-panel'); return { text: p?.innerText ?? '', pol: p?.querySelectorAll('[data-pir-plunder]').length, target: !!p?.querySelector('[data-op="plunder"]'), lane: !!p?.querySelector('[data-op="plunder_lane"]'), neutral: !!p?.querySelector('[data-pir-neutral]'), victim: !!p?.querySelector('[data-pir-policy]') }; });

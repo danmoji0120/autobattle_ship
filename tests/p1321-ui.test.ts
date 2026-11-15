@@ -74,6 +74,23 @@ describe('P13.2.1 §7 status words follow the real target', () => {
     expect(seen.status.some(s => /전장 잔해|약탈품|인양 중/.test(s))).toBe(false);
   });
 
+  it('U02b: after the container is emptied and removed, taking its goods to a warehouse still reads 투하 화물 회수 (not 전장 잔해 인양)', () => {
+    const f = fixture(); f.sim.command(f.A, { c: 'stance', target: f.B, v: -1 }); f.sim.command(f.C, { c: 'stance', target: f.B, v: -1 });
+    const v = loaded(f, f.at(10000, -20000), { metal: 300 });
+    const ra = fleet(f, f.A, f.at(10000, -20800), ['destroyer', 'destroyer']);
+    const r = demand(f.sim, ra, v.h) as any; expect(r.response).toBe('comply');
+    const id = r.drop.id; f.sim.st.drops![id].seen.push(f.C);
+    const g = fleet(f, f.C, f.at(10000, -17000), ['hauler']);
+    expect(f.sim.command(f.C, { c: 'setOp', group: g.id, op: { k: 'recover', wreck: id } })).toBeNull();
+    const seen = watch(f, g, 1200, () => !f.sim.st.drops?.[id] && g.salv?.phase === 'unload' && !!g.status);
+    expect(f.sim.st.drops?.[id]).toBeUndefined();          // really emptied and removed
+    expect(g.salv?.phase).toBe('unload');
+    expect(salvLabel(f.sim.st, g.salv!).head).toBe('투하 화물 회수');
+    expect(groupSalvageHtml(f.sim.st as any, g)).toContain('투하 화물 회수');
+    expect(g.status).toMatch(/^투하 화물 회수/);
+    expect([...seen.tags, ...seen.status].some(s => /전장 잔해|약탈품/.test(s))).toBe(false);
+  });
+
   it('U03/U04: a plunder recovering its container reads 약탈품 회수 중, then 회수품 하역 중 on the way to the warehouse', () => {
     const f = fixture(); f.sim.command(f.A, { c: 'stance', target: f.B, v: -1 });
     const v = loaded(f, f.at(10000, -25000), { metal: 300 });

@@ -232,7 +232,8 @@ export const SALV_TARGET_NAME: Record<SalvTarget, string> = { wreck: '전장 잔
 export const DROP_PHASE: Record<SalvState['phase'], string> = { transit: '화물로 이동', work: '회수 중', unload: '회수품 하역 중', return: '구역 복귀', hold: '구역 대기', blocked: '작업 불가', done: '완료' };
 export function salvTarget(st: { drops?: Record<string, unknown> }, S: Pick<SalvState, 'wreck' | 'key'>): SalvTarget {
   if (S.key?.startsWith('collect:')) return 'plunder';
-  return S.wreck && st.drops?.[S.wreck] ? 'drop' : 'wreck';
+  // a container keeps its kind after it is emptied and removed (unloading what came out of it): ids `cd_…` (piracy.ts)
+  return S.wreck && (st.drops?.[S.wreck] || S.wreck.startsWith('cd_')) ? 'drop' : 'wreck';
 }
 /** short label of a group's salvage state, used by the fleet panel and the status line */
 export function salvLabel(st: { drops?: Record<string, unknown> }, S: SalvState): { head: string; phase: string } {
@@ -430,7 +431,7 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
     // an idle fleet (no order, no threat) carries what it picked up to the nearest warehouse
     if (got.length && op.k === 'idle' && why !== '적대 함대 접근') {
       const sta = pickStation(h, g, mobile, h.groupCenter(g) ?? mobile[0].pos);
-      if (sta) { g.salv = { mode: 'auto', key: opKey(op), phase: 'unload', station: sta.id, since: h.time, next: h.time + 1 }; g.status = status(h, g, g.salv, op); }
+      if (sta) { g.salv = { mode: 'auto', key: opKey(op), phase: 'unload', station: sta.id, wreck: S.wreck, since: h.time, next: h.time + 1 }; g.status = status(h, g, g.salv, op); }
     }
     return false;
   }

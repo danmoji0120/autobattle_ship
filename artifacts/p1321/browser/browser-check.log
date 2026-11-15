@@ -1,0 +1,17 @@
+PASS client resumes the P13.2 world (piracyV) {"me":"p1","v":1}
+PASS the container reaches the client with its contents; the raid book stays on the server {"name":"아스트라 투하 화물 (수송 호송대)","lots":[{"id":"l0","k":"cargo","item":"electronics","n":84,"owner":"p10"}]}
+PASS the container has its own clickable ◈ label on the map (map-drop-1440.png) {"labels":1}
+PASS container info: position, contents, original owner, drop time, time left {"text":"◈ 아스트라 투하 화물 (수송 호송대)\n아스트라 · 위치 -249276, -37529 · 투하 0분 전 · 30분 후 소멸\n원소유 수송 PMC · 요구 측 약탈 PMC (자사)\n잔여 84 / 84\n품목\t수량\n전자부품\t84\n투하된 화물은 실제로 회수해 정거장에 하역해야 소유가 넘어갑니다. 수송선이 가장 빨리 싣습니다. 소멸 시각까지 남은 화물은 사라집니다.\n선택 편대로 회수"}
+PASS the recover button orders the selected fleet to the container (server accepted) {"op":{"k":"recover","wreck":"cd_pv1"}}
+PASS P13.2.1: recovering a jettisoned container reads 투하 화물 회수 (status line + fleet panel) {"status":"투하 화물 회수: 화물로 이동 — 아스트라 투하 화물 (수송 호송대) · 화물칸 0%","panel":"투하 화물 회수 화물로 이동"}
+FAIL P13.2.1: a raid recovering its plunder container reads 약탈품 회수 중 (status line, salvage tag, raid panel phase) {"status":"회수품 하역 중 — 하역하러 이동 — 연합 제7 순찰기지","salv":"회수품 하역 중","pir":"약탈 · 비파괴 우선 약탈품 회수 중 — 제3 호송대\n작전 중단\n복귀"}
+PASS P13.2.1: after recovery the raid heading for a warehouse reads 회수품 하역 중 {"status":"회수품 하역 중 — 하역하러 이동 — 연합 제7 순찰기지","panel":"회수품 하역 중"}
+PASS fleet panel: three plunder policies, target / lane plunder, neutral toggle, victim response policy {"text":"약탈 방식\n비파괴 우선\n무력 사용 허용\n수송망 파괴 우선\n대상 약탈\n항로 약탈\n 중립 포함\n요구 대응\n회사 기본 (균형 대응)\n생존 우선\n균형 대응\n화물 보호 우선","pol":3,"target":true,"lane":true,"neutral":true,"victim":true}
+PASS group victim policy override is set from the fleet panel (server state) {"vp":"protect"}
+PASS UI plunder mode sends a plunder order on the clicked convoy with the chosen policy (server accepted) {"hint":"약탈할 다른 회사 편대(수송선) 클릭 — 화물 투하 요구 · 우클릭/Esc 취소","op":{"k":"plunder","group":"g39","policy":"force"}}
+PASS fleet panel shows the raid with its phase and a stop control {"st2":"약탈 · 무력 사용 허용 요격·접근 — 제2 호송대\n작전 중단\n복귀"}
+PASS raid events appear in the event log {"log":["신생 PMC \"약탈 PMC\"가 아스트라 자유항에 등록했다.","약탈 PMC 접속.","약탈 PMC → 수송 PMC 적대 선언","대령 노박 사샤 · 약탈대","약탈대: 수송 PMC 수송 호송대에 화물 요구 — 화물 투하(응낙)","대령 노박 사샤 · 약탈대"]}
+PASS HQ → 재무·결재 sets the company default response policy (server state) {"has":true,"cp":"survive"}
+FAIL browser run {"error":"page.evaluate: TypeError: Cannot read properties of undefined (reading 'pos')\n    at eval (eval at evaluate (:311:30), <anonymous>:1:157)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at /home/user/autobattle_ship/scripts/piracy/p1321-browser.cjs:114:16"}
+PASS no page errors {"errors":[]}
+PASS no console errors (warnings listed in browser-results.json) {"errors":[],"warnings":0}

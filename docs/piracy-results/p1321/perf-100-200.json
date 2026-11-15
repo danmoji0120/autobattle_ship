@@ -1,0 +1,417 @@
+{
+  "note": "3 mutually hostile companies × N ships, real P11 battle near astra (NPCs removed, security 100). (1) same battle in a P13.1 and a P13.2 world; (2) P13.2 world with K plunder pairs + the battle vs a copy without them (tickMsWithout) and vs a copy with the same ships but no plunder orders (tickMsSameShipsNoPlunder), 900 s, all three ticked in the same loop",
+  "rows": [
+    {
+      "perSide": 100,
+      "ships": 300,
+      "combatBaseline": {
+        "identical": true,
+        "samples": [
+          {
+            "t": 60,
+            "p131": {
+              "time": 60,
+              "alive": [
+                105,
+                105,
+                105
+              ],
+              "hp": [
+                47.332,
+                71.402,
+                78.392
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 2
+            },
+            "p132": {
+              "time": 60,
+              "alive": [
+                105,
+                105,
+                105
+              ],
+              "hp": [
+                47.332,
+                71.402,
+                78.392
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 2
+            }
+          },
+          {
+            "t": 120,
+            "p131": {
+              "time": 120,
+              "alive": [
+                105,
+                105,
+                105
+              ],
+              "hp": [
+                39.58,
+                44.013,
+                36.481
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 3
+            },
+            "p132": {
+              "time": 120,
+              "alive": [
+                105,
+                105,
+                105
+              ],
+              "hp": [
+                39.58,
+                44.013,
+                36.481
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 3
+            }
+          },
+          {
+            "t": 180,
+            "p131": {
+              "time": 180,
+              "alive": [
+                105,
+                105,
+                105
+              ],
+              "hp": [
+                29.619,
+                38.908,
+                29.933
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 3
+            },
+            "p132": {
+              "time": 180,
+              "alive": [
+                105,
+                105,
+                105
+              ],
+              "hp": [
+                29.619,
+                38.908,
+                29.933
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 3
+            }
+          },
+          {
+            "t": 240,
+            "p131": {
+              "time": 240,
+              "alive": [
+                25,
+                49,
+                36
+              ],
+              "hp": [
+                25,
+                37.227,
+                29.933
+              ],
+              "wrecks": 1,
+              "wreckUnits": 25298,
+              "engagements": 3
+            },
+            "p132": {
+              "time": 240,
+              "alive": [
+                25,
+                49,
+                36
+              ],
+              "hp": [
+                25,
+                37.227,
+                29.933
+              ],
+              "wrecks": 1,
+              "wreckUnits": 25298,
+              "engagements": 3
+            }
+          },
+          {
+            "t": 300,
+            "p131": {
+              "time": 300,
+              "alive": [
+                24,
+                49,
+                36
+              ],
+              "hp": [
+                24,
+                37.227,
+                29.933
+              ],
+              "wrecks": 2,
+              "wreckUnits": 25653,
+              "engagements": 5
+            },
+            "p132": {
+              "time": 300,
+              "alive": [
+                24,
+                49,
+                36
+              ],
+              "hp": [
+                24,
+                37.227,
+                29.933
+              ],
+              "wrecks": 2,
+              "wreckUnits": 25653,
+              "engagements": 5
+            }
+          }
+        ]
+      },
+      "load": {
+        "plunderPairs": 10,
+        "raiderShips": 40,
+        "convoyShips": 20,
+        "threats": 10,
+        "complies": 10,
+        "drops": 10,
+        "dropsActiveMax": 10,
+        "droppedUnits": 740,
+        "recoveredFromDrops": 740,
+        "leftInDrops": 0,
+        "containerError": 0,
+        "wreckRecovered": 740,
+        "tickMsWith": 34.944,
+        "tickMsWithout": 21.923,
+        "tickMsSameShipsNoPlunder": 28.465,
+        "p95SameShips": 42.123,
+        "p95With": 52.252,
+        "p95Without": 33.153,
+        "maxWith": 100.3,
+        "saveRestoreEqual": true
+      }
+    },
+    {
+      "perSide": 200,
+      "ships": 600,
+      "combatBaseline": {
+        "identical": true,
+        "samples": [
+          {
+            "t": 60,
+            "p131": {
+              "time": 60,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                119.409,
+                115.59,
+                100.418
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 2
+            },
+            "p132": {
+              "time": 60,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                119.409,
+                115.59,
+                100.418
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 2
+            }
+          },
+          {
+            "t": 120,
+            "p131": {
+              "time": 120,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                56.455,
+                66.204,
+                54.995
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 3
+            },
+            "p132": {
+              "time": 120,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                56.455,
+                66.204,
+                54.995
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 3
+            }
+          },
+          {
+            "t": 180,
+            "p131": {
+              "time": 180,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                47.788,
+                55.996,
+                50.692
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 4
+            },
+            "p132": {
+              "time": 180,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                47.788,
+                55.996,
+                50.692
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 4
+            }
+          },
+          {
+            "t": 240,
+            "p131": {
+              "time": 240,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                46.983,
+                49.616,
+                48.391
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 4
+            },
+            "p132": {
+              "time": 240,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                46.983,
+                49.616,
+                48.391
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 4
+            }
+          },
+          {
+            "t": 300,
+            "p131": {
+              "time": 300,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                45.881,
+                47.124,
+                47.318
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 4
+            },
+            "p132": {
+              "time": 300,
+              "alive": [
+                205,
+                205,
+                205
+              ],
+              "hp": [
+                45.881,
+                47.124,
+                47.318
+              ],
+              "wrecks": 0,
+              "wreckUnits": 0,
+              "engagements": 4
+            }
+          }
+        ]
+      },
+      "load": {
+        "plunderPairs": 20,
+        "raiderShips": 80,
+        "convoyShips": 40,
+        "threats": 20,
+        "complies": 20,
+        "drops": 20,
+        "dropsActiveMax": 20,
+        "droppedUnits": 1480,
+        "recoveredFromDrops": 1480,
+        "leftInDrops": 0,
+        "containerError": 0,
+        "wreckRecovered": 1626,
+        "tickMsWith": 64.403,
+        "tickMsWithout": 40.508,
+        "tickMsSameShipsNoPlunder": 66.541,
+        "p95SameShips": 103.809,
+        "p95With": 105.074,
+        "p95Without": 68.508,
+        "maxWith": 186.6,
+        "saveRestoreEqual": true
+      }
+    }
+  ]
+}

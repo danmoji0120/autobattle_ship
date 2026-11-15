@@ -11,6 +11,15 @@
     },
     {
       "ok": true,
+      "label": "P13.2.1: a raid recovering its plunder container reads 약탈품 회수 중 (status line, salvage tag, raid panel phase)",
+      "extra": {
+        "status": "약탈품 회수 중: 화물로 이동 — 아스트라 투하 화물 (제3 호송대) · 화물칸 0%",
+        "salv": "약탈품 회수 중 화물로 이동",
+        "pir": "약탈 · 비파괴 우선 약탈품 회수 중 — 제3 호송대\n작전 중단\n복귀"
+      }
+    },
+    {
+      "ok": true,
       "label": "the container reaches the client with its contents; the raid book stays on the server",
       "extra": {
         "name": "아스트라 투하 화물 (수송 호송대)",
@@ -59,19 +68,10 @@
     },
     {
       "ok": false,
-      "label": "P13.2.1: a raid recovering its plunder container reads 약탈품 회수 중 (status line, salvage tag, raid panel phase)",
-      "extra": {
-        "status": "회수품 하역 중 — 하역하러 이동 — 연합 제7 순찰기지",
-        "salv": "회수품 하역 중",
-        "pir": "약탈 · 비파괴 우선 약탈품 회수 중 — 제3 호송대\n작전 중단\n복귀"
-      }
-    },
-    {
-      "ok": true,
       "label": "P13.2.1: after recovery the raid heading for a warehouse reads 회수품 하역 중",
       "extra": {
-        "status": "회수품 하역 중 — 하역하러 이동 — 연합 제7 순찰기지",
-        "panel": "회수품 하역 중"
+        "status": null,
+        "panel": "전장 잔해 인양 하역하러 이동"
       }
     },
     {
@@ -135,10 +135,70 @@
       }
     },
     {
-      "ok": false,
-      "label": "browser run",
+      "ok": true,
+      "label": "P13.2.1: a direct attack on the truce partner (the escort) ends the truce — the client shows a real battle between them and the attack order",
       "extra": {
-        "error": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'pos')\n    at eval (eval at evaluate (:311:30), <anonymous>:1:157)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at /home/user/autobattle_ship/scripts/piracy/p1321-browser.cjs:114:16"
+        "cmd": null,
+        "eng": {
+          "id": "e172",
+          "groups": [
+            "g46",
+            "g50"
+          ]
+        },
+        "after": {
+          "op": {
+            "k": "attack",
+            "group": "g46"
+          },
+          "status": "집결 완료 — 공격 준비 (3/3척)",
+          "pir": null
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "the recovered cargo is in the spare hauler's hold (and leaves the container)",
+      "extra": {
+        "held": [
+          {
+            "electronics": 84
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: container info fits without horizontal scrolling",
+      "extra": {
+        "w": 380,
+        "left": 5,
+        "right": 385,
+        "overflow": false,
+        "buttonsOut": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: raid section fits, no overlapping controls",
+      "extra": {
+        "w": 356,
+        "left": 17,
+        "right": 373,
+        "overflow": false,
+        "buttonsOut": false,
+        "overlap": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the salvage status panel fits without horizontal scrolling",
+      "extra": {
+        "w": 356,
+        "left": 17,
+        "right": 373,
+        "overflow": false,
+        "buttonsOut": false
       }
     },
     {
