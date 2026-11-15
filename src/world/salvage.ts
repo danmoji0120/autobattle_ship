@@ -262,7 +262,7 @@ export function stepSalvage(h: Host, g: WGroup, ships: WShip[], op: Op, dt: numb
   if (op.k === 'idle' || op.k === 'dock' || op.k === 'return' || op.k === 'recover' || op.k === 'salvzone')
     for (const s of ships) if (s.salvaged && s.state === 'docked' && s.task.k === 'docked' && !s.logisticsJob && !s.cargoWork) { const sta = st.stations[s.task.station]; if (sta && h.canDock(sta, s.owner)) unloadSalvage(h, s, sta); }
   // P13.2: a raid's own collection run (stepCollect) is driven by the raid, not by this step
-  if (g.salv?.key.startsWith('collect:') && (op.k === 'plunder' || op.k === 'harass' || op.k === 'raid')) return false;
+  if (g.salv?.key.startsWith('collect:') && (op.k === 'plunder' || op.k === 'harass' || op.k === 'raid' || op.k === 'lootTender')) return false;
   const manual = op.k === 'recover' || op.k === 'salvzone';
   const key = opKey(op);
   if (g.salv && (g.salv.mode === 'auto' ? manual : g.salv.key !== key)) delete g.salv;

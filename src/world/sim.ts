@@ -176,7 +176,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
-import { plunderOrder, stepPlunder, stepPirateRaid, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
+import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 
 export class WorldSim {
   st: WorldState;
@@ -1681,6 +1681,7 @@ export class WorldSim {
     if (pl !== undefined && (pl !== null || op.k === 'plunder')) return pl;
     const p12 = validateP12(this, company, g, op, sub.filter(s => econOf(s).cruise > 0).length);
     if (p12 !== undefined) return p12;
+    if (op.k === 'lootTender') return validateTender(this, company, g, op, sub);
     if (op.k === 'recover' || op.k === 'salvzone') return validateSalvage(this, company, sub, op);
     if (op.k === 'salvage' && this.st.salvageV) return '이 세계에는 유기선 인양 지점이 없습니다 — 전장 잔해를 지정해 인양하세요';
     switch (op.k) {
@@ -2380,6 +2381,7 @@ export class WorldSim {
       const pl = plunderOrder(this.st, op);
       if (pl) { if (stepPlunder(this, g, ships, pl, dt, c, JSON.stringify(op))) { if (ward?.note) g.status = ward.note; return; } }
       else if (op.k === 'raid' && g.owner === 'pirates' && stepPirateRaid(this, g, ships, op, dt, c)) return;
+      else if (op.k === 'lootTender') { if (stepTender(this, g, ships, op, dt)) return; }
     }
     // P13.1: recovery orders and on-site pickup after a battle (before the fleet operations it may pause)
     if (this.st.salvageV && stepSalvage(this, g, ships, op, dt, c)) return;

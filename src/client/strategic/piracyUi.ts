@@ -43,7 +43,7 @@ export function dropInfoHtml(st: WorldView, me: string, d: DropView, group: WGro
 }
 
 /** fleet panel: plunder policy for the next plunder order, raid state, and the victim response policy */
-export function groupPiracyHtml(st: WorldView, me: string, g: WGroup, plunder: PlunderPolicy, neutral: boolean, hasMil: boolean): string {
+export function groupPiracyHtml(st: WorldView, me: string, g: WGroup, plunder: PlunderPolicy, neutral: boolean, hasMil: boolean, hasHauler = false): string {
   const co = st.companies[me] as any;
   const def: VictimPolicy = co?.piracyPolicy ?? 'balanced';
   const pol = g.piracyPolicy;
@@ -51,12 +51,16 @@ export function groupPiracyHtml(st: WorldView, me: string, g: WGroup, plunder: P
   const op = g.op;
   const cur = op.k === 'plunder' ? op.policy : op.k === 'harass' ? op.plunder : undefined;
   const tgt = P?.target ? st.groups[P.target] : op.k === 'plunder' && op.group ? st.groups[op.group] : undefined;
+  const tender = op.k === 'lootTender' ? st.groups[op.group] : undefined;
   return `<div class="bdr small pir-panel">
     ${hasMil ? `<div class="pir-row"><span class="pir-l">약탈 방식</span><span class="pir-seg">${(Object.keys(PLUNDER_NAME) as PlunderPolicy[]).map(k => `<button class="btn mini${plunder === k ? ' on' : ''}${k === 'destroy' ? ' danger' : ''}" data-pir-plunder="${k}">${PLUNDER_NAME[k]}</button>`).join('')}</span></div>
     <div class="pir-row"><button class="btn" data-op="plunder" title="다른 회사 편대를 클릭: 화물 투하를 요구하고 투하된 컨테이너를 회수합니다">대상 약탈</button><button class="btn" data-op="plunder_lane" title="항로 지점을 클릭: 반경 3km를 순회하며 지나는 화물선에 요구합니다">항로 약탈</button>
       <label class="chk" title="중립 회사도 대상으로 삼습니다. 치안 구역에서는 갈취로 평판이 떨어지고, 무력을 쓰면 적대 선언으로 기록됩니다."><input type="checkbox" data-pir-neutral ${neutral ? 'checked' : ''}> 중립 포함</label></div>` : ''}
     ${cur ? `<div class="pir-state"><span class="tag ov">약탈 · ${PLUNDER_NAME[cur]}</span> ${P ? esc(P.phase === 'collect' && g.salv?.phase === 'unload' ? '회수품 하역 중' : PHASE[P.phase] ?? P.phase) : '준비'}${tgt ? ` — <b>${esc(tgt.name)}</b>` : ''}${P?.why ? ` <span class="dim">(${esc(P.why)})</span>` : ''}
       <div class="row"><button class="btn mini" data-quick='{"k":"idle"}'>작전 중단</button>${st.opsV ? `<button class="btn mini" data-quick='{"k":"return"}'>복귀</button>` : ''}</div></div>` : ''}
+    ${hasHauler && !hasMil ? `<div class="pir-row"><button class="btn" data-op="loot_tender" title="자사 약탈 편대를 클릭: 그 편대를 뒤따라가며 그 편대가 받아낸 투하 화물을 회수·하역합니다. 약탈 대상 근처(${(4000).toLocaleString()}m)에 있으면 회수 능력에 반영됩니다 (전투력은 늘지 않습니다).">약탈 회수 지원</button></div>` : ''}
+    ${op.k === 'lootTender' ? `<div class="pir-state"><span class="tag ov">약탈 회수 지원</span> ${tender ? `<b>${esc(tender.name)}</b>` : '약탈 편대 없음'} <span class="dim">${esc(g.status ?? '')}</span>
+      <div class="row"><button class="btn mini" data-quick='{"k":"idle"}'>지원 중단</button></div></div>` : ''}
     <div class="pir-row"><span class="pir-l" title="이 편대가 화물 요구를 받았을 때의 대응. 생존 우선은 쉽게 투하하고, 화물 보호 우선은 웬만하면 버팁니다.">요구 대응</span>
       <select data-pir-policy="${g.id}"><option value="">회사 기본 (${POLICY_NAME[def]})</option>${(Object.keys(POLICY_NAME) as VictimPolicy[]).map(k => `<option value="${k}"${pol === k ? ' selected' : ''}>${POLICY_NAME[k]}</option>`).join('')}</select></div>
   </div>`;

@@ -137,6 +137,10 @@ export type Op =
   /** P13.2 (piracyV worlds): take real cargo from a target fleet (`group`) or from cargo ships around `at`.
    *  Demands surrender at threat range; the target's cargo is jettisoned and recovered by this fleet. */
   | { k: 'plunder'; group?: string; at?: V; radius?: number; policy: import('./piracy').PlunderPolicy; demand?: 'part' | 'all' | 'item'; item?: string; neutral?: boolean }
+  /** P13.2.2 (piracyV worlds): a separate recovery fleet assigned to the plunder fleet `group` of the same company.
+   *  It follows the raid at a distance, recovers the containers that raid made jettison and unloads them;
+   *  within PIR.tenderR of a victim its free hold counts in the victim's judgement (never its guns). */
+  | { k: 'lootTender'; group: string }
   /** support a running battle (eng) or a friendly fleet (group) */
   | { k: 'reinforce'; eng?: string; group?: string }
   | { k: 'recon'; at: V; radius: number }

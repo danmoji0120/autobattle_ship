@@ -49,7 +49,7 @@ type Mode = null | 'move' | 'dock' | 'mine' | 'haul_from' | 'haul_to' | 'patrol'
   // P12 fleet operations (opsV worlds): one click on the map after the button
   | 'rally' | 'defend' | 'amove' | 'intercept' | 'blockade' | 'harass' | 'reinforce' | 'recon'
   // P13.2 cargo raiding (piracyV worlds)
-  | 'plunder' | 'plunder_lane';
+  | 'plunder' | 'plunder_lane' | 'loot_tender';
 type Sel = { kind: 'group' | 'ship' | 'station' | 'field' | 'lair' | 'battle' | 'gate' | 'planet' | 'wreck' | 'drop'; id: string } | null;
 
 const h = (tag: string, cls = '', html = '') => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; return e; };
@@ -62,7 +62,7 @@ const fieldUses = (w: { regionalV?: number }, item: string) => [...new Set(Objec
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
 
-const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', recover: '잔해 인양', salvzone: '구역 인양', raid: '약탈', trade: '교역', guard: '경비', ...P12_OP_NAME };
+const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', recover: '잔해 인양', salvzone: '구역 인양', lootTender: '약탈 회수 지원', raid: '약탈', trade: '교역', guard: '경비', ...P12_OP_NAME };
 
 export interface PmcHudOpts { onOpenBattle: (eng: string) => void; onExit: () => void; onAccount?: () => void }
 
@@ -699,6 +699,12 @@ export class PmcHud {
         }
         this.setOp({ k: 'plunder', group: t.id, policy: this.plunderPolicy, ...(neutral ? { neutral: true } : {}) });
         return; }
+      case 'loot_tender': {
+        const gid = p?.kind === 'group' ? p.id : p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : undefined;
+        const t = gid ? this.st.groups[gid] : undefined;
+        if (!t || t.owner !== this.me || t.id === this.group) { this.hint('지원할 자사 약탈 편대를 클릭하세요'); return; }
+        this.setOp({ k: 'lootTender', group: t.id });
+        return; }
       case 'recon': { const pt = p?.kind === 'field' ? this.st.fields[p.id].pos : plane(); if (pt) this.setOp({ k: 'recon', at: pt, radius: 2500 }); return; }
       case 'intercept': {
         const gid = p?.kind === 'group' ? p.id : p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : undefined;
@@ -762,7 +768,7 @@ export class PmcHud {
       patrol: '순찰 지점 또는 소행성 지대 클릭', escort: '호위할 자사 함선 또는 편대 이름표 클릭', attack: '해적 함선 또는 은신처 클릭', build: growthOn(this.st) ? '자사 건설 현장 클릭 — 공작선은 작업, 화물선은 필요한 자재 반입' : '건설할 자사 정거장 클릭',
       rally: '집결 지점 클릭', defend: '방어할 지점·정거장·소행성 지대 클릭 (반경 2,500)', amove: '진격 목표 지점 클릭 — 도중의 적대 함대와 교전',
       intercept: '요격할 다른 회사·해적 함대 클릭', blockade: '봉쇄할 점프게이트 클릭 (실제 배치 — 적대 함대만 교전)', harass: '습격할 항로 지점 클릭 (반경 3,000 · 약탈 없음)',
-      plunder: '약탈할 다른 회사 편대(수송선) 클릭 — 화물 투하 요구', plunder_lane: '약탈할 항로 지점 클릭 (반경 3,000 · 지나는 화물선에 요구)',
+      plunder: '약탈할 다른 회사 편대(수송선) 클릭 — 화물 투하 요구', plunder_lane: '약탈할 항로 지점 클릭 (반경 3,000 · 지나는 화물선에 요구)', loot_tender: '지원할 자사 약탈 편대 클릭 — 뒤따라가며 투하 화물 회수',
       reinforce: '지원할 교전 표지 또는 자사·동맹 함대 클릭', recon: '정찰할 지점 클릭 (반경 2,500)',
       found: growthOn(this.st) ? `${this.foundSize}급 부지 클릭 — 설립비 ${fmt(STATION_SIZES[this.foundSize].credits)} cr 선납 · 자재 직접 운송 · 중단 시 환급` : `정거장 부지 클릭 — 다른 정거장과 2,600 이상 떨어져야 함 (비용 ${fmt(FOUND_COST.credits)} cr + 합금 ${FOUND_COST.alloy})`,
     };
@@ -1146,7 +1152,7 @@ export class PmcHud {
         ${hasMiner ? this.mineFormHtml(g) : ''}
         ${this.exploreHtml(g, hasCargo)}
         ${salvageOn(st) && st.companies[g.owner]?.kind === 'player' ? groupSalvageHtml(st, g) : ''}
-        ${piracyOn(st) && g.owner === this.me ? groupPiracyHtml(st, this.me, g, this.plunderPolicy, this.plunderNeutral, hasMil) : ''}
+        ${piracyOn(st) && g.owner === this.me ? groupPiracyHtml(st, this.me, g, this.plunderPolicy, this.plunderNeutral, hasMil, sub.some(s => !econOf(s).military && econOf(s).cargo > 0)) : ''}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}
       </div></div>`;

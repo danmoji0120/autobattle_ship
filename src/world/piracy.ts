@@ -75,6 +75,8 @@ export interface CargoDrop {
   crime?: Record<string, number>;
   /** companies whose recovery the owner was told about (server bookkeeping) */
   told?: string[];
+  /** P13.2.2: the raiding group whose demand made it (its assigned recovery fleets collect it) */
+  raid?: string;
 }
 
 export interface PiracyLog {
@@ -125,6 +127,9 @@ export const PIR = {
   logMax: 400,
   /** a pirate band gives up collecting after this long (its warships work slowly) */
   npcCollectMax: 600, npcWreckAge: 900, npcWreckR: 3000,
+  /** P13.2.2: an assigned recovery fleet counts in the victim's judgement within this distance of the victim,
+   *  and follows its raid this far behind */
+  tenderR: 4000, tenderTrail: 1500,
 } as const;
 
 export const POLICY_NAME: Record<VictimPolicy, string> = { survive: '생존 우선', balanced: '균형 대응', protect: '화물 보호 우선' };
@@ -198,7 +203,9 @@ function truce(h: Host, id: string, a: string, b: string, raider: WGroup | undef
   const B = book(h.st);
   B.truces = B.truces.filter(t => t.until > h.time);
   if (B.truces.some(t => t.id === id)) return;   // one truce per plunder event (a replayed event adds nothing)
-  B.truces.push({ id, a, b, pa: partyIds(h, raider, false), pb: partyIds(h, victim, true), ship, pos: { ...pos }, r: PIR.truceR, until: h.time + PIR.truceFor });
+  // the raid's assigned recovery fleets close by are recovery parties too (the ones the victim's judgement counted)
+  const pa = [...partyIds(h, raider, false), ...(raider ? tendersNear(h, raider, pos).map(o => o.id) : [])];
+  B.truces.push({ id, a, b, pa, pb: partyIds(h, victim, true), ship, pos: { ...pos }, r: PIR.truceR, until: h.time + PIR.truceFor });
 }
 /** end the truces standing between groups x and y (only those); returns how many ended */
 function breakTruce(h: Host, x: WGroup, y: WGroup): number {
@@ -222,6 +229,23 @@ export function victimPolicy(st: WorldState, g: WGroup): VictimPolicy {
 const military = (h: Host, g: WGroup) => h.shipsOf(g).filter(s => s.state !== 'battle' && s.state !== 'docked' && econOf(s).military);
 const minSpeed = (h: Host, ships: WShip[]) => ships.length ? Math.min(...ships.map(s => h.cruiseOf(s))) : 0;
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+/** P13.2.2: the recovery fleets assigned to this raid (same company, op lootTender) within PIR.tenderR of `p`, in space */
+export function tendersNear(h: Host, raider: WGroup, p: V): WGroup[] {
+  const out: WGroup[] = [];
+  for (const o of Object.values(h.st.groups)) {
+    if (o.owner !== raider.owner || o === raider || o.op.k !== 'lootTender' || o.op.group !== raider.id || o.fleeing) continue;
+    const c = h.groupCenter(o); if (!c || Math.abs(c.x - p.x) > PIR.tenderR || dist(c, p) > PIR.tenderR) continue;
+    if (h.shipsOf(o).some(s => s.state === 'space')) out.push(o);
+  }
+  return out;
+}
+/** free hold that could really take the goods at `p`: the raid's own ships in space plus its assigned recovery fleets close by */
+export function recoveryRoom(h: Host, raider: WGroup, p: V): number {
+  let room = h.shipsOf(raider).filter(s => s.state === 'space').reduce((a, s) => a + salvageRoom(h, s), 0);
+  for (const o of tendersNear(h, raider, p)) room += h.shipsOf(o).filter(s => s.state === 'space' && econOf(s).cruise > 0).reduce((a, s) => a + salvageRoom(h, s), 0);
+  return room;
+}
 
 export interface Judgement { response: Response; pressure: number; threshold: number; attack: number; defense: number; support: number; damage: number; escape: number; recovery: number; cargo: number; security: number; policy: VictimPolicy }
 
@@ -250,7 +274,7 @@ export function judge(h: Host, raider: WGroup, victim: WGroup, ship: WShip, want
   const rs = minSpeed(h, military(h, raider)), spd = minSpeed(h, vs.filter(s => !econOf(s).military));
   const escape = clamp01(0.55 * clamp01((spd / Math.max(1, rs) - 0.6) / 0.8) + 0.45 * clamp01(1 - dd / 20000));
   const units = Object.values(want).reduce((a, n) => a + n, 0);
-  const room = h.shipsOf(raider).filter(s => s.state === 'space').reduce((a, s) => a + salvageRoom(h, s), 0);
+  const room = recoveryRoom(h, raider, pos);
   const recovery = room < 1 ? 0.35 : Math.min(1, 0.35 + 0.65 * room / Math.max(1, units));
   const cargo = valueOf(st, want);
   const sys = sysAt(st.systems, pos); const security = sys ? effSec(sys) : 0;
@@ -357,6 +381,7 @@ export function jettison(h: Host, s: WShip, by: string, ev: string, want: Cargo,
     id, kind: 'drop', name: `${sys?.name ?? '심우주'} 투하 화물 (${st.groups[s.groupId]?.name ?? s.id})`, system: sys?.id ?? '', pos: { x: s.pos.x, y: s.pos.y, z: s.pos.z },
     created: h.time, expires: h.time + PIR.dropLife, ship: s.id, owner: s.owner, by, ev, lots, initial: lots.reduce((a, l) => a + l.n, 0), taken: {},
     seen: [...new Set([s.owner, by].filter(c => st.companies[c]?.kind === 'player'))],
+    ...(raider ? { raid: raider } : {}),
   };
   drops[id] = d;
   log(h, { kind: 'drop', by, to: s.owner, ship: s.id, system: d.system, value, items: moved });
@@ -577,6 +602,80 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
   (P.ignore ??= {})[t.id] = h.time + PIR.redemand;
   h.say(g, `${t.name} 요구 거부(${RESPONSE_NAME[r.response]}) — 비파괴 원칙에 따라 물러난다.`, 'radio', 4);
   return conclude(h, g, P, op, `요구 거부 (${RESPONSE_NAME[r.response]})`, '약탈 실패 — 철수', 'warn');
+}
+
+// ------------------------------------------------------------------ separate recovery fleet (P13.2.2)
+
+type TenderOp = Extract<Op, { k: 'lootTender' }>;
+/** containers this raid made jettison that these ships may take now (the raid's current one first, then the nearest) */
+function tenderSite(h: Host, raid: WGroup, ships: WShip[], from: V, illegal: boolean): string | undefined {
+  const cur = raid.plx?.site;
+  if (cur && h.st.drops?.[cur]?.raid === raid.id && canCollect(h, ships, cur, illegal)) return cur;
+  let best: string | undefined, bd = Infinity;
+  for (const d of Object.values(h.st.drops ?? {})) {
+    if (d.raid !== raid.id || d.by !== raid.owner) continue;
+    const dd = dist(d.pos, from); if (dd >= bd || !canCollect(h, ships, d.id, illegal)) continue;
+    bd = dd; best = d.id;
+  }
+  return best;
+}
+/**
+ * One tick of a recovery fleet assigned to a raid: follow the raid at a distance; when that raid made a ship
+ * jettison, recover the container with the salvage engine (approach, work into the real holds, unload at a
+ * station when full) and come back. It never threatens, fights or counts as force; the raid's guns do that.
+ */
+export function stepTender(h: Host, g: WGroup, ships: WShip[], op: TenderOp, dt: number): boolean {
+  const st = h.st;
+  const raid = st.groups[op.group];
+  const mobile = ships.filter(s => s.state === 'space' || s.state === 'docked');
+  if (!raid || raid.owner !== g.owner || !raid.shipIds.length) {
+    if (!(g.salv?.key.startsWith('collect:') && mobile.some(salvAboard))) {
+      delete g.salv;
+      h.say(g, '약탈 회수 지원 종료 — 지원할 약탈 편대가 없습니다. 대기합니다.', 'info', 0);
+      if (g.override || !g.parentId) { g.op = { k: 'idle' }; g.override = !!g.parentId; }
+      g.status = '약탈 회수 지원 종료 — 약탈 편대 없음';
+      return true;
+    }
+  }
+  if (!mobile.length) return false;
+  const rop = raid ? plunderOrder(st, h.opOf(raid)) : null;
+  const illegal = !!rop?.neutral;
+  const center = h.groupCenter(g) ?? mobile[0].pos;
+  // a collection run in progress (also its unloading trip after the container is gone) goes on
+  let site = g.salv?.key.startsWith('collect:') ? g.salv.key.slice(8) : undefined;
+  if (!site && raid && h.time >= ((g as unknown as { _tenderLook?: number })._tenderLook ?? 0)) {
+    (g as unknown as { _tenderLook?: number })._tenderLook = h.time + 1;
+    site = tenderSite(h, raid, mobile, center, illegal);
+  }
+  if (site) {
+    const ph = stepCollect(h, g, mobile, site, illegal, dt);
+    if (ph !== 'done' && ph !== 'blocked') return true;
+    if (ph === 'blocked') h.say(g, '회수품 하역 불가 — 정거장 창고·정박 규격 확인', 'warn', 30);
+    delete g.salv;
+  }
+  if (!raid) return true;
+  // follow: hold PIR.tenderTrail behind the raid, on our side of it
+  const rc = h.groupCenter(raid);
+  if (!rc) { g.status = `약탈 회수 지원 — ${raid.name} 대기`; return true; }
+  const to = standoff(rc, center, PIR.tenderTrail);
+  if (dist(center, rc) > PIR.tenderTrail + 300) steer(h, g, mobile.filter(s => econOf(s).cruise > 0), to, dt, false, 90);
+  else for (const s of mobile) if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; }
+  const ph = raid.plx?.phase;
+  g.status = `약탈 회수 지원 — ${raid.name} ${ph === 'collect' ? '투하 화물 회수 대기' : ph === 'search' ? '항로 탐색 동행' : '동행'}`;
+  return true;
+}
+const salvAboard = (s: WShip) => !!s.salvaged && Object.keys(s.salvaged).some(k => qty(s.cargo, k) > 1e-9);
+
+/** validate a lootTender order (server) */
+export function validateTender(h: Host, company: string, g: WGroup, op: TenderOp, ships: WShip[]): string | null {
+  if (!h.st.piracyV) return '이 세계에서는 화물 약탈(P13.2)이 활성화되지 않았습니다';
+  const raid = typeof op.group === 'string' ? h.st.groups[op.group] : undefined;
+  if (!raid || !raid.shipIds.length) return '지원할 약탈 편대가 없습니다';
+  if (raid.owner !== company) return '자사 약탈 편대만 지원할 수 있습니다';
+  if (raid.id === g.id) return '자기 편대는 지정할 수 없습니다';
+  if (raid.parentId === g.id || g.parentId === raid.id) return '상하위 편대는 이미 같은 작전입니다 — 분리된 편대를 지정하세요';
+  if (!ships.some(s => econOf(s).cruise > 0 && !econOf(s).military && salvageRoom(h, s) + cargoSum(s.cargo) > 0)) return '회수품을 실을 수송선이 없습니다';
+  return null;
 }
 
 /** the victim that was warned hears that the raider has gone (its own state is not disclosed) */

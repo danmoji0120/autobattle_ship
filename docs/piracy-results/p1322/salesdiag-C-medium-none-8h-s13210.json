@@ -1,0 +1,812 @@
+{
+  "tag": "C-medium-none-8h-s13210",
+  "hours": 8,
+  "seed": 13210,
+  "cargo": "C",
+  "items": [
+    "electronics"
+  ],
+  "raid": "medium",
+  "escort": "none",
+  "hold": false,
+  "policy": "nonlethal",
+  "victimPolicy": "balanced",
+  "error": null,
+  "restartEqual": true,
+  "attempts": {
+    "victim": 49,
+    "npcTraders": 0
+  },
+  "complies": {
+    "victim": 49,
+    "npcTraders": 0
+  },
+  "responses": {
+    "comply/V": 49,
+    "drop/V": 49
+  },
+  "droppedUnits": {
+    "V/electronics": 11025
+  },
+  "droppedReferenceValue": {
+    "victim": 1653750,
+    "npcTraders": 0
+  },
+  "recoveredUnits": {
+    "drop/V/electronics": 11025
+  },
+  "recoveredReferenceValue": 1653750,
+  "recoveredByOthers": {},
+  "victimDropDecay": 0,
+  "sales": {
+    "credits": 253139,
+    "byItem": {
+      "electronics": {
+        "units": 11025,
+        "cr": 253139,
+        "perUnit": 22.96,
+        "refPerUnit": 150
+      }
+    },
+    "count": 44
+  },
+  "unsold": {},
+  "unsoldReferenceValue": 0,
+  "costEvents": {
+    "fleet_upkeep": 17160,
+    "warehouse_rent": 0,
+    "supplies": 674,
+    "maintenance": 6959
+  },
+  "ledger": {
+    "inc": {
+      "sales": 253142,
+      "other": 4681
+    },
+    "exp": {
+      "upkeep": 24791
+    }
+  },
+  "upkeep": 24791,
+  "repairPaid": 0,
+  "repairDue": 0,
+  "lostHulls": {
+    "ships": 0,
+    "value": 0,
+    "list": []
+  },
+  "investment": 153700,
+  "netCashFlow": 228346,
+  "finalPL": 228346,
+  "paybackHours": 5.4,
+  "oldP132Formula": 228346,
+  "victim": {
+    "delivered": {
+      "electronics": 99225
+    },
+    "shipsLost": 0,
+    "lostValue": 0,
+    "escorts": 0
+  },
+  "npcPirateThreats": 7,
+  "engagementsEnd": 0,
+  "tick": {
+    "meanMs": 13.175
+  },
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": 72193,
+      "comply": 11,
+      "threats": 11,
+      "sold": 75257,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 12150
+      },
+      "ms": 13.05
+    },
+    {
+      "hour": 2,
+      "credits": 92566,
+      "comply": 16,
+      "threats": 16,
+      "sold": 98662,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 23850
+      },
+      "ms": 12.23
+    },
+    {
+      "hour": 3,
+      "credits": 117454,
+      "comply": 22,
+      "threats": 22,
+      "sold": 126749,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 36450
+      },
+      "ms": 12.93
+    },
+    {
+      "hour": 4,
+      "credits": 137830,
+      "comply": 27,
+      "threats": 27,
+      "sold": 150155,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 49275
+      },
+      "ms": 12.23
+    },
+    {
+      "hour": 5,
+      "credits": 158174,
+      "comply": 33,
+      "threats": 33,
+      "sold": 173560,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 62100
+      },
+      "ms": 13.48
+    },
+    {
+      "hour": 6,
+      "credits": 183060,
+      "comply": 38,
+      "threats": 38,
+      "sold": 201647,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 74250
+      },
+      "ms": 14.14
+    },
+    {
+      "hour": 7,
+      "credits": 207988,
+      "comply": 44,
+      "threats": 44,
+      "sold": 229734,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 86400
+      },
+      "ms": 13.62
+    },
+    {
+      "hour": 8,
+      "credits": 228346,
+      "comply": 49,
+      "threats": 49,
+      "sold": 253139,
+      "rShips": 5,
+      "delivered": {
+        "electronics": 99225
+      },
+      "ms": 13.71
+    }
+  ],
+  "salesList": [
+    {
+      "t": 600,
+      "item": "electronics",
+      "n": 1350,
+      "cr": 51851,
+      "station": "p9_lyra_port",
+      "held": 1350,
+      "bidBefore": 137.1,
+      "bidAfter": 21.9,
+      "stockBefore": 248.1556435655263,
+      "stockAfter": 1598.1556435655264,
+      "fundsBefore": 112583.29999999992,
+      "fundsAfter": 60732.299999999916
+    },
+    {
+      "t": 1200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1397.9116435652875,
+      "stockAfter": 1622.9116435652875,
+      "fundsBefore": 65291.799999999916,
+      "fundsAfter": 60610.674999999916
+    },
+    {
+      "t": 1800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1477.6676435650486,
+      "stockAfter": 1702.6676435650486,
+      "fundsBefore": 65225.47499999991,
+      "fundsAfter": 60544.34999999991
+    },
+    {
+      "t": 2400,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1557.4236435648097,
+      "stockAfter": 1782.4236435648097,
+      "fundsBefore": 65162.64999999991,
+      "fundsAfter": 60481.52499999991
+    },
+    {
+      "t": 3000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1637.1796435645708,
+      "stockAfter": 1862.1796435645708,
+      "fundsBefore": 65092.8249999999,
+      "fundsAfter": 60411.6999999999
+    },
+    {
+      "t": 3600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1716.935643564332,
+      "stockAfter": 1941.935643564332,
+      "fundsBefore": 65043.9999999999,
+      "fundsAfter": 60362.8749999999
+    },
+    {
+      "t": 4800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1596.4476435638542,
+      "stockAfter": 1821.4476435638542,
+      "fundsBefore": 69487.47499999989,
+      "fundsAfter": 64806.34999999989
+    },
+    {
+      "t": 5400,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1676.2036435636153,
+      "stockAfter": 1901.2036435636153,
+      "fundsBefore": 69413.44999999991,
+      "fundsAfter": 64732.32499999991
+    },
+    {
+      "t": 6000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1755.9596435633764,
+      "stockAfter": 1980.9596435633764,
+      "fundsBefore": 69338.0249999999,
+      "fundsAfter": 64656.89999999991
+    },
+    {
+      "t": 6600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1835.7156435631375,
+      "stockAfter": 2060.7156435631377,
+      "fundsBefore": 69267.49999999991,
+      "fundsAfter": 64586.37499999991
+    },
+    {
+      "t": 7200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1915.4716435628989,
+      "stockAfter": 2140.471643562899,
+      "fundsBefore": 69192.77499999992,
+      "fundsAfter": 64511.64999999992
+    },
+    {
+      "t": 7800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 1995.22764356266,
+      "stockAfter": 2220.22764356266,
+      "fundsBefore": 69122.24999999993,
+      "fundsAfter": 64441.12499999993
+    },
+    {
+      "t": 8400,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2074.983643562421,
+      "stockAfter": 2299.983643562421,
+      "fundsBefore": 69047.52499999994,
+      "fundsAfter": 64366.399999999936
+    },
+    {
+      "t": 9000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2099.739643562182,
+      "stockAfter": 2324.739643562182,
+      "fundsBefore": 68972.09999999993,
+      "fundsAfter": 64290.97499999993
+    },
+    {
+      "t": 9600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2179.4956435619433,
+      "stockAfter": 2404.4956435619433,
+      "fundsBefore": 68905.77499999994,
+      "fundsAfter": 64224.649999999936
+    },
+    {
+      "t": 10200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2259.2516435617044,
+      "stockAfter": 2484.2516435617044,
+      "fundsBefore": 68845.74999999993,
+      "fundsAfter": 64164.62499999993
+    },
+    {
+      "t": 10800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2339.0076435614656,
+      "stockAfter": 2564.0076435614656,
+      "fundsBefore": 68825.62499999993,
+      "fundsAfter": 64144.49999999993
+    },
+    {
+      "t": 12000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2273.519643560988,
+      "stockAfter": 2498.519643560988,
+      "fundsBefore": 73270.49999999993,
+      "fundsAfter": 68589.37499999993
+    },
+    {
+      "t": 12600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2353.275643560749,
+      "stockAfter": 2578.275643560749,
+      "fundsBefore": 73195.77499999994,
+      "fundsAfter": 68514.64999999994
+    },
+    {
+      "t": 13200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2433.03164356051,
+      "stockAfter": 2658.03164356051,
+      "fundsBefore": 73120.34999999993,
+      "fundsAfter": 68439.22499999993
+    },
+    {
+      "t": 13800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2512.787643560271,
+      "stockAfter": 2737.787643560271,
+      "fundsBefore": 73054.02499999994,
+      "fundsAfter": 68372.89999999994
+    },
+    {
+      "t": 14400,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2537.5436435600323,
+      "stockAfter": 2762.5436435600323,
+      "fundsBefore": 72994.69999999994,
+      "fundsAfter": 68313.57499999994
+    },
+    {
+      "t": 15000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2617.2996435597934,
+      "stockAfter": 2842.2996435597934,
+      "fundsBefore": 72952.87499999994,
+      "fundsAfter": 68271.74999999994
+    },
+    {
+      "t": 15600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2697.0556435595545,
+      "stockAfter": 2922.0556435595545,
+      "fundsBefore": 72896.34999999993,
+      "fundsAfter": 68215.22499999993
+    },
+    {
+      "t": 16200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2776.8116435593156,
+      "stockAfter": 3001.8116435593156,
+      "fundsBefore": 72820.92499999993,
+      "fundsAfter": 68139.79999999993
+    },
+    {
+      "t": 16800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2856.5676435590767,
+      "stockAfter": 3081.5676435590767,
+      "fundsBefore": 72754.59999999993,
+      "fundsAfter": 68073.47499999993
+    },
+    {
+      "t": 17400,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2936.323643558838,
+      "stockAfter": 3161.323643558838,
+      "fundsBefore": 72691.07499999994,
+      "fundsAfter": 68009.94999999994
+    },
+    {
+      "t": 18600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2870.83564355836,
+      "stockAfter": 3095.83564355836,
+      "fundsBefore": 77121.94999999994,
+      "fundsAfter": 72440.82499999994
+    },
+    {
+      "t": 19200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2895.591643558121,
+      "stockAfter": 3120.591643558121,
+      "fundsBefore": 77079.42499999994,
+      "fundsAfter": 72398.29999999994
+    },
+    {
+      "t": 19800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 2975.3476435578823,
+      "stockAfter": 3200.3476435578823,
+      "fundsBefore": 77024.29999999994,
+      "fundsAfter": 72343.17499999994
+    },
+    {
+      "t": 20400,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3055.1036435576434,
+      "stockAfter": 3280.1036435576434,
+      "fundsBefore": 76949.57499999995,
+      "fundsAfter": 72268.44999999995
+    },
+    {
+      "t": 21000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3134.8596435574045,
+      "stockAfter": 3359.8596435574045,
+      "fundsBefore": 76874.14999999995,
+      "fundsAfter": 72193.02499999995
+    },
+    {
+      "t": 21600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3214.6156435571656,
+      "stockAfter": 3439.6156435571656,
+      "fundsBefore": 76803.62499999996,
+      "fundsAfter": 72122.49999999996
+    },
+    {
+      "t": 22200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3294.3716435569268,
+      "stockAfter": 3519.3716435569268,
+      "fundsBefore": 76728.89999999997,
+      "fundsAfter": 72047.77499999997
+    },
+    {
+      "t": 22800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3374.127643556688,
+      "stockAfter": 3599.127643556688,
+      "fundsBefore": 76658.37499999997,
+      "fundsAfter": 71977.24999999997
+    },
+    {
+      "t": 23400,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3453.883643556449,
+      "stockAfter": 3678.883643556449,
+      "fundsBefore": 76583.64999999998,
+      "fundsAfter": 71902.52499999998
+    },
+    {
+      "t": 24000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3533.63964355621,
+      "stockAfter": 3758.63964355621,
+      "fundsBefore": 76508.22499999998,
+      "fundsAfter": 71827.09999999998
+    },
+    {
+      "t": 24600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3558.395643555971,
+      "stockAfter": 3783.395643555971,
+      "fundsBefore": 76441.89999999998,
+      "fundsAfter": 71760.77499999998
+    },
+    {
+      "t": 25200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3638.1516435557323,
+      "stockAfter": 3863.1516435557323,
+      "fundsBefore": 76381.87499999997,
+      "fundsAfter": 71700.74999999997
+    },
+    {
+      "t": 25800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3717.9076435554935,
+      "stockAfter": 3942.9076435554935,
+      "fundsBefore": 76362.44999999997,
+      "fundsAfter": 71681.32499999997
+    },
+    {
+      "t": 27000,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3652.4196435550157,
+      "stockAfter": 3877.4196435550157,
+      "fundsBefore": 80807.32499999997,
+      "fundsAfter": 76126.19999999997
+    },
+    {
+      "t": 27600,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3732.175643554777,
+      "stockAfter": 3957.175643554777,
+      "fundsBefore": 80732.59999999998,
+      "fundsAfter": 76051.47499999998
+    },
+    {
+      "t": 28200,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3811.931643554538,
+      "stockAfter": 4036.931643554538,
+      "fundsBefore": 80657.17499999997,
+      "fundsAfter": 75976.04999999997
+    },
+    {
+      "t": 28800,
+      "item": "electronics",
+      "n": 225,
+      "cr": 4681.125,
+      "station": "p9_lyra_port",
+      "held": 225,
+      "bidBefore": 21.9,
+      "bidAfter": 21.9,
+      "stockBefore": 3891.687643554299,
+      "stockAfter": 4116.687643554299,
+      "fundsBefore": 80590.84999999998,
+      "fundsAfter": 75909.72499999998
+    }
+  ]
+}
