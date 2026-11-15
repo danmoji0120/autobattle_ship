@@ -1,0 +1,164 @@
+{
+  "tag": "p10-medium-neutral-hold-8h-s13220-d1a183f",
+  "code": "d1a183f",
+  "hours": 8,
+  "seed": 13220,
+  "raid": "medium",
+  "neutral": true,
+  "hold": true,
+  "victims": 4,
+  "detClock": true,
+  "tenderOrder": "none",
+  "error": null,
+  "restartEqual": true,
+  "lanes": [
+    {
+      "key": "drake>junction",
+      "loadedSamples": 45,
+      "refValueSeen": 48726
+    },
+    {
+      "key": "astra>drake",
+      "loadedSamples": 25,
+      "refValueSeen": 41997
+    }
+  ],
+  "attempts": 0,
+  "complies": 0,
+  "byTarget": {},
+  "droppedUnits": {},
+  "droppedReferenceValue": {},
+  "recoveredUnits": {
+    "wreck/other/ore": 1
+  },
+  "recoveredReferenceValue": 10,
+  "sales": {
+    "credits": 0,
+    "byItem": {},
+    "count": 0
+  },
+  "unsold": {},
+  "unsoldReferenceValue": 0,
+  "costEvents": {
+    "fleet_upkeep": 22404,
+    "warehouse_rent": 0,
+    "supplies": 1143
+  },
+  "ledger": {
+    "inc": {
+      "other": 5940
+    },
+    "exp": {
+      "upkeep": 23548
+    }
+  },
+  "upkeep": 23548,
+  "repairDue": 4441,
+  "lostHulls": {
+    "ships": 5,
+    "value": 153700,
+    "list": [
+      {
+        "t": 15000,
+        "cls": "corvette",
+        "value": 9300
+      },
+      {
+        "t": 15000,
+        "cls": "corvette",
+        "value": 9300
+      },
+      {
+        "t": 15000,
+        "cls": "corvette",
+        "value": 9300
+      },
+      {
+        "t": 15000,
+        "cls": "destroyer",
+        "value": 116500
+      },
+      {
+        "t": 21840,
+        "cls": "corvette",
+        "value": 9300
+      }
+    ]
+  },
+  "investment": 307400,
+  "netCashFlow": -17606,
+  "finalPL": -175747,
+  "perHourPL": -21968,
+  "paybackHours": null,
+  "reputation": {
+    "start": 0,
+    "end": 6
+  },
+  "estimates": [],
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": -4517,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 10
+    },
+    {
+      "hour": 2,
+      "credits": -6064,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 10
+    },
+    {
+      "hour": 3,
+      "credits": -8005,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 6
+    },
+    {
+      "hour": 4,
+      "credits": -10568,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 6
+    },
+    {
+      "hour": 5,
+      "credits": -10885,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 5
+    },
+    {
+      "hour": 6,
+      "credits": -13118,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 5
+    },
+    {
+      "hour": 7,
+      "credits": -15382,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 5
+    },
+    {
+      "hour": 8,
+      "credits": -17606,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 5
+    }
+  ]
+}

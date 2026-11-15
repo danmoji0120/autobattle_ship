@@ -1,0 +1,245 @@
+{
+  "tag": "p10-split-8h-s13220-80869ca",
+  "code": "80869ca",
+  "hours": 8,
+  "seed": 13220,
+  "raid": "split",
+  "neutral": false,
+  "hold": false,
+  "victims": 4,
+  "detClock": true,
+  "tenderOrder": "lootTender",
+  "error": null,
+  "restartEqual": true,
+  "lanes": [
+    {
+      "key": "drake>junction",
+      "loadedSamples": 45,
+      "refValueSeen": 48726
+    },
+    {
+      "key": "astra>drake",
+      "loadedSamples": 25,
+      "refValueSeen": 41997
+    }
+  ],
+  "attempts": 15,
+  "complies": 15,
+  "byTarget": {
+    "threat/V": 15,
+    "comply/V": 15
+  },
+  "droppedUnits": {
+    "V/ore": 173
+  },
+  "droppedReferenceValue": {
+    "V": 1730
+  },
+  "recoveredUnits": {
+    "drop/V/ore": 173
+  },
+  "recoveredReferenceValue": 1730,
+  "sales": {
+    "credits": 818,
+    "byItem": {
+      "ore": {
+        "units": 173,
+        "cr": 818,
+        "perUnit": 4.73,
+        "refPerUnit": 10
+      }
+    },
+    "count": 15
+  },
+  "unsold": {},
+  "unsoldReferenceValue": 0,
+  "costEvents": {
+    "fleet_upkeep": 39600,
+    "warehouse_rent": 0,
+    "supplies": 2019,
+    "maintenance": 5682
+  },
+  "ledger": {
+    "inc": {
+      "sales": 818,
+      "other": 44
+    },
+    "exp": {
+      "upkeep": 47301
+    }
+  },
+  "upkeep": 47301,
+  "repairDue": 698,
+  "lostHulls": {
+    "ships": 0,
+    "value": 0,
+    "list": []
+  },
+  "investment": 326000,
+  "netCashFlow": -46483,
+  "finalPL": -47181,
+  "perHourPL": -5898,
+  "paybackHours": null,
+  "reputation": {
+    "start": 0,
+    "end": 0
+  },
+  "estimates": [
+    {
+      "t": 17143.5,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 17232.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 18181.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 18434.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 18691.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 19484.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 20120.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 20742.5,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 21357.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 21969.5,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 32654.5,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 33342.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 34567,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 35180.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 35800.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    }
+  ],
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": -5177,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 12
+    },
+    {
+      "hour": 2,
+      "credits": -10398,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 12
+    },
+    {
+      "hour": 3,
+      "credits": -17507,
+      "threats": 2,
+      "comply": 2,
+      "sold": 270,
+      "rShips": 12
+    },
+    {
+      "hour": 4,
+      "credits": -23221,
+      "threats": 9,
+      "comply": 9,
+      "sold": 685,
+      "rShips": 12
+    },
+    {
+      "hour": 5,
+      "credits": -28436,
+      "threats": 10,
+      "comply": 10,
+      "sold": 707,
+      "rShips": 12
+    },
+    {
+      "hour": 6,
+      "credits": -33606,
+      "threats": 10,
+      "comply": 10,
+      "sold": 707,
+      "rShips": 12
+    },
+    {
+      "hour": 7,
+      "credits": -38822,
+      "threats": 10,
+      "comply": 10,
+      "sold": 707,
+      "rShips": 12
+    },
+    {
+      "hour": 8,
+      "credits": -46483,
+      "threats": 15,
+      "comply": 15,
+      "sold": 818,
+      "rShips": 12
+    }
+  ]
+}

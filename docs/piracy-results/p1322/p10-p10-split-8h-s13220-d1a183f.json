@@ -1,0 +1,145 @@
+{
+  "tag": "p10-split-8h-s13220-d1a183f",
+  "code": "d1a183f",
+  "hours": 8,
+  "seed": 13220,
+  "raid": "split",
+  "neutral": false,
+  "hold": false,
+  "victims": 4,
+  "detClock": true,
+  "tenderOrder": "lootTender",
+  "error": null,
+  "restartEqual": true,
+  "lanes": [
+    {
+      "key": "drake>junction",
+      "loadedSamples": 45,
+      "refValueSeen": 48726
+    },
+    {
+      "key": "astra>drake",
+      "loadedSamples": 25,
+      "refValueSeen": 41997
+    }
+  ],
+  "attempts": 0,
+  "complies": 0,
+  "byTarget": {},
+  "droppedUnits": {},
+  "droppedReferenceValue": {},
+  "recoveredUnits": {},
+  "recoveredReferenceValue": 0,
+  "sales": {
+    "credits": 0,
+    "byItem": {},
+    "count": 0
+  },
+  "unsold": {},
+  "unsoldReferenceValue": 0,
+  "costEvents": {
+    "fleet_upkeep": 36909,
+    "warehouse_rent": 0,
+    "supplies": 1918
+  },
+  "ledger": {
+    "inc": {},
+    "exp": {
+      "upkeep": 38829
+    }
+  },
+  "upkeep": 38829,
+  "repairDue": 0,
+  "lostHulls": {
+    "ships": 2,
+    "value": 18600,
+    "list": [
+      {
+        "t": 21180,
+        "cls": "hauler",
+        "value": 9300
+      },
+      {
+        "t": 21540,
+        "cls": "hauler",
+        "value": 9300
+      }
+    ]
+  },
+  "investment": 326000,
+  "netCashFlow": -38828,
+  "finalPL": -57428,
+  "perHourPL": -7178,
+  "paybackHours": null,
+  "reputation": {
+    "start": 0,
+    "end": 0
+  },
+  "estimates": [],
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": -5177,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 12
+    },
+    {
+      "hour": 2,
+      "credits": -10399,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 12
+    },
+    {
+      "hour": 3,
+      "credits": -15603,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 12
+    },
+    {
+      "hour": 4,
+      "credits": -20751,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 10
+    },
+    {
+      "hour": 5,
+      "credits": -25267,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 10
+    },
+    {
+      "hour": 6,
+      "credits": -29782,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 10
+    },
+    {
+      "hour": 7,
+      "credits": -34338,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 10
+    },
+    {
+      "hour": 8,
+      "credits": -38828,
+      "threats": 0,
+      "comply": 0,
+      "sold": 0,
+      "rShips": 10
+    }
+  ]
+}

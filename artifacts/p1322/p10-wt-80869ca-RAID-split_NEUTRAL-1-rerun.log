@@ -4,3 +4,196 @@
 {"hour":4,"credits":43038,"threats":70,"comply":70,"sold":68359,"rShips":12}
 {"hour":5,"credits":52914,"threats":88,"comply":88,"sold":85596,"rShips":12}
 {"hour":6,"credits":74280,"threats":105,"comply":105,"sold":113945,"rShips":12}
+{"hour":7,"credits":95444,"threats":121,"comply":121,"sold":142236,"rShips":12}
+{"hour":8,"credits":109581,"threats":138,"comply":138,"sold":163387,"rShips":12}
+{
+ "tag": "p10-split-neutral-8h-s13220-80869ca",
+ "code": "80869ca",
+ "hours": 8,
+ "seed": 13220,
+ "raid": "split",
+ "neutral": true,
+ "hold": false,
+ "victims": 4,
+ "detClock": true,
+ "tenderOrder": "salvzone (no lootTender in this code)",
+ "error": null,
+ "restartEqual": true,
+ "lanes": [
+  {
+   "key": "drake>junction",
+   "loadedSamples": 45,
+   "refValueSeen": 48726
+  },
+  {
+   "key": "astra>drake",
+   "loadedSamples": 25,
+   "refValueSeen": 41997
+  }
+ ],
+ "attempts": 138,
+ "complies": 138,
+ "byTarget": {
+  "threat/guild": 130,
+  "comply/guild": 130,
+  "threat/V": 8,
+  "comply/V": 8
+ },
+ "droppedUnits": {
+  "guild/machinery": 1149,
+  "V/ore": 240,
+  "guild/alloy": 919,
+  "guild/ore": 1224,
+  "guild/titanium_ore": 68,
+  "guild/weapon_parts": 4
+ },
+ "droppedReferenceValue": {
+  "guild": 147962,
+  "V": 2400
+ },
+ "recoveredUnits": {
+  "drop/guild/machinery": 1149,
+  "drop/V/ore": 240,
+  "drop/guild/alloy": 919,
+  "drop/guild/ore": 1224,
+  "drop/guild/titanium_ore": 68,
+  "wreck/V/ore": 25,
+  "drop/guild/weapon_parts": 4
+ },
+ "recoveredReferenceValue": 150612,
+ "sales": {
+  "credits": 163387,
+  "byItem": {
+   "machinery": {
+    "units": 1149,
+    "cr": 113090,
+    "perUnit": 98.42,
+    "refPerUnit": 90
+   },
+   "ore": {
+    "units": 1489,
+    "cr": 5392,
+    "perUnit": 3.62,
+    "refPerUnit": 10
+   },
+   "alloy": {
+    "units": 919,
+    "cr": 42924,
+    "perUnit": 46.71,
+    "refPerUnit": 32
+   },
+   "weapon_parts": {
+    "units": 4,
+    "cr": 1981,
+    "perUnit": 495.19,
+    "refPerUnit": 420
+   }
+  },
+  "count": 110
+ },
+ "unsold": {
+  "titanium_ore": {
+   "units": 68,
+   "referenceValue": 1224
+  }
+ },
+ "unsoldReferenceValue": 1224,
+ "costEvents": {
+  "fleet_upkeep": 39600,
+  "maintenance": 14120,
+  "warehouse_rent": 0,
+  "supplies": 2065
+ },
+ "ledger": {
+  "inc": {
+   "sales": 163388,
+   "other": 6049
+  },
+  "exp": {
+   "upkeep": 55786
+  }
+ },
+ "upkeep": 55786,
+ "repairDue": 281,
+ "lostHulls": {
+  "ships": 0,
+  "value": 0,
+  "list": []
+ },
+ "investment": 326000,
+ "netCashFlow": 109581,
+ "finalPL": 109300,
+ "perHourPL": 13663,
+ "paybackHours": 23.9,
+ "reputation": {
+  "start": 0,
+  "end": 0
+ },
+ "estimates": "138 rows",
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": 8453,
+   "threats": 18,
+   "comply": 18,
+   "sold": 15043,
+   "rShips": 12
+  },
+  {
+   "hour": 2,
+   "credits": 18890,
+   "threats": 38,
+   "comply": 38,
+   "sold": 32435,
+   "rShips": 12
+  },
+  {
+   "hour": 3,
+   "credits": 28721,
+   "threats": 55,
+   "comply": 55,
+   "sold": 49227,
+   "rShips": 12
+  },
+  {
+   "hour": 4,
+   "credits": 43038,
+   "threats": 70,
+   "comply": 70,
+   "sold": 68359,
+   "rShips": 12
+  },
+  {
+   "hour": 5,
+   "credits": 52914,
+   "threats": 88,
+   "comply": 88,
+   "sold": 85596,
+   "rShips": 12
+  },
+  {
+   "hour": 6,
+   "credits": 74280,
+   "threats": 105,
+   "comply": 105,
+   "sold": 113945,
+   "rShips": 12
+  },
+  {
+   "hour": 7,
+   "credits": 95444,
+   "threats": 121,
+   "comply": 121,
+   "sold": 142236,
+   "rShips": 12
+  },
+  {
+   "hour": 8,
+   "credits": 109581,
+   "threats": 138,
+   "comply": 138,
+   "sold": 163387,
+   "rShips": 12
+  }
+ ]
+}

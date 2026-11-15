@@ -1,0 +1,952 @@
+{
+  "tag": "p10-medium-neutral-8h-s13220-80869ca",
+  "code": "80869ca",
+  "hours": 8,
+  "seed": 13220,
+  "raid": "medium",
+  "neutral": true,
+  "hold": false,
+  "victims": 4,
+  "detClock": true,
+  "tenderOrder": "none",
+  "error": null,
+  "restartEqual": true,
+  "lanes": [
+    {
+      "key": "drake>junction",
+      "loadedSamples": 45,
+      "refValueSeen": 48726
+    },
+    {
+      "key": "astra>drake",
+      "loadedSamples": 25,
+      "refValueSeen": 41997
+    }
+  ],
+  "attempts": 125,
+  "complies": 125,
+  "byTarget": {
+    "threat/guild": 115,
+    "comply/guild": 115,
+    "threat/V": 10,
+    "comply/V": 10
+  },
+  "droppedUnits": {
+    "guild/machinery": 1089,
+    "guild/alloy": 1540,
+    "V/ore": 255,
+    "guild/ore": 1371
+  },
+  "droppedReferenceValue": {
+    "guild": 161000,
+    "V": 2550
+  },
+  "recoveredUnits": {
+    "drop/guild/machinery": 1089,
+    "drop/guild/alloy": 1540,
+    "drop/V/ore": 255,
+    "drop/guild/ore": 1371
+  },
+  "recoveredReferenceValue": 163550,
+  "sales": {
+    "credits": 174408,
+    "byItem": {
+      "alloy": {
+        "units": 1540,
+        "cr": 62750,
+        "perUnit": 40.75,
+        "refPerUnit": 32
+      },
+      "ore": {
+        "units": 1626,
+        "cr": 5378,
+        "perUnit": 3.31,
+        "refPerUnit": 10
+      },
+      "machinery": {
+        "units": 1046,
+        "cr": 106280,
+        "perUnit": 101.61,
+        "refPerUnit": 90
+      }
+    },
+    "count": 96
+  },
+  "unsold": {
+    "machinery": {
+      "units": 34,
+      "referenceValue": 3060
+    }
+  },
+  "unsoldReferenceValue": 3060,
+  "costEvents": {
+    "fleet_upkeep": 28324,
+    "maintenance": 11645,
+    "warehouse_rent": 0,
+    "supplies": 1465
+  },
+  "ledger": {
+    "inc": {
+      "sales": 174408,
+      "other": 3635
+    },
+    "exp": {
+      "upkeep": 41435
+    }
+  },
+  "upkeep": 41435,
+  "repairDue": 75,
+  "lostHulls": {
+    "ships": 4,
+    "value": 144400,
+    "list": [
+      {
+        "t": 24120,
+        "cls": "corvette",
+        "value": 9300
+      },
+      {
+        "t": 24120,
+        "cls": "corvette",
+        "value": 9300
+      },
+      {
+        "t": 24120,
+        "cls": "corvette",
+        "value": 9300
+      },
+      {
+        "t": 24120,
+        "cls": "destroyer",
+        "value": 116500
+      }
+    ]
+  },
+  "investment": 307400,
+  "netCashFlow": 133963,
+  "finalPL": -10512,
+  "perHourPL": -1314,
+  "paybackHours": null,
+  "reputation": {
+    "start": 0,
+    "end": 0
+  },
+  "estimates": [
+    {
+      "t": 7218.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 7290,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 7540.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 7717.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 7760.5,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 7855.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 8011.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 8199.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 8566.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 8641,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 8654.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 8914.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 9266.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 9426.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 9441.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 9574.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 10110.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 10179.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 10226.5,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 10289,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 10436.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 10837.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 10948.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 10999.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 11212.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 11509.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 11677,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 12007,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 12209,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 12308.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 12694.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 12888.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 12981.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 13333.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 13532.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 13618.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 13968,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 14034.5,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 14335.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 14404.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 14728.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 14987.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 15128.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 15191.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 15443.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 15735,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 15819.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 16103,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 16407.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 16465.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 16790.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 16911.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 17115.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 17288,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 17505.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 17833.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 17916.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 18146.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 18506.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 18574.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 18880,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 19213.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 19383.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 19540,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 19831,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 20169.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 20278,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 20633,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 20892.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 20955.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 21285.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 21631.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 21742,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 21926.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 22289.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 22415.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 22731.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 22985.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 23313.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 23384.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 23690.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 24023.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 24099.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 24378.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 24830.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 25049.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 25410,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 25530,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 25753,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 26195.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 26439.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 26696.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 26982.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 27127.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 27376.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 27768.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 28095.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 28501,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 28795.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 29078.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 29189,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 29474.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 29864.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 30194.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 30543.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 30674.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 30894.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 31250.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 31436,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 31594,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 31938,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 32222.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 32321.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 32606.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 32992.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 33270.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 33655.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 33726.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 34056.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 34342.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 34625.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 34843,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 35030.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 35324.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    },
+    {
+      "t": 35628.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": null
+    }
+  ],
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": 9871,
+      "threats": 21,
+      "comply": 21,
+      "sold": 15906,
+      "rShips": 10
+    },
+    {
+      "hour": 2,
+      "credits": 26409,
+      "threats": 39,
+      "comply": 39,
+      "sold": 38783,
+      "rShips": 10
+    },
+    {
+      "hour": 3,
+      "credits": 44801,
+      "threats": 57,
+      "comply": 57,
+      "sold": 63359,
+      "rShips": 10
+    },
+    {
+      "hour": 4,
+      "credits": 56884,
+      "threats": 71,
+      "comply": 71,
+      "sold": 81984,
+      "rShips": 10
+    },
+    {
+      "hour": 5,
+      "credits": 73457,
+      "threats": 86,
+      "comply": 86,
+      "sold": 103245,
+      "rShips": 6
+    },
+    {
+      "hour": 6,
+      "credits": 95464,
+      "threats": 99,
+      "comply": 99,
+      "sold": 128797,
+      "rShips": 6
+    },
+    {
+      "hour": 7,
+      "credits": 116574,
+      "threats": 113,
+      "comply": 113,
+      "sold": 153558,
+      "rShips": 6
+    },
+    {
+      "hour": 8,
+      "credits": 133963,
+      "threats": 125,
+      "comply": 125,
+      "sold": 174408,
+      "rShips": 6
+    }
+  ]
+}

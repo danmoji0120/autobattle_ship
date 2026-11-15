@@ -1,0 +1,1512 @@
+{
+  "tag": "p10-split-neutral-8h-s13220-d1a183f",
+  "code": "d1a183f",
+  "hours": 8,
+  "seed": 13220,
+  "raid": "split",
+  "neutral": true,
+  "hold": false,
+  "victims": 4,
+  "detClock": true,
+  "tenderOrder": "lootTender",
+  "error": null,
+  "restartEqual": true,
+  "lanes": [
+    {
+      "key": "drake>junction",
+      "loadedSamples": 45,
+      "refValueSeen": 48726
+    },
+    {
+      "key": "astra>drake",
+      "loadedSamples": 25,
+      "refValueSeen": 41997
+    }
+  ],
+  "attempts": 121,
+  "complies": 120,
+  "byTarget": {
+    "threat/guild": 121,
+    "comply/guild": 120,
+    "flee/guild": 1,
+    "withdraw/guild": 1
+  },
+  "droppedUnits": {
+    "guild/machinery": 1323,
+    "guild/alloy": 2549,
+    "guild/titanium": 68,
+    "guild/crystal": 16
+  },
+  "droppedReferenceValue": {
+    "guild": 205502
+  },
+  "recoveredUnits": {
+    "drop/guild/machinery": 1323,
+    "drop/guild/alloy": 2549,
+    "drop/guild/titanium": 68,
+    "drop/guild/crystal": 16
+  },
+  "recoveredReferenceValue": 205502,
+  "sales": {
+    "credits": 233188,
+    "byItem": {
+      "machinery": {
+        "units": 1323,
+        "cr": 132326,
+        "perUnit": 100.02,
+        "refPerUnit": 90
+      },
+      "alloy": {
+        "units": 2549,
+        "cr": 97174,
+        "perUnit": 38.12,
+        "refPerUnit": 32
+      },
+      "titanium": {
+        "units": 68,
+        "cr": 3194,
+        "perUnit": 46.97,
+        "refPerUnit": 48
+      },
+      "crystal": {
+        "units": 16,
+        "cr": 494,
+        "perUnit": 30.89,
+        "refPerUnit": 100
+      }
+    },
+    "count": 87
+  },
+  "unsold": {},
+  "unsoldReferenceValue": 0,
+  "costEvents": {
+    "fleet_upkeep": 39600,
+    "maintenance": 15884,
+    "warehouse_rent": 0,
+    "supplies": 2018
+  },
+  "ledger": {
+    "inc": {
+      "sales": 233189,
+      "other": 4012
+    },
+    "exp": {
+      "upkeep": 57504
+    }
+  },
+  "upkeep": 57504,
+  "repairDue": 265,
+  "lostHulls": {
+    "ships": 0,
+    "value": 0,
+    "list": []
+  },
+  "investment": 326000,
+  "netCashFlow": 175686,
+  "finalPL": 175421,
+  "perHourPL": 21928,
+  "paybackHours": 14.9,
+  "reputation": {
+    "start": 0,
+    "end": 0
+  },
+  "estimates": [
+    {
+      "t": 7221.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1667,
+        "risk": 0,
+        "profit": 1667
+      }
+    },
+    {
+      "t": 7234.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1667,
+        "risk": 0,
+        "profit": 1667
+      }
+    },
+    {
+      "t": 7539.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1674,
+        "risk": 0,
+        "profit": 1674
+      }
+    },
+    {
+      "t": 8038.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1817,
+        "risk": 0,
+        "profit": 1817
+      }
+    },
+    {
+      "t": 8199.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1817,
+        "risk": 0,
+        "profit": 1817
+      }
+    },
+    {
+      "t": 8710.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1752,
+        "risk": 0,
+        "profit": 1752
+      }
+    },
+    {
+      "t": 8886.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1649,
+        "risk": 0,
+        "profit": 1649
+      }
+    },
+    {
+      "t": 9410.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1949,
+        "risk": 0,
+        "profit": 1949
+      }
+    },
+    {
+      "t": 9602.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1824,
+        "risk": 0,
+        "profit": 1824
+      }
+    },
+    {
+      "t": 10110.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1799,
+        "risk": 0,
+        "profit": 1799
+      }
+    },
+    {
+      "t": 10261.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1822,
+        "risk": 0,
+        "profit": 1822
+      }
+    },
+    {
+      "t": 10837.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1817,
+        "risk": 0,
+        "profit": 1817
+      }
+    },
+    {
+      "t": 10976.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2120,
+        "risk": 0,
+        "profit": 2120
+      }
+    },
+    {
+      "t": 11509.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1817,
+        "risk": 0,
+        "profit": 1817
+      }
+    },
+    {
+      "t": 11634.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1968,
+        "risk": 0,
+        "profit": 1968
+      }
+    },
+    {
+      "t": 11673.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1968,
+        "risk": 0,
+        "profit": 1968
+      }
+    },
+    {
+      "t": 12236.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2423,
+        "risk": 0,
+        "profit": 2423
+      }
+    },
+    {
+      "t": 12309.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2423,
+        "risk": 0,
+        "profit": 2423
+      }
+    },
+    {
+      "t": 12666.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2142,
+        "risk": 0,
+        "profit": 2142
+      }
+    },
+    {
+      "t": 12909.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2423,
+        "risk": 0,
+        "profit": 2423
+      }
+    },
+    {
+      "t": 13095.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2423,
+        "risk": 0,
+        "profit": 2423
+      }
+    },
+    {
+      "t": 13381,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2271,
+        "risk": 0,
+        "profit": 2271
+      }
+    },
+    {
+      "t": 13635.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2725,
+        "risk": 0,
+        "profit": 2725
+      }
+    },
+    {
+      "t": 13881.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2574,
+        "risk": 0,
+        "profit": 2574
+      }
+    },
+    {
+      "t": 14041,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2271,
+        "risk": 0,
+        "profit": 2271
+      }
+    },
+    {
+      "t": 14307.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1623,
+        "risk": 0,
+        "profit": 1623
+      }
+    },
+    {
+      "t": 14756,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2574,
+        "risk": 0,
+        "profit": 2574
+      }
+    },
+    {
+      "t": 15008,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2574,
+        "risk": 0,
+        "profit": 2574
+      }
+    },
+    {
+      "t": 15415.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2574,
+        "risk": 0,
+        "profit": 2574
+      }
+    },
+    {
+      "t": 15513.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2574,
+        "risk": 0,
+        "profit": 2574
+      }
+    },
+    {
+      "t": 15707.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1947,
+        "risk": 0,
+        "profit": 1947
+      }
+    },
+    {
+      "t": 16103.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2423,
+        "risk": 0,
+        "profit": 2423
+      }
+    },
+    {
+      "t": 16260.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2574,
+        "risk": 0,
+        "profit": 2574
+      }
+    },
+    {
+      "t": 16434,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1493,
+        "risk": 0,
+        "profit": 1493
+      }
+    },
+    {
+      "t": 16714.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2574,
+        "risk": 0,
+        "profit": 2574
+      }
+    },
+    {
+      "t": 17007.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2698,
+        "risk": 0,
+        "profit": 2698
+      }
+    },
+    {
+      "t": 17134.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1623,
+        "risk": 0,
+        "profit": 1623
+      }
+    },
+    {
+      "t": 17439.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2207,
+        "risk": 0,
+        "profit": 2207
+      }
+    },
+    {
+      "t": 17505.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2548,
+        "risk": 0,
+        "profit": 2548
+      }
+    },
+    {
+      "t": 17806,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2272,
+        "risk": 0,
+        "profit": 2272
+      }
+    },
+    {
+      "t": 18004,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2548,
+        "risk": 0,
+        "profit": 2548
+      }
+    },
+    {
+      "t": 18164.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2998,
+        "risk": 0,
+        "profit": 2998
+      }
+    },
+    {
+      "t": 18533,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2998,
+        "risk": 0,
+        "profit": 2998
+      }
+    },
+    {
+      "t": 18797,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2998,
+        "risk": 0,
+        "profit": 2998
+      }
+    },
+    {
+      "t": 18803.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2531,
+        "risk": 0,
+        "profit": 2531
+      }
+    },
+    {
+      "t": 19205.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3298,
+        "risk": 0,
+        "profit": 3298
+      }
+    },
+    {
+      "t": 19749.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2531,
+        "risk": 0,
+        "profit": 2531
+      }
+    },
+    {
+      "t": 19905,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2272,
+        "risk": 0,
+        "profit": 2272
+      }
+    },
+    {
+      "t": 19909.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2698,
+        "risk": 0,
+        "profit": 2698
+      }
+    },
+    {
+      "t": 20397,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3298,
+        "risk": 0,
+        "profit": 3298
+      }
+    },
+    {
+      "t": 20546.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2596,
+        "risk": 0,
+        "profit": 2596
+      }
+    },
+    {
+      "t": 20612,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 1947,
+        "risk": 0,
+        "profit": 1947
+      }
+    },
+    {
+      "t": 21293.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2596,
+        "risk": 0,
+        "profit": 2596
+      }
+    },
+    {
+      "t": 21366.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3298,
+        "risk": 0,
+        "profit": 3298
+      }
+    },
+    {
+      "t": 21632,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2998,
+        "risk": 0,
+        "profit": 2998
+      }
+    },
+    {
+      "t": 21988.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3448,
+        "risk": 0,
+        "profit": 3448
+      }
+    },
+    {
+      "t": 22031.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3448,
+        "risk": 0,
+        "profit": 3448
+      }
+    },
+    {
+      "t": 22105.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2596,
+        "risk": 0,
+        "profit": 2596
+      }
+    },
+    {
+      "t": 22287.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2726,
+        "risk": 0,
+        "profit": 2726
+      }
+    },
+    {
+      "t": 22732,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2142,
+        "risk": 0,
+        "profit": 2142
+      }
+    },
+    {
+      "t": 22937.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3246,
+        "risk": 0,
+        "profit": 3246
+      }
+    },
+    {
+      "t": 23003.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3098,
+        "risk": 0,
+        "profit": 3098
+      }
+    },
+    {
+      "t": 23403.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2951,
+        "risk": 0,
+        "profit": 2951
+      }
+    },
+    {
+      "t": 23535.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3115,
+        "risk": 0,
+        "profit": 3115
+      }
+    },
+    {
+      "t": 23662.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3393,
+        "risk": 0,
+        "profit": 3393
+      }
+    },
+    {
+      "t": 24130.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3393,
+        "risk": 0,
+        "profit": 3393
+      }
+    },
+    {
+      "t": 24223.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2336,
+        "risk": 0,
+        "profit": 2336
+      }
+    },
+    {
+      "t": 24378.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2951,
+        "risk": 0,
+        "profit": 2951
+      }
+    },
+    {
+      "t": 24987.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3308,
+        "risk": 0,
+        "profit": 3308
+      }
+    },
+    {
+      "t": 25064.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3562,
+        "risk": 0,
+        "profit": 3562
+      }
+    },
+    {
+      "t": 25146.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3098,
+        "risk": 0,
+        "profit": 3098
+      }
+    },
+    {
+      "t": 25699.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2985,
+        "risk": 0,
+        "profit": 2985
+      }
+    },
+    {
+      "t": 25822.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3393,
+        "risk": 0,
+        "profit": 3393
+      }
+    },
+    {
+      "t": 26026.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 4068,
+        "risk": 0,
+        "profit": 4068
+      }
+    },
+    {
+      "t": 26229.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3541,
+        "risk": 0,
+        "profit": 3541
+      }
+    },
+    {
+      "t": 26439.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3246,
+        "risk": 0,
+        "profit": 3246
+      }
+    },
+    {
+      "t": 26650.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 4293,
+        "risk": 0,
+        "profit": 4293
+      }
+    },
+    {
+      "t": 26928.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3098,
+        "risk": 0,
+        "profit": 3098
+      }
+    },
+    {
+      "t": 27098.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2401,
+        "risk": 0,
+        "profit": 2401
+      }
+    },
+    {
+      "t": 27467.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3836,
+        "risk": 0,
+        "profit": 3836
+      }
+    },
+    {
+      "t": 27598.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3246,
+        "risk": 0,
+        "profit": 3246
+      }
+    },
+    {
+      "t": 27814,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3246,
+        "risk": 0,
+        "profit": 3246
+      }
+    },
+    {
+      "t": 28028.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3246,
+        "risk": 0,
+        "profit": 3246
+      }
+    },
+    {
+      "t": 28267.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 4511,
+        "risk": 0,
+        "profit": 4511
+      }
+    },
+    {
+      "t": 28328.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2466,
+        "risk": 0,
+        "profit": 2466
+      }
+    },
+    {
+      "t": 28814,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3372,
+        "risk": 0,
+        "profit": 3372
+      }
+    },
+    {
+      "t": 29007.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2936,
+        "risk": 0,
+        "profit": 2936
+      }
+    },
+    {
+      "t": 29188.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3878,
+        "risk": 0,
+        "profit": 3878
+      }
+    },
+    {
+      "t": 29351.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 4131,
+        "risk": 0,
+        "profit": 4131
+      }
+    },
+    {
+      "t": 29960.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3523,
+        "risk": 0,
+        "profit": 3523
+      }
+    },
+    {
+      "t": 30014.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3376,
+        "risk": 0,
+        "profit": 3376
+      }
+    },
+    {
+      "t": 30347.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 4638,
+        "risk": 0,
+        "profit": 4638
+      }
+    },
+    {
+      "t": 30562.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3941,
+        "risk": 0,
+        "profit": 3941
+      }
+    },
+    {
+      "t": 30633.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2985,
+        "risk": 0,
+        "profit": 2985
+      }
+    },
+    {
+      "t": 30647.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3229,
+        "risk": 0,
+        "profit": 3229
+      }
+    },
+    {
+      "t": 31222,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3941,
+        "risk": 0,
+        "profit": 3941
+      }
+    },
+    {
+      "t": 31272,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3345,
+        "risk": 0,
+        "profit": 3345
+      }
+    },
+    {
+      "t": 31338.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2661,
+        "risk": 0,
+        "profit": 2661
+      }
+    },
+    {
+      "t": 31593.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 5650,
+        "risk": 0,
+        "profit": 5650
+      }
+    },
+    {
+      "t": 31924.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3493,
+        "risk": 0,
+        "profit": 3493
+      }
+    },
+    {
+      "t": 31937,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3347,
+        "risk": 0,
+        "profit": 3347
+      }
+    },
+    {
+      "t": 32037.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3328,
+        "risk": 0,
+        "profit": 3328
+      }
+    },
+    {
+      "t": 32341.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 0.58,
+        "sale": 3372,
+        "risk": 0,
+        "profit": 1966
+      }
+    },
+    {
+      "t": 32596.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3488,
+        "risk": 0,
+        "profit": 3488
+      }
+    },
+    {
+      "t": 32759.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 0.84,
+        "sale": 2985,
+        "risk": 0,
+        "profit": 2512
+      }
+    },
+    {
+      "t": 33006,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 4131,
+        "risk": 0,
+        "profit": 4131
+      }
+    },
+    {
+      "t": 33284,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3941,
+        "risk": 0,
+        "profit": 3941
+      }
+    },
+    {
+      "t": 33311,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3330,
+        "risk": 0,
+        "profit": 3330
+      }
+    },
+    {
+      "t": 33431.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2791,
+        "risk": 0,
+        "profit": 2791
+      }
+    },
+    {
+      "t": 33792.25,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3312,
+        "risk": 0,
+        "profit": 3312
+      }
+    },
+    {
+      "t": 33970.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3319,
+        "risk": 0,
+        "profit": 3319
+      }
+    },
+    {
+      "t": 34083.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 5524,
+        "risk": 0,
+        "profit": 5524
+      }
+    },
+    {
+      "t": 34131.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 4384,
+        "risk": 0,
+        "profit": 4384
+      }
+    },
+    {
+      "t": 34685.5,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3598,
+        "risk": 0,
+        "profit": 3598
+      }
+    },
+    {
+      "t": 34751.25,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3459,
+        "risk": 0,
+        "profit": 3459
+      }
+    },
+    {
+      "t": 34806.75,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 2965,
+        "risk": 0,
+        "profit": 2965
+      }
+    },
+    {
+      "t": 34830.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 494,
+        "risk": 0,
+        "profit": 494
+      }
+    },
+    {
+      "t": 35344.5,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3601,
+        "risk": 0,
+        "profit": 3601
+      }
+    },
+    {
+      "t": 35453,
+      "group": "약탈대1",
+      "to": "guild",
+      "est": {
+        "p": 0.8,
+        "sale": 3987,
+        "risk": 0,
+        "profit": 3178
+      }
+    },
+    {
+      "t": 35465.75,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3371,
+        "risk": 0,
+        "profit": 3371
+      }
+    },
+    {
+      "t": 35791,
+      "group": "약탈대2",
+      "to": "guild",
+      "est": {
+        "p": 1,
+        "sale": 3386,
+        "risk": 0,
+        "profit": 3386
+      }
+    }
+  ],
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": 9251,
+      "threats": 11,
+      "comply": 11,
+      "sold": 15715,
+      "rShips": 12
+    },
+    {
+      "hour": 2,
+      "credits": 26636,
+      "threats": 26,
+      "comply": 26,
+      "sold": 40417,
+      "rShips": 12
+    },
+    {
+      "hour": 3,
+      "credits": 43524,
+      "threats": 40,
+      "comply": 40,
+      "sold": 64384,
+      "rShips": 12
+    },
+    {
+      "hour": 4,
+      "credits": 63761,
+      "threats": 54,
+      "comply": 54,
+      "sold": 91870,
+      "rShips": 12
+    },
+    {
+      "hour": 5,
+      "credits": 92715,
+      "threats": 71,
+      "comply": 71,
+      "sold": 128498,
+      "rShips": 12
+    },
+    {
+      "hour": 6,
+      "credits": 114595,
+      "threats": 85,
+      "comply": 84,
+      "sold": 157211,
+      "rShips": 12
+    },
+    {
+      "hour": 7,
+      "credits": 146816,
+      "threats": 103,
+      "comply": 102,
+      "sold": 197103,
+      "rShips": 12
+    },
+    {
+      "hour": 8,
+      "credits": 175686,
+      "threats": 121,
+      "comply": 120,
+      "sold": 233188,
+      "rShips": 12
+    }
+  ]
+}

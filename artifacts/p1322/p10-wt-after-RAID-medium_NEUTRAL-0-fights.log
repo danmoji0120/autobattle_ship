@@ -4,3 +4,177 @@
 {"hour":4,"credits":-18085,"threats":0,"comply":0,"sold":0,"rShips":10}
 {"hour":5,"credits":-18345,"threats":0,"comply":0,"sold":0,"rShips":7}
 {"hour":6,"credits":-21285,"threats":0,"comply":0,"sold":0,"rShips":7}
+{"hour":7,"credits":-24222,"threats":0,"comply":0,"sold":0,"rShips":7}
+{"hour":8,"credits":-27202,"threats":0,"comply":0,"sold":0,"rShips":7}
+{
+ "tag": "p10-medium-8h-s13220-d1a183f-fights",
+ "code": "d1a183f",
+ "hours": 8,
+ "seed": 13220,
+ "raid": "medium",
+ "neutral": false,
+ "hold": false,
+ "victims": 4,
+ "detClock": true,
+ "tenderOrder": "none",
+ "error": null,
+ "restartEqual": true,
+ "lanes": [
+  {
+   "key": "drake>junction",
+   "loadedSamples": 45,
+   "refValueSeen": 48726
+  },
+  {
+   "key": "astra>drake",
+   "loadedSamples": 25,
+   "refValueSeen": 41997
+  }
+ ],
+ "attempts": 0,
+ "complies": 0,
+ "byTarget": {},
+ "droppedUnits": {},
+ "droppedReferenceValue": {},
+ "recoveredUnits": {},
+ "recoveredReferenceValue": 0,
+ "sales": {
+  "credits": 0,
+  "byItem": {},
+  "count": 0
+ },
+ "unsold": {},
+ "unsoldReferenceValue": 0,
+ "costEvents": {
+  "fleet_upkeep": 28405,
+  "warehouse_rent": 0,
+  "supplies": 1548
+ },
+ "ledger": {
+  "inc": {
+   "other": 2750
+  },
+  "exp": {
+   "upkeep": 29954
+  }
+ },
+ "upkeep": 29954,
+ "repairDue": 236,
+ "lostHulls": {
+  "ships": 3,
+  "value": 135100,
+  "list": [
+   {
+    "t": 21720,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 21720,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 21720,
+    "cls": "destroyer",
+    "value": 116500
+   }
+  ]
+ },
+ "investment": 307400,
+ "netCashFlow": -27202,
+ "finalPL": -162538,
+ "perHourPL": -20317,
+ "paybackHours": null,
+ "reputation": {
+  "start": 0,
+  "end": 2
+ },
+ "fights": [
+  {
+   "id": "e4256",
+   "t": 21600,
+   "sys": "drake",
+   "sides": [
+    "p651",
+    "pirates"
+   ]
+  },
+  {
+   "id": "e4277",
+   "t": 21780,
+   "sys": "drake",
+   "sides": [
+    "V",
+    "p651"
+   ]
+  }
+ ],
+ "estimates": "0 rows",
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": -4517,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 10
+  },
+  {
+   "hour": 2,
+   "credits": -9034,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 10
+  },
+  {
+   "hour": 3,
+   "credits": -13581,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 10
+  },
+  {
+   "hour": 4,
+   "credits": -18085,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 10
+  },
+  {
+   "hour": 5,
+   "credits": -18345,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 7
+  },
+  {
+   "hour": 6,
+   "credits": -21285,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 7
+  },
+  {
+   "hour": 7,
+   "credits": -24222,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 7
+  },
+  {
+   "hour": 8,
+   "credits": -27202,
+   "threats": 0,
+   "comply": 0,
+   "sold": 0,
+   "rShips": 7
+  }
+ ]
+}

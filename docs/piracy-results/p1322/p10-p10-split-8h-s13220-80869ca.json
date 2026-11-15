@@ -1,0 +1,173 @@
+{
+  "tag": "p10-split-8h-s13220-80869ca",
+  "code": "80869ca",
+  "hours": 8,
+  "seed": 13220,
+  "raid": "split",
+  "neutral": false,
+  "hold": false,
+  "victims": 4,
+  "detClock": true,
+  "tenderOrder": "salvzone (no lootTender in this code)",
+  "error": null,
+  "restartEqual": true,
+  "lanes": [
+    {
+      "key": "drake>junction",
+      "loadedSamples": 45,
+      "refValueSeen": 48726
+    },
+    {
+      "key": "astra>drake",
+      "loadedSamples": 25,
+      "refValueSeen": 41997
+    }
+  ],
+  "attempts": 3,
+  "complies": 3,
+  "byTarget": {
+    "threat/V": 3,
+    "comply/V": 3
+  },
+  "droppedUnits": {
+    "V/ore": 67
+  },
+  "droppedReferenceValue": {
+    "V": 670
+  },
+  "recoveredUnits": {
+    "drop/V/ore": 67,
+    "wreck/V/ore": 16
+  },
+  "recoveredReferenceValue": 830,
+  "sales": {
+    "credits": 447,
+    "byItem": {
+      "ore": {
+        "units": 83,
+        "cr": 447,
+        "perUnit": 5.39,
+        "refPerUnit": 10
+      }
+    },
+    "count": 4
+  },
+  "unsold": {},
+  "unsoldReferenceValue": 0,
+  "costEvents": {
+    "fleet_upkeep": 39600,
+    "warehouse_rent": 0,
+    "supplies": 2056,
+    "maintenance": 448
+  },
+  "ledger": {
+    "inc": {
+      "sales": 447
+    },
+    "exp": {
+      "upkeep": 42106
+    }
+  },
+  "upkeep": 42106,
+  "repairDue": 819,
+  "lostHulls": {
+    "ships": 0,
+    "value": 0,
+    "list": []
+  },
+  "investment": 326000,
+  "netCashFlow": -41657,
+  "finalPL": -42476,
+  "perHourPL": -5309,
+  "paybackHours": null,
+  "reputation": {
+    "start": 0,
+    "end": 0
+  },
+  "estimates": [
+    {
+      "t": 8218.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 8811.75,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    },
+    {
+      "t": 9284.25,
+      "group": "약탈대1",
+      "to": "V",
+      "est": null
+    }
+  ],
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": -5178,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    },
+    {
+      "hour": 2,
+      "credits": -10400,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    },
+    {
+      "hour": 3,
+      "credits": -15619,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    },
+    {
+      "hour": 4,
+      "credits": -20834,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    },
+    {
+      "hour": 5,
+      "credits": -26052,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    },
+    {
+      "hour": 6,
+      "credits": -31224,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    },
+    {
+      "hour": 7,
+      "credits": -36440,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    },
+    {
+      "hour": 8,
+      "credits": -41657,
+      "threats": 3,
+      "comply": 3,
+      "sold": 447,
+      "rShips": 12
+    }
+  ]
+}
