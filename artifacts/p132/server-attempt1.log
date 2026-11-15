@@ -1,0 +1,49 @@
+PASS [2s] 0: PIRACY_P132=1 server creates a P13.2 world (P11+P12+P12.5+P13.1); the raid book is not sent to clients 
+PASS [2s] S1-1: B sets its hauler group to 생존 우선 (group override) 
+PASS [2s] S2-1: B sets its convoy to 화물 보호 우선 
+PASS [2s] S3: B's lone hauler (600 composite) is under way 
+PASS [2s] S4: B's hauler near the 자갈 해적단 lair is set to 생존 우선 
+PASS [3s] S1-1: B's corvette escorts the hauler group 
+PASS [3s] S2: A is hostile to B (declaration) 
+PASS [3s] S3: B sets it to 생존 우선 
+PASS [3s] S4: the hauler (2000 machinery) flies past the lair 
+PASS [3s] S1-2: A declares B hostile 
+PASS [3s] S2-2: A orders a plunder with force allowed 
+PASS [3s] S2-3: B refused the demand (protect policy, escort present) {"resp":"resist"}
+PASS [3s] S3: A is hostile to B (declaration) 
+PASS [3s] S1-2: A sets a lane plunder (항로 약탈, non-destructive) on the approach to B's destination 
+PASS [3s] S3-1: A demands part of the cargo 
+PASS [3s] S1-1: B creates a real logistics job: 300 ore B 광산 기지 → B 제련 기지 
+PASS [3s] S3-1: B jettisoned part; hauler + container = 600 composite {"drop":"cd_pv4","dropped":300,"kept":300}
+PASS [3s] S3-2: A sends its hauler to recover the container 
+PASS [3s] S3-3: A then switches its warships to 수송망 파괴 우선 on the same hauler (force without a demand, ends the truce, P11) 
+PASS [4s] S1-1: the P12.5 job loaded the hauler and it undocked (real cargo under way) {"carried":300,"cargo":300,"job":"lj202"}
+PASS [7s] S2-4/5: A used force — a real P11 engagement {"eng":"e207","after":5}
+PASS [16s] S4-1/2/3: an NPC pirate band threatened B's hauler; B surrendered; the real cargo was jettisoned {"drop":"cd_pv8","initial":1000,"kept":1000}
+PASS [17s] S1-4/5/6/10: B surrendered: the hauler's ore fell by exactly the container's amount; the job settled carried −, lost +, pirated + at that moment {"drop":"cd_pv11","initial":150,"carriedBefore":300,"carriedAfter":150,"lost":150,"pirated":150,"cargoAfter":150}
+PASS [17s] S1: no P11 engagement near the raid (non-destructive plunder) {"engagements":0}
+PASS [26s] S1-7: A's warships recovered part of the container (their salvage hold), the rest stays {"aTook":1,"initial":150}
+PASS [27s] S1-8: C orders its hauler to the container (unauthorised recovery of B's cargo, lawless zone) 
+PASS [30s] S3-4: the wreck holds only part of what was still aboard (not the jettisoned composite) {"kept":300,"inWreck":132}
+PASS [31s] S4-5: B sends its own escorted hauler to take back what is left (owner — always allowed) 
+PASS [42s] S2-6: B's hauler was sunk 
+PASS [42s] S2-7: a P13.1 wreck holds the surviving part of the hauler's real cargo {"id":"wk_e207_0","cargo":{"metal":130,"electronics":46}}
+PASS [42s] S4-5: B recovered its own jettisoned cargo {"drop":"cd_pv8","initial":1000,"kept":1000,"leftAfterPirates":983,"bTook":1}
+PASS [42s] S2-8: C orders its hauler to the wreck 
+PASS [53s] S3-2: A recovered from the container {"aTook":4}
+PASS [53s] S3-5: C salvages the hauler's wreck 
+PASS [78s] S1-8: C recovered from the same container {"cTook":2}
+PASS [88s] S2-8: the wreck's goods are recovered by A and/or C (accounting checked from the save) {"A":{"electronics":52,"metal":40},"C":{"metal":2}}
+PASS [104s] S1: no P11 engagement anywhere near the raid during the whole scenario {"engagements":0}
+PASS [104s] S1-9/10/11: the hauler survived; the job completed with 300 delivered, the plundered amount re-loaded from B's own stock (nothing bought or created) {"drop":"cd_pv11","initial":150,"carriedBefore":300,"carriedAfter":150,"lost":150,"pirated":150,"cargoAfter":150,"job":{"delivered":300,"lost":150,"pirated":150,"amount":300},"storage":{"src":450,"dst":300}}
+PASS [115s] S3-5: container and wreck are separate objects, each recovered on its own (totals from the save) {"drop":"cd_pv4","dropped":300,"kept":300,"sunk":true,"wreck":{"id":"wk_e209_0","composite":132},"aTook":4,"cTook":6}
+FAIL [120s] restart: containers, wrecks, the raid book and the response policies are restored from the save {"before":{"drops":["cd_pv8"],"dropLots":[517],"wrecks":["wk_e207_0","wk_e209_0"],"log":16,"pol":["survive","protect"]},"after":{"drops":["cd_pv8"],"dropLots":[517],"wrecks":["wk_e207_0","wk_e209_0"],"log":18,"pol":["survive","protect"]}}
+PASS [120s] accounting ore: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":900,"heldNow":900,"destroyed":0}
+PASS [120s] accounting metal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":300,"heldNow":130,"destroyed":170}
+PASS [120s] accounting electronics: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":120,"heldNow":52,"destroyed":68}
+PASS [120s] accounting composite: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":600,"heldNow":432,"destroyed":168}
+PASS [120s] S4-6: the pirates' container in the save: taken (pirates, B) + left = what was jettisoned {"initial":1000,"taken":{"pirates":{"machinery":17},"p116":{"machinery":466}},"left":517}
+PASS [120s] S4-4/6: what reached the lair is never more than the pirates physically recovered (server analytics) {"recoveredByPirates":17,"storedAtLair":17}
+PASS [120s] REQUIRED: a plunder succeeded without any P11 battle (S1) 
+PASS [120s] REQUIRED: a plunder that turned into a real P11 battle and a sinking (S2 or S3) 
+{"passed":47,"failed":1,"seconds":120}

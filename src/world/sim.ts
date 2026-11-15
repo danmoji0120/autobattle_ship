@@ -176,7 +176,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
-import { plunderOrder, stepPlunder, stepPirateRaid, validatePlunder, truceBlocks, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
+import { plunderOrder, stepPlunder, stepPirateRaid, validatePlunder, truceBlocks, endTruce, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 
 export class WorldSim {
   st: WorldState;
@@ -699,6 +699,8 @@ export class WorldSim {
         if (err) return err;
         // P11: ordering an attack on another PMC's fleet is a declaration of hostility (logged, first strike)
         if (cmd.op.k === 'attack' && cmd.op.group && this.st.combatV === 2) { const t = this.st.groups[cmd.op.group]; if (t && this.st.companies[t.owner]?.kind === 'player' && coRelation(this.st, company, t.owner) !== -1) this.setStance(company, t.owner, -1, 'attack'); }
+        // P13.2: a direct attack order ends a post-surrender truce with that company (a direct command outranks it)
+        if (cmd.op.k === 'attack' && cmd.op.group && this.st.piracyV) { const t = this.st.groups[cmd.op.group]; if (t) endTruce(this, company, t.owner, g.id, cmd.op.group); }
         if (cmd.op.k === 'found') {
           if (growthOn(this.st)) {
             // New commands always select a size, including commands from older clients.

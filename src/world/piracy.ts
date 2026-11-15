@@ -47,6 +47,8 @@ export interface PlunderState {
   since: number; next: number;
   /** after a refusal: wait until (stall) */
   until?: number;
+  /** force: the victim is in a P11 battle now / battles it escaped from */
+  fight?: boolean; escapes?: number;
   /** groups not to pick again before the given time */
   ignore?: Record<string, number>;
   /** the victim's last known position (to find its wreck after a fight) */
@@ -108,6 +110,8 @@ export const PIR = {
   searchPad: 1500, chaseMax: 240,
   /** once force is used the raider keeps after its prey this long (several P11 rounds, as an attack order) */
   forceMax: 2400,
+  /** ...or once the victim has escaped this many of those P11 battles (civilians withdraw at 900 m) */
+  forceEscapes: 3,
   /** extortion of a neutral company where the law reaches (same scale as unauthorised salvage) */
   lawSec: 25,
   logMax: 400,
@@ -153,6 +157,12 @@ function truce(h: Host, a: string, b: string, pos: V) {
 function breakTruce(h: Host, a: string, b: string) {
   const B = h.st.piracy; if (!B) return;
   B.truces = B.truces.filter(t => t.until > h.time && !((t.a === a && t.b === b) || (t.a === b && t.b === a)));
+}
+/** a direct attack order on a group of `b`: any truce of the two ends, and it is recorded as force */
+export function endTruce(h: Host, a: string, b: string, group: string, target: string) {
+  const had = (h.st.piracy?.truces ?? []).some(t => t.until > h.time && ((t.a === a && t.b === b) || (t.a === b && t.b === a)));
+  breakTruce(h, a, b);
+  if (had) log(h, { kind: 'force', by: a, to: b, group, policy: `attack:${target}` });
 }
 
 // ------------------------------------------------------------------ the victim's decision
@@ -444,6 +454,10 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
     const s = P.ship ? st.ships[P.ship] : undefined;
     if (s && t && s.state !== 'docked') {
       if (s.state === 'space') P.last = { ...s.pos };
+      // a hauler that keeps escaping P11 battles (civilians withdraw at 900 m) is not chased into battle after battle
+      if (s.state === 'battle') P.fight = true;
+      else if (P.fight) { P.fight = false; P.escapes = (P.escapes ?? 0) + 1; }
+      if ((P.escapes ?? 0) >= PIR.forceEscapes && s.state === 'space') { (P.ignore ??= {})[t.id] = h.time + PIR.redemand; return conclude(h, g, P, op, `대상이 교전에서 ${P.escapes}회 이탈`, '약탈 실패', 'warn'); }
       if (h.time - P.since > PIR.forceMax && s.state === 'space') { (P.ignore ??= {})[t.id] = h.time + PIR.redemand; return conclude(h, g, P, op, '추격 시간 초과', '약탈 실패', 'warn'); }
       if (s.state === 'space') { steer(h, g, mobile, s.pos, dt, true, 40); g.status = `약탈 — 무력 사용: ${t.name}`; }
       return true;

@@ -1,0 +1,618 @@
+{
+  "passed": 47,
+  "failed": 1,
+  "checks": [
+    {
+      "ok": true,
+      "label": "0: PIRACY_P132=1 server creates a P13.2 world (P11+P12+P12.5+P13.1); the raid book is not sent to clients",
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S1-1: B sets its hauler group to 생존 우선 (group override)",
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S2-1: B sets its convoy to 화물 보호 우선",
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S3: B's lone hauler (600 composite) is under way",
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S4: B's hauler near the 자갈 해적단 lair is set to 생존 우선",
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "S1-1: B's corvette escorts the hauler group",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2: A is hostile to B (declaration)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3: B sets it to 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S4: the hauler (2000 machinery) flies past the lair",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-2: A declares B hostile",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2-2: A orders a plunder with force allowed",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S2-3: B refused the demand (protect policy, escort present)",
+      "extra": {
+        "resp": "resist"
+      },
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3: A is hostile to B (declaration)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-2: A sets a lane plunder (항로 약탈, non-destructive) on the approach to B's destination",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-1: A demands part of the cargo",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-1: B creates a real logistics job: 300 ore B 광산 기지 → B 제련 기지",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-1: B jettisoned part; hauler + container = 600 composite",
+      "extra": {
+        "drop": "cd_pv4",
+        "dropped": 300,
+        "kept": 300,
+        "sunk": true,
+        "wreck": {
+          "id": "wk_e209_0",
+          "composite": 132
+        },
+        "aTook": 4,
+        "cTook": 6
+      },
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-2: A sends its hauler to recover the container",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S3-3: A then switches its warships to 수송망 파괴 우선 on the same hauler (force without a demand, ends the truce, P11)",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "S1-1: the P12.5 job loaded the hauler and it undocked (real cargo under way)",
+      "extra": {
+        "carried": 300,
+        "cargo": 300,
+        "job": "lj202"
+      },
+      "t": 4
+    },
+    {
+      "ok": true,
+      "label": "S2-4/5: A used force — a real P11 engagement",
+      "extra": {
+        "eng": "e207",
+        "after": 5
+      },
+      "t": 7
+    },
+    {
+      "ok": true,
+      "label": "S4-1/2/3: an NPC pirate band threatened B's hauler; B surrendered; the real cargo was jettisoned",
+      "extra": {
+        "drop": "cd_pv8",
+        "initial": 1000,
+        "kept": 1000,
+        "leftAfterPirates": 983,
+        "bTook": 1
+      },
+      "t": 16
+    },
+    {
+      "ok": true,
+      "label": "S1-4/5/6/10: B surrendered: the hauler's ore fell by exactly the container's amount; the job settled carried −, lost +, pirated + at that moment",
+      "extra": {
+        "drop": "cd_pv11",
+        "initial": 150,
+        "carriedBefore": 300,
+        "carriedAfter": 150,
+        "lost": 150,
+        "pirated": 150,
+        "cargoAfter": 150,
+        "job": {
+          "delivered": 300,
+          "lost": 150,
+          "pirated": 150,
+          "amount": 300
+        },
+        "storage": {
+          "src": 450,
+          "dst": 300
+        }
+      },
+      "t": 17
+    },
+    {
+      "ok": true,
+      "label": "S1: no P11 engagement near the raid (non-destructive plunder)",
+      "extra": {
+        "engagements": 0
+      },
+      "t": 17
+    },
+    {
+      "ok": true,
+      "label": "S1-7: A's warships recovered part of the container (their salvage hold), the rest stays",
+      "extra": {
+        "aTook": 1,
+        "initial": 150
+      },
+      "t": 26
+    },
+    {
+      "ok": true,
+      "label": "S1-8: C orders its hauler to the container (unauthorised recovery of B's cargo, lawless zone)",
+      "t": 27
+    },
+    {
+      "ok": true,
+      "label": "S3-4: the wreck holds only part of what was still aboard (not the jettisoned composite)",
+      "extra": {
+        "kept": 300,
+        "inWreck": 132
+      },
+      "t": 30
+    },
+    {
+      "ok": true,
+      "label": "S4-5: B sends its own escorted hauler to take back what is left (owner — always allowed)",
+      "t": 31
+    },
+    {
+      "ok": true,
+      "label": "S2-6: B's hauler was sunk",
+      "t": 42
+    },
+    {
+      "ok": true,
+      "label": "S2-7: a P13.1 wreck holds the surviving part of the hauler's real cargo",
+      "extra": {
+        "id": "wk_e207_0",
+        "cargo": {
+          "metal": 130,
+          "electronics": 46
+        }
+      },
+      "t": 42
+    },
+    {
+      "ok": true,
+      "label": "S4-5: B recovered its own jettisoned cargo",
+      "extra": {
+        "drop": "cd_pv8",
+        "initial": 1000,
+        "kept": 1000,
+        "leftAfterPirates": 983,
+        "bTook": 1
+      },
+      "t": 42
+    },
+    {
+      "ok": true,
+      "label": "S2-8: C orders its hauler to the wreck",
+      "t": 42
+    },
+    {
+      "ok": true,
+      "label": "S3-2: A recovered from the container",
+      "extra": {
+        "aTook": 4
+      },
+      "t": 53
+    },
+    {
+      "ok": true,
+      "label": "S3-5: C salvages the hauler's wreck",
+      "t": 53
+    },
+    {
+      "ok": true,
+      "label": "S1-8: C recovered from the same container",
+      "extra": {
+        "cTook": 2
+      },
+      "t": 78
+    },
+    {
+      "ok": true,
+      "label": "S2-8: the wreck's goods are recovered by A and/or C (accounting checked from the save)",
+      "extra": {
+        "A": {
+          "electronics": 52,
+          "metal": 40
+        },
+        "C": {
+          "metal": 2
+        }
+      },
+      "t": 88
+    },
+    {
+      "ok": true,
+      "label": "S1: no P11 engagement anywhere near the raid during the whole scenario",
+      "extra": {
+        "engagements": 0
+      },
+      "t": 104
+    },
+    {
+      "ok": true,
+      "label": "S1-9/10/11: the hauler survived; the job completed with 300 delivered, the plundered amount re-loaded from B's own stock (nothing bought or created)",
+      "extra": {
+        "drop": "cd_pv11",
+        "initial": 150,
+        "carriedBefore": 300,
+        "carriedAfter": 150,
+        "lost": 150,
+        "pirated": 150,
+        "cargoAfter": 150,
+        "job": {
+          "delivered": 300,
+          "lost": 150,
+          "pirated": 150,
+          "amount": 300
+        },
+        "storage": {
+          "src": 450,
+          "dst": 300
+        }
+      },
+      "t": 104
+    },
+    {
+      "ok": true,
+      "label": "S3-5: container and wreck are separate objects, each recovered on its own (totals from the save)",
+      "extra": {
+        "drop": "cd_pv4",
+        "dropped": 300,
+        "kept": 300,
+        "sunk": true,
+        "wreck": {
+          "id": "wk_e209_0",
+          "composite": 132
+        },
+        "aTook": 4,
+        "cTook": 6
+      },
+      "t": 115
+    },
+    {
+      "ok": false,
+      "label": "restart: containers, wrecks, the raid book and the response policies are restored from the save",
+      "extra": {
+        "before": {
+          "drops": [
+            "cd_pv8"
+          ],
+          "dropLots": [
+            517
+          ],
+          "wrecks": [
+            "wk_e207_0",
+            "wk_e209_0"
+          ],
+          "log": 16,
+          "pol": [
+            "survive",
+            "protect"
+          ]
+        },
+        "after": {
+          "drops": [
+            "cd_pv8"
+          ],
+          "dropLots": [
+            517
+          ],
+          "wrecks": [
+            "wk_e207_0",
+            "wk_e209_0"
+          ],
+          "log": 18,
+          "pol": [
+            "survive",
+            "protect"
+          ]
+        }
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "accounting ore: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 900,
+        "heldNow": 900,
+        "destroyed": 0
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "accounting metal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 300,
+        "heldNow": 130,
+        "destroyed": 170
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "accounting electronics: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 120,
+        "heldNow": 52,
+        "destroyed": 68
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "accounting composite: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly",
+      "extra": {
+        "start": 600,
+        "heldNow": 432,
+        "destroyed": 168
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "S4-6: the pirates' container in the save: taken (pirates, B) + left = what was jettisoned",
+      "extra": {
+        "initial": 1000,
+        "taken": {
+          "pirates": {
+            "machinery": 17
+          },
+          "p116": {
+            "machinery": 466
+          }
+        },
+        "left": 517
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "S4-4/6: what reached the lair is never more than the pirates physically recovered (server analytics)",
+      "extra": {
+        "recoveredByPirates": 17,
+        "storedAtLair": 17
+      },
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "REQUIRED: a plunder succeeded without any P11 battle (S1)",
+      "t": 120
+    },
+    {
+      "ok": true,
+      "label": "REQUIRED: a plunder that turned into a real P11 battle and a sinking (S2 or S3)",
+      "t": 120
+    }
+  ],
+  "infos": [],
+  "facts": {
+    "seed": "9413",
+    "label": "attempt1",
+    "ids": {
+      "src": "p132_src",
+      "dst": "p132_dst",
+      "s1h": "g134",
+      "s1hs": "s136",
+      "s1e": "g137",
+      "s1a": "g140",
+      "s1c": "g144",
+      "s2v": "g147",
+      "s2h": "s149",
+      "s2a": "g153",
+      "s2c": "g163",
+      "s3v": "g166",
+      "s3h": "s168",
+      "s3a": "g169",
+      "s3r": "g179",
+      "s3c": "g182",
+      "s4band": "g185",
+      "s4v": "g189",
+      "s4h": "s191",
+      "s4r": "g192",
+      "lair": "gravel",
+      "s3to": "{\"x\":-280272.87241727224,\"y\":0,\"z\":-57536.049906158565}",
+      "s1amb": "{\"x\":-228172.87241727224,\"y\":0,\"z\":-10086.049906158563}",
+      "s4to": "{\"x\":56122.929425014634,\"y\":0,\"z\":8741.450554982694}"
+    },
+    "s2": {
+      "response": "resist",
+      "sunk": true,
+      "wreck": {
+        "id": "wk_e207_0",
+        "cargo": {
+          "metal": 130,
+          "electronics": 46
+        }
+      },
+      "takenA": {
+        "electronics": 52,
+        "metal": 40
+      },
+      "takenC": {
+        "metal": 2
+      }
+    },
+    "s3": {
+      "drop": "cd_pv4",
+      "dropped": 300,
+      "kept": 300,
+      "sunk": true,
+      "wreck": {
+        "id": "wk_e209_0",
+        "composite": 132
+      },
+      "aTook": 4,
+      "cTook": 6
+    },
+    "s4": {
+      "drop": "cd_pv8",
+      "initial": 1000,
+      "kept": 1000,
+      "leftAfterPirates": 983,
+      "bTook": 1
+    },
+    "s1": {
+      "drop": "cd_pv11",
+      "initial": 150,
+      "carriedBefore": 300,
+      "carriedAfter": 150,
+      "lost": 150,
+      "pirated": 150,
+      "cargoAfter": 150,
+      "job": {
+        "delivered": 300,
+        "lost": 150,
+        "pirated": 150,
+        "amount": 300
+      },
+      "storage": {
+        "src": 450,
+        "dst": 300
+      }
+    },
+    "flows": {
+      "piracy/to_drop/p116/composite": 300,
+      "logistics/depart/p116/ore": 450,
+      "piracy/to_drop/p116/machinery": 1000,
+      "logistics/pirated/p116/ore": 150,
+      "piracy/to_drop/p116/ore": 150,
+      "salvage/recover/pirates/machinery": 17,
+      "salvage/recover/p1/ore": 44,
+      "salvage/to_wreck/p116/composite": 132,
+      "consume/combat_cargo_loss/p116/composite": 168,
+      "salvage/wreck_hull/p116/alloy": 400,
+      "salvage/wreck_hull/p116/metal": 310,
+      "salvage/wreck_hull/p116/electronics": 87,
+      "salvage/wreck_hull/p116/weapon_parts": 87,
+      "salvage/recover/p1/composite": 398,
+      "piracy/lair_store/pirates/machinery": 17,
+      "salvage/to_wreck/p116/metal": 130,
+      "consume/combat_cargo_loss/p116/metal": 170,
+      "salvage/to_wreck/p116/electronics": 52,
+      "consume/combat_cargo_loss/p116/electronics": 68,
+      "salvage/wreck_equip/p116/eq_pd_gun": 3,
+      "salvage/wreck_equip/p116/eq_autocannon": 1,
+      "salvage/recover/p1/electronics": 52,
+      "salvage/recover/p116/machinery": 466,
+      "logistics/unload/p116/ore": 300,
+      "logistics/salvage_unload/p1/ore": 44,
+      "logistics/salvage_unload/p1/composite": 392,
+      "logistics/salvage_unload/p1/electronics": 52,
+      "salvage/recover/p1/metal": 40,
+      "salvage/recover/p125/ore": 106,
+      "salvage/unauthorized/p125/ore": 106,
+      "salvage/recover/p125/metal": 90,
+      "salvage/unauthorized/p125/metal": 90,
+      "logistics/salvage_unload/p1/metal": 40,
+      "logistics/salvage_unload/p125/ore": 106,
+      "salvage/recover/p125/composite": 34,
+      "salvage/unauthorized/p125/composite": 34
+    },
+    "accounting": {
+      "ore": {
+        "start": 900,
+        "heldNow": 900,
+        "destroyed": 0
+      },
+      "metal": {
+        "start": 300,
+        "heldNow": 130,
+        "destroyed": 170
+      },
+      "electronics": {
+        "start": 120,
+        "heldNow": 52,
+        "destroyed": 68
+      },
+      "composite": {
+        "start": 600,
+        "heldNow": 432,
+        "destroyed": 168
+      },
+      "machinery": {
+        "start": 2000,
+        "heldNow": 1983,
+        "destroyed": 0
+      }
+    },
+    "s4acct": {
+      "initial": 1000,
+      "taken": {
+        "pirates": {
+          "machinery": 17
+        },
+        "p116": {
+          "machinery": 466
+        }
+      },
+      "left": 517
+    },
+    "lairHold": [
+      {
+        "machinery": 17
+      }
+    ],
+    "npc": {
+      "recoveredByPirates": 17,
+      "storedAtLair": 17
+    }
+  },
+  "realWebSockets": 3,
+  "restarts": 2,
+  "seconds": 120
+}

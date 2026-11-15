@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { WorldSim } from '../src/world/sim';
 import { qty, cargoSum, type Station, type V, type WShip, type WGroup, type Cargo } from '../src/world/types';
-import { judge, demand, jettison, wanted, lootOf, PIR, type CargoDrop } from '../src/world/piracy';
+import { judge, demand, jettison, wanted, lootOf, PIR, stepPlunder, plunderOrder, type CargoDrop } from '../src/world/piracy';
 import { salvageHold } from '../src/world/salvage';
 import { incomingPool } from '../src/world/autonomousLogistics';
 import { observeWorld } from '../src/world/observe';
@@ -373,6 +373,23 @@ describe('P13.2 D — player raiding', () => {
     expect(f.sim.st.companies[f.A] && (f.sim.st as any).stances ? true : true).toBe(true);
     const e = Object.values(f.sim.st.engagements)[0];
     expect(e.sides.some(s => s.includes(f.A)) && e.sides.some(s => s.includes(f.B))).toBe(true);
+  });
+  it('D04b: a hauler that keeps escaping P11 battles is not chased into battle after battle (gives up after 3)', () => {
+    const f = fixture();
+    const v = convoy(f, { ore: 300 }); v.g.piracyPolicy = 'protect'; hostile(f);
+    const ga = fleet(f, f.A, f.at(10000, -21000), ['destroyer', 'destroyer', 'frigate']);
+    expect(f.sim.command(f.A, { c: 'setOp', group: ga.id, op: { k: 'plunder', group: v.g.id, policy: 'force' } })).toBeNull();
+    expect(until(f.sim, () => ga.plx?.phase === 'force', 800)).toBe(true);
+    // drive the force phase by hand: the victim enters a battle and gets away from it, three times
+    const op = plunderOrder(f.sim.st, ga.op)!, key = JSON.stringify(ga.op), step = () => stepPlunder(f.sim, ga, ships(f, ga), op, .5, {} as any, key);
+    for (let i = 1; i <= 3; i++) {
+      v.h.state = 'battle'; step(); expect(ga.op.k).toBe('plunder');
+      v.h.state = 'space'; step();
+      if (i < 3) { expect(ga.plx?.escapes).toBe(i); expect(ga.op.k).toBe('plunder'); }
+    }
+    expect(ga.op.k).toBe('idle');
+    expect(ga.status).toMatch(/3회 이탈/);
+    expect(PIR.forceEscapes).toBe(3);
   });
   it('D06: warships alone carry only their small salvage hold; nothing beyond it is gained', () => {
     const f = fixture(); hostile(f);
