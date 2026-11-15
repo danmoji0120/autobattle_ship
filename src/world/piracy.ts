@@ -100,6 +100,8 @@ export const PIR = {
   fleeFor: 60,
   /** search: victims within this distance of the zone (plus its radius); chase gives up after this time */
   searchPad: 1500, chaseMax: 240,
+  /** once force is used the raider keeps after its prey this long (several P11 rounds, as an attack order) */
+  forceMax: 2400,
   /** extortion of a neutral company where the law reaches (same scale as unauthorised salvage) */
   lawSec: 25,
   logMax: 400,
@@ -219,7 +221,7 @@ export function wanted(h: Host, s: WShip, kind: DemandKind = 'part', item?: stri
 }
 
 /** can `raider` demand from this ship now (and from which company it is) */
-export function demandable(h: Host, raider: WGroup, s: WShip, neutral: boolean): string | null {
+export function demandable(h: Host, raider: WGroup, s: WShip, neutral: boolean, near = true): string | null {
   const st = h.st;
   if (s.owner === raider.owner) return '자사 함선';
   if (s.state !== 'space' || s.engagement || s.warp?.phase === 'warp') return '상대가 공간에 없습니다 (정박·교전·워프 중)';
@@ -229,7 +231,9 @@ export function demandable(h: Host, raider: WGroup, s: WShip, neutral: boolean):
   if (rel === 0 && !neutral && raider.owner !== 'pirates') return '중립 회사 — 명시적 허가(중립 대상 포함)가 필요합니다';
   if (st.companies[s.owner]?.kind === 'pirate') return '해적';
   if (!Object.keys(lootOf(s)).length) return '약탈할 화물이 없습니다';
-  if (!military(h, raider).length) return '위협할 군함이 없습니다';
+  const mil = military(h, raider);
+  if (!mil.length) return '위협할 군함이 없습니다';
+  if (near && !mil.some(x => x.state === 'space' && dist(x.pos, s.pos) <= PIR.threatR)) return `위협 거리(${PIR.threatR}m) 밖입니다`;
   const p = s.pir;
   if (p && h.time - p.t < (p.act === 'stall' ? PIR.restall : PIR.redemand)) return '최근 이미 요구를 받은 함선입니다';
   return null;
@@ -372,7 +376,7 @@ function search(h: Host, g: WGroup, op: PlunderOp, P: PlunderState, from: V): WG
   for (const t of Object.values(h.st.groups)) {
     if ((P.ignore?.[t.id] ?? 0) > h.time || !legalVictim(h, g, t, op)) continue;
     const s = victimShip(h, t); if (!s || dist(s.pos, op.at) > r) continue;
-    if (op.policy !== 'destroy' && demandable(h, g, s, !!op.neutral)) continue;
+    if (op.policy !== 'destroy' && demandable(h, g, s, !!op.neutral, false)) continue;
     const v = valueOf(h.st, lootOf(s)), mil = h.groupValue(t, true);
     const score = (v + 100) / (mil + 80) / (dist(s.pos, from) + 1200);
     if (score > bs) { bs = score; best = t; }
@@ -423,19 +427,18 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
     }
     delete g.salv;
     P.site = undefined; P.target = undefined; P.ship = undefined;
-    const next: PlunderState['phase'] = nounload ? 'home' : op.group ? 'done' : 'search';
-    setPhase(h, P, next);
-    if (next === 'done') { h.say(g, '약탈 완료 — 대기합니다.', 'info', 0); if (g.override || !g.parentId) { g.op = { k: 'idle' }; g.override = !!g.parentId; } delete g.plx; g.status = '약탈 완료'; return true; }
-    return next !== 'home';
+    if (nounload) { setPhase(h, P, 'home'); return false; }
+    return conclude(h, g, P, op, '', '약탈 완료');
   }
-  if (P.phase === 'home' || P.phase === 'done') return false;
+  if (P.phase === 'home') return false;
+  if (P.phase === 'done') return conclude(h, g, P, op, '', '약탈 종료');
   // ---- after using force: the fight is P11's; then loot the wreck
   if (P.phase === 'force') {
     const t = P.target ? st.groups[P.target] : undefined;
     const s = P.ship ? st.ships[P.ship] : undefined;
     if (s && t && s.state !== 'docked') {
       if (s.state === 'space') P.last = { ...s.pos };
-      if (h.time - P.since > PIR.chaseMax && s.state === 'space') { (P.ignore ??= {})[t.id] = h.time + PIR.redemand; setPhase(h, P, 'search', '추격 실패'); return true; }
+      if (h.time - P.since > PIR.forceMax && s.state === 'space') { (P.ignore ??= {})[t.id] = h.time + PIR.redemand; return conclude(h, g, P, op, '추격 시간 초과', '약탈 실패', 'warn'); }
       if (s.state === 'space') { steer(h, g, mobile, s.pos, dt, true, 40); g.status = `약탈 — 무력 사용: ${t.name}`; }
       return true;
     }
@@ -443,7 +446,7 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
     const w = victimWreck(h, P);
     if (w) { P.site = w; setPhase(h, P, 'loot'); return true; }
     if (s?.state === 'docked') { (P.ignore ??= {})[P.target!] = h.time + PIR.redemand; }
-    P.target = undefined; P.ship = undefined; setPhase(h, P, op.group ? 'done' : 'search', '대상 소실'); return true;
+    return conclude(h, g, P, op, s ? '대상이 정박해 피신' : '대상 격침 — 회수할 잔해 없음', '약탈 종료');
   }
   // ---- after a stall: hold off, then ask again
   if (P.phase === 'wait') {
@@ -459,7 +462,7 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
       if (t) { P.target = t.id; P.ship = victimShip(h, t)?.id; setPhase(h, P, 'intercept'); h.say(g, `약탈 목표 포착 — ${t.name}`, 'radio', 10); }
     }
     if (P.phase === 'search') {
-      if (op.group) { setPhase(h, P, 'done'); h.say(g, '약탈 대상이 없습니다 — 대기합니다.', 'info', 0); if (g.override || !g.parentId) { g.op = { k: 'idle' }; g.override = !!g.parentId; } delete g.plx; g.status = '약탈 대상 없음'; return true; }
+      if (op.group) return conclude(h, g, P, op, '대상이 없거나 약탈할 수 없습니다', '약탈 종료', 'warn');
       const at = op.at ?? center, a = h.time * 0.03;
       const r = (op.radius ?? 3000) * 0.6;
       steer(h, g, mobile, { x: at.x + Math.cos(a) * r, y: at.y, z: at.z + Math.sin(a) * r }, dt, false, 90);
@@ -471,12 +474,15 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
   const t = st.groups[P.target!];
   let s = P.ship ? st.ships[P.ship] : undefined;
   if (!s || s.groupId !== t.id || s.state !== 'space') { s = victimShip(h, t); P.ship = s?.id; }
-  if (!s) { (P.ignore ??= {})[t.id] = h.time + 60; setPhase(h, P, op.group ? 'done' : 'search', '대상이 공간에 없습니다'); if (op.group) { g.op = { k: 'idle' }; delete g.plx; g.status = '약탈 대상이 정박·소실'; } return true; }
+  if (!s) { (P.ignore ??= {})[t.id] = h.time + 60; return conclude(h, g, P, op, '대상이 정박했거나 화물이 없습니다', '약탈 실패', 'warn'); }
   P.last = { ...s.pos };
-  if (h.time - P.since > PIR.chaseMax) { (P.ignore ??= {})[t.id] = h.time + PIR.redemand; setPhase(h, P, op.group ? 'done' : 'search', '추격 시간 초과'); h.say(g, `${t.name} 추격 포기`, 'radio', 10); if (op.group) { g.op = { k: 'idle' }; delete g.plx; } return true; }
-  const d = Math.min(...mobile.map(x => dist(x.pos, s!.pos)));
+  if (h.time - P.since > PIR.chaseMax) { (P.ignore ??= {})[t.id] = h.time + PIR.redemand; return conclude(h, g, P, op, `${t.name} 추격 시간 초과`, '약탈 실패', 'warn'); }
+  // the threat is the warships: their distance counts (a raider's own hauler may fly ahead)
+  const guns = mobile.filter(x => econOf(x).military && x.state === 'space');
+  const d = guns.length ? Math.min(...guns.map(x => dist(x.pos, s!.pos))) : Infinity;
   if (op.policy === 'destroy') return force(h, g, t, s, P, mobile, dt, 'destroy');
-  if (d > PIR.threatR) {
+  // in warp or fighting someone: out of reach for now, keep after it (the chase limit decides)
+  if (d > PIR.threatR || s.warp?.phase === 'warp' || s.engagement) {
     // lead the target, stop at the standoff
     const aim = s.vel && (s.vel.x || s.vel.z) ? { x: s.pos.x + s.vel.x * Math.min(30, d / 200), y: s.pos.y, z: s.pos.z + s.vel.z * Math.min(30, d / 200) } : s.pos;
     steer(h, g, mobile, standoff(aim, center, PIR.standoff), dt, true, 60);
@@ -487,9 +493,8 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
   if (typeof r === 'string') {
     // already asked recently (by anyone): leave it, unless we may use force
     if (op.policy === 'force' && s.pir && s.pir.by === g.owner && s.pir.act !== 'comply' && s.pir.act !== 'stall') return force(h, g, t, s, P, mobile, dt, 'force');
-    (P.ignore ??= {})[t.id] = h.time + 60; setPhase(h, P, op.group ? 'done' : 'search', r);
-    if (op.group) { h.say(g, `약탈 불가 — ${r}`, 'warn', 0); g.op = { k: 'idle' }; delete g.plx; g.status = `약탈 불가 — ${r}`; }
-    return true;
+    (P.ignore ??= {})[t.id] = h.time + 60;
+    return conclude(h, g, P, op, r, '약탈 불가', 'warn');
   }
   if (r.response === 'comply' && r.drop) { P.site = r.drop.id; setPhase(h, P, 'collect'); h.say(g, `${t.name} 화물 투하 확인 — 회수한다.`, 'radio', 4); return true; }
   if (r.response === 'stall' && op.policy !== 'force') { P.until = h.time + PIR.restall; setPhase(h, P, 'wait'); return true; }
@@ -498,8 +503,17 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
   log(h, { kind: 'withdraw', by: g.owner, to: t.owner, group: g.id, ship: s.id, system: sysAt(st.systems, s.pos)?.id });
   (P.ignore ??= {})[t.id] = h.time + PIR.redemand;
   h.say(g, `${t.name} 요구 거부(${RESPONSE_NAME[r.response]}) — 비파괴 원칙에 따라 물러난다.`, 'radio', 4);
-  setPhase(h, P, op.group ? 'done' : 'search', '요구 거부 — 철수');
-  if (op.group) { g.op = { k: 'idle' }; delete g.plx; g.status = '약탈 실패 — 요구 거부'; }
+  return conclude(h, g, P, op, `요구 거부 (${RESPONSE_NAME[r.response]})`, '약탈 실패 — 철수', 'warn');
+}
+
+/** a designated raid ends here (report, stand by); a zone raid looks for the next target */
+function conclude(h: Host, g: WGroup, P: PlunderState, op: PlunderOp, why: string, head: string, kind: 'info' | 'warn' = 'info'): boolean {
+  P.target = undefined; P.ship = undefined; P.site = undefined;
+  if (!op.group) { setPhase(h, P, 'search', why); return true; }
+  if (P.key === 'raid') { delete g.plx; return true; }   // a pirate band goes back to its raid
+  h.say(g, `${head}${why ? ` — ${why}` : ''}. 대기합니다.`, kind, 0);
+  if (g.override || !g.parentId) { g.op = { k: 'idle' }; g.override = !!g.parentId; }
+  delete g.plx; g.status = `${head}${why ? ` — ${why}` : ''}`;
   return true;
 }
 
@@ -558,7 +572,7 @@ export function stepPirateRaid(h: Host, g: WGroup, ships: WShip[], op: Extract<O
   // the band has chosen its prey (pickRaidTarget): demand once in range, otherwise let the raid charge
   const t = op.target ? st.groups[op.target] : undefined; if (!t) return false;
   const s = victimShip(h, t); if (!s) return false;
-  const d = Math.min(...mobile.map(x => dist(x.pos, s.pos)));
+  const d = Math.min(...mobile.filter(x => econOf(x).military).map(x => dist(x.pos, s.pos)));
   if (d > PIR.threatR) return false;
   if (demandable(h, g, s, true)) return false;
   const r = demand(h, g, s, { kind: 'part' });
