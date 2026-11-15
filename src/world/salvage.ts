@@ -225,6 +225,22 @@ function pickStation(h: Host, g: WGroup, ships: WShip[], from: V, ignore: Record
 
 const MODE_NAME = { recover: '지정 인양', zone: '구역 인양', auto: '현장 자동 인양' } as const;
 export const SALV_PHASE: Record<SalvState['phase'], string> = { transit: '잔해로 이동', work: '인양 중', unload: '하역하러 이동', return: '인양 구역 복귀', hold: '구역 대기', blocked: '작업 불가', done: '완료' };
+/** P13.2.1 display only: what the group is actually working on — a sunk ship's wreck, a jettisoned container,
+ *  or a container it plundered (key collect:<id>) — and the matching words. No effect on the work itself. */
+export type SalvTarget = 'wreck' | 'drop' | 'plunder';
+export const SALV_TARGET_NAME: Record<SalvTarget, string> = { wreck: '전장 잔해 인양', drop: '투하 화물 회수', plunder: '약탈품 회수 중' };
+export const DROP_PHASE: Record<SalvState['phase'], string> = { transit: '화물로 이동', work: '회수 중', unload: '회수품 하역 중', return: '구역 복귀', hold: '구역 대기', blocked: '작업 불가', done: '완료' };
+export function salvTarget(st: { drops?: Record<string, unknown> }, S: Pick<SalvState, 'wreck' | 'key'>): SalvTarget {
+  if (S.key?.startsWith('collect:')) return 'plunder';
+  return S.wreck && st.drops?.[S.wreck] ? 'drop' : 'wreck';
+}
+/** short label of a group's salvage state, used by the fleet panel and the status line */
+export function salvLabel(st: { drops?: Record<string, unknown> }, S: SalvState): { head: string; phase: string } {
+  const t = salvTarget(st, S);
+  if (t === 'plunder') return S.phase === 'unload' ? { head: '회수품 하역 중', phase: '' } : { head: '약탈품 회수 중', phase: DROP_PHASE[S.phase] };
+  if (t === 'drop') return { head: S.mode === 'auto' ? '현장 투하 화물 회수' : SALV_TARGET_NAME.drop, phase: DROP_PHASE[S.phase] };
+  return { head: S.mode === 'auto' ? '현장 자동 인양' : S.mode === 'zone' ? '구역 잔해 인양' : SALV_TARGET_NAME.wreck, phase: SALV_PHASE[S.phase] };
+}
 
 /** may this fleet pick up wreckage on its own right now (op allows it, setting on, nobody hostile) */
 function autoAllowed(h: Host, g: WGroup, op: Op, w: SalvSite): boolean {
@@ -362,11 +378,12 @@ function status(h: Host, g: WGroup, S: SalvState, op: Op): string {
   const sta = S.station ? h.st.stations[S.station] : undefined;
   const ships = h.shipsOf(g), room = ships.reduce((a, s) => a + salvageRoom(h, s), 0), hold = ships.reduce((a, s) => a + salvageHold(h, s), 0);
   const fill = hold > 0 ? ` · 화물칸 ${Math.round((1 - room / hold) * 100)}%` : '';
-  const head = MODE_NAME[S.mode];
+  const L = salvLabel(h.st, S), head = L.head, plunder = salvTarget(h.st, S) === 'plunder';
+  void MODE_NAME;
   switch (S.phase) {
-    case 'transit': case 'return': return `${head}: ${SALV_PHASE[S.phase]} — ${w?.name ?? ''}${fill}`;
-    case 'work': return `${head}: 인양 중 — ${w?.name ?? ''} (잔여 ${Math.round(w ? w.lots.reduce((a, l) => a + l.n, 0) : 0)})${fill}${room < 1 ? ' · 화물칸 부족' : ''}`;
-    case 'unload': return `${head}: ${sta && ships.some(s => s.state === 'docked') ? `${sta.name} 정박·하역 중` : `하역하러 이동 — ${sta?.name ?? ''}`}`;
+    case 'transit': case 'return': return `${head}: ${L.phase} — ${w?.name ?? ''}${fill}`;
+    case 'work': return `${head}: ${L.phase} — ${w?.name ?? ''} (잔여 ${Math.round(w ? w.lots.reduce((a, l) => a + l.n, 0) : 0)})${fill}${room < 1 ? ' · 화물칸 부족' : ''}`;
+    case 'unload': return `${head}${plunder ? ' — ' : ': '}${sta && ships.some(s => s.state === 'docked') ? `${sta.name} 정박·하역 중` : `하역하러 이동 — ${sta?.name ?? ''}`}`;
     case 'hold': return `${head}: ${S.why ?? '구역 대기'}`;
     case 'blocked': return `${head}: 작업 불가 — ${S.why ?? ''}`;
     default: void op; return `${head}: ${S.why ?? '완료'}`;

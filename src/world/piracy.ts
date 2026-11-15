@@ -480,7 +480,7 @@ export function stepPlunder(h: Host, g: WGroup, ships: WShip[], op: PlunderOp, d
     if (nounload && h.time - P.since > PIR.npcCollectMax) { delete g.salv; P.site = undefined; }
     else if (site && canCollect(h, mobile, site, illegal) || g.salv?.key === `collect:${site}`) {
       const ph = stepCollect(h, g, mobile, site!, illegal, dt, nounload);
-      if (ph !== 'done' && ph !== 'blocked') { g.status = `약탈품 회수 — ${g.status.replace(/^지정 인양: /, '')}`; return true; }
+      if (ph !== 'done' && ph !== 'blocked') { /* status text comes from the salvage engine (약탈품 회수 중 / 회수품 하역 중) */ return true; }
       if (ph === 'blocked') { delete g.salv; h.say(g, '약탈품 하역 불가 — 정거장 창고·정박 규격 확인', 'warn', 30); }
     }
     delete g.salv;

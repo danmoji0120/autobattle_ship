@@ -22,7 +22,7 @@ export function dropLabel(st: WorldView, d: DropView): { text: string; sub: stri
   return { text: `◈ ${d.name}`, sub: `투하 화물 · 잔여 ${fmt(d.left)} · ${minutes(st, d)}분` };
 }
 
-const PHASE: Record<string, string> = { search: '목표 탐색', intercept: '요격·접근', wait: '상대 버팀 — 대기', collect: '투하 화물 회수', force: '무력 사용', loot: '잔해 회수', home: '귀환', done: '종료' };
+const PHASE: Record<string, string> = { search: '목표 탐색', intercept: '요격·접근', wait: '상대 버팀 — 대기', collect: '약탈품 회수 중', force: '무력 사용', loot: '전장 잔해 인양', home: '귀환', done: '종료' };
 
 export function dropInfoHtml(st: WorldView, me: string, d: DropView, group: WGroup | null): string {
   const sys = st.systems[d.system]?.name ?? '';

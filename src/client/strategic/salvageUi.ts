@@ -5,7 +5,7 @@ import type { WorldView } from '../../server/protocol';
 import type { WGroup } from '../../world/types';
 import type { WreckLot, WreckSource, WreckView } from '../../world/wrecks';
 import { itemLabel } from '../../world/wrecks';
-import { SALV_PHASE } from '../../world/salvage';
+import { salvLabel } from '../../world/salvage';
 import { coRelation } from '../../world/battleAuth';
 import { SHIP_CLASSES } from '../../sim/data/ships';
 
@@ -58,7 +58,8 @@ export function wreckInfoHtml(st: WorldView, me: string, w: WreckView, group: WG
 export function groupSalvageHtml(st: WorldView, g: WGroup): string {
   const S = g.salv;
   const auto = g.autoSalvage !== false;
-  const phase = S ? `<span class="tag ov">${S.mode === 'auto' ? '현장 인양' : S.mode === 'zone' ? '구역 인양' : '지정 인양'}</span> ${SALV_PHASE[S.phase]}${S.why ? ` — ${esc(S.why)}` : ''}` : '';
+  const L = S ? salvLabel(st as any, S) : null;
+  const phase = S && L ? `<span class="tag ov">${L.head}</span> ${L.phase}${S.why ? ` — ${esc(S.why)}` : ''}` : '';
   const active = g.op.k === 'recover' || g.op.k === 'salvzone' || !!S;
   return `<div class="bdr small salv-panel">
     <label class="chk" title="전투가 끝난 뒤 대기·방어·순찰 중인 편대가 근처(3km) 잔해에서 합법적인 물품만 최대 10분간 회수합니다. 적대 함대가 가까우면 하지 않습니다."><input type="checkbox" data-salv-auto="${g.id}" ${auto ? 'checked' : ''}> 현장 자동 인양</label>
