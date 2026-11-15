@@ -316,6 +316,39 @@ describe('P13.4 B — guard fleets: dispatch, approach, pursuit', () => {
     run(f2.sim, 5);
     expect(op2.end).toBe('left_jurisdiction');
   });
+  it('B05: an operation that lost its target is not repeated on the same old sighting; only a sighting made after the end can start another (real-server regression)', () => {
+    const f = fixture();
+    const g = fleet(f, f.A, f.at(5000, 3000), ['corvette']);
+    crime(f, g); run(f.sim, 2);
+    const op = ops(f)[0];
+    expect(until(f.sim, () => op.phase === 'demand', 400)).toBe(true);
+    f.sim.command(f.A, { c: 'lawAnswer', group: g.id, choice: 'flee' });
+    const dark = darkSpot(f, 'astra')!;
+    for (const s of ships(f, g)) { s.pos = { ...dark }; s.vel = { x: 0, y: 0, z: 0 }; }
+    g.op = { k: 'idle' }; g.override = true;
+    expect(until(f.sim, () => op.end !== undefined, 600)).toBe(true);
+    expect(op.end).toBe('lost');
+    const ended = lawBook(f.sim.st).ended?.[g.id];
+    expect(ended).toBeDefined();
+    // the old sighting is still younger than staleMax: before the fix the guards were sent again every ~20 s on it.
+    // Now every later operation must start from a sighting made after the end (a passing patrol may really see it)
+    const seen = new Set(Object.keys(lawBook(f.sim.st).ops));
+    const later: { t: number; seenT: number }[] = [];
+    for (let t = 0; t < 240; t += .5) { f.sim.update(.5); for (const [id, o] of Object.entries(lawBook(f.sim.st).ops)) if (!seen.has(id) && o.target === g.id) { seen.add(id); later.push({ t: f.sim.time, seenT: o.last.t }); } }
+    expect(later.every(x => x.seenT > ended!)).toBe(true);
+    expect(later.length).toBeLessThanOrEqual(2);
+    // (a later operation, when there is one, came from a real new sighting — checked above)
+  });
+
+  it('B06: no dispatch to a sighting beyond the guards\' pursuit reach (it would end at once on distance)', () => {
+    const f = fixture();
+    LAW.pursuitDist = 3000;
+    const g = fleet(f, f.A, f.at(5000, 3000), ['corvette']);
+    crime(f, g);
+    run(f.sim, 60);
+    expect(ops(f).length).toBe(0);
+    expect(wanted(f.sim.st, f.A).level).toBeGreaterThanOrEqual(2);
+  });
 });
 
 describe('P13.4 C — stop, comply, flee, resist; P11', () => {
@@ -540,6 +573,9 @@ describe('P13.4 D — fines, clearing, customs holds, privacy, legacy worlds', (
     expect(theirs.companies[f.A].law).toBeUndefined();
     expect(theirs.groups[g.id]?.lawStop).toBeUndefined();
     expect(mine.law).toBeUndefined(); expect(theirs.law).toBeUndefined();
+    // the guards' operation tag and the suspect's name never reach any client through the guard group
+    for (const v of [mine, theirs]) for (const gid of ops(f)[0].guards) { expect(v.groups[gid]?.lawx).toBeUndefined(); expect(String(v.groups[gid]?.status ?? '')).not.toContain(g.name); }
+    expect(f.sim.st.events.filter((e: any) => e.kind === 'world').some((e: any) => e.text.includes(g.name))).toBe(false);
   });
 
   it('D05: worlds without P13.4 are unchanged: no law book, the commands refuse, customs keeps its P13.3.1 fallback', () => {

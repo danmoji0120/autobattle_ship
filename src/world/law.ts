@@ -103,7 +103,11 @@ export interface LawOp {
   last: LawSeen; demandAt?: V; answerBy?: number; inspectAt?: number; e?: string;
   end?: string;
 }
-export interface LawBook { seq: number; next: number; cases: Record<string, LawCase>; keys: Record<string, string>; ops: Record<string, LawOp> }
+export interface LawBook {
+  seq: number; next: number; cases: Record<string, LawCase>; keys: Record<string, string>; ops: Record<string, LawOp>;
+  /** target group → when its last operation ended without catching it: a new dispatch needs a sighting after this */
+  ended?: Record<string, number>;
+}
 
 /** what the suspect fleet knows about the guards stopping it (owner-only; guard positions only when they are seen) */
 export interface LawStop {
@@ -319,12 +323,15 @@ export function stepLaw(h: Host) {
     const op = Object.values(b.ops).find(o => o.target === gid);
     if (op) { if (seen) op.last = seen; continue; }
     if (lvl(co) < 2 || !last || h.time - last.t > LAW.staleMax) continue;
+    // no re-dispatch on the sighting an ended operation already chased (lost / out of reach): it needs a new one
+    if ((b.ended?.[gid] ?? -Infinity) >= last.t) continue;
     if (!policedSystems(h).has(last.sys)) continue;
     if (g.shipIds.every(id => st.ships[id]?.state === 'battle')) continue;
     dispatch(h, g, last, lvl(co), cases);
   }
   // 3. running operations: limits, endings, reinforcement into a law battle
   for (const op of Object.values(b.ops)) { opTick(h, op, ships); touched.add(op.co); }
+  if (b.ended) { for (const [gid, t] of Object.entries(b.ended)) if (h.time - t > LAW.staleMax || !st.groups[gid]) delete b.ended[gid]; if (!Object.keys(b.ended).length) delete b.ended; }
   // 4. prune closed records beyond the cap (never an unresolved case or an unpaid fine)
   const closed = Object.values(b.cases).filter(c => c.state === 'closed' && unpaid(c) <= 0).sort((a, b) => (a.endT ?? 0) - (b.endT ?? 0));
   for (let i = 0; i < closed.length - LAW.keepClosed; i++) { const c = closed[i]; delete b.cases[c.id]; if (b.keys[c.key] === c.id) delete b.keys[c.key]; }
@@ -359,7 +366,9 @@ function dispatch(h: Host, target: WGroup, last: LawSeen, level: number, cases: 
   const st = h.st, b = lawBook(st), ops = Object.values(b.ops);
   if (ops.length >= LAW.capAll) return;
   const area = near(h, last.sys);
-  const cands = Object.values(st.groups).filter(g => freeGuard(h, g) && area.has(g.npc!.sys) && ops.filter(o => o.sys === g.npc!.sys).length < LAW.capSys);
+  // only guards whose pursuit limit reaches the sighting (a dispatch that would end at once on distance is pointless)
+  const reach = (g: WGroup) => { const home = st.stations[g.npc!.home]; return !home || h.routeDistance(home.pos, last.pos) <= LAW.pursuitDist; };
+  const cands = Object.values(st.groups).filter(g => freeGuard(h, g) && area.has(g.npc!.sys) && ops.filter(o => o.sys === g.npc!.sys).length < LAW.capSys && reach(g));
   if (!cands.length) return;
   const d = (g: WGroup) => h.routeDistance(h.groupCenter(g)!, last.pos);
   const pick: WGroup[] = [];
@@ -372,10 +381,11 @@ function dispatch(h: Host, target: WGroup, last: LawSeen, level: number, cases: 
   const lead = pick[0];
   const op: LawOp = { id: h.id('lop'), co: target.owner, target: target.id, guards: pick.map(g => g.id), home: lead.npc!.home, sys: lead.npc!.sys, phase: 'go', t0: h.time, tp: h.time, level, last: { ...last } };
   b.ops[op.id] = op;
-  for (const g of pick) { g.lawx = op.id; g.status = `연합 보안국 출동: ${target.name}`; }
+  for (const g of pick) { g.lawx = op.id; g.status = '연합 보안국 출동 — 검문 임무'; }
   const sys = st.systems[last.sys];
   emit(st, { kind: 'law', reason: 'dispatch', amount: pick.length, company: target.owner, group: target.id, system: last.sys, ref: op.id });
-  h.ev('world', `${sys?.name ?? ''}: ${pick.map(g => g.name).join(', ')} 출동 — ${target.name} 검문 (수배 ${LEVEL_KO[level]})`, { pos: last.pos, ref: op.id });
+  // public notice without the suspect (who is chased is the suspect's and the authority's business only)
+  h.ev('world', `${sys?.name ?? ''}: ${pick.map(g => g.name).join(', ')} 출동 — 연합 보안국 검문`, { pos: last.pos });
 }
 
 // ------------------------------------------------------------------ operation decisions (law tick)
@@ -561,6 +571,8 @@ export function guardDamage(st: WorldState, e: Engagement): number {
 function finish(h: Host, op: LawOp, end: string, keepStop = false) {
   const st = h.st;
   op.end = end; op.phase = 'return'; op.tp = h.time;
+  // an operation that did not get the target (lost it, out of reach, time) blocks re-dispatch on the same sighting
+  if (['lost', 'distance', 'timeout', 'left_jurisdiction', 'guards_lost'].includes(end)) (lawBook(st).ended ??= {})[op.target] = h.time;
   const t = st.groups[op.target];
   if (t?.lawStop?.op === op.id && !keepStop) {
     if (end === 'guards_lost' || end === 'target_gone') delete t.lawStop;
@@ -611,8 +623,8 @@ export function lawGroup(h: Host, g: WGroup, ships: WShip[], dt: number): boolea
       const c = h.groupCenter(g) ?? goal;
       const dx = c.x - goal.x, dz = c.z - goal.z, l = Math.hypot(dx, dz) || 1;
       goal = { x: goal.x + dx / l * LAW.standoff, y: goal.y, z: goal.z + dz / l * LAW.standoff };
-      status = op.phase === 'demand' ? `정선 요구: ${t?.name ?? ''}` : `검문 중: ${t?.name ?? ''}`;
-    } else status = op.phase === 'pursue' ? `추격: ${t?.name ?? ''}${fresh ? '' : ' (마지막 목격 지점)'}` : op.phase === 'engage' ? `강제 진압: ${t?.name ?? ''}` : `출동: ${t?.name ?? ''}${fresh ? '' : ' (마지막 목격 지점)'}`;
+      status = op.phase === 'demand' ? '정선 요구 중' : '검문 중';
+    } else status = op.phase === 'pursue' ? `추격 중${fresh ? '' : ' (마지막 목격 지점)'}` : op.phase === 'engage' ? '강제 진압' : `출동 중${fresh ? '' : ' (마지막 목격 지점)'}`;
     for (const s of free) h.moveTo(s, h.formationSlot(s, g, goal, 60), speedOf(h, g, s), dt, tol);
     g.status = status;
     return true;

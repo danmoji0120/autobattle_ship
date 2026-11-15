@@ -96,7 +96,7 @@ const P = (a: V, dx: number, dz: number): V => ({ x: a.x + dx, y: 0, z: a.z + dz
 const d3 = (a: V, b: V) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
 // ---- guard motion sampler: positions of the Union ships of every law operation, straight from the server's save
-const motion = { samples: 0, worstRatio: 0, worst: null as any, jumps: 0, opsSeen: new Set<string>(), guardsSeen: new Set<string>(), unionShipsStart: 0, unionShipsMax: 0, unionShipIdsStart: new Set<string>(), newUnionShips: [] as string[] };
+const motion = { samples: 0, worstRatio: 0, worst: null as any, jumps: 0, opsSeen: new Set<string>(), guardsSeen: new Set<string>(), unionShipsStart: 0, unionShipsMax: 0, unionShipIdsStart: new Set<string>(), newUnionShips: [] as { id: string; t: number; fromHome: number; group: string }[] };
 let sampling = false;
 async function sampler() {
   sampling = true;
@@ -108,7 +108,7 @@ async function sampler() {
     motion.samples++;
     const union = Object.values<any>(w.ships).filter(s => s.owner === 'union');
     motion.unionShipsMax = Math.max(motion.unionShipsMax, union.length);
-    for (const s of union) if (motion.unionShipIdsStart.size && !motion.unionShipIdsStart.has(s.id) && !motion.newUnionShips.includes(s.id)) motion.newUnionShips.push(s.id);
+    for (const s of union) if (motion.unionShipIdsStart.size && !motion.unionShipIdsStart.has(s.id) && !motion.newUnionShips.some(x => x.id === s.id)) { const g = w.groups[s.groupId], home = g?.npc && w.stations[g.npc.home]; motion.newUnionShips.push({ id: s.id, t: Math.round(w.time), group: s.groupId, fromHome: home ? Math.round(d3(s.pos, home.pos) - (home.radius ?? 0)) : -1 }); }
     const now = new Map<string, { p: V; t: number; sys?: string }>();
     for (const op of Object.values<any>(w.law?.ops ?? {})) {
       motion.opsSeen.add(op.id);
@@ -352,10 +352,16 @@ try {
   info('ore accounting (lost cargo in sunk ships is destroyed in battle)', facts.ore);
   check(ore + cust <= 900 + 1e-6, 'ACC: no ore was created — B\'s 900 = what is still held + at customs (+ what was destroyed with sunk ships)', facts.ore);
 
+  // ============ no dispatch loop: operations per target group stay few (each needs a new sighting)
+  const perTarget: Record<string, number> = {};
+  const disp = (() => { try { const st = JSON.parse(readFileSync(path.join(dir, 'world.analytics.json'), 'utf8')).store; return [...(st.hourly ?? []).flatMap((h: any) => h.rows ?? []), ...(st.current?.rows ?? []), ...(st.fine ?? []).flatMap((h: any) => h.rows ?? [])].filter((r: any) => r.kind === 'law' && r.reason === 'dispatch'); } catch { return []; } })();
+  for (const r of disp) perTarget[r.group ?? '?'] = (perTarget[r.group ?? '?'] ?? 0) + (r.count ?? 1);
+  facts.dispatchPerTarget = perTarget;
+  check(Object.values(perTarget).every(n => n <= 4), 'M-0: no dispatch loop — at most a few operations per suspect group over the whole run', perTarget);
   // ============ guards flew, never spawned or teleported
-  facts.motion = { samples: motion.samples, worstRatio: +motion.worstRatio.toFixed(3), worst: motion.worst, gateJumps: motion.jumps, ops: motion.opsSeen.size, guards: [...motion.guardsSeen], unionShipsStart: motion.unionShipsStart, unionShipsMax: motion.unionShipsMax, newUnionShips: motion.newUnionShips.length };
+  facts.motion = { samples: motion.samples, worstRatio: +motion.worstRatio.toFixed(3), worst: motion.worst, gateJumps: motion.jumps, ops: motion.opsSeen.size, guards: [...motion.guardsSeen], unionShipsStart: motion.unionShipsStart, unionShipsMax: motion.unionShipsMax, newUnionShips: motion.newUnionShips.length, redispatch: undefined as any };
   check(motion.samples > 50 && motion.opsSeen.size >= 3 && motion.worstRatio <= 1, 'M-1: sampled from the server\'s save, every dispatched guard ship moved no faster than the real warp drive (no teleport)', facts.motion);
-  check(motion.newUnionShips.length === 0 || facts.motion.newUnionShips <= 0, 'M-2: no Union ship appeared during the run (enforcement used existing fleets; refits happen only at their home)', { newUnionShips: motion.newUnionShips.slice(0, 10) });
+  check(motion.newUnionShips.every(x => x.fromHome >= 0 && x.fromHome < 1500), 'M-2: no Union ship appeared in the field — the only new hulls are the existing refit rule replacing losses at the group\'s own home station', { newUnionShips: motion.newUnionShips })
   const need = ['L1-1', 'L1-3', 'L1-4', 'L1-5', 'L1-7', 'L1-8', 'L2-1', 'L2-4', 'L2-6', 'L2-11', 'L3-3', 'L3-4', 'L3-7', 'M-1'];
   const miss = need.filter(k => !checks.some(c => c.ok && c.label.startsWith(k + ':')));
   check(miss.length === 0, 'REQUIRED chain: real crime → report → physical dispatch → stop → comply (offline) / flee / resist → settlement, on one server world', { missing: miss });

@@ -92,6 +92,8 @@ export function viewAllowed(st: WorldState, company: string | undefined, sysId: 
 }
 
 const fullGroup = (st: WorldState, g: any, company?: string) => g.owner === company || st.companies[g.owner]?.kind !== 'player';
+/** P13.4: a guard group's law-operation tag is server-side only (it would tell anyone who is being chased) */
+const npcView = (g: any) => g.lawx ? { ...g, lawx: undefined } : g;
 const fullCompany = (id: string, co: any, company?: string) => id === company || co.kind !== 'player';
 
 /** the system a viewer is looking at (defaults to where its company is based) */
@@ -116,7 +118,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   const c = v.company;
   const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, fullCompany(id, co, c) ? co : publicCompany(id, co)]));
   const stations = Object.fromEntries(Object.entries(base.stations).filter(([, s]) => s.owner === c || contentsKnown(st, c, s.pos)).map(([id, s]) => [id, { ...s, storage: { ...(c && s.storage[c] ? { [c]: s.storage[c] } : {}) }, ...(s.owner === c ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: s.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
-  const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, fullGroup(st, g, c) ? g : publicGroup(g)]));
+  const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, fullGroup(st, g, c) ? npcView(g) : publicGroup(g)]));
   const origin = st.systems[sysId]?.origin;
   const ships = Object.fromEntries(Object.values(st.ships).filter(s => shipVisible(s, c, origin)).map(s => [s.id, s.owner === c ? s : publicShip(s)]));
   const own = <T extends { owner: string }>(m: Record<string, T> | undefined) => m ? Object.fromEntries(Object.entries(m).filter(([, r]) => r.owner === c)) : undefined;
@@ -284,7 +286,7 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
       }
       return;
     case 'groups':
-      for (const id in map) { const g = map[id], full = fullGroup(st, g, c); one(id, full ? 'g' : 'g.p', () => full ? g : publicGroup(g)); }
+      for (const id in map) { const g = map[id], full = fullGroup(st, g, c); one(id, full ? 'g' : 'g.p', () => full ? npcView(g) : publicGroup(g)); }
       return;
     case 'ships':
       for (const id in map) {

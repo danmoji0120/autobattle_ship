@@ -1,0 +1,246 @@
+{
+ "base": {
+  "label": "P13.3 world",
+  "seed": 133,
+  "hours": 1,
+  "dt": 0.5,
+  "wallMsPerSimHour": 33833,
+  "meanTickMs": 4.699,
+  "worstTickMs": 18.1,
+  "saveBytes": 266880,
+  "lawBytes": 2,
+  "start": {
+   "npcGroups": 17,
+   "ships": 64,
+   "unionShips": 63,
+   "by": {
+    "union:garrison": 8,
+    "union:patrol": 5,
+    "union:qrf": 3,
+    "other-npc": 1
+   }
+  },
+  "end": {
+   "npcGroups": 30,
+   "ships": 146,
+   "unionShips": 60,
+   "by": {
+    "union:garrison": 7,
+    "union:patrol": 5,
+    "union:qrf": 3,
+    "other-npc": 5,
+    "pirates": 10
+   }
+  },
+  "newUnionShipsDuringRun": 2,
+  "wantedGroups": 0
+ },
+ "law": {
+  "label": "P13.4 world",
+  "seed": 133,
+  "hours": 1,
+  "dt": 0.5,
+  "wallMsPerSimHour": 33537,
+  "meanTickMs": 4.658,
+  "worstTickMs": 13.2,
+  "saveBytes": 266950,
+  "lawBytes": 54,
+  "start": {
+   "npcGroups": 17,
+   "ships": 64,
+   "unionShips": 63,
+   "by": {
+    "union:garrison": 8,
+    "union:patrol": 5,
+    "union:qrf": 3,
+    "other-npc": 1
+   }
+  },
+  "end": {
+   "npcGroups": 30,
+   "ships": 146,
+   "unionShips": 60,
+   "by": {
+    "union:garrison": 7,
+    "union:patrol": 5,
+    "union:qrf": 3,
+    "other-npc": 5,
+    "pirates": 10
+   }
+  },
+  "newUnionShipsDuringRun": 2,
+  "law": {
+   "cases": 0,
+   "open": 0,
+   "ops": 0,
+   "served": 0,
+   "paid": 0
+  },
+  "wantedGroups": 0
+ },
+ "loaded": {
+  "label": "P13.4 world + 12 wanted player groups",
+  "seed": 133,
+  "hours": 1,
+  "dt": 0.5,
+  "wallMsPerSimHour": 45092,
+  "meanTickMs": 6.263,
+  "worstTickMs": 42.3,
+  "saveBytes": 402988,
+  "lawBytes": 7032,
+  "start": {
+   "npcGroups": 17,
+   "ships": 64,
+   "unionShips": 63,
+   "by": {
+    "union:garrison": 8,
+    "union:patrol": 5,
+    "union:qrf": 3,
+    "other-npc": 1
+   }
+  },
+  "end": {
+   "npcGroups": 31,
+   "ships": 168,
+   "unionShips": 60,
+   "by": {
+    "union:garrison": 7,
+    "union:patrol": 5,
+    "union:qrf": 3,
+    "other-npc": 5,
+    "pirates": 11
+   }
+  },
+  "newUnionShipsDuringRun": 6,
+  "law": {
+   "cases": 15,
+   "open": 15,
+   "ops": 0,
+   "served": 12,
+   "paid": 22096
+  },
+  "wantedGroups": 12
+ },
+ "p10base": {
+  "label": "P10 layout, P13.3",
+  "seed": 133,
+  "hours": 0.5,
+  "dt": 0.5,
+  "wallMsPerSimHour": 45329,
+  "meanTickMs": 6.296,
+  "worstTickMs": 22.6,
+  "saveBytes": 351664,
+  "lawBytes": 2,
+  "start": {
+   "npcGroups": 21,
+   "ships": 82,
+   "unionShips": 81,
+   "by": {
+    "union:garrison": 9,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "other-npc": 1
+   }
+  },
+  "end": {
+   "npcGroups": 34,
+   "ships": 157,
+   "unionShips": 78,
+   "by": {
+    "union:garrison": 8,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "pirates": 10,
+    "other-npc": 5
+   }
+  },
+  "newUnionShipsDuringRun": 1,
+  "wantedGroups": 0
+ },
+ "p10law": {
+  "label": "P10 layout, P13.4",
+  "seed": 133,
+  "hours": 0.5,
+  "dt": 0.5,
+  "wallMsPerSimHour": 47925,
+  "meanTickMs": 6.656,
+  "worstTickMs": 19.3,
+  "saveBytes": 351734,
+  "lawBytes": 54,
+  "start": {
+   "npcGroups": 21,
+   "ships": 82,
+   "unionShips": 81,
+   "by": {
+    "union:garrison": 9,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "other-npc": 1
+   }
+  },
+  "end": {
+   "npcGroups": 34,
+   "ships": 157,
+   "unionShips": 78,
+   "by": {
+    "union:garrison": 8,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "pirates": 10,
+    "other-npc": 5
+   }
+  },
+  "newUnionShipsDuringRun": 1,
+  "law": {
+   "cases": 0,
+   "open": 0,
+   "ops": 0,
+   "served": 0,
+   "paid": 0
+  },
+  "wantedGroups": 0
+ },
+ "p10loaded": {
+  "label": "P10 layout, P13.4 + 12 wanted player groups",
+  "seed": 133,
+  "hours": 0.5,
+  "dt": 0.5,
+  "wallMsPerSimHour": 56974,
+  "meanTickMs": 7.913,
+  "worstTickMs": 28.1,
+  "saveBytes": 512130,
+  "lawBytes": 7967,
+  "start": {
+   "npcGroups": 21,
+   "ships": 82,
+   "unionShips": 81,
+   "by": {
+    "union:garrison": 9,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "other-npc": 1
+   }
+  },
+  "end": {
+   "npcGroups": 35,
+   "ships": 176,
+   "unionShips": 78,
+   "by": {
+    "union:garrison": 8,
+    "union:patrol": 7,
+    "union:qrf": 4,
+    "pirates": 11,
+    "other-npc": 5
+   }
+  },
+  "newUnionShipsDuringRun": 3,
+  "law": {
+   "cases": 17,
+   "open": 17,
+   "ops": 0,
+   "served": 14,
+   "paid": 22391
+  },
+  "wantedGroups": 12
+ }
+}

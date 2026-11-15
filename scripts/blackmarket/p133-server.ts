@@ -200,7 +200,8 @@ try {
   const astraIds = ['astra', 'bastion', 'nova', 'barcaco'];
   const hauls5 = ids.a5h.split(',');
   const v5A = await A.fresh(), v5B = await B.fresh();
-  const aboard5a = hauls5.reduce((a, id) => a + (v5A.ships[id]?.cargo?.[hotA('electronics')] ?? 0), 0);
+  const all5 = (v5A.groups[ids.a5]?.shipIds ?? hauls5) as string[];
+  const aboard5a = all5.reduce((a, id) => a + (v5A.ships[id]?.cargo?.[hotA('electronics')] ?? 0), 0);
   const insp5a = (v5A.companies[A.id].bm?.log ?? []).filter((x: any) => (x.k === 'seize' || x.k === 'pass') && astraIds.includes(x.at));
   const stored5a = astraIds.reduce((a, id) => a + (v5A.stations[id]?.storage?.[A.id]?.[hotA('electronics')] ?? 0), 0);
   const left5 = v5B.ships[ids.v5s]?.cargo?.electronics ?? 0;
@@ -208,7 +209,7 @@ try {
   facts.s5 = { auto: { aboard: aboard5a, docked: hauls5.map(id => v5A.ships[id]?.state), inspections: insp5a.length, storedInAstra: stored5a, victimLeft: left5, customsB: cust5a, status: v5A.groups[ids.a5]?.status } };
   check(aboard5a > 0 && hauls5.every(id => v5A.ships[id]?.state !== 'docked'), 'S5-1: the plunder\'s automatic unloading in high-security space was blocked (P13.3.1 safe unloading): the stolen electronics stay aboard and no hauler docked', facts.s5.auto);
   check(insp5a.length === 0 && stored5a === 0, 'S5-2: blocked automatic unloading means no dock inspection and nothing stored as stolen at a risky station', facts.s5.auto);
-  check(Math.abs(aboard5a + left5 + cust5a - 300) < 1e-9, 'S5-3: B\'s 300 electronics = still on B\'s hauler + aboard A\'s haulers — exactly', facts.s5.auto);
+  check(Math.abs(aboard5a + left5 + cust5a - 300) < 1e-9, 'S5-3: B\'s 300 electronics = still on B\'s hauler + aboard A\'s raid group (haulers and warships) — exactly', facts.s5.auto);
   // the player explicitly docks the loaded haulers at Astra: an explicit order is not filtered — it is inspected
   const t5 = time();
   check(await A.command({ c: 'setOp', group: ids.a5, op: { k: 'dock', station: 'astra' } }) === null, 'S5-4: A explicitly orders the loaded raiders to dock at Astra (a risky station)');
@@ -217,7 +218,7 @@ try {
   const v5Ae = await A.fresh(), v5Be = await B.fresh();
   const lg5 = (v5Ae.companies[A.id].bm?.log ?? []).filter((x: any) => x.t >= t5 && (x.k === 'seize' || x.k === 'pass') && Object.keys(x.items ?? {}).includes(hotA('electronics')));
   const seized5 = lg5.filter((x: any) => x.k === 'seize').reduce((a: number, x: any) => a + (x.items[hotA('electronics')] ?? 0), 0);
-  const aboard5 = hauls5.reduce((a, id) => a + (v5Ae.ships[id]?.cargo?.[hotA('electronics')] ?? 0), 0);
+  const aboard5 = all5.reduce((a, id) => a + (v5Ae.ships[id]?.cargo?.[hotA('electronics')] ?? 0), 0);
   const stolenAstra = astraIds.reduce((a, id) => a + (v5Ae.stations[id]?.storage?.[A.id]?.[hotA('electronics')] ?? 0), 0);
   const cust5 = custB(v5Be) - cust5a;
   const lots5 = ((v5Be.companies[B.id].bm?.customs ?? []) as any[]).filter(l => l.item === 'electronics' && l.t >= t5);
@@ -258,20 +259,26 @@ try {
     check(Math.abs(cust4 - seized4) < 1e-9 && back4 === 0 && retLog.length > 0 && fine > 0, 'S4-3 (inspection outcome: seized): the seized stolen electronics wait at customs for B (B sees \'held\' in its own log; nothing moved to B\'s home storage); A was fined', facts.s4);
   } else check(sold4 > 0 && s4.blackMarkets[secure.id].took - sec0.took >= sold4, 'S4-3 (inspection outcome: passed): the stolen electronics were sold at the secure market', facts.s4);
 
-  // ---- S2: loot of the second plunder at the border station → physical smuggling run to the lawless market
-  const s2 = await until(() => { const v = view(A); const n = v.stations[ids.Bd]?.storage?.[A.id]; const g = v.groups[ids.a2]; return n && (n[hotA('alloy')] ?? 0) > 0 && g?.op?.k === 'idle' ? { stolen: n[hotA('alloy')], plain: n.alloy ?? 0 } : null; }, 'S2: the second plunder never unloaded at the border station', 600000);
+  // ---- S2 (P13.3.1 rules): the second plunder happens next to the border station, but that station inspects at the
+  //      dock (small chance), so the plunder's automatic unloading avoids it and takes the loot to a zero-risk station
+  //      (the lawless one). From there A runs a physical smuggling trip to the border market and sells there.
+  const s2 = await until(() => { const v = view(A), g = v.groups[ids.a2]; if (g?.op?.k !== 'idle' || g.plx) return null; const ab = (g.shipIds as string[]).reduce((a, id) => a + (v.ships[id]?.cargo?.[hotA('alloy')] ?? 0), 0); const vic = view(B).ships[ids.v2s]?.cargo?.alloy; /* B's own view: A may no longer see B's hauler (fog) */ if (ab > 0 || vic === undefined || vic >= 150) return null; const n = v.stations[ids.L]?.storage?.[A.id]; return n && (n[hotA('alloy')] ?? 0) > 0 ? { stolen: n[hotA('alloy')], plain: n.alloy ?? 0, atBorder: v.stations[ids.Bd]?.storage?.[A.id]?.[hotA('alloy')] ?? 0, victimLeft: vic } : null; }, 'S2: the second plunder never unloaded at a safe station', 600000);
   facts.s2 = { unloaded: s2 };
-  check(s2.plain === 0 && (view(A).companies[A.id].bm?.known ?? []).includes(border.id), 'S2-1: the second loot is stolen goods in A\'s storage at the border station, and A found the border market there', facts.s2);
+  check(s2.atBorder === 0 && s2.plain === 0, 'S2-0: the plunder\'s automatic unloading avoided the border station (dock inspection risk > 0) and stored the loot as stolen goods at the zero-risk lawless station', facts.s2);
+  // A finds the border market by docking there with an empty hold (nothing to inspect), as a player would
+  check(await A.command({ c: 'setOp', group: ids.a2, op: { k: 'dock', station: ids.Bd } }) === null, 'S2-1: A docks the (now empty) raiders at the border station');
+  await until(() => (view(A).companies[A.id].bm?.known ?? []).includes(border.id) && view(A).blackMarkets?.[border.id] ? true : null, 'S2: A never found the border market', 600000);
+  check((view(A).stations[ids.Bd]?.storage?.[A.id]?.[hotA('alloy')] ?? 0) === 0, 'S2-1b: docking there found the border market; nothing stolen was carried there', facts.s2);
   const pre = await A.fresh();
-  const preB = pre.blackMarkets[lawless.id], preCr = pre.companies[A.id].credits;
-  check(await A.command({ c: 'setOp', group: ids.a2, op: { k: 'smuggle', from: ids.Bd, to: ids.L, sell: true } }) === null, 'S2-2: A orders a smuggling run: load the stolen alloy at the border station, fly to the lawless market, sell');
+  const preB = pre.blackMarkets[border.id], preCr = pre.companies[A.id].credits;
+  check(await A.command({ c: 'setOp', group: ids.a2, op: { k: 'smuggle', from: ids.L, to: ids.Bd, items: [hotA('alloy')], sell: true } }) === null, 'S2-2: A orders a smuggling run: load the stolen alloy at the lawless station, fly to the border market, sell');
   const loaded = await until(() => { const s = view(A).ships[ids.a2h]; return s && (s.cargo[hotA('alloy')] ?? 0) > 0 && s.state !== 'docked' ? s.cargo[hotA('alloy')] : 0; }, 'S2: the hauler never left loaded', 300000);
   facts.s2.loaded = loaded;
-  const left = view(A).stations[ids.Bd].storage[A.id]?.[hotA('alloy')] ?? 0;
+  const left = view(A).stations[ids.L].storage[A.id]?.[hotA('alloy')] ?? 0;
   check(Math.abs(loaded + left - s2.stolen) < 1e-9, 'S2-3: the stolen alloy physically left storage into the hauler\'s hold (hold + what stayed = what was stored)', { loaded, left, stored: s2.stolen });
   const end2 = await until(() => { const g = view(A).groups[ids.a2]; return g?.op?.k === 'idle' ? g : null; }, 'S2: the smuggling run did not finish', 900000);
   const post = await A.fresh();
-  const postB = post.blackMarkets[lawless.id];
+  const postB = post.blackMarkets[border.id];
   const lg2 = (post.companies[A.id].bm?.log ?? []).filter((x: any) => x.t >= pre.time);
   facts.s2.run = { status: end2.status, gameSeconds: Math.round(post.time - pre.time), log: lg2.map((x: any) => ({ k: x.k, at: x.at, items: x.items, value: x.value && Math.round(x.value), fine: x.fine && Math.round(x.fine), why: x.why })), aboard: post.ships[ids.a2h]?.cargo, took: postB.took - preB.took, paid: Math.round(postB.paid - preB.paid), credits: Math.round(post.companies[A.id].credits - preCr) };
   const seized2 = lg2.some((x: any) => x.k === 'seize');
@@ -280,7 +287,7 @@ try {
   } else {
     const soldUnits = lg2.filter((x: any) => x.k === 'sell').reduce((a: number, x: any) => a + (x.items[hotA('alloy')] ?? 0), 0);
     const aboard = post.ships[ids.a2h]?.cargo[hotA('alloy')] ?? 0;
-    check(soldUnits > 0 && postB.took - preB.took === soldUnits && Math.abs(soldUnits + aboard - loaded) < 1e-9, 'S2-4: the smuggled stolen alloy was carried to the lawless market and sold there from the hold; sold + still aboard = loaded, exactly', { soldUnits, aboard, loaded });
+    check(soldUnits > 0 && postB.took - preB.took === soldUnits && Math.abs(soldUnits + aboard - loaded) < 1e-9, 'S2-4: the smuggled stolen alloy was carried to the border market and sold there from the hold; sold + still aboard = loaded, exactly', { soldUnits, aboard, loaded });
     const paid = postB.paid - preB.paid, dc = post.companies[A.id].credits - preCr;
     check(dc <= paid + 1e-6 && dc > paid - 2000, 'S2-5: A\'s credits rose by what the market paid during the run (no more; running costs may take some)', facts.s2.run);
   }

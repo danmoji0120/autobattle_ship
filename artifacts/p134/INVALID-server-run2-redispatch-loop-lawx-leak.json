@@ -1,0 +1,1564 @@
+{
+  "passed": 48,
+  "failed": 2,
+  "checks": [
+    {
+      "ok": true,
+      "label": "0: LAW_P134=1 server creates a P13.4 world (P13.3 + law enforcement); the law book itself is never replicated",
+      "extra": {
+        "lawV": 1,
+        "law": "undefined"
+      },
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "L1: B sets hauler 1 to 생존 우선",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "L1: B's hauler 1 is under way",
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "L1: A orders a non-destructive plunder of B 화물선 1 (neutral company — explicit permission; extortion where the law reaches)",
+      "t": 4
+    },
+    {
+      "ok": true,
+      "label": "L1-1: A's real cargo demand in Astra became one extortion case under Union authority with a fine",
+      "extra": {
+        "case": {
+          "id": "law1",
+          "kind": "extortion",
+          "t": 43.5,
+          "sys": "astra",
+          "juris": "union",
+          "auth": "union",
+          "value": 1500,
+          "sev": 3.1,
+          "how": "guard",
+          "fine": 2750,
+          "paid": 0,
+          "state": "open",
+          "served": false,
+          "group": "g137"
+        },
+        "level": 2,
+        "score": 3.1,
+        "stop": {
+          "op": "lop207",
+          "phase": "demand",
+          "guard": "g57",
+          "guardName": "아스트라 순찰대 1",
+          "since": 50.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -257323.40776451322,
+              "y": -16.527900304371855,
+              "z": -16599.789540453254
+            },
+            "t": 50.25
+          },
+          "answerBy": 110.25
+        },
+        "op": {
+          "guards": [
+            "g57:patrol:astra"
+          ],
+          "level": 2,
+          "t0": 44,
+          "sys": "astra"
+        },
+        "after": {
+          "stop": {
+            "op": "lop207",
+            "phase": "released",
+            "guard": "g57",
+            "guardName": "아스트라 순찰대 1",
+            "since": 126.25,
+            "level": 2,
+            "guardSeen": {
+              "pos": {
+                "x": -257329.34452666767,
+                "y": -17.301061140031614,
+                "z": -16827.22630744932
+              },
+              "t": 126.25
+            },
+            "answerBy": 110.25,
+            "note": "검문 완료 — 압수 150단위, 벌금 납부 4,500 cr",
+            "end": "inspected",
+            "until": 426.25
+          },
+          "case": {
+            "state": "closed",
+            "paid": 2750,
+            "fine": 2750,
+            "served": 126.25,
+            "end": "paid"
+          },
+          "resist": 0,
+          "customsB": [
+            {
+              "item": "ore",
+              "n": 150,
+              "station": "astra"
+            }
+          ],
+          "aboard": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          }
+        },
+        "credits": {
+          "before": 1000000,
+          "after": 995193.164583333
+        }
+      },
+      "t": 45
+    },
+    {
+      "ok": true,
+      "label": "L1-2: the case was known to the authority (seen / reported) and A is wanted (level ≥ 2)",
+      "extra": {
+        "case": {
+          "id": "law1",
+          "kind": "extortion",
+          "t": 43.5,
+          "sys": "astra",
+          "juris": "union",
+          "auth": "union",
+          "value": 1500,
+          "sev": 3.1,
+          "how": "guard",
+          "fine": 2750,
+          "paid": 0,
+          "state": "open",
+          "served": false,
+          "group": "g137"
+        },
+        "level": 2,
+        "score": 3.1,
+        "stop": {
+          "op": "lop207",
+          "phase": "demand",
+          "guard": "g57",
+          "guardName": "아스트라 순찰대 1",
+          "since": 50.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -257323.40776451322,
+              "y": -16.527900304371855,
+              "z": -16599.789540453254
+            },
+            "t": 50.25
+          },
+          "answerBy": 110.25
+        },
+        "op": {
+          "guards": [
+            "g57:patrol:astra"
+          ],
+          "level": 2,
+          "t0": 44,
+          "sys": "astra"
+        },
+        "after": {
+          "stop": {
+            "op": "lop207",
+            "phase": "released",
+            "guard": "g57",
+            "guardName": "아스트라 순찰대 1",
+            "since": 126.25,
+            "level": 2,
+            "guardSeen": {
+              "pos": {
+                "x": -257329.34452666767,
+                "y": -17.301061140031614,
+                "z": -16827.22630744932
+              },
+              "t": 126.25
+            },
+            "answerBy": 110.25,
+            "note": "검문 완료 — 압수 150단위, 벌금 납부 4,500 cr",
+            "end": "inspected",
+            "until": 426.25
+          },
+          "case": {
+            "state": "closed",
+            "paid": 2750,
+            "fine": 2750,
+            "served": 126.25,
+            "end": "paid"
+          },
+          "resist": 0,
+          "customsB": [
+            {
+              "item": "ore",
+              "n": 150,
+              "station": "astra"
+            }
+          ],
+          "aboard": {
+            "ore": 0,
+            "alloy": 0,
+            "crystal": 0
+          }
+        },
+        "credits": {
+          "before": 1000000,
+          "after": 995193.164583333
+        }
+      },
+      "t": 45
+    },
+    {
+      "ok": true,
+      "label": "L1-3: the guards who stopped A are existing Union fleets of this world (no new ship was created)",
+      "extra": {
+        "guards": [
+          "g57:patrol:astra"
+        ],
+        "level": 2,
+        "t0": 44,
+        "sys": "astra"
+      },
+      "t": 51
+    },
+    {
+      "ok": true,
+      "label": "L1-4: the guards physically reached A's group before demanding the stop",
+      "extra": {
+        "nearest": 606
+      },
+      "t": 51
+    },
+    {
+      "ok": true,
+      "label": "L1-5: with A offline the unanswered demand was treated as compliance — the group held still and was inspected",
+      "extra": {
+        "stop": {
+          "op": "lop207",
+          "phase": "released",
+          "guard": "g57",
+          "guardName": "아스트라 순찰대 1",
+          "since": 126.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -257329.34452666767,
+              "y": -17.301061140031614,
+              "z": -16827.22630744932
+            },
+            "t": 126.25
+          },
+          "answerBy": 110.25,
+          "note": "검문 완료 — 압수 150단위, 벌금 납부 4,500 cr",
+          "end": "inspected",
+          "until": 426.25
+        },
+        "case": {
+          "state": "closed",
+          "paid": 2750,
+          "fine": 2750,
+          "served": 126.25,
+          "end": "paid"
+        },
+        "resist": 0,
+        "customsB": [
+          {
+            "item": "ore",
+            "n": 150,
+            "station": "astra"
+          }
+        ],
+        "aboard": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        }
+      },
+      "t": 128
+    },
+    {
+      "ok": true,
+      "label": "L1-6: being offline / not answering never created a flee or resist case",
+      "extra": {
+        "stop": {
+          "op": "lop207",
+          "phase": "released",
+          "guard": "g57",
+          "guardName": "아스트라 순찰대 1",
+          "since": 126.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -257329.34452666767,
+              "y": -17.301061140031614,
+              "z": -16827.22630744932
+            },
+            "t": 126.25
+          },
+          "answerBy": 110.25,
+          "note": "검문 완료 — 압수 150단위, 벌금 납부 4,500 cr",
+          "end": "inspected",
+          "until": 426.25
+        },
+        "case": {
+          "state": "closed",
+          "paid": 2750,
+          "fine": 2750,
+          "served": 126.25,
+          "end": "paid"
+        },
+        "resist": 0,
+        "customsB": [
+          {
+            "item": "ore",
+            "n": 150,
+            "station": "astra"
+          }
+        ],
+        "aboard": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        }
+      },
+      "t": 128
+    },
+    {
+      "ok": true,
+      "label": "L1-7: the extortion fine was billed from A's credits at the inspection and the minor case closed as paid",
+      "extra": {
+        "state": "closed",
+        "paid": 2750,
+        "fine": 2750,
+        "served": 126.25,
+        "end": "paid"
+      },
+      "t": 128
+    },
+    {
+      "ok": true,
+      "label": "L1-8: the stolen ore aboard A's hauler was seized and waits for B at customs in the same system (not shipped elsewhere)",
+      "extra": {
+        "hotLeft": 0,
+        "customs": [
+          {
+            "item": "ore",
+            "n": 150,
+            "station": "astra"
+          }
+        ]
+      },
+      "t": 128
+    },
+    {
+      "ok": true,
+      "label": "L1-9: after reconnecting A sees its group released (stop record shown to the owner)",
+      "extra": {
+        "op": "lop207",
+        "phase": "released",
+        "guard": "g57",
+        "guardName": "아스트라 순찰대 1",
+        "since": 126.25,
+        "level": 2,
+        "guardSeen": {
+          "pos": {
+            "x": -257329.34452666767,
+            "y": -17.301061140031614,
+            "z": -16827.22630744932
+          },
+          "t": 126.25
+        },
+        "answerBy": 110.25,
+        "note": "검문 완료 — 압수 150단위, 벌금 납부 4,500 cr",
+        "end": "inspected",
+        "until": 426.25
+      },
+      "t": 128
+    },
+    {
+      "ok": true,
+      "label": "L2: B sets hauler 2 to 생존 우선",
+      "t": 129
+    },
+    {
+      "ok": true,
+      "label": "L2: B's hauler 2 is under way",
+      "t": 129
+    },
+    {
+      "ok": true,
+      "label": "L2: A orders a non-destructive plunder of B 화물선 2 (neutral company — explicit permission; extortion where the law reaches)",
+      "t": 129
+    },
+    {
+      "ok": true,
+      "label": "L2-1: A's plunder in Drake became a Union case and guards were dispatched and stopped A",
+      "extra": {
+        "case": {
+          "id": "law6",
+          "kind": "extortion",
+          "t": 169.75,
+          "sys": "drake",
+          "juris": "union",
+          "auth": "union",
+          "value": 1500,
+          "sev": 3.1,
+          "how": "victim",
+          "fine": 2750,
+          "paid": 0,
+          "state": "open",
+          "served": false,
+          "group": "g145"
+        },
+        "stop": {
+          "op": "lop239",
+          "phase": "demand",
+          "guard": "g81",
+          "guardName": "드레이크 변경 순찰대 1",
+          "since": 208.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": 33215.48557600656,
+              "y": -30.915181192165914,
+              "z": -1878.7359272932897
+            },
+            "t": 208.25
+          },
+          "answerBy": 268.25
+        },
+        "op": {
+          "guards": [
+            "g81:patrol:drake"
+          ],
+          "level": 2
+        },
+        "end": {
+          "phase": "fight",
+          "stop": {
+            "op": "lop239",
+            "phase": "fight",
+            "guard": "g81",
+            "guardName": "드레이크 변경 순찰대 1",
+            "since": 210.25,
+            "level": 3,
+            "guardSeen": {
+              "pos": {
+                "x": 33429.38502713841,
+                "y": -12.236018879711791,
+                "z": -1658.5619296360717
+              },
+              "t": 212.25
+            },
+            "answerBy": 268.25,
+            "note": "연합 경비대와 교전 중"
+          },
+          "sys": {
+            "x": 33532.861169780634,
+            "y": -31.236735123655023,
+            "z": -536.6577522015411
+          }
+        },
+        "fightEnd": {
+          "end": "battle_over"
+        },
+        "unpaid": 22500,
+        "payRefused": "치안 구역(연합 경비대 주둔 성계)의 공공 정거장 근처에 자사 함선이 있어야 납부할 수 있습니다",
+        "pay": {
+          "err": null,
+          "unpaidAfter": 0,
+          "level": 2,
+          "credits": {
+            "before": 993667.539583333,
+            "after": 971167.539583333
+          },
+          "cases": [
+            "guard_attack:probation:",
+            "smuggling:open:",
+            "extortion:closed:paid",
+            "salvage:closed:paid",
+            "flee:closed:paid",
+            "extortion:closed:paid",
+            "salvage:closed:paid",
+            "smuggling:closed:paid",
+            "smuggling:closed:paid",
+            "smuggling:closed:paid"
+          ]
+        }
+      },
+      "t": 210
+    },
+    {
+      "ok": true,
+      "label": "L2-2: A answers the stop demand: flee",
+      "t": 210
+    },
+    {
+      "ok": true,
+      "label": "L2-3: A flies its group toward Junction (no Union garrison)",
+      "t": 210
+    },
+    {
+      "ok": true,
+      "label": "L2-4: fleeing the stop is its own case (flee, fine)",
+      "extra": {
+        "id": "law8",
+        "kind": "flee",
+        "t": 209,
+        "sys": "drake",
+        "juris": "union",
+        "auth": "union",
+        "value": 0,
+        "sev": 4,
+        "how": "guard",
+        "fine": 3000,
+        "paid": 0,
+        "state": "open",
+        "served": false,
+        "group": "g145"
+      },
+      "t": 210
+    },
+    {
+      "ok": true,
+      "label": "L2-5: A's group is under pursuit (its stop state says so)",
+      "extra": {
+        "op": "lop239",
+        "phase": "pursuit",
+        "guard": "g81",
+        "guardName": "드레이크 변경 순찰대 1",
+        "since": 209,
+        "level": 3,
+        "guardSeen": {
+          "pos": {
+            "x": 33215.48557600656,
+            "y": -30.915181192165914,
+            "z": -1878.7359272932897
+          },
+          "t": 208.25
+        },
+        "answerBy": 268.25,
+        "note": "도주 — 경비대 추격"
+      },
+      "t": 210
+    },
+    {
+      "ok": true,
+      "label": "L2-6: the pursuit ended by its own limits (left jurisdiction / lost / time / distance) or the guards caught up and fought — never an endless chase",
+      "extra": {
+        "phase": "fight",
+        "stop": {
+          "op": "lop239",
+          "phase": "fight",
+          "guard": "g81",
+          "guardName": "드레이크 변경 순찰대 1",
+          "since": 210.25,
+          "level": 3,
+          "guardSeen": {
+            "pos": {
+              "x": 33429.38502713841,
+              "y": -12.236018879711791,
+              "z": -1658.5619296360717
+            },
+            "t": 212.25
+          },
+          "answerBy": 268.25,
+          "note": "연합 경비대와 교전 중"
+        },
+        "sys": {
+          "x": 33532.861169780634,
+          "y": -31.236735123655023,
+          "z": -536.6577522015411
+        }
+      },
+      "t": 213
+    },
+    {
+      "ok": true,
+      "label": "L2-7: A owes fines after the flight (extortion + flee)",
+      "extra": {
+        "unpaid": 22500,
+        "level": 4
+      },
+      "t": 298
+    },
+    {
+      "ok": true,
+      "label": "L2-8: A moves its first group out to Fang (lawless)",
+      "t": 298
+    },
+    {
+      "ok": true,
+      "label": "L2-8b: A's reserve and third group move away from every policed station",
+      "t": 298
+    },
+    {
+      "ok": true,
+      "label": "L2-9: lawPay is refused while no A ship is near a policed public station (no stop running)",
+      "extra": {
+        "err": "치안 구역(연합 경비대 주둔 성계)의 공공 정거장 근처에 자사 함선이 있어야 납부할 수 있습니다",
+        "nearPol": false
+      },
+      "t": 1199
+    },
+    {
+      "ok": true,
+      "label": "L2-10: A brings a ship close to Helios shipyard (it does not need to dock)",
+      "t": 1199
+    },
+    {
+      "ok": true,
+      "label": "L2-11: near Helios A pays every outstanding fine with lawPay (credits fall by the amount; nothing left unpaid)",
+      "extra": {
+        "err": null,
+        "unpaidAfter": 0,
+        "level": 2,
+        "credits": {
+          "before": 993667.539583333,
+          "after": 971167.539583333
+        },
+        "cases": [
+          "guard_attack:probation:",
+          "smuggling:open:",
+          "extortion:closed:paid",
+          "salvage:closed:paid",
+          "flee:closed:paid",
+          "extortion:closed:paid",
+          "salvage:closed:paid",
+          "smuggling:closed:paid",
+          "smuggling:closed:paid",
+          "smuggling:closed:paid"
+        ]
+      },
+      "t": 1213
+    },
+    {
+      "ok": true,
+      "label": "L2-12: paid minor cases (extortion, flee) close",
+      "extra": {
+        "err": null,
+        "unpaidAfter": 0,
+        "level": 2,
+        "credits": {
+          "before": 993667.539583333,
+          "after": 971167.539583333
+        },
+        "cases": [
+          "guard_attack:probation:",
+          "smuggling:open:",
+          "extortion:closed:paid",
+          "salvage:closed:paid",
+          "flee:closed:paid",
+          "extortion:closed:paid",
+          "salvage:closed:paid",
+          "smuggling:closed:paid",
+          "smuggling:closed:paid",
+          "smuggling:closed:paid"
+        ]
+      },
+      "t": 1213
+    },
+    {
+      "ok": true,
+      "label": "L3: A3 returns to its post",
+      "t": 1214
+    },
+    {
+      "ok": true,
+      "label": "L3: B sets hauler 3 to 생존 우선",
+      "t": 1233
+    },
+    {
+      "ok": true,
+      "label": "L3: B's hauler 3 is under way",
+      "t": 1233
+    },
+    {
+      "ok": true,
+      "label": "L3: A orders a non-destructive plunder of B 화물선 3 (neutral company — explicit permission; extortion where the law reaches)",
+      "t": 1233
+    },
+    {
+      "ok": true,
+      "label": "L3: A's reserve and C's armed fleet fly next to the stop",
+      "t": 1340
+    },
+    {
+      "ok": true,
+      "label": "L3-1: A answers the stop demand: resist",
+      "t": 1374
+    },
+    {
+      "ok": true,
+      "label": "L3-2: armed resistance is its own serious case",
+      "extra": {
+        "id": "law13",
+        "kind": "resist",
+        "t": 1372.75,
+        "sys": "helios",
+        "juris": "union",
+        "auth": "union",
+        "value": 0,
+        "sev": 8,
+        "how": "guard",
+        "fine": 8000,
+        "paid": 0,
+        "state": "open",
+        "served": false,
+        "group": "g153"
+      },
+      "t": 1374
+    },
+    {
+      "ok": true,
+      "label": "L3-3: a real P11 engagement between the Union guards and A's stopped group only",
+      "extra": {
+        "id": "e957",
+        "law": {
+          "op": "lop896",
+          "co": "p107"
+        },
+        "sides": [
+          [
+            "union"
+          ],
+          [
+            "p107"
+          ]
+        ],
+        "groups": [
+          "union:g28",
+          "p107:g153"
+        ],
+        "v": 2
+      },
+      "t": 1375
+    },
+    {
+      "ok": true,
+      "label": "L3-4: A's other group, C's armed fleet and B's victim hauler next to it were never pulled into the law battle",
+      "extra": {
+        "intruders": []
+      },
+      "t": 1415
+    },
+    {
+      "ok": true,
+      "label": "L3-5: the law battle created no hostility between A and C (no diplomacy side effect)",
+      "extra": {
+        "AB": false,
+        "AC": false,
+        "unionA": false
+      },
+      "t": 1415
+    },
+    {
+      "ok": true,
+      "label": "L3-6: the Union is not made permanently hostile to A (hostility existed only inside that engagement)",
+      "extra": {
+        "AB": false,
+        "AC": false,
+        "unionA": false
+      },
+      "t": 1415
+    },
+    {
+      "ok": true,
+      "label": "L3-7: the operation settled after the battle (battle over / suppressed)",
+      "extra": {
+        "opEnd": "battle_over",
+        "guardAttack": [
+          {
+            "fine": 15000,
+            "how": "combat",
+            "state": "probation"
+          },
+          {
+            "fine": 15000,
+            "how": "combat",
+            "state": "open"
+          }
+        ],
+        "a3Ships": 1,
+        "stop": {
+          "op": "lop896",
+          "phase": "released",
+          "guard": "g28",
+          "guardName": "헬리오스 신속대응함대",
+          "since": 1414.25,
+          "level": 4,
+          "guardSeen": {
+            "pos": {
+              "x": -483032.92540108913,
+              "y": -22.444324268959704,
+              "z": 5307.9506029530385
+            },
+            "t": 1374.25
+          },
+          "answerBy": 1398.25,
+          "note": "교전 종료 — 수배 유지",
+          "end": "battle_over",
+          "until": 1714.25
+        }
+      },
+      "t": 1415
+    },
+    {
+      "ok": true,
+      "label": "L3-8: the enforcement did not restart a fight between A and the victim B",
+      "extra": {
+        "n": 0
+      },
+      "t": 1415
+    },
+    {
+      "ok": true,
+      "label": "L3-9: after resisting A stays wanted (serious case open, fine owed)",
+      "extra": {
+        "level": 4,
+        "score": 28,
+        "unpaid": 27500
+      },
+      "t": 1416
+    },
+    {
+      "ok": true,
+      "label": "P-1: B and C never receive A's law record, case ids, or its fleets' stop state",
+      "extra": {
+        "leakB": false,
+        "leakC": false
+      },
+      "t": 1418
+    },
+    {
+      "ok": false,
+      "label": "P-2: even A never receives the law book or the guards' operation tags",
+      "extra": {},
+      "t": 1418
+    },
+    {
+      "ok": true,
+      "label": "R-1: after a server restart every case (fines, payments, states), the duplicate-key index and B's customs lots are exactly as saved",
+      "extra": {
+        "cases": 14
+      },
+      "t": 1421
+    },
+    {
+      "ok": true,
+      "label": "ACC: no ore was created — B's 900 = what is still held + at customs (+ what was destroyed with sunk ships)",
+      "extra": {
+        "held": 591,
+        "customs": 288
+      },
+      "t": 1421
+    },
+    {
+      "ok": true,
+      "label": "M-1: sampled from the server's save, every dispatched guard ship moved no faster than the real warp drive (no teleport)",
+      "extra": {
+        "samples": 2012,
+        "worstRatio": 0.994,
+        "worst": {
+          "ship": "s60",
+          "op": "lop207",
+          "d": 8750,
+          "dt": 1.25,
+          "warp": true
+        },
+        "gateJumps": 0,
+        "ops": 35,
+        "guards": [
+          "g57",
+          "g81",
+          "g86",
+          "g63",
+          "g28"
+        ],
+        "unionShipsStart": 63,
+        "unionShipsMax": 63,
+        "newUnionShips": 1
+      },
+      "t": 1421
+    },
+    {
+      "ok": false,
+      "label": "M-2: no Union ship appeared during the run (enforcement used existing fleets; refits happen only at their home)",
+      "extra": {
+        "newUnionShips": [
+          "s388"
+        ]
+      },
+      "t": 1421
+    },
+    {
+      "ok": true,
+      "label": "REQUIRED chain: real crime → report → physical dispatch → stop → comply (offline) / flee / resist → settlement, on one server world",
+      "extra": {
+        "missing": []
+      },
+      "t": 1421
+    }
+  ],
+  "infos": [
+    {
+      "label": "L1: A disconnected during the stop demand",
+      "extra": {
+        "answerBy": 110.25,
+        "now": 50.25
+      }
+    },
+    {
+      "label": "L2: extortion case",
+      "extra": {
+        "id": "law6",
+        "kind": "extortion",
+        "t": 169.75,
+        "sys": "drake",
+        "juris": "union",
+        "auth": "union",
+        "value": 1500,
+        "sev": 3.1,
+        "how": "victim",
+        "fine": 2750,
+        "paid": 0,
+        "state": "open",
+        "served": false,
+        "group": "g145"
+      }
+    },
+    {
+      "label": "L2: the guards caught the fleeing group and fought it",
+      "extra": {
+        "end": "battle_over"
+      }
+    },
+    {
+      "label": "L3: guard damage → guard_attack case",
+      "extra": [
+        {
+          "fine": 15000,
+          "how": "combat",
+          "state": "probation"
+        },
+        {
+          "fine": 15000,
+          "how": "combat",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "label": "ore accounting (lost cargo in sunk ships is destroyed in battle)",
+      "extra": {
+        "held": 591,
+        "customs": 288
+      }
+    }
+  ],
+  "facts": {
+    "seed": "133",
+    "label": "run2",
+    "clock": "server real time, speed 1 (multiplayer)",
+    "load": "3 accounts, scenario fleets + the world's own Union forces (other NPC fleets removed)",
+    "ids": {
+      "b1": "g134",
+      "b1s": "s136",
+      "a1": "g137",
+      "a1h": "s141",
+      "b2": "g142",
+      "b2s": "s144",
+      "a2": "g145",
+      "a2h": "s149",
+      "b3": "g150",
+      "b3s": "s152",
+      "a3": "g153",
+      "a3h": "s157",
+      "a4": "g158",
+      "c1": "g161",
+      "gJ": "gate:drake>junction"
+    },
+    "unionAtStart": {
+      "ships": 63,
+      "groups": [
+        "g1:garrison:helios",
+        "g8:garrison:helios",
+        "g14:patrol:helios",
+        "g21:patrol:helios",
+        "g28:qrf:helios",
+        "g34:garrison:astra",
+        "g40:garrison:astra",
+        "g47:garrison:astra",
+        "g52:garrison:astra",
+        "g57:patrol:astra",
+        "g63:patrol:astra",
+        "g69:qrf:astra",
+        "g76:garrison:drake",
+        "g81:patrol:drake",
+        "g86:qrf:drake",
+        "g91:garrison:ember"
+      ]
+    },
+    "l1": {
+      "case": {
+        "id": "law1",
+        "kind": "extortion",
+        "t": 43.5,
+        "sys": "astra",
+        "juris": "union",
+        "auth": "union",
+        "value": 1500,
+        "sev": 3.1,
+        "how": "guard",
+        "fine": 2750,
+        "paid": 0,
+        "state": "open",
+        "served": false,
+        "group": "g137"
+      },
+      "level": 2,
+      "score": 3.1,
+      "stop": {
+        "op": "lop207",
+        "phase": "demand",
+        "guard": "g57",
+        "guardName": "아스트라 순찰대 1",
+        "since": 50.25,
+        "level": 2,
+        "guardSeen": {
+          "pos": {
+            "x": -257323.40776451322,
+            "y": -16.527900304371855,
+            "z": -16599.789540453254
+          },
+          "t": 50.25
+        },
+        "answerBy": 110.25
+      },
+      "op": {
+        "guards": [
+          "g57:patrol:astra"
+        ],
+        "level": 2,
+        "t0": 44,
+        "sys": "astra"
+      },
+      "after": {
+        "stop": {
+          "op": "lop207",
+          "phase": "released",
+          "guard": "g57",
+          "guardName": "아스트라 순찰대 1",
+          "since": 126.25,
+          "level": 2,
+          "guardSeen": {
+            "pos": {
+              "x": -257329.34452666767,
+              "y": -17.301061140031614,
+              "z": -16827.22630744932
+            },
+            "t": 126.25
+          },
+          "answerBy": 110.25,
+          "note": "검문 완료 — 압수 150단위, 벌금 납부 4,500 cr",
+          "end": "inspected",
+          "until": 426.25
+        },
+        "case": {
+          "state": "closed",
+          "paid": 2750,
+          "fine": 2750,
+          "served": 126.25,
+          "end": "paid"
+        },
+        "resist": 0,
+        "customsB": [
+          {
+            "item": "ore",
+            "n": 150,
+            "station": "astra"
+          }
+        ],
+        "aboard": {
+          "ore": 0,
+          "alloy": 0,
+          "crystal": 0
+        }
+      },
+      "credits": {
+        "before": 1000000,
+        "after": 995193.164583333
+      }
+    },
+    "l2": {
+      "case": {
+        "id": "law6",
+        "kind": "extortion",
+        "t": 169.75,
+        "sys": "drake",
+        "juris": "union",
+        "auth": "union",
+        "value": 1500,
+        "sev": 3.1,
+        "how": "victim",
+        "fine": 2750,
+        "paid": 0,
+        "state": "open",
+        "served": false,
+        "group": "g145"
+      },
+      "stop": {
+        "op": "lop239",
+        "phase": "demand",
+        "guard": "g81",
+        "guardName": "드레이크 변경 순찰대 1",
+        "since": 208.25,
+        "level": 2,
+        "guardSeen": {
+          "pos": {
+            "x": 33215.48557600656,
+            "y": -30.915181192165914,
+            "z": -1878.7359272932897
+          },
+          "t": 208.25
+        },
+        "answerBy": 268.25
+      },
+      "op": {
+        "guards": [
+          "g81:patrol:drake"
+        ],
+        "level": 2
+      },
+      "end": {
+        "phase": "fight",
+        "stop": {
+          "op": "lop239",
+          "phase": "fight",
+          "guard": "g81",
+          "guardName": "드레이크 변경 순찰대 1",
+          "since": 210.25,
+          "level": 3,
+          "guardSeen": {
+            "pos": {
+              "x": 33429.38502713841,
+              "y": -12.236018879711791,
+              "z": -1658.5619296360717
+            },
+            "t": 212.25
+          },
+          "answerBy": 268.25,
+          "note": "연합 경비대와 교전 중"
+        },
+        "sys": {
+          "x": 33532.861169780634,
+          "y": -31.236735123655023,
+          "z": -536.6577522015411
+        }
+      },
+      "fightEnd": {
+        "end": "battle_over"
+      },
+      "unpaid": 22500,
+      "payRefused": "치안 구역(연합 경비대 주둔 성계)의 공공 정거장 근처에 자사 함선이 있어야 납부할 수 있습니다",
+      "pay": {
+        "err": null,
+        "unpaidAfter": 0,
+        "level": 2,
+        "credits": {
+          "before": 993667.539583333,
+          "after": 971167.539583333
+        },
+        "cases": [
+          "guard_attack:probation:",
+          "smuggling:open:",
+          "extortion:closed:paid",
+          "salvage:closed:paid",
+          "flee:closed:paid",
+          "extortion:closed:paid",
+          "salvage:closed:paid",
+          "smuggling:closed:paid",
+          "smuggling:closed:paid",
+          "smuggling:closed:paid"
+        ]
+      }
+    },
+    "l3": {
+      "case": {
+        "id": "law11",
+        "kind": "extortion",
+        "t": 1275.5,
+        "sys": "helios",
+        "juris": "union",
+        "auth": "union",
+        "value": 1500,
+        "sev": 3.1,
+        "how": "guard",
+        "fine": 2750,
+        "paid": 0,
+        "state": "open",
+        "served": false,
+        "group": "g153"
+      },
+      "stop": {
+        "op": "lop896",
+        "phase": "demand",
+        "guard": "g28",
+        "guardName": "헬리오스 신속대응함대",
+        "since": 1338.25,
+        "level": 3,
+        "guardSeen": {
+          "pos": {
+            "x": -483378.13352261786,
+            "y": -77.22963072315451,
+            "z": 5960.67526415091
+          },
+          "t": 1338.25
+        },
+        "answerBy": 1398.25
+      },
+      "battle": {
+        "id": "e957",
+        "law": {
+          "op": "lop896",
+          "co": "p107"
+        },
+        "sides": [
+          [
+            "union"
+          ],
+          [
+            "p107"
+          ]
+        ],
+        "groups": [
+          "union:g28",
+          "p107:g153"
+        ],
+        "v": 2
+      },
+      "intruders": [],
+      "relations": {
+        "AB": false,
+        "AC": false,
+        "unionA": false
+      },
+      "end": {
+        "opEnd": "battle_over",
+        "guardAttack": [
+          {
+            "fine": 15000,
+            "how": "combat",
+            "state": "probation"
+          },
+          {
+            "fine": 15000,
+            "how": "combat",
+            "state": "open"
+          }
+        ],
+        "a3Ships": 1,
+        "stop": {
+          "op": "lop896",
+          "phase": "released",
+          "guard": "g28",
+          "guardName": "헬리오스 신속대응함대",
+          "since": 1414.25,
+          "level": 4,
+          "guardSeen": {
+            "pos": {
+              "x": -483032.92540108913,
+              "y": -22.444324268959704,
+              "z": 5307.9506029530385
+            },
+            "t": 1374.25
+          },
+          "answerBy": 1398.25,
+          "note": "교전 종료 — 수배 유지",
+          "end": "battle_over",
+          "until": 1714.25
+        }
+      },
+      "law": {
+        "level": 4,
+        "score": 28,
+        "unpaid": 27500,
+        "pursuits": [],
+        "cases": [
+          {
+            "id": "law9",
+            "kind": "guard_attack",
+            "t": 296.25,
+            "sys": "drake",
+            "juris": "union",
+            "auth": "union",
+            "value": 0,
+            "sev": 10,
+            "how": "combat",
+            "fine": 15000,
+            "paid": 15000,
+            "state": "probation",
+            "until": 4811.5,
+            "served": false,
+            "group": "g145"
+          },
+          {
+            "id": "law10",
+            "kind": "smuggling",
+            "t": 321,
+            "sys": "junction",
+            "juris": "union",
+            "auth": null,
+            "value": 359,
+            "sev": 1,
+            "how": "inspection",
+            "fine": 0,
+            "paid": 0,
+            "state": "open",
+            "served": false,
+            "group": "g145"
+          },
+          {
+            "id": "law11",
+            "kind": "extortion",
+            "t": 1275.5,
+            "sys": "helios",
+            "juris": "union",
+            "auth": "union",
+            "value": 1500,
+            "sev": 3.1,
+            "how": "guard",
+            "fine": 2750,
+            "paid": 0,
+            "state": "open",
+            "served": false,
+            "group": "g153"
+          },
+          {
+            "id": "law12",
+            "kind": "salvage",
+            "t": 1285,
+            "sys": "helios",
+            "juris": "union",
+            "auth": "union",
+            "value": 1500,
+            "sev": 2.1,
+            "how": "guard",
+            "fine": 1750,
+            "paid": 0,
+            "state": "open",
+            "served": false,
+            "group": "g153"
+          },
+          {
+            "id": "law13",
+            "kind": "resist",
+            "t": 1372.75,
+            "sys": "helios",
+            "juris": "union",
+            "auth": "union",
+            "value": 0,
+            "sev": 8,
+            "how": "guard",
+            "fine": 8000,
+            "paid": 0,
+            "state": "open",
+            "served": false,
+            "group": "g153"
+          },
+          {
+            "id": "law14",
+            "kind": "guard_attack",
+            "t": 1414.25,
+            "sys": "helios",
+            "juris": "union",
+            "auth": "union",
+            "value": 0,
+            "sev": 10,
+            "how": "combat",
+            "fine": 15000,
+            "paid": 0,
+            "state": "open",
+            "served": false,
+            "group": "g153"
+          },
+          {
+            "id": "law6",
+            "kind": "extortion",
+            "t": 169.75,
+            "sys": "drake",
+            "juris": "union",
+            "auth": "union",
+            "value": 1500,
+            "sev": 3.1,
+            "how": "victim",
+            "fine": 2750,
+            "paid": 2750,
+            "state": "closed",
+            "end": "paid",
+            "served": false,
+            "group": "g145"
+          },
+          {
+            "id": "law7",
+            "kind": "salvage",
+            "t": 180,
+            "sys": "drake",
+            "juris": "union",
+            "auth": "union",
+            "value": 1500,
+            "sev": 2.1,
+            "how": "victim",
+            "fine": 1750,
+            "paid": 1750,
+            "state": "closed",
+            "end": "paid",
+            "served": false,
+            "group": "g145"
+          },
+          {
+            "id": "law8",
+            "kind": "flee",
+            "t": 209,
+            "sys": "drake",
+            "juris": "union",
+            "auth": "union",
+            "value": 0,
+            "sev": 4,
+            "how": "guard",
+            "fine": 3000,
+            "paid": 3000,
+            "state": "closed",
+            "end": "paid",
+            "served": false,
+            "group": "g145"
+          },
+          {
+            "id": "law1",
+            "kind": "extortion",
+            "t": 43.5,
+            "sys": "astra",
+            "juris": "union",
+            "auth": "union",
+            "value": 1500,
+            "sev": 3.1,
+            "how": "guard",
+            "fine": 2750,
+            "paid": 2750,
+            "state": "closed",
+            "end": "paid",
+            "served": true,
+            "group": "g137"
+          },
+          {
+            "id": "law2",
+            "kind": "salvage",
+            "t": 53.75,
+            "sys": "astra",
+            "juris": "union",
+            "auth": "union",
+            "value": 1500,
+            "sev": 2.1,
+            "how": "guard",
+            "fine": 1750,
+            "paid": 1750,
+            "state": "closed",
+            "end": "paid",
+            "served": true,
+            "group": "g137"
+          },
+          {
+            "id": "law3",
+            "kind": "smuggling",
+            "t": 126.25,
+            "sys": "astra",
+            "juris": "union",
+            "auth": "union",
+            "value": 22,
+            "sev": 1,
+            "how": "inspection",
+            "fine": 0,
+            "paid": 0,
+            "state": "closed",
+            "end": "paid",
+            "served": true,
+            "group": "g137"
+          },
+          {
+            "id": "law4",
+            "kind": "smuggling",
+            "t": 126.25,
+            "sys": "astra",
+            "juris": "union",
+            "auth": "union",
+            "value": 17,
+            "sev": 1,
+            "how": "inspection",
+            "fine": 0,
+            "paid": 0,
+            "state": "closed",
+            "end": "paid",
+            "served": true,
+            "group": "g137"
+          },
+          {
+            "id": "law5",
+            "kind": "smuggling",
+            "t": 126.25,
+            "sys": "astra",
+            "juris": "union",
+            "auth": "union",
+            "value": 381,
+            "sev": 1,
+            "how": "inspection",
+            "fine": 0,
+            "paid": 0,
+            "state": "closed",
+            "end": "paid",
+            "served": true,
+            "group": "g137"
+          }
+        ]
+      }
+    },
+    "ore": {
+      "held": 591,
+      "customs": 288
+    },
+    "motion": {
+      "samples": 2012,
+      "worstRatio": 0.994,
+      "worst": {
+        "ship": "s60",
+        "op": "lop207",
+        "d": 8750,
+        "dt": 1.25,
+        "warp": true
+      },
+      "gateJumps": 0,
+      "ops": 35,
+      "guards": [
+        "g57",
+        "g81",
+        "g86",
+        "g63",
+        "g28"
+      ],
+      "unionShipsStart": 63,
+      "unionShipsMax": 63,
+      "newUnionShips": 1
+    }
+  },
+  "realWebSockets": 3,
+  "seconds": 1421
+}
