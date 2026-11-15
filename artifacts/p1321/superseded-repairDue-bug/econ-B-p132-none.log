@@ -1,0 +1,210 @@
+{"hour":1,"credits":67880,"comply":11,"threats":11,"sold":71357,"rShips":6,"delivered":{"alloy":11700},"ms":12.98}
+{"hour":2,"credits":102894,"comply":16,"threats":16,"sold":109784,"rShips":6,"delivered":{"alloy":23850},"ms":14.27}
+{"hour":3,"credits":137623,"comply":22,"threats":22,"sold":147965,"rShips":6,"delivered":{"alloy":36675},"ms":15.46}
+{"hour":4,"credits":180195,"comply":27,"threats":27,"sold":194092,"rShips":6,"delivered":{"alloy":48375},"ms":14.36}
+{"hour":5,"credits":222169,"comply":33,"threats":33,"sold":239713,"rShips":6,"delivered":{"alloy":60975},"ms":12.67}
+{"hour":6,"credits":253000,"comply":38,"threats":38,"sold":273940,"rShips":6,"delivered":{"alloy":72900},"ms":13.08}
+{"hour":7,"credits":277135,"comply":44,"threats":44,"sold":301623,"rShips":6,"delivered":{"alloy":84150},"ms":12.07}
+{"hour":8,"credits":301387,"comply":50,"threats":50,"sold":329299,"rShips":6,"delivered":{"alloy":97425},"ms":15.58}
+{
+ "tag": "B-p132-none-8h-s13210",
+ "hours": 8,
+ "seed": 13210,
+ "cargo": "B",
+ "items": [
+  "alloy"
+ ],
+ "raid": "p132",
+ "escort": "none",
+ "hold": false,
+ "policy": "nonlethal",
+ "error": null,
+ "restartEqual": true,
+ "attempts": {
+  "victim": 50,
+  "npcTraders": 0
+ },
+ "complies": {
+  "victim": 50,
+  "npcTraders": 0
+ },
+ "responses": {
+  "comply/V": 50,
+  "drop/V": 50
+ },
+ "droppedUnits": {
+  "V/alloy": 11250
+ },
+ "droppedReferenceValue": {
+  "victim": 360000,
+  "npcTraders": 0
+ },
+ "recoveredUnits": {
+  "drop/V/alloy": 11250
+ },
+ "recoveredReferenceValue": 360000,
+ "recoveredByOthers": {},
+ "victimDropDecay": 0,
+ "sales": {
+  "credits": 329299,
+  "byItem": {
+   "alloy": {
+    "units": 10018,
+    "cr": 329299,
+    "perUnit": 32.87,
+    "refPerUnit": 32
+   }
+  },
+  "count": 45
+ },
+ "unsold": {
+  "alloy": {
+   "units": 1007,
+   "referenceValue": 32224
+  },
+  "alloy(aboard)": {
+   "units": 225,
+   "referenceValue": 7200
+  }
+ },
+ "unsoldReferenceValue": 39424,
+ "costEvents": {
+  "fleet_upkeep": 19800,
+  "warehouse_rent": 0,
+  "supplies": 803,
+  "maintenance": 7310
+ },
+ "ledger": {
+  "inc": {
+   "sales": 329301,
+   "other": 7579
+  },
+  "exp": {
+   "upkeep": 27910
+  }
+ },
+ "upkeep": 27910,
+ "repairPaid": 0,
+ "repairDue": 0,
+ "lostHulls": {
+  "ships": 0,
+  "value": 0,
+  "list": []
+ },
+ "investment": 163000,
+ "netCashFlow": 301387,
+ "finalPL": 301387,
+ "paybackHours": 4.3,
+ "oldP132Formula": 340811,
+ "victim": {
+  "delivered": {
+   "alloy": 97425
+  },
+  "shipsLost": 0,
+  "lostValue": 0,
+  "escorts": 0
+ },
+ "npcPirateThreats": 10,
+ "engagementsEnd": 0,
+ "tick": {
+  "meanMs": 13.808
+ },
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": 67880,
+   "comply": 11,
+   "threats": 11,
+   "sold": 71357,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 11700
+   },
+   "ms": 12.98
+  },
+  {
+   "hour": 2,
+   "credits": 102894,
+   "comply": 16,
+   "threats": 16,
+   "sold": 109784,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 23850
+   },
+   "ms": 14.27
+  },
+  {
+   "hour": 3,
+   "credits": 137623,
+   "comply": 22,
+   "threats": 22,
+   "sold": 147965,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 36675
+   },
+   "ms": 15.46
+  },
+  {
+   "hour": 4,
+   "credits": 180195,
+   "comply": 27,
+   "threats": 27,
+   "sold": 194092,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 48375
+   },
+   "ms": 14.36
+  },
+  {
+   "hour": 5,
+   "credits": 222169,
+   "comply": 33,
+   "threats": 33,
+   "sold": 239713,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 60975
+   },
+   "ms": 12.67
+  },
+  {
+   "hour": 6,
+   "credits": 253000,
+   "comply": 38,
+   "threats": 38,
+   "sold": 273940,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 72900
+   },
+   "ms": 13.08
+  },
+  {
+   "hour": 7,
+   "credits": 277135,
+   "comply": 44,
+   "threats": 44,
+   "sold": 301623,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 84150
+   },
+   "ms": 12.07
+  },
+  {
+   "hour": 8,
+   "credits": 301387,
+   "comply": 50,
+   "threats": 50,
+   "sold": 329299,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 97425
+   },
+   "ms": 15.58
+  }
+ ]
+}

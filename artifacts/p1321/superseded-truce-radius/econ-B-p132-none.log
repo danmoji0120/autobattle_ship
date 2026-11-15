@@ -1,0 +1,207 @@
+{"hour":1,"credits":67801,"comply":11,"threats":11,"sold":71279,"rShips":6,"delivered":{"alloy":12150},"ms":13.96}
+{"hour":2,"credits":102110,"comply":16,"threats":16,"sold":109003,"rShips":6,"delivered":{"alloy":23850},"ms":12.1}
+{"hour":3,"credits":144237,"comply":22,"threats":22,"sold":154715,"rShips":6,"delivered":{"alloy":36900},"ms":11.36}
+{"hour":4,"credits":179219,"comply":27,"threats":27,"sold":193121,"rShips":6,"delivered":{"alloy":48825},"ms":13.87}
+{"hour":5,"credits":220858,"comply":33,"threats":33,"sold":238348,"rShips":6,"delivered":{"alloy":60975},"ms":14.3}
+{"hour":6,"credits":252931,"comply":39,"threats":39,"sold":273974,"rShips":6,"delivered":{"alloy":72225},"ms":15.43}
+{"hour":7,"credits":277201,"comply":44,"threats":44,"sold":301667,"rShips":6,"delivered":{"alloy":85050},"ms":14.62}
+{"hour":8,"credits":301312,"comply":50,"threats":50,"sold":329360,"rShips":6,"delivered":{"alloy":96750},"ms":11.71}
+{
+ "tag": "B-p132-none-8h-s13210",
+ "hours": 8,
+ "seed": 13210,
+ "cargo": "B",
+ "items": [
+  "alloy"
+ ],
+ "raid": "p132",
+ "escort": "none",
+ "hold": false,
+ "policy": "nonlethal",
+ "victimPolicy": "balanced",
+ "error": null,
+ "restartEqual": true,
+ "attempts": {
+  "victim": 50,
+  "npcTraders": 0
+ },
+ "complies": {
+  "victim": 50,
+  "npcTraders": 0
+ },
+ "responses": {
+  "comply/V": 50,
+  "drop/V": 50
+ },
+ "droppedUnits": {
+  "V/alloy": 11250
+ },
+ "droppedReferenceValue": {
+  "victim": 360000,
+  "npcTraders": 0
+ },
+ "recoveredUnits": {
+  "drop/V/alloy": 11250
+ },
+ "recoveredReferenceValue": 360000,
+ "recoveredByOthers": {},
+ "victimDropDecay": 0,
+ "sales": {
+  "credits": 329360,
+  "byItem": {
+   "alloy": {
+    "units": 10092,
+    "cr": 329360,
+    "perUnit": 32.64,
+    "refPerUnit": 32
+   }
+  },
+  "count": 46
+ },
+ "unsold": {
+  "alloy": {
+   "units": 1158,
+   "referenceValue": 37056
+  }
+ },
+ "unsoldReferenceValue": 37056,
+ "costEvents": {
+  "fleet_upkeep": 19800,
+  "warehouse_rent": 0,
+  "supplies": 803,
+  "maintenance": 7446
+ },
+ "ledger": {
+  "inc": {
+   "sales": 329362,
+   "other": 7712
+  },
+  "exp": {
+   "upkeep": 28046
+  }
+ },
+ "upkeep": 28046,
+ "repairPaid": 0,
+ "repairDue": 0,
+ "lostHulls": {
+  "ships": 0,
+  "value": 0,
+  "list": []
+ },
+ "investment": 163000,
+ "netCashFlow": 301312,
+ "finalPL": 301312,
+ "paybackHours": 4.3,
+ "oldP132Formula": 338368,
+ "victim": {
+  "delivered": {
+   "alloy": 96750
+  },
+  "shipsLost": 0,
+  "lostValue": 0,
+  "escorts": 0
+ },
+ "npcPirateThreats": 8,
+ "engagementsEnd": 0,
+ "tick": {
+  "meanMs": 13.418
+ },
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": 67801,
+   "comply": 11,
+   "threats": 11,
+   "sold": 71279,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 12150
+   },
+   "ms": 13.96
+  },
+  {
+   "hour": 2,
+   "credits": 102110,
+   "comply": 16,
+   "threats": 16,
+   "sold": 109003,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 23850
+   },
+   "ms": 12.1
+  },
+  {
+   "hour": 3,
+   "credits": 144237,
+   "comply": 22,
+   "threats": 22,
+   "sold": 154715,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 36900
+   },
+   "ms": 11.36
+  },
+  {
+   "hour": 4,
+   "credits": 179219,
+   "comply": 27,
+   "threats": 27,
+   "sold": 193121,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 48825
+   },
+   "ms": 13.87
+  },
+  {
+   "hour": 5,
+   "credits": 220858,
+   "comply": 33,
+   "threats": 33,
+   "sold": 238348,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 60975
+   },
+   "ms": 14.3
+  },
+  {
+   "hour": 6,
+   "credits": 252931,
+   "comply": 39,
+   "threats": 39,
+   "sold": 273974,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 72225
+   },
+   "ms": 15.43
+  },
+  {
+   "hour": 7,
+   "credits": 277201,
+   "comply": 44,
+   "threats": 44,
+   "sold": 301667,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 85050
+   },
+   "ms": 14.62
+  },
+  {
+   "hour": 8,
+   "credits": 301312,
+   "comply": 50,
+   "threats": 50,
+   "sold": 329360,
+   "rShips": 6,
+   "delivered": {
+    "alloy": 96750
+   },
+   "ms": 11.71
+  }
+ ]
+}

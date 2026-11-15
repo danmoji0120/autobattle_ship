@@ -1,0 +1,166 @@
+{
+  "case1_nearCheap_vs_farElectronics": {
+    "picks": [
+      {
+        "t": 1,
+        "target": "g32",
+        "name": "전자선(원거리)"
+      }
+    ],
+    "demands": [
+      {
+        "t": 13,
+        "kind": "threat",
+        "victim": "약탈대",
+        "value": 15000
+      },
+      {
+        "t": 13,
+        "kind": "comply",
+        "victim": "전자선(원거리)",
+        "value": 15000
+      }
+    ],
+    "recovered": {
+      "electronics": 100
+    },
+    "cargoRef": {
+      "ore600": 6000,
+      "electronics200": 30000
+    },
+    "bid": {
+      "ore": {
+        "perUnit": 3.7,
+        "station": "drakeout",
+        "ref": 10
+      },
+      "electronics": {
+        "perUnit": 168.7,
+        "station": "rustport",
+        "ref": 150
+      }
+    }
+  },
+  "case2_escortedElectronics_vs_aloneAlloy": {
+    "picks": [
+      {
+        "t": 1,
+        "target": "g28",
+        "name": "전자선(강호위)"
+      },
+      {
+        "t": 4,
+        "target": "g38",
+        "name": "합금선(무호위)"
+      }
+    ],
+    "demands": [
+      {
+        "t": 4,
+        "kind": "threat",
+        "victim": "약탈대",
+        "value": 22500
+      },
+      {
+        "t": 4,
+        "kind": "resist",
+        "victim": "전자선(강호위)",
+        "value": 22500
+      },
+      {
+        "t": 13,
+        "kind": "threat",
+        "victim": "약탈대",
+        "value": 4800
+      },
+      {
+        "t": 13,
+        "kind": "comply",
+        "victim": "합금선(무호위)",
+        "value": 4800
+      }
+    ],
+    "recovered": {
+      "alloy": 150
+    },
+    "raiderShipsLeft": 5,
+    "escortWarshipsAlive": 0,
+    "escortGroup": {
+      "op": "escort",
+      "ships": 0
+    },
+    "escortAtStart": "destroyer×2 + frigate, escort op on 전자선",
+    "wrecks": [
+      {
+        "sources": [
+          "W:destroyer",
+          "W:destroyer",
+          "W:frigate",
+          "R:corvette"
+        ]
+      }
+    ],
+    "haulerAlive": 1,
+    "engagements": 0
+  },
+  "case3_cheapOnlyLane": {
+    "picks": [
+      {
+        "t": 1,
+        "target": "g36",
+        "name": "소량 광석선3"
+      }
+    ],
+    "demands": [
+      {
+        "t": 14,
+        "kind": "threat",
+        "victim": "약탈대",
+        "value": 300
+      },
+      {
+        "t": 14,
+        "kind": "comply",
+        "victim": "소량 광석선3",
+        "value": 300
+      }
+    ],
+    "recovered": {
+      "ore": 30
+    },
+    "bid": {
+      "perUnit": 3.7,
+      "station": "nova",
+      "ref": 10
+    }
+  },
+  "case4_fullHold": {
+    "picks": [
+      {
+        "t": 1,
+        "target": "g28",
+        "name": "전자선"
+      }
+    ],
+    "demands": [
+      {
+        "t": 4,
+        "kind": "threat",
+        "victim": "약탈대",
+        "value": 15000
+      },
+      {
+        "t": 4,
+        "kind": "comply",
+        "victim": "전자선",
+        "value": 15000
+      }
+    ],
+    "recovered": {
+      "electronics": 100
+    },
+    "roomBefore": 28,
+    "ownOreAboard": 450,
+    "dropsLeft": []
+  }
+}

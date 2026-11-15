@@ -1,0 +1,24 @@
+done D-p132-none
+done A-p132-none
+done B-p132-none
+done C-p132-none
+Terminated
+done C-small-none
+Terminated
+done C-split-none
+Terminated
+done C-p132-none-hold
+Terminated
+done C-medium-none
+environment: line 1:  3232 Killed                  env $(echo $1 | tr , " ") npx vite-node scripts/piracy/p1321-econ.ts 8 13210 > "artifacts/p1321/econ-$2.log" 2>&1
+done C-medium-medium
+environment: line 1:  3227 Killed                  env $(echo $1 | tr , " ") npx vite-node scripts/piracy/p1321-econ.ts 8 13210 > "artifacts/p1321/econ-$2.log" 2>&1
+done C-p132-medium
+environment: line 1:  3226 Killed                  env $(echo $1 | tr , " ") npx vite-node scripts/piracy/p1321-econ.ts 8 13210 > "artifacts/p1321/econ-$2.log" 2>&1
+done C-p132-strong
+environment: line 1:  3225 Killed                  env $(echo $1 | tr , " ") npx vite-node scripts/piracy/p1321-econ.ts 8 13210 > "artifacts/p1321/econ-$2.log" 2>&1
+done C-p132-light
+environment: line 1:  3409 Killed                  env $(echo $1 | tr , " ") npx vite-node scripts/piracy/p1321-econ.ts 8 13210 > "artifacts/p1321/econ-$2.log" 2>&1
+done A-medium-none
+environment: line 1:  3405 Killed                  env $(echo $1 | tr , " ") npx vite-node scripts/piracy/p1321-econ.ts 8 13210 > "artifacts/p1321/econ-$2.log" 2>&1
+done C-p132-strong-force

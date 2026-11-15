@@ -14,6 +14,8 @@ import net from 'node:net';
 import WebSocket from 'ws';
 import { WorldSim } from '../../src/world/sim';
 import { place, scenario1, scenario2, scenario3, scenario4, sum, type Driver } from './p132-scenarios';
+import { placeP1321, scenario5, scenario6, scenario7a, s7compare, P1321_ITEMS } from './p1321-scenarios';
+const P1321 = !process.env.NO_P1321;   // P13.2.1: also run S5–S7 (truce isolation, direct attack, restart with active truces)
 
 const SEED = process.env.SEED ?? '9413';
 const label = process.argv[2] ?? 'run';
@@ -89,7 +91,7 @@ try {
   // starting assets, placed once with the server stopped
   const file = JSON.parse(readFileSync(save, 'utf8'));
   const sim = new WorldSim(file.world, { migrateContent: false });
-  const ids = place(sim, A.id, B.id, C.id);
+  const ids = { ...place(sim, A.id, B.id, C.id), ...(P1321 ? placeP1321(sim, A.id, B.id, C.id) : {}) };
   file.world = JSON.parse(sim.serialize()); writeFileSync(save, JSON.stringify(file));
   facts.ids = ids;
   await start(); await A.connect(); await B.connect(); await C.connect();
@@ -101,8 +103,24 @@ try {
     log: (ok, l, extra) => check(ok, l, extra),
     info: (l, extra) => { infos.push({ label: l, ...(extra === undefined ? {} : { extra }) }); console.log('INFO', l, extra !== undefined ? JSON.stringify(extra) : ''); },
   };
-  const runs = await Promise.allSettled([scenario1, scenario2, scenario3, scenario4].map(f => f(d, ids, A.id, B.id, C.id, facts)));
+  const saveNow = () => readWorld();
+  const list = [scenario1, scenario2, scenario3, scenario4, ...(P1321 ? [scenario5, scenario6] : [])];
+  const runs = await Promise.allSettled(list.map(f => (f as any)(d, ids, A.id, B.id, C.id, facts, saveNow)));
   runs.forEach((r, i) => { if (r.status === 'rejected') check(false, `scenario ${i + 1} ran to the end`, { error: String(r.reason).slice(0, 300) }); });
+  if (P1321) {
+    // S7: two plunders → two active truces + containers → server restart while they are active
+    const r7 = await scenario7a(d, ids, A.id, B.id, C.id, facts, saveNow).then(() => null, e => e);
+    if (r7) check(false, 'scenario 7 ran to the end', { error: String(r7).slice(0, 300) });
+    else {
+      await delay(1200); await stop(); const w1 = readWorld();
+      await start(); await A.connect(); await B.connect(); await C.connect(); await delay(1500);
+      const w2 = readWorld();
+      s7compare(d, ids, w1, w2, facts);
+      // after the restart the truce still keeps the S7 pairs apart (they stay next to each other recovering)
+      const near = Object.values<any>(A.snap().engagements ?? {}).filter(e => (e.groupRefs ?? []).some((g: string) => [ids.s7a5, ids.s7a6, ids.s7b5, ids.s7b6].includes(g)));
+      check(near.length === 0, 'S7-3: after the restart no S7 plunder party is in a battle with its truce partner', { engagements: near.map(e => e.groupRefs) });
+    }
+  }
   // restart: containers, wrecks, raid book, policies come back
   await delay(2000);
   await stop();
@@ -127,13 +145,14 @@ try {
   };
   const gone = (item: string) => Object.entries(flows).filter(([k]) => /^consume\/(combat_cargo_loss|drop_decay|wreck_decay)\//.test(k) && co.some(c => k.endsWith(`/${c}/${item}`))).reduce((a, [, n]) => a + n, 0);
   const acct: Record<string, any> = {};
-  for (const [item, start0] of [['ore', 900], ['metal', 300], ['electronics', 120], ['composite', 600], ['machinery', 2000]] as const) {
+  const extra = P1321 ? Object.values(P1321_ITEMS) : [];
+  for (const [item, start0] of [['ore', 900], ['metal', 300], ['electronics', 120], ['composite', 600], ['machinery', 2000], ...extra] as const) {
     const h = held(w2, item), g = gone(item);
     acct[item] = { start: start0, heldNow: +h.toFixed(3), destroyed: +g.toFixed(3) };
   }
   facts.accounting = acct;
   // ore/metal/electronics/composite: only these scenarios' companies hold them (S4's machinery may mix with the band's other loot in the lair)
-  for (const item of ['ore', 'metal', 'electronics', 'composite']) check(Math.abs(acct[item].heldNow + acct[item].destroyed - acct[item].start) < 1e-6, `accounting ${item}: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly`, acct[item]);
+  for (const item of ['ore', 'metal', 'electronics', 'composite', ...extra.map(x => x[0])]) check(Math.abs(acct[item].heldNow + acct[item].destroyed - acct[item].start) < 1e-6, `accounting ${item}: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly`, acct[item]);
   const dr4 = Object.values<any>(w2.drops ?? {}).find(x => x.owner === B.id && x.by === 'pirates');
   if (dr4) { const t = Object.values<any>(dr4.taken).reduce((a, m) => a + (m.machinery ?? 0), 0); const left = dr4.lots.reduce((a: number, l: any) => a + l.n, 0); facts.s4acct = { initial: dr4.initial, taken: dr4.taken, left }; check(t + left === dr4.initial, 'S4-6: the pirates\' container in the save: taken (pirates, B) + left = what was jettisoned', facts.s4acct); }
   else infos.push({ label: 'S4 container gone from the save (exhausted or expired) — its totals are in the analytics', extra: Object.fromEntries(Object.entries(flows).filter(([k]) => k.endsWith('/machinery'))) });
@@ -150,9 +169,10 @@ try {
 } catch (e) { check(false, 'run', { error: String((e as Error)?.stack ?? e).slice(0, 800) }); }
 finally {
   await stop();
-  mkdirSync('artifacts/p132', { recursive: true });
+  const outDir = P1321 ? 'artifacts/p1321' : 'artifacts/p132';
+  mkdirSync(outDir, { recursive: true });
   const passed = checks.filter(c => c.ok).length, failed = checks.filter(c => !c.ok).length;
-  writeFileSync(`artifacts/p132/server-${label}.json`, JSON.stringify({ passed, failed, checks, infos, facts, realWebSockets: 3, restarts: 2, seconds: Math.round((Date.now() - T0) / 1000) }, null, 2));
+  writeFileSync(`${outDir}/server-${label}.json`, JSON.stringify({ passed, failed, checks, infos, facts, realWebSockets: 3, restarts: P1321 ? 3 : 2, seconds: Math.round((Date.now() - T0) / 1000) }, null, 2));
   console.log(JSON.stringify({ passed, failed, seconds: Math.round((Date.now() - T0) / 1000) }));
   process.exit(failed ? 1 : 0);
 }

@@ -1,0 +1,242 @@
+{"hour":1,"credits":122587,"comply":11,"threats":11,"sold":125989,"rShips":6,"delivered":{"ore":11025,"alloy":10575,"electronics":10575},"ms":12.9}
+{"hour":2,"credits":156381,"comply":21,"threats":21,"sold":163326,"rShips":6,"delivered":{"ore":22950,"alloy":21825,"electronics":21150},"ms":14}
+{"hour":3,"credits":236496,"comply":33,"threats":33,"sold":246927,"rShips":6,"delivered":{"ore":32850,"alloy":31500,"electronics":30825},"ms":15.8}
+{"hour":4,"credits":260936,"comply":33,"threats":33,"sold":273938,"rShips":6,"delivered":{"ore":32850,"alloy":31500,"electronics":30825},"ms":12.78}
+{"hour":5,"credits":285372,"comply":33,"threats":33,"sold":300978,"rShips":6,"delivered":{"ore":32850,"alloy":31500,"electronics":30825},"ms":11.98}
+{"hour":6,"credits":309739,"comply":33,"threats":33,"sold":327916,"rShips":6,"delivered":{"ore":32850,"alloy":31500,"electronics":30825},"ms":11.5}
+{"hour":7,"credits":334221,"comply":33,"threats":33,"sold":354969,"rShips":6,"delivered":{"ore":32850,"alloy":31500,"electronics":30825},"ms":11.75}
+{"hour":8,"credits":358620,"comply":33,"threats":33,"sold":381940,"rShips":6,"delivered":{"ore":32850,"alloy":31500,"electronics":30825},"ms":11.85}
+{
+ "tag": "D-p132-none-8h-s13210",
+ "hours": 8,
+ "seed": 13210,
+ "cargo": "D",
+ "items": [
+  "ore",
+  "alloy",
+  "electronics"
+ ],
+ "raid": "p132",
+ "escort": "none",
+ "hold": false,
+ "policy": "nonlethal",
+ "error": null,
+ "restartEqual": true,
+ "attempts": {
+  "victim": 33,
+  "npcTraders": 0
+ },
+ "complies": {
+  "victim": 33,
+  "npcTraders": 0
+ },
+ "responses": {
+  "comply/V": 33,
+  "drop/V": 33
+ },
+ "droppedUnits": {
+  "V/electronics": 4275,
+  "V/alloy": 1800,
+  "V/ore": 1350
+ },
+ "droppedReferenceValue": {
+  "victim": 712350,
+  "npcTraders": 0
+ },
+ "recoveredUnits": {
+  "drop/V/electronics": 4275,
+  "drop/V/alloy": 1800,
+  "drop/V/ore": 1350
+ },
+ "recoveredReferenceValue": 712350,
+ "recoveredByOthers": {},
+ "victimDropDecay": 0,
+ "sales": {
+  "credits": 381940,
+  "byItem": {
+   "alloy": {
+    "units": 1800,
+    "cr": 59607,
+    "perUnit": 33.12,
+    "refPerUnit": 32
+   },
+   "electronics": {
+    "units": 3422,
+    "cr": 319637,
+    "perUnit": 93.41,
+    "refPerUnit": 150
+   },
+   "ore": {
+    "units": 1350,
+    "cr": 2695,
+    "perUnit": 2,
+    "refPerUnit": 10
+   }
+  },
+  "count": 66
+ },
+ "unsold": {
+  "electronics": {
+   "units": 853,
+   "referenceValue": 127950
+  }
+ },
+ "unsoldReferenceValue": 127950,
+ "costEvents": {
+  "fleet_upkeep": 19800,
+  "warehouse_rent": 0,
+  "supplies": 803,
+  "maintenance": 2717
+ },
+ "ledger": {
+  "inc": {
+   "sales": 381940,
+   "other": 4494
+  },
+  "exp": {
+   "upkeep": 23317
+  }
+ },
+ "upkeep": 23317,
+ "repairPaid": 0,
+ "repairDue": 0,
+ "lostHulls": {
+  "ships": 0,
+  "value": 0,
+  "list": []
+ },
+ "investment": 163000,
+ "netCashFlow": 358620,
+ "finalPL": 358620,
+ "paybackHours": 3.6,
+ "oldP132Formula": 486570,
+ "victim": {
+  "delivered": {
+   "ore": 32850,
+   "alloy": 31500,
+   "electronics": 30825
+  },
+  "shipsLost": 6,
+  "lostValue": 55800,
+  "escorts": 0
+ },
+ "npcPirateThreats": 5,
+ "engagementsEnd": 0,
+ "tick": {
+  "meanMs": 12.82
+ },
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": 122587,
+   "comply": 11,
+   "threats": 11,
+   "sold": 125989,
+   "rShips": 6,
+   "delivered": {
+    "ore": 11025,
+    "alloy": 10575,
+    "electronics": 10575
+   },
+   "ms": 12.9
+  },
+  {
+   "hour": 2,
+   "credits": 156381,
+   "comply": 21,
+   "threats": 21,
+   "sold": 163326,
+   "rShips": 6,
+   "delivered": {
+    "ore": 22950,
+    "alloy": 21825,
+    "electronics": 21150
+   },
+   "ms": 14
+  },
+  {
+   "hour": 3,
+   "credits": 236496,
+   "comply": 33,
+   "threats": 33,
+   "sold": 246927,
+   "rShips": 6,
+   "delivered": {
+    "ore": 32850,
+    "alloy": 31500,
+    "electronics": 30825
+   },
+   "ms": 15.8
+  },
+  {
+   "hour": 4,
+   "credits": 260936,
+   "comply": 33,
+   "threats": 33,
+   "sold": 273938,
+   "rShips": 6,
+   "delivered": {
+    "ore": 32850,
+    "alloy": 31500,
+    "electronics": 30825
+   },
+   "ms": 12.78
+  },
+  {
+   "hour": 5,
+   "credits": 285372,
+   "comply": 33,
+   "threats": 33,
+   "sold": 300978,
+   "rShips": 6,
+   "delivered": {
+    "ore": 32850,
+    "alloy": 31500,
+    "electronics": 30825
+   },
+   "ms": 11.98
+  },
+  {
+   "hour": 6,
+   "credits": 309739,
+   "comply": 33,
+   "threats": 33,
+   "sold": 327916,
+   "rShips": 6,
+   "delivered": {
+    "ore": 32850,
+    "alloy": 31500,
+    "electronics": 30825
+   },
+   "ms": 11.5
+  },
+  {
+   "hour": 7,
+   "credits": 334221,
+   "comply": 33,
+   "threats": 33,
+   "sold": 354969,
+   "rShips": 6,
+   "delivered": {
+    "ore": 32850,
+    "alloy": 31500,
+    "electronics": 30825
+   },
+   "ms": 11.75
+  },
+  {
+   "hour": 8,
+   "credits": 358620,
+   "comply": 33,
+   "threats": 33,
+   "sold": 381940,
+   "rShips": 6,
+   "delivered": {
+    "ore": 32850,
+    "alloy": 31500,
+    "electronics": 30825
+   },
+   "ms": 11.85
+  }
+ ]
+}
