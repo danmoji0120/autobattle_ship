@@ -1,0 +1,47 @@
+{
+  "code": "prefilter+bound",
+  "note": "rows: estimateTarget over every cargo-carrying non-raider group of each system after 1 h natural P10 traffic (radius unlimited), warm JIT, fresh price cache per search. dense: one real lane-plunder search step (stepPlunder, search phase) over 40 victims in one place. search runs at most every 2 s per searching raid",
+  "rows": [
+    {
+      "policy": "nonlethal",
+      "systemsSearched": 3,
+      "candidates": 4,
+      "usPerEstimate": 126.3,
+      "msPerSystemSearchAvg": 0.168,
+      "msPerSystemSearchWorst": 0.245,
+      "strategicTickMs": 7.209
+    },
+    {
+      "policy": "force",
+      "systemsSearched": 3,
+      "candidates": 4,
+      "usPerEstimate": 143.6,
+      "msPerSystemSearchAvg": 0.192,
+      "msPerSystemSearchWorst": 0.331,
+      "strategicTickMs": 7.209
+    }
+  ],
+  "dense": [
+    {
+      "case": "valuable (alloy 50, metal 200)",
+      "candidates": 40,
+      "msPerSearch": 0.667,
+      "searchEverySec": 2,
+      "why": null,
+      "est": {
+        "p": 1,
+        "sale": 5414,
+        "risk": 0,
+        "profit": 5414
+      }
+    },
+    {
+      "case": "low value (ore 40)",
+      "candidates": 40,
+      "msPerSearch": 0.45,
+      "searchEverySec": 2,
+      "why": "수익성 있는 목표 없음 (41척 검토)",
+      "est": null
+    }
+  ]
+}

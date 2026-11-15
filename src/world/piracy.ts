@@ -545,6 +545,8 @@ function search(h: Host, g: WGroup, op: PlunderOp, P: PlunderState, from: V): WG
   let best: WGroup | undefined, bs = 0, bestEst: TargetEstimate | undefined, seen = 0;
   const r = (op.radius ?? 3000) + PIR.searchPad;
   const cache = new Map<string, { st: Station; bid: number }[]>();
+  const cands: { t: WGroup; s: WShip; ub: number; i: number }[] = [];
+  const speed = Math.max(50, h.groupSpeedOf(g));
   for (const t of Object.values(h.st.groups)) {
     if ((P.ignore?.[t.id] ?? 0) > h.time || !legalVictim(h, g, t, op)) continue;
     const s = victimShip(h, t); if (!s || dist(s.pos, op.at) > r) continue;
@@ -557,9 +559,21 @@ function search(h: Host, g: WGroup, op: PlunderOp, P: PlunderState, from: V): WG
       continue;
     }
     seen++;
-    const e = estimateTarget(h, g, t, s, op, from, cache);
+    // exact upper bound first: profit ≤ the real sale of everything demanded (p ≤ 1, risk ≥ 0, recovered ≤ demanded),
+    // so a cheap quote skips the costly judgement (escape route search) without changing any choice
+    const ub = bestSale(h, g.owner, wanted(h, s, op.demand, op.item), cache);
+    if (ub < PIR.aiMinProfit) continue;
+    cands.push({ t, s, ub: ub / (dist(s.pos, from) / speed + PIR.aiFixedTime), i: cands.length });
+  }
+  // best upper bound first; stop once no remaining candidate can beat the best real score. Same choice as checking
+  // all of them in group order (a tie goes to the earlier group, as before)
+  cands.sort((a, b) => b.ub - a.ub || a.i - b.i);
+  let bi = Infinity;
+  for (const c of cands) {
+    if (best && c.ub < bs) break;
+    const e = estimateTarget(h, g, c.t, c.s, op, from, cache);
     if (e.profit < PIR.aiMinProfit) continue;
-    if (e.score > bs) { bs = e.score; best = t; bestEst = e; }
+    if (e.score > bs || (e.score === bs && best && c.i < bi)) { bs = e.score; best = c.t; bestEst = e; bi = c.i; }
   }
   if (op.policy !== 'destroy') {
     if (bestEst) P.est = { p: round2(bestEst.p), sale: Math.round(bestEst.sale), risk: Math.round(bestEst.risk), profit: Math.round(bestEst.profit) };

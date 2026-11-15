@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { WorldSim } from '../src/world/sim';
 import type { V, WGroup, WShip, Cargo } from '../src/world/types';
-import { assess, complyChance, estimateTarget, judge, saleQuote, wanted, PIR } from '../src/world/piracy';
+import { assess, complyChance, estimateTarget, judge, saleQuote, stepPlunder, wanted, PIR } from '../src/world/piracy';
 
 function fixture(seed = 1322) {
   const sim = WorldSim.create(seed, { piracy: 'p132' });
@@ -173,5 +173,37 @@ describe('P13.2.2 target choice (lane plunder)', () => {
     fleet(f, f.B, f.at(15000, 10600), ['frigate', 'frigate']);
     const a = estimateTarget(f.sim, raid, v.g, v.h, nl, from), b = estimateTarget(f.sim, raid, v.g, v.h, fo, from);
     expect(b.risk).toBeGreaterThan(a.risk); expect(a.risk).toBeGreaterThan(0);
+  });
+  it('Y10: the pruned search (cheap upper bound first) picks exactly what checking every candidate in group order picks', () => {
+    const items = ['ore', 'metal', 'alloy', 'electronics', 'machinery', 'fuel'];
+    let checked = 0;
+    for (let seed = 1; seed <= 12; seed++) {
+      const f = fixture(1322 + seed);
+      let x = seed * 7919; const rnd = () => ((x = (x * 48271) % 2147483647) / 2147483647);
+      const vs: ReturnType<typeof victim>[] = [];
+      for (let i = 0; i < 25; i++) {
+        const cargo: Cargo = {}; for (let k = 0; k < 1 + Math.floor(rnd() * 2); k++) cargo[items[Math.floor(rnd() * items.length)]] = 1 + Math.floor(rnd() * (rnd() < 0.3 ? 20 : 500));
+        vs.push(victim(f, f.at(15000 + (rnd() - 0.5) * 8000, 10000 + (rnd() - 0.5) * 8000), cargo, (['survive', 'balanced', 'protect'] as const)[Math.floor(rnd() * 3)], 'B ' + i));
+      }
+      const escorts = [0, 1, 2].map(i => fleet(f, f.B, f.at(15000 + (rnd() - 0.5) * 8000, 10000 + (rnd() - 0.5) * 8000), ['destroyer', 'frigate'], 'B 호위 ' + i));
+      const raid = fleet(f, f.A, f.at(15000, 9000), ['cruiser', 'destroyer', 'destroyer', 'hauler']);
+      pin(f, [...vs.map(v => v.g), ...escorts]);
+      for (const policy of ['nonlethal', 'force'] as const) {
+        const op = { k: 'plunder' as const, at: f.at(15000, 10000), radius: 6000, policy };
+        const from = f.sim.groupCenter(raid)!;
+        // brute force: every victim in group order, strictly better score wins
+        let best: string | undefined, bs = 0;
+        for (const g of Object.values(f.sim.st.groups)) {
+          const v = vs.find(v => v.g === g); if (!v) continue;
+          const e = estimateTarget(f.sim, raid, v.g, v.h, op, from);
+          if (e.profit >= PIR.aiMinProfit && e.score > bs) { bs = e.score; best = g.id; }
+        }
+        delete raid.plx;
+        stepPlunder(f.sim, raid, ships(f, raid), op, 0, f.sim.cmdr(raid));
+        expect(raid.plx?.target).toBe(best);
+        if (best) checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(10);   // the comparison picked real targets, not just "none"
   });
 });
