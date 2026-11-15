@@ -154,12 +154,13 @@ describe('P13.2 A — interception and surrender', () => {
     expect(demand(f.sim, ga, v.h)).toMatch(/최근/);
     expect(demand(f.sim, gc, v.h)).toMatch(/최근/);
     // the engine against a refusing target: exactly one threat, then it withdraws
+    // (P13.2.2: a designated target — a lane raid no longer threatens a target it expects to refuse, see p1322-target)
     const f2 = fixture(); hostile(f2);
     const v2 = convoy(f2, { ore: 300 });
     v2.g.piracyPolicy = 'protect';
     f2.sim.st.companies[f2.B].piracyPolicy = 'protect';
     const g2 = fleet(f2, f2.A, f2.at(10000, -21000), ['corvette']);
-    f2.sim.command(f2.A, { c: 'setOp', group: g2.id, op: { k: 'plunder', at: f2.at(10000, -25000), radius: 6000, policy: 'nonlethal' } });
+    f2.sim.command(f2.A, { c: 'setOp', group: g2.id, op: { k: 'plunder', group: v2.g.id, policy: 'nonlethal' } });
     run(f2.sim, 300);
     expect(logOf(f2, 'threat')).toHaveLength(1);
     expect(logOf(f2, 'withdraw')).toHaveLength(1);

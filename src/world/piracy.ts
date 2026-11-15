@@ -14,7 +14,9 @@ import { addc, cargoKeys, cargoSum, qty, takec } from './types';
 import type { WreckLot } from './wrecks';
 import { lotValue, itemLabel, wreckUnits, WRECK_SEEN_R } from './wrecks';
 import { coRelation } from './battleAuth';
-import { econOf } from './hullops';
+import { econOf, growthOn } from './hullops';
+import { priceOf } from './market';
+import type { Station } from './types';
 import { shipValue } from './data';
 import { dist, sysAt } from './geom';
 import { effSec } from './security';
@@ -56,6 +58,8 @@ export interface PlunderState {
   /** the victim group that was told a raider is closing in (it is told again when the raider leaves) */
   warned?: string;
   why?: string;
+  /** P13.2.2 lane plunder: the target choice estimate (comply chance, real sale value, risk, expected profit) */
+  est?: { p: number; sale: number; risk: number; profit: number };
 }
 
 /** a jettisoned cargo container: same shape as a wreck for the salvage engine */
@@ -130,6 +134,9 @@ export const PIR = {
   /** P13.2.2: an assigned recovery fleet counts in the victim's judgement within this distance of the victim,
    *  and follows its raid this far behind */
   tenderR: 4000, tenderTrail: 1500,
+  /** P13.2.2 lane-plunder target choice: below this expected profit (cr) a target is not worth it; refusal risk per
+   *  value of opposing warships (force: a fight, otherwise exposure); fixed time added to travel (demand, collect) */
+  aiMinProfit: 400, aiForceRisk: 0.3, aiExposure: 0.03, aiFixedTime: 240,
 } as const;
 
 export const POLICY_NAME: Record<VictimPolicy, string> = { survive: '생존 우선', balanced: '균형 대응', protect: '화물 보호 우선' };
@@ -256,6 +263,14 @@ export interface Judgement { response: Response; pressure: number; threshold: nu
  * goods, cargo value, local security, the victim commander's aggression and its policy.
  */
 export function judge(h: Host, raider: WGroup, victim: WGroup, ship: WShip, want: Cargo): Judgement {
+  const a = assess(h, raider, victim, ship, want);
+  const noise = 0.9 + 0.2 * h.rng.next();
+  const pressure = a.base * noise;
+  return { response: respond(a, pressure), pressure, threshold: a.threshold, attack: a.attack, defense: a.defense, support: a.support, damage: a.damage, escape: a.escape, recovery: a.recovery, cargo: a.cargo, security: a.security, policy: a.policy };
+}
+/** the situation as judge() sees it, without the ±10 % noise (pure: no RNG, no state change) */
+export interface Assessment { base: number; threshold: number; attack: number; defense: number; support: number; damage: number; escape: number; recovery: number; cargo: number; security: number; policy: VictimPolicy; room: number; units: number }
+export function assess(h: Host, raider: WGroup, victim: WGroup, ship: WShip, want: Cargo): Assessment {
   const st = h.st, pos = ship.pos, policy = victimPolicy(st, victim);
   const attack = military(h, raider).reduce((a, s) => a + shipValue(s.classId) * (0.4 + 0.6 * s.hp), 0);
   let defense = 0, support = 0;
@@ -279,18 +294,25 @@ export function judge(h: Host, raider: WGroup, victim: WGroup, ship: WShip, want
   const cargo = valueOf(st, want);
   const sys = sysAt(st.systems, pos); const security = sys ? effSec(sys) : 0;
   const aggr = h.cmdr(victim).aggression;
-  const noise = 0.9 + 0.2 * h.rng.next();
-  const pressure = attack / (defense + 50) * (1 + 1.2 * damage) * recovery * (1 - 0.5 * escape) * (1.15 - 0.3 * aggr)
-    * (1.1 - 0.2 * clamp01(cargo / 60000)) * (1 - security / 250) * noise;
-  const threshold = PIR.threshold[policy];
-  let response: Response;
-  if (pressure >= threshold) response = 'comply';
-  else if (support > 0) response = 'stall';
-  else if (defense > 0) response = 'resist';
-  else if (escape >= 0.4) response = 'flee';
-  else if (policy === 'survive') response = 'comply';
-  else response = 'resist';
-  return { response, pressure, threshold, attack, defense, support, damage, escape, recovery, cargo, security, policy };
+  const base = attack / (defense + 50) * (1 + 1.2 * damage) * recovery * (1 - 0.5 * escape) * (1.15 - 0.3 * aggr)
+    * (1.1 - 0.2 * clamp01(cargo / 60000)) * (1 - security / 250);
+  return { base, threshold: PIR.threshold[policy], attack, defense, support, damage, escape, recovery, cargo, security, policy, room, units };
+}
+/** the answer for a pressure (the order of the rules is the game rule) */
+function respond(a: Pick<Assessment, 'threshold' | 'support' | 'defense' | 'escape' | 'policy'>, pressure: number): Response {
+  if (pressure >= a.threshold) return 'comply';
+  if (a.support > 0) return 'stall';
+  if (a.defense > 0) return 'resist';
+  if (a.escape >= 0.4) return 'flee';
+  if (a.policy === 'survive') return 'comply';
+  return 'resist';
+}
+/** probability that judge() answers comply, over its uniform ±10 % noise (exact for the current situation) */
+export function complyChance(a: Assessment): number {
+  const below = respond(a, -Infinity) === 'comply' ? 1 : 0;   // what happens when the pressure is not enough
+  if (a.base <= 0) return below;
+  const p = clamp01((1.1 - a.threshold / a.base) / 0.2);
+  return p + (1 - p) * below;
 }
 
 /** what a demand asks of this ship (whole units, plunderable only) */
@@ -457,22 +479,95 @@ function legalVictim(h: Host, g: WGroup, t: WGroup, op: PlunderOp): boolean {
   if (op.policy === 'destroy' && rel === 0 && k !== 'player') return false;
   return true;
 }
-/** pick a victim around the zone: plunderable value over defence and distance */
+// ------------------------------------------------------------------ target choice (P13.2.2)
+
+/** what selling `n` units of `item` at this station would really pay now: the same 50-unit walk down the bid,
+ *  station tax and purchase budget as WorldSim.sellAt, on a copy (pure) */
+export function saleQuote(h: Host, st: Station, item: string, n: number): { sold: number; value: number } {
+  const m = st.market?.[item]; if (!m || n <= 0) return { sold: 0, value: 0 };
+  const v3 = growthOn(h.st), tax = 1 - (st.tax ?? 0);
+  const budget = v3 && st.public && st.funds !== undefined;
+  let funds = st.funds ?? 0, stock = m.stock, left = n, sold = 0, total = 0;
+  while (left > 0.01) {
+    let chunk = Math.min(left, 50);
+    const p = priceOf({ ...m, stock }, 'sell', v3);
+    if (budget) { const can = p > 0 ? funds / (p * tax) : 0; if (can < chunk) chunk = Math.max(0, Math.floor(can)); if (chunk <= 0) break; funds -= chunk * p * tax; }
+    total += chunk * p; stock += chunk; left -= chunk; sold += chunk;
+  }
+  return { sold, value: total * tax };
+}
+/** best real sale of these goods at a station the company may dock at (each item at its best market) */
+function bestSale(h: Host, company: string, goods: Cargo, cache: Map<string, { st: Station; bid: number }[]>): number {
+  let total = 0;
+  for (const [item, n] of Object.entries(goods)) {
+    if (n <= 0) continue;
+    let list = cache.get(item);
+    if (!list) {
+      list = Object.values(h.st.stations).filter(st => st.market?.[item] && h.canDock(st, company)).map(st => ({ st, bid: priceOf(st.market![item], 'sell', growthOn(h.st)) })).sort((a, b) => b.bid - a.bid).slice(0, 3);
+      cache.set(item, list);
+    }
+    let best = 0;
+    for (const { st } of list) best = Math.max(best, saleQuote(h, st, item, n).value);
+    total += best;
+  }
+  return total;
+}
+export interface TargetEstimate { p: number; units: number; recover: number; sale: number; risk: number; profit: number; score: number }
+/**
+ * Expected outcome of threatening ship `s` of group `t` (lane plunder only): the chance it complies (judge()
+ * without its noise, nearby separate escorts and support included), the units the raid can really take away
+ * (its holds and assigned recovery fleets close to the ship; what does not fit counts half, for extra trips),
+ * their real sale value at the best market now, and the risk of a refusal (a fight under `force`, wasted
+ * exposure otherwise). Pure: no RNG, no state change.
+ */
+export function estimateTarget(h: Host, g: WGroup, t: WGroup, s: WShip, op: PlunderOp, from: V, cache = new Map<string, { st: Station; bid: number }[]>()): TargetEstimate {
+  const want = wanted(h, s, op.demand, op.item);
+  const a = assess(h, g, t, s, want);
+  const p = complyChance(a);
+  const units = a.units;
+  const recover = units <= 0 ? 0 : a.room >= units ? units : a.room + 0.5 * (units - a.room);
+  const share = units > 0 ? recover / units : 0;
+  const goods: Cargo = {}; for (const [k, n] of Object.entries(want)) goods[k] = Math.floor(n * share);
+  const sale = bestSale(h, g.owner, goods, cache);
+  const opposed = Math.min(a.attack, a.defense + a.support);
+  const risk = (1 - p) * opposed * (op.policy === 'force' ? PIR.aiForceRisk : PIR.aiExposure);
+  const profit = p * sale - risk;
+  const speed = Math.max(50, h.groupSpeedOf(g));
+  const score = profit / (dist(s.pos, from) / speed + PIR.aiFixedTime);
+  return { p, units, recover, sale, risk, profit, score };
+}
+
+/** pick a victim around the zone (P13.2.2: expected real profit per time for lane plunder; designated targets and
+ *  network destruction are never filtered by profit) */
 function search(h: Host, g: WGroup, op: PlunderOp, P: PlunderState, from: V): WGroup | undefined {
   if (op.group) { const t = h.st.groups[op.group]; return t && legalVictim(h, g, t, op) ? t : undefined; }
   if (!op.at) return undefined;
-  let best: WGroup | undefined, bs = 0;
+  let best: WGroup | undefined, bs = 0, bestEst: TargetEstimate | undefined, seen = 0;
   const r = (op.radius ?? 3000) + PIR.searchPad;
+  const cache = new Map<string, { st: Station; bid: number }[]>();
   for (const t of Object.values(h.st.groups)) {
     if ((P.ignore?.[t.id] ?? 0) > h.time || !legalVictim(h, g, t, op)) continue;
     const s = victimShip(h, t); if (!s || dist(s.pos, op.at) > r) continue;
     if (op.policy !== 'destroy' && demandable(h, g, s, !!op.neutral, false)) continue;
-    const v = valueOf(h.st, lootOf(s)), mil = h.groupValue(t, true);
-    const score = (v + 100) / (mil + 80) / (dist(s.pos, from) + 1200);
-    if (score > bs) { bs = score; best = t; }
+    if (op.policy === 'destroy') {
+      // network destruction: as before (cargo value over defence and distance), no profit filter
+      const v = valueOf(h.st, lootOf(s)), mil = h.groupValue(t, true);
+      const score = (v + 100) / (mil + 80) / (dist(s.pos, from) + 1200);
+      if (score > bs) { bs = score; best = t; }
+      continue;
+    }
+    seen++;
+    const e = estimateTarget(h, g, t, s, op, from, cache);
+    if (e.profit < PIR.aiMinProfit) continue;
+    if (e.score > bs) { bs = e.score; best = t; bestEst = e; }
+  }
+  if (op.policy !== 'destroy') {
+    if (bestEst) P.est = { p: round2(bestEst.p), sale: Math.round(bestEst.sale), risk: Math.round(bestEst.risk), profit: Math.round(bestEst.profit) };
+    else if (seen) P.why = `수익성 있는 목표 없음 (${seen}척 검토)`;
   }
   return best;
 }
+const round2 = (x: number) => Math.round(x * 100) / 100;
 
 /** the wreck that a forced fight left of the victim (nearest new one around where it was last seen) */
 function victimWreck(h: Host, P: PlunderState): string | undefined {
@@ -695,7 +790,7 @@ function leave(h: Host, g: WGroup, P: PlunderState) {
 /** a designated raid ends here (report, stand by); a zone raid looks for the next target */
 function conclude(h: Host, g: WGroup, P: PlunderState, op: PlunderOp, why: string, head: string, kind: 'info' | 'warn' = 'info'): boolean {
   leave(h, g, P);
-  P.target = undefined; P.ship = undefined; P.site = undefined;
+  P.target = undefined; P.ship = undefined; P.site = undefined; P.est = undefined;
   if (!op.group) { setPhase(h, P, 'search', why); return true; }
   if (P.key === 'raid') { delete g.plx; return true; }   // a pirate band goes back to its raid
   h.say(g, `${head}${why ? ` — ${why}` : ''}. 대기합니다.`, kind, 0);
