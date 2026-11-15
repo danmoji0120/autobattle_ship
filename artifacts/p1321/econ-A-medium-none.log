@@ -1,0 +1,202 @@
+{"hour":1,"credits":2295,"comply":11,"threats":11,"sold":5358,"rShips":5,"delivered":{"ore":12150},"ms":13.36}
+{"hour":2,"credits":1719,"comply":16,"threats":16,"sold":7816,"rShips":5,"delivered":{"ore":23850},"ms":11.79}
+{"hour":3,"credits":1434,"comply":22,"threats":22,"sold":10730,"rShips":5,"delivered":{"ore":36450},"ms":11.3}
+{"hour":4,"credits":842,"comply":27,"threats":27,"sold":13141,"rShips":5,"delivered":{"ore":48825},"ms":11.96}
+{"hour":5,"credits":577,"comply":33,"threats":33,"sold":16041,"rShips":5,"delivered":{"ore":60525},"ms":13.62}
+{"hour":6,"credits":-28,"comply":38,"threats":38,"sold":18501,"rShips":5,"delivered":{"ore":73350},"ms":12.51}
+{"hour":7,"credits":-242,"comply":44,"threats":44,"sold":21475,"rShips":5,"delivered":{"ore":85950},"ms":13.09}
+{"hour":8,"credits":-888,"comply":49,"threats":49,"sold":23895,"rShips":5,"delivered":{"ore":98775},"ms":13.39}
+{
+ "tag": "A-medium-none-8h-s13210",
+ "hours": 8,
+ "seed": 13210,
+ "cargo": "A",
+ "items": [
+  "ore"
+ ],
+ "raid": "medium",
+ "escort": "none",
+ "hold": false,
+ "policy": "nonlethal",
+ "victimPolicy": "balanced",
+ "error": null,
+ "restartEqual": true,
+ "attempts": {
+  "victim": 49,
+  "npcTraders": 0
+ },
+ "complies": {
+  "victim": 49,
+  "npcTraders": 0
+ },
+ "responses": {
+  "comply/V": 49,
+  "drop/V": 49
+ },
+ "droppedUnits": {
+  "V/ore": 11025
+ },
+ "droppedReferenceValue": {
+  "victim": 110250,
+  "npcTraders": 0
+ },
+ "recoveredUnits": {
+  "drop/V/ore": 11025
+ },
+ "recoveredReferenceValue": 110250,
+ "recoveredByOthers": {},
+ "victimDropDecay": 0,
+ "sales": {
+  "credits": 23895,
+  "byItem": {
+   "ore": {
+    "units": 11025,
+    "cr": 23895,
+    "perUnit": 2.17,
+    "refPerUnit": 10
+   }
+  },
+  "count": 44
+ },
+ "unsold": {},
+ "unsoldReferenceValue": 0,
+ "costEvents": {
+  "fleet_upkeep": 17160,
+  "warehouse_rent": 0,
+  "supplies": 674,
+  "maintenance": 6949
+ },
+ "ledger": {
+  "inc": {
+   "sales": 23896,
+   "other": 480
+  },
+  "exp": {
+   "upkeep": 24781
+  }
+ },
+ "upkeep": 24781,
+ "repairPaid": 0,
+ "repairDue": 0,
+ "lostHulls": {
+  "ships": 0,
+  "value": 0,
+  "list": []
+ },
+ "investment": 153700,
+ "netCashFlow": -888,
+ "finalPL": -888,
+ "paybackHours": null,
+ "oldP132Formula": -888,
+ "victim": {
+  "delivered": {
+   "ore": 98775
+  },
+  "shipsLost": 0,
+  "lostValue": 0,
+  "escorts": 0
+ },
+ "npcPirateThreats": 8,
+ "engagementsEnd": 0,
+ "tick": {
+  "meanMs": 12.628
+ },
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": 2295,
+   "comply": 11,
+   "threats": 11,
+   "sold": 5358,
+   "rShips": 5,
+   "delivered": {
+    "ore": 12150
+   },
+   "ms": 13.36
+  },
+  {
+   "hour": 2,
+   "credits": 1719,
+   "comply": 16,
+   "threats": 16,
+   "sold": 7816,
+   "rShips": 5,
+   "delivered": {
+    "ore": 23850
+   },
+   "ms": 11.79
+  },
+  {
+   "hour": 3,
+   "credits": 1434,
+   "comply": 22,
+   "threats": 22,
+   "sold": 10730,
+   "rShips": 5,
+   "delivered": {
+    "ore": 36450
+   },
+   "ms": 11.3
+  },
+  {
+   "hour": 4,
+   "credits": 842,
+   "comply": 27,
+   "threats": 27,
+   "sold": 13141,
+   "rShips": 5,
+   "delivered": {
+    "ore": 48825
+   },
+   "ms": 11.96
+  },
+  {
+   "hour": 5,
+   "credits": 577,
+   "comply": 33,
+   "threats": 33,
+   "sold": 16041,
+   "rShips": 5,
+   "delivered": {
+    "ore": 60525
+   },
+   "ms": 13.62
+  },
+  {
+   "hour": 6,
+   "credits": -28,
+   "comply": 38,
+   "threats": 38,
+   "sold": 18501,
+   "rShips": 5,
+   "delivered": {
+    "ore": 73350
+   },
+   "ms": 12.51
+  },
+  {
+   "hour": 7,
+   "credits": -242,
+   "comply": 44,
+   "threats": 44,
+   "sold": 21475,
+   "rShips": 5,
+   "delivered": {
+    "ore": 85950
+   },
+   "ms": 13.09
+  },
+  {
+   "hour": 8,
+   "credits": -888,
+   "comply": 49,
+   "threats": 49,
+   "sold": 23895,
+   "rShips": 5,
+   "delivered": {
+    "ore": 98775
+   },
+   "ms": 13.39
+  }
+ ]
+}

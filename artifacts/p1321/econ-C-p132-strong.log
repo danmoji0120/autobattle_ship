@@ -1,0 +1,229 @@
+{"hour":1,"credits":44224,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":7200},"ms":13.39}
+{"hour":2,"credits":43894,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":14400},"ms":13.15}
+{"hour":3,"credits":43532,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":21600},"ms":12.54}
+{"hour":4,"credits":43202,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":29250},"ms":13.06}
+{"hour":5,"credits":42872,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":42300},"ms":13.69}
+{"hour":6,"credits":42542,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":58500},"ms":13.22}
+{"hour":7,"credits":42212,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":74700},"ms":13.89}
+{"hour":8,"credits":41850,"comply":4,"threats":5,"sold":45885,"rShips":1,"delivered":{"electronics":90900},"ms":13.74}
+{
+ "tag": "C-p132-strong-8h-s13210",
+ "hours": 8,
+ "seed": 13210,
+ "cargo": "C",
+ "items": [
+  "electronics"
+ ],
+ "raid": "p132",
+ "escort": "strong",
+ "hold": false,
+ "policy": "nonlethal",
+ "victimPolicy": "balanced",
+ "error": null,
+ "restartEqual": true,
+ "attempts": {
+  "victim": 5,
+  "npcTraders": 0
+ },
+ "complies": {
+  "victim": 4,
+  "npcTraders": 0
+ },
+ "responses": {
+  "comply/V": 4,
+  "drop/V": 4,
+  "resist/V": 1,
+  "withdraw/V": 1
+ },
+ "droppedUnits": {
+  "V/electronics": 900
+ },
+ "droppedReferenceValue": {
+  "victim": 135000,
+  "npcTraders": 0
+ },
+ "recoveredUnits": {
+  "drop/V/electronics": 900
+ },
+ "recoveredReferenceValue": 135000,
+ "recoveredByOthers": {},
+ "victimDropDecay": 0,
+ "sales": {
+  "credits": 45885,
+  "byItem": {
+   "electronics": {
+    "units": 900,
+    "cr": 45885,
+    "perUnit": 50.98,
+    "refPerUnit": 150
+   }
+  },
+  "count": 2
+ },
+ "unsold": {},
+ "unsoldReferenceValue": 0,
+ "costEvents": {
+  "fleet_upkeep": 3687,
+  "warehouse_rent": 0,
+  "supplies": 96,
+  "maintenance": 252
+ },
+ "ledger": {
+  "inc": {
+   "sales": 45885
+  },
+  "exp": {
+   "upkeep": 4036
+  }
+ },
+ "upkeep": 4036,
+ "repairPaid": 0,
+ "repairDue": 0,
+ "lostHulls": {
+  "ships": 5,
+  "value": 153700,
+  "list": [
+   {
+    "t": 1800,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 1800,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 1800,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 1800,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 1800,
+    "cls": "destroyer",
+    "value": 116500
+   }
+  ]
+ },
+ "investment": 163000,
+ "netCashFlow": 41850,
+ "finalPL": -111850,
+ "paybackHours": null,
+ "oldP132Formula": -111850,
+ "victim": {
+  "delivered": {
+   "electronics": 90900
+  },
+  "shipsLost": 4,
+  "lostValue": 255800,
+  "escorts": 2
+ },
+ "npcPirateThreats": 4,
+ "engagementsEnd": 0,
+ "tick": {
+  "meanMs": 13.334
+ },
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": 44224,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 7200
+   },
+   "ms": 13.39
+  },
+  {
+   "hour": 2,
+   "credits": 43894,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 14400
+   },
+   "ms": 13.15
+  },
+  {
+   "hour": 3,
+   "credits": 43532,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 21600
+   },
+   "ms": 12.54
+  },
+  {
+   "hour": 4,
+   "credits": 43202,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 29250
+   },
+   "ms": 13.06
+  },
+  {
+   "hour": 5,
+   "credits": 42872,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 42300
+   },
+   "ms": 13.69
+  },
+  {
+   "hour": 6,
+   "credits": 42542,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 58500
+   },
+   "ms": 13.22
+  },
+  {
+   "hour": 7,
+   "credits": 42212,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 74700
+   },
+   "ms": 13.89
+  },
+  {
+   "hour": 8,
+   "credits": 41850,
+   "comply": 4,
+   "threats": 5,
+   "sold": 45885,
+   "rShips": 1,
+   "delivered": {
+    "electronics": 90900
+   },
+   "ms": 13.74
+  }
+ ]
+}
