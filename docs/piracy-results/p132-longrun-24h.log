@@ -1,0 +1,397 @@
+{"hour":1,"drops":2,"dropsCreated":47,"wrecks":14,"engagements":0,"threats":48,"ms":16.41,"save":617765}
+{"hour":2,"drops":0,"dropsCreated":78,"wrecks":20,"engagements":1,"threats":79,"ms":17.26,"save":800223}
+{"hour":3,"drops":0,"dropsCreated":106,"wrecks":17,"engagements":1,"threats":107,"ms":18.03,"save":913528}
+{"hour":4,"drops":0,"dropsCreated":137,"wrecks":14,"engagements":1,"threats":138,"ms":18.32,"save":935133}
+{"hour":5,"drops":0,"dropsCreated":158,"wrecks":11,"engagements":1,"threats":159,"ms":17.43,"save":931446}
+{"hour":6,"drops":0,"dropsCreated":186,"wrecks":11,"engagements":0,"threats":187,"ms":18.57,"save":933284}
+{"hour":7,"drops":0,"dropsCreated":204,"wrecks":7,"engagements":0,"threats":205,"ms":19.34,"save":938700}
+{"hour":8,"drops":0,"dropsCreated":230,"wrecks":3,"engagements":3,"threats":231,"ms":20.37,"save":944544}
+{"hour":9,"drops":0,"dropsCreated":256,"wrecks":5,"engagements":0,"threats":257,"ms":18.26,"save":939509}
+{"hour":10,"drops":0,"dropsCreated":283,"wrecks":6,"engagements":0,"threats":284,"ms":18.53,"save":949300}
+{"hour":11,"drops":1,"dropsCreated":311,"wrecks":2,"engagements":0,"threats":312,"ms":18.56,"save":955547}
+{"hour":12,"drops":0,"dropsCreated":338,"wrecks":1,"engagements":0,"threats":339,"ms":20.02,"save":962999}
+{"hour":13,"drops":0,"dropsCreated":363,"wrecks":0,"engagements":0,"threats":364,"ms":19.21,"save":968247}
+{"hour":14,"drops":0,"dropsCreated":389,"wrecks":0,"engagements":0,"threats":390,"ms":18.92,"save":974744}
+{"hour":15,"drops":0,"dropsCreated":416,"wrecks":0,"engagements":0,"threats":417,"ms":19.67,"save":978342}
+{"hour":16,"drops":0,"dropsCreated":443,"wrecks":2,"engagements":0,"threats":444,"ms":19.41,"save":986736}
+{"hour":17,"drops":0,"dropsCreated":467,"wrecks":2,"engagements":0,"threats":468,"ms":19.67,"save":991131}
+{"hour":18,"drops":0,"dropsCreated":498,"wrecks":1,"engagements":0,"threats":499,"ms":19.32,"save":994642}
+{"hour":19,"drops":0,"dropsCreated":524,"wrecks":0,"engagements":0,"threats":525,"ms":19.11,"save":990646}
+{"hour":20,"drops":0,"dropsCreated":551,"wrecks":1,"engagements":0,"threats":552,"ms":18.24,"save":993658}
+{"hour":21,"drops":0,"dropsCreated":575,"wrecks":2,"engagements":0,"threats":576,"ms":18.59,"save":991278}
+{"hour":22,"drops":0,"dropsCreated":599,"wrecks":1,"engagements":0,"threats":600,"ms":18.28,"save":986216}
+{"hour":23,"drops":0,"dropsCreated":620,"wrecks":5,"engagements":3,"threats":621,"ms":17.9,"save":995329}
+{"hour":24,"drops":0,"dropsCreated":643,"wrecks":5,"engagements":0,"threats":644,"ms":18.24,"save":989857}
+{
+ "hours": 24,
+ "seed": 1321,
+ "noRaid": false,
+ "homes": [
+  "lyra",
+  "forge",
+  "ceres"
+ ],
+ "error": null,
+ "restartEqual": true,
+ "1_attempts": {
+  "threat/raider": 636,
+  "threat/npc": 8
+ },
+ "2_responses": {
+  "comply/raider": 636,
+  "resist/npc": 1,
+  "comply/npc": 7
+ },
+ "3_nonDestructiveDrops": {
+  "drop/raider": 636,
+  "drop/npc": 7
+ },
+ "4_forceAndSinkings": {},
+ "5_droppedUnits": {
+  "L1": 572,
+  "L2": 7027,
+  "guild": 1085
+ },
+ "droppedReferenceValue": 97840,
+ "6_recoveredUnits": {
+  "drop/raider<-L1": 572,
+  "drop/raider<-L2": 7027,
+  "drop/pirate<-guild": 340,
+  "wreck/pirate<-guild": 179
+ },
+ "7_dropDecayUnits": {
+  "guild": 745
+ },
+ "8_conservation": {
+  "containers": {
+   "created": 643,
+   "initial": 8684,
+   "taken": 7939,
+   "left": 0,
+   "removedRemainder": 745,
+   "decayed": 745,
+   "error": 0,
+   "decayEqualsRemoved": true
+  },
+  "perCompanyItems": {
+   "L1": {
+    "ore": 0,
+    "alloy": 0
+   },
+   "L2": {
+    "ore": 0,
+    "alloy": 0
+   },
+   "L3": {
+    "ore": 0,
+    "alloy": 0
+   }
+  }
+ },
+ "9_jobMismatch": {
+  "samples": 0,
+  "sample": [],
+  "piratedSettled": {
+   "L1": 572,
+   "L2": 7027
+  }
+ },
+ "10_raider": {
+  "fleetReferenceValue": 326000,
+  "shipsLost": 0,
+  "lostValue": 0,
+  "lost": [],
+  "sales": 17690,
+  "creditsChange": -150968,
+  "storedValue": 0,
+  "aboardValue": 0,
+  "netIncludingLostHulls": -150968
+ },
+ "11_delivery": {
+  "L1": {
+   "jobs": 834,
+   "completed": 799,
+   "meanMin": 38.4,
+   "p90Min": 63.8
+  },
+  "L2": {
+   "jobs": 2586,
+   "completed": 2487,
+   "meanMin": 2.1,
+   "p90Min": 3.7
+  },
+  "L3": {
+   "jobs": 1714,
+   "completed": 1712,
+   "meanMin": 1.5,
+   "p90Min": 1.7
+  }
+ },
+ "12_npcPirates": {
+  "lairStoredUnits": 519,
+  "lairStoredReferenceValue": 15712
+ },
+ "13_tick": {
+  "meanMs": 18.652,
+  "p95Ms": 27.59,
+  "p99Ms": 35.85,
+  "maxMs": 354.9
+ },
+ "14_save": {
+  "start": 89841,
+  "end": 989857,
+  "dropsJson": 2,
+  "piracyBookJson": 58173,
+  "wrecksJson": 4831
+ },
+ "15_activeContainers": {
+  "mean": 0.2,
+  "max": 6,
+  "end": 0
+ },
+ "engagements": 0,
+ "wrecksEnd": 5,
+ "perHour": [
+  {
+   "hour": 1,
+   "drops": 2,
+   "dropsCreated": 47,
+   "wrecks": 14,
+   "engagements": 0,
+   "threats": 48,
+   "ms": 16.41,
+   "save": 617765
+  },
+  {
+   "hour": 2,
+   "drops": 0,
+   "dropsCreated": 78,
+   "wrecks": 20,
+   "engagements": 1,
+   "threats": 79,
+   "ms": 17.26,
+   "save": 800223
+  },
+  {
+   "hour": 3,
+   "drops": 0,
+   "dropsCreated": 106,
+   "wrecks": 17,
+   "engagements": 1,
+   "threats": 107,
+   "ms": 18.03,
+   "save": 913528
+  },
+  {
+   "hour": 4,
+   "drops": 0,
+   "dropsCreated": 137,
+   "wrecks": 14,
+   "engagements": 1,
+   "threats": 138,
+   "ms": 18.32,
+   "save": 935133
+  },
+  {
+   "hour": 5,
+   "drops": 0,
+   "dropsCreated": 158,
+   "wrecks": 11,
+   "engagements": 1,
+   "threats": 159,
+   "ms": 17.43,
+   "save": 931446
+  },
+  {
+   "hour": 6,
+   "drops": 0,
+   "dropsCreated": 186,
+   "wrecks": 11,
+   "engagements": 0,
+   "threats": 187,
+   "ms": 18.57,
+   "save": 933284
+  },
+  {
+   "hour": 7,
+   "drops": 0,
+   "dropsCreated": 204,
+   "wrecks": 7,
+   "engagements": 0,
+   "threats": 205,
+   "ms": 19.34,
+   "save": 938700
+  },
+  {
+   "hour": 8,
+   "drops": 0,
+   "dropsCreated": 230,
+   "wrecks": 3,
+   "engagements": 3,
+   "threats": 231,
+   "ms": 20.37,
+   "save": 944544
+  },
+  {
+   "hour": 9,
+   "drops": 0,
+   "dropsCreated": 256,
+   "wrecks": 5,
+   "engagements": 0,
+   "threats": 257,
+   "ms": 18.26,
+   "save": 939509
+  },
+  {
+   "hour": 10,
+   "drops": 0,
+   "dropsCreated": 283,
+   "wrecks": 6,
+   "engagements": 0,
+   "threats": 284,
+   "ms": 18.53,
+   "save": 949300
+  },
+  {
+   "hour": 11,
+   "drops": 1,
+   "dropsCreated": 311,
+   "wrecks": 2,
+   "engagements": 0,
+   "threats": 312,
+   "ms": 18.56,
+   "save": 955547
+  },
+  {
+   "hour": 12,
+   "drops": 0,
+   "dropsCreated": 338,
+   "wrecks": 1,
+   "engagements": 0,
+   "threats": 339,
+   "ms": 20.02,
+   "save": 962999
+  },
+  {
+   "hour": 13,
+   "drops": 0,
+   "dropsCreated": 363,
+   "wrecks": 0,
+   "engagements": 0,
+   "threats": 364,
+   "ms": 19.21,
+   "save": 968247
+  },
+  {
+   "hour": 14,
+   "drops": 0,
+   "dropsCreated": 389,
+   "wrecks": 0,
+   "engagements": 0,
+   "threats": 390,
+   "ms": 18.92,
+   "save": 974744
+  },
+  {
+   "hour": 15,
+   "drops": 0,
+   "dropsCreated": 416,
+   "wrecks": 0,
+   "engagements": 0,
+   "threats": 417,
+   "ms": 19.67,
+   "save": 978342
+  },
+  {
+   "hour": 16,
+   "drops": 0,
+   "dropsCreated": 443,
+   "wrecks": 2,
+   "engagements": 0,
+   "threats": 444,
+   "ms": 19.41,
+   "save": 986736
+  },
+  {
+   "hour": 17,
+   "drops": 0,
+   "dropsCreated": 467,
+   "wrecks": 2,
+   "engagements": 0,
+   "threats": 468,
+   "ms": 19.67,
+   "save": 991131
+  },
+  {
+   "hour": 18,
+   "drops": 0,
+   "dropsCreated": 498,
+   "wrecks": 1,
+   "engagements": 0,
+   "threats": 499,
+   "ms": 19.32,
+   "save": 994642
+  },
+  {
+   "hour": 19,
+   "drops": 0,
+   "dropsCreated": 524,
+   "wrecks": 0,
+   "engagements": 0,
+   "threats": 525,
+   "ms": 19.11,
+   "save": 990646
+  },
+  {
+   "hour": 20,
+   "drops": 0,
+   "dropsCreated": 551,
+   "wrecks": 1,
+   "engagements": 0,
+   "threats": 552,
+   "ms": 18.24,
+   "save": 993658
+  },
+  {
+   "hour": 21,
+   "drops": 0,
+   "dropsCreated": 575,
+   "wrecks": 2,
+   "engagements": 0,
+   "threats": 576,
+   "ms": 18.59,
+   "save": 991278
+  },
+  {
+   "hour": 22,
+   "drops": 0,
+   "dropsCreated": 599,
+   "wrecks": 1,
+   "engagements": 0,
+   "threats": 600,
+   "ms": 18.28,
+   "save": 986216
+  },
+  {
+   "hour": 23,
+   "drops": 0,
+   "dropsCreated": 620,
+   "wrecks": 5,
+   "engagements": 3,
+   "threats": 621,
+   "ms": 17.9,
+   "save": 995329
+  },
+  {
+   "hour": 24,
+   "drops": 0,
+   "dropsCreated": 643,
+   "wrecks": 5,
+   "engagements": 0,
+   "threats": 644,
+   "ms": 18.24,
+   "save": 989857
+  }
+ ]
+}
+EXIT 0

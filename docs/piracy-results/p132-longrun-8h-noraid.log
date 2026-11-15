@@ -1,0 +1,211 @@
+{"hour":1,"drops":0,"dropsCreated":2,"wrecks":11,"engagements":0,"threats":6,"ms":16.12,"save":479535}
+{"hour":2,"drops":0,"dropsCreated":2,"wrecks":17,"engagements":0,"threats":6,"ms":17.92,"save":639835}
+{"hour":3,"drops":0,"dropsCreated":2,"wrecks":9,"engagements":0,"threats":6,"ms":24.25,"save":719004}
+{"hour":4,"drops":0,"dropsCreated":2,"wrecks":4,"engagements":1,"threats":6,"ms":17.27,"save":723576}
+{"hour":5,"drops":0,"dropsCreated":2,"wrecks":2,"engagements":0,"threats":6,"ms":16.24,"save":720776}
+{"hour":6,"drops":0,"dropsCreated":2,"wrecks":3,"engagements":0,"threats":6,"ms":15.44,"save":729608}
+{"hour":7,"drops":0,"dropsCreated":2,"wrecks":1,"engagements":0,"threats":6,"ms":15.56,"save":734906}
+{"hour":8,"drops":0,"dropsCreated":2,"wrecks":1,"engagements":2,"threats":6,"ms":15.51,"save":745764}
+{
+ "hours": 8,
+ "seed": 1320,
+ "noRaid": true,
+ "homes": [
+  "lyra",
+  "forge",
+  "ceres"
+ ],
+ "error": null,
+ "restartEqual": true,
+ "1_attempts": {
+  "threat/npc": 6
+ },
+ "2_responses": {
+  "resist/npc": 2,
+  "flee/npc": 2,
+  "comply/npc": 2
+ },
+ "3_nonDestructiveDrops": {
+  "drop/npc": 2
+ },
+ "4_forceAndSinkings": {},
+ "5_droppedUnits": {
+  "guild": 406
+ },
+ "droppedReferenceValue": 6188,
+ "6_recoveredUnits": {
+  "wreck/pirate<-guild": 113,
+  "drop/pirate<-guild": 72
+ },
+ "7_dropDecayUnits": {
+  "guild": 334
+ },
+ "8_conservation": {
+  "containers": {
+   "created": 2,
+   "initial": 406,
+   "taken": 72,
+   "left": 0,
+   "removedRemainder": 334,
+   "decayed": 334,
+   "error": 0,
+   "decayEqualsRemoved": true
+  },
+  "perCompanyItems": {
+   "L1": {
+    "ore": 0,
+    "alloy": 0
+   },
+   "L2": {
+    "ore": 0,
+    "alloy": 0
+   },
+   "L3": {
+    "ore": 0,
+    "alloy": 0
+   }
+  }
+ },
+ "9_jobMismatch": {
+  "samples": 0,
+  "sample": [],
+  "piratedSettled": {}
+ },
+ "10_raider": {
+  "fleetReferenceValue": 0,
+  "shipsLost": 0,
+  "lostValue": 0,
+  "lost": [],
+  "sales": 0,
+  "creditsChange": 0,
+  "storedValue": 0,
+  "aboardValue": 0,
+  "netIncludingLostHulls": 0
+ },
+ "11_delivery": {
+  "L1": {
+   "jobs": 578,
+   "completed": 576,
+   "meanMin": 1.5,
+   "p90Min": 1.5
+  },
+  "L2": {
+   "jobs": 578,
+   "completed": 576,
+   "meanMin": 1.5,
+   "p90Min": 1.5
+  },
+  "L3": {
+   "jobs": 578,
+   "completed": 576,
+   "meanMin": 1.5,
+   "p90Min": 1.5
+  }
+ },
+ "12_npcPirates": {
+  "lairStoredUnits": 185,
+  "lairStoredReferenceValue": 3794
+ },
+ "13_tick": {
+  "meanMs": 17.29,
+  "p95Ms": 31.97,
+  "p99Ms": 48.41,
+  "maxMs": 276.4
+ },
+ "14_save": {
+  "start": 82554,
+  "end": 745764,
+  "dropsJson": 2,
+  "piracyBookJson": 2956,
+  "wrecksJson": 1400
+ },
+ "15_activeContainers": {
+  "mean": 0.13,
+  "max": 2,
+  "end": 0
+ },
+ "engagements": 2,
+ "wrecksEnd": 1,
+ "perHour": [
+  {
+   "hour": 1,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 11,
+   "engagements": 0,
+   "threats": 6,
+   "ms": 16.12,
+   "save": 479535
+  },
+  {
+   "hour": 2,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 17,
+   "engagements": 0,
+   "threats": 6,
+   "ms": 17.92,
+   "save": 639835
+  },
+  {
+   "hour": 3,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 9,
+   "engagements": 0,
+   "threats": 6,
+   "ms": 24.25,
+   "save": 719004
+  },
+  {
+   "hour": 4,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 4,
+   "engagements": 1,
+   "threats": 6,
+   "ms": 17.27,
+   "save": 723576
+  },
+  {
+   "hour": 5,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 2,
+   "engagements": 0,
+   "threats": 6,
+   "ms": 16.24,
+   "save": 720776
+  },
+  {
+   "hour": 6,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 3,
+   "engagements": 0,
+   "threats": 6,
+   "ms": 15.44,
+   "save": 729608
+  },
+  {
+   "hour": 7,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 1,
+   "engagements": 0,
+   "threats": 6,
+   "ms": 15.56,
+   "save": 734906
+  },
+  {
+   "hour": 8,
+   "drops": 0,
+   "dropsCreated": 2,
+   "wrecks": 1,
+   "engagements": 2,
+   "threats": 6,
+   "ms": 15.51,
+   "save": 745764
+  }
+ ]
+}

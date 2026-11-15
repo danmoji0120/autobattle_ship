@@ -1,0 +1,212 @@
+{"hour":1,"drops":0,"dropsCreated":43,"wrecks":5,"engagements":0,"threats":43,"ms":15.97,"save":570717}
+{"hour":2,"drops":0,"dropsCreated":76,"wrecks":10,"engagements":1,"threats":76,"ms":17.6,"save":774562}
+{"hour":3,"drops":0,"dropsCreated":108,"wrecks":16,"engagements":2,"threats":108,"ms":17.16,"save":866205}
+{"hour":4,"drops":0,"dropsCreated":138,"wrecks":14,"engagements":0,"threats":138,"ms":16.48,"save":884496}
+{"hour":5,"drops":0,"dropsCreated":174,"wrecks":9,"engagements":0,"threats":174,"ms":17.5,"save":905304}
+{"hour":6,"drops":0,"dropsCreated":204,"wrecks":4,"engagements":0,"threats":204,"ms":17.79,"save":907195}
+{"hour":7,"drops":0,"dropsCreated":224,"wrecks":1,"engagements":0,"threats":224,"ms":18.29,"save":913345}
+{"hour":8,"drops":0,"dropsCreated":252,"wrecks":2,"engagements":0,"threats":252,"ms":21.28,"save":925670}
+{
+ "hours": 8,
+ "seed": 1320,
+ "noRaid": false,
+ "homes": [
+  "lyra",
+  "forge",
+  "ceres"
+ ],
+ "error": null,
+ "restartEqual": true,
+ "1_attempts": {
+  "threat/raider": 252
+ },
+ "2_responses": {
+  "comply/raider": 252
+ },
+ "3_nonDestructiveDrops": {
+  "drop/raider": 252
+ },
+ "4_forceAndSinkings": {},
+ "5_droppedUnits": {
+  "L1": 839,
+  "L2": 2491
+ },
+ "droppedReferenceValue": 33300,
+ "6_recoveredUnits": {
+  "drop/raider<-L1": 839,
+  "drop/raider<-L2": 2491
+ },
+ "7_dropDecayUnits": {},
+ "8_conservation": {
+  "containers": {
+   "created": 252,
+   "initial": 3330,
+   "taken": 3330,
+   "left": 0,
+   "removedRemainder": 0,
+   "decayed": 0,
+   "error": 0,
+   "decayEqualsRemoved": true
+  },
+  "perCompanyItems": {
+   "L1": {
+    "ore": 0,
+    "alloy": 0
+   },
+   "L2": {
+    "ore": 0,
+    "alloy": 0
+   },
+   "L3": {
+    "ore": 0,
+    "alloy": 0
+   }
+  }
+ },
+ "9_jobMismatch": {
+  "samples": 0,
+  "sample": [],
+  "piratedSettled": {
+   "L1": 839,
+   "L2": 2491
+  }
+ },
+ "10_raider": {
+  "fleetReferenceValue": 326000,
+  "shipsLost": 0,
+  "lostValue": 0,
+  "lost": [],
+  "sales": 7770,
+  "creditsChange": -48465,
+  "storedValue": 0,
+  "aboardValue": 0,
+  "netIncludingLostHulls": -48465
+ },
+ "11_delivery": {
+  "L1": {
+   "jobs": 485,
+   "completed": 458,
+   "meanMin": 7.7,
+   "p90Min": 22.5
+  },
+  "L2": {
+   "jobs": 844,
+   "completed": 804,
+   "meanMin": 2.1,
+   "p90Min": 3.7
+  },
+  "L3": {
+   "jobs": 578,
+   "completed": 576,
+   "meanMin": 1.5,
+   "p90Min": 1.5
+  }
+ },
+ "12_npcPirates": {
+  "lairStoredUnits": 0,
+  "lairStoredReferenceValue": 0
+ },
+ "13_tick": {
+  "meanMs": 17.759,
+  "p95Ms": 26.38,
+  "p99Ms": 35.46,
+  "maxMs": 183.4
+ },
+ "14_save": {
+  "start": 89841,
+  "end": 925670,
+  "dropsJson": 2,
+  "piracyBookJson": 57814,
+  "wrecksJson": 1895
+ },
+ "15_activeContainers": {
+  "mean": 0.07,
+  "max": 1,
+  "end": 0
+ },
+ "engagements": 0,
+ "wrecksEnd": 2,
+ "perHour": [
+  {
+   "hour": 1,
+   "drops": 0,
+   "dropsCreated": 43,
+   "wrecks": 5,
+   "engagements": 0,
+   "threats": 43,
+   "ms": 15.97,
+   "save": 570717
+  },
+  {
+   "hour": 2,
+   "drops": 0,
+   "dropsCreated": 76,
+   "wrecks": 10,
+   "engagements": 1,
+   "threats": 76,
+   "ms": 17.6,
+   "save": 774562
+  },
+  {
+   "hour": 3,
+   "drops": 0,
+   "dropsCreated": 108,
+   "wrecks": 16,
+   "engagements": 2,
+   "threats": 108,
+   "ms": 17.16,
+   "save": 866205
+  },
+  {
+   "hour": 4,
+   "drops": 0,
+   "dropsCreated": 138,
+   "wrecks": 14,
+   "engagements": 0,
+   "threats": 138,
+   "ms": 16.48,
+   "save": 884496
+  },
+  {
+   "hour": 5,
+   "drops": 0,
+   "dropsCreated": 174,
+   "wrecks": 9,
+   "engagements": 0,
+   "threats": 174,
+   "ms": 17.5,
+   "save": 905304
+  },
+  {
+   "hour": 6,
+   "drops": 0,
+   "dropsCreated": 204,
+   "wrecks": 4,
+   "engagements": 0,
+   "threats": 204,
+   "ms": 17.79,
+   "save": 907195
+  },
+  {
+   "hour": 7,
+   "drops": 0,
+   "dropsCreated": 224,
+   "wrecks": 1,
+   "engagements": 0,
+   "threats": 224,
+   "ms": 18.29,
+   "save": 913345
+  },
+  {
+   "hour": 8,
+   "drops": 0,
+   "dropsCreated": 252,
+   "wrecks": 2,
+   "engagements": 0,
+   "threats": 252,
+   "ms": 21.28,
+   "save": 925670
+  }
+ ]
+}
+EXIT 0
