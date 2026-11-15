@@ -41,8 +41,8 @@ const data = JSON.parse(fs.readFileSync(savePath, 'utf8'));
     await page.screenshot({ path: `${outDir}/raid-collect-1440.png` });
     // the unload leg of the raid is short (about 20 s of game time) — watched right away with the raid selected
     const un = await page.waitForFunction(g => /^회수품 하역 중/.test(window.siderarium.client.state.groups[g]?.status ?? '') ? window.siderarium.client.state.groups[g].status : null, data.raid2, { timeout: 120000, polling: 100 }).then(h => h.jsonValue()).catch(() => null);
-    await page.waitForTimeout(300);
-    const unp = await page.evaluate(() => document.querySelector('.salv-panel .salv-state')?.innerText ?? '');
+    // the fleet panel re-renders on its own cadence — wait for it to show the unload leg (up to 10 s)
+    const unp = await page.waitForFunction(() => { const t = document.querySelector('.salv-panel .salv-state')?.innerText ?? ''; return /회수품 하역 중/.test(t) ? t : null; }, null, { timeout: 10000, polling: 100 }).then(h => h.jsonValue()).catch(() => page.evaluate(() => document.querySelector('.salv-panel .salv-state')?.innerText ?? ''));
     check(!!un && /회수품 하역 중/.test(unp), 'P13.2.1: after recovery the raid heading for a warehouse reads 회수품 하역 중', { status: un, panel: unp });
     if (un) await page.screenshot({ path: `${outDir}/raid-unload-1440.png` });
     check(!!w.drop && w.drop.kind === 'drop' && w.drop.lots.length > 0 && w.piracy === undefined, 'the container reaches the client with its contents; the raid book stays on the server', { name: w.drop?.name, lots: w.drop?.lots, piracy: w.piracy });
