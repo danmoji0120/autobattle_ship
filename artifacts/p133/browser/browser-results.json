@@ -1,0 +1,153 @@
+{
+  "base": "http://127.0.0.1:5191",
+  "checks": [
+    {
+      "ok": true,
+      "label": "client resumes the P13.3 world; it holds only the market the player found",
+      "extra": {
+        "me": "p1",
+        "v": 1,
+        "known": [
+          "bm_lawless"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "trade tab: 일반 시장 | 암시장 toggle at the contact station; the normal view notes the stolen goods it cannot trade",
+      "extra": {
+        "toggle": [
+          "일반 시장",
+          "암시장"
+        ],
+        "note": "장물 보관 중: 장물 전자부품 51, 장물 합금 1 — 일반 시장·거래소·생산·물류에 쓸 수 없습니다. 아는 암시장에서만 처분할 수 있고, 치안 구역 입항·관문에서 검문에 걸리면 압수됩니다."
+      }
+    },
+    {
+      "ok": true,
+      "label": "black-market view: tier, fee, budget, inspection risk; each row shows 장물 + original owner and the net unit price",
+      "extra": {
+        "t": "무법 지대 장물아비 · 수수료 5% · 매입 자금 30,157 / 60,000 cr\n장물은 시세의 약 55%에 매입하고, 많이 받을수록 값이 내려갑니다. 매입 자금은 이 정거장의 공공 예산에서 넘어오며, 바닥나면 처분이 멈춥니다.\n이곳 입항 검문 적발 확률 0% (장물 100단위 기준) — 치안·세력 평판·화물 가치에 따라 달라지며, 같은 30분 안에 다시 입항해도 결과는 바뀌지 않습니다.\n장물·제한 물품 처분\n품목\t위치\t수량\t개당 실수령\t전량 처분 시\t\n장물 합금\n장물 원소유 수송 PMC\n\t보관함\t1\t23\t23\t1 처분전량\n장물 전자부품\n장물 원소유 수송 PMC\n\t보관함\t51\t88\t4,185\t10 처분전량\n암시장 재고\n품목\t재고\t개당\t\n전자전 교란기\n제한 물품 (이 지역 허용)\n\t24\t3,496\t1 구매전량\n460mm 주포\n제한 물품 (이 지역 허용)\n\t6\t16,668\t1 구매전량\n구매품은 이 정거장 보관함으로 들어갑니다. 반입이 금지된 지역 정거장에 실어 가면 입항 검문 대상입니다.\n밀수 운송\n장물을 보관 중인 다른 정거장과 화물칸이 있는 편대가 있으면 이곳으로 밀수 운송을 지시할 수 있습니다.\n최근 암거래·검문 기록\n발견\t녹슨 정박지\t\t\t엘타닌 입항 중 접선",
+        "rows": [
+          "hot:alloy:p10|1|",
+          "hot:alloy:p10|1|",
+          "hot:electronics:p10|10|",
+          "hot:electronics:p10|51|"
+        ],
+        "buys": [
+          "mod_ecm|1",
+          "mod_ecm|24",
+          "eq_heavy_cannon|1",
+          "eq_heavy_cannon|6"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "black-market view: the market's real stock with buy buttons",
+      "extra": [
+        "mod_ecm|1",
+        "mod_ecm|24",
+        "eq_heavy_cannon|1",
+        "eq_heavy_cannon|6"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "the 처분 button sold exactly that many stolen units from storage; credits rose by the logged net",
+      "extra": {
+        "key": "hot:electronics:p10",
+        "sold": 10,
+        "gain": 876.8499999996275,
+        "log": {
+          "t": 72.5,
+          "k": "sell",
+          "at": "rustport",
+          "items": {
+            "hot:electronics:p10": 10
+          },
+          "value": 876.8499999999999,
+          "fine": 46.150000000000006
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "the recent black-market log in the view shows the sale",
+      "extra": [
+        "처분\t녹슨 정박지\t장물 전자부품 10\t877 cr (수수료 46)\t",
+        "발견\t녹슨 정박지\t\t\t엘타닌 입항 중 접선"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "1 구매 bought one restricted module into storage, paid in credits",
+      "extra": {
+        "before": 0,
+        "after": 1,
+        "paid": 3488
+      }
+    },
+    {
+      "ok": true,
+      "label": "a station without a known black market has no toggle and no black-market view",
+      "extra": {
+        "toggle": 0,
+        "bm": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "galaxy map: the contact station is marked 암시장 접선처 (only for the player who found it)",
+      "extra": {
+        "sys": "fang",
+        "galText": "◈\n녹슨 정박지\n시장 · 암시장 접선처\n↗"
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the black-market view fits (no horizontal page scroll, no button or table outside the screen)",
+      "extra": {
+        "w": 333,
+        "left": 29,
+        "right": 361,
+        "overflow": false,
+        "out": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the normal view with the stolen-goods note fits",
+      "extra": {
+        "w": 333,
+        "left": 29,
+        "right": 361,
+        "overflow": false,
+        "out": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors (warnings listed in browser-results.json)",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": [],
+  "preexisting": {
+    "mobileSelectionOverModal": {
+      "selected": true,
+      "topAt620": "sel"
+    }
+  }
+}

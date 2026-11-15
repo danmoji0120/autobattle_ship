@@ -178,7 +178,10 @@ try {
   const sale = { sold: b1.took - b0.took, paidByMarket: +(b1.paid - b0.paid).toFixed(6), fundsDrop: +(b0.funds - b1.funds).toFixed(6), storage: +(st0 - st1).toFixed(6), credits: +(cr1 - cr0).toFixed(6), log: lg && { items: lg.items, value: +lg.value.toFixed(6), fee: +lg.fine.toFixed(6) } };
   facts.s1.sale = sale;
   check(sale.sold === n1 && Math.abs(sale.storage - n1) < 1e-9 && Math.abs(sale.paidByMarket - lg.value) < 1e-6 && lg.items[hotA(it1)] === n1, 'S1-6: exactly the sold units left A\'s storage; the market booked the sale it paid (took/paid = log)', sale);
-  check(Math.abs(sale.credits - sale.paidByMarket) < 1e-6 || (sale.credits < sale.paidByMarket && sale.credits > sale.paidByMarket - 200), 'S1-7: A\'s credits rose by what the market paid (no more; at most a running-cost tick less)', sale);
+  // other scenarios run at the same time: a fine charged to A between the two snapshots is taken out first
+  const finesBetween = (after.companies[A.id].bm?.log ?? []).filter((x: any) => x.k === 'seize' && x.t > before.time && x.t <= after.time).reduce((a: number, x: any) => a + (x.fine ?? 0), 0);
+  (sale as any).otherFinesBetween = finesBetween;
+  check(Math.abs(sale.credits + finesBetween - sale.paidByMarket) < 1e-6 || (sale.credits + finesBetween < sale.paidByMarket && sale.credits + finesBetween > sale.paidByMarket - 200), 'S1-7: A\'s credits rose by what the market paid (no more; at most a running-cost tick less; fines from other scenarios in the same moment taken out)', sale);
   check(sale.fundsDrop <= sale.paidByMarket + 1e-6, 'S1-8: the market\'s budget fell by what it paid (regeneration may add back)', sale);
   // duplicate request (same id): nothing changes
   const dup = await A.command({ c: 'bmSell', station: ids.L, res: hotA(it1), amount: n1, request: r1 });
