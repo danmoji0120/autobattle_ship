@@ -200,7 +200,7 @@ describe('P13.2.2 target choice (lane plunder)', () => {
         }
         delete raid.plx;
         stepPlunder(f.sim, raid, ships(f, raid), op, 0, f.sim.cmdr(raid));
-        expect(raid.plx?.target).toBe(best);
+        expect((raid as WGroup).plx?.target).toBe(best);
         if (best) checked++;
       }
     }
