@@ -1,0 +1,32 @@
+{
+  "note": "N real party truces + 40 unrelated hostile groups; tick of the same world with its truces expired as control; truceBlocks worst case (every group pair × every truce)",
+  "rows": [
+    {
+      "truces": 0,
+      "activeAfter": 0,
+      "groups": 42,
+      "tickMsWithTruces": 2.039,
+      "tickMsTrucesExpired": 1.948,
+      "truceBlocksUsPerCall": 0.409,
+      "calls": 1764
+    },
+    {
+      "truces": 10,
+      "activeAfter": 10,
+      "groups": 63,
+      "tickMsWithTruces": 3.91,
+      "tickMsTrucesExpired": 3.74,
+      "truceBlocksUsPerCall": 1.314,
+      "calls": 3969
+    },
+    {
+      "truces": 40,
+      "activeAfter": 40,
+      "groups": 124,
+      "tickMsWithTruces": 9.072,
+      "tickMsTrucesExpired": 9.216,
+      "truceBlocksUsPerCall": 0.898,
+      "calls": 15376
+    }
+  ]
+}

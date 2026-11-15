@@ -1,0 +1,95 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/home/user/autobattle_ship[39m
+
+ [32m✓[39m tests/p1321-ui.test.ts [2m([22m[2m5 tests[22m[2m)[22m[33m 854[2mms[22m[39m
+[90mstdout[2m | tests/p11-edge.test.ts[2m > [22m[2mP11 edge cases[2m > [22m[2mNPC-only fights past the load cap fall back to the light resolution (N-side), players are never throttled
+[22m[39m[budget] live [33m10[39m light [33m2[39m
+
+ [32m✓[39m tests/p11-edge.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 14469[2mms[22m[39m
+     [33m[2m✓[22m[39m every side withdrawing ends the battle with no victor; all surviving ships return to the world; settled once [33m 307[2mms[22m[39m
+     [33m[2m✓[22m[39m when the last hostile side withdraws, the remaining (allied) sides end the battle together, nobody routed [33m 400[2mms[22m[39m
+     [33m[2m✓[22m[39m NPC-only fights past the load cap fall back to the light resolution (N-side), players are never throttled [33m 4332[2mms[22m[39m
+     [33m[2m✓[22m[39m T18: a 200-ship three-way battle with a mid-battle reinforcement stays deterministic across save/restore [33m 9012[2mms[22m[39m
+ [32m✓[39m tests/p12-ops.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 17018[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-09: area defence chases an intruder, fights it (P11), then returns to its zone and keeps defending [33m 953[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-09b: defence never chases beyond its leash; a far hostile is ignored; a superior one is held against [33m 342[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-10: patrol follows its waypoints in a loop, fights on the way and resumes the route [33m 4053[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-12: attack-move fights hostiles met on the way, then resumes the advance and arrives [33m 412[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-13: blockade holds a real position at the gate, engages hostiles there and lets neutrals pass [33m 797[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-15: reinforce joins a running P11 battle mid-way (one battle, no reset), then idles [33m 2169[2mms[22m[39m
+     [33m[2m✓[22m[39m recon sweeps the area, records only what its sensors saw, and reports on completion [33m 510[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-16/18: an operation interrupted by a battle and a save/restore resumes with the same state [33m 6630[2mms[22m[39m
+ [32m✓[39m tests/p125-logistics.test.ts [2m([22m[2m23 tests[22m[2m)[22m[33m 8720[2mms[22m[39m
+     [33m[2m✓[22m[39m A1–A3: a bought hauler works for construction with no route and no registration [33m 1245[2mms[22m[39m
+     [33m[2m✓[22m[39m A4: warships, miners, constructors and excluded ships are never dispatched [33m 383[2mms[22m[39m
+     [33m[2m✓[22m[39m A5: one ship per shipment and no double dispatch over repeated scans and a restore [33m 398[2mms[22m[39m
+     [33m[2m✓[22m[39m A6: waits when every hauler is busy and resumes when a ship becomes free [33m 479[2mms[22m[39m
+     [33m[2m✓[22m[39m A7: the global switch stops new dispatch; loaded shipments still finish [33m 417[2mms[22m[39m
+     [33m[2m✓[22m[39m B1: production inputs arrive from two stations without double counting in-transit goods [33m 444[2mms[22m[39m
+     [33m[2m✓[22m[39m C7: conservation over a busy run — initial + production − consumption = final, loading creates nothing [33m 1174[2mms[22m[39m
+     [33m[2m✓[22m[39m D1: pirates raid a loaded hauler for real (P11 engagement); the hauler flees by the existing rule [33m 2003[2mms[22m[39m
+     [33m[2m✓[22m[39m D2: a blockaded gate stops dispatch with a visible cause; lifting it resumes [33m 646[2mms[22m[39m
+ [32m✓[39m tests/p132-piracy.test.ts [2m([22m[2m33 tests[22m[2m)[22m[33m 12575[2mms[22m[39m
+     [33m[2m✓[22m[39m A10: one demand per ship in the re-demand time (any raider); a refusing hauler is not asked every tick [33m 851[2mms[22m[39m
+     [33m[2m✓[22m[39m B04/B05: partial recovery by several companies — initial = Σ taken + left, no unit twice [33m 384[2mms[22m[39m
+     [33m[2m✓[22m[39m D02: harass with a plunder policy raids a lane; plain harass stays the P12 military raid [33m 1612[2mms[22m[39m
+     [33m[2m✓[22m[39m D06: warships alone carry only their small salvage hold; nothing beyond it is gained [33m 3671[2mms[22m[39m
+     [33m[2m✓[22m[39m F01/F05: destroy policy sinks without a demand; P11 decides; the wreck holds real cargo only [33m 2701[2mms[22m[39m
+     [33m[2m✓[22m[39m F07: two raiders on one hauler — one demand, one container, exact totals [33m 980[2mms[22m[39m
+     [33m[2m✓[22m[39m F04: a battle interrupts collection; the container keeps what was not taken [33m 850[2mms[22m[39m
+[90mstdout[2m | tests/p11-server.test.ts[2m > [22m[2mP11 §14 on the multiplayer server[2m > [22m[2mfour PMCs, reinforcements, late spectator, reconnect, withdrawal, server restart, replay — all consistent
+[22m[39m[§14] {"seed":1158914836,"sides":[{"company":"p1","status":"victor"},{"company":"p10","status":"withdrawn"},{"company":"p19","status":"victor"},{"company":"p28","status":"routed"}],"names":["PMC-a","PMC-b","PMC-c","PMC-d"],"losses":[1,1,0,2],"summary":"PMC-a · PMC-c 잔존 — 손실 PMC-a 1척 · PMC-b 1척 · PMC-c 0척 · PMC-d 2척","joins":[{"co":"PMC-c","tick":334,"ships":2},{"co":"PMC-d","tick":484,"ships":2}],"orders":9,"finalTick":6270,"hash":"c1959b15","credits":{"PMC-a":-220,"PMC-b":-203,"PMC-c":-175,"PMC-d":-188}}
+
+ [32m✓[39m tests/p11-server.test.ts [2m([22m[2m1 test[22m[2m)[22m[33m 7165[2mms[22m[39m
+     [33m[2m✓[22m[39m four PMCs, reinforcements, late spectator, reconnect, withdrawal, server restart, replay — all consistent [33m 7163[2mms[22m[39m
+ [32m✓[39m tests/p11-combat-engine.test.ts [2m([22m[2m11 tests[22m[2m)[22m[33m 6315[2mms[22m[39m
+     [33m[2m✓[22m[39m T03: three independent sides fight each other and the battle ends [33m 750[2mms[22m[39m
+     [33m[2m✓[22m[39m T04/T05: allied sides never shoot each other; A+B vs C and A+B vs C+D end with the coalition statuses [33m 1019[2mms[22m[39m
+     [33m[2m✓[22m[39m T08: a side neutral to both belligerents is never attacked and never attacks [33m 374[2mms[22m[39m
+     [33m[2m✓[22m[39m T09: A is hostile to B and C, B and C are neutral to each other — no B↔C fire [33m 405[2mms[22m[39m
+     [33m[2m✓[22m[39m T06/T07: reinforcements join a running battle at their tick; nothing already there is reset [33m 614[2mms[22m[39m
+     [33m[2m✓[22m[39m T10: one side withdraws; the others keep fighting in the same battle [33m 443[2mms[22m[39m
+     [33m[2m✓[22m[39m T16: a battle with reinforcements, a relation change, a withdrawal and orders replays to the same state [33m 820[2mms[22m[39m
+     [33m[2m✓[22m[39m time limit with reinforcements: extended, capped, and a stalemate — never a strength-based winner [33m 545[2mms[22m[39m
+     [33m[2m✓[22m[39m T17: BB-EX in a three-way battle (and joining one) only fights hostile sides [33m 1051[2mms[22m[39m
+ [32m✓[39m tests/p131-p11-outcome.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 6874[2mms[22m[39m
+     [33m[2m✓[22m[39m escorts lost then the rest flees = routed; a lone hauler that escapes a second attack = withdrawn with 0 losses (was "destroyed") [33m 2268[2mms[22m[39m
+     [33m[2m✓[22m[39m a hauler caught and sunk = destroyed with its loss counted; the victor keeps its living ships [33m 1017[2mms[22m[39m
+     [33m[2m✓[22m[39m three sides: the side whose only ship escapes leaves as withdrawn (0 lost) while the other two fight on [33m 3585[2mms[22m[39m
+ [32m✓[39m tests/p12-return.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 5508[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-02: the nearest station is unusable → another one is chosen automatically [33m 322[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-03: a hull too large for the nearby berth → a station whose berth fits [33m 516[2mms[22m[39m
+     [33m[2m✓[22m[39m P12-07: completion docks, idles, and never resumes the previous mission [33m 876[2mms[22m[39m
+     [33m[2m✓[22m[39m a server restart mid-return continues exactly like the uninterrupted run [33m 425[2mms[22m[39m
+     [33m[2m✓[22m[39m return during a battle: only this group retreats (no side-wide withdraw), then it returns home; settled once [33m 1689[2mms[22m[39m
+ [32m✓[39m tests/p1321-truce.test.ts [2m([22m[2m17 tests[22m[2m)[22m[33m 2163[2mms[22m[39m
+     [33m[2m✓[22m[39m T08: after the truce time the same parties meet in P11 normally [33m 742[2mms[22m[39m
+     [33m[2m✓[22m[39m T12: the parties stay covered away from the jettison point (same dock approach, 12 km off) until the truce ends; then normal contact [33m 489[2mms[22m[39m
+ [32m✓[39m tests/p131-salvage.test.ts [2m([22m[2m24 tests[22m[2m)[22m[33m 45301[2mms[22m[39m
+     [33m[2m✓[22m[39m A05: a real P11 battle leaves a wreck where the hauler died, with its surviving cargo; once per engagement [33m 14393[2mms[22m[39m
+     [33m[2m✓[22m[39m B01: a recover order flies, works and fills the real hold; nothing reaches storage before docking; exact accounting [33m 359[2mms[22m[39m
+     [33m[2m✓[22m[39m B02: full hold → dock and unload only salvage → return → continue until the wreck is empty → stand by [33m 2137[2mms[22m[39m
+     [33m[2m✓[22m[39m B05: a miner strips hull scrap a warship cannot; a constructor pulls equipment [33m 1808[2mms[22m[39m
+     [33m[2m✓[22m[39m B07/B08: automatic logistics never takes a salvaging hauler; P12 return beats salvage [33m 842[2mms[22m[39m
+     [33m[2m✓[22m[39m C01: after a real battle the idle winners pick up what is close and legal, then carry it home [33m 18622[2mms[22m[39m
+     [33m[2m✓[22m[39m C02/C03/C04: the toggle, protected cargo and a hostile fleet nearby all stop automatic pickup [33m 1822[2mms[22m[39m
+     [33m[2m✓[22m[39m C05: a fleet under a move order does not stop to salvage [33m 437[2mms[22m[39m
+     [33m[2m✓[22m[39m C06/C07: zone salvage chooses wrecks inside the zone, unloads, comes back, waits, and takes new wrecks [33m 926[2mms[22m[39m
+     [33m[2m✓[22m[39m D01: two companies on one wreck never take the same unit (sums are exact) [33m 1810[2mms[22m[39m
+     [33m[2m✓[22m[39m E01: a salvage operation survives save / restore with the same accounting [33m 1030[2mms[22m[39m
+     [33m[2m✓[22m[39m E03: NPC fleets do not salvage on their own (player fleets only until P14) [33m 407[2mms[22m[39m
+     [33m[2m✓[22m[39m E04: converting a legacy save (copy) retires derelicts, keeps goods and pendingLoot, and is idempotent [33m 343[2mms[22m[39m
+[90mstdout[2m | tests/p11-world.test.ts[2m > [22m[2mP11 persistent world: save/restore, replay, settlement[2m > [22m[2mT02/T20: pirate bounty goes only to companies that damaged pirates; a PvP kill pays no bounty
+[22m[39m[T20 bounty] dmg {"p1":{"pirates":4117.636507905265},"pirates":{"p1":183.51109679979726},"p19":{"pirates":352.7908770855516}} gain [ [33m2432[39m, [33m0[39m, [33m208[39m ] summary PMC-A · PMC-C 잔존 — 손실 PMC-A 0척 · 해적 2척 · PMC-B 0척 · PMC-C 0척
+[T20 pvp] PMC-A 승리 — 손실 PMC-A 0척 · PMC-B 1척 credits [33m12000[39m → [33m11921.166666667[39m rep [33m0[39m
+
+ [32m✓[39m tests/p11-world.test.ts [2m([22m[2m6 tests[22m[2m)[22m[33m 3842[2mms[22m[39m
+     [33m[2m✓[22m[39m T06/T07/T09/T10/T11 + §14: B vs A running, C joins in place for A, D joins hostile to all, B withdraws, the rest fight on [33m 945[2mms[22m[39m
+     [33m[2m✓[22m[39m T15/T16/T20: restore mid-battle after a join continues identically; the record replays to the same hash; settled once [33m 1567[2mms[22m[39m
+     [33m[2m✓[22m[39m T02/T20: pirate bounty goes only to companies that damaged pirates; a PvP kill pays no bounty [33m 1100[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+[2m      Tests [22m [1m[32m165 passed[39m[22m[90m (165)[39m
+[2m   Start at [22m 07:49:05
+[2m   Duration [22m 47.29s[2m (transform 4.99s, setup 0ms, import 7.76s, tests 130.80s, environment 2ms)[22m
+
