@@ -1,0 +1,118 @@
+PASS [1s] 0: PIRACY_P132=1 server creates a P13.2 world (P11+P12+P12.5+P13.1); the raid book is not sent to clients 
+PASS [2s] S1-1: B sets its hauler group to 생존 우선 (group override) 
+PASS [2s] S2-1: B sets its convoy to 화물 보호 우선 
+PASS [2s] S3: B's lone hauler (600 composite) is under way 
+PASS [2s] S4: B's hauler near the 자갈 해적단 lair is set to 생존 우선 
+PASS [2s] S5: A is hostile to B 
+PASS [2s] S6: A is hostile to B 
+PASS [2s] S8: A is hostile to B 
+PASS [2s] S9: A is hostile to B 
+PASS [3s] S1-1: B's corvette escorts the hauler group 
+PASS [3s] S2: A is hostile to B (declaration) 
+PASS [3s] S3: B sets it to 생존 우선 
+PASS [3s] S4: the hauler (2000 machinery) flies past the lair 
+PASS [3s] S5: B1 (hauler, 300 crystal) answers 생존 우선 
+PASS [3s] S6: B hauler g214 answers 생존 우선 
+PASS [3s] S8: B's hauler (600 alloy) answers 생존 우선 
+PASS [3s] S9: B hauler g260 answers 생존 우선 
+PASS [3s] S1-2: A declares B hostile 
+PASS [3s] S2-2: A orders a plunder with force allowed 
+PASS [3s] S3: A is hostile to B (declaration) 
+PASS [3s] S5: B2 (2 corvettes) holds a defence point 2.9 km from B1 
+PASS [3s] S6: B hauler g222 answers 생존 우선 
+PASS [3s] S9: B hauler g268 answers 생존 우선 
+PASS [3s] S1-2: A sets a lane plunder (항로 약탈, non-destructive) on the approach to B's destination 
+PASS [3s] S2-3: B refused the demand (protect policy, escort present) {"resp":"resist"}
+PASS [3s] S3-1: A demands part of the cargo 
+PASS [3s] S5: A2 holds its position 2.2 km from B2 (out of contact) 
+PASS [3s] S6: B's escort group follows B4 
+PASS [3s] S9: B hauler g276 answers 생존 우선 
+PASS [3s] S1-1: B creates a real logistics job: 300 ore B 광산 기지 → B 제련 기지 
+PASS [3s] S3-1: B jettisoned part; hauler + container = 600 composite {"drop":"cd_pv4","dropped":300,"kept":300}
+PASS [3s] S5-1: A1 plunders B1 (non-destructive) 
+PASS [3s] S6-1: A3 plunders B3 
+PASS [3s] S8-1: the server refuses a tender order on the raid itself, on another company's raid and on a missing group ["자기 편대는 지정할 수 없습니다","자사 약탈 편대만 지원할 수 있습니다","지원할 약탈 편대가 없습니다"]
+PASS [3s] S9: B's separate escort group holds 900 m from the rich hauler 
+PASS [3s] S3-2: A sends its hauler to recover the container 
+PASS [3s] S5-2: the server's truce names A1 and B1 only (not A2, not B2) {"pa":["g200"],"pb":["g197"],"r":4000,"left":180}
+PASS [3s] S6-1: A4 plunders B4 
+PASS [3s] S8-2: A assigns its 2-hauler group to the raid (약탈 회수 지원) 
+PASS [3s] S8-2: A's own view shows the tender order {"k":"lootTender","group":"g252"}
+PASS [3s] S9-1: A orders a lane raid on the zone (no target given) 
+PASS [3s] S3-3: A then switches its warships to 수송망 파괴 우선 on the same hauler (force without a demand, ends the truce, P11) 
+PASS [3s] S5-3: A2 moves onto B2 (no attack order — contact only) 
+PASS [3s] S6-1: two concurrent truces of the same company pair live side by side (neither overwrote the other) {"drops":["cd_pv10","cd_pv13"],"truces":[{"id":"cd_pv4","pa":["g169"],"pb":["g166"]},{"id":"cd_pv7","pa":["g200"],"pb":["g197"]},{"id":"cd_pv10","pa":["g217"],"pb":["g214"]},{"id":"cd_pv13","pa":["g228"],"pb":["g222","g225"]}]}
+PASS [3s] S6-1: B4's escort group is a party of the A4↔B4 truce [{"id":"cd_pv4","pa":["g169"],"pb":["g166"]},{"id":"cd_pv7","pa":["g200"],"pb":["g197"]},{"id":"cd_pv10","pa":["g217"],"pb":["g214"]},{"id":"cd_pv13","pa":["g228"],"pb":["g222","g225"]}]
+PASS [3s] S8-3: the raid (2 destroyers) plunders B's hauler 
+PASS [3s] S9-3: A orders a second lane raid on a zone with only 5 silicate 
+PASS [3s] S6-2: A orders A3 to attack B3 directly 
+PASS [4s] S6-2: only the A3↔B3 truce ended; A4↔B4 is still active ["cd_pv7","cd_pv13","cd_pv18"]
+PASS [4s] S6-2: the raid book records the use of force (attack order) for A3 [{"policy":"attack:g214","t":3}]
+PASS [4s] S8-4: the container in the server save records the raid that made it (drop.raid) {"raid":"g252"}
+PASS [4s] S8-4: the server's truce names the tender as a party with the raid {"pa":["g252","g256"],"pb":["g249"]}
+PASS [4s] S8-4: hauler + container = 600 alloy {"bHeld":300,"initial":300}
+PASS [4s] S1-1: the P12.5 job loaded the hauler and it undocked (real cargo under way) {"carried":300,"cargo":300,"job":"lj290"}
+PASS [7s] S2-4/5: A used force — a real P11 engagement {"eng":"e298","after":5}
+PASS [16s] S4-1/2/3: an NPC pirate band threatened B's hauler; B surrendered; the real cargo was jettisoned {"drop":"cd_pv21","initial":1000,"kept":1000}
+PASS [18s] S1-4/5/6/10: B surrendered: the hauler's ore fell by exactly the container's amount; the job settled carried −, lost +, pirated + at that moment {"drop":"cd_pv24","initial":150,"carriedBefore":300,"carriedAfter":150,"lost":150,"pirated":150,"cargoAfter":150}
+PASS [18s] S1: no P11 engagement near the raid (non-destructive plunder) {"engagements":0}
+PASS [21s] S5-3: A2↔B2 started a real P11 battle while the A1↔B1 truce was still active (same two companies, inside the truce radius) {"id":"e317","after":18,"groups":["g205","g209"],"truceStillActive":true}
+PASS [21s] S5-3: neither A1 nor B1 was pulled into that battle by contact {"id":"e317","after":18,"groups":["g205","g209"],"truceStillActive":true}
+INFO S6-2: the battle A3 got into after its attack order (groups, distance from the A4↔B4 truce point) {"id":"e318","groups":["g217","g225","g249","g276"],"pos":{"x":-280549,"z":8183},"fromTruce4":9258}
+PASS [21s] S6-2: B4 (surrendered hauler, A4↔B4 truce) is not in any battle {"b4":"docked"}
+PASS [21s] S5-4: A1 heads into the A2↔B2 battle 
+PASS [21s] S6-3: B orders B4's escort to attack A4 (the victim side attacks) 
+PASS [21s] S6-3: the victim side's attack ended the A4↔B4 truce {"left":["cd_pv7","cd_pv18","cd_pv21","cd_pv24"]}
+PASS [24s] S9-1: the raid threatened the poorer unescorted hauler first (not the richer one 900 m from a separate escort) {"ship":"s270","poor":true}
+PASS [24s] S9-2: A's own fleet view carries the estimate (응낙·실판매·위험·기대 수익) {"p":1,"sale":4090,"risk":0,"profit":4090}
+PASS [24s] S9-2: B does not see A's raid state null
+PASS [24s] S9-3: the lane raid over 5 silicate threatened nobody and says why {"why":"수익성 있는 목표 없음 (1척 검토)","threats":0}
+PASS [26s] S1-7: A's warships recovered part of the container (their salvage hold), the rest stays {"aTook":1,"initial":150}
+PASS [26s] S1-8: C orders its hauler to the container (unauthorised recovery of B's cargo, lawless zone) 
+PASS [30s] S4-5: B sends its own escorted hauler to take back what is left (owner — always allowed) 
+PASS [31s] S5-4: A1 reinforced the running battle against B2 (A1↔B2 is not under truce); B1 is not in it {"eng":"e317","same":true,"groups":["g205","g209","g200"]}
+PASS [31s] S5-5: B1 (the surrendered hauler) was never in a battle; hauler + container = 300 crystal {"alive":true,"crystal":150,"engaged":false}
+PASS [33s] S3-4: the wreck holds only part of what was still aboard (not the jettisoned composite) {"kept":300,"inWreck":141}
+PASS [41s] S4-5: B recovered its own jettisoned cargo {"drop":"cd_pv21","initial":1000,"kept":1000,"leftAfterPirates":983,"bTook":1}
+PASS [56s] S3-2: A recovered from the container {"aTook":8}
+PASS [57s] S3-5: C salvages the hauler's wreck 
+PASS [69s] S8-5: the tender's status went through 약탈품 회수 중 and 회수품 하역 중 ["약탈 회수 지원","약탈품 회수 중","회수품 하역 중"]
+PASS [69s] S8-5: everything jettisoned is in A's warehouses or aboard A's ships (exact) {"got":300,"raidHeld":0,"tenderHeld":0,"initial":300}
+PASS [69s] S8-6: the tender order is continuous (still supporting the raid) {"k":"lootTender","group":"g252"}
+PASS [79s] S1-8: C recovered from the same container {"cTook":8}
+PASS [105s] S1: no P11 engagement anywhere near the raid during the whole scenario {"engagements":0}
+PASS [105s] S1-9/10/11: the hauler survived; the job completed with 300 delivered, the plundered amount re-loaded from B's own stock (nothing bought or created) {"drop":"cd_pv24","initial":150,"carriedBefore":300,"carriedAfter":150,"lost":150,"pirated":150,"cargoAfter":150,"job":{"delivered":300,"lost":150,"pirated":150,"amount":300},"storage":{"src":450,"dst":300}}
+PASS [120s] S3-5: container and wreck are separate objects, each recovered on its own (totals from the save) {"drop":"cd_pv4","dropped":300,"kept":300,"end":"sunk","sunk":true,"wreck":{"id":"wk_e301_0","composite":141},"aTook":8,"cTook":6}
+PASS [785s] S2-6: B's hauler was sunk 
+PASS [785s] S2-7: a P13.1 wreck holds the surviving part of the hauler's real cargo {"id":"wk_e582_0","cargo":{"metal":181,"electronics":72}}
+PASS [785s] S2-8: C orders its hauler to the wreck 
+PASS [802s] S2-8: the wreck's goods are recovered by A and/or C (accounting checked from the save) {"A":{"electronics":46},"C":{"electronics":4}}
+PASS [803s] S7: A is hostile to B 
+PASS [803s] S7: B hauler g233 answers 생존 우선 
+PASS [803s] S7: B hauler g241 answers 생존 우선 
+PASS [803s] S7: B sends hauler g233 out of its dock (real move order) {"state":"docked"}
+PASS [803s] S7: B sends hauler g241 out of its dock (real move order) {"state":"docked"}
+PASS [912s] S7: both haulers are out in space before the plunder orders ["space","space"]
+PASS [912s] S7-1: A5 plunders B5 
+PASS [912s] S7-1: A6 plunders B6 
+PASS [929s] S7-1: two active truces and two containers before the restart {"drops":["cd_pv55","cd_pv52"],"truces":[{"id":"cd_pv52","until":1081.75},{"id":"cd_pv55","until":1108.25}]}
+PASS [933s] S7-2: after the restart every truce of the save is back unchanged (ids, parties, radius, end time) and the policies too {"before":{"truces":2,"drops":6,"pol":["survive","survive"],"plx":["collect",null]},"after":{"truces":2,"drops":6,"pol":["survive","survive"],"plx":["collect",null]},"timeBefore":929.75,"timeAfter":931.75}
+PASS [933s] S7-2: the S7 containers are back after the restart {"before":["cd_pv10","cd_pv21","cd_pv42","cd_pv52","cd_pv55","cd_pv7"],"after":["cd_pv10","cd_pv21","cd_pv42","cd_pv52","cd_pv55","cd_pv7"]}
+PASS [933s] S7-3: after the restart no S7 plunder party is in a battle with its truce partner {"engagements":[]}
+PASS [937s] restart: containers, wrecks, the raid book (saved entries are an exact prefix after the restart; the world keeps running) and the response policies are restored from the save {"before":{"drops":["cd_pv10","cd_pv21","cd_pv42","cd_pv52","cd_pv55","cd_pv7"],"dropLots":[128,100,406,483,78,93],"wrecks":["wk_e298_0","wk_e301_0","wk_e317_0","wk_e318_0","wk_e372_0","wk_e413_0","wk_e505_0","wk_e582_0"],"log":57,"pol":["survive","protect"]},"after":{"drops":["cd_pv10","cd_pv21","cd_pv42","cd_pv52","cd_pv55","cd_pv7"],"dropLots":[128,100,406,483,78,81],"wrecks":["wk_e298_0","wk_e301_0","wk_e317_0","wk_e318_0","wk_e372_0","wk_e413_0","wk_e505_0","wk_e582_0"],"log":57,"pol":["survive","protect"]},"newAfterRestart":[]}
+PASS [937s] accounting ore: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":900,"heldNow":900,"destroyed":0}
+PASS [937s] accounting metal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":300,"heldNow":181,"destroyed":119}
+PASS [937s] accounting electronics: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":120,"heldNow":72,"destroyed":48}
+PASS [937s] accounting composite: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":600,"heldNow":447,"destroyed":153}
+PASS [937s] accounting crystal: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":300,"heldNow":300,"destroyed":0}
+PASS [937s] accounting armor_plate: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":400,"heldNow":400,"destroyed":0}
+PASS [937s] accounting structure: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":400,"heldNow":400,"destroyed":0}
+PASS [937s] accounting alloy: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":600,"heldNow":600,"destroyed":0}
+PASS [937s] accounting chemicals: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":600,"heldNow":600,"destroyed":0}
+PASS [937s] accounting gas: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":600,"heldNow":600,"destroyed":0}
+PASS [937s] accounting silicate: ships + storages + containers + wrecks + destroyed (server analytics) = what was placed, exactly {"start":5,"heldNow":5,"destroyed":0}
+PASS [937s] S4-6: the pirates' container in the save: taken (pirates, B) + left = what was jettisoned {"initial":1000,"taken":{"pirates":{"machinery":17},"p10":{"machinery":577}},"left":406}
+PASS [937s] S4-4/6: what reached the lair is never more than the pirates physically recovered (server analytics) {"recoveredByPirates":87,"storedAtLair":87}
+PASS [937s] REQUIRED: a plunder succeeded without any P11 battle (S1) 
+PASS [937s] REQUIRED: a plunder that turned into a real P11 battle and a sinking (S2 or S3) 
+{"passed":116,"failed":0,"seconds":937}
