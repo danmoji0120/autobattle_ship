@@ -1,0 +1,209 @@
+{"hour":1,"credits":9871,"threats":21,"comply":21,"sold":15906,"rShips":10}
+{"hour":2,"credits":26409,"threats":39,"comply":39,"sold":38783,"rShips":10}
+{"hour":3,"credits":44801,"threats":57,"comply":57,"sold":63359,"rShips":10}
+{"hour":4,"credits":56884,"threats":71,"comply":71,"sold":81984,"rShips":10}
+{"hour":5,"credits":73457,"threats":86,"comply":86,"sold":103245,"rShips":6}
+{"hour":6,"credits":95464,"threats":99,"comply":99,"sold":128797,"rShips":6}
+{"hour":7,"credits":116574,"threats":113,"comply":113,"sold":153558,"rShips":6}
+{"hour":8,"credits":133963,"threats":125,"comply":125,"sold":174408,"rShips":6}
+{
+ "tag": "p10-medium-neutral-8h-s13220-80869ca",
+ "code": "80869ca",
+ "hours": 8,
+ "seed": 13220,
+ "raid": "medium",
+ "neutral": true,
+ "hold": false,
+ "victims": 4,
+ "detClock": true,
+ "tenderOrder": "none",
+ "error": null,
+ "restartEqual": true,
+ "lanes": [
+  {
+   "key": "drake>junction",
+   "loadedSamples": 45,
+   "refValueSeen": 48726
+  },
+  {
+   "key": "astra>drake",
+   "loadedSamples": 25,
+   "refValueSeen": 41997
+  }
+ ],
+ "attempts": 125,
+ "complies": 125,
+ "byTarget": {
+  "threat/guild": 115,
+  "comply/guild": 115,
+  "threat/V": 10,
+  "comply/V": 10
+ },
+ "droppedUnits": {
+  "guild/machinery": 1089,
+  "guild/alloy": 1540,
+  "V/ore": 255,
+  "guild/ore": 1371
+ },
+ "droppedReferenceValue": {
+  "guild": 161000,
+  "V": 2550
+ },
+ "recoveredUnits": {
+  "drop/guild/machinery": 1089,
+  "drop/guild/alloy": 1540,
+  "drop/V/ore": 255,
+  "drop/guild/ore": 1371
+ },
+ "recoveredReferenceValue": 163550,
+ "sales": {
+  "credits": 174408,
+  "byItem": {
+   "alloy": {
+    "units": 1540,
+    "cr": 62750,
+    "perUnit": 40.75,
+    "refPerUnit": 32
+   },
+   "ore": {
+    "units": 1626,
+    "cr": 5378,
+    "perUnit": 3.31,
+    "refPerUnit": 10
+   },
+   "machinery": {
+    "units": 1046,
+    "cr": 106280,
+    "perUnit": 101.61,
+    "refPerUnit": 90
+   }
+  },
+  "count": 96
+ },
+ "unsold": {
+  "machinery": {
+   "units": 34,
+   "referenceValue": 3060
+  }
+ },
+ "unsoldReferenceValue": 3060,
+ "costEvents": {
+  "fleet_upkeep": 28324,
+  "maintenance": 11645,
+  "warehouse_rent": 0,
+  "supplies": 1465
+ },
+ "ledger": {
+  "inc": {
+   "sales": 174408,
+   "other": 3635
+  },
+  "exp": {
+   "upkeep": 41435
+  }
+ },
+ "upkeep": 41435,
+ "repairDue": 75,
+ "lostHulls": {
+  "ships": 4,
+  "value": 144400,
+  "list": [
+   {
+    "t": 24120,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 24120,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 24120,
+    "cls": "corvette",
+    "value": 9300
+   },
+   {
+    "t": 24120,
+    "cls": "destroyer",
+    "value": 116500
+   }
+  ]
+ },
+ "investment": 307400,
+ "netCashFlow": 133963,
+ "finalPL": -10512,
+ "perHourPL": -1314,
+ "paybackHours": null,
+ "reputation": {
+  "start": 0,
+  "end": 0
+ },
+ "estimates": "125 rows",
+ "perHour": [
+  {
+   "hour": 1,
+   "credits": 9871,
+   "threats": 21,
+   "comply": 21,
+   "sold": 15906,
+   "rShips": 10
+  },
+  {
+   "hour": 2,
+   "credits": 26409,
+   "threats": 39,
+   "comply": 39,
+   "sold": 38783,
+   "rShips": 10
+  },
+  {
+   "hour": 3,
+   "credits": 44801,
+   "threats": 57,
+   "comply": 57,
+   "sold": 63359,
+   "rShips": 10
+  },
+  {
+   "hour": 4,
+   "credits": 56884,
+   "threats": 71,
+   "comply": 71,
+   "sold": 81984,
+   "rShips": 10
+  },
+  {
+   "hour": 5,
+   "credits": 73457,
+   "threats": 86,
+   "comply": 86,
+   "sold": 103245,
+   "rShips": 6
+  },
+  {
+   "hour": 6,
+   "credits": 95464,
+   "threats": 99,
+   "comply": 99,
+   "sold": 128797,
+   "rShips": 6
+  },
+  {
+   "hour": 7,
+   "credits": 116574,
+   "threats": 113,
+   "comply": 113,
+   "sold": 153558,
+   "rShips": 6
+  },
+  {
+   "hour": 8,
+   "credits": 133963,
+   "threats": 125,
+   "comply": 125,
+   "sold": 174408,
+   "rShips": 6
+  }
+ ]
+}

@@ -22,7 +22,7 @@ import { observeWorld } from '../../src/world/observe';
 import { storageCap } from '../../src/world/production';
 import { assetReferenceValue, hullPrice } from '../../src/world/valuation';
 import { repairQuote } from '../../src/world/repair';
-import { opsOf } from '../../src/world/operations';
+import { opsOf, OP_NAME } from '../../src/world/operations';
 import { priceOf } from '../../src/world/market';
 import { dist } from '../../src/world/geom';
 
@@ -105,8 +105,13 @@ const orderRaid = (i: number) => HOLD ? sim.command(R, { c: 'setOp', group: raid
 const orderTender = (i: number) => {
   const t = tenders[i]; if (!t) return null;
   if (HOLD) return sim.command(R, { c: 'setOp', group: t.id, op: { k: 'defend', at: lanes[i].ambush, radius: 3000 } } as any);
-  const e = sim.command(R, { c: 'setOp', group: t.id, op: { k: 'lootTender', group: raids[i].id } } as any);
-  if (!e) { tenderOrder = 'lootTender'; return null; }
+  // the code supports the order only if it knows it (an unknown op kind passes the old validateOp's default
+  // branch and leaves the fleet inert — the first run of the 80869ca split cases, kept as invalid)
+  if ((OP_NAME as Record<string, string>).lootTender) {
+    const e = sim.command(R, { c: 'setOp', group: t.id, op: { k: 'lootTender', group: raids[i].id } } as any);
+    if (!e) { tenderOrder = 'lootTender'; return null; }
+    return e;
+  }
   tenderOrder = 'salvzone (no lootTender in this code)';
   return sim.command(R, { c: 'setOp', group: t.id, op: { k: 'salvzone', at: lanes[i].ambush, radius: 6000, ...(NEUTRAL ? { illegal: true } : {}) } } as any);
 };
@@ -134,6 +139,7 @@ const ev = (e: any) => {
 let stop = observeWorld(sim.st, ev);
 let rShips = new Map(Object.values(sim.st.ships).filter(s => s.owner === R).map(s => [s.id, s]));
 const rLost: { t: number; cls: string; value: number }[] = [];
+const fights: { id: string; t: number; sys?: string; sides: string[] }[] = [];
 const sales: { t: number; item: string; n: number; cr: number; station: string; bidBefore: number | null }[] = [];
 let restartOk: boolean | null = null, err: unknown = null;
 const T = Math.round(hours * 3600), perHour: unknown[] = [];
@@ -143,6 +149,12 @@ try {
     if (t % 60 === 0) {
       const now = new Map(Object.values(sim.st.ships).filter(s => s.owner === R).map(s => [s.id, s]));
       for (const [id, s] of rShips) if (!now.has(id)) rLost.push({ t: sim.time, cls: s.classId, value: hullValue(s) });
+      // who the raider's fleets are fighting (P11 engagements), sampled each minute
+      for (const e of Object.values(sim.st.engagements)) {
+        const refs = (e as any).groupRefs as string[] | undefined; if (!refs?.some(id => sim.st.groups[id]?.owner === R)) continue;
+        const key = (e as any).id ?? JSON.stringify(refs);
+        if (!fights.some(f => f.id === key)) fights.push({ id: key, t: sim.time, sys: (e as any).sys, sides: [...new Set(refs.map(id => sim.st.groups[id]?.owner ?? '?'))].map(o => who(o) === 'other' ? o : who(o)) });
+      }
       rShips = now;
       for (let i = 0; i < raids.length; i++) {
         const g = sim.st.groups[raids[i].id]; if (g && ['idle', 'dock'].includes(g.op.k) && g.shipIds.some(id => sim.st.ships[id])) orderRaid(i);
@@ -198,6 +210,7 @@ const out = {
   netCashFlow: Math.round(cashFlow), finalPL: Math.round(finalPL), perHourPL: Math.round(finalPL / hours),
   paybackHours: finalPL > 0 ? +(investment / (finalPL / hours)).toFixed(1) : null,
   reputation: { start: +rep0.toFixed(2), end: +co.rep.toFixed(2) },
+  fights,
   estimates: estimates.slice(0, 400), perHour,
 };
 console.log(JSON.stringify({ ...out, estimates: `${estimates.length} rows` }, null, 1));
