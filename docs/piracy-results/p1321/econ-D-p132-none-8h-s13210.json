@@ -1,0 +1,239 @@
+{
+  "tag": "D-p132-none-8h-s13210",
+  "hours": 8,
+  "seed": 13210,
+  "cargo": "D",
+  "items": [
+    "ore",
+    "alloy",
+    "electronics"
+  ],
+  "raid": "p132",
+  "escort": "none",
+  "hold": false,
+  "policy": "nonlethal",
+  "victimPolicy": "balanced",
+  "error": null,
+  "restartEqual": true,
+  "attempts": {
+    "victim": 67,
+    "npcTraders": 0
+  },
+  "complies": {
+    "victim": 67,
+    "npcTraders": 0
+  },
+  "responses": {
+    "comply/V": 67,
+    "drop/V": 67
+  },
+  "droppedUnits": {
+    "V/electronics": 5625,
+    "V/alloy": 4275,
+    "V/ore": 5175
+  },
+  "droppedReferenceValue": {
+    "victim": 1032300,
+    "npcTraders": 0
+  },
+  "recoveredUnits": {
+    "drop/V/electronics": 5625,
+    "drop/V/alloy": 4275,
+    "drop/V/ore": 5175
+  },
+  "recoveredReferenceValue": 1032300,
+  "recoveredByOthers": {},
+  "victimDropDecay": 0,
+  "sales": {
+    "credits": 387190,
+    "byItem": {
+      "alloy": {
+        "units": 3820,
+        "cr": 124598,
+        "perUnit": 32.62,
+        "refPerUnit": 32
+      },
+      "electronics": {
+        "units": 4205,
+        "cr": 251876,
+        "perUnit": 59.9,
+        "refPerUnit": 150
+      },
+      "ore": {
+        "units": 5175,
+        "cr": 10716,
+        "perUnit": 2.07,
+        "refPerUnit": 10
+      }
+    },
+    "count": 95
+  },
+  "unsold": {
+    "alloy": {
+      "units": 455,
+      "referenceValue": 14560
+    },
+    "electronics": {
+      "units": 1420,
+      "referenceValue": 213000
+    }
+  },
+  "unsoldReferenceValue": 227560,
+  "costEvents": {
+    "fleet_upkeep": 19800,
+    "warehouse_rent": 0,
+    "supplies": 803,
+    "maintenance": 7394
+  },
+  "ledger": {
+    "inc": {
+      "sales": 387189,
+      "other": 11753
+    },
+    "exp": {
+      "upkeep": 27994
+    }
+  },
+  "upkeep": 27994,
+  "repairPaid": 0,
+  "repairDue": 330,
+  "lostHulls": {
+    "ships": 0,
+    "value": 0,
+    "list": []
+  },
+  "investment": 163000,
+  "netCashFlow": 359194,
+  "finalPL": 358864,
+  "paybackHours": 3.6,
+  "oldP132Formula": 586754,
+  "victim": {
+    "delivered": {
+      "ore": 75825,
+      "alloy": 55575,
+      "electronics": 40275
+    },
+    "shipsLost": 4,
+    "lostValue": 37200,
+    "escorts": 0
+  },
+  "npcPirateThreats": 8,
+  "engagementsEnd": 0,
+  "tick": {
+    "meanMs": 12.08
+  },
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": 77851,
+      "comply": 11,
+      "threats": 11,
+      "sold": 81254,
+      "rShips": 6,
+      "delivered": {
+        "ore": 11025,
+        "alloy": 10575,
+        "electronics": 10575
+      },
+      "ms": 11.51
+    },
+    {
+      "hour": 2,
+      "credits": 156364,
+      "comply": 22,
+      "threats": 22,
+      "sold": 163330,
+      "rShips": 6,
+      "delivered": {
+        "ore": 22275,
+        "alloy": 21600,
+        "electronics": 20700
+      },
+      "ms": 12.08
+    },
+    {
+      "hour": 3,
+      "credits": 180630,
+      "comply": 32,
+      "threats": 32,
+      "sold": 191001,
+      "rShips": 6,
+      "delivered": {
+        "ore": 32850,
+        "alloy": 31950,
+        "electronics": 30600
+      },
+      "ms": 12.31
+    },
+    {
+      "hour": 4,
+      "credits": 238605,
+      "comply": 44,
+      "threats": 44,
+      "sold": 252561,
+      "rShips": 6,
+      "delivered": {
+        "ore": 42300,
+        "alloy": 41850,
+        "electronics": 39600
+      },
+      "ms": 12.45
+    },
+    {
+      "hour": 5,
+      "credits": 280594,
+      "comply": 50,
+      "threats": 50,
+      "sold": 298028,
+      "rShips": 6,
+      "delivered": {
+        "ore": 53775,
+        "alloy": 41850,
+        "electronics": 40275
+      },
+      "ms": 13.78
+    },
+    {
+      "hour": 6,
+      "credits": 304751,
+      "comply": 55,
+      "threats": 55,
+      "sold": 325623,
+      "rShips": 6,
+      "delivered": {
+        "ore": 66600,
+        "alloy": 41850,
+        "electronics": 40275
+      },
+      "ms": 11.59
+    },
+    {
+      "hour": 7,
+      "credits": 328949,
+      "comply": 61,
+      "threats": 61,
+      "sold": 353371,
+      "rShips": 6,
+      "delivered": {
+        "ore": 75825,
+        "alloy": 43875,
+        "electronics": 40275
+      },
+      "ms": 11.4
+    },
+    {
+      "hour": 8,
+      "credits": 359194,
+      "comply": 67,
+      "threats": 67,
+      "sold": 387190,
+      "rShips": 6,
+      "delivered": {
+        "ore": 75825,
+        "alloy": 55575,
+        "electronics": 40275
+      },
+      "ms": 11.51
+    }
+  ]
+}

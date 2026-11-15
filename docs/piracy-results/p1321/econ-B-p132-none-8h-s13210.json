@@ -1,0 +1,203 @@
+{
+  "tag": "B-p132-none-8h-s13210",
+  "hours": 8,
+  "seed": 13210,
+  "cargo": "B",
+  "items": [
+    "alloy"
+  ],
+  "raid": "p132",
+  "escort": "none",
+  "hold": false,
+  "policy": "nonlethal",
+  "victimPolicy": "balanced",
+  "error": null,
+  "restartEqual": true,
+  "attempts": {
+    "victim": 50,
+    "npcTraders": 0
+  },
+  "complies": {
+    "victim": 50,
+    "npcTraders": 0
+  },
+  "responses": {
+    "comply/V": 50,
+    "drop/V": 50
+  },
+  "droppedUnits": {
+    "V/alloy": 11250
+  },
+  "droppedReferenceValue": {
+    "victim": 360000,
+    "npcTraders": 0
+  },
+  "recoveredUnits": {
+    "drop/V/alloy": 11219
+  },
+  "recoveredReferenceValue": 359008,
+  "recoveredByOthers": {},
+  "victimDropDecay": 0,
+  "sales": {
+    "credits": 329294,
+    "byItem": {
+      "alloy": {
+        "units": 9904,
+        "cr": 329294,
+        "perUnit": 33.25,
+        "refPerUnit": 32
+      }
+    },
+    "count": 46
+  },
+  "unsold": {
+    "alloy": {
+      "units": 1121,
+      "referenceValue": 35872
+    },
+    "alloy(aboard)": {
+      "units": 194,
+      "referenceValue": 6208
+    }
+  },
+  "unsoldReferenceValue": 42080,
+  "costEvents": {
+    "fleet_upkeep": 19800,
+    "warehouse_rent": 0,
+    "supplies": 803,
+    "maintenance": 7334
+  },
+  "ledger": {
+    "inc": {
+      "sales": 329295,
+      "other": 7652
+    },
+    "exp": {
+      "upkeep": 27934
+    }
+  },
+  "upkeep": 27934,
+  "repairPaid": 0,
+  "repairDue": 0,
+  "lostHulls": {
+    "ships": 0,
+    "value": 0,
+    "list": []
+  },
+  "investment": 163000,
+  "netCashFlow": 301357,
+  "finalPL": 301357,
+  "paybackHours": 4.3,
+  "oldP132Formula": 343437,
+  "victim": {
+    "delivered": {
+      "alloy": 97425
+    },
+    "shipsLost": 0,
+    "lostValue": 0,
+    "escorts": 0
+  },
+  "npcPirateThreats": 2,
+  "engagementsEnd": 0,
+  "tick": {
+    "meanMs": 11.244
+  },
+  "perHour": [
+    {
+      "hour": 1,
+      "credits": 70991,
+      "comply": 11,
+      "threats": 11,
+      "sold": 74444,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 11025
+      },
+      "ms": 11.46
+    },
+    {
+      "hour": 2,
+      "credits": 105204,
+      "comply": 16,
+      "threats": 16,
+      "sold": 112098,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 24300
+      },
+      "ms": 10.71
+    },
+    {
+      "hour": 3,
+      "credits": 147284,
+      "comply": 22,
+      "threats": 22,
+      "sold": 157731,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 36000
+      },
+      "ms": 10.81
+    },
+    {
+      "hour": 4,
+      "credits": 181966,
+      "comply": 27,
+      "threats": 27,
+      "sold": 195835,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 48375
+      },
+      "ms": 11.25
+    },
+    {
+      "hour": 5,
+      "credits": 225578,
+      "comply": 33,
+      "threats": 33,
+      "sold": 243062,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 60075
+      },
+      "ms": 11.59
+    },
+    {
+      "hour": 6,
+      "credits": 252946,
+      "comply": 39,
+      "threats": 39,
+      "sold": 274014,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 72225
+      },
+      "ms": 11.22
+    },
+    {
+      "hour": 7,
+      "credits": 277160,
+      "comply": 44,
+      "threats": 44,
+      "sold": 301672,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 85050
+      },
+      "ms": 11.29
+    },
+    {
+      "hour": 8,
+      "credits": 301357,
+      "comply": 50,
+      "threats": 50,
+      "sold": 329294,
+      "rShips": 6,
+      "delivered": {
+        "alloy": 97425
+      },
+      "ms": 11.62
+    }
+  ]
+}
