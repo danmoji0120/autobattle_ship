@@ -59,6 +59,8 @@ export interface Company {
   ops?: import('./operations').CompanyOps;
   /** P10 standing with each territorial faction (−100..100; absent = 0) */
   standing?: Record<string, number>;
+  /** P13.2: default answer of this company's cargo ships to a cargo demand (absent = balanced) */
+  piracyPolicy?: import('./piracy').VictimPolicy;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -131,7 +133,10 @@ export type Op =
   | { k: 'intercept'; group: string }
   | { k: 'blockade'; system: string; gate: string }
   /** raid a lane: hunt vulnerable hostile targets around `at` (or along `route`) — no looting (P13) */
-  | { k: 'harass'; at: V; radius: number; route?: V[] }
+  | { k: 'harass'; at: V; radius: number; route?: V[]; plunder?: import('./piracy').PlunderPolicy; neutral?: boolean }
+  /** P13.2 (piracyV worlds): take real cargo from a target fleet (`group`) or from cargo ships around `at`.
+   *  Demands surrender at threat range; the target's cargo is jettisoned and recovered by this fleet. */
+  | { k: 'plunder'; group?: string; at?: V; radius?: number; policy: import('./piracy').PlunderPolicy; demand?: 'part' | 'all' | 'item'; item?: string; neutral?: boolean }
   /** support a running battle (eng) or a friendly fleet (group) */
   | { k: 'reinforce'; eng?: string; group?: string }
   | { k: 'recon'; at: V; radius: number }
@@ -201,6 +206,8 @@ export interface WShip {
   salvaged?: Cargo;
   /** P13.1: salvage work done but not yet a whole unit (per ship, the lot it was working on) */
   salvAcc?: { lot: string; a: number };
+  /** P13.2: the last cargo demand made to this ship (one demand per ship per PIR.redemand seconds) */
+  pir?: { t: number; by: string; ev: string; act: import('./piracy').Response; dropped?: number };
   /** laid up in reserve (P4): docked, cannot depart, upkeep ×0.15. `until` = reactivation finishes */
   reserve?: { since: number; until?: number };
   /** listed for sale on a station exchange (P6): locked in place until sold or withdrawn */
@@ -239,6 +246,10 @@ export interface WGroup {
   autoSalvage?: false;
   /** P13.1: salvage execution state (recover / salvage-zone orders, or an automatic on-site pickup) */
   salv?: import('./salvage').SalvState;
+  /** P13.2: plunder operation state (the group holding a plunder order, or a raiding pirate band) */
+  plx?: import('./piracy').PlunderState;
+  /** P13.2: this fleet's answer to cargo demands (absent = the company default) */
+  piracyPolicy?: import('./piracy').VictimPolicy;
 }
 
 /** coordinated fleet movement: rally → move as one at the slowest ship's pace → stage → attack together */
@@ -419,6 +430,8 @@ export interface Lair {
   respawnAt: number;
   nextBand: number;
   maxBands: number;
+  /** P13.2: plunder carried home by its pirate bands (real goods, only what they recovered) */
+  hold?: Cargo;
   /** band strength tier (1 small … 5 warlord) */
   tier?: number;
   kind?: 'hideout' | 'lair' | 'fortress';
@@ -574,6 +587,12 @@ export interface WorldState {
   salvageV?: 1;
   /** P13.1: persistent battlefield wrecks (salvageV worlds) */
   wrecks?: Record<string, import('./wrecks').WreckSite>;
+  /** P13.2 cargo raiding & jettisoned cargo (new worlds only; implies salvageV) */
+  piracyV?: 1;
+  /** P13.2: cargo jettisoned by ships that gave in to a demand (recovered with the P13.1 salvage engine) */
+  drops?: Record<string, import('./piracy').CargoDrop>;
+  /** P13.2: server-side bookkeeping (truces, event log, sequence) — never replicated */
+  piracy?: import('./piracy').PiracyBook;
   /** P11: per-company stance toward other player companies. Hostility is unilateral (either side's
    *  declaration makes the pair hostile); an alliance needs both. Pirates are always hostile. */
   stance?: Record<string, { hostile?: string[]; ally?: string[] }>;

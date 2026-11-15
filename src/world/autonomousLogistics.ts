@@ -33,6 +33,8 @@ export interface LogisticsJob extends PoolRequest {
   held?: { ship: string; since: number; auto: boolean };
   /** P12.5: delivers untracked cargo already aboard (from === to); never loads anything */
   stow?: true;
+  /** P13.2: part of `lost` that was jettisoned under a raider's demand (not a destroyed ship) */
+  pirated?: number;
 }
 type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev'>;
 const EPS = 1e-9;
@@ -81,6 +83,26 @@ function detach(h: Host, j: LogisticsJob, reason: string, lost = false) {
   j.carried = 0; releaseReservation(h, j);
   if (s?.logisticsJob === j.id) { delete s.logisticsJob; if (s.cargoWork?.key.startsWith(`pool:${j.id}:`)) delete s.cargoWork; if (s.state !== 'battle') { s.vel = { x: 0, y: 0, z: 0 }; delete s.warp; } }
   delete j.ship; j.reason = j.reserved > EPS ? `${reason} — 출발지 복구 시 예약 재고 반환` : reason; j.updated = h.time;
+}
+/**
+ * P13.2: cargo left a surviving ship at a raider's demand. Settled at that moment: carried −, lost +
+ * (and pirated +). A shipment that still has cargo goes on and delivers the rest (the shortfall stays
+ * outstanding and is re-dispatched after it); one with nothing left releases the ship and is re-queued.
+ */
+export function cargoLost(h: Host, s: WShip, item: string, n: number): number {
+  let left = n, settled = 0;
+  for (const j of Object.values(h.st.logisticsJobs ?? {})) {
+    if (left <= EPS) break;
+    if (isTerminal(j) || j.item !== item || j.owner !== s.owner || (j.ship !== s.id && j.held?.ship !== s.id) || j.carried <= EPS) continue;
+    const k = Math.min(j.carried, left);
+    j.carried -= k; j.lost += k; j.pirated = (j.pirated ?? 0) + k; left -= k; settled += k; j.updated = h.time;
+    emit(h.st, { kind: 'logistics', reason: 'pirated', amount: k, company: j.owner, group: s.groupId, ship: s.id, item });
+    if (j.carried > EPS) continue;
+    j.carried = 0;
+    if (j.ship === s.id) { detach(h, j, '화물 약탈 — 남은 필요량 재배차', true); if (!isTerminal(j) && j.state !== 'paused') j.state = 'queued'; }
+    else { delete j.held; delete j.code; j.state = 'queued'; j.reason = '화물 약탈 — 남은 필요량 재배차'; }
+  }
+  return settled;
 }
 /** P12.5: a loaded shipment yields to a direct command without losing track of its cargo. */
 function hold(h: Host, j: LogisticsJob, s: WShip, reason: string) {

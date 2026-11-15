@@ -137,6 +137,8 @@ export type Cmd =
   | { c: 'autoLogistics'; on: boolean }
   /** P13.1: per-fleet automatic on-site salvage after battles (on by default) */
   | { c: 'autoSalvage'; group: string; on: boolean }
+  /** P13.2: how haulers answer a raider's demand — company default (no group) or one group's override (null clears it) */
+  | { c: 'piracyPolicy'; group?: string; policy: VictimPolicy | null }
   | { c: 'poolCreate'; request: PoolRequest }
   | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'procPolicy'; settings: ProcurementSettings }
@@ -174,6 +176,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
+import { plunderOrder, stepPlunder, stepPirateRaid, validatePlunder, truceBlocks, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 
 export class WorldSim {
   st: WorldState;
@@ -244,7 +247,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -253,7 +256,9 @@ export class WorldSim {
     // P12.5 automatic logistics is opt-in and builds on P12 (escorts, return) and P11 (raids on haulers)
     if (opts.logistics === 'p125') { sim.st.combatV = 2; sim.st.opsV = 1; enableAutoLogistics(sim); }
     // P13.1 physical battlefield wrecks & salvage is opt-in and builds on P11/P12/P12.5; no random derelicts
-    if (opts.salvage === 'p131') { sim.st.combatV = 2; sim.st.opsV = 1; if (!sim.st.logisticsV) enableAutoLogistics(sim); sim.st.salvageV = 1; }
+    if (opts.salvage === 'p131' || opts.piracy === 'p132') { sim.st.combatV = 2; sim.st.opsV = 1; if (!sim.st.logisticsV) enableAutoLogistics(sim); sim.st.salvageV = 1; }
+    // P13.2 cargo raiding builds on all of the above (threat → jettison → physical recovery, or force → P11 → wreck)
+    if (opts.piracy === 'p132') { sim.st.piracyV = 1; sim.st.drops = {}; }
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -1432,6 +1437,14 @@ export class WorldSim {
         if (cmd.on) delete co.autoLogistics; else co.autoLogistics = false;
         return null;
       }
+      case 'piracyPolicy': {
+        if (!this.st.piracyV) return '이 세계에서는 화물 약탈 대응 정책을 사용할 수 없습니다';
+        if (cmd.policy !== null && cmd.policy !== 'survive' && cmd.policy !== 'balanced' && cmd.policy !== 'protect') return '대응 정책 오류';
+        if (cmd.group === undefined) { const co = this.st.companies[company]; if (!co) return '회사 없음'; if (cmd.policy === null || cmd.policy === 'balanced') delete co.piracyPolicy; else co.piracyPolicy = cmd.policy; return null; }
+        const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
+        if (cmd.policy === null) delete g.piracyPolicy; else g.piracyPolicy = cmd.policy;
+        return null;
+      }
       case 'autoSalvage': {
         if (!this.st.salvageV || typeof cmd.on !== 'boolean') return '이 월드에서는 현장 자동 인양을 사용할 수 없습니다';
         const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
@@ -1660,6 +1673,9 @@ export class WorldSim {
   validateOp(company: string, g: WGroup, op: Op): string | null {
     const ships = this.shipsOf(g);
     const sub = this.subtreeShips(g);
+    // P13.2 first: a harass with a plunder policy must also pass the raiding checks
+    const pl = validatePlunder(this, company, g, op, sub);
+    if (pl !== undefined && (pl !== null || op.k === 'plunder')) return pl;
     const p12 = validateP12(this, company, g, op, sub.filter(s => econOf(s).cruise > 0).length);
     if (p12 !== undefined) return p12;
     if (op.k === 'recover' || op.k === 'salvzone') return validateSalvage(this, company, sub, op);
@@ -1916,7 +1932,8 @@ export class WorldSim {
     if (this.slow >= 1) {
       this.slow = 0;
       if (growthOn(st)) for (const co of Object.values(st.companies)) if (co.pendingLoot) this.recoverLoot(co);
-      if (st.salvageV && st.wrecks) { markSeen(st); for (const w of expireWrecks(st, this.time)) for (const c of w.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${w.name} ${w.lots.length ? '소멸 — 남은 잔해는 흩어졌습니다' : '회수 완료'}`, { company: c, pos: w.pos, ref: w.id, tag: 'salvage' }); }
+      if (st.piracyV && st.drops) for (const d of expireDrops(st, this.time)) for (const c of d.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${d.name} ${d.lots.length ? '소멸 — 남은 화물은 흩어졌습니다' : '회수 완료'}`, { company: c, pos: d.pos, ref: d.id, tag: 'piracy' });
+      if (st.salvageV && (st.wrecks || st.drops)) { markSeen(st); for (const w of expireWrecks(st, this.time)) for (const c of w.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${w.name} ${w.lots.length ? '소멸 — 남은 잔해는 흩어졌습니다' : '회수 완료'}`, { company: c, pos: w.pos, ref: w.id, tag: 'salvage' }); }
       this.npcSlow();
       if (this.st.combatV === 2) this.detectEngagementsP11(); else this.detectEngagements();
       this.resolveAuto();
@@ -2354,6 +2371,12 @@ export class WorldSim {
     if (ward?.hold.size) {
       for (const s of ward.hold) if (s.state === 'space') { s.vel.x *= 0.85; s.vel.z *= 0.85; s.pos = vadd(s.pos, s.vel, dt); }
       ships = ships.filter(s => !ward.hold.has(s));
+    }
+    // P13.2: cargo raiding (plunder, or harass with a plunder policy) and pirate bands that threaten first
+    if (this.st.piracyV) {
+      const pl = plunderOrder(this.st, op);
+      if (pl) { if (stepPlunder(this, g, ships, pl, dt, c, JSON.stringify(op))) { if (ward?.note) g.status = ward.note; return; } }
+      else if (op.k === 'raid' && g.owner === 'pirates' && stepPirateRaid(this, g, ships, op, dt, c)) return;
     }
     // P13.1: recovery orders and on-site pickup after a battle (before the fleet operations it may pause)
     if (this.st.salvageV && stepSalvage(this, g, ships, op, dt, c)) return;
@@ -3549,7 +3572,9 @@ export class WorldSim {
       const civ = this.groupValue(o, false), mil = this.groupValue(o, true);
       if (mil > myVal * 1.3) continue;
       if (this.unionNear(c, 4500) > myVal * 0.8) continue;
-      const score = (civ * 2 + 60) / (mil + 80) / (dist(c, this.groupCenter(g) ?? home) + 1200) * (k === 'guild' ? 0.35 : 1);
+      // P13.2: what the band could actually carry off counts, not only the hulls
+      const loot = this.st.piracyV ? raidLootValue(this, g, o) : 0;
+      const score = (civ * 2 + 60 + loot * 0.5) / (mil + 80) / (dist(c, this.groupCenter(g) ?? home) + 1200) * (k === 'guild' ? 0.35 : 1);
       if (score > bs) { bs = score; best = o.id; }
     }
     return best;
@@ -3792,7 +3817,7 @@ export class WorldSim {
         const g = st.groups[gid];
         const inR = near(ss, e.pos, JOIN_R);
         if (!inR.length) continue;
-        if (!present.some(c => rel(g.owner, c) === -1)) continue;
+        if (!present.some(c => rel(g.owner, c) === -1 && !(st.piracyV && truceBlocks(st, g.owner, c, e.pos, this.time)))) continue;
         used.add(gid);
         const l = joiners.get(g.owner) ?? []; l.push({ g, ss: inR }); joiners.set(g.owner, l);
       }
@@ -3809,6 +3834,8 @@ export class WorldSim {
         let hit: V | null = null;
         for (const x of as) { for (const y of bs) if (dist(x.pos, y.pos) < ENGAGE_R) { hit = vlerp(x.pos, y.pos, 0.5); break; } if (hit) break; }
         if (!hit) continue;
+        // P13.2: a local truce while a complied raid picks up its container (not global, expires)
+        if (st.piracyV && truceBlocks(st, a.owner, b.owner, hit, this.time)) continue;
         this.p11Contact(hit, [a, b], cand, used, active);
         break;
       }

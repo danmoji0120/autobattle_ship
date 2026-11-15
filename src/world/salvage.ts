@@ -13,8 +13,8 @@
 import type { WorldSim } from './sim';
 import type { Cargo, Op, Station, V, WGroup, WShip } from './types';
 import { addc, cargoSum, qty, takec } from './types';
-import type { WreckLot, WreckSite } from './wrecks';
-import { lotValue, itemLabel } from './wrecks';
+import type { WreckLot, SalvSite } from './wrecks';
+import { lotValue, itemLabel, siteOf, allSites } from './wrecks';
 import { coRelation } from './battleAuth';
 import { econOf, berthFits } from './hullops';
 import { shipValue } from './data';
@@ -45,6 +45,8 @@ export interface SalvState {
   why?: string;
   /** wrecks / stations not to pick again before the given time */
   ignore?: Record<string, number>;
+  /** P13.2 collection for a raid: never go unloading at a station (the raider decides where the goods go) */
+  nounload?: true;
 }
 
 export const SALV = {
@@ -99,17 +101,17 @@ export function protectedLot(h: Pick<Host, 'st'>, company: string, l: WreckLot):
 }
 const PRI: Record<WreckLot['k'], number> = { cargo: 0, equip: 1, frag: 2, hull: 3 };
 /** lots this ship may and can work now, best first */
-function lotsFor(h: Host, s: WShip, w: WreckSite, illegal: boolean): WreckLot[] {
+function lotsFor(h: Host, s: WShip, w: SalvSite, illegal: boolean): WreckLot[] {
   const room = salvageRoom(h, s);
   return w.lots.filter(l => l.n >= 1 && (illegal || !protectedLot(h, s.owner, l)) && salvageRate(h, s, l.k) > 0 && (weightless(l) || room >= 1))
     .sort((a, b) => PRI[a.k] - PRI[b.k] || lotValue(h.st, b) - lotValue(h.st, a) || a.id.localeCompare(b.id));
 }
 /** can any of these ships still do something at this wreck */
-export function workable(h: Host, ships: WShip[], w: WreckSite, illegal: boolean): boolean {
+export function workable(h: Host, ships: WShip[], w: SalvSite, illegal: boolean): boolean {
   return ships.some(s => lotsFor(h, s, w, illegal).length > 0);
 }
 /** rough value the fleet could take from a wreck (capped by free hold) */
-function prospect(h: Host, ships: WShip[], w: WreckSite, illegal: boolean): { value: number; units: number; time: number } {
+function prospect(h: Host, ships: WShip[], w: SalvSite, illegal: boolean): { value: number; units: number; time: number } {
   let room = ships.reduce((a, s) => a + salvageRoom(h, s), 0), value = 0, units = 0, time = 0;
   const rates: Record<string, number> = {};
   for (const s of ships) for (const k of ['cargo', 'equip', 'hull', 'frag'] as const) rates[k] = (rates[k] ?? 0) + salvageRate(h, s, k);
@@ -132,7 +134,7 @@ function hostileNear(h: Host, owner: string, p: V, r: number): boolean {
 }
 
 /** one ship works the wreck for dt seconds; returns units moved */
-function workShip(h: Host, s: WShip, w: WreckSite, illegal: boolean, dt: number): number {
+function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number): number {
   if (s.logisticsJob || s.cargoWork) return 0;
   const lot = lotsFor(h, s, w, illegal)[0]; if (!lot) return 0;
   const key = `${w.id}:${lot.id}`;
@@ -152,7 +154,7 @@ function workShip(h: Host, s: WShip, w: WreckSite, illegal: boolean, dt: number)
 }
 
 /** unauthorised recovery of another company's cargo: reputation / standing where the law reaches */
-function crime(h: Host, s: WShip, w: WreckSite, lot: WreckLot, n: number) {
+function crime(h: Host, s: WShip, w: SalvSite, lot: WreckLot, n: number) {
   const value = n * lotValue(h.st, lot);
   (w.crime ??= {})[s.owner] = (w.crime[s.owner] ?? 0) + value;
   const sys = h.st.systems[w.system], sec = sys ? effSec(sys) : 0;
@@ -211,7 +213,7 @@ const MODE_NAME = { recover: '지정 인양', zone: '구역 인양', auto: '현�
 export const SALV_PHASE: Record<SalvState['phase'], string> = { transit: '잔해로 이동', work: '인양 중', unload: '하역하러 이동', return: '인양 구역 복귀', hold: '구역 대기', blocked: '작업 불가', done: '완료' };
 
 /** may this fleet pick up wreckage on its own right now (op allows it, setting on, nobody hostile) */
-function autoAllowed(h: Host, g: WGroup, op: Op, w: WreckSite): boolean {
+function autoAllowed(h: Host, g: WGroup, op: Op, w: SalvSite): boolean {
   if (g.autoSalvage === false || g.fleeing || h.st.companies[g.owner]?.kind !== 'player') return false;
   if (op.k === 'idle') return true;
   if ((op.k === 'defend' || op.k === 'patrol') && dist(op.at, w.pos) <= op.radius) { const ph = h.opOwner(g).opx?.phase; return ph === 'hold' || ph === 'sweep' || ph === 'transit' && false; }
@@ -228,6 +230,8 @@ export function stepSalvage(h: Host, g: WGroup, ships: WShip[], op: Op, dt: numb
   // docked ships put recovered goods in the warehouse whenever their order lets them sit at a station
   if (op.k === 'idle' || op.k === 'dock' || op.k === 'return' || op.k === 'recover' || op.k === 'salvzone')
     for (const s of ships) if (s.salvaged && s.state === 'docked' && s.task.k === 'docked' && !s.logisticsJob && !s.cargoWork) { const sta = st.stations[s.task.station]; if (sta && h.canDock(sta, s.owner)) unloadSalvage(h, s, sta); }
+  // P13.2: a raid's own collection run (stepCollect) is driven by the raid, not by this step
+  if (g.salv?.key.startsWith('collect:') && (op.k === 'plunder' || op.k === 'harass' || op.k === 'raid')) return false;
   const manual = op.k === 'recover' || op.k === 'salvzone';
   const key = opKey(op);
   if (g.salv && (g.salv.mode === 'auto' ? manual : g.salv.key !== key)) delete g.salv;
@@ -253,26 +257,26 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
     // stay on the unloading run until everything recovered is in a warehouse (or the station is full)
     if (loaded) {
       const sta = S.station ? st.stations[S.station] : null;
-      if (sta && h.canDock(sta, g.owner)) return;
-      const next = pickStation(h, g, ships, center, S.ignore);
+      if (sta && h.canDock(sta, g.owner) && !S.nounload) return;
+      const next = S.nounload ? null : pickStation(h, g, ships, center, S.ignore);
       if (next) { S.station = next.id; return; }
       setPhase(h, S, 'blocked', '하역 가능한 정거장이 없습니다 — 창고 공간·정박 규격 확인'); return;
     }
     S.station = undefined;
     setPhase(h, S, 'return');
   }
-  let target: WreckSite | undefined;
+  let target: SalvSite | undefined;
   if (op.k === 'recover') {
-    target = st.wrecks?.[op.wreck];
+    target = siteOf(st, op.wreck);
     if (!target || !workable(h, ships, target, illegal)) {
-      if (loaded) { const sta = pickStation(h, g, ships, center, S.ignore); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); return; } }
+      if (loaded && !S.nounload) { const sta = pickStation(h, g, ships, center, S.ignore); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); return; } }
       finish(h, g, S, !target ? '잔해가 소멸했거나 모두 회수되었습니다' : '이 함대가 회수할 수 있는 물품이 남지 않았습니다');
       return;
     }
   } else {
     const ign = S.ignore ?? {};
     let best = -Infinity;
-    for (const w of Object.values(st.wrecks ?? {})) {
+    for (const w of allSites(st)) {
       if ((ign[w.id] ?? 0) > h.time || dist(w.pos, op.at) > op.radius + 400) continue;
       if (!workable(h, ships, w, illegal)) continue;
       const p = prospect(h, ships, w, illegal); if (p.value <= 0) continue;
@@ -282,7 +286,8 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
       const score = p.value / (travel + p.time + 30) * risk;
       if (score > best) { best = score; target = w; }
     }
-    if (target && S.wreck && S.wreck !== target.id && st.wrecks?.[S.wreck] && workable(h, ships, st.wrecks[S.wreck], illegal) && S.phase === 'work') target = st.wrecks[S.wreck];   // finish the current one first
+    const cur = siteOf(st, S.wreck);
+    if (target && cur && cur.id !== target.id && workable(h, ships, cur, illegal) && S.phase === 'work') target = cur;   // finish the current one first
   }
   if (target && room >= 1 || target && target.lots.some(l => l.k === 'frag' && l.n >= 1 && ships.some(s => salvageRate(h, s, 'frag') > 0))) {
     S.wreck = target.id;
@@ -290,6 +295,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
     setPhase(h, S, near ? 'work' : (S.phase === 'return' ? 'return' : 'transit'));
     return;
   }
+  if (loaded && S.nounload) { finish(h, g, S, '화물칸이 가득 찼습니다'); return; }
   if (loaded) { const sta = pickStation(h, g, ships, center, S.ignore); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); } else setPhase(h, S, 'blocked', '하역 가능한 정거장이 없습니다 — 창고 공간·정박 규격 확인'); return; }
   if (op.k === 'salvzone') { S.wreck = undefined; setPhase(h, S, 'hold', '구역에 회수 가능한 잔해가 없습니다 — 새 잔해를 기다립니다'); return; }
   setPhase(h, S, 'blocked', '화물칸이 가득 찼고 하역할 화물이 없습니다');
@@ -297,6 +303,8 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
 
 function finish(h: Host, g: WGroup, S: SalvState, why: string) {
   setPhase(h, S, 'done', why);
+  // a collection run for a raid (P13.2) ends quietly: the raid decides what comes next
+  if (S.key.startsWith('collect:')) { delete g.salv; return; }
   h.say(g, `인양 완료 — ${why}. 대기합니다.`, 'info', 0);
   if (g.override || !g.parentId) { g.op = { k: 'idle' }; g.override = !!g.parentId; }
   delete g.salv;
@@ -318,7 +326,7 @@ function move(h: Host, g: WGroup, ships: WShip[], S: SalvState, illegal: boolean
     }
     return;
   }
-  const w = S.wreck ? st.wrecks?.[S.wreck] : undefined;
+  const w = siteOf(st, S.wreck);
   if ((S.phase === 'transit' || S.phase === 'work' || S.phase === 'return') && w) {
     for (const s of ships) {
       const slot = h.formationSlot(s, g, w.pos, 110);
@@ -336,7 +344,7 @@ function move(h: Host, g: WGroup, ships: WShip[], S: SalvState, illegal: boolean
 }
 
 function status(h: Host, g: WGroup, S: SalvState, op: Op): string {
-  const w = S.wreck ? h.st.wrecks?.[S.wreck] : undefined;
+  const w = siteOf(h.st, S.wreck);
   const sta = S.station ? h.st.stations[S.station] : undefined;
   const ships = h.shipsOf(g), room = ships.reduce((a, s) => a + salvageRoom(h, s), 0), hold = ships.reduce((a, s) => a + salvageHold(h, s), 0);
   const fill = hold > 0 ? ` · 화물칸 ${Math.round((1 - room / hold) * 100)}%` : '';
@@ -357,13 +365,13 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
   const mobile = ships.filter(s => s.state === 'space' && econOf(s).cruise > 0 && !s.logisticsJob && !s.cargoWork);
   let S = g.salv;
   if (!S) {
-    if (!st.wrecks || !mobile.length) return false;
+    if ((!st.wrecks && !st.drops) || !mobile.length) return false;
     const any = g as unknown as { _autoNext?: number };
     if ((any._autoNext ?? 0) > h.time) return false;
     any._autoNext = h.time + SALV.autoCheck;
     const center = h.groupCenter(g); if (!center) return false;
-    let best: WreckSite | undefined, bd = Infinity;
-    for (const w of Object.values(st.wrecks)) {
+    let best: SalvSite | undefined, bd = Infinity;
+    for (const w of allSites(st)) {
       const d = dist(w.pos, center); if (d > SALV.autoRange || d >= bd) continue;
       if (!autoAllowed(h, g, op, w) || !workable(h, mobile, w, false)) continue;
       best = w; bd = d;
@@ -381,7 +389,7 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
     g.status = status(h, g, S, op);
     return true;
   }
-  const w = S.wreck ? st.wrecks?.[S.wreck] : undefined;
+  const w = siteOf(st, S.wreck);
   const why = !w ? '잔해 소멸' : !autoAllowed(h, g, op, w) ? '명령 변경' : h.time > (S.until ?? 0) ? '작업 시간 초과' : !workable(h, mobile, w, false) ? (mobile.some(s => salvageRoom(h, s) >= 1) ? '회수 가능한 물품 없음' : '화물칸 부족')
     : S.anchor && dist(w.pos, S.anchor) > SALV.autoRange + 500 ? '거리 초과' : (h.time >= S.next && hostileNear(h, g.owner, w.pos, SALV.hostileR)) ? '적대 함대 접근' : '';
   if (why) {
@@ -408,7 +416,7 @@ export function validateSalvage(h: Host, company: string, ships: WShip[], op: Op
   const can = ships.filter(s => econOf(s).cruise > 0 && salvageHold(h, s) > 0);
   if (!can.length) return '인양물을 실을 함선이 없습니다';
   if (op.k === 'recover') {
-    const w = h.st.wrecks?.[op.wreck];
+    const w = siteOf(h.st, op.wreck);
     if (!w) return '잔해가 없거나 이미 소멸했습니다';
     if (!can.some(s => (['cargo', 'equip', 'hull', 'frag'] as const).some(k => salvageRate(h, s, k) > 0 && w.lots.some(l => l.k === k && l.n >= 1 && (op.illegal || !protectedLot(h, company, l))))))
       return w.seen.includes(company) ? '이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)' : null;
@@ -420,4 +428,26 @@ export function validateSalvage(h: Host, company: string, ships: WShip[], op: Op
     return null;
   }
   return null;
+}
+
+/**
+ * P13.2: one collection run at a site (a raid's jettisoned cargo or its victim's wreck) with the same
+ * engine as a recover order — approach, work into the real holds, and (unless `nounload`) unload at a
+ * station when full. Returns the phase it is in, or 'done' when nothing more can be taken here.
+ */
+export function stepCollect(h: Host, g: WGroup, ships: WShip[], siteId: string, illegal: boolean, dt: number, nounload = false): SalvState['phase'] {
+  const key = `collect:${siteId}`;
+  if (g.salv && g.salv.key !== key) delete g.salv;
+  const S = (g.salv ??= { mode: 'recover', key, phase: 'transit', since: h.time, next: 0, ...(nounload ? { nounload: true as const } : {}) });
+  const op = { k: 'recover', wreck: siteId, ...(illegal ? { illegal: true } : {}) } as Extract<Op, { k: 'recover' }>;
+  const work = ships.filter(s => econOf(s).cruise > 0);
+  if (h.time >= S.next) { decide(h, g, work, op, S, illegal); S.next = h.time + 1; }
+  if (g.salv !== S) return 'done';
+  move(h, g, work, S, illegal, dt);
+  g.status = status(h, g, S, op);
+  return S.phase;
+}
+/** can these ships take anything (legally, or with `illegal`) from this site now */
+export function canCollect(h: Host, ships: WShip[], siteId: string, illegal: boolean): boolean {
+  const w = siteOf(h.st, siteId); return !!w && workable(h, ships.filter(s => econOf(s).cruise > 0), w, illegal);
 }

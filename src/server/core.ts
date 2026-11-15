@@ -46,6 +46,8 @@ export interface ServerOptions {
   logisticsNew?: boolean;
   /** SALVAGE_P131=1: a brand-new world uses P13.1 battlefield wrecks & physical salvage (implies P12.5/P12/P11; opt-in, saves are never converted) */
   salvageNew?: boolean;
+  /** PIRACY_P132=1: a brand-new world uses P13.2 cargo raiding (implies P13.1/P12.5/P12/P11; opt-in, saves are never converted) */
+  piracyNew?: boolean;
   analytics?: AnalyticsOptions;
   /** keep only this many finished logistics jobs per company (see world/retention.ts); unset = keep all */
   logisticsJobRetain?: number;
@@ -100,7 +102,7 @@ export class GameServer {
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
-    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, { ...(opts.econNew ? { econ: 'chain' as const } : {}), ...(opts.combatNew ? { combat: 'p11' as const } : {}), ...(opts.opsNew ? { ops: 'p12' as const } : {}), ...(opts.logisticsNew ? { logistics: 'p125' as const } : {}), ...(opts.salvageNew ? { salvage: 'p131' as const } : {}) });
+    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, { ...(opts.econNew ? { econ: 'chain' as const } : {}), ...(opts.combatNew ? { combat: 'p11' as const } : {}), ...(opts.opsNew ? { ops: 'p12' as const } : {}), ...(opts.logisticsNew ? { logistics: 'p125' as const } : {}), ...(opts.salvageNew ? { salvage: 'p131' as const } : {}), ...(opts.piracyNew ? { piracy: 'p132' as const } : {}) });
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }
     this.auth = save?.auth ?? {};

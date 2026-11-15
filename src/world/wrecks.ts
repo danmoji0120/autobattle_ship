@@ -62,7 +62,13 @@ export interface WreckSite {
   crime?: Record<string, number>;
 }
 
-export const wreckUnits = (w: WreckSite) => w.lots.reduce((n, l) => n + l.n, 0);
+/** what the salvage engine needs of anything it recovers from: a battlefield wreck or (P13.2) jettisoned cargo */
+export type SalvSite = Pick<WreckSite, 'id' | 'name' | 'system' | 'pos' | 'created' | 'expires' | 'lots' | 'initial' | 'taken' | 'seen' | 'crime'>;
+/** a recoverable site by id: wrecks first, then jettisoned cargo (P13.2) */
+export const siteOf = (st: WorldState, id: string | undefined): SalvSite | undefined => id === undefined ? undefined : st.wrecks?.[id] ?? (st.drops?.[id] as SalvSite | undefined);
+export const allSites = (st: WorldState): SalvSite[] => st.drops ? [...Object.values(st.wrecks ?? {}), ...Object.values(st.drops) as SalvSite[]] : Object.values(st.wrecks ?? {});
+
+export const wreckUnits = (w: Pick<WreckSite, 'lots'>) => w.lots.reduce((n, l) => n + l.n, 0);
 export const lotValue = (st: WorldState, l: Pick<WreckLot, 'item'>) => l.item.startsWith('bpf:') ? 500 : assetReferenceValue(st, l.item);
 
 /** what a destroyed ship physically carried / had fitted (exclusive content never) */
@@ -161,7 +167,7 @@ export function expireWrecks(st: WorldState, time: number): WreckSite[] {
 /** who may see the lots: sides of the battle and companies whose ships came within sensor range */
 export const WRECK_SEEN_R = 8000;
 export function markSeen(st: WorldState) {
-  const ws = Object.values(st.wrecks ?? {}); if (!ws.length) return;
+  const ws = allSites(st); if (!ws.length) return;
   for (const s of Object.values(st.ships)) {
     if (st.companies[s.owner]?.kind !== 'player' || s.state === 'docked') continue;
     for (const w of ws) if (!w.seen.includes(s.owner) && Math.abs(w.pos.x - s.pos.x) < WRECK_SEEN_R && Math.hypot(w.pos.x - s.pos.x, w.pos.z - s.pos.z) < WRECK_SEEN_R) w.seen.push(s.owner);

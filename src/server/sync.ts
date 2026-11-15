@@ -17,6 +17,7 @@ import { sysAt } from '../world/geom';
 import { sysLevel, sysStub, knowsField, knowsSystemContents } from '../world/intel';
 import type { WorldView } from './protocol';
 import { wreckFor, type WreckSite } from '../world/wrecks';
+import { dropFor, type CargoDrop } from '../world/piracy';
 
 export const SYNC_PROTO = 2;
 
@@ -24,11 +25,11 @@ export const SYNC_PROTO = 2;
 export interface Viewer { company?: string; view?: string }
 
 /** keyed collections replicated entity by entity (others are replicated as whole values) */
-const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'wrecks', 'uniques', 'ships', 'intel'] as const;
+const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 'lairs', 'systems', 'logistics', 'logisticsJobs', 'procurementPlans', 'works', 'approvals', 'contracts', 'engagements', 'sites', 'wrecks', 'drops', 'uniques', 'ships', 'intel'] as const;
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
-const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive', 'econLog']);
+const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive', 'econLog', 'piracy']);
 /** factions as clients see them: the v2 economy ledger stays on the server (it is large and changes every cycle) */
 export function publicFactions(fs: WorldState['factions']) {
   if (!fs) return fs;
@@ -46,8 +47,10 @@ function publicCompany(id: string, co: any) {
 function stationBody(st: Station, own: boolean) {
   return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
 }
-function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined }; }
-function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined }; }
+function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined }; }
+function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined, pir: undefined }; }
+/** P13.2: what pirates carried home stays with them (not replicated) */
+const lairBody = (l: any) => l.hold === undefined ? l : { ...l, hold: undefined };
 /** P13.1 wrecks: news of a battle is public, but under fog only where the viewer can see (or it took part) */
 const wreckVisible = (st: WorldState, w: WreckSite, c: string | undefined) => !st.fog || (!!c && w.seen.includes(c)) || contentsKnown(st, c, w.pos);
 function siteFor(s: Site, company: string) { return { ...s, scan: s.scan[company] !== undefined ? { [company]: s.scan[company] } : {}, seen: [company] }; }
@@ -120,15 +123,16 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   const fog = st.fog ? {
     systems: Object.fromEntries(Object.values(st.systems).map(s => [s, systemVis(st, s, c)] as const).filter(([, vis]) => vis).map(([s, vis]) => [s.id, sysBody(st, s, c, vis)])),
     fields: Object.fromEntries(Object.values(st.fields).filter(f => fieldVisible(st, f, c)).map(f => [f.id, f.geo ? geoField(f) : f])),
-    lairs: Object.fromEntries(Object.values(st.lairs).filter(l => contentsKnown(st, c, l.pos)).map(l => [l.id, l])),
+    lairs: Object.fromEntries(Object.values(st.lairs).filter(l => contentsKnown(st, c, l.pos)).map(l => [l.id, lairBody(l)])),
     engagements: Object.fromEntries(Object.entries(eng).filter(([, e]) => contentsKnown(st, c, e.pos) || (!!c && e.sides.some((x: string[]) => x.includes(c))))),
   } : {};
   return {
-    ...base, engagements: eng, battleLog: log, companies, stations, ships, groups, ...fog, factions: publicFactions(base.factions),
+    ...base, engagements: eng, battleLog: log, companies, stations, ships, groups, lairs: st.fog ? undefined : Object.fromEntries(Object.values(st.lairs).map(l => [l.id, lairBody(l)])), ...fog, factions: publicFactions(base.factions),
     intel: base.intel ? (c && base.intel[c] ? { [c]: base.intel[c] } : {}) : undefined,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
     works: own(base.works), approvals: own(base.approvals),
-    grants: undefined, conversions: undefined, exclusive: undefined, econLog: undefined,
+    grants: undefined, conversions: undefined, exclusive: undefined, econLog: undefined, piracy: undefined,
+    drops: base.drops ? Object.fromEntries(Object.values(base.drops).map(d => [d.id, dropFor(d, c)] as const).filter(([, d]) => d)) : undefined,
     wrecks: base.wrecks ? Object.fromEntries(Object.values(base.wrecks).filter(w => wreckVisible(st, w, c)).map(w => [w.id, wreckFor(w, c)])) : undefined,
     sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c && s.seen.includes(c)).map(([id, s]) => [id, siteFor(s, c!)])) : undefined,
   } as WorldView;
@@ -304,7 +308,7 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
       for (const id in map) { const fd = map[id] as Field; if (!fieldVisible(st, fd, c)) continue; if (fd.geo) one(id, 'fd.g', () => geoField(fd)); else one(id, 'fields', () => fd); }
       return;
     case 'lairs':
-      for (const id in map) if (contentsKnown(st, c, map[id].pos)) one(id, 'lairs', () => map[id]);
+      for (const id in map) if (contentsKnown(st, c, map[id].pos)) one(id, 'lairs', () => lairBody(map[id]));
       return;
     case 'intel':
       if (c && map[c]) one(c, 'in:' + c, () => map[c]);
@@ -314,6 +318,11 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
       return;
     case 'wrecks':
       for (const id in map) { const w = map[id] as WreckSite; if (!wreckVisible(st, w, c)) continue; const k = !!c && w.seen.includes(c); one(id, k ? 'wk:' + c : 'wk.p', () => wreckFor(w, c)); }
+      return;
+    case 'drops':
+      // P13.2 containers: only companies that saw them (the two parties, ships that came close)
+      if (!c) return;
+      for (const id in map) { const d = map[id] as CargoDrop; if (d.seen.includes(c)) one(id, 'cd:' + c, () => dropFor(d, c)); }
       return;
     case 'sites':
       if (!c) return;
