@@ -119,7 +119,7 @@ export class GameClient {
   onWelcome: (() => void)[] = [];
   /** accounts: the server wants a sign-in / a PMC for this account / refused the PMC request */
   onAuthNeeded: (() => void) | null = null;
-  onNeedPmc: ((start?: { credits: number; station: string }) => void) | null = null;
+  onNeedPmc: ((start?: NonNullable<Extract<ServerMsg, { t: 'needPmc' }>['start']>) => void) | null = null;
   onPmcErr: ((msg: string) => void) | null = null;
   onBattle: ((m: Extract<ServerMsg, { t: 'binit' | 'border' }>) => void) | null = null;
   private analyticsAcks = new Map<number, (m: Extract<ServerMsg, { t: 'analytics' }>) => void>();
@@ -133,7 +133,7 @@ export class GameClient {
   }
 
   join(name: string, token?: string) { this.t.send({ t: 'hello', name, token, proto: SYNC_PROTO }); }
-  createPmc(name: string, legacy?: string) { this.t.send({ t: 'createPmc', name, legacy }); }
+  createPmc(name: string, legacy?: string, background?: string) { this.t.send({ t: 'createPmc', name, legacy, ...(background ? { background } : {}) }); }
 
   private receive(m: ServerMsg) {
     switch (m.t) {

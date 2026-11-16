@@ -99,16 +99,53 @@ function showCode(app: HTMLElement, code: string, title: string, next: () => voi
 }
 
 /** first sign-in in this world: name the PMC (or carry over the one this browser used before accounts) */
-export function showPmcCreate(host: HTMLElement, o: { loginId: string; legacy: boolean; start?: { credits: number; station: string }; onSubmit: (name: string, legacy: boolean) => void; onLogout: () => void }) {
+type StartTerms = { credits: number; station: string; backgrounds?: BgTerm[] };
+type BgTerm = {
+  id: string; name: string; desc: string; faction: string; factionName: string; factionColor: string; system: string; station: string;
+  ships: { name: string; role: string; n: number; military: boolean }[]; commander?: string; credits: number;
+  standing: { faction: string; name: string; value: number; band: string }[]; upkeep: number; value: number; hours: number;
+  activities: string[]; difficulty: string; notes: string[];
+};
+const cr = (n: number) => `${Math.round(n).toLocaleString('en-US')} cr`;
+const DIFF_CLASS: Record<string, string> = { '낮음': 'd1', '보통': 'd2', '높음': 'd3', '매우 높음': 'd4' };
+/** A-3.1: everything shown here comes from the server's terms — what the chosen background really grants */
+function bgDetail(b: BgTerm): string {
+  const sign = (v: number) => v > 0 ? `+${v}` : `${v}`;
+  return `<div class="bgdet" data-bg-detail="${esc(b.id)}">
+    <div class="bgdh"><b>${esc(b.name)}</b><span class="bgfac" style="--fc:${esc(b.factionColor)}">${esc(b.factionName)}</span><span class="bgdiff ${DIFF_CLASS[b.difficulty] ?? ''}">난이도 ${esc(b.difficulty)}</span></div>
+    <div class="bgdesc">${esc(b.desc)}</div>
+    <div class="bggrid">
+      <div><span>시작 위치</span><b>${esc(b.system)} 성계 · ${esc(b.station)}</b></div>
+      <div><span>시작 자금</span><b data-bg-credits="${b.credits}">${cr(b.credits)}</b></div>
+      <div><span>함선</span><b>${b.ships.map(s => `${esc(s.name)} ×${s.n} <i>(${esc(s.role)})</i>`).join('<br>')}</b></div>
+      <div><span>지휘관</span><b>${b.commander ? esc(b.commander) : '없음'}</b></div>
+      <div><span>예상 운영비</span><b data-bg-upkeep="${b.upkeep}">시간당 약 ${cr(b.upkeep)}</b><i>정박 기준 · 자금으로 약 ${b.hours}시간</i></div>
+      <div><span>함대 가치</span><b>${cr(b.value)}</b><i>조선소 정가 기준</i></div>
+      <div><span>초기 세력 신뢰도</span><b>${b.standing.map(x => `${esc(x.name)} ${sign(x.value)} <i>(${esc(x.band)})</i>`).join('<br>')}</b><i>나머지 세력 0 (중립)</i></div>
+      <div><span>추천 활동</span><b>${b.activities.map(esc).join('<br>')}</b></div>
+    </div>
+    <ul class="bgnotes">${b.notes.map(n => `<li>${esc(n)}</li>`).join('')}<li>출신은 시작 조건일 뿐이다 — 이후 어떤 활동·세력·함선도 막지 않는다.</li></ul>
+  </div>`;
+}
+
+export function showPmcCreate(host: HTMLElement, o: { loginId: string; legacy: boolean; start?: StartTerms; onSubmit: (name: string, legacy: boolean, background?: string) => void; onLogout: () => void }) {
   let el = host.querySelector('#pmcCreate') as HTMLElement | null;
   if (!el) { el = document.createElement('div'); el.id = 'pmcCreate'; host.appendChild(el); }
+  const bgs = o.start?.backgrounds ?? [];
   // the server states what this world gives (an older server sends nothing: then no amount is promised)
   const where = o.start?.station ? `${esc(o.start.station)}에 등록되고` : '모항에 등록되고';
   const funds = o.start ? `운영 자금 ${Math.round(o.start.credits).toLocaleString('en-US')} cr` : '운영 자금';
-  el.innerHTML = `<div id="menu"><div class="panel mbox abox">
+  const intro = bgs.length
+    ? '이 계정에는 아직 이 세계의 PMC가 없습니다. 회사 이름과 창업 배경을 정하세요. 배경에 따라 시작 위치·함대·자금·세력 관계가 달라집니다 (계정당 한 번).'
+    : `이 계정에는 아직 이 세계의 PMC가 없습니다. 회사 이름을 정하면 ${where}, 채굴선 2척·구축함 1척·코르벳 2척과 ${funds}이 지급됩니다 (계정당 한 번).`;
+  el.innerHTML = `<div id="menu"><div class="panel mbox abox${bgs.length ? ' bgbox' : ''}">
     <div class="mlogo">SIDERARIUM</div><div class="msub">PMC 설립 — ${esc(o.loginId)}</div>
-    <div class="mdesc" data-pmc-start="${o.start ? Math.round(o.start.credits) : ''}">이 계정에는 아직 이 세계의 PMC가 없습니다. 회사 이름을 정하면 ${where}, 채굴선 2척·구축함 1척·코르벳 2척과 ${funds}이 지급됩니다 (계정당 한 번).</div>
+    <div class="mdesc" data-pmc-start="${o.start ? Math.round(o.start.credits) : ''}">${intro}</div>
     ${field('pmcNew', 'PMC 이름', 'text', 'maxlength="20" placeholder="2~20자"')}
+    ${bgs.length ? `<div class="bglabel">창업 배경</div><div class="bgcards" role="radiogroup">${bgs.map(b => `<button type="button" class="bgcard" role="radio" aria-checked="false" data-bg="${esc(b.id)}" style="--fc:${esc(b.factionColor)}">
+        <b>${esc(b.name)}</b><span class="bgfac">${esc(b.factionName)}</span><span class="bgwhere">${esc(b.system)} · ${esc(b.station)}</span>
+        <span class="bgsum">${cr(b.credits)} · ${b.ships.reduce((n, s) => n + s.n, 0)}척 · 운영비 ${cr(b.upkeep)}/h</span><span class="bgdiff ${DIFF_CLASS[b.difficulty] ?? ''}">난이도 ${esc(b.difficulty)}</span></button>`).join('')}</div>
+      <div id="bgDetail" class="bgdetail"><div class="dim small">배경을 선택하면 지급 내용이 표시됩니다.</div></div>` : ''}
     ${o.legacy ? `<label class="dim small"><input type="checkbox" id="pmcLegacy" /> 이 브라우저에서 계정 도입 전에 쓰던 PMC를 이 계정으로 가져오기 (이름 입력 불필요)</label>` : ''}
     <div class="aerr" id="pmcErr"></div>
     <div class="mrow"><button class="btn go" id="pmcGo">설립</button><button class="btn" id="pmcOut">로그아웃</button></div>
@@ -116,12 +153,23 @@ export function showPmcCreate(host: HTMLElement, o: { loginId: string; legacy: b
   const name = el.querySelector('#pmcNew') as HTMLInputElement, go = el.querySelector('#pmcGo') as HTMLButtonElement;
   name.focus();
   const leg = el.querySelector('#pmcLegacy') as HTMLInputElement | null;
+  let chosen: string | undefined;
+  for (const card of el.querySelectorAll<HTMLButtonElement>('[data-bg]')) card.onclick = () => {
+    chosen = card.dataset.bg;
+    for (const c of el!.querySelectorAll<HTMLElement>('[data-bg]')) { const on = c === card; c.classList.toggle('on', on); c.setAttribute('aria-checked', String(on)); }
+    const b = bgs.find(x => x.id === chosen);
+    const det = el!.querySelector('#bgDetail') as HTMLElement;
+    if (b) { det.innerHTML = bgDetail(b); if (matchMedia('(max-width: 720px)').matches) det.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    (el!.querySelector('#pmcErr') as HTMLElement).textContent = '';
+  };
   go.onclick = () => {
     const useLegacy = !!leg?.checked;
     const n = name.value.trim();
-    if (!useLegacy && (n.length < 2 || n.length > 20)) { (el!.querySelector('#pmcErr') as HTMLElement).textContent = 'PMC 이름은 2~20자입니다'; return; }
+    const err = el!.querySelector('#pmcErr') as HTMLElement;
+    if (!useLegacy && (n.length < 2 || n.length > 20)) { err.textContent = 'PMC 이름은 2~20자입니다'; return; }
+    if (!useLegacy && bgs.length && !chosen) { err.textContent = '창업 배경을 선택하세요'; return; }
     go.disabled = true;
-    o.onSubmit(n, useLegacy);
+    o.onSubmit(n, useLegacy, useLegacy ? undefined : chosen);
   };
   name.onkeydown = e => { if (e.key === 'Enter') go.click(); };
   (el.querySelector('#pmcOut') as HTMLButtonElement).onclick = () => o.onLogout();

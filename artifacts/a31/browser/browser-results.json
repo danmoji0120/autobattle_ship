@@ -1,0 +1,235 @@
+{
+  "base": "http://127.0.0.1:40697",
+  "checks": [
+    {
+      "ok": true,
+      "label": "six background cards",
+      "extra": [
+        {
+          "id": "hauler",
+          "text": "독립 운송업자 상인 길드 아스트라 · 아스트라 자유항 30,000 cr · 2척 · 운영비 677 cr/h 난이도 보통"
+        },
+        {
+          "id": "miner",
+          "text": "변경 채굴업자 변경 광업동맹 앤빌 광구 · 앤빌 광부조합 12,000 cr · 4척 · 운영비 1,521 cr/h 난이도 낮음"
+        },
+        {
+          "id": "salvager",
+          "text": "우주 인양업자 세레스 공업연맹 세레스 공업권 · 세레스 제련단지 12,000 cr · 3척 · 운영비 1,065 cr/h 난이도 보통"
+        },
+        {
+          "id": "security",
+          "text": "민간 경비업체 연합 관리청 헬리오스 · 헬리오스 조선소 15,000 cr · 3척 · 운영비 1,263 cr/h 난이도 보통"
+        },
+        {
+          "id": "veteran",
+          "text": "퇴역 군사조직 철갑 사령부 불워크 요새 · 불워크 군항 10,000 cr · 4척 · 운영비 1,788 cr/h 난이도 높음"
+        },
+        {
+          "id": "raider",
+          "text": "무법지 약탈자 해적 연합 검은 송곳니 공역 · 녹슨 정박지 6,000 cr · 3척 · 운영비 1,062 cr/h 난이도 매우 높음"
+        }
+      ]
+    },
+    {
+      "ok": true,
+      "label": "each card: faction, place, funds, ships, running cost, difficulty",
+      "extra": [
+        "독립 운송업자 상인 길드 아스트라 · 아스트라 자유항 30,000 cr · 2척 · 운영비 677 cr/h 난이도 보통",
+        "변경 채굴업자 변경 광업동맹 앤빌 광구 · 앤빌 광부조합 12,000 cr · 4척 · 운영비 1,521 cr/h 난이도 낮음",
+        "우주 인양업자 세레스 공업연맹 세레스 공업권 · 세레스 제련단지 12,000 cr · 3척 · 운영비 1,065 cr/h 난이도 보통",
+        "민간 경비업체 연합 관리청 헬리오스 · 헬리오스 조선소 15,000 cr · 3척 · 운영비 1,263 cr/h 난이도 보통",
+        "퇴역 군사조직 철갑 사령부 불워크 요새 · 불워크 군항 10,000 cr · 4척 · 운영비 1,788 cr/h 난이도 높음",
+        "무법지 약탈자 해적 연합 검은 송곳니 공역 · 녹슨 정박지 6,000 cr · 3척 · 운영비 1,062 cr/h 난이도 매우 높음"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "founding without a background is refused on the page"
+    },
+    {
+      "ok": true,
+      "label": "detail: station, ships, funds, standing, running cost, activities, difficulty",
+      "extra": {
+        "det": "우주 인양업자\n세레스 공업연맹\n난이도 보통\n세레스 공업연맹 제련단지에 둥지를 튼 인양 회사. 장비까지 뜯어낼 수 있는 공작선과 선체를 해체하는 채굴선, 화물을 싣는 수송선.\n시작 위치\n세레스 공업권 성계 · 세레스 제련단지\n시작 자금\n12,000 cr\n함선\n땜장이급 ×1 (인양(장비·선체·설계 조각))\n곡괭이급 ×1 (선체 해체·채굴)\n짐꾼급 ×1 (화물 회수)\n지휘관\n없음\n예상 운영비\n시간당 약 1,065 cr\n정박 기준 · 자금으로 약 11.2시간\n함대 가치\n23,800 cr\n조선소 정가 기준\n초기 세력 신뢰도\n세레스 공업연맹 +10 (협력)\n나머지 세력 0 (중립)\n추천 활동\n전장 잔해 인양(화물·장비·선체 고철)\n고철·광석을 세레스 제련단지에 판매\n잔해가 없을 때는 채굴\n잔해는 실제 전투에서만 생긴다 — 무료 자원은 지급되지 않는다\n보호 화물(합법 회사 소유)을 가져가면 범죄가 된다\n전투함이 없다\n출신은 시작 조건일 뿐이다 — 이후 어떤 활동·세력·함선도 막지 않는다."
+      }
+    },
+    {
+      "ok": true,
+      "label": "founded at Ceres with the salvage fleet, funds and standing shown",
+      "extra": {
+        "me": "p151",
+        "name": "인양 검증 PMC",
+        "background": "salvager",
+        "home": "p9_ceres_works",
+        "credits": 12000,
+        "standing": {
+          "ceres": 10
+        },
+        "ships": [
+          {
+            "id": "s153",
+            "hull": "constructor_s",
+            "state": "docked",
+            "at": "p9_ceres_works"
+          },
+          {
+            "id": "s154",
+            "hull": "miner_mk1",
+            "state": "docked",
+            "at": "p9_ceres_works"
+          },
+          {
+            "id": "s155",
+            "hull": "hauler_mk1",
+            "state": "docked",
+            "at": "p9_ceres_works"
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "top bar running cost after founding",
+      "extra": {
+        "up": "운영비\n1,065 cr/h",
+        "shownUpkeep": 1065
+      }
+    },
+    {
+      "ok": true,
+      "label": "after restart and re-login: same company, origin and ships, no creation screen",
+      "extra": {
+        "me": "p151",
+        "name": "인양 검증 PMC",
+        "background": "salvager",
+        "home": "p9_ceres_works",
+        "credits": 12000,
+        "standing": {
+          "ceres": 10
+        },
+        "ships": [
+          {
+            "id": "s153",
+            "hull": "constructor_s",
+            "state": "docked",
+            "at": "p9_ceres_works"
+          },
+          {
+            "id": "s154",
+            "hull": "miner_mk1",
+            "state": "docked",
+            "at": "p9_ceres_works"
+          },
+          {
+            "id": "s155",
+            "hull": "hauler_mk1",
+            "state": "docked",
+            "at": "p9_ceres_works"
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: six cards fit, no horizontal scroll",
+      "extra": {
+        "overflow": false,
+        "cards": [
+          {
+            "l": 23,
+            "r": 367
+          },
+          {
+            "l": 23,
+            "r": 367
+          },
+          {
+            "l": 23,
+            "r": 367
+          },
+          {
+            "l": 23,
+            "r": 367
+          },
+          {
+            "l": 23,
+            "r": 367
+          },
+          {
+            "l": 23,
+            "r": 367
+          }
+        ],
+        "vw": 390
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the miner detail opens inside the screen",
+      "extra": {
+        "l": 22.796875,
+        "r": 367.1875,
+        "text": "변경 채굴업자\n변경 광업동맹\n난이도 낮음\n광업동맹 수도 앤빌의 광부조합 소속으로 시작하는 채굴 회사. 채굴선 세 척과 광석 운반선 한 척.\n시작 위치\n앤빌 광구 성계 · 앤빌 광부조합\n시작 자금\n12,000 cr\n함선\n곡괭이급 ×3 (채굴)\n짐꾼급 ×1 (광석 운반)\n지휘관\n없음\n예상 운영비\n시간당 약 1,521 cr\n정박 기준 · 자금으로 약 7.8시간\n함대 가치\n32,100 cr\n조선소 정가 기준\n초기 세력 신뢰도\n변경 광업동맹 +10 (협력)\n해적 연합 -5 (불신)\n나머지 세력 0 (중립)\n추천 활동\n앤빌 광구 채굴(광석·티"
+      }
+    },
+    {
+      "ok": true,
+      "label": "phone account founded at Anvil — a different place from the first",
+      "extra": {
+        "me": "p199",
+        "name": "앤빌 채굴 PMC",
+        "background": "miner",
+        "home": "p9_anvil_port",
+        "credits": 12000,
+        "standing": {
+          "miners": 10,
+          "pirates": -5
+        },
+        "ships": [
+          {
+            "id": "s201",
+            "hull": "miner_mk1",
+            "state": "docked",
+            "at": "p9_anvil_port"
+          },
+          {
+            "id": "s202",
+            "hull": "miner_mk1",
+            "state": "docked",
+            "at": "p9_anvil_port"
+          },
+          {
+            "id": "s203",
+            "hull": "miner_mk1",
+            "state": "docked",
+            "at": "p9_anvil_port"
+          },
+          {
+            "id": "s204",
+            "hull": "hauler_mk1",
+            "state": "docked",
+            "at": "p9_anvil_port"
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": []
+}

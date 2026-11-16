@@ -43,7 +43,7 @@ function accountFlow(ws: WsTransport, client: GameClient, app: HTMLElement, name
       if (ended || client.company) return;
       showPmcCreate(document.body, {
         loginId: me.account.loginId, legacy: !!LS.get(LEGACY_KEY), start,
-        onSubmit: (n, useLegacy) => { if (useLegacy) { legacyTried = true; client.createPmc('', LS.get(LEGACY_KEY) ?? ''); } else client.createPmc(n); },
+        onSubmit: (n, useLegacy, bg) => { if (useLegacy) { legacyTried = true; client.createPmc('', LS.get(LEGACY_KEY) ?? ''); } else client.createPmc(n, undefined, bg); },
         onLogout: () => camp().logout?.(),
       });
     }, () => authLost('서버에 연결할 수 없습니다.'));

@@ -28,6 +28,8 @@ export interface Company {
   stats: { earned: number; mined: number; kills: number; lost: number; battlesWon: number; contracts: number };
   milestones: string[];
   homeStation: string;
+  /** A-3.1: founding background id (world/backgrounds.ts) — the company's origin; grants nothing after founding */
+  background?: string;
   /** researched technologies */
   tech?: string[];
   /** research projects (one lab slot each while running) */

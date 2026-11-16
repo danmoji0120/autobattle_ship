@@ -39,6 +39,8 @@ const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
 import { econOf, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
 import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
+import { backgroundOf, backgroundsOn, backgroundStanding, backgroundTerms } from './backgrounds';
+import type { Background, BackgroundTerm } from './backgrounds';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
@@ -614,22 +616,60 @@ export class WorldSim {
   /** server-only: bind BB / BB-EX to the PMC of a verified account (idempotent — world/exclusive.ts) */
   grantExclusive(account: string, company: string) { return grantExclusive(this, account, company); }
 
-  addPlayer(name: string): string { return watchMoney(this.st, 'company_creation', {}, () => this.createPlayer(name)); }
-
-  /** what a new company in this world receives (shown on the company-creation screen before it exists) */
-  starterTerms(): { credits: number; station: string } {
-    return { credits: growthOn(this.st) ? START_CREDITS_GROWTH : START_CREDITS_LEGACY, station: this.st.stations.astra?.name ?? '' };
+  /** a new player company. `background` (A-3.1) is a background id the client chose: the server resolves it here and
+   *  ignores anything this world does not offer (no background → the original start) */
+  addPlayer(name: string, background?: unknown): string {
+    const bg = backgroundOf(this.st, background);
+    return watchMoney(this.st, 'company_creation', {}, () => bg ? this.createFromBackground(name, bg) : this.createPlayer(name));
   }
 
-  private createPlayer(name: string): string {
+  /** what a new company in this world receives (shown on the company-creation screen before it exists) */
+  starterTerms(): { credits: number; station: string; backgrounds?: BackgroundTerm[] } {
+    const out: { credits: number; station: string; backgrounds?: BackgroundTerm[] } = { credits: growthOn(this.st) ? START_CREDITS_GROWTH : START_CREDITS_LEGACY, station: this.st.stations.astra?.name ?? '' };
+    if (backgroundsOn(this.st)) out.backgrounds = backgroundTerms(this.st);
+    return out;
+  }
+
+  /** the company record every start shares */
+  private newPlayerCompany(name: string, home: string): string {
     const n = Object.values(this.st.companies).filter(c => c.kind === 'player').length;
     const id = this.id('p');
     this.st.companies[id] = {
       id, name: name.slice(0, 20) || `PMC-${id}`, kind: 'player', color: PLAYER_COLORS[n % PLAYER_COLORS.length], credits: START_CREDITS_LEGACY, rep: 0,
-      createdAt: this.time, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [], homeStation: 'astra', tech: [], research: [],
+      createdAt: this.time, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [], homeStation: home, tech: [], research: [],
     };
     if (growthOn(this.st)) { const co = this.st.companies[id]; co.credits = START_CREDITS_GROWTH; for (const b of STARTER_BLUEPRINTS) grantBlueprint(this.st, co, b, 'starter', this.time); upkeepOf(co).last = this.time; }
     for (const s of Object.values(this.st.stations)) s.storage[id] = emptyCargo();
+    return id;
+  }
+
+  /** A-3.1: a company founded with a background — its station, fleet, commander, funds and first standing */
+  private createFromBackground(name: string, bg: Background): string {
+    const id = this.newPlayerCompany(name, bg.station);
+    const co = this.st.companies[id], st = this.st.stations[bg.station];
+    co.background = bg.id;
+    co.credits = bg.credits;
+    co.standing = { ...(co.standing ?? {}), ...backgroundStanding(this.st, bg) };
+    const groups = bg.groups.map(g => {
+      const grp = this.newGroup(id, g.name);
+      if (g.commander) { const cm = this.newCommander(id, g.commander.tier); cm.skill = Math.max(cm.skill, g.commander.minSkill); grp.commanderId = cm.id; }
+      return grp;
+    });
+    const used = new Set(Object.values(this.st.ships).filter(o => o.task.k === 'docked' && o.task.station === st.id).map(o => (o.task as any).berth));
+    for (const sh of bg.ships) for (let k = 0; k < sh.n; k++) {
+      const s = this.spawnHull(id, sh.hull, sh.variant, sh.preset, groups[sh.group].id, st.pos);
+      // docked at the home berth without a docking event (no inspection, no black-market contact — it was founded here)
+      let b = hashId(s.id) % BERTH_MAX; let i = 0; while (used.has(b) && i++ < BERTH_MAX) b = (b + 1) % BERTH_MAX; used.add(b);
+      s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
+    }
+    this.ev('world', `신생 PMC "${co.name}"(${bg.name})가 ${st.name}에 등록했다.`);
+    this.ev('info', bg.hint, { company: id });
+    return id;
+  }
+
+  private createPlayer(name: string): string {
+    const n = Object.values(this.st.companies).filter(c => c.kind === 'player').length;
+    const id = this.newPlayerCompany(name, 'astra');
     const astra = this.st.stations.astra;
     const mining = this.newGroup(id, '제1 채굴반');
     const guard = this.newGroup(id, '경비대');

@@ -7,7 +7,7 @@ export type ClientMsg =
   /** multiplayer: identity comes from the authenticated session, never from this message */
   | { t: 'hello'; name: string; token?: string; /** 2 = the client applies state deltas ('sd'); absent = full snapshots */ proto?: number }
   /** create the account's PMC (once); `legacy` = an old browser token to carry over an unclaimed PMC */
-  | { t: 'createPmc'; name: string; legacy?: string }
+  | { t: 'createPmc'; name: string; legacy?: string; /** A-3.1 background id (the server resolves what it grants) */ background?: string }
   | { t: 'cmd'; id: number; cmd: Cmd }
   | { t: 'bjoin'; eng: string }
   | { t: 'border'; id: number; eng: string; groupId: number; order: Order | null; opts: { retreatAt?: number; release?: boolean; /** P11: pull the sender's whole side out */ withdraw?: boolean } }
@@ -39,7 +39,7 @@ export type ServerMsg =
   /** the connection has no signed-in account */
   | { t: 'auth'; need: 'login' }
   /** signed in, but the account has no PMC in this world yet */
-  | { t: 'needPmc'; /** what the new company will receive in this world (absent from older servers) */ start?: { credits: number; station: string } }
+  | { t: 'needPmc'; /** what the new company will receive in this world (absent from older servers) */ start?: { credits: number; station: string; /** A-3.1: P10 worlds — the founding backgrounds and exactly what each grants */ backgrounds?: import('../world/backgrounds').BackgroundTerm[] } }
   | { t: 'pmcErr'; msg: string }
   | { t: 'analytics'; id: number; data?: import('./analytics').AnalyticsResult; error?: string; admin?: boolean };
 

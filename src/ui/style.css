@@ -342,6 +342,37 @@ select { background: rgba(5, 10, 18, 0.92); color: var(--text); border: 1px soli
 .anotice { padding: 9px 12px; font-size: 12.5px; background: rgba(255,179,71,.08); border: 1px solid rgba(255,179,71,.35); color: #ffe2b0; }
 .acode { font-family: var(--mono); font-size: 26px; letter-spacing: .12em; text-align: center; padding: 14px; border: 1px dashed var(--cyan); color: #e6f6ff; user-select: all; }
 #pmcCreate { position: fixed; inset: 0; z-index: 40; }
+/* A-3.1 founding backgrounds */
+#pmcCreate #menu { overflow-y: auto; padding: 16px 0; box-sizing: border-box; }
+.abox.bgbox { width: min(1040px, 96vw); padding: 26px 30px; box-sizing: border-box; }
+.bglabel { font-size: 12px; color: var(--dim); margin-bottom: -6px; }
+.bgcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bgcard { text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; background: rgba(10, 20, 34, .7); border: 1px solid var(--line); border-left: 3px solid var(--fc, var(--line)); color: var(--text); font: 12px var(--font); cursor: pointer; min-width: 0; }
+.bgcard:hover { background: rgba(20, 40, 60, .55); }
+.bgcard.on { border-color: var(--cyan); border-left-color: var(--fc, var(--cyan)); background: rgba(30, 70, 100, .45); box-shadow: 0 0 0 1px var(--cyan) inset; }
+.bgcard b { font-size: 14px; }
+.bgfac { color: var(--fc, var(--dim)); font-size: 11.5px; }
+.bgwhere, .bgsum { color: var(--dim); font-size: 11.5px; overflow-wrap: anywhere; }
+.bgdiff { font-size: 11px; align-self: flex-start; padding: 1px 6px; border: 1px solid currentColor; border-radius: 2px; }
+.bgdiff.d1 { color: #8fe3a2; } .bgdiff.d2 { color: #9fd4ff; } .bgdiff.d3 { color: #ffc069; } .bgdiff.d4 { color: #ff7a6a; }
+.bgdetail { border: 1px solid var(--line); background: rgba(5, 12, 22, .6); padding: 12px 14px; min-height: 40px; }
+.bgdh { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.bgdh b { font-size: 16px; }
+.bgdh .bgfac { color: var(--fc); border: 1px solid var(--fc); padding: 0 6px; font-size: 11.5px; }
+.bgdesc { font-size: 12.5px; line-height: 1.6; opacity: .85; margin: 6px 0 8px; }
+.bggrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 14px; font-size: 12px; }
+.bggrid > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bggrid span { color: var(--dim); font-size: 11px; }
+.bggrid b { font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.bggrid i, .bggrid b i { color: var(--dim); font-style: normal; font-size: 11px; font-weight: 400; }
+.bgnotes { margin: 10px 0 0; padding-left: 18px; font-size: 11.5px; color: #d9c79a; line-height: 1.55; }
+@media (max-width: 900px) { .bgcards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .bggrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .abox.bgbox { padding: 18px 14px; }
+  .bgcards { grid-template-columns: minmax(0, 1fr); }
+  .bggrid { grid-template-columns: minmax(0, 1fr); }
+  #pmcCreate #menu { place-items: start center; }
+}
 .acctwrap { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0, 0, 0, .45); }
 .acct { width: min(420px, 92vw); }
 .acct .abody { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; user-select: text; }

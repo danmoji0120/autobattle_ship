@@ -1,6 +1,7 @@
 // Transport-agnostic authoritative game server. Used by the Node WebSocket server (multiplayer)
 // and by the in-browser LocalTransport (single player) — the same code path in both modes.
 
+import { backgroundOf } from '../world/backgrounds';
 import { migrateRep } from '../world/repMigrate';
 import { newWorldOptions, type WorldPreset } from '../world/worldPreset';
 import { Analytics, type AnalyticsOptions } from './analytics';
@@ -201,7 +202,7 @@ export class GameServer {
 
   /** PMC creation for an account: exactly once (the check and the link happen in one synchronous step,
    *  so duplicate or concurrent requests from several tabs all land on the same company) */
-  private createPmc(c: Conn, name: string, legacy?: string): string | null {
+  private createPmc(c: Conn, name: string, legacy?: string, background?: unknown): string | null {
     if (!c.account) return '로그인이 필요합니다';
     const have = this.companyOf(c.account);
     if (have) { this.enter(c, have, ''); return null; }
@@ -220,7 +221,9 @@ export class GameServer {
       if (n.length < 2 || n.length > 20) return 'PMC 이름은 2~20자입니다';
       const taken = Object.values(this.sim.st.companies).some(o => o.name.toLowerCase() === n.toLowerCase());
       if (taken) return '이미 존재하는 회사 이름입니다';
-      company = this.sim.addPlayer(n);
+      // A-3.1: the background is only an id; the server resolves what it grants (absent → the original start)
+      if (background !== undefined && background !== null && background !== '' && !backgroundOf(this.sim.st, background)) return '이 세계에서 선택할 수 없는 창업 배경입니다';
+      company = this.sim.addPlayer(n, background);
     }
     this.accounts[c.account] = company;
     if (c.account === this.opts.exclusiveOwner) this.grantExclusive();
@@ -281,7 +284,7 @@ export class GameServer {
       }
       case 'createPmc': {
         if (!this.opts.accounts) return;
-        const err = this.createPmc(c, msg.name, msg.legacy);
+        const err = this.createPmc(c, msg.name, msg.legacy, msg.background);
         if (err) c.send({ t: 'pmcErr', msg: err });
         return;
       }
