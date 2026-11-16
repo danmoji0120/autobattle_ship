@@ -1,0 +1,13 @@
+[siderarium] accounts: file · 0 linked PMCs · 0 legacy tokens
+[siderarium] world created (t=0s) storage=file /tmp/siderarium-a21-browser-9GANQD/world.json rules={"layout":"p10","systems":40,"factions":6,"factionEcon":true,"combat":true,"ops":true,"logistics":true,"salvage":true,"piracy":true,"blackMarket":true,"law":true,"rep":true,"econChain":false}
+[siderarium] listening on :36849
+[siderarium] account created: a21_browser
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.16 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 1 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] world restored (t=9s) storage=file /tmp/siderarium-a21-browser-9GANQD/world.json rules={"layout":"p10","systems":40,"factions":6,"factionEcon":true,"combat":true,"ops":true,"logistics":true,"salvage":true,"piracy":true,"blackMarket":true,"law":true,"rep":true,"econChain":false}
+[siderarium] migration check OK {"players":1,"credits":0,"ships":5,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":12,"eq_medium_gun":1,"eq_autocannon":8},"granted":{}} · restore round-trip identical
+[siderarium] listening on :36849
+[siderarium] status tick p50/p95/p99/max 0.04/3.47/7.53/42.8ms rate 0.996 · loop p99 31ms · cpu 4% · rss 116MB heap 25MB · conns 1 · out 0.5MB · save ok 0.18MB 2+2ms

@@ -1,0 +1,194 @@
+{
+ "seed": 21,
+ "awayHours": 10,
+ "cmds": {
+  "mineOrder": null,
+  "escortOrder": null,
+  "name1": null,
+  "name2": null,
+  "name3": "회생 운항은 동시에 2척까지"
+ },
+ "recoveredAfterMin": 43,
+ "recovered": {
+  "since": 36600,
+  "t": 39191.5,
+  "paid": 13033.616666449001
+ },
+ "guardHeldAtEnd": [
+  null,
+  null,
+  null
+ ],
+ "guardStatus": "제1 채굴반 호위 — 광구 경계 중",
+ "guardInSpace": 3,
+ "log": [
+  {
+   "t": "복귀",
+   "h": 10,
+   "credits": 0,
+   "debt": 11042,
+   "stage": 4,
+   "perHour": 2358,
+   "earned": 0,
+   "mined": 0,
+   "paid": 12000,
+   "minersInSpace": 0,
+   "minersStatus": "운영비 체납 — 신규 출항 보류",
+   "recovery": false,
+   "held": [
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류"
+   ]
+  },
+  {
+   "t": "지정 전 10분",
+   "h": 10.17,
+   "credits": 0,
+   "debt": 11418,
+   "stage": 4,
+   "perHour": 2358,
+   "earned": 0,
+   "mined": 0,
+   "paid": 12000,
+   "minersInSpace": 0,
+   "minersStatus": "운영비 체납 — 신규 출항 보류",
+   "recovery": false,
+   "held": [
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류"
+   ]
+  },
+  {
+   "t": "회생 10분",
+   "h": 10.33,
+   "credits": 0,
+   "debt": 10257,
+   "stage": 4,
+   "perHour": 2357,
+   "earned": 1537,
+   "mined": 275,
+   "paid": 13537,
+   "minersInSpace": 2,
+   "minersStatus": "호위 집결 대기 — 경비대 합류까지 약 20초 (최대 110초 대기)",
+   "recovery": true,
+   "held": [
+    null,
+    null,
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류"
+   ]
+  },
+  {
+   "t": "회생 20분",
+   "h": 10.5,
+   "credits": 0,
+   "debt": 7582,
+   "stage": 4,
+   "perHour": 2358,
+   "earned": 4587,
+   "mined": 1036,
+   "paid": 16587,
+   "minersInSpace": 2,
+   "minersStatus": "광석 운반 중",
+   "recovery": true,
+   "held": [
+    null,
+    null,
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류"
+   ]
+  },
+  {
+   "t": "회생 30분",
+   "h": 10.67,
+   "credits": 0,
+   "debt": 3487,
+   "stage": 4,
+   "perHour": 2357,
+   "earned": 9058,
+   "mined": 1789,
+   "paid": 21058,
+   "minersInSpace": 2,
+   "minersStatus": "광석 운반 중",
+   "recovery": true,
+   "held": [
+    null,
+    null,
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류"
+   ]
+  },
+  {
+   "t": "회생 40분",
+   "h": 10.83,
+   "credits": 0,
+   "debt": 907,
+   "stage": 4,
+   "perHour": 2356,
+   "earned": 12014,
+   "mined": 2239,
+   "paid": 24014,
+   "minersInSpace": 2,
+   "minersStatus": "케스트렐 암초대 채굴 중",
+   "recovery": true,
+   "held": [
+    null,
+    null,
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류",
+    "운영비 체납 — 신규 출항 보류"
+   ]
+  },
+  {
+   "t": "회생 50분",
+   "h": 11,
+   "credits": 1670,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 2357,
+   "earned": 15693,
+   "mined": 3065,
+   "paid": 26023,
+   "minersInSpace": 2,
+   "minersStatus": "케스트렐 암초대 채굴 중",
+   "recovery": false,
+   "held": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  },
+  {
+   "t": "정상 복귀 +1h",
+   "h": 12,
+   "credits": 25549,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 2346,
+   "earned": 42020,
+   "mined": 7957,
+   "paid": 28471,
+   "minersInSpace": 2,
+   "minersStatus": "케스트렐 암초대 채굴 중",
+   "recovery": false,
+   "held": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ]
+  }
+ ]
+}

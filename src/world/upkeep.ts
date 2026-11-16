@@ -26,6 +26,7 @@ import { leaseRate, advanceRent, dockCapacity, useDock, repairPoints, serviceOf 
 import { stationUpkeep } from './stations';
 import { stationPower } from './production';
 import { stationSize } from './stations';
+import { recoveryHold } from './recovery';
 
 export const SETTLE_DT = 60;
 export const RESERVE_MUL = 0.15;
@@ -115,6 +116,7 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     const amount = stationUpkeep(st) * h;
     if (amount > 0) { u.acc += amount; emit(w, { kind: 'cost', reason: 'station_upkeep', amount, company: co.id, station: st.id }); }
   }
+  if (u.recovery && u.debt <= 1) out.push(closeRecovery(w, co, u));
   const cancelled = advanceRent(w, co, w.time - dt);
   if (cancelled) out.push({ kind: 'warn', tag: 'upkeep', text: `창고 임대료 미납 1시간 — 추가 구획 ${Object.entries(cancelled).map(([id, n]) => `${w.stations[id]?.name ?? id} ${n}개`).join(', ')} 자동 해지. 기존 물품과 미납금은 보존되며 신규 입고는 남은 용량까지만 가능합니다. 보관 물품을 판매해 미납금을 우선 정산하세요.` });
   if (w.time - u.last < SETTLE_DT) return out;
@@ -200,7 +202,7 @@ export function departureHeld(w: WorldState, s: WShip): string | null {
   if (s.listed) return '거래소 매물 — 출항 불가';
   if (s.reserve) return s.reserve.until ? '재취역 준비 중' : '예비역 — 출항하려면 재취역';
   const co = w.companies[s.owner];
-  if ((co?.upkeep?.stage ?? 0) >= 3) return '운영비 체납 — 신규 출항 보류';
+  if ((co?.upkeep?.stage ?? 0) >= 3) return recoveryHold(w, s) || null;   // A-2.1: a named recovery sortie may fly economic work
   return null;
 }
 
@@ -224,4 +226,13 @@ export function maintainOnDock(w: WorldState, s: WShip, st: Station, repairCapab
   upkeepOf(co).acc += cost;
   if (st.public) fundsIn(st, cost);
   return cost;
+}
+
+/** A-2.1: the debt is paid — the recovery closes, named ships go back to the normal rules */
+function closeRecovery(w: WorldState, co: Company, u: UpkeepState): UpkeepEvent {
+  const r = u.recovery!;
+  for (const s of Object.values(w.ships)) if (s.owner === co.id && s.recovery) delete s.recovery;
+  u.recovered = { since: r.since, t: w.time, paid: Math.max(0, (u.total?.paid ?? 0) - r.paid0) };
+  delete u.recovery;
+  return { kind: 'info', tag: 'upkeep', text: `회생 완료 — 미납금을 모두 갚아 운항 제한이 해제됐습니다 (회생 기간 ${Math.round((w.time - r.since) / 60)}분, 상환 ${Math.round(u.recovered.paid).toLocaleString()} cr). 모든 함선이 정상 운용으로 돌아갑니다.` };
 }

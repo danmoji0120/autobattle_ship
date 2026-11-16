@@ -17,6 +17,7 @@ import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFit
 import { hullGate } from '../../world/reputation';
 import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBlueprints, bpName, SRC_NAME, FRAG_PREFIX, fragmentsNeeded } from '../../world/blueprints';
 import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld } from '../../world/upkeep';
+import { inRecovery, earner, miner, tradeInOpen, sortieProblem, buybackProblem, buybackValue, recoveryShips, recoveryProgress, RECOVERY_SHIPS, RECOVERY_STAGE, SWAP_HULLS } from '../../world/recovery';
 import { iname, itemList } from './industryUi';
 import { hullPrice, materialReferenceCost, yardFee } from '../../world/valuation';
 import { serviceOf, publicCap, storeUsed, reservedSpace, listedSpace, logisticsReservedSpace, leasedAt, LEASE_BLOCK, leaseRate, ownRepairCap, OWN_REPAIR, dockCapacity, SERVICES } from '../../world/storage';
@@ -193,7 +194,7 @@ export function upkeepTop(w: WorldState, me: string): string {
   const co = w.companies[me];
   const f = forecast(full(w), co); const u = co.upkeep;
   const st = u?.stage ?? 0;
-  return `<div class="kv" data-upkeep style="cursor:pointer" title="운영비 상세"><span>운영비</span><b class="${st >= 2 ? 'warn' : st ? 'warnish' : ''}">${fmt(f.perHour)} <small>cr/h</small>${st ? ` · ${STAGE_NAME[st]}` : ''}</b></div>`;
+  return `<div class="kv" data-upkeep style="cursor:pointer" title="운영비 상세"><span>운영비</span><b class="${st >= 2 ? 'warn' : st ? 'warnish' : ''}">${fmt(f.perHour)} <small>cr/h</small>${st ? ` · ${STAGE_NAME[st]}` : ''}${u?.recovery ? ' · 회생 중' : ''}</b></div>`;
 }
 
 export function upkeepHtml(w: WorldState, me: string): string {
@@ -212,12 +213,57 @@ export function upkeepHtml(w: WorldState, me: string): string {
     ${u?.debt ? `<div class="bdr small"><button class="btn" data-payarrears ${co.credits <= 0 ? 'disabled' : ''}>보유 크레딧으로 미납금 납부</button> · 물품·함선 판매대금은 미납금부터 자동 정산합니다. 잔액 부족분은 보존되며 잔액을 음수로 만들지 않습니다.</div>` : ''}
     ${u?.rent?.sinceMs !== undefined && Object.values(co.leases ?? {}).some(n => n > 0) ? `<div class="warn small">창고 임대료 미납 ${moneyText(Number(u.rent.debtU) / 1e9)} cr · 추가 임대 구획 자동 해지까지 ${dur(Math.max(0, u.rent.sinceMs / 1000 + 3600 - w.time))}. 일부 납부만으로 유예 시간이 초기화되지 않습니다.</div>` : ''}
     ${u?.rent?.cancelled ? `<div class="warnish small">최근 임대 해지: 임대료 미납으로 추가 구획이 자동 해지됐습니다 (게임 시간 ${dur(u.rent.cancelled.t)}). 기존 물품은 보존됩니다. 미납 정산 후 다시 임대할 수 있습니다.</div>` : ''}
+    ${recoveryHtml(w, me, f.perHour)}
     <label class="small"><input type="checkbox" data-autores ${u?.autoReserve ? 'checked' : ''}> 체납 4단계에서 정박 중인 유휴 함선을 자동으로 예비역 전환 (동의)</label>
     <table class="gt"><tr><th>함선</th><th>상태</th><th class="n">cr/h</th><th class="n">마모</th><th></th></tr>${ships.map(s => {
       const r = shipRate(full(w), s); const held = departureHeld(full(w), s);
       return `<tr><td>${esc(s.name)} <span class="dim small">${esc(hullTitle(s.hull ?? `${s.classId}_mk1`))}</span></td><td class="small">${s.state === 'docked' ? '정박' : s.state === 'space' ? '운항' : esc(s.state)}${held ? ` · <span class="warn">${esc(held)}</span>` : ''}</td><td class="n">${fmt(r.credits + r.dock)}</td><td class="n">${Math.round((s.wear ?? 0) * 100)}%</td>
-        <td>${s.reserve ? (s.reserve.until ? `<span class="dim small">재취역 ${dur(Math.max(0, s.reserve.until - w.time))}</span>` : `<button class="btn mini" data-reserve="${s.id}:0" title="재취역 ${REACTIVATE_S / 60}분, 2시간분 운영비">재취역</button>`) : s.state === 'docked' && !s.listed ? `<button class="btn mini" data-reserve="${s.id}:1" title="운영비 85% 절감, 출항 불가">예비역</button>` : ''}</td></tr>`;
+        <td>${recoveryButtons(w, me, s)}${s.reserve ? (s.reserve.until ? `<span class="dim small">재취역 ${dur(Math.max(0, s.reserve.until - w.time))}</span>` : `<button class="btn mini" data-reserve="${s.id}:0" title="재취역 ${REACTIVATE_S / 60}분, 2시간분 운영비">재취역</button>`) : s.state === 'docked' && !s.listed ? `<button class="btn mini" data-reserve="${s.id}:1" title="운영비 85% 절감, 출항 불가">예비역</button>` : ''}</td></tr>`;
     }).join('')}</table></div>`;
+}
+
+/** A-2.1: what the company can do to get out of arrears (shown only while departures are held or a recovery is open) */
+function recoveryHtml(w: WorldState, me: string, perHour: number): string {
+  const co = w.companies[me]; const u = co.upkeep;
+  const stage = u?.stage ?? 0;
+  if (u?.recovered && !u.recovery && stage < RECOVERY_STAGE && w.time - u.recovered.t < 3600)
+    return `<div class="bdr good small">회생 완료 — 미납금 ${moneyText(u.recovered.paid)} cr을 갚고 정상 운용으로 돌아왔습니다 (${dur(u.recovered.t - u.recovered.since)} 소요).</div>`;
+  if (!inRecovery(co as never) && !u?.recovery) return '';
+  const ships = Object.values(w.ships).filter(s => s.owner === me && s.classId !== 'platform');
+  const named = recoveryShips(full(w), me);
+  const earners = ships.filter(s => earner(s) && !s.listed);
+  const sellable = ships.filter(s => !buybackProblem(full(w), co, s));
+  const p = recoveryProgress(co);
+  const pct = p && p.debt0 > 0 ? Math.min(100, Math.round(100 * p.paid / Math.max(1, p.paid + p.debt))) : 0;
+  const tools: string[] = [];
+  tools.push(`<b>회생 운항</b> — 민간선(채굴·수송) 최대 ${RECOVERY_SHIPS}척이 채굴·운송·인양 작전으로 출항할 수 있습니다. 현재 ${named.length}/${RECOVERY_SHIPS}척 지정${earners.length ? '' : ' · <span class="warn">수익 활동이 가능한 함선 없음</span>'}. 예비역 함선은 재취역 비용을 미납금에 더해 지정할 수 있습니다.`);
+  tools.push(`<b>긴급 매각</b> — 표준 구성 함선을 그 선체를 파는 공영 조선소에 매입가(목록가의 ${50}% × 상태)로 넘깁니다. 조선소 매입 예산과 재고 한도 안에서만 가능합니다. 지금 이 자리에서 매각 가능: ${sellable.length}척.`);
+  if (!ships.some(s => miner(s) && !s.listed)) tools.push(`<b>긴급 교환</b> — 채굴선이 없을 때(수송선은 화물·자금이 없으면 벌 수 없음) 함선을 조선소에 넘기고 ${SWAP_HULLS.map(h => CONTENT.hulls[h]?.name ?? h).join('·')} 중 하나를 조선소 재고에서 받습니다. 가격 차이는 지급되거나 미납금에 더해집니다.`);
+  tools.push('<b>재고 판매</b> — 창고의 물품을 시장에 팔면 대금이 미납금부터 정산됩니다.');
+  return `<div class="bdr recov"><div><b class="warn">회생 필요</b>${u?.recovery ? ` · 회생 진행 ${dur(w.time - u.recovery.since)}` : ''}</div>
+    <div class="small">총체납 <b class="warn">${moneyText(u?.debt ?? 0)} cr</b> · 자금이 없으면 미납금이 시간당 약 <b>${fmt(perHour)} cr</b> 늘어납니다${p ? ` · 회생 시작 후 상환 <b>${moneyText(p.paid)} cr</b> (${pct}%)` : ''}</div>
+    ${p ? `<div class="rbar"><i style="width:${pct}%"></i></div>` : ''}
+    <div class="small">적용 중인 제약: 정박 함선 신규 출항 보류(회생 운항 지정 함선 제외) · 군사 작전 출항 불가 · 보급·정비 지연(마모 2배)${stage >= 4 ? ' · 유휴 함선 예비역 권고' : ''}</div>
+    <ul class="small">${tools.map(t => `<li>${t}</li>`).join('')}</ul>
+    <div class="dim small">정상 운용 복귀 조건: 미납금 0 cr. 수입은 미납금부터 자동 정산되고, 다 갚으면 회생이 끝나며 모든 함선의 운항 제한이 풀립니다. 다른 함선은 예비역으로 돌리면 운영비가 85% 줄어 상환이 빨라집니다.</div></div>`;
+}
+
+/** A-2.1: per-ship recovery actions in the running-cost table */
+function recoveryButtons(w: WorldState, me: string, s: WShip): string {
+  const co = w.companies[me];
+  if (!inRecovery(co as never)) return '';
+  const fw = full(w);
+  let out = '';
+  if (s.recovery) out += `<button class="btn mini" data-recov="${s.id}:0" title="회생 운항 해제">회생 해제</button> `;
+  else if (!sortieProblem(fw, co, s)) out += `<button class="btn mini go" data-recov="${s.id}:1" title="${earner(s) ? '채굴·운송·인양 작전으로 출항 허용' : '전투함: 매입 조선소로 정박 이동만 허용'}">${earner(s) ? '회생 운항' : '회생 이동'}</button> `;
+  if (!buybackProblem(fw, co, s)) {
+    const v = buybackValue(fw, s);
+    out += `<button class="btn mini" data-recsell="${s.id}" data-recval="${v}" title="공영 조선소에 매각 — 대금은 미납금부터 정산">매각 ${fmt(v)}</button> `;
+    const st = s.task.k === 'docked' ? w.stations[s.task.station] : undefined;
+    if (tradeInOpen(fw, me, s.id) && !miner(s) && st) for (const h of SWAP_HULLS) if (yardHulls(st as never).includes(h) && (st.shipStock?.[h]?.n ?? 1) >= 1)
+      out += `<button class="btn mini" data-recswap="${s.id}:${h}" title="이 함선을 넘기고 ${esc(CONTENT.hulls[h]?.name ?? h)}을(를) 받습니다">교환→${esc(CONTENT.hulls[h]?.name ?? h)}</button> `;
+  }
+  return out;
 }
 
 // ───────────────────────────────────────────────────────── rev 2: why things cost what they cost

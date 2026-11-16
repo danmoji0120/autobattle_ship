@@ -102,6 +102,11 @@ export interface UpkeepState {
   total: { credits: number; supplies: number; paid: number };
   /** let the server move idle docked ships to reserve at stage 4 (off unless the player opts in) */
   autoReserve?: boolean;
+  /** A-2.1: an open recovery (회생) — started when the player first uses a recovery tool at stage ≥ 3, closed when
+   *  the debt is paid. debt0 / paid0: the debt and the paid total when it started (progress for the UI) */
+  recovery?: { since: number; debt0: number; paid0: number; sold?: number; swapped?: number };
+  /** A-2.1: the last finished recovery */
+  recovered?: { since: number; t: number; paid: number };
 }
 
 export interface FitPreset { id: string; name: string; hull: string; variant: string; hp: Record<string, string>; bay: Record<string, string> }
@@ -229,6 +234,8 @@ export interface WShip {
   listed?: string;
   /** account-exclusive hull reconstituting after it was destroyed: docked, cannot depart until then */
   recover?: { until: number };
+  /** A-2.1: named for a recovery sortie (economic work allowed while departures are held for arrears) */
+  recovery?: true;
 }
 
 export interface WGroup {

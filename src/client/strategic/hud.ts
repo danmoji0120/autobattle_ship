@@ -926,7 +926,7 @@ export class PmcHud {
   private renderUpkeep(force: boolean) {
     if (!this.upkOpen || !growthOn(this.st)) { this.upkEl?.remove(); this.upkEl = null; return; }
     const co = this.st.companies[this.me]; if (!co) return;
-    const key = JSON.stringify([co.credits, co.upkeep?.stage, co.upkeep?.debt, co.upkeep?.rent?.sinceMs, co.upkeep?.rent?.cancelled, Math.floor(this.st.time), co.upkeep?.bill?.t, co.upkeep?.autoReserve, Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [s.id, s.state, s.reserve, s.listed, Math.round((s.wear ?? 0) * 100)])]);
+    const key = JSON.stringify([co.credits, co.upkeep?.stage, co.upkeep?.debt, co.upkeep?.rent?.sinceMs, co.upkeep?.rent?.cancelled, Math.floor(this.st.time), co.upkeep?.bill?.t, co.upkeep?.autoReserve, co.upkeep?.recovery, Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [s.id, s.state, s.reserve, s.listed, s.recovery, s.task.k, Math.round((s.wear ?? 0) * 100)])]);
     if (!force && key === this.upkKey && this.upkEl) return;
     this.upkKey = key;
     if (!this.upkEl) { this.upkEl = h('div', 'upkwrap'); this.root.appendChild(this.upkEl); }
@@ -937,6 +937,9 @@ export class PmcHud {
     if (pay) pay.onclick = () => this.cmd({ c: 'payArrears' });
     const ar = e.querySelector<HTMLInputElement>('[data-autores]');
     if (ar) ar.onchange = () => { if (ar.checked && !confirm('체납 4단계가 되면 정박 중인 유휴 함선을 자동으로 예비역으로 돌립니다. 함선·장비는 그대로이며 재취역할 수 있습니다. 동의할까요?')) { ar.checked = false; return; } this.cmd({ c: 'autoReserve', on: ar.checked }); };
+    e.querySelectorAll<HTMLButtonElement>('[data-recov]').forEach(b => b.onclick = async () => { const [ship, on] = b.dataset.recov!.split(':'); if (await this.cmd({ c: 'recovery', ship, on: on === '1' })) this.renderUpkeep(true); });
+    e.querySelectorAll<HTMLButtonElement>('[data-recsell]').forEach(b => b.onclick = async () => { if (!confirm(`이 함선을 공영 조선소에 ${b.dataset.recval} cr에 매각합니다. 대금은 미납금부터 정산됩니다. 되돌릴 수 없습니다. 진행할까요?`)) return; if (await this.cmd({ c: 'recoverySell', ship: b.dataset.recsell! })) this.renderUpkeep(true); });
+    e.querySelectorAll<HTMLButtonElement>('[data-recswap]').forEach(b => b.onclick = async () => { const [ship, swap] = b.dataset.recswap!.split(':'); if (!confirm('이 함선을 공영 조선소에 넘기고 민간선을 받습니다. 가격 차이는 지급되거나 미납금에 더해집니다. 되돌릴 수 없습니다. 진행할까요?')) return; if (await this.cmd({ c: 'recoverySell', ship, swap })) this.renderUpkeep(true); });
     e.querySelectorAll<HTMLButtonElement>('[data-reserve]').forEach(b => b.onclick = async () => { const [ship, on] = b.dataset.reserve!.split(':'); if (await this.cmd({ c: 'reserve', ship, on: on === '1' })) this.renderUpkeep(true); });
   }
 

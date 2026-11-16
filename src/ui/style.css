@@ -647,6 +647,11 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .upkwrap .upk { padding: 12px 14px; }
 .upkwrap .gt td, .upkwrap .gt th { padding: 3px 6px; }
 .warnish { color: #ffd27a; }
+/* A-2.1 recovery block in the running-cost panel */
+.upk .recov { border-left: 3px solid var(--warn); padding-left: 8px; }
+.upk .recov ul { margin: 4px 0; padding-left: 18px; }
+.upk .recov .rbar { height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; margin: 4px 0; overflow: hidden; }
+.upk .recov .rbar i { display: block; height: 100%; background: var(--good); }
 /* growth rev 2: public storage bar, industrial-base checklist, price breakdown */
 .stor .sbar { height: 6px; background: rgba(255,255,255,.08); border-radius: 3px; margin: 4px 0; overflow: hidden; }
 .stor .sbar i { display: block; height: 100%; background: var(--good); }

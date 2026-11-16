@@ -40,8 +40,9 @@ import { STATION_CREW_RATE } from './data';
 import { econOf, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
 import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
-import { payDebt, payFromSale } from './money';
+import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
+import { sortieProblem, buybackProblem, buybackValue, earner, miner, tradeInOpen, recoveryShips, yardStock, RECOVERY_SHIPS, SWAP_HULLS } from './recovery';
 import { enforceExclusive, exclusiveGuard, exclusiveLost, stepExclusive, isExclusiveShip, isExclusiveEquip, grantExclusive } from './exclusive';
 import { BBEX_CLASS } from '../sim/bbex/data';
 import { priceOf, driftV3, fundsStep, fundsIn, seedFunds } from './market';
@@ -138,6 +139,9 @@ export type Cmd =
   | { c: 'reserve'; ship: string; on: boolean }
   | { c: 'autoReserve'; on: boolean }
   | { c: 'payArrears' }
+  // A-2.1 recovery under arrears (world/recovery.ts)
+  | { c: 'recovery'; ship: string; on: boolean }
+  | { c: 'recoverySell'; ship: string; swap?: string }
   | { c: 'unloadCargo'; ship: string }
   | { c: 'putRoute'; group: string; config: RouteConfig; route?: string }
   | { c: 'routeControl'; routes: string[]; action: 'pause' | 'resume' | 'cancel' }
@@ -1518,8 +1522,108 @@ export class WorldSim {
         return null;
       }
       case 'autoReserve': upkeepOf(co).autoReserve = !!cmd.on; return null;
+      case 'recovery': return growthOn(this.st) ? this.setRecovery(co, cmd.ship, !!cmd.on) : '이 월드에는 운영비 체납이 없습니다';
+      case 'recoverySell': return growthOn(this.st) ? this.recoverySell(co, cmd.ship, cmd.swap) : '이 월드에는 운영비 체납이 없습니다';
     }
     return '알 수 없는 명령';
+  }
+
+  // ------------------------------------------------------------------ A-2.1: recovery under arrears (world/recovery.ts)
+
+  private openRecovery(co: Company) {
+    const u = upkeepOf(co);
+    u.recovery ??= { since: this.time, debt0: u.debt, paid0: u.total?.paid ?? 0 };
+    return u.recovery;
+  }
+
+  /** name (or release) a ship for a recovery sortie */
+  private setRecovery(co: Company, shipId: string, on: boolean): string | null {
+    const s = this.st.ships[shipId];
+    if (!on) {
+      if (!s || s.owner !== co.id) return '자사 함선이 아님';
+      if (!s.recovery) return '회생 운항 지정 함선이 아님';
+      delete s.recovery;
+      this.ev('info', `${s.name} 회생 운항 해제 — 다시 체납 출항 제한을 받습니다`, { company: co.id, tag: 'upkeep' });
+      return null;
+    }
+    const why = sortieProblem(this.st, co, s); if (why) return why;
+    const u = upkeepOf(co);
+    this.openRecovery(co);
+    let note = '';
+    if (s!.reserve && !s!.reserve.until) {
+      // reactivation fee goes on the debt instead of being paid up front; the normal reactivation time still applies
+      const fee = Math.round(shipRate(this.st, { ...s!, reserve: undefined }).credits * 2);
+      const units = moneyUnits(fee);
+      addDebt(co, units, this.time); chargeTotals(co, units);
+      emit(this.st, { kind: 'cost', reason: 'reactivation', amount: fee, company: co.id, ship: s!.id });
+      s!.reserve.until = this.time + REACTIVATE_S;
+      note = ` · 재취역 비용 ${fee.toLocaleString()} cr은 미납금에 더해짐, ${REACTIVATE_S / 60}분 후 출항 가능`;
+    }
+    s!.recovery = true;
+    this.ev('info', `${s!.name} 회생 운항 지정 — ${earner(s!) ? '채굴·운송·인양 작전으로만 출항할 수 있습니다. 판매 대금은 미납금부터 갚습니다' : '전투함은 매입 조선소로 정박 이동만 할 수 있습니다'}${note} (미납 ${Math.round(u.debt).toLocaleString()} cr)`, { company: co.id, tag: 'upkeep' });
+    return null;
+  }
+
+  /** emergency sale of a docked standard ship to the public yard here; with `swap`, a trade-in for the yard's mk1 miner/hauler */
+  private recoverySell(co: Company, shipId: string, swap?: string): string | null {
+    const s = this.st.ships[shipId];
+    const why = buybackProblem(this.st, co, s); if (why) return why;
+    const ship = s!, st = this.st.stations[(ship.task as { station: string }).station];
+    const hull = hullIdOf(ship), value = buybackValue(this.st, ship);
+    if ((st.funds ?? 0) < value) return `${st.name} 조선소의 매입 예산 부족 — ${value.toLocaleString()} cr 필요, 현재 ${Math.round(st.funds ?? 0).toLocaleString()} cr (예산은 시간이 지나면 회복됩니다)`;
+    let take: { hull: string; variant: string; preset?: string; price: number } | null = null;
+    if (swap !== undefined) {
+      if (typeof swap !== 'string' || !SWAP_HULLS.includes(swap)) return '교환할 수 있는 선체는 1형 채굴선·수송선뿐입니다';
+      if (!tradeInOpen(this.st, co.id, ship.id)) return '채굴할 수 있는 함선이 이미 있습니다 — 그 함선으로 회생 운항을 하세요 (긴급 교환은 채굴선이 없을 때만)';
+      if (miner(ship)) return '이 함선은 이미 채굴할 수 있습니다 — 회생 운항으로 지정하세요';
+      if (!yardHulls(st).includes(swap)) return `${st.name} 조선소는 ${CONTENT.hulls[swap].name}을(를) 판매하지 않습니다`;
+      const stock = yardStock(st, swap);
+      if (stock.n < 1) return `${st.name} 조선소에 ${CONTENT.hulls[swap].name} 재고가 없습니다`;
+      if (this.st.repV) { const g = hullGate(this.st, co, st, swap, hullSale(swap)?.rep, false); if (g) return g; }
+      const variant = `${swap}_std`;
+      take = { hull: swap, variant, preset: Object.values(CONTENT.presets).find(p => p.variant === variant)?.id, price: this.shipPrice(st, swap) };
+    }
+    const rec = this.openRecovery(co);
+    // the yard pays from its real budget and takes the hull into its real stock
+    st.funds = (st.funds ?? 0) - value;
+    const k = yardStock(st, hull); k.n += 1;
+    const g = this.st.groups[ship.groupId];
+    if (g) g.shipIds = g.shipIds.filter(x => x !== ship.id);
+    delete this.st.ships[ship.id];
+    if (g && !g.shipIds.length && !g.childIds.length && g.name.startsWith('매물:')) this.dropGroup(g);
+    emit(this.st, { kind: 'market', reason: 'ship_buyback', amount: 1, value, company: co.id, station: st.id, item: hull });
+    if (!take) {
+      co.credits += value;
+      book(this, co.id, 'ships', value);
+      rec.sold = (rec.sold ?? 0) + 1;
+      const before = co.credits; payFromSale(this.st, co, value);
+      const paid = before - co.credits;
+      this.ev('money', `${st.name} 조선소 긴급 매각: ${CONTENT.hulls[hull]?.name ?? hull} "${ship.name}" +${value.toLocaleString()} cr${paid > 0 ? ` (미납금 ${Math.round(paid).toLocaleString()} cr 정산)` : ''}`, { company: co.id, pos: st.pos, tag: 'upkeep' });
+      return null;
+    }
+    // trade-in: the yard's own stock and normal price; the difference is paid out, or added to the debt
+    const stock = yardStock(st, take.hull); stock.n -= 1;
+    fundsIn(st, take.price * 0.3);
+    const ng = this.newGroup(co.id, '회생 작업반', null, { k: 'idle' });
+    const ns = this.spawnHull(co.id, take.hull, take.variant, take.preset, ng.id, st.pos);
+    this.dockShip(ns, st);
+    ns.recovery = recoveryShips(this.st, co.id).length < RECOVERY_SHIPS ? true : undefined;
+    if (!ns.recovery) delete ns.recovery;
+    rec.swapped = (rec.swapped ?? 0) + 1;
+    const diff = value - take.price;
+    let tail: string;
+    if (diff >= 0) {
+      co.credits += diff; book(this, co.id, 'ships', diff);
+      payFromSale(this.st, co, diff);
+      tail = `차액 +${diff.toLocaleString()} cr`;
+    } else {
+      const units = moneyUnits(-diff);
+      addDebt(co, units, this.time); chargeTotals(co, units);
+      emit(this.st, { kind: 'cost', reason: 'trade_in', amount: -diff, company: co.id, station: st.id });
+      tail = `차액 ${(-diff).toLocaleString()} cr은 미납금에 더해짐`;
+    }
+    this.ev('money', `${st.name} 조선소 긴급 교환: "${ship.name}"(매입 ${value.toLocaleString()} cr) → ${CONTENT.hulls[take.hull].name} "${ns.name}"(${take.price.toLocaleString()} cr) · ${tail}${ns.recovery ? ' · 회생 운항 지정됨' : ''}`, { company: co.id, pos: st.pos, tag: 'upkeep' });
+    return null;
   }
 
   // ------------------------------------------------------------------ growth: hulls, stock, builds (P3/P6)

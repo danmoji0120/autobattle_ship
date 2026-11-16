@@ -1380,7 +1380,7 @@ export const bookedSoFar = (st: WorldState, owner: string) => seen.get(st)?.get(
 export const CMD_CATEGORY: Partial<Record<Cmd['c'], string>> = {
   buy: 'purchase', buyListing: 'purchase', queueModule: 'construction', planOp: 'construction', setOp: 'construction', buildShip: 'shipbuilding', buildOp: 'shipbuilding',
   research: 'research', researchOp: 'research', learnBlueprint: 'research', buyBlueprint: 'research', assembleBlueprint: 'research',
-  repair: 'repair', refit: 'repair', fit: 'repair', fitShip: 'repair', buyShip: 'ships', buyShipListing: 'ships', hire: 'crew', lease: 'storage', payArrears: 'upkeep',
+  repair: 'repair', refit: 'repair', fit: 'repair', fitShip: 'repair', buyShip: 'ships', buyShipListing: 'ships', hire: 'crew', lease: 'storage', payArrears: 'upkeep', recovery: 'upkeep', recoverySell: 'upkeep',
 };
 export const LEDGER_NAME: Record<string, string> = {
   sales: '판매', purchase: '구매', construction: '건설', shipbuilding: '조선', research: '연구', repair: '수리·개장', ships: '함선 매매', crew: '지휘관', storage: '보관 임대', upkeep: '운영 유지비', blackmarket: '암시장', fines: '벌금', law_fines: '치안 벌금', other: '전투·계약·기타',
