@@ -1,0 +1,253 @@
+{
+ "mode": "all",
+ "seed": 24,
+ "hours": 2,
+ "wallSeconds": 70,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 19,
+    "derelictsMade": 29,
+    "derelictValueMade": 270854,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 203926,
+     "netCash": 191926,
+     "debt": 0,
+     "firstSalvageAt": 180,
+     "firstProfitAt": 180,
+     "targetsSeen": 41,
+     "targetsWorked": 21,
+     "picks": 21,
+     "pickKinds": {
+      "contract": 5,
+      "derelict": 7,
+      "wreck": 8,
+      "drop": 1
+     },
+     "recoveredUnits": 3974,
+     "recoveredValue": 301494,
+     "recoveredByItem": {
+      "alloy": 1867,
+      "metal": 1476,
+      "titanium": 10,
+      "electronics": 316,
+      "machinery": 10,
+      "weapon_parts": 258,
+      "eq_pd_gun": 11,
+      "eq_autocannon": 18,
+      "eq_torpedo": 3,
+      "eq_medium_gun": 4,
+      "eq_missile_rack": 1
+     },
+     "contracts": {
+      "accepted": 5,
+      "done": 5,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 187488,
+     "contractPay": 6300,
+     "salesByItem": {
+      "alloy": 82259,
+      "metal": 13093,
+      "machinery": 1288,
+      "weapon_parts": 87864,
+      "electronics": 2318,
+      "titanium": 664
+     },
+     "upkeep": 1862,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 1,
+     "shipLossValue": 9300,
+     "unsoldStock": {
+      "electronics": 280,
+      "eq_pd_gun": 11,
+      "eq_autocannon": 18,
+      "metal": 965,
+      "eq_torpedo": 3,
+      "eq_medium_gun": 4,
+      "eq_missile_rack": 1,
+      "alloy": 132,
+      "weapon_parts": 27
+     },
+     "unsoldValue": 129910,
+     "warehousePeak": 1013,
+     "minutesIdleNoTarget": 64,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "드레이크 전초기지 초과 35: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "metal": "드레이크 전초기지 초과 358: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit",
+      "rich"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_1",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1050
+   },
+   {
+    "t": 180,
+    "id": "dr_10",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 300,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 480,
+    "id": "dr_14",
+    "kind": "contract",
+    "risk": 28,
+    "value": 1600
+   },
+   {
+    "t": 660,
+    "id": "dr_15",
+    "kind": "contract",
+    "risk": 42,
+    "value": 1850
+   },
+   {
+    "t": 840,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2108
+   },
+   {
+    "t": 960,
+    "id": "wk_e211_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 26770
+   },
+   {
+    "t": 1200,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2176
+   },
+   {
+    "t": 1260,
+    "id": "wk_e307_0",
+    "kind": "wreck",
+    "risk": 53,
+    "value": 55090
+   },
+   {
+    "t": 1620,
+    "id": "wk_e459_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 48808
+   },
+   {
+    "t": 1920,
+    "id": "wk_e318_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 33584
+   },
+   {
+    "t": 2100,
+    "id": "wk_e307_1",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 31954
+   },
+   {
+    "t": 2280,
+    "id": "wk_e412_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 28212
+   },
+   {
+    "t": 2460,
+    "id": "wk_e419_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 8294
+   },
+   {
+    "t": 2580,
+    "id": "cd_pv17",
+    "kind": "drop",
+    "risk": 52,
+    "value": 1024
+   },
+   {
+    "t": 2640,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1864
+   },
+   {
+    "t": 5520,
+    "id": "dr_25",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 2224
+   },
+   {
+    "t": 6600,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2472
+   },
+   {
+    "t": 6720,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 8148
+   },
+   {
+    "t": 6840,
+    "id": "dr_29",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   },
+   {
+    "t": 7080,
+    "id": "wk_e914_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 25830
+   }
+  ]
+ }
+}

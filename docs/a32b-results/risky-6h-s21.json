@@ -1,0 +1,176 @@
+{
+ "mode": "risky",
+ "seed": 21,
+ "hours": 6,
+ "wallSeconds": 206,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 24,
+    "battleWrecksLive": 29,
+    "derelictsMade": 25,
+    "derelictValueMade": 216754,
+    "salvageContractsPosted": 6
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 67379,
+     "netCash": 55379,
+     "debt": 0,
+     "firstSalvageAt": 300,
+     "firstProfitAt": 300,
+     "targetsSeen": 17,
+     "targetsWorked": 2,
+     "picks": 2,
+     "pickKinds": {
+      "derelict": 1,
+      "wreck": 1
+     },
+     "recoveredUnits": 541,
+     "recoveredValue": 59610,
+     "recoveredByItem": {
+      "weapon_parts": 81,
+      "electronics": 72,
+      "alloy": 247,
+      "eq_medium_gun": 1,
+      "eq_pd_gun": 1,
+      "metal": 139
+     },
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 55559,
+     "contractPay": 0,
+     "salesByItem": {
+      "alloy": 12540,
+      "electronics": 13360,
+      "weapon_parts": 29658
+     },
+     "upkeep": 180,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 3,
+     "shipLossValue": 23800,
+     "unsoldStock": {
+      "eq_medium_gun": 1,
+      "eq_pd_gun": 1,
+      "metal": 139
+     },
+     "unsoldValue": 6886,
+     "warehousePeak": 141,
+     "minutesIdleNoTarget": 0,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "metal": "녹슨 정박지 초과 139: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  },
+  "6h": {
+   "world": {
+    "derelictsLive": 20,
+    "battleWrecksLive": 7,
+    "derelictsMade": 49,
+    "derelictValueMade": 381502,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 21600,
+     "credits": 67379,
+     "netCash": 55379,
+     "debt": 0,
+     "firstSalvageAt": 300,
+     "firstProfitAt": 300,
+     "targetsSeen": 17,
+     "targetsWorked": 2,
+     "picks": 2,
+     "pickKinds": {
+      "derelict": 1,
+      "wreck": 1
+     },
+     "recoveredUnits": 541,
+     "recoveredValue": 59610,
+     "recoveredByItem": {
+      "weapon_parts": 81,
+      "electronics": 72,
+      "alloy": 247,
+      "eq_medium_gun": 1,
+      "eq_pd_gun": 1,
+      "metal": 139
+     },
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 55559,
+     "contractPay": 0,
+     "salesByItem": {
+      "alloy": 12540,
+      "electronics": 13360,
+      "weapon_parts": 29658
+     },
+     "upkeep": 180,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 3,
+     "shipLossValue": 23800,
+     "unsoldStock": {
+      "eq_medium_gun": 1,
+      "eq_pd_gun": 1,
+      "metal": 139
+     },
+     "unsoldValue": 6886,
+     "warehousePeak": 141,
+     "minutesIdleNoTarget": 0,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "metal": "녹슨 정박지 초과 139: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_8",
+    "kind": "derelict",
+    "risk": 100,
+    "value": 24976
+   },
+   {
+    "t": 660,
+    "id": "wk_e304_0",
+    "kind": "wreck",
+    "risk": 100,
+    "value": 45514
+   }
+  ]
+ }
+}

@@ -83,7 +83,7 @@ class Pilot {
   snap() { return this.messages.filter(m => m.t === 'snap').at(-1).state; }
 }
 const readFile = () => JSON.parse(readFileSync(saveOf(), 'utf8'));
-const ALL_ON = { layout: 'p10', systems: 40, factions: 6, factionEcon: true, combat: true, ops: true, logistics: true, salvage: true, piracy: true, blackMarket: true, law: true, rep: true, econChain: false };
+const ALL_ON = { layout: 'p10', systems: 40, factions: 6, factionEcon: true, combat: true, ops: true, logistics: true, salvage: true, piracy: true, blackMarket: true, law: true, rep: true, derelicts: true, econChain: false };
 const rulesLine = () => { const m = /rules=(\{[^\n]*\})/.exec(serverLog); return m ? JSON.parse(m[1]) : null; };
 const startOf = (w: any, id: string) => ({ credits: w.companies[id].credits, ships: Object.values<any>(w.ships).filter(s => s.owner === id).map(s => s.cls ?? s.hull ?? s.kind).sort(), rep: w.companies[id].rep, standing: w.companies[id].standing ?? {} });
 const A = new Pilot('A 통합 PMC'), B = new Pilot('B 통합 PMC'), C = new Pilot('C 통합 PMC');

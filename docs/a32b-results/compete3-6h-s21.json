@@ -1,0 +1,1634 @@
+{
+ "mode": "compete3",
+ "seed": 21,
+ "hours": 6,
+ "wallSeconds": 237,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 13,
+    "derelictsMade": 34,
+    "derelictValueMade": 249274,
+    "salvageContractsPosted": 10
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 204754,
+     "netCash": 192754,
+     "debt": 0,
+     "firstSalvageAt": 120,
+     "firstProfitAt": 120,
+     "targetsSeen": 47,
+     "targetsWorked": 25,
+     "picks": 26,
+     "pickKinds": {
+      "derelict": 13,
+      "wreck": 8,
+      "drop": 1,
+      "contract": 4
+     },
+     "recoveredUnits": 2805,
+     "recoveredValue": 212102,
+     "recoveredByItem": {
+      "electronics": 187,
+      "alloy": 1185,
+      "metal": 1197,
+      "machinery": 9,
+      "weapon_parts": 203,
+      "eq_torpedo": 4,
+      "eq_pd_gun": 12,
+      "eq_autocannon": 7,
+      "eq_medium_gun": 1
+     },
+     "contracts": {
+      "accepted": 4,
+      "done": 3,
+      "failed": 1,
+      "open": 0,
+      "failReasons": {
+       "대상 소멸": 1
+      },
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 192808,
+     "contractPay": 2150,
+     "salesByItem": {
+      "alloy": 61001,
+      "metal": 30084,
+      "machinery": 1265,
+      "weapon_parts": 68783,
+      "electronics": 31676
+     },
+     "upkeep": 2204,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_pd_gun": 10,
+      "eq_autocannon": 6,
+      "electronics": 27,
+      "metal": 102,
+      "eq_torpedo": 4,
+      "eq_medium_gun": 1
+     },
+     "unsoldValue": 34996,
+     "warehousePeak": 739,
+     "minutesIdleNoTarget": 50,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "초과 재고 처리 중",
+      "metal": "초과 재고 처리 중"
+     },
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit",
+      "first_contract",
+      "rich"
+     ]
+    },
+    {
+     "company": "세레스 인양 2",
+     "time": 7200,
+     "credits": 24082,
+     "netCash": 12082,
+     "debt": 0,
+     "firstSalvageAt": 120,
+     "firstProfitAt": 120,
+     "targetsSeen": 44,
+     "targetsWorked": 13,
+     "picks": 30,
+     "pickKinds": {
+      "derelict": 13,
+      "wreck": 14,
+      "contract": 3
+     },
+     "recoveredUnits": 266,
+     "recoveredValue": 10924,
+     "recoveredByItem": {
+      "electronics": 16,
+      "alloy": 134,
+      "metal": 94,
+      "machinery": 22
+     },
+     "contracts": {
+      "accepted": 3,
+      "done": 0,
+      "failed": 3,
+      "open": 0,
+      "failReasons": {
+       "대상 소멸": 3
+      },
+      "deliveredOnFailed": 42
+     },
+     "marketRevenue": 12932,
+     "contractPay": 0,
+     "salesByItem": {
+      "alloy": 5003,
+      "metal": 2153,
+      "machinery": 2926,
+      "electronics": 2849
+     },
+     "upkeep": 849,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 2,
+     "shipLossValue": 14500,
+     "unsoldStock": {},
+     "unsoldValue": 0,
+     "warehousePeak": 17,
+     "minutesIdleNoTarget": 52,
+     "minutesBlocked": 0,
+     "stalls": {
+      "이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)": 30,
+      "계약 대상: 이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)": 18
+     },
+     "salesStatus": {
+      "electronics": "운송·판매 중 1"
+     },
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    },
+    {
+     "company": "세레스 인양 3",
+     "time": 7200,
+     "credits": 128694,
+     "netCash": 116694,
+     "debt": 0,
+     "firstSalvageAt": 120,
+     "firstProfitAt": 120,
+     "targetsSeen": 45,
+     "targetsWorked": 20,
+     "picks": 34,
+     "pickKinds": {
+      "derelict": 21,
+      "wreck": 12,
+      "drop": 1
+     },
+     "recoveredUnits": 1709,
+     "recoveredValue": 127314,
+     "recoveredByItem": {
+      "electronics": 141,
+      "alloy": 817,
+      "metal": 624,
+      "machinery": 9,
+      "eq_medium_gun": 4,
+      "eq_pd_gun": 4,
+      "weapon_parts": 106,
+      "eq_autocannon": 3,
+      "eq_torpedo": 1
+     },
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 115573,
+     "contractPay": 2750,
+     "salesByItem": {
+      "alloy": 41541,
+      "metal": 17366,
+      "machinery": 1058,
+      "weapon_parts": 29939,
+      "electronics": 25669
+     },
+     "upkeep": 1629,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 2,
+     "shipLossValue": 14500,
+     "unsoldStock": {
+      "eq_medium_gun": 4,
+      "eq_pd_gun": 4,
+      "eq_autocannon": 3,
+      "eq_torpedo": 1
+     },
+     "unsoldValue": 19714,
+     "warehousePeak": 530,
+     "minutesIdleNoTarget": 49,
+     "minutesBlocked": 0,
+     "stalls": {
+      "이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)": 25
+     },
+     "salesStatus": {},
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  },
+  "6h": {
+   "world": {
+    "derelictsLive": 16,
+    "battleWrecksLive": 11,
+    "derelictsMade": 68,
+    "derelictValueMade": 548332,
+    "salvageContractsPosted": 6
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 21600,
+     "credits": 334110,
+     "netCash": 322110,
+     "debt": 0,
+     "firstSalvageAt": 120,
+     "firstProfitAt": 120,
+     "targetsSeen": 89,
+     "targetsWorked": 44,
+     "picks": 46,
+     "pickKinds": {
+      "derelict": 22,
+      "wreck": 11,
+      "drop": 1,
+      "contract": 12
+     },
+     "recoveredUnits": 5121,
+     "recoveredValue": 328314,
+     "recoveredByItem": {
+      "electronics": 307,
+      "alloy": 2235,
+      "metal": 2258,
+      "machinery": 26,
+      "weapon_parts": 257,
+      "eq_torpedo": 5,
+      "eq_pd_gun": 15,
+      "eq_autocannon": 17,
+      "eq_medium_gun": 1
+     },
+     "contracts": {
+      "accepted": 12,
+      "done": 11,
+      "failed": 1,
+      "open": 0,
+      "failReasons": {
+       "대상 소멸": 1
+      },
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 316505,
+     "contractPay": 12150,
+     "salesByItem": {
+      "alloy": 99720,
+      "metal": 63860,
+      "machinery": 3243,
+      "weapon_parts": 86865,
+      "electronics": 62818
+     },
+     "upkeep": 6545,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_pd_gun": 13,
+      "eq_autocannon": 16,
+      "eq_torpedo": 5,
+      "eq_medium_gun": 1
+     },
+     "unsoldValue": 43436,
+     "warehousePeak": 739,
+     "minutesIdleNoTarget": 238,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {},
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit",
+      "first_contract",
+      "rich"
+     ]
+    },
+    {
+     "company": "세레스 인양 2",
+     "time": 21600,
+     "credits": 27302,
+     "netCash": 15302,
+     "debt": 0,
+     "firstSalvageAt": 120,
+     "firstProfitAt": 120,
+     "targetsSeen": 79,
+     "targetsWorked": 20,
+     "picks": 60,
+     "pickKinds": {
+      "derelict": 34,
+      "wreck": 22,
+      "contract": 4
+     },
+     "recoveredUnits": 326,
+     "recoveredValue": 14786,
+     "recoveredByItem": {
+      "electronics": 22,
+      "alloy": 148,
+      "metal": 106,
+      "machinery": 43,
+      "titanium": 7
+     },
+     "contracts": {
+      "accepted": 5,
+      "done": 0,
+      "failed": 5,
+      "open": 0,
+      "failReasons": {
+       "대상 소멸": 5
+      },
+      "deliveredOnFailed": 42
+     },
+     "marketRevenue": 17547,
+     "contractPay": 0,
+     "salesByItem": {
+      "alloy": 5693,
+      "metal": 2504,
+      "machinery": 5894,
+      "electronics": 3071,
+      "titanium": 384
+     },
+     "upkeep": 2244,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 2,
+     "shipLossValue": 14500,
+     "unsoldStock": {
+      "electronics": 4
+     },
+     "unsoldValue": 600,
+     "warehousePeak": 17,
+     "minutesIdleNoTarget": 246,
+     "minutesBlocked": 0,
+     "stalls": {
+      "이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)": 30,
+      "계약 대상: 이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)": 18
+     },
+     "salesStatus": {
+      "electronics": "세레스 제련단지 초과 4: 공용 수송선 손상(내구 15%) — 수리 후 자동 운송, 재고 보존"
+     },
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    },
+    {
+     "company": "세레스 인양 3",
+     "time": 21600,
+     "credits": 133980,
+     "netCash": 121980,
+     "debt": 0,
+     "firstSalvageAt": 120,
+     "firstProfitAt": 120,
+     "targetsSeen": 83,
+     "targetsWorked": 29,
+     "picks": 65,
+     "pickKinds": {
+      "derelict": 44,
+      "wreck": 20,
+      "drop": 1
+     },
+     "recoveredUnits": 1788,
+     "recoveredValue": 132556,
+     "recoveredByItem": {
+      "electronics": 148,
+      "alloy": 837,
+      "metal": 636,
+      "machinery": 41,
+      "eq_medium_gun": 4,
+      "eq_pd_gun": 4,
+      "weapon_parts": 106,
+      "eq_autocannon": 3,
+      "eq_torpedo": 1,
+      "titanium": 8
+     },
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 122261,
+     "contractPay": 2750,
+     "salesByItem": {
+      "alloy": 42419,
+      "metal": 17716,
+      "machinery": 5630,
+      "weapon_parts": 29939,
+      "electronics": 26116,
+      "titanium": 441
+     },
+     "upkeep": 3031,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 2,
+     "shipLossValue": 14500,
+     "unsoldStock": {
+      "eq_medium_gun": 4,
+      "eq_pd_gun": 4,
+      "eq_autocannon": 3,
+      "eq_torpedo": 1,
+      "electronics": 2
+     },
+     "unsoldValue": 20014,
+     "warehousePeak": 530,
+     "minutesIdleNoTarget": 228,
+     "minutesBlocked": 0,
+     "stalls": {
+      "이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)": 25
+     },
+     "salesStatus": {
+      "electronics": "운송·판매 중 1"
+     },
+     "milestones": [
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2670
+   },
+   {
+    "t": 120,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   },
+   {
+    "t": 180,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2496
+   },
+   {
+    "t": 300,
+    "id": "dr_4",
+    "kind": "derelict",
+    "risk": 21,
+    "value": 2080
+   },
+   {
+    "t": 360,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2232
+   },
+   {
+    "t": 480,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2224
+   },
+   {
+    "t": 600,
+    "id": "wk_e330_0",
+    "kind": "wreck",
+    "risk": 55,
+    "value": 44746
+   },
+   {
+    "t": 1080,
+    "id": "dr_5",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 5160
+   },
+   {
+    "t": 1260,
+    "id": "wk_e443_0",
+    "kind": "wreck",
+    "risk": 54,
+    "value": 68150
+   },
+   {
+    "t": 1560,
+    "id": "wk_e462_0",
+    "kind": "wreck",
+    "risk": 53,
+    "value": 66722
+   },
+   {
+    "t": 1800,
+    "id": "wk_e362_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 44240
+   },
+   {
+    "t": 1980,
+    "id": "wk_e471_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 21984
+   },
+   {
+    "t": 2100,
+    "id": "wk_e450_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 9242
+   },
+   {
+    "t": 2220,
+    "id": "cd_pv20",
+    "kind": "drop",
+    "risk": 52,
+    "value": 990
+   },
+   {
+    "t": 2460,
+    "id": "dr_15",
+    "kind": "contract",
+    "risk": 42,
+    "value": 2100
+   },
+   {
+    "t": 2760,
+    "id": "dr_23",
+    "kind": "contract",
+    "risk": 20,
+    "value": 850
+   },
+   {
+    "t": 2880,
+    "id": "dr_22",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1656
+   },
+   {
+    "t": 4260,
+    "id": "dr_24",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2304
+   },
+   {
+    "t": 4860,
+    "id": "dr_26",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 5340,
+    "id": "dr_29",
+    "kind": "contract",
+    "risk": 20,
+    "value": 600
+   },
+   {
+    "t": 5460,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1904
+   },
+   {
+    "t": 5580,
+    "id": "dr_30",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2424
+   },
+   {
+    "t": 5640,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 21,
+    "value": 1856
+   },
+   {
+    "t": 5820,
+    "id": "dr_32",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2326
+   },
+   {
+    "t": 5940,
+    "id": "wk_e945_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 6840,
+    "id": "wk_e1030_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 27718
+   },
+   {
+    "t": 7260,
+    "id": "dr_35",
+    "kind": "contract",
+    "risk": 52,
+    "value": 2000
+   },
+   {
+    "t": 7680,
+    "id": "dr_36",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 6150
+   },
+   {
+    "t": 8640,
+    "id": "wk_e1195_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 18468
+   },
+   {
+    "t": 10260,
+    "id": "dr_39",
+    "kind": "contract",
+    "risk": 28,
+    "value": 1550
+   },
+   {
+    "t": 10380,
+    "id": "dr_41",
+    "kind": "contract",
+    "risk": 21,
+    "value": 950
+   },
+   {
+    "t": 10560,
+    "id": "dr_43",
+    "kind": "contract",
+    "risk": 20,
+    "value": 750
+   },
+   {
+    "t": 10860,
+    "id": "dr_44",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1906
+   },
+   {
+    "t": 11040,
+    "id": "dr_46",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2210
+   },
+   {
+    "t": 12660,
+    "id": "dr_47",
+    "kind": "contract",
+    "risk": 20,
+    "value": 650
+   },
+   {
+    "t": 13620,
+    "id": "dr_50",
+    "kind": "contract",
+    "risk": 20,
+    "value": 750
+   },
+   {
+    "t": 15060,
+    "id": "dr_52",
+    "kind": "contract",
+    "risk": 42,
+    "value": 2300
+   },
+   {
+    "t": 15300,
+    "id": "dr_55",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 5998
+   },
+   {
+    "t": 15660,
+    "id": "dr_58",
+    "kind": "derelict",
+    "risk": 51,
+    "value": 7138
+   },
+   {
+    "t": 16320,
+    "id": "dr_59",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1050
+   },
+   {
+    "t": 16560,
+    "id": "dr_60",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2896
+   },
+   {
+    "t": 16740,
+    "id": "dr_61",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1952
+   },
+   {
+    "t": 16860,
+    "id": "wk_e1918_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 21304
+   },
+   {
+    "t": 17040,
+    "id": "wk_e1920_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19290
+   },
+   {
+    "t": 21060,
+    "id": "dr_65",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2234
+   },
+   {
+    "t": 21600,
+    "id": "dr_68",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1984
+   }
+  ],
+  "p6": [
+   {
+    "t": 60,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2670
+   },
+   {
+    "t": 120,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   },
+   {
+    "t": 180,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2496
+   },
+   {
+    "t": 300,
+    "id": "dr_4",
+    "kind": "derelict",
+    "risk": 21,
+    "value": 2080
+   },
+   {
+    "t": 360,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2232
+   },
+   {
+    "t": 480,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2224
+   },
+   {
+    "t": 600,
+    "id": "wk_e330_0",
+    "kind": "wreck",
+    "risk": 55,
+    "value": 44746
+   },
+   {
+    "t": 840,
+    "id": "dr_5",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 6240
+   },
+   {
+    "t": 1260,
+    "id": "wk_e443_0",
+    "kind": "wreck",
+    "risk": 54,
+    "value": 68150
+   },
+   {
+    "t": 1500,
+    "id": "wk_e462_0",
+    "kind": "wreck",
+    "risk": 55,
+    "value": 66722
+   },
+   {
+    "t": 1560,
+    "id": "wk_e462_0",
+    "kind": "wreck",
+    "risk": 53,
+    "value": 66722
+   },
+   {
+    "t": 1860,
+    "id": "wk_e471_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 21984
+   },
+   {
+    "t": 1920,
+    "id": "wk_e471_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 21984
+   },
+   {
+    "t": 1980,
+    "id": "wk_e471_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 21984
+   },
+   {
+    "t": 2040,
+    "id": "wk_e450_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 9242
+   },
+   {
+    "t": 2100,
+    "id": "wk_e450_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 9242
+   },
+   {
+    "t": 2160,
+    "id": "dr_15",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 7752
+   },
+   {
+    "t": 2760,
+    "id": "dr_22",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 4260,
+    "id": "dr_24",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2304
+   },
+   {
+    "t": 4860,
+    "id": "dr_27",
+    "kind": "contract",
+    "risk": 20,
+    "value": 950
+   },
+   {
+    "t": 4980,
+    "id": "dr_26",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2096
+   },
+   {
+    "t": 5040,
+    "id": "dr_26",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2096
+   },
+   {
+    "t": 5100,
+    "id": "dr_26",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2096
+   },
+   {
+    "t": 5160,
+    "id": "dr_28",
+    "kind": "contract",
+    "risk": 20,
+    "value": 650
+   },
+   {
+    "t": 5820,
+    "id": "dr_32",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2326
+   },
+   {
+    "t": 5940,
+    "id": "wk_e945_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 6000,
+    "id": "wk_e945_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 5472
+   },
+   {
+    "t": 6840,
+    "id": "wk_e1030_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 27718
+   },
+   {
+    "t": 6900,
+    "id": "wk_e1030_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 5800
+   },
+   {
+    "t": 6960,
+    "id": "wk_e1030_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 816
+   },
+   {
+    "t": 7260,
+    "id": "dr_35",
+    "kind": "derelict",
+    "risk": 52,
+    "value": 6654
+   },
+   {
+    "t": 7320,
+    "id": "dr_35",
+    "kind": "derelict",
+    "risk": 52,
+    "value": 1464
+   },
+   {
+    "t": 7500,
+    "id": "dr_36",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 7410
+   },
+   {
+    "t": 8640,
+    "id": "wk_e1195_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 18468
+   },
+   {
+    "t": 8700,
+    "id": "wk_e1195_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 18468
+   },
+   {
+    "t": 8760,
+    "id": "wk_e1195_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 600
+   },
+   {
+    "t": 10260,
+    "id": "dr_39",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 6892
+   },
+   {
+    "t": 10380,
+    "id": "dr_41",
+    "kind": "derelict",
+    "risk": 21,
+    "value": 2240
+   },
+   {
+    "t": 10560,
+    "id": "dr_43",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2514
+   },
+   {
+    "t": 10860,
+    "id": "dr_44",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1906
+   },
+   {
+    "t": 10980,
+    "id": "dr_44",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 384
+   },
+   {
+    "t": 11040,
+    "id": "dr_46",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2210
+   },
+   {
+    "t": 12660,
+    "id": "dr_47",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2612
+   },
+   {
+    "t": 13620,
+    "id": "dr_50",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2632
+   },
+   {
+    "t": 15180,
+    "id": "dr_55",
+    "kind": "contract",
+    "risk": 41,
+    "value": 1600
+   },
+   {
+    "t": 15660,
+    "id": "dr_58",
+    "kind": "derelict",
+    "risk": 51,
+    "value": 7138
+   },
+   {
+    "t": 15780,
+    "id": "dr_58",
+    "kind": "derelict",
+    "risk": 51,
+    "value": 5878
+   },
+   {
+    "t": 16320,
+    "id": "dr_59",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2440
+   },
+   {
+    "t": 16560,
+    "id": "dr_60",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2896
+   },
+   {
+    "t": 16620,
+    "id": "dr_61",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2592
+   },
+   {
+    "t": 16680,
+    "id": "dr_61",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1952
+   },
+   {
+    "t": 16740,
+    "id": "dr_61",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1952
+   },
+   {
+    "t": 16800,
+    "id": "dr_61",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1952
+   },
+   {
+    "t": 16860,
+    "id": "wk_e1918_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 21304
+   },
+   {
+    "t": 16920,
+    "id": "wk_e1920_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19290
+   },
+   {
+    "t": 16980,
+    "id": "wk_e1920_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19290
+   },
+   {
+    "t": 17040,
+    "id": "wk_e1920_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19290
+   },
+   {
+    "t": 17100,
+    "id": "wk_e1920_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 600
+   },
+   {
+    "t": 21060,
+    "id": "dr_65",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2234
+   },
+   {
+    "t": 21600,
+    "id": "dr_68",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1984
+   }
+  ],
+  "p11": [
+   {
+    "t": 60,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2670
+   },
+   {
+    "t": 120,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   },
+   {
+    "t": 180,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2496
+   },
+   {
+    "t": 300,
+    "id": "dr_4",
+    "kind": "derelict",
+    "risk": 21,
+    "value": 2080
+   },
+   {
+    "t": 360,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2232
+   },
+   {
+    "t": 480,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2224
+   },
+   {
+    "t": 600,
+    "id": "wk_e330_0",
+    "kind": "wreck",
+    "risk": 55,
+    "value": 44746
+   },
+   {
+    "t": 1080,
+    "id": "dr_5",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 5160
+   },
+   {
+    "t": 1260,
+    "id": "wk_e443_0",
+    "kind": "wreck",
+    "risk": 54,
+    "value": 68150
+   },
+   {
+    "t": 1560,
+    "id": "wk_e462_0",
+    "kind": "wreck",
+    "risk": 53,
+    "value": 66722
+   },
+   {
+    "t": 1800,
+    "id": "wk_e362_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 44240
+   },
+   {
+    "t": 1980,
+    "id": "wk_e471_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 21984
+   },
+   {
+    "t": 2100,
+    "id": "wk_e450_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 9242
+   },
+   {
+    "t": 2220,
+    "id": "cd_pv24",
+    "kind": "drop",
+    "risk": 52,
+    "value": 32
+   },
+   {
+    "t": 2400,
+    "id": "dr_15",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 5652
+   },
+   {
+    "t": 2760,
+    "id": "dr_23",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2256
+   },
+   {
+    "t": 2880,
+    "id": "dr_22",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1656
+   },
+   {
+    "t": 4260,
+    "id": "dr_24",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2304
+   },
+   {
+    "t": 4860,
+    "id": "dr_26",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2726
+   },
+   {
+    "t": 5280,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1904
+   },
+   {
+    "t": 5340,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1904
+   },
+   {
+    "t": 5400,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1904
+   },
+   {
+    "t": 5460,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1904
+   },
+   {
+    "t": 5520,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1856
+   },
+   {
+    "t": 5580,
+    "id": "dr_30",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2424
+   },
+   {
+    "t": 5640,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 21,
+    "value": 1856
+   },
+   {
+    "t": 5700,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1856
+   },
+   {
+    "t": 5820,
+    "id": "dr_32",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2326
+   },
+   {
+    "t": 5880,
+    "id": "wk_e945_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 5940,
+    "id": "wk_e945_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 6000,
+    "id": "wk_e945_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 5472
+   },
+   {
+    "t": 6840,
+    "id": "wk_e1030_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 27718
+   },
+   {
+    "t": 6900,
+    "id": "wk_e1030_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 5800
+   },
+   {
+    "t": 6960,
+    "id": "wk_e1030_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 816
+   },
+   {
+    "t": 7260,
+    "id": "dr_35",
+    "kind": "derelict",
+    "risk": 52,
+    "value": 6654
+   },
+   {
+    "t": 7320,
+    "id": "dr_35",
+    "kind": "derelict",
+    "risk": 52,
+    "value": 1464
+   },
+   {
+    "t": 7500,
+    "id": "dr_36",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 7410
+   },
+   {
+    "t": 8640,
+    "id": "wk_e1195_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 18468
+   },
+   {
+    "t": 8700,
+    "id": "wk_e1195_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 18468
+   },
+   {
+    "t": 8760,
+    "id": "wk_e1195_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 600
+   },
+   {
+    "t": 10260,
+    "id": "dr_39",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 6892
+   },
+   {
+    "t": 10380,
+    "id": "dr_41",
+    "kind": "derelict",
+    "risk": 21,
+    "value": 2240
+   },
+   {
+    "t": 10560,
+    "id": "dr_43",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2514
+   },
+   {
+    "t": 10860,
+    "id": "dr_44",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1906
+   },
+   {
+    "t": 11040,
+    "id": "dr_46",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2210
+   },
+   {
+    "t": 12660,
+    "id": "dr_47",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2612
+   },
+   {
+    "t": 13620,
+    "id": "dr_50",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2632
+   },
+   {
+    "t": 13680,
+    "id": "dr_50",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1872
+   },
+   {
+    "t": 14340,
+    "id": "dr_52",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 6896
+   },
+   {
+    "t": 15180,
+    "id": "dr_55",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 6988
+   },
+   {
+    "t": 15240,
+    "id": "dr_55",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 5998
+   },
+   {
+    "t": 15300,
+    "id": "dr_55",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 5998
+   },
+   {
+    "t": 15360,
+    "id": "dr_55",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 5998
+   },
+   {
+    "t": 15420,
+    "id": "dr_55",
+    "kind": "derelict",
+    "risk": 41,
+    "value": 3088
+   },
+   {
+    "t": 15660,
+    "id": "dr_58",
+    "kind": "derelict",
+    "risk": 51,
+    "value": 7138
+   },
+   {
+    "t": 16320,
+    "id": "dr_59",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2440
+   },
+   {
+    "t": 16560,
+    "id": "dr_60",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2896
+   },
+   {
+    "t": 16620,
+    "id": "dr_61",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2592
+   },
+   {
+    "t": 16860,
+    "id": "wk_e1918_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 21304
+   },
+   {
+    "t": 16920,
+    "id": "wk_e1920_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19290
+   }
+  ]
+ }
+}

@@ -1,0 +1,197 @@
+{
+ "mode": "derelict",
+ "seed": 22,
+ "hours": 2,
+ "wallSeconds": 68,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 17,
+    "derelictsMade": 31,
+    "derelictValueMade": 275002,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 62210,
+     "netCash": 50210,
+     "debt": 0,
+     "firstSalvageAt": 180,
+     "firstProfitAt": 180,
+     "targetsSeen": 37,
+     "targetsWorked": 14,
+     "picks": 15,
+     "pickKinds": {
+      "contract": 8,
+      "derelict": 7
+     },
+     "recoveredUnits": 1566,
+     "recoveredValue": 54918,
+     "recoveredByItem": {
+      "electronics": 79,
+      "alloy": 705,
+      "metal": 748,
+      "machinery": 22,
+      "titanium": 12
+     },
+     "contracts": {
+      "accepted": 8,
+      "done": 8,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 40319,
+     "contractPay": 11500,
+     "salesByItem": {
+      "alloy": 19893,
+      "metal": 16540,
+      "electronics": 2637,
+      "machinery": 1249
+     },
+     "upkeep": 1609,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 1,
+     "shipLossValue": 9300,
+     "unsoldStock": {
+      "machinery": 12,
+      "metal": 168,
+      "electronics": 60,
+      "titanium": 12
+     },
+     "unsoldValue": 14688,
+     "warehousePeak": 168,
+     "minutesIdleNoTarget": 84,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "세레스 제련단지 초과 2: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "machinery": "운송·판매 중 12",
+      "metal": "헬리오스 조선소 초과 41: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "titanium": "운송·판매 중 12"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 180,
+    "id": "dr_3",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1250
+   },
+   {
+    "t": 300,
+    "id": "dr_15",
+    "kind": "contract",
+    "risk": 42,
+    "value": 1850
+   },
+   {
+    "t": 540,
+    "id": "dr_14",
+    "kind": "contract",
+    "risk": 28,
+    "value": 1750
+   },
+   {
+    "t": 720,
+    "id": "dr_16",
+    "kind": "contract",
+    "risk": 51,
+    "value": 2400
+   },
+   {
+    "t": 900,
+    "id": "dr_1",
+    "kind": "contract",
+    "risk": 28,
+    "value": 700
+   },
+   {
+    "t": 1020,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2448
+   },
+   {
+    "t": 1140,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2304
+   },
+   {
+    "t": 1320,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2080
+   },
+   {
+    "t": 2460,
+    "id": "dr_21",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 4560,
+    "id": "dr_24",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2364
+   },
+   {
+    "t": 4980,
+    "id": "dr_26",
+    "kind": "contract",
+    "risk": 28,
+    "value": 2150
+   },
+   {
+    "t": 5940,
+    "id": "dr_29",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2228
+   },
+   {
+    "t": 6180,
+    "id": "dr_30",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2106
+   },
+   {
+    "t": 7200,
+    "id": "dr_31",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 6410
+   }
+  ]
+ }
+}

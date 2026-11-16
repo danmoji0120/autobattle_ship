@@ -1,0 +1,230 @@
+{
+ "mode": "derelict",
+ "seed": 21,
+ "hours": 6,
+ "wallSeconds": 208,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 20,
+    "battleWrecksLive": 27,
+    "derelictsMade": 29,
+    "derelictValueMade": 256036,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 47640,
+     "netCash": 35640,
+     "debt": 0,
+     "firstSalvageAt": 300,
+     "firstProfitAt": 300,
+     "targetsSeen": 31,
+     "targetsWorked": 9,
+     "picks": 10,
+     "pickKinds": {
+      "contract": 4,
+      "derelict": 6
+     },
+     "recoveredUnits": 888,
+     "recoveredValue": 30400,
+     "recoveredByItem": {
+      "electronics": 36,
+      "alloy": 404,
+      "metal": 428,
+      "machinery": 20
+     },
+     "contracts": {
+      "accepted": 4,
+      "done": 3,
+      "failed": 0,
+      "open": 1,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 32837,
+     "contractPay": 4300,
+     "salesByItem": {
+      "alloy": 13386,
+      "electronics": 6304,
+      "metal": 10404,
+      "machinery": 2743
+     },
+     "upkeep": 1497,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 3,
+     "shipLossValue": 23800,
+     "unsoldStock": {
+      "metal": 31
+     },
+     "unsoldValue": 744,
+     "warehousePeak": 86,
+     "minutesIdleNoTarget": 55,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "metal": "녹슨 정박지 초과 31: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  },
+  "6h": {
+   "world": {
+    "derelictsLive": 16,
+    "battleWrecksLive": 1,
+    "derelictsMade": 50,
+    "derelictValueMade": 434766,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 21600,
+     "credits": 47640,
+     "netCash": 35640,
+     "debt": 0,
+     "firstSalvageAt": 300,
+     "firstProfitAt": 300,
+     "targetsSeen": 31,
+     "targetsWorked": 9,
+     "picks": 10,
+     "pickKinds": {
+      "contract": 4,
+      "derelict": 6
+     },
+     "recoveredUnits": 888,
+     "recoveredValue": 30400,
+     "recoveredByItem": {
+      "electronics": 36,
+      "alloy": 404,
+      "metal": 428,
+      "machinery": 20
+     },
+     "contracts": {
+      "accepted": 4,
+      "done": 3,
+      "failed": 1,
+      "open": 0,
+      "failReasons": {
+       "기한 만료": 1
+      },
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 32837,
+     "contractPay": 4300,
+     "salesByItem": {
+      "alloy": 13386,
+      "electronics": 6304,
+      "metal": 10404,
+      "machinery": 2743
+     },
+     "upkeep": 1497,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 3,
+     "shipLossValue": 23800,
+     "unsoldStock": {
+      "metal": 31
+     },
+     "unsoldValue": 744,
+     "warehousePeak": 86,
+     "minutesIdleNoTarget": 55,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "metal": "녹슨 정박지 초과 31: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_15",
+    "kind": "contract",
+    "risk": 42,
+    "value": 2100
+   },
+   {
+    "t": 300,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 800
+   },
+   {
+    "t": 480,
+    "id": "dr_5",
+    "kind": "contract",
+    "risk": 41,
+    "value": 1400
+   },
+   {
+    "t": 720,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2670
+   },
+   {
+    "t": 900,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   },
+   {
+    "t": 960,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2496
+   },
+   {
+    "t": 1080,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2232
+   },
+   {
+    "t": 1200,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2224
+   },
+   {
+    "t": 4260,
+    "id": "dr_22",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2392
+   },
+   {
+    "t": 4860,
+    "id": "dr_23",
+    "kind": "contract",
+    "risk": 52,
+    "value": 2000
+   }
+  ]
+ }
+}

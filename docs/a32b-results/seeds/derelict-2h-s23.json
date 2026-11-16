@@ -1,0 +1,196 @@
+{
+ "mode": "derelict",
+ "seed": 23,
+ "hours": 2,
+ "wallSeconds": 63,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 34,
+    "derelictsMade": 32,
+    "derelictValueMade": 251124,
+    "salvageContractsPosted": 8
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 67807,
+     "netCash": 55807,
+     "debt": 0,
+     "firstSalvageAt": 240,
+     "firstProfitAt": 240,
+     "targetsSeen": 41,
+     "targetsWorked": 15,
+     "picks": 15,
+     "pickKinds": {
+      "contract": 6,
+      "derelict": 9
+     },
+     "recoveredUnits": 1499,
+     "recoveredValue": 52010,
+     "recoveredByItem": {
+      "alloy": 664,
+      "metal": 724,
+      "machinery": 34,
+      "titanium": 12,
+      "electronics": 65
+     },
+     "contracts": {
+      "accepted": 6,
+      "done": 6,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 50557,
+     "contractPay": 7050,
+     "salesByItem": {
+      "alloy": 23299,
+      "machinery": 2491,
+      "metal": 17895,
+      "electronics": 6075,
+      "titanium": 797
+     },
+     "upkeep": 1800,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 1,
+     "shipLossValue": 9300,
+     "unsoldStock": {
+      "electronics": 37,
+      "metal": 98,
+      "machinery": 16
+     },
+     "unsoldValue": 9342,
+     "warehousePeak": 127,
+     "minutesIdleNoTarget": 87,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "노바 정제소 초과 4: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "machinery": "운송·판매 중 16",
+      "metal": "앤빌 광부조합 초과 98: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 240,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2306
+   },
+   {
+    "t": 360,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2088
+   },
+   {
+    "t": 420,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2424
+   },
+   {
+    "t": 540,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2202
+   },
+   {
+    "t": 660,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2144
+   },
+   {
+    "t": 780,
+    "id": "dr_15",
+    "kind": "derelict",
+    "risk": 42,
+    "value": 6208
+   },
+   {
+    "t": 2460,
+    "id": "dr_21",
+    "kind": "contract",
+    "risk": 20,
+    "value": 650
+   },
+   {
+    "t": 2580,
+    "id": "dr_22",
+    "kind": "contract",
+    "risk": 28,
+    "value": 1550
+   },
+   {
+    "t": 2760,
+    "id": "dr_23",
+    "kind": "contract",
+    "risk": 28,
+    "value": 900
+   },
+   {
+    "t": 4320,
+    "id": "dr_24",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2504
+   },
+   {
+    "t": 4860,
+    "id": "dr_25",
+    "kind": "contract",
+    "risk": 41,
+    "value": 1900
+   },
+   {
+    "t": 5160,
+    "id": "dr_27",
+    "kind": "contract",
+    "risk": 20,
+    "value": 950
+   },
+   {
+    "t": 5340,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 2784
+   },
+   {
+    "t": 5520,
+    "id": "dr_30",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2192
+   }
+  ]
+ }
+}

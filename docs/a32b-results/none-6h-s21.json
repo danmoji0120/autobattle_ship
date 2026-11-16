@@ -1,0 +1,109 @@
+{
+ "mode": "none",
+ "seed": 21,
+ "hours": 6,
+ "wallSeconds": 180,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 0,
+    "battleWrecksLive": 23,
+    "derelictsMade": 0,
+    "derelictValueMade": 0,
+    "salvageContractsPosted": 0
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 9910,
+     "netCash": -2090,
+     "debt": 0,
+     "firstSalvageAt": null,
+     "firstProfitAt": null,
+     "targetsSeen": 0,
+     "targetsWorked": 0,
+     "picks": 0,
+     "pickKinds": {},
+     "recoveredUnits": 0,
+     "recoveredValue": 0,
+     "recoveredByItem": {},
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0
+     },
+     "marketRevenue": 0,
+     "contractPay": 0,
+     "salesByItem": {},
+     "upkeep": 2090,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {},
+     "unsoldValue": 0,
+     "warehousePeak": 0,
+     "minutesIdleNoTarget": 0,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {},
+     "milestones": []
+    }
+   ]
+  },
+  "6h": {
+   "world": {
+    "derelictsLive": 0,
+    "battleWrecksLive": 11,
+    "derelictsMade": 0,
+    "derelictValueMade": 0,
+    "salvageContractsPosted": 0
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 21600,
+     "credits": 5670,
+     "netCash": -6330,
+     "debt": 0,
+     "firstSalvageAt": null,
+     "firstProfitAt": null,
+     "targetsSeen": 0,
+     "targetsWorked": 0,
+     "picks": 0,
+     "pickKinds": {},
+     "recoveredUnits": 0,
+     "recoveredValue": 0,
+     "recoveredByItem": {},
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0
+     },
+     "marketRevenue": 0,
+     "contractPay": 0,
+     "salesByItem": {},
+     "upkeep": 6330,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {},
+     "unsoldValue": 0,
+     "warehousePeak": 0,
+     "minutesIdleNoTarget": 0,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {},
+     "milestones": []
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": []
+ }
+}

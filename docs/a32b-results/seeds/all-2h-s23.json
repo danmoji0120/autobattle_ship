@@ -1,0 +1,125 @@
+{
+ "mode": "all",
+ "seed": 23,
+ "hours": 2,
+ "wallSeconds": 63,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 22,
+    "battleWrecksLive": 34,
+    "derelictsMade": 26,
+    "derelictValueMade": 211968,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 32811,
+     "netCash": 20811,
+     "debt": 0,
+     "firstSalvageAt": 240,
+     "firstProfitAt": 240,
+     "targetsSeen": 23,
+     "targetsWorked": 5,
+     "picks": 5,
+     "pickKinds": {
+      "contract": 1,
+      "derelict": 3,
+      "wreck": 1
+     },
+     "recoveredUnits": 591,
+     "recoveredValue": 44084,
+     "recoveredByItem": {
+      "alloy": 315,
+      "metal": 180,
+      "machinery": 5,
+      "weapon_parts": 43,
+      "electronics": 43,
+      "eq_pd_gun": 3,
+      "eq_autocannon": 2
+     },
+     "contracts": {
+      "accepted": 1,
+      "done": 1,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 17107,
+     "contractPay": 4070,
+     "salesByItem": {
+      "alloy": 12074,
+      "machinery": 679,
+      "metal": 4354
+     },
+     "upkeep": 366,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 3,
+     "shipLossValue": 23800,
+     "unsoldStock": {
+      "eq_pd_gun": 3,
+      "eq_autocannon": 2,
+      "metal": 28
+     },
+     "unsoldValue": 5396,
+     "warehousePeak": 28,
+     "minutesIdleNoTarget": 0,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "metal": "앤빌 광부조합 초과 28: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 240,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2306
+   },
+   {
+    "t": 360,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2088
+   },
+   {
+    "t": 420,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2424
+   },
+   {
+    "t": 540,
+    "id": "wk_e305_0",
+    "kind": "wreck",
+    "risk": 55,
+    "value": 39442
+   }
+  ]
+ }
+}
