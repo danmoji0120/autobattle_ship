@@ -222,6 +222,8 @@ export interface WShip {
   logisticsExcluded?: boolean;
   /** P12.5: preferred destination for untracked cargo still aboard (e.g. a cancelled shipment's target) */
   logisticsStow?: string;
+  /** AUTO-P1: an approved automatic repair: the ship flies to this station, is repaired there and returns to its work */
+  repairAt?: { station: string; since: number; quote: number };
   /** P13.1 (salvageV): the part of the cargo aboard that came from wrecks — unloaded to company storage at the next dock */
   salvaged?: Cargo;
   /** P13.1: salvage work done but not yet a whole unit (per ship, the lot it was working on) */

@@ -1,6 +1,6 @@
 // AUTO-P0 browser check on a real server (built client + dist-server, standard world): a miner company opens
 // 물류 관리, saves a silicate auto-sale and an ore minimum stock with the form, sees them in the table, turns one off
-// (1440 px and 390 px).   node scripts/autop0/autop0-browser.cjs <outDir>
+// (1440 px and 390 px). AUTO-P1: also saves mining-hauler sale trips and the automatic repair limits.   node scripts/autop0/autop0-browser.cjs <outDir>
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path'), net = require('net');
@@ -69,6 +69,24 @@ const outDir = process.argv[2] ?? 'artifacts/autop0/browser';
       await page.click('.sales-policy [data-sale-off="silicate"]');
       await page.waitForFunction(() => { const c = window.siderarium.client; return !c.state.companies[c.company].procurement?.sales?.silicate; }, null, { timeout: 20000 });
       check(true, `${vp}: the off button turns the item's auto-sale off`);
+      // AUTO-P1: allow mining-hauler sale trips and budgeted automatic repair from the same panel
+      const ops = '.sales-policy [data-auto-ops-form]';
+      await page.waitForSelector(ops, { timeout: 20000 });
+      const off = await page.evaluate(() => document.querySelector('[data-auto-ops]').innerText);
+      check(/채굴 운반|대기/.test(off) && /내구 100%/.test(off), `${vp}: the hauler list shows each hauler's job and hull`, { text: off.slice(0, 300) });
+      await page.check(`${ops} input[name=minerSales]`); await page.check(`${ops} input[name=repair]`);
+      await page.fill(`${ops} input[name=minCredits]`, '3000'); await page.fill(`${ops} input[name=maxPerRepair]`, '4000'); await page.fill(`${ops} input[name=perHour]`, '8000');
+      await page.click(`${ops} button[type=submit]`);
+      await page.waitForFunction(() => { const c = window.siderarium.client, p = c.state.companies[c.company].procurement; return p?.minerSales === true && p?.repair?.enabled === true; }, null, { timeout: 20000 });
+      const p1 = await page.evaluate(() => { const c = window.siderarium.client, p = c.state.companies[c.company].procurement; const el = document.querySelector('[data-auto-ops]'), r = el.getBoundingClientRect(); return { minerSales: p.minerSales, repair: { ...p.repair }, checked: [...el.querySelectorAll('input[type=checkbox]')].map(i => i.checked), l: r.left, r: r.right, vw: innerWidth }; });
+      check(p1.repair.minCredits === 3000 && p1.repair.maxPerRepair === 4000 && p1.repair.perHour === 8000 && p1.checked.every(Boolean), `${vp}: the form saves sale trips and the repair limits on the server`, p1);
+      check(p1.l >= 0 && p1.r <= p1.vw + 1, `${vp}: the auto-ops block fits the screen`, p1);
+      await page.evaluate(() => document.querySelector('[data-auto-ops]').scrollIntoView());
+      await page.screenshot({ path: `${outDir}/auto-ops-${vp}.png`, fullPage: false });
+      await page.fill(`${ops} input[name=perHour]`, '0'); await page.click(`${ops} button[type=submit]`);
+      await page.waitForTimeout(1500);
+      const rej = await page.evaluate(() => { const c = window.siderarium.client; return { perHour: c.state.companies[c.company].procurement.repair.perHour, body: document.body.innerText }; });
+      check(rej.perHour === 8000 && /시간당 수리 예산을 0보다 크게/.test(rej.body), `${vp}: repair with no hourly budget is refused with the reason`, { perHour: rej.perHour });
       await ctx.close();
     }
   } catch (e) { check(false, 'script error', { e: String(e && e.stack || e).slice(0, 800) }); }

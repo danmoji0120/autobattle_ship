@@ -2,7 +2,7 @@
 import type { WorldSim } from './sim';
 import { poolMember, HAULER_MIN_HP } from './haulers';
 import type { Cargo, Company, Station, WShip } from './types';
-import { qty } from './types';
+import { qty, cargoSum } from './types';
 import { missing, planMats, prereqBuilt } from './construction';
 import { buildNeeds, builtCount, facLines, orderWants, recipeOk, yardSlots, buildSpec } from './production';
 import { ITEMS, EQUIPMENT, recipeFor } from './industry';
@@ -12,7 +12,7 @@ import { takesSpace } from './storage';
 import { dist } from './geom';
 import { effSec } from './security';
 import { usableRouteGate, incomingRoutes } from './logistics';
-import { createPoolJob, controlPoolJob, type LogisticsJob } from './autonomousLogistics';
+import { createPoolJob, controlPoolJob, assignMinerTrip, type LogisticsJob } from './autonomousLogistics';
 import { procurementAuthority, sellableStock, companySaleCap } from './operations';
 import { techFx } from './industry';
 import { priceOf, tradeChunk, buyCost } from './market';
@@ -27,6 +27,12 @@ export interface ProcurementPolicy {
   sales?: Record<string, SalesRule>;
   /** AUTO-P0: last planning result per sold item (shown to the player; recomputed every pass) */
   salesStatus?: Record<string, SalesStatus>;
+  /** AUTO-P1: a mining fleet's own hauler may fly sale round trips of its station's excess stock (off by default) */
+  minerSales?: boolean;
+  /** AUTO-P1: last decision of the mining hauler sale planner (shown to the player) */
+  minerTrip?: { t: number; ship: string; reason: string };
+  /** AUTO-P1: automatic repair of automated haulers that fell out of dispatch (off by default) */
+  repair?: import('./autoRepair').RepairPolicy;
 }
 export interface SalesRule { minPrice: number }
 export interface SalesStatus { t: number; excess: number; moving: number; reason: string; sold: number; earned: number; since?: Record<string, number> }
@@ -126,7 +132,7 @@ export function industryHold(h: Pick<WorldSim, 'st'>, owner: string, station: St
   return n;
 }
 /** Only ordinary stations are considered: sites, deposits and other hidden exploration data are never searched. */
-function routeScore(h: WorldSim, a: Station, b: Station, maxRisk: number): number {
+export function routeScore(h: WorldSim, a: Station, b: Station, maxRisk: number): number {
   const start = h.sysOf(a.pos), end = h.sysOf(b.pos); if (!start || !end || 100 - effSec(start) > maxRisk || 100 - effSec(end) > maxRisk) return Infinity;
   if (start.id === end.id) return dist(a.pos, b.pos);
   const queue = [{ id: start.id, hops: 0, risk: 0 }], seen = new Set([start.id]);
@@ -370,6 +376,70 @@ export function saleQuote(h: Pick<WorldSim, 'st' | 'price'>, st: Station, item: 
   return { sold, value };
 }
 const hopsOf = (score: number) => Math.floor(score / 200000);
+/** credits already promised to each market by this company's live sale shipments (their budget is not counted twice) */
+function salePromised(h: WorldSim, owner: string): Map<string, number> {
+  const promised = new Map<string, number>();
+  for (const j of Object.values(h.st.logisticsJobs ?? {})) {
+    if (j.owner !== owner || j.kind !== 'sell' || !live(j)) continue;
+    const st = h.st.stations[j.to]; if (!st?.market?.[j.item]) continue;
+    const n = j.carried + j.reserved + Math.max(0, outstanding(j) - j.reserved - j.carried);
+    promised.set(st.id, (promised.get(st.id) ?? 0) + n * h.price(st, j.item, 'sell') * (1 - (st.tax ?? 0)));
+  }
+  return promised;
+}
+/** markets that buy `amount` of `item` from `from` at no less than the rule's price, best first (value less a jump discount) */
+function saleMarkets(h: WorldSim, owner: string, carriers: WShip[], promised: Map<string, number>, item: string, from: Station, amount: number, rule: SalesRule, exclude?: string) {
+  const maxRisk = h.st.companies[owner]?.procurement?.maxRisk ?? 100;
+  return Object.values(h.st.stations)
+    .filter(m => m.id !== from.id && m.id !== exclude && m.public && m.market?.[item] && h.canDock(m, owner) && canCarry(carriers, from, m, false))
+    .map(m => { const score = routeScore(h, from, m, maxRisk); const q = Number.isFinite(score) ? saleQuote(h, m, item, amount, rule.minPrice, promised.get(m.id) ?? 0) : { sold: 0, value: 0 }; return { m, hops: hopsOf(score), q, rank: q.value * Math.max(0.5, 1 - 0.06 * hopsOf(score)) }; })
+    .filter(x => x.q.sold >= 1).sort((a, b) => b.rank - a.rank || a.hops - b.hops || a.m.id.localeCompare(b.m.id));
+}
+/** AUTO-P1: a mining hauler's sale trip must stay short and pay for the mining time it takes */
+export const MINER_TRIP_MAX_JUMPS = 3;
+export const MINER_TRIP_MIN_VALUE = 1500;   // expected sale value per jump of the one-way trip (at least one)
+/**
+ * AUTO-P1: a mining fleet's hauler that has just unloaded (docked, empty, at its fleet's delivery station) takes one
+ * sale round trip of the station's excess stock when the player allowed it, no idle usable pool hauler is there to
+ * do it, and the trip is short and worth it. Items, amounts and prices follow the same stock floor, company target
+ * and minimum-price rules as every other automatic sale. The hauler goes back to mining when the trip ends; the
+ * fleet's miners unload themselves meanwhile. Returns true when a trip was assigned.
+ */
+export function planMinerSaleTrip(h: WorldSim, s: WShip, dock: Station): boolean {
+  if (!growthOn(h.st)) return false;
+  const co = h.st.companies[s.owner], policy = co?.kind === 'player' ? co.procurement : undefined;
+  if (!policy?.minerSales || !policy.sales || !Object.keys(policy.sales).length) return false;
+  if (s.logisticsJob || cargoSum(s.cargo) > EPS || s.state !== 'docked' || s.task.k !== 'docked' || s.task.station !== dock.id) return false;
+  const note = (reason: string) => { policy.minerTrip = { t: h.time, ship: s.id, reason }; return false; };
+  if (poolShips(h, co.id).some(p => p.hp >= HAULER_MIN_HP && !p.logisticsJob)) return note('유휴 공용 수송선이 판매 운송을 맡음');
+  if (s.hp < HAULER_MIN_HP) return note(`채굴 수송선 손상(내구 ${Math.round(s.hp * 100)}%) — 수리 후 판매 왕복`);
+  if (!h.canDock(dock, co.id)) return note(`${dock.name}: 정박 불가`);
+  const status = policy.salesStatus ??= {}, promised = salePromised(h, co.id);
+  const lot = Math.floor(econOf(s).cargo * techFx(co.tech).cargoMul + EPS);
+  let why = '판매할 초과 재고 없음';
+  for (const item of Object.keys(policy.sales).sort()) {
+    const rule = policy.sales[item], name = ITEMS[item]?.name ?? EQUIPMENT[item]?.name ?? item;
+    const excess = Math.floor(Math.min(sellableStock(h, co.id, dock, item), companySaleCap(h, co.id, item)) + EPS);
+    if (excess < 1) continue;
+    if (dock.market?.[item] && saleQuote(h, dock, item, excess, rule.minPrice, promised.get(dock.id) ?? 0).sold >= 1) continue;   // sold here by planSales
+    const st0 = status[item] ??= { t: h.time, excess, moving: 0, reason: '', sold: 0, earned: 0 };
+    const since = (st0.since ??= {}); since[dock.id] ??= h.time;
+    if (excess < lot * 0.6 && h.room(dock, co.id) > lot && h.time - since[dock.id] < 600) { why = `${name} 초과 ${excess}: 한 번에 실을 만큼 모이면 판매 왕복`; continue; }
+    const amount = Math.min(excess, lot), best = saleMarkets(h, co.id, [s], promised, item, dock, amount, rule)[0];
+    if (!best) { why = `${name} 초과 ${excess}: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도`; continue; }
+    if (best.hops > MINER_TRIP_MAX_JUMPS) { why = `${name}: 가장 나은 시장 ${best.m.name}이(가) ${best.hops}점프 — 채굴 수송선 왕복 한도(${MINER_TRIP_MAX_JUMPS}점프) 초과`; continue; }
+    if (best.q.value < MINER_TRIP_MIN_VALUE * Math.max(1, best.hops)) { why = `${name}: 예상 판매액 ${Math.round(best.q.value).toLocaleString()} cr — 채굴을 비울 만한 수익 아님(점프당 ${MINER_TRIP_MIN_VALUE.toLocaleString()} cr 이상)`; continue; }
+    const err = createPoolJob(h, co.id, { from: dock.id, to: best.m.id, item, kind: 'sell', amount: Math.floor(best.q.sold), priority: 4, repeat: false }, undefined, true);
+    if (err) { why = `${name}: ${err}`; continue; }
+    const j = Object.values(h.st.logisticsJobs!).at(-1)!;
+    assignMinerTrip(h, j, s);
+    delete since[dock.id];
+    policy.minerTrip = { t: h.time, ship: s.id, reason: `${s.name}: ${name} ${Math.round(j.reserved)} → ${best.m.name} 판매 왕복 (${best.hops}점프, 예상 ${Math.round(best.q.value).toLocaleString()} cr)` };
+    h.ev('info', `채굴 수송선 판매 왕복: ${s.name}이(가) ${dock.name}의 ${name} ${Math.round(j.reserved)}을(를) ${best.m.name}에 판매하러 출발`, { company: co.id, pos: dock.pos });
+    return true;
+  }
+  return note(why);
+}
 /**
  * Excess-stock sales, run with the procurement planner. For every item with a sales policy and every store that
  * holds more than its floor: sell at that station when its market pays the floor price, otherwise create a pool
@@ -386,13 +456,11 @@ export function planSales(h: WorldSim) {
     const status = policy.salesStatus ??= {};
     const ships = poolShips(h, co.id), maxCargo = ships.length ? Math.max(...ships.map(s => econOf(s).cargo * techFx(co.tech).cargoMul)) : 0;
     const jobs = Object.values(h.st.logisticsJobs ?? {}).filter(j => j.owner === co.id && j.kind === 'sell' && live(j));
-    const promised = new Map<string, number>();
+    const promised = salePromised(h, co.id);
     const promise = (st: Station, item: string, n: number) => promised.set(st.id, (promised.get(st.id) ?? 0) + n * h.price(st, item, 'sell') * (1 - (st.tax ?? 0)));
-    for (const j of jobs) { const st = h.st.stations[j.to]; if (st?.market?.[j.item]) promise(st, j.item, j.carried + j.reserved + Math.max(0, outstanding(j) - j.reserved - j.carried)); }
-    const markets = (item: string, from: Station, amount: number, rule: SalesRule, exclude?: string) => Object.values(h.st.stations)
-      .filter(m => m.id !== from.id && m.id !== exclude && m.public && m.market?.[item] && h.canDock(m, co.id) && canCarry(ships, from, m, false))
-      .map(m => { const score = routeScore(h, from, m, policy.maxRisk); const own = promised.get(m.id) ?? 0; const q = Number.isFinite(score) ? saleQuote(h, m, item, amount, rule.minPrice, own) : { sold: 0, value: 0 }; return { m, hops: hopsOf(score), q, rank: q.value * Math.max(0.5, 1 - 0.06 * hopsOf(score)) }; })
-      .filter(x => x.q.sold >= 1).sort((a, b) => b.rank - a.rank || a.hops - b.hops || a.m.id.localeCompare(b.m.id));
+    // AUTO-P1: an idle mining hauler may carry when the pool has no usable ship (its trips are planned when it docks)
+    const minerCarriers = policy.minerSales ? Object.values(h.st.ships).filter(s => s.owner === co.id && s.classId === 'hauler' && (() => { const g = h.st.groups[s.groupId]; return !!g && h.opOf(g).k === 'mine'; })()) : [];
+    const markets = (item: string, from: Station, amount: number, rule: SalesRule, exclude?: string) => saleMarkets(h, co.id, ships.length ? ships : minerCarriers, promised, item, from, amount, rule, exclude);
     for (const item of Object.keys(rules).sort()) {
       const rule = rules[item], st0 = status[item] ?? { t: h.time, excess: 0, moving: 0, reason: '', sold: 0, earned: 0 };
       const reasons: string[] = [];
@@ -418,9 +486,18 @@ export function planSales(h: WorldSim) {
         }
         if (!h.canDock(st, co.id)) { reasons.push(`${st.name}: 정박할 수 없어 운송 불가`); continue; }
         // 2. ship it to another market
-        if (!ships.length) { reasons.push(`${st.name} 초과 ${excess}: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송`); continue; }
         const usable = ships.filter(s => s.hp >= HAULER_MIN_HP);
-        if (!usable.length) { reasons.push(`${st.name} 초과 ${excess}: 공용 수송선 손상(내구 ${Math.round(Math.max(...ships.map(s => s.hp)) * 100)}%) — 수리 후 자동 운송, 재고 보존`); continue; }
+        if (!usable.length) {
+          // AUTO-P1: the mining fleet's hauler sells on its next stop at this station (planMinerSaleTrip)
+          const trip = jobs.find(j => j.miner && j.from === st.id && j.item === item);
+          const miner = minerCarriers.find(s => { const g = h.st.groups[s.groupId], op = g && h.opOf(g); return op?.k === 'mine' && op.deliver === st.id; });
+          if (trip) { reasons.push(`채굴 수송선 판매 왕복 중 → ${h.st.stations[trip.to]?.name ?? trip.to}`); continue; }
+          if (miner) { reasons.push(`${st.name} 초과 ${excess}: 채굴 수송선이 다음 하역 때 판매 왕복 — ${policy.minerTrip?.reason ?? '대기'}`); continue; }
+          reasons.push(!ships.length
+            ? `${st.name} 초과 ${excess}: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 수송선 판매 왕복'을 허용하면 자동 운송`
+            : `${st.name} 초과 ${excess}: 공용 수송선 손상(내구 ${Math.round(Math.max(...ships.map(s => s.hp)) * 100)}%) — 수리 후 자동 운송, 재고 보존`);
+          continue;
+        }
         const waiting = jobs.filter(j => j.sale && j.from === st.id && j.item === item && !j.ship && j.reserved <= EPS && j.state !== 'paused').length;
         if (waiting >= usable.length) continue;
         // ship full loads: a part load only when the store is nearly full or the excess has waited 10 minutes

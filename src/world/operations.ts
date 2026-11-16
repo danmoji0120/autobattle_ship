@@ -474,7 +474,7 @@ function procurementWhy(h: WorldSim, owner: string, station: string, kind: strin
 // ─────────────────────────────────────────────────────────── spending authority
 
 export interface AuthResult { ok: boolean; kind?: ApprovalKind; why?: string }
-function spentLastHour(h: WorldSim, ops: CompanyOps) {
+export function spentLastHour(h: Pick<WorldSim, 'time'>, ops: CompanyOps) {
   ops.spend = ops.spend.filter(s => s.t > h.time - 3600);
   return ops.spend.reduce((n, s) => n + s.n, 0);
 }
@@ -768,8 +768,8 @@ export function sellableStock(h: Pick<WorldSim, 'st'>, owner: string, station: S
  * AUTO-P0: company-scope stockpile targets cap what may leave the company: holding − target − pending sales.
  * AUTO-P0.1: several company-scope goals for one item share one stock (each measures the same company holding), so
  * the target is the largest of them. `extra` counts units in hand that are in no store yet (cargo being unloaded).
- * Holding counts every store and the cargo of non-sale shipments; free cargo aboard other ships is not counted, so
- * the cap never relies on goods still at sea.
+ * AUTO-P1: holding is secured stock only (every store); shipments in flight and cargo aboard ships are not counted,
+ * so a sale never relies on goods still at sea.
  */
 export function companySaleCap(h: Pick<WorldSim, 'st'>, owner: string, item: string, extra = 0): number {
   let target = 0;
@@ -906,11 +906,37 @@ function fieldHost(h: WorldSim, w: Work) {
 const liveChildren = (h: WorldSim, w: Work, kind?: WorkKind) => children(h, w).filter(c => !terminal(c) && (!kind || c.kind === kind));
 function cmd(h: WorldSim, w: Work, c: Cmd): string | null { return withParent(w.id, () => h.command(w.owner, c)); }
 
-/** units of `item` the company holds anywhere: every store plus own shipments (reserved at a source or on board); sales shipments excluded */
+/**
+ * AUTO-P1: one company's stock of an item, split by what each part may be used for.
+ * - `stored`: secured stock — units actually in a store (any station where the company keeps goods). Only this
+ *   satisfies a stockpile target and only this can bound an automatic sale.
+ * - `incoming`: units of normal (non-sale) shipments with a destination, reserved at their source or on board.
+ *   Counted against duplicate procurement, never as stock already secured.
+ * - `selling`: units of sale shipments (reserved or on board) — on their way out of the company.
+ * - `afloat`: cargo aboard own ships that no shipment tracks (a miner's or hauler's hold, untracked cargo):
+ *   a company asset, but no ground for lowering a sale floor.
+ * `total` is every physical unit once: stores + all shipment reservations + every ship hold.
+ */
+export interface CompanyStock { stored: number; incoming: number; selling: number; afloat: number; total: number }
+export function companyStock(w: Pick<WorldState, 'stations' | 'ships' | 'logisticsJobs'>, owner: string, item: string): CompanyStock {
+  const out: CompanyStock = { stored: 0, incoming: 0, selling: 0, afloat: 0, total: 0 };
+  for (const st of Object.values(w.stations)) out.stored += qty(st.storage?.[owner], item);
+  const tracked = new Map<string, number>();
+  for (const j of Object.values(w.logisticsJobs ?? {})) {
+    if (j.owner !== owner || j.item !== item || !liveJob(j)) continue;
+    if (j.kind === 'sell') out.selling += j.reserved + j.carried; else out.incoming += j.reserved + j.carried;
+    const ship = j.ship ?? j.held?.ship; if (ship && j.carried > 0) tracked.set(ship, (tracked.get(ship) ?? 0) + j.carried);
+  }
+  let aboard = 0;
+  for (const s of Object.values(w.ships)) if (s.owner === owner) { const n = qty(s.cargo, item); aboard += n; out.afloat += Math.max(0, n - (tracked.get(s.id) ?? 0)); }
+  const reserved = Object.values(w.logisticsJobs ?? {}).reduce((n, j) => n + (j.owner === owner && j.item === item && liveJob(j) ? j.reserved : 0), 0);
+  out.total = out.stored + reserved + aboard;
+  return out;
+}
+/** AUTO-P1: secured company stock of `item` — what is actually in its stores (see `companyStock`) */
 export function companyHolding(h: Pick<WorldSim, 'st'>, owner: string, item: string) {
   let n = 0;
   for (const st of Object.values(h.st.stations)) n += qty(st.storage[owner], item);
-  for (const j of Object.values(h.st.logisticsJobs ?? {})) if (j.owner === owner && j.item === item && j.kind !== 'sell' && liveJob(j)) n += j.reserved + j.carried;
   return n;
 }
 /** free company stock of `item` over every store (protections, outbound promises and other goals' targets removed) */
@@ -1012,7 +1038,8 @@ function planInputs(h: WorldSim, w: Work, target: Station, orders: GoalOrder[], 
 function runStockpile(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'stockpile' }>) {
   const st = h.st.stations[g.station]; if (!st) return setState(h, w, 'failed', '목표 정거장 소실');
   const co = h.st.companies[w.owner], pol = opsOf(co).policy, company = g.scope === 'company';
-  const have = company ? companyHolding(h, w.owner, g.item) : qty(st.storage[w.owner], g.item), incoming = company ? 0 : incomingTo(h, w.owner, st.id, g.item);
+  // AUTO-P1: a company-wide target counts only secured (stored) stock; its own shipments in flight prevent a duplicate purchase
+  const have = company ? companyHolding(h, w.owner, g.item) : qty(st.storage[w.owner], g.item), incoming = company ? companyStock(h.st, w.owner, g.item).incoming : incomingTo(h, w.owner, st.id, g.item);
   w.progress = { done: Math.min(have, g.target), total: g.target, unit: itemName(g.item) };
   const orders = goalOrders(h, w);
   if (!g.maintain && have >= g.target - EPS) {
@@ -1546,6 +1573,8 @@ function prune(h: WorldSim) {
 
 export interface InventoryRow {
   item: string; total: number; stored: number; reserved: number; available: number; inTransit: number; listed: number;
+  /** AUTO-P1: units of normal shipments under way (reserved or aboard) and untracked cargo aboard own ships */
+  incoming?: number; afloat?: number;
   planned: number; consumption: number; target: number; shortage: number; surplus: number;
   stations: { station: string; stored: number; reserved: number; available: number; protected: number }[];
   ships: { ship: string; amount: number; to?: string; job?: string }[];
@@ -1604,7 +1633,9 @@ export function companyInventory(w: Pick<WorldState, 'stations' | 'ships' | 'log
     if (r.target <= 0) r.shortage = Math.max(0, r.consumption - r.total - r.planned);
   }
   // a company-wide target is measured against everything the company holds of the item (sales shipments are already gone)
-  for (const [r, target] of companyTargets) r.shortage += Math.max(0, target - (r.total - r.listed));
+  // AUTO-P1: measured against secured (stored) stock; normal shipments already under way count as covering it
+  for (const [r, target] of companyTargets) { const c = companyStock(w, owner, r.item); r.shortage += Math.max(0, target - c.stored - c.incoming); }
+  for (const r of rows.values()) { const c = companyStock(w, owner, r.item); r.incoming = c.incoming; r.afloat = c.afloat; }
   return [...rows.values()].sort((a, b) => b.shortage - a.shortage || b.total - a.total || a.item.localeCompare(b.item));
 }
 

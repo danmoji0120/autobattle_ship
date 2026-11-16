@@ -9,7 +9,8 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
-import { planProcurement, planSales, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
+import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, type RepairSettings } from './autoRepair';
+import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
@@ -160,6 +161,8 @@ export type Cmd =
   | { c: 'procSource'; station: string; kind: ProcurementKind; source: string; enabled: boolean; priority?: number }
   /** AUTO-P0: an item's automatic excess-stock sale and/or its minimum stock at one store */
   | { c: 'salesPolicy'; settings: SalesSettings }
+  /** AUTO-P1: mining-hauler sale trips and automatic repair of automated haulers */
+  | { c: 'autoOpsPolicy'; minerSales?: boolean; repair?: RepairSettings }
   // ── company operations (world/operations.ts)
   | { c: 'workOp'; work: string; op: WorkOp; value?: number; price?: number }
   | { c: 'workCreate'; goal: GoalSpec; title?: string; priority?: number; budget?: number; maxPrice?: number }
@@ -719,7 +722,7 @@ export class WorldSim {
         registerCommand(this, company, cmd, opsBefore);
       }
       if (!err && manual.length) pauseManualRoutes(this, manual);
-      if (!err && poolManual.length) interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존');
+      if (!err && poolManual.length) { interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존'); for (const s of poolManual) delete s.repairAt; }
       if (!err && growthOn(this.st)) {
         this.reconcileFoundEscrows(company);
         if (['queueModule', 'prodOrder', 'buildShip'].includes(cmd.c)) this.st.companies[company].procurement ??= defaultProcurementPolicy();
@@ -730,7 +733,7 @@ export class WorldSim {
         if (cmd.c === 'buildOp' && (cmd.op === 'pause' || cmd.op === 'cancel')) stopProcurement(this, company, cmd.op === 'pause' ? 'paused' : 'closed', cmd.station, 'ship', cmd.build);
       }
       if (!err && ['poolCreate', 'poolControl', 'poolShips', 'autoLogistics'].includes(cmd.c)) this.poolDispatchAt = 0;
-      if (!err && ['poolCreate', 'poolControl', 'poolShips', 'procPolicy', 'salesPolicy', 'procSource', 'queueModule', 'planOp', 'prodOrder', 'prodOp', 'buildShip', 'buildOp'].includes(cmd.c)) this.procurementAt = 0;
+      if (!err && ['poolCreate', 'poolControl', 'poolShips', 'procPolicy', 'salesPolicy', 'autoOpsPolicy', 'procSource', 'queueModule', 'planOp', 'prodOrder', 'prodOp', 'buildShip', 'buildOp'].includes(cmd.c)) this.procurementAt = 0;
       if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group });
       return err;
     });
@@ -1553,6 +1556,15 @@ export class WorldSim {
       case 'poolControl': return controlPoolJob(this, company, cmd.job, cmd.action);
       case 'procPolicy': return setProcurementPolicy(this, company, cmd.settings);
       case 'salesPolicy': return setSalesPolicy(this, company, cmd.settings);
+      case 'autoOpsPolicy': {
+        const co = this.st.companies[company];
+        if (!growthOn(this.st) || !co || co.kind !== 'player') return '이 세계에서는 자동 운영 설정을 사용할 수 없습니다';
+        if (cmd.minerSales !== undefined && typeof cmd.minerSales !== 'boolean') return '채굴 수송선 판매 왕복 설정을 확인하세요';
+        co.procurement ??= defaultProcurementPolicy();
+        if (cmd.repair !== undefined) { const err = setRepairPolicy(this, company, cmd.repair); if (err) return err; }
+        if (cmd.minerSales !== undefined) { co.procurement.minerSales = cmd.minerSales; if (!cmd.minerSales) delete co.procurement.minerTrip; }
+        return null;
+      }
       case 'procSource': return setProcurementSource(this, company, cmd.station, cmd.kind, cmd.source, cmd.enabled, cmd.priority);
       case 'workOp': return growthOn(this.st) ? workOp(this, company, cmd.work, cmd.op, cmd.value, cmd.price) : '이 세계에서는 회사 업무를 사용할 수 없습니다';
       case 'workCreate': return createGoal(this, company, cmd.goal, { title: typeof cmd.title === 'string' ? cmd.title.slice(0, 60) : undefined, priority: cmd.priority, budget: cmd.budget, maxPrice: cmd.maxPrice });
@@ -2125,7 +2137,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if ((st.logisticsJobs || st.logisticsV) && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); planSales(this); this.procurementAt = this.time + 10; } stepOperations(this); if (st.logisticsV && this.time >= this.pruneAt) { pruneLogisticsJobs(st, AUTO_JOB_HISTORY); this.pruneAt = this.time + 60; } }
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if ((st.logisticsJobs || st.logisticsV) && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); planSales(this); planAutoRepairs(this); this.procurementAt = this.time + 10; } stepOperations(this); if (st.logisticsV && this.time >= this.pruneAt) { pruneLogisticsJobs(st, AUTO_JOB_HISTORY); this.pruneAt = this.time + 60; } }
     this.speedCap.clear(); this.escortPlans.clear(); this.escortIdx = null;
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
@@ -3185,6 +3197,7 @@ export class WorldSim {
     const cap = this.speedCap.get(s.id); if (cap !== undefined) speed = Math.min(speed, cap);
     const st = this.st;
     if (s.logisticsJob && stepPoolShip(this, s, g, dt, speed)) return;
+    if (s.repairAt && stepAutoRepair(this, s, dt, speed)) return;
     switch (op.k) {
       case 'idle': {
         if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; s.pos = vadd(s.pos, s.vel, dt); }
@@ -3319,7 +3332,8 @@ export class WorldSim {
     const dock = this.mineDock(g, op);
     const ec = econOf(s);
     const groupShips = this.subtreeShipsInOp(g);
-    const haulers = groupShips.filter(x => x.classId === 'hauler' && x.state !== 'battle');
+    // AUTO-P1: a hauler on a sale round trip is not collecting: full miners unload themselves meanwhile
+    const haulers = groupShips.filter(x => x.classId === 'hauler' && x.state !== 'battle' && !x.logisticsJob && !x.repairAt);
     if (ec.mine > 0) {
       const cap = miningCargoCapacity(st, s, st.companies[s.owner]?.tech);
       if (s.state === 'docked') {
@@ -3378,7 +3392,13 @@ export class WorldSim {
     }
     if (ec.cargo > 0 && s.classId === 'hauler') {
       const cap = miningCargoCapacity(st, s, st.companies[s.owner]?.tech);
-      if (s.state === 'docked') { if (cargoSum(s.cargo) > 0 && dock && s.task.k === 'docked' && s.task.station === dock.id && !this.unloadWhenReady(s, dock, op.sell)) { g.status = `${dock.name}: 화물 하역 중`; return; } this.undock(s); }
+      if (s.state === 'docked') {
+        if (cargoSum(s.cargo) > 0 && dock && s.task.k === 'docked' && s.task.station === dock.id && !this.unloadWhenReady(s, dock, op.sell)) { g.status = `${dock.name}: 화물 하역 중`; return; }
+        // AUTO-P1: empty at the fleet's station — fly one sale round trip of its excess stock when allowed and worth it
+        if (dock) autoRepairDocked(this, s);
+        if (dock && planMinerSaleTrip(this, s, dock)) return;
+        this.undock(s);
+      }
       const miners = groupShips.filter(x => econOf(x).mine > 0 && x.state === 'space');
       const load = cargoSum(s.cargo);
       // stick with the current donor until it's empty, otherwise pick the fullest miner
@@ -3401,7 +3421,7 @@ export class WorldSim {
       if (dock && (load > cap * 0.5 || (load > 0 && !donor) || delivering)) {
         if ((s.task as any).why !== 'deliver') emit(this.st, { kind: 'logistics', reason: 'depart', amount: 1, company: s.owner, group: g.id, ship: s.id, ref: s.id });
         s.task = { k: 'goto', to: dock.pos, why: 'deliver' };
-        if (this.goDock(s, dock, dt, speed)) { if (!this.unloadWhenReady(s, dock, op.sell)) { g.status = `${dock.name}: 화물 하역 중`; return; } this.undock(s); s.task = { k: 'none' }; }
+        if (this.goDock(s, dock, dt, speed)) { if (!this.unloadWhenReady(s, dock, op.sell)) { g.status = `${dock.name}: 화물 하역 중`; return; } autoRepairDocked(this, s); if (planMinerSaleTrip(this, s, dock)) return; this.undock(s); s.task = { k: 'none' }; }
         return;
       }
       this.moveTo(s, this.formationSlot(s, g, vadd(f.pos, { x: 0, y: 60, z: 0 }), 120), speed, dt);

@@ -39,6 +39,9 @@ export interface LogisticsJob extends PoolRequest {
   pirated?: number;
   /** AUTO-P0: created by the excess-stock sales planner (procurement.ts `planSales`) — may be re-targeted */
   sale?: true;
+  /** AUTO-P1: a sale round trip flown by a mining fleet's own hauler (the group it mines with). It never enters the
+   *  pool: the hauler returns to mining when it ends, and it is cancelled if the ship is lost or the fleet's order changes. */
+  miner?: string;
 }
 type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev' | 'price'>;
 const EPS = 1e-9;
@@ -131,6 +134,7 @@ export function interruptPoolShips(h: Host, ships: WShip[], reason: string, keep
       const j = s.logisticsJob ? h.st.logisticsJobs?.[s.logisticsJob] : undefined;
       if (!j) { delete s.logisticsJob; continue; }
       if (j.owner !== s.owner || j.ship !== s.id) { delete s.logisticsJob; continue; }
+      if (j.miner) { endMinerTrip(h, j, '편대 명령 변경 — 판매 왕복 종료, 적재 화물은 함선에 보존'); continue; }
       if (keep && j.carried > EPS && !j.stow) hold(h, j, s, reason);
       else { detach(h, j, reason); if (!isTerminal(j) && j.state !== 'paused') j.state = 'queued'; if (j.stow && !isTerminal(j)) j.state = 'cancelled'; }
     }
@@ -258,12 +262,35 @@ export function dispatchPool(h: Host) {
     ships.splice(ships.indexOf(s), 1); s.logisticsJob = j.id; j.ship = s.id; j.state = 'active'; j.updated = h.time; delete j.reason; delete j.code; delete j.retryAt; delete j.attempts;
   }
 }
+/** AUTO-P1: end a mining hauler's sale trip: the reservation goes back to the store, cargo aboard stays aboard (the
+ *  hauler unloads it at its fleet's station on the next delivery), and the sale planner may plan again. */
+function endMinerTrip(h: Host, j: LogisticsJob, reason: string, lost = false) {
+  const s = j.ship ? h.st.ships[j.ship] : undefined;
+  detach(h, j, reason, lost);
+  if (s && !lost) delete s.logisticsStow;
+  j.state = 'cancelled'; j.updated = h.time;
+}
+/** AUTO-P1: give a planned sale shipment to a mining fleet's hauler that is docked, empty, at the shipment's source */
+export function assignMinerTrip(h: Host, j: LogisticsJob, s: WShip) {
+  const a = h.st.stations[j.from];
+  j.miner = s.groupId;
+  j.reserved = takec(h.storage(a, j.owner), j.item, j.amount);
+  s.logisticsJob = j.id; j.ship = s.id; j.state = 'active'; j.updated = h.time; delete j.reason; delete j.code;
+  emit(h.st, { kind: 'logistics', reason: 'assign', amount: j.reserved, company: j.owner, group: s.groupId, ship: s.id, station: a.id, item: j.item });
+}
 /** Reconcile disappeared ships and non-command state changes, including after JSON restore. */
 export function maintainPool(h: Host) {
   for (const j of Object.values(h.st.logisticsJobs ?? {})) {
     if (!j.ship && j.held && !isTerminal(j)) { maintainHeld(h, j); continue; }
     if (!j.ship) { if (j.reserved > EPS) releaseReservation(h, j); continue; }
     const s = h.st.ships[j.ship];
+    if (j.miner && !isTerminal(j)) {
+      // AUTO-P1: a mining hauler's sale trip lives only while that hauler is still the fleet's and the fleet still mines
+      const g = s && s.owner === j.owner ? h.st.groups[s.groupId] : undefined;
+      if (!s || s.owner !== j.owner) { endMinerTrip(h, j, '수송선 손실 — 판매 왕복 종료', !s); continue; }
+      if (s.logisticsJob !== j.id || !g || h.opOf(g).k !== 'mine' || s.state === 'building' || s.reserve || s.listed) { endMinerTrip(h, j, '편대 명령 변경 — 판매 왕복 종료, 적재 화물은 함선에 보존'); continue; }
+      continue;
+    }
     if (!s || s.owner !== j.owner) { detach(h, j, '수송 함선 손실 — 미완료 물량 재배차 대기', !s); if (!isTerminal(j) && j.state !== 'paused') j.state = 'queued'; continue; }
     const g = h.st.groups[s.groupId];
     if (autoLogistics(h.st) && j.carried > EPS && !j.stow && s.logisticsJob === j.id && poolMember(h.st, s) && g && (h.opOf(g).k !== 'idle' || s.reserve || s.listed)) { hold(h, j, s, '함선이 다른 작업에 사용됨'); continue; }
