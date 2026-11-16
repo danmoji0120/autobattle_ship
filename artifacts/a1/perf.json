@@ -1,0 +1,114 @@
+{
+ "hours": 6,
+ "p9": {
+  "rules": {
+   "layout": "p9",
+   "systems": 22,
+   "factions": 0,
+   "factionEcon": false,
+   "combat": false,
+   "ops": false,
+   "logistics": false,
+   "salvage": false,
+   "piracy": false,
+   "blackMarket": false,
+   "law": false,
+   "rep": false,
+   "econChain": false
+  },
+  "msPerGameSecond": {
+   "fresh": 6.4,
+   "after": 12.27
+  },
+  "msPerTick1sByHour": [
+   10.023,
+   10.799,
+   10.433,
+   9.893,
+   9.795,
+   10.158
+  ],
+  "wallS": 220.731,
+  "heapMB": 125,
+  "ships": 159,
+  "engagements": 1,
+  "wrecks": 0,
+  "events": 400,
+  "saveKB": 347,
+  "credits": 0
+ },
+ "p10": {
+  "rules": {
+   "layout": "p10",
+   "systems": 40,
+   "factions": 6,
+   "factionEcon": false,
+   "combat": false,
+   "ops": false,
+   "logistics": false,
+   "salvage": false,
+   "piracy": false,
+   "blackMarket": false,
+   "law": false,
+   "rep": false,
+   "econChain": false
+  },
+  "msPerGameSecond": {
+   "fresh": 7.54,
+   "after": 10.92
+  },
+  "msPerTick1sByHour": [
+   12.628,
+   11.569,
+   12.378,
+   13.391,
+   12.746,
+   13.415
+  ],
+  "wallS": 274.734,
+  "heapMB": 193,
+  "ships": 182,
+  "engagements": 3,
+  "wrecks": 0,
+  "events": 301,
+  "saveKB": 393,
+  "credits": 0
+ },
+ "std": {
+  "rules": {
+   "layout": "p10",
+   "systems": 40,
+   "factions": 6,
+   "factionEcon": true,
+   "combat": true,
+   "ops": true,
+   "logistics": true,
+   "salvage": true,
+   "piracy": true,
+   "blackMarket": true,
+   "law": true,
+   "rep": true,
+   "econChain": false
+  },
+  "msPerGameSecond": {
+   "fresh": 10.33,
+   "after": 16.42
+  },
+  "msPerTick1sByHour": [
+   13.861,
+   14.401,
+   13.317,
+   14.537,
+   14.209,
+   14.427
+  ],
+  "wallS": 306.131,
+  "heapMB": 83,
+  "ships": 185,
+  "engagements": 0,
+  "wrecks": 1,
+  "events": 400,
+  "saveKB": 437,
+  "credits": 0
+ }
+}
