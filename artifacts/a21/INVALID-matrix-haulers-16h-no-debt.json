@@ -1,0 +1,85 @@
+{
+ "case": "haulers",
+ "seed": 21,
+ "awayHours": 16,
+ "fleetBefore": [
+  "hauler_mk1",
+  "hauler_mk1"
+ ],
+ "creditsWhenLeft": 12000,
+ "onReturn": {
+  "t": "복귀",
+  "h": 16,
+  "credits": 1187,
+  "debt": 0,
+  "stage": 0,
+  "perHour": 677,
+  "earned": 0,
+  "paid": 10813,
+  "ships": 2,
+  "inSpace": 0,
+  "recovery": false,
+  "stock": 0,
+  "held": [
+   null,
+   null
+  ],
+  "fleet": [
+   "hauler_mk1",
+   "hauler_mk1"
+  ]
+ },
+ "steps": [
+  {
+   "t": 16,
+   "c": "recoverySell",
+   "ship": "짐꾼 12호",
+   "swap": "miner_mk1",
+   "err": "긴급 매각은 체납 3단계(신규 출항 보류)부터 사용할 수 있습니다"
+  }
+ ],
+ "recoveredAfterMin": 0,
+ "recovered": null,
+ "heldAfter": [
+  {
+   "ship": "짐꾼 12호",
+   "hull": "hauler_mk1",
+   "held": null
+  },
+  {
+   "ship": "짐꾼 14호",
+   "hull": "hauler_mk1",
+   "held": null
+  }
+ ],
+ "log": [
+  {
+   "t": "복귀",
+   "h": 16,
+   "credits": 1187,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 677,
+   "earned": 0,
+   "paid": 10813,
+   "ships": 2,
+   "inSpace": 0,
+   "recovery": false,
+   "stock": 0
+  },
+  {
+   "t": "조치 직후",
+   "h": 16,
+   "credits": 1187,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 677,
+   "earned": 0,
+   "paid": 10813,
+   "ships": 2,
+   "inSpace": 0,
+   "recovery": false,
+   "stock": 0
+  }
+ ]
+}

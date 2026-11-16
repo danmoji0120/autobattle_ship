@@ -1,0 +1,165 @@
+{
+ "case": "miners",
+ "seed": 21,
+ "awayHours": 16,
+ "fleetBefore": [
+  "miner_mk1",
+  "miner_mk1",
+  "destroyer_mk1",
+  "corvette_mk1",
+  "corvette_mk1"
+ ],
+ "creditsWhenLeft": 12000,
+ "onReturn": {
+  "t": "복귀",
+  "h": 16,
+  "credits": 0,
+  "debt": 24560,
+  "stage": 4,
+  "perHour": 2346,
+  "earned": 0,
+  "paid": 12000,
+  "ships": 5,
+  "inSpace": 0,
+  "recovery": false,
+  "stock": 0,
+  "held": [
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류"
+  ],
+  "fleet": [
+   "miner_mk1",
+   "miner_mk1",
+   "destroyer_mk1",
+   "corvette_mk1",
+   "corvette_mk1"
+  ]
+ },
+ "steps": [
+  {
+   "t": 16,
+   "c": "recovery",
+   "ship": "곡괭이 6호",
+   "err": null
+  },
+  {
+   "t": 16,
+   "c": "recovery",
+   "ship": "곡괭이 7호",
+   "err": null
+  },
+  {
+   "t": 16,
+   "c": "setOp",
+   "err": null
+  }
+ ],
+ "recoveredAfterMin": 63,
+ "recovered": {
+  "since": 57600,
+  "t": 61384,
+  "paid": 26927.949999659002
+ },
+ "heldAfter": [
+  {
+   "ship": "곡괭이 6호",
+   "hull": "miner_mk1",
+   "held": null
+  },
+  {
+   "ship": "곡괭이 7호",
+   "hull": "miner_mk1",
+   "held": null
+  },
+  {
+   "ship": "시리우스 IV",
+   "hull": "destroyer_mk1",
+   "held": null
+  },
+  {
+   "ship": "라이라 IV",
+   "hull": "corvette_mk1",
+   "held": null
+  },
+  {
+   "ship": "카노푸스",
+   "hull": "corvette_mk1",
+   "held": null
+  }
+ ],
+ "log": [
+  {
+   "t": "복귀",
+   "h": 16,
+   "credits": 0,
+   "debt": 24560,
+   "stage": 4,
+   "perHour": 2346,
+   "earned": 0,
+   "paid": 12000,
+   "ships": 5,
+   "inSpace": 0,
+   "recovery": false,
+   "stock": 0
+  },
+  {
+   "t": "조치 직후",
+   "h": 16,
+   "credits": 0,
+   "debt": 24560,
+   "stage": 4,
+   "perHour": 2346,
+   "earned": 0,
+   "paid": 12000,
+   "ships": 5,
+   "inSpace": 0,
+   "recovery": true,
+   "stock": 0
+  },
+  {
+   "t": "+30분",
+   "h": 16.5,
+   "credits": 0,
+   "debt": 12473,
+   "stage": 4,
+   "perHour": 2345,
+   "earned": 13215,
+   "paid": 25215,
+   "ships": 5,
+   "inSpace": 2,
+   "recovery": true,
+   "stock": 0
+  },
+  {
+   "t": "+60분",
+   "h": 17,
+   "credits": 0,
+   "debt": 818,
+   "stage": 4,
+   "perHour": 2346,
+   "earned": 25997,
+   "paid": 37997,
+   "ships": 5,
+   "inSpace": 2,
+   "recovery": true,
+   "stock": 0
+  },
+  {
+   "t": "+70분",
+   "h": 17.17,
+   "credits": 1321,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 2346,
+   "earned": 29766,
+   "paid": 40445,
+   "ships": 5,
+   "inSpace": 2,
+   "recovery": false,
+   "stock": 0
+  }
+ ]
+}

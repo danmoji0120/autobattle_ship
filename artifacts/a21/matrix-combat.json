@@ -1,0 +1,108 @@
+{
+ "case": "combat",
+ "seed": 21,
+ "awayHours": 16,
+ "fleetBefore": [
+  "destroyer_mk1",
+  "corvette_mk1",
+  "corvette_mk1"
+ ],
+ "creditsWhenLeft": 12000,
+ "onReturn": {
+  "t": "복귀",
+  "h": 16,
+  "credits": 0,
+  "debt": 12472,
+  "stage": 4,
+  "perHour": 1564,
+  "earned": 0,
+  "paid": 12000,
+  "ships": 3,
+  "inSpace": 0,
+  "recovery": false,
+  "stock": 0,
+  "held": [
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류"
+  ],
+  "fleet": [
+   "destroyer_mk1",
+   "corvette_mk1",
+   "corvette_mk1"
+  ]
+ },
+ "steps": [
+  {
+   "note": "destroyer buyback value 58250"
+  },
+  {
+   "t": 16,
+   "c": "recoverySell",
+   "ship": "s7",
+   "err": null
+  }
+ ],
+ "recoveredAfterMin": 0,
+ "recovered": {
+  "since": 57600,
+  "t": 57600.25,
+  "paid": 12471.7
+ },
+ "heldAfter": [
+  {
+   "ship": "라이라 IV",
+   "hull": "corvette_mk1",
+   "held": null
+  },
+  {
+   "ship": "카노푸스",
+   "hull": "corvette_mk1",
+   "held": null
+  }
+ ],
+ "log": [
+  {
+   "t": "복귀",
+   "h": 16,
+   "credits": 0,
+   "debt": 12472,
+   "stage": 4,
+   "perHour": 1564,
+   "earned": 0,
+   "paid": 12000,
+   "ships": 3,
+   "inSpace": 0,
+   "recovery": false,
+   "stock": 0
+  },
+  {
+   "t": "조치 직후",
+   "h": 16,
+   "credits": 45778,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 700,
+   "earned": 0,
+   "paid": 24472,
+   "ships": 2,
+   "inSpace": 0,
+   "recovery": true,
+   "stock": 0
+  },
+  {
+   "t": "+10분",
+   "h": 16.17,
+   "credits": 45035,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 700,
+   "earned": 0,
+   "paid": 25215,
+   "ships": 2,
+   "inSpace": 0,
+   "recovery": false,
+   "stock": 0
+  }
+ ]
+}

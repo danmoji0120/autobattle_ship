@@ -3,7 +3,7 @@
 // all departures held), then the player uses only the recovery tools the game offers. Nobody else gives money,
 // no admin step. Recorded: debt on return, what was done, hourly debt / credits / income / running cost, when the
 // recovery closed, and whether every ship can depart normally afterwards.
-//   npx vite-node scripts/a21/a21-matrix.ts <case> [seed=21] [out.json]
+//   npx vite-node scripts/a21/a21-matrix.ts <case> [seed=21] [out.json] [awayHours=16]
 //   case: miners | haulers | combat | corvettes | veteran
 // Fleet set-up for haulers / combat / corvettes: the starter ships that do not belong to the case are removed at
 // t = 0 and the case's ships are created docked at Astra (harness only; everything after that is normal play).
@@ -37,7 +37,7 @@ const mineOp = { k: 'mine', field: 'kestrel', deliver: 'astra', sell: true };
 if (kase === 'haulers') { for (const s of own()) drop(s); add('hauler_mk1', '수송반 A'); add('hauler_mk1', '수송반 B'); }
 if (kase === 'combat') for (const s of own()) if (hullIdOf(s) === 'miner_mk1') drop(s);
 if (kase === 'corvettes') { for (const s of own()) drop(s); add('corvette_mk1', '경비 A'); add('corvette_mk1', '경비 B'); }
-let away = 16;
+let away = Number(process.argv[5] ?? 16);
 if (kase === 'veteran') {
   // six hours of normal mining, then the company expands (a destroyer and a second mining team), stocks ore
   // in its warehouse for an hour and then the player is away with every group idle
