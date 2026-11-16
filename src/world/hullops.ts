@@ -172,6 +172,13 @@ export function yardHulls(st: Station): string[] {
   return out.slice();
 }
 
+/** public-yard price of a hull: rises as the yard's stock runs down (the server's purchase price) */
+export function yardShipPrice(st: Pick<Station, 'shipStock'>, hullId: string): number {
+  const sale = hullSale(hullId); if (!sale) return 0;
+  const n = st.shipStock?.[hullId]?.n ?? 0;
+  return Math.round(sale.price * (1.25 - 0.25 * Math.min(1, n / Math.max(1, sale.stock))) / 10) * 10;
+}
+
 /** berth size of a station: public hubs by size, own stations grow with dock modules */
 /** public stations that exist only on expanded P10 worlds (content may name them; the P10 test checks the list) */
 export const P10_PUBLIC_STATIONS = ['p9_anvil_port', 'p9_junction_port', 'p10_crossroads_bazaar', 'p10_meridian_port', 'p10_kiln_works', 'p10_tundra_camp', 'p10_deepmine_post', 'p10_bulwark_yard', 'p10_arsenal_works', 'p10_muster_depot'];

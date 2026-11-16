@@ -30,6 +30,8 @@ import { opKey } from './fleetops';
 import { recoveredKey, unloadRisk, warnNoSafeUnload } from './blackmarket';
 import { contractStationFor, deliverSalvage, noteSalvageSource, trimSalvageSource } from './salvageContracts';
 import type { CommanderDef } from '../sim/data/commanders';
+import { stepPoolShip } from './autonomousLogistics';
+import { planMinerSaleTrip } from './procurement';
 
 type Host = WorldSim;
 
@@ -303,11 +305,35 @@ export function stepSalvage(h: Host, g: WGroup, ships: WShip[], op: Op, dt: numb
   const mode = op.k === 'recover' ? 'recover' : 'zone';
   const S = (g.salv ??= { mode, key, phase: 'transit', since: h.time, next: 0 });
   const illegal = !!(op as Extract<Op, { k: 'recover' | 'salvzone' }>).illegal;
-  const work = ships.filter(s => econOf(s).cruise > 0);
+  // A-3.2b.1: a hauler on a sale round trip (AUTO-P1.1 rules) flies that trip; the rest of the fleet keeps salvaging
+  const trip = ships.filter(s => onSaleTrip(h, g, s));
+  for (const s of trip) stepPoolShip(h, s, g, dt, h.cruiseOf(s) * (0.6 + 0.4 * s.hp));
+  const work = ships.filter(s => econOf(s).cruise > 0 && !trip.includes(s));
   if (h.time >= S.next) { decide(h, g, work, op as Extract<Op, { k: 'recover' | 'salvzone' }>, S, illegal); S.next = h.time + 1; }
-  move(h, g, work, S, illegal, dt);
+  move(h, g, work, S, illegal, dt, op as Extract<Op, { k: 'recover' | 'salvzone' }>);
   g.status = status(h, g, S, op);
   return true;
+}
+
+/** A-3.2b.1: this ship flies its salvage fleet's sale round trip (a logistics job owned by the fleet) */
+function onSaleTrip(h: Host, g: WGroup, s: WShip): boolean {
+  const j = s.logisticsJob ? h.st.logisticsJobs?.[s.logisticsJob] : undefined;
+  return !!j && j.miner === g.id && !!j.salvTrip && j.ship === s.id;
+}
+/**
+ * A-3.2b.1: after a salvage fleet's hauler (hauler role, not a warship, miner or constructor) has unloaded and is
+ * docked and empty, it may take one sale round trip of the station's excess stock — the same planner, policy,
+ * minimum price, distance and value rules as a mining hauler (procurement.ts planMinerSaleTrip). Only when the
+ * ships that stay can still work the current site (or there is none); only stored stock is sold, so goods owed
+ * to a salvage contract (handed over on unloading, never stored) cannot leave on it.
+ */
+function trySaleTrip(h: Host, g: WGroup, s: WShip, ships: WShip[], sta: Station, S: SalvState, illegal: boolean): boolean {
+  if (s.classId !== 'hauler' || econOf(s).military || salvageAboard(s) || cargoSum(s.cargo) > 1e-9 || s.logisticsJob || s.cargoWork) return false;
+  const others = ships.filter(x => x !== s && econOf(x).cruise > 0);
+  const w = siteOf(h.st, S.wreck);
+  if (w && !workable(h, others, w, illegal)) return false;
+  if (!others.length && w) return false;
+  return planMinerSaleTrip(h, s, sta, true);
 }
 
 function setPhase(h: Host, S: SalvState, phase: SalvState['phase'], why?: string) { if (S.phase !== phase) { S.phase = phase; S.since = h.time; } S.why = why; }
@@ -377,14 +403,16 @@ function finish(h: Host, g: WGroup, S: SalvState, why: string) {
   g.status = `인양 완료 — ${why}`;
 }
 
-function move(h: Host, g: WGroup, ships: WShip[], S: SalvState, illegal: boolean, dt: number) {
+function move(h: Host, g: WGroup, ships: WShip[], S: SalvState, illegal: boolean, dt: number, op?: Extract<Op, { k: 'recover' | 'salvzone' }>) {
   const st = h.st, speed = h.groupSpeedOf(g);
   if (S.phase === 'unload') {
     const sta = S.station ? st.stations[S.station] : null; if (!sta) return;
     let moved = 0, docked = 0;
     for (const s of ships) {
       if (!h.goDock(s, sta, dt, speed)) continue;
-      docked++; moved += unloadSalvage(h, s, sta);
+      docked++; const got = unloadSalvage(h, s, sta); moved += got;
+      // like a mining hauler: planned once, right after it has unloaded everything
+      if (op && got > 0 && trySaleTrip(h, g, s, ships, sta, S, illegal)) docked--;
     }
     // a full warehouse: try another station next time
     if (docked === ships.length && !moved && ships.some(salvageAboard) && ships.every(s => !s.salvaged || Object.keys(s.salvaged).every(k => h.intakeRoom(sta, s.owner, k) <= 1e-9))) {

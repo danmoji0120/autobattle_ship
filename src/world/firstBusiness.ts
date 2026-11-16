@@ -20,6 +20,10 @@ import { territoryRisk } from './territory';
 import { usableRouteGate } from './logistics';
 import { EQUIPMENT } from './industry';
 import { assetReferenceValue } from './valuation';
+import { coRelation } from './battleAuth';
+import { hullIdOf, hullSale, shipWorth, yardHulls, yardShipPrice } from './hullops';
+import { inRecovery, RECOVERY_STAGE } from './recovery';
+import { CONTENT } from '../content/registry';
 
 /** backgrounds that get the first-business guide (A-3.2a hauler/miner, A-3.2b salvager; the other three come later) */
 export const FIRST_BUSINESS_BG = ['hauler', 'miner', 'salvager'] as const;
@@ -343,6 +347,50 @@ export interface SalvageOption {
   protectedCargo: boolean;
   expiresIn: number;
   contract?: { id: string; title: string; reward: number; res?: string; amount?: number; station: string; mine: boolean; taken: boolean };
+  /** A-3.2b.1: route-risk band — safe ≤ 30 (recommended for a beginner), caution 31–55 (asks first), danger > 55 (strong warning) */
+  band: RiskBand;
+  /** A-3.2b.1: hostile armed ships the company can currently see — at the site (within SITE_THREAT_R) and elsewhere in its system */
+  threat: { near: number; system: number };
+  /** safe band and nothing hostile seen at the site */
+  recommended: boolean;
+}
+
+/** A-3.2b.1: route-risk bands of the salvager's guide */
+export type RiskBand = 'safe' | 'caution' | 'danger';
+export const RISK_SAFE = 30, RISK_CAUTION = 55;
+export const riskBand = (risk: number): RiskBand => risk <= RISK_SAFE ? 'safe' : risk <= RISK_CAUTION ? 'caution' : 'danger';
+/** distance from a site within which a hostile armed fleet counts as "at the site" (P13.1 SALV.hostileR is 5,000) */
+export const SITE_THREAT_R = 8000;
+/**
+ * A-3.2b.1: the question asked before sending the salvage fleet (null: no question). It never refuses or swaps
+ * the target — the player decides. Danger (route risk > 55): strong warning. Caution (31–55) or hostile armed
+ * ships seen at the site even on a safe route: a confirmation.
+ */
+export function salvageConfirm(o: Pick<SalvageOption, 'name' | 'risk' | 'band' | 'threat'>): string | null {
+  const t = o.threat.near ? ` 현장 반경 ${SITE_THREAT_R / 1000}k 안에 적대 무장 함선 ${o.threat.near}척이 보입니다(경로 위험과 별개).` : o.threat.system ? ` 같은 성계에 적대 무장 함선 ${o.threat.system}척이 보입니다.` : '';
+  if (o.band === 'danger') return `${o.name}: 경로 위험 ${o.risk} (위험) — 호위 없는 인양선은 격침될 수 있고 실린 화물도 잃습니다.${t} 그래도 보낼까요?`;
+  if (o.band === 'caution') return `${o.name}: 경로 위험 ${o.risk} (주의) — 초보 인양반에는 위험 30 이하 대상을 권장합니다. 해적·적대 함대를 만나면 함선을 잃을 수 있습니다.${t} 보낼까요?`;
+  if (o.threat.near) return `${o.name}: 경로는 안전(위험 ${o.risk})하지만${t} 도착하면 공격받을 수 있습니다. 보낼까요?`;
+  return null;
+}
+/**
+ * Hostile armed ships near a point, from what this state holds. On a client that is what the company can see
+ * (its interest area), on the server everything. Separate from the route risk, which is the systems' standing
+ * security and territory; this is the fleets there right now.
+ */
+export function knownThreat(w: WorldState, me: string, system: string, pos: Station['pos']): { near: number; system: number } {
+  let near = 0, sys = 0;
+  for (const g of Object.values(w.groups ?? {})) {
+    if (g.owner === me || coRelation(w as never, me, g.owner) !== -1) continue;
+    for (const id of g.shipIds) {
+      const x = w.ships[id];
+      if (!x || x.state === 'docked' || !econOf(x).military) continue;
+      if (sysAt(w.systems, x.pos)?.id !== system) continue;
+      const d = Math.hypot(x.pos.x - pos.x, x.pos.z - pos.z);
+      if (d <= SITE_THREAT_R) near++; else sys++;
+    }
+  }
+  return { near, system: sys };
 }
 
 const lotVal = (w: WorldState, item: string) => item.startsWith('bpf:') ? 500 : assetReferenceValue(w, item);
@@ -376,14 +424,17 @@ export function salvageOpportunities(w: WorldState, me: string): SalvageOption[]
     if (known && units < 1) continue;
     const main = known ? [...new Set([...(lots ?? [])].filter(l => l.n > 0).sort((a, b) => b.n * lotVal(w, b.item) - a.n * lotVal(w, a.item)).map(l => l.item.startsWith('bpf:') ? 'bpf' : l.item))].slice(0, 3) : x.main ?? [];
     const k = x.contract ? w.contracts?.[x.contract] : undefined;
+    const risk = Math.round(sysRouteRisk(w, home, x.system)), threat = knownThreat(w, me, x.system, x.pos), band = riskBand(risk);
     out.push({
-      id: x.id, name: x.name, kind, grade: x.grade, system: x.system, jumps: j, sec: Math.round(effSec(sys)), risk: Math.round(sysRouteRisk(w, home, x.system)),
+      band, threat, recommended: band === 'safe' && threat.near === 0,
+      id: x.id, name: x.name, kind, grade: x.grade, system: x.system, jumps: j, sec: Math.round(effSec(sys)), risk,
       value: Math.round(known ? value : x.est ?? 0), known, main, units: known ? units : undefined, protectedCargo: prot, expiresIn: Math.max(0, x.expires - w.time),
       ...(k && !k.done ? { contract: { id: k.id, title: k.title, reward: k.reward, res: k.res, amount: k.amount, station: k.stationId, mine: k.takenBy === me, taken: !!k.takenBy } } : {}),
     });
   }
-  // safe and near first, then value
-  return out.sort((a, b) => (a.risk > 55 ? 1 : 0) - (b.risk > 55 ? 1 : 0) || a.jumps - b.jumps || b.value - a.value).slice(0, 10);
+  // A-3.2b.1: recommended (route risk ≤ 30, nobody hostile seen at the site) first, then caution, then danger; near, then value
+  const rank = (o: SalvageOption) => (o.recommended ? 0 : o.band === 'safe' ? 1 : o.band === 'caution' ? 2 : 3);
+  return out.sort((a, b) => rank(a) - rank(b) || a.jumps - b.jumps || b.value - a.value).slice(0, 10);
 }
 
 export interface SalvageStatus {
@@ -413,4 +464,109 @@ export function salvageStatus(w: WorldState, me: string): SalvageStatus {
   }).filter(k => k.jumps <= SALVAGE_JUMPS).sort((a, b) => a.jumps - b.jumps || a.risk - b.risk).slice(0, 5);
   const r = co?.salvage;
   return { groups, units: r?.units ?? 0, value: Math.round(r?.value ?? 0), items: { ...(r?.items ?? {}) }, aboard, contracts, board };
+}
+
+// ───────────────────────────── A-3.2b.1 salvager business continuity
+
+/** hulls a salvager can buy back to keep working (the founding fleet's hulls) */
+export const SALVAGE_REBUY = ['miner_mk1', 'hauler_mk1', 'constructor_s'] as const;
+/** how far from home the guide looks for a yard selling them */
+export const REBUY_JUMPS = 3;
+/** a hauler below this hull share is not sent on automatic runs (haulers.ts HAULER_MIN_HP) */
+const HAULER_DISPATCH_HP = 0.4;
+
+export type SalvageOpState = 'ok' | 'limited' | 'transport' | 'halted';
+export const SALVAGE_OP_NAME: Record<SalvageOpState, string> = { ok: '정상 운영', limited: '능력 부족', transport: '운송 병목', halted: '사업 중단' };
+export interface SalvageOpStatus {
+  state: SalvageOpState;
+  /** what the fleet can still do on a site */
+  can: { hull: boolean; cargo: boolean; equip: boolean; frag: boolean };
+  /** civilian ships able to work a site, haulers fit to carry goods to a market */
+  workers: number; haulers: number; damagedHaulers: number;
+  lost: number;
+  issues: string[];
+  /** filled when the business is halted or short of a role: cash, arrears and what a replacement costs nearby */
+  comeback?: SalvageComeback;
+}
+export interface SalvageComeback {
+  credits: number; debt: number; stage: number; inRecovery: boolean;
+  /** reference value of goods in the company's warehouses that are on automatic sale (cash that selling would bring, roughly) */
+  stockValue: number;
+  offers: { station: string; jumps: number; hull: string; name: string; price: number; stock: number; affordable: boolean; role: string }[];
+  steps: string[];
+}
+
+const roleOfShip = (s: { classId: string; hull?: string; variant?: string }) => {
+  const e = econOf(s);
+  return e.military ? 'military' : s.classId === 'constructor' ? 'constructor' : s.classId === 'miner' ? 'miner' : s.classId === 'hauler' || e.cargo > 0 ? 'hauler' : 'other';
+};
+const ROLE_NAME: Record<string, string> = { miner_mk1: '선체 해체', hauler_mk1: '화물 회수·운송', constructor_s: '장비·설계도 조각·선체' };
+
+/**
+ * A-3.2b.1: what the salvager can do right now, apart from the milestones it already reached (those stay):
+ *  - halted: no civilian ship left that can work a site
+ *  - limited: hull scrap (miner/constructor) or equipment (constructor) can no longer be taken
+ *  - transport: no hauler fit to carry goods to a market that buys them (lost, or below the dispatch hull share)
+ *  - ok: otherwise
+ * Same rates as the salvage engine (P13.1 SALV.rate): cargo — any civilian; hull — miner, constructor; equipment
+ * and fragments — constructor (warships take a little cargo and equipment but are not counted as a salvage fleet).
+ */
+export function salvageOperatingStatus(w: WorldState, me: string): SalvageOpStatus {
+  const co = w.companies[me];
+  const ships = Object.values(w.ships).filter(s => s.owner === me && s.state !== 'building');
+  const civ = ships.map(s => ({ s, role: roleOfShip(s) })).filter(x => x.role !== 'military' && x.role !== 'other');
+  const can = { hull: civ.some(x => x.role === 'miner' || x.role === 'constructor'), cargo: civ.length > 0, equip: civ.some(x => x.role === 'constructor'), frag: civ.some(x => x.role === 'constructor') };
+  const hs = civ.filter(x => x.role === 'hauler'), fit = hs.filter(x => x.s.hp >= HAULER_DISPATCH_HP);
+  const issues: string[] = [];
+  let state: SalvageOpState = 'ok';
+  if (!civ.length) { state = 'halted'; issues.push('회수할 수 있는 작업선이 모두 없습니다 — 새 인양은 할 수 없습니다'); }
+  else {
+    if (!can.hull) issues.push('선체 해체 불가 — 채굴선·공작선이 없어 고철(합금·금속 등)을 떼어 내지 못합니다');
+    if (!can.equip) issues.push('장비·설계도 조각 회수 불가 — 공작선이 없습니다');
+    if (!can.hull || !can.equip) state = 'limited';
+    if (!fit.length) {
+      issues.push(hs.length ? `수송선 손상(내구 ${Math.round(Math.max(...hs.map(x => x.s.hp)) * 100)}%) — 수리 전에는 회수품을 다른 시장으로 운송하지 못합니다` : '수송선 없음 — 하역지 시장이 사지 않는 회수품을 다른 시장으로 옮길 수 없습니다');
+      if (state === 'ok') state = 'transport';
+    }
+  }
+  const out: SalvageOpStatus = { state, can, workers: civ.length, haulers: fit.length, damagedHaulers: hs.length - fit.length, lost: co?.stats?.lost ?? 0, issues };
+  if (co && state !== 'ok') out.comeback = salvageComeback(w, me, can, fit.length > 0);
+  return out;
+}
+
+/** cash, arrears and replacement hulls near home (public yards, real stock and price) */
+function salvageComeback(w: WorldState, me: string, can: SalvageOpStatus['can'], hauler: boolean): SalvageComeback {
+  const co = w.companies[me], home = w.stations[co.homeStation ?? ''], hs = home ? sysId(w, home) : undefined;
+  const debt = co.upkeep?.debt ?? 0, stage = co.upkeep?.stage ?? 0;
+  let stockValue = 0;
+  for (const st of Object.values(w.stations)) for (const [k, n] of Object.entries(st.storage?.[me] ?? {})) if (n > 0.5 && co.procurement?.sales?.[k]) stockValue += n * assetReferenceValue(w, k);
+  const want = SALVAGE_REBUY.filter(h => h === 'miner_mk1' ? !can.hull : h === 'constructor_s' ? !can.equip : !hauler);
+  const offers: SalvageComeback['offers'] = [];
+  for (const st of Object.values(w.stations)) {
+    if (!st.public || !hs) continue;
+    const ss = sysId(w, st); if (!ss) continue;
+    const j = jumps(w.systems, hs, ss); if (j > REBUY_JUMPS) continue;
+    const sells = yardHulls(st);
+    for (const hull of want) {
+      if (!sells.includes(hull) || !hullSale(hull)) continue;
+      const stock = st.shipStock?.[hull]?.n ?? hullSale(hull)!.stock ?? 0;
+      if (stock < 1) continue;
+      const price = yardShipPrice(st, hull);
+      offers.push({ station: st.id, jumps: j, hull, name: CONTENT.hulls[hull]?.name ?? hull, price, stock, affordable: co.credits >= price, role: ROLE_NAME[hull] ?? '' });
+    }
+  }
+  offers.sort((a, b) => a.price - b.price || a.jumps - b.jumps);
+  const cheapest = new Map<string, (typeof offers)[number]>();
+  for (const o of offers) if (!cheapest.has(o.hull)) cheapest.set(o.hull, o);
+  const steps: string[] = [];
+  const rec = inRecovery(co);
+  if (rec || stage >= RECOVERY_STAGE) steps.push(`운영비 체납 ${stage}단계(미납 ${Math.round(debt).toLocaleString()} cr) — 상단 운영비 패널의 회생 블록에서 남은 함선 회생 운항·긴급 매각·긴급 교환을 쓸 수 있습니다 (A-2.1)`);
+  else if (debt > 1) steps.push(`운영비 미납 ${Math.round(debt).toLocaleString()} cr — 판매 대금에서 먼저 정산됩니다`);
+  if (stockValue >= 1) steps.push(`창고의 회수품(기준가 약 ${Math.round(stockValue).toLocaleString()} cr)은 자동 판매 대상입니다 — 수송선이 없으면 하역지 시장이 사는 품목만 팔립니다`);
+  const buyable = [...cheapest.values()].filter(o => o.affordable);
+  if (buyable.length) steps.push(`대체 함선 구입 가능: ${buyable.map(o => `${o.name} ${o.price.toLocaleString()} cr (${w.stations[o.station]?.name ?? o.station}${o.jumps ? ` · ${o.jumps}점프` : ''})`).join(', ')} — 정거장 조선소 탭에서 구입한 뒤 인양반 편대에 넣으세요`);
+  else if (cheapest.size) { const c = [...cheapest.values()].sort((a, b) => a.price - b.price)[0]; steps.push(`가장 싼 대체 함선 ${c.name} ${c.price.toLocaleString()} cr — 자금 ${Math.round(co.credits).toLocaleString()} cr로는 부족합니다 (${Math.round(c.price - co.credits).toLocaleString()} cr 더 필요)`); }
+  else if (want.length) steps.push(`${REBUY_JUMPS}점프 안 공영 조선소에 대체 함선 재고가 없습니다 — 재고가 다시 생기면 구입할 수 있습니다`);
+  if (!buyable.length && !(rec || stage >= RECOVERY_STAGE)) steps.push('자금이 모자라면 남은 함선을 거래소 매물로 내놓을 수 있고(정박 중), 운영비 체납이 3단계가 되면 회생 수단(긴급 매각·긴급 교환·회생 운항)이 열립니다');
+  return { credits: co.credits, debt, stage, inRecovery: rec, stockValue: Math.round(stockValue), offers: [...cheapest.values()], steps };
 }

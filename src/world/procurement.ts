@@ -417,7 +417,7 @@ function returnMinerTrip(h: WorldSim, p: ProcurementPolicy, j: LogisticsJob, why
   j.to = j.from; j.returning = true; delete j.stuck; j.state = 'active'; delete j.code; delete j.retryAt; j.attempts = 0;
   j.reason = `${why} — 맞는 시장이 ${Math.round(MINER_TRIP_GIVEUP / 60)}분 동안 없어 ${home?.name ?? j.from}(으)로 복귀`;
   p.minerTrip = { t: h.time, ship: j.ship ?? '', reason: `${name} 판매 실패 — ${home?.name ?? j.from}(으)로 복귀, ${Math.round((r.at - h.time) / 60)}분 뒤 판매 왕복 재시도` };
-  h.ev('info', `채굴 수송선 판매 왕복 복귀: ${name} ${Math.round(j.carried)} — ${j.reason}`, { company: j.owner, pos: home?.pos });
+  h.ev('info', `${j.salvTrip ? '인양' : '채굴'} 수송선 판매 왕복 복귀: ${name} ${Math.round(j.carried)} — ${j.reason}`, { company: j.owner, pos: home?.pos });
 }
 /**
  * AUTO-P1: a mining fleet's hauler that has just unloaded (docked, empty, at its fleet's delivery station) takes one
@@ -426,14 +426,15 @@ function returnMinerTrip(h: WorldSim, p: ProcurementPolicy, j: LogisticsJob, why
  * and minimum-price rules as every other automatic sale. The hauler goes back to mining when the trip ends; the
  * fleet's miners unload themselves meanwhile. Returns true when a trip was assigned.
  */
-export function planMinerSaleTrip(h: WorldSim, s: WShip, dock: Station): boolean {
+export function planMinerSaleTrip(h: WorldSim, s: WShip, dock: Station, salvage = false): boolean {
   if (!growthOn(h.st)) return false;
+  const who = salvage ? '인양 수송선' : '채굴 수송선', work = salvage ? '인양' : '채굴';
   const co = h.st.companies[s.owner], policy = co?.kind === 'player' ? co.procurement : undefined;
   if (!minerSalesOn(policy) || !policy?.sales || !Object.keys(policy.sales).length) return false;
   if (s.logisticsJob || cargoSum(s.cargo) > EPS || s.state !== 'docked' || s.task.k !== 'docked' || s.task.station !== dock.id) return false;
   const note = (reason: string) => { policy.minerTrip = { t: h.time, ship: s.id, reason }; return false; };
   if (poolShips(h, co.id).some(p => p.hp >= HAULER_MIN_HP && !p.logisticsJob)) return note('유휴 공용 수송선이 판매 운송을 맡음');
-  if (s.hp < HAULER_MIN_HP) return note(`채굴 수송선 손상(내구 ${Math.round(s.hp * 100)}%) — 수리 후 판매 왕복`);
+  if (s.hp < HAULER_MIN_HP) return note(`${who} 손상(내구 ${Math.round(s.hp * 100)}%) — 수리 후 판매 왕복`);
   if (!h.canDock(dock, co.id)) return note(`${dock.name}: 정박 불가`);
   const status = policy.salesStatus ??= {}, promised = salePromised(h, co.id);
   const lot = Math.floor(econOf(s).cargo * techFx(co.tech).cargoMul + EPS);
@@ -450,15 +451,15 @@ export function planMinerSaleTrip(h: WorldSim, s: WShip, dock: Station): boolean
     if (excess < lot * 0.6 && h.room(dock, co.id) > lot && h.time - since[dock.id] < 600) { why = `${name} 초과 ${excess}: 한 번에 실을 만큼 모이면 판매 왕복`; continue; }
     const amount = Math.min(excess, lot), best = saleMarkets(h, co.id, [s], promised, item, dock, amount, rule)[0];
     if (!best) { why = `${name} 초과 ${excess}: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도`; continue; }
-    if (best.hops > MINER_TRIP_MAX_JUMPS) { why = `${name}: 가장 나은 시장 ${best.m.name}이(가) ${best.hops}점프 — 채굴 수송선 왕복 한도(${MINER_TRIP_MAX_JUMPS}점프) 초과`; continue; }
-    if (best.q.value < MINER_TRIP_MIN_VALUE * Math.max(1, best.hops)) { why = `${name}: 예상 판매액 ${Math.round(best.q.value).toLocaleString()} cr — 채굴을 비울 만한 수익 아님(점프당 ${MINER_TRIP_MIN_VALUE.toLocaleString()} cr 이상)`; continue; }
+    if (best.hops > MINER_TRIP_MAX_JUMPS) { why = `${name}: 가장 나은 시장 ${best.m.name}이(가) ${best.hops}점프 — ${who} 왕복 한도(${MINER_TRIP_MAX_JUMPS}점프) 초과`; continue; }
+    if (best.q.value < MINER_TRIP_MIN_VALUE * Math.max(1, best.hops)) { why = `${name}: 예상 판매액 ${Math.round(best.q.value).toLocaleString()} cr — ${work}을 비울 만한 수익 아님(점프당 ${MINER_TRIP_MIN_VALUE.toLocaleString()} cr 이상)`; continue; }
     const err = createPoolJob(h, co.id, { from: dock.id, to: best.m.id, item, kind: 'sell', amount: Math.floor(best.q.sold), priority: 4, repeat: false }, undefined, true);
     if (err) { why = `${name}: ${err}`; continue; }
     const j = Object.values(h.st.logisticsJobs!).at(-1)!;
-    assignMinerTrip(h, j, s);
+    assignMinerTrip(h, j, s, salvage);
     delete since[dock.id];
     policy.minerTrip = { t: h.time, ship: s.id, reason: `${s.name}: ${name} ${Math.round(j.reserved)} → ${best.m.name} 판매 왕복 (${best.hops}점프, 예상 ${Math.round(best.q.value).toLocaleString()} cr)` };
-    h.ev('info', `채굴 수송선 판매 왕복: ${s.name}이(가) ${dock.name}의 ${name} ${Math.round(j.reserved)}을(를) ${best.m.name}에 판매하러 출발`, { company: co.id, pos: dock.pos });
+    h.ev('info', `${who} 판매 왕복: ${s.name}이(가) ${dock.name}의 ${name} ${Math.round(j.reserved)}을(를) ${best.m.name}에 판매하러 출발`, { company: co.id, pos: dock.pos });
     return true;
   }
   return note(why);
@@ -482,7 +483,7 @@ export function planSales(h: WorldSim) {
     const promised = salePromised(h, co.id);
     const promise = (st: Station, item: string, n: number) => promised.set(st.id, (promised.get(st.id) ?? 0) + n * h.price(st, item, 'sell') * (1 - (st.tax ?? 0)));
     // AUTO-P1: an idle mining hauler may carry when the pool has no usable ship (its trips are planned when it docks)
-    const minerCarriers = minerSalesOn(policy) ? Object.values(h.st.ships).filter(s => s.owner === co.id && s.classId === 'hauler' && (() => { const g = h.st.groups[s.groupId]; return !!g && h.opOf(g).k === 'mine'; })()) : [];
+    const minerCarriers = minerSalesOn(policy) ? Object.values(h.st.ships).filter(s => s.owner === co.id && s.classId === 'hauler' && (() => { const g = h.st.groups[s.groupId], k = g && h.opOf(g).k; return k === 'mine' || (k === 'recover' || k === 'salvzone') && !!h.st.salvageV; })()) : [];
     const markets = (item: string, from: Station, amount: number, rule: SalesRule, exclude?: string) => saleMarkets(h, co.id, ships.length ? ships : minerCarriers, promised, item, from, amount, rule, exclude);
     for (const item of Object.keys(rules).sort()) {
       const rule = rules[item], st0 = status[item] ?? { t: h.time, excess: 0, moving: 0, reason: '', sold: 0, earned: 0 };
@@ -523,7 +524,9 @@ export function planSales(h: WorldSim) {
           // AUTO-P1: the mining fleet's hauler sells on its next stop at this station (planMinerSaleTrip)
           const trip = jobs.find(j => j.miner && j.from === st.id && j.item === item);
           const miner = minerCarriers.find(s => { const g = h.st.groups[s.groupId], op = g && h.opOf(g); return op?.k === 'mine' && op.deliver === st.id; });
-          if (trip) { reasons.push(trip.returning ? `채굴 수송선이 팔지 못한 화물을 싣고 ${h.st.stations[trip.to]?.name ?? trip.to}(으)로 복귀 — ${trip.reason ?? ''}` : `채굴 수송선 판매 왕복 중 → ${h.st.stations[trip.to]?.name ?? trip.to}`); continue; }
+          if (trip) { reasons.push(trip.returning ? `${trip.salvTrip ? '인양' : '채굴'} 수송선이 팔지 못한 화물을 싣고 ${h.st.stations[trip.to]?.name ?? trip.to}(으)로 복귀 — ${trip.reason ?? ''}` : `${trip.salvTrip ? '인양' : '채굴'} 수송선 판매 왕복 중 → ${h.st.stations[trip.to]?.name ?? trip.to}`); continue; }
+          const salv = minerCarriers.find(s => { const g = h.st.groups[s.groupId], k = g && h.opOf(g).k; return (k === 'recover' || k === 'salvzone') && g!.salv?.station === st.id; });
+          if (salv && !miner) { reasons.push(`${st.name} 초과 ${excess}: 인양 수송선이 이곳에 하역한 뒤 판매 왕복 — ${policy.minerTrip?.reason ?? '대기'}`); continue; }
           if (miner) { reasons.push(`${st.name} 초과 ${excess}: 채굴 수송선이 다음 하역 때 판매 왕복 — ${policy.minerTrip?.reason ?? '대기'}`); continue; }
           reasons.push(!ships.length
             ? `${st.name} 초과 ${excess}: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송`

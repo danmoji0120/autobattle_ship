@@ -38,7 +38,7 @@ import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInflu
 import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot, unlockSummary } from './research';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
-import { econOf, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
+import { econOf, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth, yardShipPrice } from './hullops';
 import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { BACKGROUND, backgroundOf, backgroundsOn, backgroundStanding, backgroundTerms } from './backgrounds';
 import { firstProfitReached, pnlSinceFounding } from './firstBusiness';
@@ -1740,11 +1740,7 @@ export class WorldSim {
   }
 
   /** public-yard price: rises as the yard's stock runs down */
-  shipPrice(st: Station, hullId: string): number {
-    const sale = hullSale(hullId); if (!sale) return 0;
-    const n = st.shipStock?.[hullId]?.n ?? 0;
-    return Math.round(sale.price * (1.25 - 0.25 * Math.min(1, n / Math.max(1, sale.stock))) / 10) * 10;
-  }
+  shipPrice(st: Station, hullId: string): number { return yardShipPrice(st, hullId); }
 
   private buyHull(co: Company, cmd: Extract<Cmd, { c: 'buyShip' }>, G: (id: string) => WGroup | null): string | null {
     const st = this.st.stations[cmd.station];

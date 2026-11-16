@@ -6,6 +6,7 @@
 //   base     — A-3.2b off, battlefield wrecks only (the state before this stage)
 //   derelict — A-3.2b on, natural derelicts and salvage contracts only, route risk ≤ 55
 //   all      — A-3.2b on, every target the guide lists (derelicts, battle wrecks, jettisoned cargo), risk ≤ 55
+//   safe     — A-3.2b on, A-3.2b.1 guide's recommended targets only (route risk ≤ 30, no hostile seen at the site; contracts ≤ 30)
 //   risky    — A-3.2b on, prefers targets with route risk > 55 (danger space, no escort)
 //   compete3 — A-3.2b on, three salvager companies at Ceres, each "all"
 // usage: npx tsx scripts/a32b/salvage-scenarios.ts <mode> [hours=6] [outDir=docs/a32b-results] [seed=21]
@@ -13,7 +14,8 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { WorldSim } from '../../src/world/sim';
 import { STANDARD_WORLD } from '../../src/world/worldPreset';
 import { qty } from '../../src/world/types';
-import { firstBusinessStatus, salvageOpportunities, salvageStatus, SALVAGE_SELL_ITEMS, type SalvageOption } from '../../src/world/firstBusiness';
+import { firstBusinessStatus, salvageOpportunities, salvageStatus, salvageOperatingStatus, SALVAGE_SELL_ITEMS, type SalvageOption } from '../../src/world/firstBusiness';
+import { observeWorld } from '../../src/world/observe';
 import { assetReferenceValue } from '../../src/world/valuation';
 import { storeUsed } from '../../src/world/storage';
 import { hullPrice } from '../../src/world/valuation';
@@ -28,13 +30,22 @@ const ok = (e: string | null, what: string) => { if (e) throw new Error(`${what}
 if (mode !== 'none') for (const me of ids) for (const item of SALVAGE_SELL_ITEMS) ok(sim.command(me, { c: 'salesPolicy', settings: { item, sell: true, minPrice: 0 } }), 'sales policy');
 const groupOf = (me: string) => Object.values(sim.st.groups).find(g => g.owner === me && Object.values(sim.st.ships).some(s => s.owner === me && s.groupId === g.id));
 const val = (k: string) => k.startsWith('bpf:') ? 500 : assetReferenceValue(sim.st, k);
+// A-3.2b.1: recovered goods counted from the engine's own salvage events (the same in every mode — `co.salvage` is
+// only kept when A-3.2b is on). Observation never consumes RNG or changes gameplay (observe.ts).
+const EV = new Map<string, { units: number; value: number; items: Record<string, number> }>(ids.map(me => [me, { units: 0, value: 0, items: {} }]));
+observeWorld(sim.st, e => {
+  if (e.kind !== 'salvage' || e.reason !== 'recover' || !e.company || !e.item) return;
+  const x = EV.get(e.company); if (!x) return;
+  x.units += e.amount; x.value += e.amount * val(e.item); x.items[e.item] = (x.items[e.item] ?? 0) + e.amount;
+});
 
-interface Track { found: Set<string>; worked: Set<string>; accepted: number; lostValue: number; shipsSeen: Map<string, number>; peak: number; idleNoTarget: number; blocked: number; ks: Map<string, { progress: number; amount: number; done: boolean; ended?: string; reward: number }>; stalls: Record<string, number>; firstSalvage?: number; firstProfit?: number; picks: { t: number; id: string; kind: string; risk: number; value: number }[] }
-const T = new Map<string, Track>(ids.map(me => [me, { found: new Set(), worked: new Set(), accepted: 0, lostValue: 0, shipsSeen: new Map(), peak: 0, idleNoTarget: 0, blocked: 0, ks: new Map(), stalls: {}, picks: [] }]));
+interface Track { trips: Map<string, { item: string; amount: number; delivered: number; earned: number; state: string; returning: boolean; to: string }>; found: Set<string>; worked: Set<string>; accepted: number; lostValue: number; shipsSeen: Map<string, number>; peak: number; idleNoTarget: number; blocked: number; ks: Map<string, { progress: number; amount: number; done: boolean; ended?: string; reward: number }>; stalls: Record<string, number>; firstSalvage?: number; firstProfit?: number; picks: { t: number; id: string; kind: string; risk: number; value: number }[] }
+const T = new Map<string, Track>(ids.map(me => [me, { trips: new Map(), found: new Set(), worked: new Set(), accepted: 0, lostValue: 0, shipsSeen: new Map(), peak: 0, idleNoTarget: 0, blocked: 0, ks: new Map(), stalls: {}, picks: [] }]));
 
 function allowed(o: SalvageOption): boolean {
   if (mode === 'derelict') return o.kind === 'derelict' && o.risk <= 55;
   if (mode === 'risky') return o.risk > 55;
+  if (mode === 'safe') return o.recommended;
   return o.risk <= 55;
 }
 function act(me: string) {
@@ -52,7 +63,7 @@ function act(me: string) {
       if (!e) { t.picks.push({ t: sim.time, id: tgt, kind: 'contract', risk: 0, value: 0 }); return; }
       t.stalls[`계약 대상: ${e}`] = (t.stalls[`계약 대상: ${e}`] ?? 0) + 1;   // e.g. the ships that could work it were lost
     }
-    const k = sv.board.find(b => b.risk <= 55 && b.target && sim.st.wrecks?.[b.target]);
+    const k = sv.board.find(b => b.risk <= (mode === 'safe' ? 30 : 55) && b.target && sim.st.wrecks?.[b.target]);
     if (k && sim.command(me, { c: 'accept', contract: k.id }) === null) {
       t.accepted++;
       const e = sim.command(me, { c: 'setOp', group: g.id, op: { k: 'recover', wreck: k.target! } });
@@ -73,6 +84,7 @@ function observe(me: string) {
   for (const [id, v] of t.shipsSeen) if (!sim.st.ships[id]) { t.lostValue += v; t.shipsSeen.delete(id); }   // NPC yard list price
   for (const st of Object.values(sim.st.stations)) t.peak = Math.max(t.peak, storeUsed(st.storage[me]));
   for (const id of co.salvage?.sites ?? []) t.worked.add(id);
+  for (const j of Object.values(sim.st.logisticsJobs ?? {})) if (j.owner === me && j.salvTrip) t.trips.set(j.id, { item: j.item, amount: Math.round(j.amount), delivered: Math.round(j.delivered), earned: Math.round(j.earned), state: j.state, returning: !!j.returning, to: j.to });
   // every salvage contract we took, sampled each minute (finished ones are removed from the world 5 min after expiry)
   for (const k of Object.values(sim.st.contracts)) if (k.kind === 'salvage' && k.takenBy === me) t.ks.set(k.id, { progress: k.progress, amount: k.amount ?? 0, done: k.done, ended: k.ended, reward: k.reward });
   const g = groupOf(me);
@@ -90,7 +102,12 @@ function report(me: string) {
     company: co.name, time: r(sim.time), credits: r(co.credits), netCash: r(co.credits - s.start), debt: r(co.upkeep?.debt ?? 0),
     firstSalvageAt: t.firstSalvage === undefined ? null : r(t.firstSalvage), firstProfitAt: t.firstProfit === undefined ? null : r(t.firstProfit),
     targetsSeen: t.found.size, targetsWorked: t.worked.size, picks: t.picks.length, pickKinds: t.picks.reduce((a, x) => { a[x.kind] = (a[x.kind] ?? 0) + 1; return a; }, {} as Record<string, number>),
-    recoveredUnits: r(co.salvage?.units ?? 0), recoveredValue: r(co.salvage?.value ?? 0), recoveredByItem: Object.fromEntries(Object.entries(co.salvage?.items ?? {}).map(([k, v]) => [k, r(v)])),
+    // engine events (every mode); `ledger*` is the A-3.2b company ledger (only kept when A-3.2b is on)
+    recoveredUnits: r(EV.get(me)!.units), recoveredValue: r(EV.get(me)!.value), recoveredByItem: Object.fromEntries(Object.entries(EV.get(me)!.items).map(([k, v]) => [k, r(v)])),
+    ledgerUnits: r(co.salvage?.units ?? 0), ledgerValue: r(co.salvage?.value ?? 0),
+    saleTrips: (() => { const xs = [...t.trips.values()]; return { n: xs.length, done: xs.filter(x => x.state === 'complete').length, returned: xs.filter(x => x.returning).length, sold: xs.reduce((a, x) => a + x.delivered, 0), earned: xs.reduce((a, x) => a + x.earned, 0), items: xs.reduce((a, x) => { a[x.item] = (a[x.item] ?? 0) + x.delivered; return a; }, {} as Record<string, number>) }; })(),
+    operating: (() => { const o = salvageOperatingStatus(sim.st, me); return { state: o.state, can: o.can, workers: o.workers, haulers: o.haulers, damagedHaulers: o.damagedHaulers, issues: o.issues, comeback: o.comeback && { credits: r(o.comeback.credits), stage: o.comeback.stage, offers: o.comeback.offers.map(x => `${x.hull}@${x.station} ${x.price}${x.affordable ? '' : ' (부족)'}`), steps: o.comeback.steps } }; })(),
+    shipsLeft: Object.values(sim.st.ships).filter(x => x.owner === me).map(x => x.classId),
     contracts: (() => { const ks = [...t.ks.values()], ok = (k: { progress: number; amount: number }) => k.progress >= k.amount - 1e-6;
       return { accepted: t.accepted, done: ks.filter(k => k.done && ok(k)).length, failed: ks.filter(k => k.done && !ok(k)).length, open: ks.filter(k => !k.done).length,
         failReasons: ks.filter(k => k.done && !ok(k)).reduce((a, k) => { const r = k.ended ?? '기한 만료'; a[r] = (a[r] ?? 0) + 1; return a; }, {} as Record<string, number>),

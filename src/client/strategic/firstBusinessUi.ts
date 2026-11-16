@@ -7,7 +7,7 @@ import type { WorldState } from '../../world/types';
 import { itemName } from '../../world/industry';
 import { buyCost } from '../../world/market';
 import { econOf } from '../../world/hullops';
-import { FIELD_JUMPS, fieldOptions, movableGroups, firstBusinessOn, firstBusinessStatus, relocationOptions, riskLabel, sellWalk, TRADE_JUMPS, tradeOpportunities, salvageOpportunities, SALVAGE_JUMPS, SALVAGE_ROLES, SALVAGE_SELL_ITEMS, type FieldOption, type FirstStatus, type Relocation, type TradeOption, type SalvageOption } from '../../world/firstBusiness';
+import { FIELD_JUMPS, fieldOptions, movableGroups, firstBusinessOn, firstBusinessStatus, relocationOptions, riskLabel, sellWalk, TRADE_JUMPS, tradeOpportunities, salvageOpportunities, SALVAGE_JUMPS, SALVAGE_ROLES, SALVAGE_SELL_ITEMS, salvageConfirm, salvageOperatingStatus, SALVAGE_OP_NAME, SITE_THREAT_R, type SalvageOpStatus, type FieldOption, type FirstStatus, type Relocation, type TradeOption, type SalvageOption } from '../../world/firstBusiness';
 import { BACKGROUND } from '../../world/backgrounds';
 import { morph } from '../../ui/morph';
 
@@ -152,14 +152,27 @@ export class FirstBusinessPanel {
     const opts = this.cache!.salvage;
     const kindName = (o: SalvageOption) => o.kind === 'derelict' ? `유기선${o.grade === 'small' ? ' (소형·초보)' : o.grade === 'medium' ? ' (중형)' : o.grade === 'large' ? ' (대형)' : ''}` : o.kind === 'drop' ? '투하 화물' : '전장 잔해';
     const rows = opts.map((o, i) => `<tr data-fbsalv="${i}"><td><b>${esc(o.name)}</b><div class="dim small">${kindName(o)} · ${o.jumps ? `${o.jumps}점프` : '같은 성계'} · 치안 ${o.sec} · <span class="${o.risk > 55 ? 'warn' : o.risk > 30 ? 'warnish' : 'good'}">경로 ${riskLabel(o.risk)} ${o.risk}</span> · ${Math.round(o.expiresIn / 60)}분 뒤 소멸</div>
+        <div class="small fbband">${o.recommended ? '<span class="good">추천 — 안전 경로</span>' : o.band === 'safe' ? '<span class="warnish">안전 경로 · 현장 위협</span>' : o.band === 'caution' ? '<span class="warnish">주의 — 출발 전 확인</span>' : '<span class="warn">위험 — 격침 가능</span>'} · ${o.threat.near ? `<span class="warn" data-fbthreat>현장(${SITE_THREAT_R / 1000}k 안)에 적대 함대 ${o.threat.near}척 확인</span>` : o.threat.system ? `<span class="warnish" data-fbthreat>현장에는 없음 · 같은 성계에 적대 함대 ${o.threat.system}척</span>` : '<span class="dim">현장 주변 적대 함대 미확인</span>'}</div>
         <div class="small">${o.known ? '확인된 내용' : '보고된 추정'}: ${o.main.map(k => esc(k === 'bpf' ? '설계도 조각' : itemName(k))).join(', ') || '—'}${o.units ? ` · ${fmt(o.units)}단위` : ''}${o.protectedCargo ? ' · <span class="warnish">타사 소유 화물 포함 — 일반 인양은 건너뜀(가져가면 무단 인양)</span>' : o.kind === 'derelict' ? ' · <span class="good">소유자 없음 — 합법 인양</span>' : ''}${o.contract ? `<div class="small">계약: ${esc(o.contract.title)} · ${fmt(o.contract.reward)} cr${o.contract.mine ? ' <span class="good">(수주함)</span>' : o.contract.taken ? ' (다른 회사 수주)' : ''}</div>` : ''}</div></td>
         <td class="n">${o.value ? `${o.known ? '' : '약 '}${fmt(o.value)}` : '—'}</td>
-        <td>${cur?.target === o.id ? '<span class="good small">인양 중</span>' : `<button class="btn mini${o.risk > 55 ? ' warn' : ''}" data-fbrecover="${i}">${o.risk > 55 ? '위험 — 인양 시작' : '인양 시작'}</button>`}</td></tr>`).join('');
+        <td>${cur?.target === o.id ? '<span class="good small">인양 중</span>' : `<button class="btn mini${o.band === 'danger' ? ' warn' : ''}" data-fbrecover="${i}">${o.band === 'danger' ? '위험 — 인양 시작' : '인양 시작'}</button>`}</td></tr>`).join('');
     const list = rows ? `<table class="gt fbtrades"><tr><th>대상</th><th class="n">기준가 cr</th><th></th></tr>${rows}</table>` : `<div class="small dim">${SALVAGE_JUMPS}점프 안에 보이는 인양 대상이 없습니다. 유기선은 지역마다 정해진 수만큼 불규칙하게 나타나고(모든 회사 공유), 전장 잔해는 실제 전투 뒤에 생깁니다 — 잠시 뒤 다시 확인하세요.</div>`;
-    return `<div class="ptitle"><span>인양반</span><button class="btn mini" data-fblog>물류 현황</button></div>${roles}${now}${got}${sales}
-      <div class="small fbintro"><b>인양 시작</b>을 누르면 인양반 전체가 그 대상으로 가서 회수하고, 화물칸이 차면 가까운 정거장(인양 계약이 있으면 그 납품처)에 하역한 뒤 대상이 빌 때까지 반복합니다. 끝나면 정박 대기로 돌아가 수송선은 공용 물류에 쓰입니다. 금액은 회수 기준가이며 실제 판매가는 시장·예산에 따라 다릅니다. 위험 경로는 함선을 잃을 수 있습니다(호위 없음).</div>
+    const op = this.opHtml(w, salvageOperatingStatus(w, me), stn);
+    return `<div class="ptitle"><span>인양반</span><button class="btn mini" data-fblog>물류 현황</button></div>${op}${roles}${now}${got}${sales}
+      <div class="small fbintro"><b>인양 시작</b>을 누르면 인양반 전체가 그 대상으로 가서 회수하고, 화물칸이 차면 가까운 정거장(인양 계약이 있으면 그 납품처)에 하역한 뒤 대상이 빌 때까지 반복합니다. 처음에는 <span class="good">추천</span>(경로 위험 30 이하·현장 위협 없음) 대상을 고르세요 — 31~55는 출발 전에 확인하고, 55를 넘으면 격침 경고가 뜹니다. 자동 판매가 켜져 있으면 하역을 마친 수송선이 그 정거장이 사지 않는 회수품을 가까운 시장(3점프 안)에 팔고 돌아오며, 그동안 나머지 함선은 계속 인양합니다. 끝나면 정박 대기로 돌아가 수송선은 공용 물류에 쓰입니다. 금액은 회수 기준가이며 실제 판매가는 시장·예산에 따라 다릅니다. 위험 경로는 함선을 잃을 수 있습니다(호위 없음).</div>
       <label class="small fbauto"><input type="checkbox" data-fbautosell ${autoOn || !w.companies[me].procurement?.sales ? 'checked' : ''}> 회수품 자동 판매 — 하역한 고철·부품을 그 정거장 시장에 팔고, 사지 않는 품목은 대기 수송선이 다른 시장으로 운송 (물류 관리 › 재고 정책과 같음 · 장비·설계도 조각 제외)${autoOn ? ` <span class="good">켜짐 ${autoOn}품목</span>` : ''}</label>
       ${list}${mine}${board}`;
+  }
+
+  /** A-3.2b.1: what the fleet can still do; when the business is halted, the A-2.1 comeback route (cash, rebuy, recovery) */
+  private opHtml(w: WorldState, op: SalvageOpStatus, stn: (id?: string) => string): string {
+    void w;
+    const cls = op.state === 'ok' ? 'good' : op.state === 'halted' ? 'warn' : 'warnish';
+    const can = [op.can.cargo && '화물', op.can.hull && '선체', op.can.equip && '장비·설계도 조각'].filter(Boolean).join('·') || '없음';
+    const head = `<div class="small fbop" data-fbop="${op.state}">운영 상태: <b class="${cls}">${SALVAGE_OP_NAME[op.state]}</b> <span class="dim">· 작업선 ${op.workers}척 · 운송 가능 수송선 ${op.haulers}척${op.damagedHaulers ? ` (손상 ${op.damagedHaulers})` : ''} · 회수 가능: ${can}${op.lost ? ` · 누적 손실 ${op.lost}척` : ''}</span>${op.issues.length ? `<ul class="fbissues">${op.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}</div>`;
+    const c = op.comeback; if (!c) return head;
+    const offers = c.offers.length ? `<table class="gt small">${c.offers.map(o => `<tr><td>${esc(o.name)} <span class="dim">${esc(o.role)}</span></td><td><a href="#" data-fbst="${o.station}">${stn(o.station)}</a> ${o.jumps ? `${o.jumps}점프` : '본거지 성계'}</td><td class="n ${o.affordable ? 'good' : 'warn'}">${fmt(o.price)} cr</td></tr>`).join('')}</table>` : '';
+    return `${head}<div class="small fbcomeback" data-fbcomeback><b>${op.state === 'halted' ? '사업 재개 방법' : '부족한 능력 보충'}</b> — 현금 ${fmt(c.credits)} cr${c.debt > 1 ? ` · 미납 운영비 ${fmt(c.debt)} cr` : ''}${c.stage ? ` · 체납 ${c.stage}단계` : ''}${c.stockValue ? ` · 자동 판매 재고 약 ${fmt(c.stockValue)} cr` : ''}<ul>${c.steps.map(t => `<li>${esc(t)}</li>`).join('')}</ul>${offers}<div class="dim">달성한 이정표는 그대로 남습니다.</div></div>`;
   }
 
   private salvageGroup(w: WorldState, me: string) {
@@ -212,7 +225,7 @@ export class FirstBusinessPanel {
     });
     e.querySelectorAll<HTMLButtonElement>('[data-fbrecover]').forEach(b => b.onclick = async () => {
       const o = this.cache?.salvage[Number(b.dataset.fbrecover)], g = this.salvageGroup(w, me); if (!o || !g) return;
-      if (o.risk > 55 && !confirm(`${o.name}: 경로 위험 ${o.risk} — 호위 없는 인양선은 격침될 수 있고 실린 화물도 잃습니다. 그래도 보낼까요?`)) return;
+      const ask = salvageConfirm(o); if (ask && !confirm(ask)) return;   // A-3.2b.1: the player decides; the target is never swapped
       b.disabled = true;
       const sell = e.querySelector<HTMLInputElement>('[data-fbautosell]');
       if (sell?.checked) await this.autoSell(true);

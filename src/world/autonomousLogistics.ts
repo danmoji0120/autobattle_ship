@@ -42,6 +42,8 @@ export interface LogisticsJob extends PoolRequest {
   /** AUTO-P1: a sale round trip flown by a mining fleet's own hauler (the group it mines with). It never enters the
    *  pool: the hauler returns to mining when it ends, and it is cancelled if the ship is lost or the fleet's order changes. */
   miner?: string;
+  /** A-3.2b.1: the trip is flown by a salvage fleet's hauler (same rules; it lives while the fleet salvages or waits) */
+  salvTrip?: true;
   /** AUTO-P1.1: no market would take the trip's cargo for MINER_TRIP_GIVEUP s — it flies back to its source (`to` = `from`) */
   returning?: true;
   /** AUTO-P1.1: when the trip started waiting without any market to go on to (and how much it had sold then) */
@@ -275,9 +277,9 @@ function endMinerTrip(h: Host, j: LogisticsJob, reason: string, lost = false) {
   j.state = 'cancelled'; j.updated = h.time;
 }
 /** AUTO-P1: give a planned sale shipment to a mining fleet's hauler that is docked, empty, at the shipment's source */
-export function assignMinerTrip(h: Host, j: LogisticsJob, s: WShip) {
+export function assignMinerTrip(h: Host, j: LogisticsJob, s: WShip, salvage = false) {
   const a = h.st.stations[j.from];
-  j.miner = s.groupId;
+  j.miner = s.groupId; if (salvage) j.salvTrip = true;
   j.reserved = takec(h.storage(a, j.owner), j.item, j.amount);
   s.logisticsJob = j.id; j.ship = s.id; j.state = 'active'; j.updated = h.time; delete j.reason; delete j.code;
   emit(h.st, { kind: 'logistics', reason: 'assign', amount: j.reserved, company: j.owner, group: s.groupId, ship: s.id, station: a.id, item: j.item });
@@ -292,7 +294,8 @@ export function maintainPool(h: Host) {
       // AUTO-P1: a mining hauler's sale trip lives only while that hauler is still the fleet's and the fleet still mines
       const g = s && s.owner === j.owner ? h.st.groups[s.groupId] : undefined;
       if (!s || s.owner !== j.owner) { endMinerTrip(h, j, '수송선 손실 — 판매 왕복 종료', !s); continue; }
-      if (s.logisticsJob !== j.id || !g || h.opOf(g).k !== 'mine' || s.state === 'building' || s.reserve || s.listed) { endMinerTrip(h, j, '편대 명령 변경 — 판매 왕복 종료, 적재 화물은 함선에 보존'); continue; }
+      const k = g ? h.opOf(g).k : undefined, fleetOk = j.salvTrip ? k === 'recover' || k === 'salvzone' || k === 'idle' : k === 'mine';
+      if (s.logisticsJob !== j.id || !g || !fleetOk || s.state === 'building' || s.reserve || s.listed) { endMinerTrip(h, j, '편대 명령 변경 — 판매 왕복 종료, 적재 화물은 함선에 보존'); continue; }
       continue;
     }
     if (!s || s.owner !== j.owner) { detach(h, j, '수송 함선 손실 — 미완료 물량 재배차 대기', !s); if (!isTerminal(j) && j.state !== 'paused') j.state = 'queued'; continue; }
