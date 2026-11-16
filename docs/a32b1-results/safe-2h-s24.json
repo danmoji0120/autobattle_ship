@@ -1,0 +1,224 @@
+{
+ "mode": "safe",
+ "seed": 24,
+ "hours": 2,
+ "wallSeconds": 64,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 16,
+    "derelictsMade": 28,
+    "derelictValueMade": 248584,
+    "salvageContractsPosted": 6
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 117437,
+     "netCash": 105437,
+     "debt": 0,
+     "firstSalvageAt": 180,
+     "firstProfitAt": 180,
+     "targetsSeen": 34,
+     "targetsWorked": 14,
+     "picks": 14,
+     "pickKinds": {
+      "contract": 5,
+      "derelict": 6,
+      "wreck": 3
+     },
+     "recoveredUnits": 1723,
+     "recoveredValue": 100604,
+     "recoveredByItem": {
+      "alloy": 796,
+      "metal": 729,
+      "titanium": 10,
+      "electronics": 89,
+      "machinery": 16,
+      "weapon_parts": 72,
+      "eq_pd_gun": 4,
+      "eq_autocannon": 6,
+      "eq_torpedo": 1
+     },
+     "ledgerUnits": 1723,
+     "ledgerValue": 100604,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "ok",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 3,
+      "haulers": 1,
+      "damagedHaulers": 0,
+      "issues": []
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner",
+      "hauler"
+     ],
+     "contracts": {
+      "accepted": 5,
+      "done": 5,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 102397,
+     "contractPay": 5200,
+     "salesByItem": {
+      "alloy": 34157,
+      "metal": 17542,
+      "machinery": 2144,
+      "weapon_parts": 29512,
+      "electronics": 18377,
+      "titanium": 664
+     },
+     "upkeep": 2160,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_pd_gun": 4,
+      "eq_autocannon": 6,
+      "eq_torpedo": 1,
+      "electronics": 4,
+      "metal": 68
+     },
+     "unsoldValue": 14358,
+     "warehousePeak": 182,
+     "minutesIdleNoTarget": 85,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "초과 재고 처리 중",
+      "metal": "운송·판매 중 68"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_1",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1050
+   },
+   {
+    "t": 180,
+    "id": "dr_10",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 300,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 480,
+    "id": "dr_14",
+    "kind": "contract",
+    "risk": 28,
+    "value": 1600
+   },
+   {
+    "t": 660,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2108
+   },
+   {
+    "t": 780,
+    "id": "wk_e211_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 26770
+   },
+   {
+    "t": 1020,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2176
+   },
+   {
+    "t": 1080,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1864
+   },
+   {
+    "t": 2760,
+    "id": "dr_21",
+    "kind": "contract",
+    "risk": 20,
+    "value": 750
+   },
+   {
+    "t": 3900,
+    "id": "wk_e656_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 23950
+   },
+   {
+    "t": 5520,
+    "id": "dr_23",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2982
+   },
+   {
+    "t": 6300,
+    "id": "wk_e818_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 20238
+   },
+   {
+    "t": 6600,
+    "id": "dr_26",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2472
+   },
+   {
+    "t": 6780,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2584
+   }
+  ]
+ }
+}
