@@ -1,0 +1,226 @@
+{
+ "mode": "safe",
+ "seed": 23,
+ "hours": 2,
+ "wallSeconds": 68,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 39,
+    "derelictsMade": 28,
+    "derelictValueMade": 248662,
+    "salvageContractsPosted": 8
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 111383,
+     "netCash": 99383,
+     "debt": 0,
+     "firstSalvageAt": 240,
+     "firstProfitAt": 240,
+     "targetsSeen": 38,
+     "targetsWorked": 15,
+     "picks": 15,
+     "pickKinds": {
+      "contract": 3,
+      "derelict": 8,
+      "wreck": 4
+     },
+     "recoveredUnits": 1721,
+     "recoveredValue": 105924,
+     "recoveredByItem": {
+      "alloy": 793,
+      "metal": 736,
+      "machinery": 10,
+      "electronics": 87,
+      "weapon_parts": 81,
+      "eq_autocannon": 13,
+      "eq_torpedo": 1
+     },
+     "ledgerUnits": 1721,
+     "ledgerValue": 105924,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "ok",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 3,
+      "haulers": 1,
+      "damagedHaulers": 0,
+      "issues": []
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner",
+      "hauler"
+     ],
+     "contracts": {
+      "accepted": 3,
+      "done": 3,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 98882,
+     "contractPay": 2650,
+     "salesByItem": {
+      "alloy": 30646,
+      "machinery": 1319,
+      "metal": 19619,
+      "electronics": 14894,
+      "weapon_parts": 32403
+     },
+     "upkeep": 2149,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_autocannon": 13,
+      "eq_torpedo": 1,
+      "alloy": 88,
+      "metal": 61,
+      "weapon_parts": 18,
+      "electronics": 18
+     },
+     "unsoldValue": 29454,
+     "warehousePeak": 133,
+     "minutesIdleNoTarget": 87,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {},
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 240,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2306
+   },
+   {
+    "t": 360,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2088
+   },
+   {
+    "t": 420,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2424
+   },
+   {
+    "t": 540,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2202
+   },
+   {
+    "t": 660,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2144
+   },
+   {
+    "t": 2460,
+    "id": "dr_21",
+    "kind": "contract",
+    "risk": 20,
+    "value": 650
+   },
+   {
+    "t": 2640,
+    "id": "wk_e557_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19408
+   },
+   {
+    "t": 2820,
+    "id": "wk_e553_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19282
+   },
+   {
+    "t": 3120,
+    "id": "wk_e640_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 25822
+   },
+   {
+    "t": 4320,
+    "id": "dr_22",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2100
+   },
+   {
+    "t": 4860,
+    "id": "dr_23",
+    "kind": "contract",
+    "risk": 20,
+    "value": 900
+   },
+   {
+    "t": 5340,
+    "id": "dr_26",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 1688
+   },
+   {
+    "t": 5580,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2632
+   },
+   {
+    "t": 7140,
+    "id": "wk_e973_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16588
+   }
+  ]
+ }
+}
