@@ -377,7 +377,7 @@ export function salvageOpportunities(w: WorldState, me: string): SalvageOption[]
     const main = known ? [...new Set([...(lots ?? [])].filter(l => l.n > 0).sort((a, b) => b.n * lotVal(w, b.item) - a.n * lotVal(w, a.item)).map(l => l.item.startsWith('bpf:') ? 'bpf' : l.item))].slice(0, 3) : x.main ?? [];
     const k = x.contract ? w.contracts?.[x.contract] : undefined;
     out.push({
-      id: x.id, name: x.name, kind, grade: x.grade, system: x.system, jumps: j, sec: Math.round(effSec(sys)), risk: sysRouteRisk(w, home, x.system),
+      id: x.id, name: x.name, kind, grade: x.grade, system: x.system, jumps: j, sec: Math.round(effSec(sys)), risk: Math.round(sysRouteRisk(w, home, x.system)),
       value: Math.round(known ? value : x.est ?? 0), known, main, units: known ? units : undefined, protectedCargo: prot, expiresIn: Math.max(0, x.expires - w.time),
       ...(k && !k.done ? { contract: { id: k.id, title: k.title, reward: k.reward, res: k.res, amount: k.amount, station: k.stationId, mine: k.takenBy === me, taken: !!k.takenBy } } : {}),
     });
@@ -409,7 +409,7 @@ export function salvageStatus(w: WorldState, me: string): SalvageStatus {
     .map(k => ({ id: k.id, title: k.title, station: k.stationId, res: k.res, amount: k.amount, progress: k.progress, reward: k.reward, expiresIn: Math.max(0, k.expires - w.time), done: k.done, ended: k.ended, target: k.target }));
   const board = Object.values(w.contracts ?? {}).filter(k => k.kind === 'salvage' && !k.done && !k.takenBy).map(k => {
     const st = w.stations[k.stationId], ss = st ? sysId(w, st) : undefined, x = k.target ? (w.wrecks?.[k.target] as unknown as SiteView | undefined) : undefined;
-    return { id: k.id, title: k.title, station: k.stationId, reward: k.reward, res: k.res, amount: k.amount, target: k.target, jumps: hs && ss ? jumps(w.systems, hs, ss) : 99, risk: sysRouteRisk(w, hs, x?.system ?? ss) };
+    return { id: k.id, title: k.title, station: k.stationId, reward: k.reward, res: k.res, amount: k.amount, target: k.target, jumps: hs && ss ? jumps(w.systems, hs, ss) : 99, risk: Math.round(sysRouteRisk(w, hs, x?.system ?? ss)) };
   }).filter(k => k.jumps <= SALVAGE_JUMPS).sort((a, b) => a.jumps - b.jumps || a.risk - b.risk).slice(0, 5);
   const r = co?.salvage;
   return { groups, units: r?.units ?? 0, value: Math.round(r?.value ?? 0), items: { ...(r?.items ?? {}) }, aboard, contracts, board };

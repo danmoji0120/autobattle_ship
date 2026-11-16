@@ -673,7 +673,7 @@ export class WorldSim {
       s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
     }
     // A-3.2b: a salvager's home region gets its next derelict now if it is below its caps (shared, never a copy)
-    if (bg.id === 'salvager') nudgeHomeRegion(this.st, this.sysOf(st.pos)?.id, this.time);
+    if (bg.id === 'salvager') nudgeHomeRegion(this.st, this.sysOf(st.pos)?.id, this.time, st.id);
     this.ev('world', `신생 PMC "${co.name}"(${bg.name})가 ${st.name}에 등록했다.`);
     this.ev('info', bg.hint, { company: id });
     return id;

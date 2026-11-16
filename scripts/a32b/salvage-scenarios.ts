@@ -16,7 +16,7 @@ import { qty } from '../../src/world/types';
 import { firstBusinessStatus, salvageOpportunities, salvageStatus, SALVAGE_SELL_ITEMS, type SalvageOption } from '../../src/world/firstBusiness';
 import { assetReferenceValue } from '../../src/world/valuation';
 import { storeUsed } from '../../src/world/storage';
-import { shipValue } from '../../src/world/data';
+import { hullPrice } from '../../src/world/valuation';
 
 const mode = process.argv[2] ?? 'all', hours = Number(process.argv[3] ?? 6), outDir = process.argv[4] ?? 'docs/a32b-results', seed = Number(process.argv[5] ?? 21);
 const on = !['none', 'base'].includes(mode);
@@ -29,8 +29,8 @@ if (mode !== 'none') for (const me of ids) for (const item of SALVAGE_SELL_ITEMS
 const groupOf = (me: string) => Object.values(sim.st.groups).find(g => g.owner === me && Object.values(sim.st.ships).some(s => s.owner === me && s.groupId === g.id));
 const val = (k: string) => k.startsWith('bpf:') ? 500 : assetReferenceValue(sim.st, k);
 
-interface Track { found: Set<string>; worked: Set<string>; accepted: number; lostValue: number; shipsSeen: Map<string, string>; peak: number; idleNoTarget: number; blocked: number; stalls: Record<string, number>; firstSalvage?: number; firstProfit?: number; picks: { t: number; id: string; kind: string; risk: number; value: number }[] }
-const T = new Map<string, Track>(ids.map(me => [me, { found: new Set(), worked: new Set(), accepted: 0, lostValue: 0, shipsSeen: new Map(), peak: 0, idleNoTarget: 0, blocked: 0, stalls: {}, picks: [] }]));
+interface Track { found: Set<string>; worked: Set<string>; accepted: number; lostValue: number; shipsSeen: Map<string, number>; peak: number; idleNoTarget: number; blocked: number; ks: Map<string, { progress: number; amount: number; done: boolean; ended?: string; reward: number }>; stalls: Record<string, number>; firstSalvage?: number; firstProfit?: number; picks: { t: number; id: string; kind: string; risk: number; value: number }[] }
+const T = new Map<string, Track>(ids.map(me => [me, { found: new Set(), worked: new Set(), accepted: 0, lostValue: 0, shipsSeen: new Map(), peak: 0, idleNoTarget: 0, blocked: 0, ks: new Map(), stalls: {}, picks: [] }]));
 
 function allowed(o: SalvageOption): boolean {
   if (mode === 'derelict') return o.kind === 'derelict' && o.risk <= 55;
@@ -47,11 +47,16 @@ function act(me: string) {
     const sv = salvageStatus(sim.st, me);
     const mine = sv.contracts.find(k => !k.done);
     const tgt = mine?.target && sim.st.wrecks?.[mine.target] ? mine.target : undefined;
-    if (tgt) { ok(sim.command(me, { c: 'setOp', group: g.id, op: { k: 'recover', wreck: tgt } }), 'recover contract target'); t.picks.push({ t: sim.time, id: tgt, kind: 'contract', risk: 0, value: 0 }); return; }
+    if (tgt) {
+      const e = sim.command(me, { c: 'setOp', group: g.id, op: { k: 'recover', wreck: tgt } });
+      if (!e) { t.picks.push({ t: sim.time, id: tgt, kind: 'contract', risk: 0, value: 0 }); return; }
+      t.stalls[`계약 대상: ${e}`] = (t.stalls[`계약 대상: ${e}`] ?? 0) + 1;   // e.g. the ships that could work it were lost
+    }
     const k = sv.board.find(b => b.risk <= 55 && b.target && sim.st.wrecks?.[b.target]);
     if (k && sim.command(me, { c: 'accept', contract: k.id }) === null) {
       t.accepted++;
-      ok(sim.command(me, { c: 'setOp', group: g.id, op: { k: 'recover', wreck: k.target! } }), 'recover');
+      const e = sim.command(me, { c: 'setOp', group: g.id, op: { k: 'recover', wreck: k.target! } });
+      if (e) { t.stalls[`계약 대상: ${e}`] = (t.stalls[`계약 대상: ${e}`] ?? 0) + 1; return; }
       t.picks.push({ t: sim.time, id: k.target!, kind: 'contract', risk: k.risk, value: k.reward });
       return;
     }
@@ -64,10 +69,12 @@ function act(me: string) {
 }
 function observe(me: string) {
   const t = T.get(me)!, co = sim.st.companies[me];
-  for (const s of Object.values(sim.st.ships)) if (s.owner === me) t.shipsSeen.set(s.id, s.classId);
-  for (const [id, cls] of t.shipsSeen) if (!sim.st.ships[id]) { t.lostValue += shipValue(cls); t.shipsSeen.delete(id); }
+  for (const s of Object.values(sim.st.ships)) if (s.owner === me && !t.shipsSeen.has(s.id)) t.shipsSeen.set(s.id, s.hull ? hullPrice(s.hull, s.variant).price : 0);
+  for (const [id, v] of t.shipsSeen) if (!sim.st.ships[id]) { t.lostValue += v; t.shipsSeen.delete(id); }   // NPC yard list price
   for (const st of Object.values(sim.st.stations)) t.peak = Math.max(t.peak, storeUsed(st.storage[me]));
   for (const id of co.salvage?.sites ?? []) t.worked.add(id);
+  // every salvage contract we took, sampled each minute (finished ones are removed from the world 5 min after expiry)
+  for (const k of Object.values(sim.st.contracts)) if (k.kind === 'salvage' && k.takenBy === me) t.ks.set(k.id, { progress: k.progress, amount: k.amount ?? 0, done: k.done, ended: k.ended, reward: k.reward });
   const g = groupOf(me);
   if (g?.status && /작업 불가|하역 가능한 정거장이 없습니다/.test(g.status)) { t.blocked++; t.stalls[g.status.slice(0, 60)] = (t.stalls[g.status.slice(0, 60)] ?? 0) + 1; }
   if (t.firstSalvage === undefined && co.milestones.includes('first_salvage')) t.firstSalvage = sim.time;
@@ -78,14 +85,16 @@ function report(me: string) {
   const stock: Record<string, number> = {};
   for (const st of Object.values(sim.st.stations)) for (const [k, v] of Object.entries(st.storage[me] ?? {})) if (v > 0.5) stock[k] = (stock[k] ?? 0) + v;
   for (const sh of Object.values(sim.st.ships)) if (sh.owner === me) for (const [k, v] of Object.entries(sh.cargo)) if (v > 0.5) stock[k] = (stock[k] ?? 0) + v;
-  const contracts = Object.values(sim.st.contracts).filter(k => k.kind === 'salvage' && k.takenBy === me);
   const r = Math.round;
   return {
     company: co.name, time: r(sim.time), credits: r(co.credits), netCash: r(co.credits - s.start), debt: r(co.upkeep?.debt ?? 0),
     firstSalvageAt: t.firstSalvage === undefined ? null : r(t.firstSalvage), firstProfitAt: t.firstProfit === undefined ? null : r(t.firstProfit),
     targetsSeen: t.found.size, targetsWorked: t.worked.size, picks: t.picks.length, pickKinds: t.picks.reduce((a, x) => { a[x.kind] = (a[x.kind] ?? 0) + 1; return a; }, {} as Record<string, number>),
     recoveredUnits: r(co.salvage?.units ?? 0), recoveredValue: r(co.salvage?.value ?? 0), recoveredByItem: Object.fromEntries(Object.entries(co.salvage?.items ?? {}).map(([k, v]) => [k, r(v)])),
-    contracts: { accepted: t.accepted, done: contracts.filter(k => k.done && k.progress >= (k.amount ?? 0)).length, failed: contracts.filter(k => k.done && k.progress < (k.amount ?? 0)).length, open: contracts.filter(k => !k.done).length },
+    contracts: (() => { const ks = [...t.ks.values()], ok = (k: { progress: number; amount: number }) => k.progress >= k.amount - 1e-6;
+      return { accepted: t.accepted, done: ks.filter(k => k.done && ok(k)).length, failed: ks.filter(k => k.done && !ok(k)).length, open: ks.filter(k => !k.done).length,
+        failReasons: ks.filter(k => k.done && !ok(k)).reduce((a, k) => { const r = k.ended ?? '기한 만료'; a[r] = (a[r] ?? 0) + 1; return a; }, {} as Record<string, number>),
+        deliveredOnFailed: Math.round(ks.filter(k => k.done && !ok(k)).reduce((a, k) => a + k.progress, 0)) }; })(),
     marketRevenue: r(p.income.sales ?? 0), contractPay: r(p.income.other ?? 0), salesByItem: Object.fromEntries(Object.entries(p.sales).map(([k, v]) => [k, r(v)])),
     upkeep: r(p.expense.upkeep ?? 0), repair: r(p.expense.repair ?? 0), otherExpense: r(Object.entries(p.expense).filter(([k]) => !['upkeep', 'repair'].includes(k)).reduce((a, [, v]) => a + v, 0)),
     shipsLost: co.stats.lost, shipLossValue: r(t.lostValue),

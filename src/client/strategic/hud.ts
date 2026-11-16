@@ -1337,7 +1337,7 @@ export class PmcHud {
     const tip = this.advice();
     el.innerHTML = `${tip ? `<div class="advice">💡 ${tip}</div>` : ''}<div class="ptitle"><span>PMC 목표</span><span>${co.milestones.length}/${MILESTONES.length}</span></div>
       ${next.map(m => `<div class="goal"><span>☐</span><div><b>${m.title}</b><div class="dim">${m.desc}</div></div></div>`).join('')}
-      ${ks.length ? `<div class="ptitle" style="border-top:1px solid var(--line)"><span>진행 중 계약</span></div>${ks.map(k => `<div class="goal"><span>◆</span><div><b>${esc(k.title)}</b><div class="dim">${k.kind === 'delivery' ? `${Math.round(k.progress)}/${k.amount} · ` : ''}${esc(this.st.stations[k.stationId]?.name ?? '')} · ${fmt(k.reward)} cr · ${Math.max(0, Math.round((k.expires - this.st.time) / 60))}분 남음</div></div></div>`).join('')}` : ''}`;
+      ${ks.length ? `<div class="ptitle" style="border-top:1px solid var(--line)"><span>진행 중 계약</span></div>${ks.map(k => `<div class="goal"><span>◆</span><div><b>${esc(k.title)}</b><div class="dim">${(k.kind === 'delivery' || k.kind === 'salvage') ? `${Math.round(k.progress)}/${k.amount} · ` : ''}${esc(this.st.stations[k.stationId]?.name ?? '')} · ${fmt(k.reward)} cr · ${Math.max(0, Math.round((k.expires - this.st.time) / 60))}분 남음</div></div></div>`).join('')}` : ''}`;
   }
 
   /** context-sensitive next step for new players */
@@ -1705,9 +1705,9 @@ export class PmcHud {
     if (!ks.length) return '<div class="dim">게시된 계약이 없습니다.</div>';
     return `<div class="yard">${ks.map(k => `<div class="ycard${k.takenBy && k.takenBy !== this.me ? ' locked' : ''}"><div class="yn"><b>${esc(k.title)}</b><span class="money">${fmt(k.reward)} cr · ${this.st.repV ? `신용·${esc(FACTIONS[this.st.stations[k.stationId]?.faction ?? '']?.short ?? '')} 신뢰 상승` : `평판 +${k.rep}`}</span></div>
       <div class="dim">${esc(k.desc)}</div>
-      <div class="ys">${k.kind === 'delivery' ? `진행 ${Math.round(k.progress)}/${k.amount} · ` : ''}${Math.max(0, Math.round((k.expires - this.st.time) / 60))}분 남음</div>
+      <div class="ys">${(k.kind === 'delivery' || k.kind === 'salvage') ? `진행 ${Math.round(k.progress)}/${k.amount} · ` : ''}${Math.max(0, Math.round((k.expires - this.st.time) / 60))}분 남음</div>
       ${k.takenBy === this.me ? '<div class="good">수주함 — 진행 중</div>' : k.takenBy ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn go" data-accept="${k.id}">수주</button>`}</div>`).join('')}</div>
-      <div class="dim small">납품 계약: 해당 정거장에 자원을 하역하면 자동으로 납품됩니다. 현상금: 해당 해적 무리 격멸 전투에 참여하면 완수됩니다.</div>`;
+      <div class="dim small">납품 계약: 해당 정거장에 자원을 하역하면 자동으로 납품됩니다. 현상금: 해당 해적 무리 격멸 전투에 참여하면 완수됩니다. 인양: 지정 잔해에서 회수한 물품을 이 정거장에 하역하면 납품됩니다(보상은 수주 때 정거장 예산에서 예약).</div>`;
   }
 
   /** facility picked in the build tab's detail panel: a module kind (new plan) or a plan id */

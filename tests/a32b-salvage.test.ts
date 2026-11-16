@@ -246,6 +246,29 @@ describe('A-3.2b salvage contracts: real budget, provenance, no new money', () =
     for (const n of byStation.values()) expect(n).toBeLessThanOrEqual(Math.ceil(2 * 3600 / DERELICT_CFG.contract.cooldown) + 1);
   }, 120000);
 
+  it('S16b: a salvager\'s home station still posts a follow-up job when distant boards fill the world cap (only there, only up to the extra)', () => {
+    const sim = world(13);
+    run(sim, 3600);
+    // clear the boards, then fill the world cap with jobs elsewhere (Ceres has none)
+    for (const k of Object.values(sim.st.contracts)) if (k.kind === 'salvage' && !k.done) k.done = true;
+    const far = Object.values(sim.st.stations).filter(s => s.public && s.services.contracts && s.id !== 'p9_ceres_works');
+    const x = derelicts(sim)[0];
+    for (const st of far.slice(0, DERELICT_CFG.contract.maxOpen)) postOn(sim, st.id, x, 'alloy', 1, 600);
+    for (const k of Object.values(sim.st.contracts)) if (k.kind === 'salvage' && !k.done) k.expires = sim.time + 99999;
+    for (const id of Object.keys(sim.st.derelicts!.posts)) sim.st.derelicts!.posts[id] = 0;
+    run(sim, 1800);
+    expect(Object.values(sim.st.contracts).filter(k => !k.done && k.kind === 'salvage').length).toBeLessThanOrEqual(DERELICT_CFG.contract.maxOpen);   // no salvager yet: capped
+    const before = new Set(Object.values(sim.st.contracts).filter(k => k.kind === 'salvage').map(k => k.id));
+    const me = sim.addPlayer('세레스 인양', 'salvager');
+    const home = sim.st.companies[me].homeStation;
+    for (const id of Object.keys(sim.st.derelicts!.posts)) sim.st.derelicts!.posts[id] = 0;
+    expect(until(sim, () => Object.values(sim.st.contracts).some(k => !k.done && k.kind === 'salvage' && k.stationId === home && !before.has(k.id)), 3600)).toBe(true);
+    const openNow = Object.values(sim.st.contracts).filter(k => !k.done && k.kind === 'salvage');
+    expect(openNow.length).toBeLessThanOrEqual(DERELICT_CFG.contract.maxOpen + DERELICT_CFG.contract.homeExtra);
+    // above the world cap: only the home station
+    expect(openNow.filter(k => k.stationId !== home).length).toBeLessThanOrEqual(DERELICT_CFG.contract.maxOpen);
+  }, 120000);
+
   it('S17: save/restore mid-contract keeps the reservation, the provenance aboard and the progress', () => {
     const { sim, me, x, k } = setup();
     expect(sim.command(me, { c: 'accept', contract: k.id })).toBeNull();

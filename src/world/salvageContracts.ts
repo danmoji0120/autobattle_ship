@@ -17,8 +17,11 @@ const C = DERELICT_CFG.contract;
 export function postSalvageContracts(h: Host) {
   const w = h.st, D = w.derelicts; if (!derelictsOn(w) || !D) return;
   let open = Object.values(w.contracts).filter(k => !k.done && k.kind === 'salvage').length;
+  // salvagers' home stations keep a follow-up job within reach even when distant boards fill the world cap
+  const homes = new Set(Object.values(w.companies).filter(c => c.kind === 'player' && c.background === 'salvager').map(c => c.homeStation));
   for (const st of Object.values(w.stations)) {
-    if (open >= C.maxOpen) return;
+    if (open >= C.maxOpen + (homes.size ? C.homeExtra : 0)) return;
+    if (open >= C.maxOpen && !homes.has(st.id)) continue;
     if (!st.public || !st.services.contracts || st.funds === undefined) continue;
     if (Object.values(w.contracts).some(k => !k.done && k.kind === 'salvage' && k.stationId === st.id)) continue;
     if ((D.posts[st.id] ?? -Infinity) > h.time || !h.rng.chance(C.chance)) continue;

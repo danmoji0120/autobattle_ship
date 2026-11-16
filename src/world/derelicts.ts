@@ -61,6 +61,8 @@ export const DERELICT_CFG = {
     cooldown: 2700,
     /** whole world: open salvage contracts at a time, and live derelicts made for contracts */
     maxOpen: 6, maxSpawned: 3,
+    /** home stations of salvager companies may post above maxOpen, up to this many extra in the world (beginner follow-up jobs) */
+    homeExtra: 2,
     /** chance per contracts pass (≈ every 10 s slow tick) once the cooldown is over */
     chance: 0.05,
     /** target search radius (jumps from the station) */
@@ -194,12 +196,14 @@ export function stepDerelicts(w: WorldState, time: number): WreckSite[] {
 }
 
 /** a new salvager: bring its home region's next spawn forward (still capped and shared; at most once per nudgeEvery) */
-export function nudgeHomeRegion(w: WorldState, sysId: string | undefined, time: number): boolean {
+export function nudgeHomeRegion(w: WorldState, sysId: string | undefined, time: number, homeStation?: string): boolean {
   const D = w.derelicts, s = sysId ? w.systems[sysId] : undefined; if (!derelictsOn(w) || !D || !s) return false;
   const key = regionOf(s), R = (D.regions[key] ??= { next: time });
   if ((R.nudged ?? -Infinity) + DERELICT_CFG.nudgeEvery > time) return false;
   R.nudged = time; R.next = Math.min(R.next, time);
   D.check = Math.min(D.check, time);
+  // the home station may post its next salvage job now (same once-per-nudgeEvery limit; budget and target rules unchanged)
+  if (homeStation && (D.posts[homeStation] ?? -Infinity) > time) D.posts[homeStation] = time;
   return true;
 }
 
