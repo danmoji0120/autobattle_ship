@@ -1,0 +1,968 @@
+{
+ "mode": "p14",
+ "hours": 24,
+ "gameStart": 1,
+ "gameEnd": 86401,
+ "realSeconds": 1102,
+ "scenarios": {
+  "A": "산업형",
+  "B": "전투형",
+  "C": "물류형",
+  "D": "세력 집중형(철갑)",
+  "E": "해적 친화형",
+  "F": "악용 시도"
+ },
+ "snaps": [
+  {
+   "h": 1,
+   "A": {
+    "credit": 0.66,
+    "standing": {
+     "miners": 1.25,
+     "ceres": 0.055
+    },
+    "counts": {
+     "sales": 4,
+     "sold_cr": 28179.60599999968,
+     "contract_delivery": 2
+    }
+   },
+   "B": {
+    "credit": 0.942,
+    "standing": {
+     "iron": 1.422,
+     "pirates": -0.97
+    },
+    "counts": {
+     "battles": 3,
+     "pirates_killed": 10,
+     "contract_bounty": 1
+    }
+   },
+   "C": {
+    "credit": 1.05,
+    "standing": {
+     "guild": 2.275
+    },
+    "counts": {
+     "sales": 7,
+     "sold_cr": 51820.51000000071,
+     "contract_delivery": 3
+    }
+   },
+   "D": {
+    "credit": 1.218,
+    "standing": {
+     "iron": 0.76,
+     "miners": 0.837,
+     "pirates": -0.93
+    },
+    "counts": {
+     "sales": 4,
+     "sold_cr": 22414.615999999456,
+     "contract_delivery": 2,
+     "battles": 2,
+     "pirates_killed": 8
+    }
+   },
+   "E": {
+    "credit": 0.69,
+    "standing": {
+     "pirates": 1.27
+    },
+    "counts": {
+     "sales": 5,
+     "sold_cr": 33953.5,
+     "bm_cr": 30000,
+     "contract_delivery": 2
+    }
+   },
+   "F": {
+    "credit": 0.486,
+    "standing": {
+     "pirates": -0.81,
+     "miners": 0.162,
+     "ceres": 0.045,
+     "guild": 0.063
+    },
+    "counts": {
+     "buys": 20,
+     "sales": 20,
+     "sold_cr": 356847.16999999806,
+     "battles": 10,
+     "pirates_killed": 10
+    }
+   }
+  },
+  {
+   "h": 4,
+   "A": {
+    "credit": 2.61,
+    "standing": {
+     "miners": 5.41,
+     "ceres": 0.165
+    },
+    "counts": {
+     "sales": 14,
+     "sold_cr": 75971.91199999955,
+     "contract_delivery": 8
+    }
+   },
+   "B": {
+    "credit": 4.734,
+    "standing": {
+     "iron": 3.195,
+     "pirates": -7.91,
+     "miners": 2.4
+    },
+    "counts": {
+     "battles": 12,
+     "pirates_killed": 39,
+     "contract_bounty": 2,
+     "lair_t2": 1
+    }
+   },
+   "C": {
+    "credit": 4.29,
+    "standing": {
+     "guild": 9.295
+    },
+    "counts": {
+     "sales": 33,
+     "sold_cr": 237630.78400000278,
+     "contract_delivery": 12
+    }
+   },
+   "D": {
+    "credit": 6.84,
+    "standing": {
+     "iron": 3.1,
+     "miners": 6.665,
+     "pirates": -8.65
+    },
+    "counts": {
+     "sales": 13,
+     "sold_cr": 71775.60499999765,
+     "contract_delivery": 8,
+     "battles": 8,
+     "pirates_killed": 30,
+     "lair_t3": 1
+    }
+   },
+   "E": {
+    "credit": 0.126,
+    "standing": {
+     "pirates": 5.12,
+     "union": -16.45
+    },
+    "counts": {
+     "sales": 20,
+     "sold_cr": 135727.80000000168,
+     "bm_cr": 120000,
+     "contract_delivery": 8,
+     "crime_extortion": 2
+    }
+   },
+   "F": {
+    "credit": 2.376,
+    "standing": {
+     "pirates": -3.96,
+     "miners": 0.729,
+     "ceres": 0.09,
+     "guild": 0.063
+    },
+    "counts": {
+     "buys": 80,
+     "sales": 80,
+     "sold_cr": 1315718.2699999968,
+     "battles": 46,
+     "pirates_killed": 46
+    }
+   }
+  },
+  {
+   "h": 8,
+   "A": {
+    "credit": 5.31,
+    "standing": {
+     "miners": 10.42,
+     "ceres": 1.34
+    },
+    "counts": {
+     "sales": 29,
+     "sold_cr": 178954.66699999757,
+     "contract_delivery": 16
+    }
+   },
+   "B": {
+    "credit": 9.816,
+    "standing": {
+     "iron": 5.922,
+     "pirates": -17.13,
+     "miners": 6.374,
+     "guild": 0.189
+    },
+    "counts": {
+     "battles": 24,
+     "pirates_killed": 79,
+     "contract_bounty": 4,
+     "lair_t2": 1,
+     "lair_t3": 1
+    }
+   },
+   "C": {
+    "credit": 8.52,
+    "standing": {
+     "guild": 15.945
+    },
+    "counts": {
+     "sales": 64,
+     "sold_cr": 444928.96999999974,
+     "contract_delivery": 24
+    }
+   },
+   "D": {
+    "credit": 12.085,
+    "standing": {
+     "iron": 6.608,
+     "miners": 11.479,
+     "pirates": -16.02
+    },
+    "counts": {
+     "sales": 25,
+     "sold_cr": 137925.83699999843,
+     "contract_delivery": 16,
+     "battles": 16,
+     "pirates_killed": 51,
+     "lair_t3": 2
+    }
+   },
+   "E": {
+    "credit": 0.115,
+    "standing": {
+     "pirates": 10.12,
+     "union": -38.412
+    },
+    "counts": {
+     "sales": 38,
+     "sold_cr": 230729.39999999944,
+     "bm_cr": 240000,
+     "contract_delivery": 16,
+     "crime_extortion": 4
+    }
+   },
+   "F": {
+    "credit": 4.86,
+    "standing": {
+     "pirates": -8.1,
+     "miners": 1.863,
+     "ceres": 0.225,
+     "guild": 0.063
+    },
+    "counts": {
+     "buys": 160,
+     "sales": 160,
+     "sold_cr": 2519815.2449999996,
+     "battles": 94,
+     "pirates_killed": 94
+    }
+   }
+  },
+  {
+   "h": 16,
+   "A": {
+    "credit": 10.773,
+    "standing": {
+     "miners": 18.4,
+     "ceres": 2
+    },
+    "counts": {
+     "sales": 71,
+     "sold_cr": 468530.1490000002,
+     "contract_delivery": 32
+    }
+   },
+   "B": {
+    "credit": 18.653,
+    "standing": {
+     "iron": 13.092,
+     "pirates": -39.91,
+     "miners": 15.432,
+     "guild": 0.189
+    },
+    "counts": {
+     "battles": 48,
+     "pirates_killed": 149,
+     "contract_bounty": 10,
+     "lair_t2": 1,
+     "lair_t3": 4
+    }
+   },
+   "C": {
+    "credit": 14.934,
+    "standing": {
+     "guild": 26.689
+    },
+    "counts": {
+     "sales": 128,
+     "sold_cr": 889713.8830000004,
+     "contract_delivery": 48
+    }
+   },
+   "D": {
+    "credit": 6.657,
+    "standing": {
+     "iron": -13.892,
+     "miners": 17.713,
+     "pirates": -34.01
+    },
+    "counts": {
+     "sales": 45,
+     "sold_cr": 246497.26099999715,
+     "contract_delivery": 32,
+     "battles": 32,
+     "pirates_killed": 100,
+     "lair_t3": 3,
+     "lair_t4": 1,
+     "crime_strike": 1,
+     "crime_resist": 1
+    }
+   },
+   "E": {
+    "credit": 0.115,
+    "standing": {
+     "pirates": 16.98,
+     "union": -85.438
+    },
+    "counts": {
+     "sales": 77,
+     "sold_cr": 386336.39999999944,
+     "bm_cr": 480000,
+     "contract_delivery": 32,
+     "crime_extortion": 8
+    }
+   },
+   "F": {
+    "credit": 9.666,
+    "standing": {
+     "pirates": -16.11,
+     "miners": 3.726,
+     "ceres": 0.36,
+     "guild": 0.189
+    },
+    "counts": {
+     "buys": 320,
+     "sales": 320,
+     "sold_cr": 4929404.93499999,
+     "battles": 190,
+     "pirates_killed": 190
+    }
+   }
+  },
+  {
+   "h": 24,
+   "A": {
+    "credit": 14.679,
+    "standing": {
+     "miners": 25.957,
+     "ceres": 2.66
+    },
+    "counts": {
+     "sales": 108,
+     "sold_cr": 729400.4340000004,
+     "contract_delivery": 48
+    }
+   },
+   "B": {
+    "credit": 26.061,
+    "standing": {
+     "iron": 16.406,
+     "pirates": -62.51,
+     "miners": 22.605,
+     "guild": 0.189,
+     "ceres": 0.135
+    },
+    "counts": {
+     "battles": 72,
+     "pirates_killed": 209,
+     "contract_bounty": 13,
+     "lair_t2": 1,
+     "lair_t3": 7
+    }
+   },
+   "C": {
+    "credit": 20.751,
+    "standing": {
+     "guild": 33.709
+    },
+    "counts": {
+     "sales": 193,
+     "sold_cr": 1324249.508000004,
+     "contract_delivery": 72
+    }
+   },
+   "D": {
+    "credit": 16.913,
+    "standing": {
+     "iron": -7.691,
+     "miners": 23.771,
+     "pirates": -51.72
+    },
+    "counts": {
+     "sales": 68,
+     "sold_cr": 371122.29399999604,
+     "contract_delivery": 48,
+     "battles": 48,
+     "pirates_killed": 152,
+     "lair_t3": 4,
+     "lair_t4": 2,
+     "crime_strike": 1,
+     "crime_resist": 1
+    }
+   },
+   "E": {
+    "credit": 0.105,
+    "standing": {
+     "pirates": 23.15,
+     "union": -100
+    },
+    "counts": {
+     "sales": 105,
+     "sold_cr": 526880.7999999989,
+     "bm_cr": 720000,
+     "contract_delivery": 48,
+     "crime_extortion": 12
+    }
+   },
+   "F": {
+    "credit": 13.257,
+    "standing": {
+     "pirates": -24.39,
+     "miners": 5.427,
+     "ceres": 0.495,
+     "guild": 0.315,
+     "iron": 0.351
+    },
+    "counts": {
+     "buys": 480,
+     "sales": 480,
+     "sold_cr": 7304521.594999982,
+     "battles": 286,
+     "pirates_killed": 286
+    }
+   }
+  }
+ ],
+ "reach": {
+  "C": {
+   "guild≥10": 4.33,
+   "credit≥10": 9.67,
+   "guild≥25": 14.33
+  },
+  "D": {
+   "credit≥10": 7.5,
+   "miners≥10": 7.67
+  },
+  "A": {
+   "miners≥10": 8,
+   "credit≥10": 15,
+   "miners≥25": 23
+  },
+  "E": {
+   "pirates≥10": 8
+  },
+  "B": {
+   "credit≥10": 8.67,
+   "miners≥10": 11.67,
+   "iron≥10": 12.67,
+   "credit≥25": 23.33
+  },
+  "F": {
+   "credit≥10": 16.67
+  }
+ },
+ "bands": {
+  "A": {
+   "credit": "협력",
+   "miners": "우호",
+   "ceres": "중립"
+  },
+  "B": {
+   "credit": "우호",
+   "iron": "협력",
+   "pirates": "극단적 적대",
+   "miners": "협력",
+   "guild": "중립",
+   "ceres": "중립"
+  },
+  "C": {
+   "credit": "협력",
+   "guild": "우호"
+  },
+  "D": {
+   "credit": "협력",
+   "iron": "불신",
+   "miners": "협력",
+   "pirates": "적대"
+  },
+  "E": {
+   "credit": "중립",
+   "pirates": "협력",
+   "union": "극단적 적대"
+  },
+  "F": {
+   "credit": "협력",
+   "pirates": "불신",
+   "miners": "중립",
+   "ceres": "중립",
+   "guild": "중립",
+   "iron": "중립"
+  }
+ },
+ "log": {
+  "A": [
+   {
+    "t": 81601,
+    "s": "credit",
+    "d": 0.021,
+    "why": "시장 거래"
+   },
+   {
+    "t": 81601,
+    "s": "ceres",
+    "d": 0.055,
+    "why": "세력 시장 공급"
+   },
+   {
+    "t": 82201,
+    "s": "credit",
+    "d": 0.021,
+    "why": "시장 거래"
+   },
+   {
+    "t": 82201,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 82201,
+    "s": "miners",
+    "d": 0.588,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 83401,
+    "s": "credit",
+    "d": 0.021,
+    "why": "시장 거래"
+   },
+   {
+    "t": 84001,
+    "s": "credit",
+    "d": 0.021,
+    "why": "시장 거래"
+   },
+   {
+    "t": 84001,
+    "s": "ceres",
+    "d": 0.055,
+    "why": "세력 시장 공급"
+   },
+   {
+    "t": 84001,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 84001,
+    "s": "miners",
+    "d": 0.162,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 85801,
+    "s": "miners",
+    "d": 0.297,
+    "why": "계약 완수 (납품)"
+   }
+  ],
+  "B": [
+   {
+    "t": 83401,
+    "s": "credit",
+    "d": 0.21,
+    "why": "해적 4척 격침"
+   },
+   {
+    "t": 83401,
+    "s": "pirates",
+    "d": -0.5,
+    "why": "해적 격침"
+   },
+   {
+    "t": 84601,
+    "s": "credit",
+    "d": 0.073,
+    "why": "해적 3척 격침"
+   },
+   {
+    "t": 84601,
+    "s": "iron",
+    "d": 0.246,
+    "why": "해적 3척 격침"
+   },
+   {
+    "t": 84601,
+    "s": "pirates",
+    "d": -0.27,
+    "why": "해적 격침"
+   },
+   {
+    "t": 84601,
+    "s": "credit",
+    "d": 0.648,
+    "why": "해적 거점 파괴 (등급 3)"
+   },
+   {
+    "t": 84601,
+    "s": "miners",
+    "d": 1.68,
+    "why": "해적 거점 파괴 (등급 3)"
+   },
+   {
+    "t": 84601,
+    "s": "pirates",
+    "d": -4.8,
+    "why": "해적 거점 파괴"
+   },
+   {
+    "t": 84601,
+    "s": "credit",
+    "d": 0.216,
+    "why": "계약 완수 (토벌)"
+   },
+   {
+    "t": 84601,
+    "s": "miners",
+    "d": 0.56,
+    "why": "계약 완수 (토벌)"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.116,
+    "why": "해적 4척 격침"
+   },
+   {
+    "t": 85801,
+    "s": "pirates",
+    "d": -0.43,
+    "why": "해적 격침"
+   }
+  ],
+  "C": [
+   {
+    "t": 81001,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 81001,
+    "s": "guild",
+    "d": 0.293,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 81601,
+    "s": "credit",
+    "d": 0.021,
+    "why": "시장 거래"
+   },
+   {
+    "t": 82201,
+    "s": "credit",
+    "d": 0.021,
+    "why": "시장 거래"
+   },
+   {
+    "t": 82201,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 82201,
+    "s": "guild",
+    "d": 0.293,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 83401,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 83401,
+    "s": "guild",
+    "d": 0.293,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 84601,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 84601,
+    "s": "guild",
+    "d": 0.293,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 85801,
+    "s": "guild",
+    "d": 0.293,
+    "why": "계약 완수 (납품)"
+   }
+  ],
+  "D": [
+   {
+    "t": 84001,
+    "s": "miners",
+    "d": 0.271,
+    "why": "해적 4척 격침"
+   },
+   {
+    "t": 84001,
+    "s": "pirates",
+    "d": -0.43,
+    "why": "해적 격침"
+   },
+   {
+    "t": 84601,
+    "s": "credit",
+    "d": 1.344,
+    "why": "해적 거점 파괴 (등급 4)"
+   },
+   {
+    "t": 84601,
+    "s": "pirates",
+    "d": -6.4,
+    "why": "해적 거점 파괴"
+   },
+   {
+    "t": 84601,
+    "s": "credit",
+    "d": 0.336,
+    "why": "계약 완수 (토벌)"
+   },
+   {
+    "t": 85201,
+    "s": "credit",
+    "d": 0.021,
+    "why": "시장 거래"
+   },
+   {
+    "t": 85201,
+    "s": "iron",
+    "d": 0.03,
+    "why": "세력 시장 공급"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.21,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 85801,
+    "s": "iron",
+    "d": 0.35,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.185,
+    "why": "해적 2척 격침"
+   },
+   {
+    "t": 85801,
+    "s": "miners",
+    "d": 0.277,
+    "why": "해적 2척 격침"
+   },
+   {
+    "t": 85801,
+    "s": "pirates",
+    "d": -0.44,
+    "why": "해적 격침"
+   }
+  ],
+  "E": [
+   {
+    "t": 78601,
+    "s": "pirates",
+    "d": 0.35,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 79801,
+    "s": "credit",
+    "d": 0.01,
+    "why": "시장 거래"
+   },
+   {
+    "t": 80401,
+    "s": "credit",
+    "d": 0.105,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 80401,
+    "s": "pirates",
+    "d": 0.35,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 82201,
+    "s": "credit",
+    "d": 0.01,
+    "why": "시장 거래"
+   },
+   {
+    "t": 82201,
+    "s": "credit",
+    "d": 0.105,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 82201,
+    "s": "pirates",
+    "d": 0.35,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 84001,
+    "s": "credit",
+    "d": 0.105,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 84001,
+    "s": "pirates",
+    "d": 0.35,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 84001,
+    "s": "credit",
+    "d": -0.451,
+    "why": "extortion"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.105,
+    "why": "계약 완수 (납품)"
+   },
+   {
+    "t": 85801,
+    "s": "pirates",
+    "d": 0.35,
+    "why": "계약 완수 (납품)"
+   }
+  ],
+  "F": [
+   {
+    "t": 84601,
+    "s": "pirates",
+    "d": -0.09,
+    "why": "해적 격침"
+   },
+   {
+    "t": 84601,
+    "s": "credit",
+    "d": 0.038,
+    "why": "해적 1척 격침"
+   },
+   {
+    "t": 84601,
+    "s": "pirates",
+    "d": -0.09,
+    "why": "해적 격침"
+   },
+   {
+    "t": 85201,
+    "s": "credit",
+    "d": 0.038,
+    "why": "해적 1척 격침"
+   },
+   {
+    "t": 85201,
+    "s": "miners",
+    "d": 0.081,
+    "why": "해적 1척 격침"
+   },
+   {
+    "t": 85201,
+    "s": "pirates",
+    "d": -0.09,
+    "why": "해적 격침"
+   },
+   {
+    "t": 85201,
+    "s": "credit",
+    "d": 0.038,
+    "why": "해적 1척 격침"
+   },
+   {
+    "t": 85201,
+    "s": "pirates",
+    "d": -0.09,
+    "why": "해적 격침"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.038,
+    "why": "해적 1척 격침"
+   },
+   {
+    "t": 85801,
+    "s": "pirates",
+    "d": -0.09,
+    "why": "해적 격침"
+   },
+   {
+    "t": 85801,
+    "s": "credit",
+    "d": 0.038,
+    "why": "해적 1척 격침"
+   },
+   {
+    "t": 85801,
+    "s": "pirates",
+    "d": -0.09,
+    "why": "해적 격침"
+   }
+  ]
+ }
+}

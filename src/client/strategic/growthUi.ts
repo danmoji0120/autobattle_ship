@@ -14,6 +14,7 @@ import { EQUIPMENT, TECHS, FACILITIES, itemName } from '../../world/industry';
 import { MODULES } from '../../world/data';
 import { yardSlots, buildNeeds, YARD_NAME } from '../../world/production';
 import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFits } from '../../world/hullops';
+import { hullGate } from '../../world/reputation';
 import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBlueprints, bpName, SRC_NAME, FRAG_PREFIX, fragmentsNeeded } from '../../world/blueprints';
 import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld } from '../../world/upkeep';
 import { iname, itemList } from './industryUi';
@@ -56,10 +57,12 @@ export function pubYardHtml(w: WorldState, s: Station, me: string, groups: { id:
     const h = CONTENT.hulls[id]; const sale = hullSale(id)!;
     const k = s.shipStock?.[id]; const n = k?.n ?? sale.stock;
     const price = Math.round(sale.price * (1.25 - 0.25 * Math.min(1, n / Math.max(1, sale.stock))) / 10) * 10;
-    const locked = co.rep < (sale.rep ?? 0);
+    // P14.0 (repV): the same gate the server applies (civilian: little credit; military: the yard faction's trust)
+    const repWhy = w.repV ? hullGate(full(w), co, s, id, sale.rep, hullEcon(id).military) : co.rep < (sale.rep ?? 0) ? `연합 평판 ${sale.rep} 필요 (현재 ${Math.floor(co.rep)})` : null;
+    const locked = !!repWhy;
     const berthOk = berthFits(s, hullEcon(id).berth);
     const ps = presetsOf(id, true).filter(p => !Object.values(p.weapons).some(item => regionalMarketRequired(w, item)));
-    const why = !ps.length ? '공영 판매 가능한 기본 무장 구성이 없습니다' : locked ? `연합 평판 ${sale.rep} 필요 (현재 ${Math.floor(co.rep)})` : n < 1 ? `재고 없음 — 다음 함선 건조 ${Math.round(100 * (k?.t ?? 0) / sale.restock)}%${k?.why ? ` (${esc(k.why)})` : ''}` : co.credits < price ? `자금 부족 — ${fmt(price - co.credits)} cr 더 필요` : '';
+    const why = !ps.length ? '공영 판매 가능한 기본 무장 구성이 없습니다' : locked ? repWhy! : n < 1 ? `재고 없음 — 다음 함선 건조 ${Math.round(100 * (k?.t ?? 0) / sale.restock)}%${k?.why ? ` (${esc(k.why)})` : ''}` : co.credits < price ? `자금 부족 — ${fmt(price - co.credits)} cr 더 필요` : '';
     return `<div class="ycard${locked ? ' locked' : ''}"><div class="yn"><b>${esc(hullTitle(id))}</b> <span class="dim small">${h.size} · ${GRADE[h.blueprint]}</span><span class="money">${fmt(price)} cr</span></div>
       <div class="dim">${esc(h.desc)}</div>
       <div class="ys small">${hullStats(id)}</div>

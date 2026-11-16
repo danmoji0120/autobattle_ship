@@ -18,6 +18,7 @@ import { EQUIPMENT, ITEMS, ITEM_NAME_HOOKS, itemPrice } from './industry';
 import { econOf } from './hullops';
 import { effSec } from './security';
 import { bumpStanding, standingOf } from './territory';
+import { repOffense, repBlackMarket } from './reputation';
 import { emit, watchMoney } from './observe';
 import { priceOf, fundsIn } from './market';
 import { growthOn } from './hullops';
@@ -349,6 +350,7 @@ export function bmSell(h: Host, company: string, station: unknown, key: unknown,
     book(h, company, 'blackmarket', q.net, key);
     const before = co.credits; payFromSale(h.st, co, q.net); if (co.credits !== before) book(h, company, 'upkeep', co.credits - before);
     emit(h.st, { kind: 'blackmarket', reason: 'sell', amount: q.sold, value: q.net, company, station: a.st.id, item: key, ref: a.b.id });
+    if (h.st.repV) repBlackMarket(h.st, company, q.net);
     log(co, { t: h.time, k: 'sell', at: a.st.id, items: { [key]: q.sold }, value: q.net, fine: q.fee });
     h.ev('money', `${a.st.name} 암시장: ${itemNameOf(key)} ${q.sold} 처분 +${Math.round(q.net).toLocaleString()} cr (수수료 ${Math.round(q.fee).toLocaleString()})${q.sold < n ? ` — 매입 자금 소진, ${n - q.sold}은(는) 남음` : ''}`, { company, pos: a.st.pos, tag: 'blackmarket' });
     return { sold: q.sold, net: q.net, fee: q.fee };
@@ -518,9 +520,13 @@ function seize(h: Host, s: WShip, c: Cargo, sys: StarSystem, st: Station | undef
       emit(w, { kind: 'blackmarket', reason: 'fine', amount: fine, company: s.owner, station: cred?.id, system: sys.id });
     }
     const sec = effSec(sys);
-    co.rep = Math.max(0, co.rep - value * BM.repPerCr * (sec / 100));
     const fac = st?.faction ?? sys.faction;
-    if (w.factions && fac && fac !== 'pirates') bumpStanding(w, s.owner, fac, -Math.min(BM.standingCap, value * BM.standingPerCr));
+    // P14.0 (repV): one penalty per inspection (the law case of the same seizure does not charge it again)
+    if (w.repV) repOffense(w, s.owner, fac, 'smuggling', value, `seize:${s.id}:${key}`, '밀수 적발');
+    else {
+      co.rep = Math.max(0, co.rep - value * BM.repPerCr * (sec / 100));
+      if (w.factions && fac && fac !== 'pirates') bumpStanding(w, s.owner, fac, -Math.min(BM.standingCap, value * BM.standingPerCr));
+    }
     const owe = w.lawV ? assessed - fine : 0;
     log(co, { t: h.time, k: 'seize', at: st?.id ?? sys.id, items: c, value, fine, ...(owe > 0 ? { owed: owe } : {}), why: `${where} 검문 적발 (확률 ${pctOf(p)})` });
     h.ev('warn', `${s.name}: ${where} 검문에 적발 — 불법 화물 ${Math.round(cargoSum(c))}단위 압수, 벌금 ${(w.lawV ? assessed : fine).toLocaleString()} cr${owe > 0 ? ` (즉시 징수 ${fine.toLocaleString()} cr, 미납 ${owe.toLocaleString()} cr — ${cred?.name ?? sys.name} 근처에서 납부)` : ''}`, { company: s.owner, pos: s.pos, tag: 'blackmarket' });

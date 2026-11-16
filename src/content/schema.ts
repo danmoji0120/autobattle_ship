@@ -171,14 +171,23 @@ export interface VariantDef {
  *  needs both. Buying a finished ship needs neither. */
 export type BlueprintTarget = { kind: 'hull'; id: string } | { kind: 'variant'; id: string } | { kind: 'equipment'; id: string } | { kind: 'recipe'; id: string };
 
+/** the six P10 territorial factions (world/territory.ts FACTIONS) */
+export type FactionId = 'union' | 'guild' | 'ceres' | 'miners' | 'iron' | 'pirates';
+export const FACTION_IDS: readonly FactionId[] = ['union', 'guild', 'ceres', 'miners', 'iron', 'pirates'];
+
 /** how a blueprint can be acquired (one blueprint may list several) */
 export type BlueprintSource =
   /** general sale at these stations (credits) */
   | { kind: 'shop'; stations: string[]; price: number }
-  /** high-price commercial licence: credits + Union standing (+ a record of completed contracts) */
-  | { kind: 'commercial'; stations: string[]; price: number; rep: number; contracts?: number }
-  /** a faction/company sells it only where its influence is strong, to companies in good standing */
-  | { kind: 'faction'; faction: 'union' | 'guild' | 'pirates'; stations: string[]; price: number; influence: number; rep?: number }
+  /** high-price commercial licence: credits + Union standing (+ a record of completed contracts).
+   *  P14.0 (repV worlds): `rep` is read as company credit through the legacy→0..100 map, or `credit` if given */
+  | { kind: 'commercial'; stations: string[]; price: number; rep: number; contracts?: number; credit?: number }
+  /** a faction sells it only where its influence is strong, to companies in good standing.
+   *  Legacy worlds: system influence (`inf`, union/guild/pirates only) + Union standing `rep`.
+   *  P14.0 (repV worlds): only at stations the faction actually holds (P10), to companies whose trust with *that*
+   *  faction reaches `trust` (default: `rep` through the legacy map) and that completed `contracts` of its contracts.
+   *  `repOnly` sources exist only on repV worlds (the six-faction catalogue). */
+  | { kind: 'faction'; faction: FactionId; stations: string[]; price: number; influence: number; rep?: number; trust?: number; contracts?: number; repOnly?: true }
   /** awarded for completing contracts (lair assaults of at least this tier) */
   | { kind: 'contract'; minTier: number; chance: number }
   /** salvaged as fragments (`bpf:<blueprint id>` items) from wrecks; `fragments` of them assemble it */

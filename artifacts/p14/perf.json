@@ -1,0 +1,28 @@
+{
+ "usPerCall": {
+  "repTrade": 0.8209141999999999,
+  "repBattle": 6.9637585500000005,
+  "repLair": 10.049707000000001,
+  "repContract": 12.438496,
+  "repOffense": 34.7850822
+ },
+ "msPerTick": {
+  "legacy": [
+   13.008,
+   7.601,
+   8.198
+  ],
+  "p14": [
+   8.858,
+   7.275,
+   7.73
+  ],
+  "medianLegacy": 8.198,
+  "medianP14": 7.73
+ },
+ "state": {
+  "keys": 240,
+  "log": 40,
+  "cases": 120
+ }
+}

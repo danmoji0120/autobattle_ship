@@ -184,6 +184,7 @@ import { START_CREDITS_GROWTH } from './econConfig';
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
+import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContractFailed, hullGate } from './reputation';
 import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
@@ -257,7 +258,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -274,6 +275,8 @@ export class WorldSim {
     // P13.3 black markets & smuggling build on P13.2 (stolen goods come from real plunder and salvage)
     if (opts.blackMarket === 'p133') sim.st.blackMarketV = 1;
     if (opts.law === 'p134') { sim.st.lawV = 1; sim.st.law = { seq: 0, next: 0, cases: {}, keys: {}, ops: {} }; }
+    // P14.0 reputation (company credit + six faction trusts): opt-in, new worlds only here (saves: explicit migration)
+    if (opts.rep === 'p14') enableRepV(sim.st);
     expandFreshWorld(sim.st);
     if (opts.layout === 'p10') expandP10(sim.st);
     if (opts.factionEcon === 'v2') { if (opts.layout !== 'p10') throw new Error('faction economy v2 needs layout p10'); }
@@ -512,7 +515,7 @@ export class WorldSim {
     // all checks passed: from here nothing can fail
     co.credits -= fee + buyCost;
     for (const [k, n, unit, market] of buyList) {
-      if (market) { st.market![k].stock -= n; fundsIn(st, n * unit); emit(this.st, { kind: 'market', reason: 'buy', amount: n, value: n * unit, company, station: st.id, item: k }); }
+      if (market) { st.market![k].stock -= n; fundsIn(st, n * unit); emit(this.st, { kind: 'market', reason: 'buy', amount: n, value: n * unit, company, station: st.id, item: k }); if (this.st.repV) repTrade(this.st, company, st, k, n * unit, false); }
       addc(store, k, n);
     }
     for (const [k, n] of Object.entries(delta)) addc(store, k, -n);
@@ -892,6 +895,7 @@ export class WorldSim {
           } else if ((st.owner !== company || growthOn(this.st)) && this.overCap(st, company, takesSpace(cmd.res) ? a : 0)) return '창고 용량 부족';
           emit(this.st, { kind: 'market', reason: 'buy', amount: a, value: cost, company, station: st.id, item: cmd.res });
           co.credits -= cost; m.stock -= a; addc(ship ? ship.cargo : store, cmd.res, a);
+          if (this.st.repV) repTrade(this.st, company, st, cmd.res, cost, false);
           if (growthOn(this.st) && st.public) fundsIn(st, cost);
           if (receipt) co.lastPurchase = receipt;
           this.ev('money', `${RES_NAME[cmd.res]} ${a} 구매 -${Math.round(cost).toLocaleString()} cr`, { company, pos: st.pos });
@@ -1584,7 +1588,8 @@ export class WorldSim {
     // a hull that joined the yard's list after the c3 seeding (content update) starts at its base stock
     const stock = (st.shipStock ??= {})[ch.hull] ??= { n: sale.stock, t: 0 };
     if (stock.n < 1) return `재고 없음 — 이 조선소가 다음 ${h.name}을(를) 건조 중 (${Math.round(100 * stock.t / sale.restock)}%${stock.why ? `, ${stock.why}` : ''})`;
-    if (co.rep < (sale.rep ?? 0)) return `연합 평판 ${sale.rep} 필요`;
+    if (this.st.repV) { const why = hullGate(this.st, co, st, ch.hull, sale.rep, hullEcon(ch.hull).military); if (why) return why; }
+    else if (co.rep < (sale.rep ?? 0)) return `연합 평판 ${sale.rep} 필요`;
     const price = this.shipPrice(st, ch.hull);
     if (co.credits < price) return `자금 부족 — ${price.toLocaleString()} cr 필요`;
     co.credits -= price;
@@ -3543,7 +3548,9 @@ export class WorldSim {
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
     if (sold) emit(this.st, { kind: 'market', reason: 'sell', amount: sold, value: total, company, station: st.id, item: r });
     // P10: supplying a faction's market slowly improves standing with it (bounded per sale)
-    if (sold && st.faction && this.st.factions) bumpStanding(this.st, company, st.faction, Math.min(2, total / 25000));
+    // P14.0 (repV): net weighted trade value, so splitting a sale or buying it back changes nothing
+    if (sold && this.st.repV) repTrade(this.st, company, st, r, total, true);
+    else if (sold && st.faction && this.st.factions) bumpStanding(this.st, company, st.faction, Math.min(2, total / 25000));
     return { value: total, sold };
   }
 
@@ -4311,9 +4318,12 @@ export class WorldSim {
         const share = total > 0 ? vsPir(c) / total : 0;
         const pay = Math.round(bounty * share);
         if (pay > 0) { co.credits += pay; co.stats.earned += pay; }
-        const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
-        if (standing) emit(st, { kind: 'reputation', reason: 'pirate_bounty', amount: standing, company: co.id, system: e.sys });
-        if (standing && st.factions) { const fsys = st.systems[e.sys ?? '']?.faction; if (fsys && fsys !== 'pirates') bumpStanding(st, co.id, fsys, standing * .5); bumpStanding(st, co.id, 'pirates', -standing); }
+        if (st.repV) repBattle(st, co.id, e.id, st.systems[e.sys ?? ''], [...destroyedPirateValue.values()], share);
+        else {
+          const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
+          if (standing) emit(st, { kind: 'reputation', reason: 'pirate_bounty', amount: standing, company: co.id, system: e.sys });
+          if (standing && st.factions) { const fsys = st.systems[e.sys ?? '']?.faction; if (fsys && fsys !== 'pirates') bumpStanding(st, co.id, fsys, standing * .5); bumpStanding(st, co.id, 'pirates', -standing); }
+        }
         co.stats.kills += Math.round(destroyedPirateValue.size * share);
         const status = statusOf(c);
         if (status === 'victor') { co.stats.battlesWon++; if (!co.milestones.includes('first_victory')) this.milestone(co, 'first_victory'); }
@@ -4338,10 +4348,13 @@ export class WorldSim {
       const share = totalDmg > 0 ? (dmgBy.get(c) ?? 0) / totalDmg : 1 / players.length;
       const pay = Math.round(bounty * share);
       if (pay > 0) { co.credits += pay; co.stats.earned += pay; }
-      const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
-      if (standing) emit(st, { kind: 'reputation', reason: 'pirate_bounty', amount: standing, company: co.id, system: e.sys });
-      // P10: the faction holding the system values pirate hunting; the pirates remember it
-      if (standing && st.factions) { const fsys = st.systems[e.sys ?? '']?.faction; if (fsys && fsys !== 'pirates') bumpStanding(st, co.id, fsys, standing * .5); bumpStanding(st, co.id, 'pirates', -standing); }
+      if (st.repV) repBattle(st, co.id, e.id, st.systems[e.sys ?? ''], [...destroyedPirateValue.values()], share);
+      else {
+        const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
+        if (standing) emit(st, { kind: 'reputation', reason: 'pirate_bounty', amount: standing, company: co.id, system: e.sys });
+        // P10: the faction holding the system values pirate hunting; the pirates remember it
+        if (standing && st.factions) { const fsys = st.systems[e.sys ?? '']?.faction; if (fsys && fsys !== 'pirates') bumpStanding(st, co.id, fsys, standing * .5); bumpStanding(st, co.id, 'pirates', -standing); }
+      }
       co.stats.kills += Math.round(destroyedPirateValue.size * share);
       if (won) { co.stats.battlesWon++; if (!co.milestones.includes('first_victory')) this.milestone(co, 'first_victory'); }
       const lost = lostBy.get(c) ?? 0;
@@ -4402,9 +4415,16 @@ export class WorldSim {
     const who = e.sides[0].filter(c => this.st.companies[c]?.kind === 'player').map(c => this.st.companies[c].name).join(', ') || '연합군';
     this.ev('world', `${l.name}이(가) ${who}에 의해 파괴되었다! 주변 항로의 해적 위협이 사라진다.`, { pos: l.pos, ref: l.id });
     for (const f of Object.values(this.st.fields)) if (dist(f.pos, l.pos) < 9000) f.danger = Math.max(1, f.danger - 1);
+    // P14.0 (repV): by share of the damage dealt to pirates in this battle, once per destruction
+    const lairCos = e.sides[0].filter(c => this.st.companies[c]?.kind === 'player');
+    const pirDmg = (c: string) => Object.entries(e.dmg?.[c] ?? {}).reduce((a, [x, v]) => a + (x === 'pirates' || this.st.companies[x]?.kind === 'pirate' ? v : 0), 0);
+    const lairTot = lairCos.reduce((a, c) => a + pirDmg(c), 0);
     for (const c of e.sides[0]) {
       const co = this.st.companies[c];
-      if (co?.kind === 'player') { co.rep += 15; emit(this.st, { kind: 'reputation', reason: 'lair_destroyed', amount: 15, company: co.id, system: e.sys }); if (!co.milestones.includes('lair')) this.milestone(co, 'lair'); }
+      if (co?.kind === 'player' && this.st.repV) {
+        repLair(this.st, co.id, `${l.id}@${Math.round(this.time)}`, lsys ?? undefined, l.tier ?? 2, lairTot > 0 ? pirDmg(c) / lairTot : 1 / lairCos.length);
+        if (!co.milestones.includes('lair')) this.milestone(co, 'lair');
+      } else if (co?.kind === 'player') { co.rep += 15; emit(this.st, { kind: 'reputation', reason: 'lair_destroyed', amount: 15, company: co.id, system: e.sys }); if (!co.milestones.includes('lair')) this.milestone(co, 'lair'); }
     }
     for (const k of Object.values(this.st.contracts)) if (!k.done && k.kind === 'lair' && k.target === l.id) {
       if (k.takenBy && e.sides[0].includes(k.takenBy)) this.completeContract(k); else k.done = true;
@@ -4438,7 +4458,7 @@ export class WorldSim {
       if (k.done) continue;
       if (this.time > k.expires) {
         k.done = true;
-        if (k.takenBy) { const co = st.companies[k.takenBy]; const prev = co.rep; co.rep = Math.max(0, co.rep - 2); emit(st, { kind: 'reputation', amount: co.rep - prev, reason: 'contract_expired', company: co.id }); emit(st, { kind: 'contract', amount: 1, reason: 'fail', company: co.id, item: k.kind, station: k.stationId }); this.ev('warn', `계약 기한 만료: ${k.title} (평판 -2)`, { company: k.takenBy }); }
+        if (k.takenBy) { const co = st.companies[k.takenBy]; const prev = co.rep; if (st.repV) repContractFailed(st, co.id, k); else { co.rep = Math.max(0, co.rep - 2); emit(st, { kind: 'reputation', amount: co.rep - prev, reason: 'contract_expired', company: co.id }); } emit(st, { kind: 'contract', amount: 1, reason: 'fail', company: co.id, item: k.kind, station: k.stationId }); this.ev('warn', `계약 기한 만료: ${k.title} (${st.repV ? '신용도·발주 세력 신뢰도 하락' : '평판 -2'})`, { company: k.takenBy }); }
       }
     }
     // stations keep a few delivery jobs posted
@@ -4482,9 +4502,13 @@ export class WorldSim {
     k.done = true;
     const co = k.takenBy ? this.st.companies[k.takenBy] : null;
     if (!co) return;
-    co.credits += k.reward; co.stats.earned += k.reward; co.rep += k.rep; emit(this.st, { kind: 'reputation', reason: `contract_${k.kind}`, amount: k.rep, company: co.id, station: k.stationId }); co.stats.contracts++;
+    co.credits += k.reward; co.stats.earned += k.reward; co.stats.contracts++;
+    const r0 = co.rep, f0 = this.st.stations[k.stationId]?.faction, s0 = f0 ? co.standing?.[f0] ?? 0 : 0;
+    if (this.st.repV) repContract(this.st, co.id, k);
+    else { co.rep += k.rep; emit(this.st, { kind: 'reputation', reason: `contract_${k.kind}`, amount: k.rep, company: co.id, station: k.stationId }); }
     emit(this.st, { kind: 'contract', reason: 'complete', amount: 1, value: k.reward, company: co.id, station: k.stationId, item: k.kind });
-    this.ev('money', `계약 완수: ${k.title} — 보수 +${k.reward.toLocaleString()} cr, 평판 +${k.rep}`, { company: co.id, pos: this.st.stations[k.stationId]?.pos });
+    const repTxt = this.st.repV ? `신용도 +${(co.rep - r0).toFixed(2)}${f0 && this.st.factions?.[f0] ? ` · ${FACTIONS[f0]?.short ?? f0} 신뢰도 +${((co.standing?.[f0] ?? 0) - s0).toFixed(2)}` : ''}` : `평판 +${k.rep}`;
+    this.ev('money', `계약 완수: ${k.title} — 보수 +${k.reward.toLocaleString()} cr, ${repTxt}`, { company: co.id, pos: this.st.stations[k.stationId]?.pos });
     // growth P6: lair assaults can award blueprints (contract / unique sources)
     if (growthOn(this.st) && k.kind === 'lair') {
       const tier = (k.target && this.st.lairs[k.target]?.tier) || 2;

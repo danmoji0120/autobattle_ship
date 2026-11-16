@@ -14,9 +14,10 @@ import { fieldPanelHtml } from './territoryUi';
 import { econOf } from '../../world/hullops';
 import { companyPiracyHtml } from './piracyUi';
 import { companyLawHtml } from './lawUi';
+import { companyRepHtml } from './repUi';
 
-type Tab = 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance';
-const TABS: [Tab, string][] = [['hq', '본부'], ['works', '업무'], ['stock', '재고'], ['industry', '산업'], ['research', '연구'], ['logistics', '물류'], ['build', '건설·조선'], ['fields', '광구'], ['finance', '재무·결재']];
+type Tab = 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance' | 'rep';
+const TABS: [Tab, string][] = [['hq', '본부'], ['works', '업무'], ['stock', '재고'], ['industry', '산업'], ['research', '연구'], ['logistics', '물류'], ['build', '건설·조선'], ['fields', '광구'], ['finance', '재무·결재'], ['rep', '평판·관계']];
 interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard' | 'research'): void; logistics(): void; analytics(): void; close(): void }
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
@@ -156,7 +157,7 @@ export class OperationsPanel {
     const w = this.w, co = w.companies[this.me]; if (!co) return;
     const aps = this.approvals().filter(a => a.state === 'open');
     const live = this.works().filter(x => !terminal(x));
-    const body = this.tab === 'hq' ? this.hq() : this.tab === 'works' ? this.workTab() : this.tab === 'stock' ? this.stockTab() : this.tab === 'industry' ? this.industryTab() : this.tab === 'research' ? this.researchTab() : this.tab === 'logistics' ? this.logisticsTab() : this.tab === 'build' ? this.buildTab() : this.tab === 'fields' ? this.fieldsTab() : this.financeTab();
+    const body = this.tab === 'hq' ? this.hq() : this.tab === 'works' ? this.workTab() : this.tab === 'stock' ? this.stockTab() : this.tab === 'industry' ? this.industryTab() : this.tab === 'research' ? this.researchTab() : this.tab === 'logistics' ? this.logisticsTab() : this.tab === 'build' ? this.buildTab() : this.tab === 'fields' ? this.fieldsTab() : this.tab === 'rep' ? companyRepHtml(this.w as never, this.me) : this.financeTab();
     morph(this.el, `<div class="panel lg-box ops-box"><header class="lg-head"><div><div class="an-eyebrow">SIDERARIUM / COMPANY HQ</div><h2>회사 본부 <span>${esc(co.name)} · 업무 ${live.length} · 결재 ${aps.length}</span></h2></div><div class="lg-actions"><button class="btn" data-a="close" aria-label="본부 닫기">✕</button></div></header>
       <nav class="pool-tabs ops-tabs" aria-label="본부 화면">${TABS.map(([id, label]) => `<button class="${this.tab === id ? 'on' : ''}" data-a="tab" data-id="${id}" aria-pressed="${this.tab === id}">${label}${id === 'finance' && aps.length ? ` <span class="ops-dot">${aps.length}</span>` : ''}</button>`).join('')}</nav>
       ${this.error ? `<div class="lg-feedback warn" role="alert">${esc(this.error)}</div>` : this.notice ? `<div class="lg-feedback good" role="status">${esc(this.notice)}</div>` : ''}

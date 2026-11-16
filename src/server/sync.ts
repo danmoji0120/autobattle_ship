@@ -43,6 +43,8 @@ const ZERO_STATS = () => ({ earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 
 function publicCompany(id: string, co: any) {
   return { id, name: co.name, kind: co.kind, color: co.color, online: co.online, createdAt: co.createdAt, homeStation: co.homeStation, credits: 0, rep: 0, stats: ZERO_STATS(), milestones: [] };
 }
+/** P14.0: the owner sees its reputation record and recent changes; applied-event keys and crime tallies stay server-side */
+const ownCompany = (co: any) => co.repx ? { ...co, repx: { ...co.repx, keys: undefined, cases: undefined } } : co;
 /** station without its storage map (storage is per viewer and is added separately) */
 function stationBody(st: Station, own: boolean) {
   return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
@@ -116,7 +118,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   for (const [id, e] of Object.entries(engagements)) { const { setup: _x, orders: _o, ...lite } = e; void _x; void _o; eng[id] = lite; }
   const log = (battleLog ?? []).map(({ setup: _x, orders: _o, ...lite }) => { void _x; void _o; return lite; });
   const c = v.company;
-  const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, fullCompany(id, co, c) ? co : publicCompany(id, co)]));
+  const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, fullCompany(id, co, c) ? ownCompany(co) : publicCompany(id, co)]));
   const stations = Object.fromEntries(Object.entries(base.stations).filter(([, s]) => s.owner === c || contentsKnown(st, c, s.pos)).map(([id, s]) => [id, { ...s, storage: { ...(c && s.storage[c] ? { [c]: s.storage[c] } : {}) }, ...(s.owner === c ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: s.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
   const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, fullGroup(st, g, c) ? npcView(g) : publicGroup(g)]));
   const origin = st.systems[sysId]?.origin;
@@ -274,7 +276,7 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
   const one = (id: string, ab: string, make: () => unknown) => out.set(id, { a: f.str(ab, id, make), ab });
   switch (col) {
     case 'companies':
-      for (const id in map) { const co = map[id], full = fullCompany(id, co, c); one(id, full ? 'co' : 'co.p', () => full ? co : publicCompany(id, co)); }
+      for (const id in map) { const co = map[id], full = fullCompany(id, co, c); one(id, full ? 'co' : 'co.p', () => full ? ownCompany(co) : publicCompany(id, co)); }
       return;
     case 'stations':
       for (const id in map) {

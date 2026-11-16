@@ -65,6 +65,8 @@ export interface Company {
   piracyPolicy?: import('./piracy').VictimPolicy;
   /** P13.4 (lawV): this company's record with the authority (wanted level, unpaid fines, recent cases) — private */
   law?: import('./law').CoLaw;
+  /** P14.0 (repV): reputation bookkeeping — record per scope, recent changes, applied event keys — private */
+  repx?: import('./reputation').CoRep;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -618,6 +620,8 @@ export interface WorldState {
   blackMarkets?: Record<string, import('./blackmarket').BlackMarket>;
   /** P13.4 law enforcement (new worlds only; implies blackMarketV): crimes, wanted levels, guard dispatch */
   lawV?: 1;
+  /** P14.0 reputation (new worlds, or an explicit migration): company credit + six independent faction trusts */
+  repV?: 1;
   /** P13.4: cases and running enforcement operations — server-side, never replicated */
   law?: import('./law').LawBook;
   /** P13.2: server-side bookkeeping (truces, event log, sequence) — never replicated */

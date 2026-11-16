@@ -901,7 +901,7 @@ export class PmcHud {
       <div class="co"><span class="dot" style="background:${co.color}"></span><b>${esc(co.name)}</b><small>민간군사기업</small></div>
       <div class="kv"><span>자금</span><b class="money">${fmt(co.credits)} <small>cr</small></b></div>
       <div class="kv"><span>함선</span><b>${ships.length}</b></div>
-      <div class="kv"><span>연합 평판</span><b>${co.rep}</b></div>
+      ${this.st.repV ? `<div class="kv" title="회사 신용도 — 세력별 신뢰도는 회사 본부 → 평판·관계"><span>신용도</span><b>${Math.floor(co.rep * 10) / 10}</b></div>` : `<div class="kv"><span>연합 평판</span><b>${co.rep}</b></div>`}
       ${growthOn(this.st) ? upkeepTop(this.st, this.me) : ''}
       ${RES.map(r => `<div class="kv"><span style="color:${RES_COLOR[r]}">${RES_NAME[r]}</span><b>${fmt(stores[r])}</b></div>`).join('')}
       <div class="kv"><span>성계 시각</span><b>${fmtT(this.st.time)}</b></div>
@@ -1344,7 +1344,7 @@ export class PmcHud {
     if (own && own.modules.some(m => m.kind === 'core' && !m.built) && !groups.some(g => g.op.k === 'build')) return `공작선 편대에 <b>건설</b> 명령을 내려 ${esc(own.name)}의 도킹 허브를 완성하세요. 합금이 부족하면 시장에서 사서 <b>운송</b>하세요.`;
     if (own && own.modules.some(m => !m.built && planMats(m).some(r => missing(m, r) > 1))) return `${esc(own.name)}의 건설 계획이 <b>자재 대기 중</b>입니다. 채굴선 하역지를 이 정거장으로 지정하거나 자재를 <b>운송</b>하면 자동으로 착공합니다.`;
     if (own && own.modules.length === 1 && own.modules[0].built) return `${esc(own.name)}에 <b>정제소</b>를 지으면 광석을 합금으로 바꿔 건설·조선에 쓸 수 있습니다.`;
-    if (co.rep >= 10 && !ships.some(x => x.classId === 'cruiser')) return '평판이 올랐습니다. 수도 성계 <b>헬리오스</b> 조선소에서 <b>순양함</b>을 살 수 있습니다 (Tab: 성계 지도).';
+    if (!this.st.repV && co.rep >= 10 && !ships.some(x => x.classId === 'cruiser')) return '평판이 올랐습니다. 수도 성계 <b>헬리오스</b> 조선소에서 <b>순양함</b>을 살 수 있습니다 (Tab: 성계 지도).';
     if (co.stats.earned > 30000 && !ships.some(s => sysAt(st.systems, s.pos)?.id !== 'astra')) return '아스트라는 안전하지만 수익이 제한적입니다. <b>Tab</b>으로 성계 지도를 열어 <b>드레이크 변경</b>을 살펴보세요 — 광맥이 풍부하고 보수가 높지만 호위가 필요합니다.';
     return '';
   }
@@ -1370,7 +1370,7 @@ export class PmcHud {
     }, options);
   }
 
-  openOperations(tab?: 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'finance') {
+  openOperations(tab?: 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance' | 'rep') {
     if (!growthOn(this.st)) return;
     if (this.opsPanel) { if (tab) this.opsPanel.show(tab); return; }
     this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
@@ -1691,7 +1691,7 @@ export class PmcHud {
   private contractsHtml(s: Station): string {
     const ks = Object.values(this.st.contracts).filter(k => k.stationId === s.id && !k.done);
     if (!ks.length) return '<div class="dim">게시된 계약이 없습니다.</div>';
-    return `<div class="yard">${ks.map(k => `<div class="ycard${k.takenBy && k.takenBy !== this.me ? ' locked' : ''}"><div class="yn"><b>${esc(k.title)}</b><span class="money">${fmt(k.reward)} cr · 평판 +${k.rep}</span></div>
+    return `<div class="yard">${ks.map(k => `<div class="ycard${k.takenBy && k.takenBy !== this.me ? ' locked' : ''}"><div class="yn"><b>${esc(k.title)}</b><span class="money">${fmt(k.reward)} cr · ${this.st.repV ? `신용·${esc(FACTIONS[this.st.stations[k.stationId]?.faction ?? '']?.short ?? '')} 신뢰 상승` : `평판 +${k.rep}`}</span></div>
       <div class="dim">${esc(k.desc)}</div>
       <div class="ys">${k.kind === 'delivery' ? `진행 ${Math.round(k.progress)}/${k.amount} · ` : ''}${Math.max(0, Math.round((k.expires - this.st.time) / 60))}분 남음</div>
       ${k.takenBy === this.me ? '<div class="good">수주함 — 진행 중</div>' : k.takenBy ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn go" data-accept="${k.id}">수주</button>`}</div>`).join('')}</div>

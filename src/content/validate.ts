@@ -2,12 +2,12 @@
 // asset registration. Pure — file access is injected so it runs in tests and in the CLI
 // (scripts/content-check.ts, `npm run content:check`). Errors block a merge; warnings are review notes.
 import { isExtraMeshBase } from './meshBases';
-import { PUBLIC_BERTH } from '../world/hullops';
+import { PUBLIC_BERTH, P10_PUBLIC_STATIONS } from '../world/hullops';
 import { SHIP_CLASSES, getLoadout } from '../sim/data/ships';
 import { COMMANDERS } from '../sim/data/commanders';
 import { EQUIPMENT, ITEMS, FACILITIES, HULLS, TECHS, RECIPES } from '../world/industry';
 import { placeModules } from '../world/fitting';
-import { ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_STYLES, SIZES, type AssetKind, type HardpointDef } from './schema';
+import { FACTION_IDS, ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_KINDS, MOUNT_STYLES, SIZES, type AssetKind, type HardpointDef } from './schema';
 import { presetMounts, variantLayout, INSTALLED_EQUIPMENT, type Registry } from './registry';
 import { hpAccepts, fitTotals } from './rules';
 import { validateArsenal } from './validateArsenal';
@@ -145,7 +145,7 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
   }
 
   // ── growth data (P3/P4/P6): build, upkeep, sale, ops, stats
-  const STATIONS = Object.keys(PUBLIC_BERTH);
+  const STATIONS = [...Object.keys(PUBLIC_BERTH), ...P10_PUBLIC_STATIONS];
   const known = (k: string) => !!(ITEMS[k] || EQUIPMENT[k]);
   for (const h of Object.values(reg.hulls)) {
     const at = `hull ${h.id}`;
@@ -202,6 +202,13 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       if (s.kind === 'salvage' && !(Number.isInteger(s.fragments) && s.fragments >= 2)) err(at, `salvage.fragments ${s.fragments} (정수 ≥ 2)`);
       if (s.kind === 'unique' && !(Number.isInteger(s.limit) && s.limit >= 1)) err(at, `unique.limit ${s.limit}`);
       if (s.kind === 'explore' && !(Number.isInteger(s.tier) && s.tier >= 1 && s.tier <= 3)) err(at, `explore.tier ${s.tier} (1~3)`);
+      if (s.kind === 'faction') {
+        if (!FACTION_IDS.includes(s.faction)) err(at, `faction.faction "${s.faction}" (${FACTION_IDS.join('/')})`);
+        if (s.trust !== undefined && !(s.trust >= -100 && s.trust <= 100)) err(at, `faction.trust ${s.trust} (−100~100)`);
+        if (s.contracts !== undefined && !(Number.isInteger(s.contracts) && s.contracts >= 1)) err(at, `faction.contracts ${s.contracts}`);
+        if (s.repOnly && s.trust === undefined) err(at, 'faction.repOnly 판매처는 trust 필요');
+      }
+      if (s.kind === 'commercial' && s.credit !== undefined && !(s.credit >= 0 && s.credit <= 100)) err(at, `commercial.credit ${s.credit} (0~100)`);
       if (s.kind === 'commercial' && s.contracts !== undefined && !(Number.isInteger(s.contracts) && s.contracts >= 1)) err(at, `commercial.contracts ${s.contracts}`);
     }
   }

@@ -21,6 +21,7 @@ import { shipValue } from './data';
 import { dist, sysAt } from './geom';
 import { effSec } from './security';
 import { bumpStanding } from './territory';
+import { repOffense } from './reputation';
 import { lawCrime } from './law';
 import { emit } from './observe';
 import { isExclusiveEquip, isExclusiveShip } from './exclusive';
@@ -417,7 +418,10 @@ export function jettison(h: Host, s: WShip, by: string, ev: string, want: Cargo,
     // P13.4: the same event as a law case (its own jurisdiction & witness rules; the reputation loss below is not repeated)
     if (st.lawV) { const rg = raider ? st.groups[raider] : undefined; lawCrime(h, { kind: 'extortion', by, group: raider, ship: rg?.shipIds[0], victim: s.owner, vgroup: s.groupId, sys: d.system, pos: d.pos, value, key: `ext:${id}` }); }
     const co = st.companies[by];
-    if (sec >= PIR.lawSec && co) {
+    if (st.repV && sec >= PIR.lawSec && co) {
+      repOffense(st, by, sys?.faction, 'extortion', value, `ext:${id}`, '화물 갈취');
+      h.ev('warn', `${sys?.name ?? ''}: 중립 회사 화물 갈취 — 치안 구역 위반 (신용도·세력 신뢰도 하락)`, { company: by, pos: d.pos, ref: id, tag: 'piracy' });
+    } else if (sec >= PIR.lawSec && co) {
       const rep = value * SALV.repPerCr * (sec / 100);
       co.rep = Math.max(0, co.rep - rep);
       emit(st, { kind: 'reputation', reason: 'extortion', amount: -rep, company: by, system: d.system });

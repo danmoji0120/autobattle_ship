@@ -1,0 +1,439 @@
+{
+  "passed": 21,
+  "failed": 0,
+  "checks": [
+    {
+      "ok": true,
+      "label": "1-1: REPUTATION_P14=1 server creates a repV world; a new PMC starts at credit 0 with no faction trust",
+      "extra": {
+        "repV": 1,
+        "rep": 0
+      },
+      "t": 2
+    },
+    {
+      "ok": true,
+      "label": "2-0: the server runs the P10 repV world (six factions; Bulwark yard is the Iron Command's)",
+      "extra": {
+        "factions": [
+          "union",
+          "guild",
+          "ceres",
+          "miners",
+          "iron",
+          "pirates"
+        ]
+      },
+      "t": 3
+    },
+    {
+      "ok": true,
+      "label": "2-1: selling 100 weapon parts at the Bulwark yard raised iron trust and company credit — by a small amount (no jump to a top band)",
+      "extra": {
+        "err": null,
+        "before": {
+          "rep": 0,
+          "standing": {},
+          "acc": {}
+        },
+        "after": {
+          "rep": 0.24,
+          "standing": {
+            "iron": 0.384
+          },
+          "acc": {
+            "credit": {
+              "net": 4924,
+              "w": 0,
+              "got": {
+                "trade": 0.25
+              }
+            },
+            "iron": {
+              "net": 2386,
+              "w": 0,
+              "got": {
+                "trade": 0.4
+              },
+              "since": 0.75
+            }
+          }
+        },
+        "log": [
+          {
+            "t": 0.75,
+            "s": "credit",
+            "d": 0.24,
+            "why": "시장 거래"
+          },
+          {
+            "t": 0.75,
+            "s": "iron",
+            "d": 0.384,
+            "why": "세력 시장 공급"
+          }
+        ]
+      },
+      "t": 5
+    },
+    {
+      "ok": true,
+      "label": "2-2: no other faction's trust moved (no automatic cross gain)",
+      "extra": {
+        "iron": 0.384
+      },
+      "t": 5
+    },
+    {
+      "ok": true,
+      "label": "2-3: B (another company) is untouched",
+      "extra": {
+        "rep": 0,
+        "standing": {},
+        "acc": {}
+      },
+      "t": 5
+    },
+    {
+      "ok": true,
+      "label": "2-4: buyBlueprint bp_battleship_mk1 refused with the exact missing iron trust; nothing charged",
+      "extra": {
+        "err": "철갑 사령부 신뢰도 45 필요 (현재 0.3)",
+        "credits": [
+          5054924,
+          5054924
+        ]
+      },
+      "t": 7
+    },
+    {
+      "ok": true,
+      "label": "2-5: Helios yard refuses destroyer_mk1 for missing Union trust and miner_xl (civilian) for missing company credit (5)",
+      "extra": {
+        "milErr": "연합 관리청 신뢰도 10 필요 (현재 0) — 군용 선체는 판매 세력의 신뢰가 필요합니다",
+        "civErr": "회사 신용도 5 필요 (현재 0.2)"
+      },
+      "t": 7
+    },
+    {
+      "ok": true,
+      "label": "2-6: with three holders (one held from before the fix) a fourth dreadnought purchase is refused — nothing charged, nothing granted",
+      "extra": {
+        "err": "세계 보유 한도 도달 (3/3부) — 더 이상 발급되지 않습니다",
+        "credits": [
+          5054924,
+          5054924
+        ]
+      },
+      "t": 10
+    },
+    {
+      "ok": true,
+      "label": "2-7: with Union trust the same destroyer_mk1 purchase succeeds (ship ownership unchanged otherwise)",
+      "extra": {
+        "err": null
+      },
+      "t": 10
+    },
+    {
+      "ok": true,
+      "label": "2-8: A sees its own reputation record and change log, never the applied-event keys or crime tallies",
+      "extra": {
+        "fields": [
+          "acc",
+          "log"
+        ]
+      },
+      "t": 13
+    },
+    {
+      "ok": true,
+      "label": "2-9: B never receives A's credit, trust or reputation record",
+      "extra": {
+        "aSeenByB": [
+          "id",
+          "name",
+          "kind",
+          "color",
+          "online",
+          "createdAt",
+          "homeStation",
+          "credits",
+          "rep",
+          "stats",
+          "milestones"
+        ]
+      },
+      "t": 13
+    },
+    {
+      "ok": true,
+      "label": "2-10: after a restart A's credit, trust and reputation record (keys, log, cases) are exactly as saved",
+      "extra": {
+        "len": 1248
+      },
+      "t": 16
+    },
+    {
+      "ok": true,
+      "label": "2-11: with iron trust 50 but 11 iron contracts the blueprint is still refused for the contract record (12)",
+      "extra": {
+        "err": "철갑 사령부 계약 실적 12건 필요 (현재 11건)"
+      },
+      "t": 17
+    },
+    {
+      "ok": true,
+      "label": "2-12: iron trust 50 + 12 iron contracts → the battleship blueprint is bought at Bulwark (charged, src faction)",
+      "extra": {
+        "err": null,
+        "credits": [
+          4938424,
+          4538424
+        ],
+        "bp": {
+          "src": "faction",
+          "t": 15
+        }
+      },
+      "t": 20
+    },
+    {
+      "ok": true,
+      "label": "3-0: the prepared save is a growth world without repV",
+      "extra": {
+        "contentV": 4
+      },
+      "t": 20
+    },
+    {
+      "ok": true,
+      "label": "3-1: REPUTATION_P14_MIGRATE=1 converts the save (server log line names 3 companies)",
+      "extra": {
+        "line": "[siderarium] P14.0 평판 이전: 회사 3곳 · 전환 유예 36건"
+      },
+      "t": 22
+    },
+    {
+      "ok": true,
+      "label": "3-2: credit mapped monotonically (75 → 48.75, 12 → 11.2), the legacy value kept; nobody reset to one value",
+      "extra": {
+        "line": "[siderarium] P14.0 평판 이전: 회사 3곳 · 전환 유예 36건",
+        "A": {
+          "rep": 48.75,
+          "legacy": 75,
+          "grand": {
+            "until": 86400,
+            "keys": [
+              "bp:bp_light_cruiser_mk1",
+              "bp:bp_battlecruiser_mk1",
+              "bp:bp_battleship_mk1",
+              "bp:bp_destroyer_picket_cmd",
+              "bp:bp_miner_l_drone",
+              "hull:battleship_mk1",
+              "hull:cruiser_mk1",
+              "hull:destroyer_mk1",
+              "hull:frigate_mk1",
+              "hull:light_cruiser_mk1",
+              "hull:battlecruiser_mk1",
+              "hull:destroyer_vls",
+              "hull:miner_xl",
+              "hull:constructor_xl",
+              "hull:destroyer_lancet",
+              "hull:cruiser_vigil",
+              "bp:bp_hauler_l",
+              "hull:hauler_l",
+              "hull:hauler_xl",
+              "hull:hauler_meridian",
+              "hull:destroyer_picket",
+              "hull:constructor_l",
+              "bp:bp_destroyer_heavy",
+              "hull:destroyer_heavy",
+              "hull:miner_l"
+            ]
+          },
+          "standing": {
+            "union": 30,
+            "pirates": -12
+          }
+        },
+        "B": {
+          "rep": 11.2,
+          "legacy": 12
+        }
+      },
+      "t": 22
+    },
+    {
+      "ok": true,
+      "label": "3-3: faction standing kept as it was — the common reputation is not copied into it",
+      "extra": {
+        "union": 30,
+        "pirates": -12
+      },
+      "t": 22
+    },
+    {
+      "ok": true,
+      "label": "3-4: ships, blueprints and standing of A and B are unchanged by the migration",
+      "extra": {},
+      "t": 22
+    },
+    {
+      "ok": true,
+      "label": "3-5: purchase rights A held under the old rule are kept for the grace period",
+      "extra": {
+        "until": 86400,
+        "keys": [
+          "bp:bp_light_cruiser_mk1",
+          "bp:bp_battlecruiser_mk1",
+          "bp:bp_battleship_mk1",
+          "bp:bp_destroyer_picket_cmd",
+          "bp:bp_miner_l_drone",
+          "hull:battleship_mk1",
+          "hull:cruiser_mk1",
+          "hull:destroyer_mk1",
+          "hull:frigate_mk1",
+          "hull:light_cruiser_mk1",
+          "hull:battlecruiser_mk1",
+          "hull:destroyer_vls",
+          "hull:miner_xl",
+          "hull:constructor_xl",
+          "hull:destroyer_lancet",
+          "hull:cruiser_vigil",
+          "bp:bp_hauler_l",
+          "hull:hauler_l",
+          "hull:hauler_xl",
+          "hull:hauler_meridian",
+          "hull:destroyer_picket",
+          "hull:constructor_l",
+          "bp:bp_destroyer_heavy",
+          "hull:destroyer_heavy",
+          "hull:miner_l"
+        ]
+      },
+      "t": 22
+    },
+    {
+      "ok": true,
+      "label": "3-6: a second migrating start changes nothing (idempotent)",
+      "extra": {
+        "line": "[siderarium] P14.0 평판 이전: 이미 적용됨 (변경 없음)"
+      },
+      "t": 24
+    }
+  ],
+  "facts": {
+    "seed": "133",
+    "label": "final",
+    "clock": "server real time, speed 1 (multiplayer)",
+    "ids": {
+      "A": "p1",
+      "B": "p10",
+      "C": "p19"
+    },
+    "sale": {
+      "err": null,
+      "before": {
+        "rep": 0,
+        "standing": {},
+        "acc": {}
+      },
+      "after": {
+        "rep": 0.24,
+        "standing": {
+          "iron": 0.384
+        },
+        "acc": {
+          "credit": {
+            "net": 4924,
+            "w": 0,
+            "got": {
+              "trade": 0.25
+            }
+          },
+          "iron": {
+            "net": 2386,
+            "w": 0,
+            "got": {
+              "trade": 0.4
+            },
+            "since": 0.75
+          }
+        }
+      },
+      "log": [
+        {
+          "t": 0.75,
+          "s": "credit",
+          "d": 0.24,
+          "why": "시장 거래"
+        },
+        {
+          "t": 0.75,
+          "s": "iron",
+          "d": 0.384,
+          "why": "세력 시장 공급"
+        }
+      ]
+    },
+    "bought": {
+      "err": null,
+      "credits": [
+        4938424,
+        4538424
+      ],
+      "bp": {
+        "src": "faction",
+        "t": 15
+      }
+    },
+    "migrate": {
+      "line": "[siderarium] P14.0 평판 이전: 회사 3곳 · 전환 유예 36건",
+      "A": {
+        "rep": 48.75,
+        "legacy": 75,
+        "grand": {
+          "until": 86400,
+          "keys": [
+            "bp:bp_light_cruiser_mk1",
+            "bp:bp_battlecruiser_mk1",
+            "bp:bp_battleship_mk1",
+            "bp:bp_destroyer_picket_cmd",
+            "bp:bp_miner_l_drone",
+            "hull:battleship_mk1",
+            "hull:cruiser_mk1",
+            "hull:destroyer_mk1",
+            "hull:frigate_mk1",
+            "hull:light_cruiser_mk1",
+            "hull:battlecruiser_mk1",
+            "hull:destroyer_vls",
+            "hull:miner_xl",
+            "hull:constructor_xl",
+            "hull:destroyer_lancet",
+            "hull:cruiser_vigil",
+            "bp:bp_hauler_l",
+            "hull:hauler_l",
+            "hull:hauler_xl",
+            "hull:hauler_meridian",
+            "hull:destroyer_picket",
+            "hull:constructor_l",
+            "bp:bp_destroyer_heavy",
+            "hull:destroyer_heavy",
+            "hull:miner_l"
+          ]
+        },
+        "standing": {
+          "union": 30,
+          "pirates": -12
+        }
+      },
+      "B": {
+        "rep": 11.2,
+        "legacy": 12
+      }
+    }
+  },
+  "realWebSockets": 3,
+  "seconds": 24
+}

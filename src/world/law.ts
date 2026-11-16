@@ -20,8 +20,11 @@ import { book } from './operations';
 import { fundsIn } from './market';
 import { econOf } from './hullops';
 import { guardInspect } from './blackmarket';
+import { repOffense, type RepOffense } from './reputation';
 
 type Host = WorldSim;
+/** P14.0: law-only crimes charged to reputation when they become known */
+const REP_AT_KNOWN: LawKind[] = ['strike', 'guard_attack', 'flee', 'resist'];
 
 export type LawKind = 'extortion' | 'salvage' | 'smuggling' | 'strike' | 'guard_attack' | 'flee' | 'resist';
 export type LawHow = 'victim' | 'guard' | 'station' | 'inspection' | 'combat';
@@ -265,6 +268,9 @@ function makeKnown(h: Host, c: LawCase, how: LawHow, seen?: LawSeen) {
   if (seen) c.seen = seen;
   if (c.auth) { c.warrant = true; if (!c.fixed) c.fine = fineOf(c.kind, c.value); }
   emit(h.st, { kind: 'law', reason: 'known', amount: c.sev, company: c.by, system: c.sys, ref: c.id, item: c.kind });
+  // P14.0 (repV): crimes that only exist as law cases reach reputation once, when the authority learns of them.
+  // Extortion, salvage and smuggling were already charged by their own event (same act, never twice).
+  if (h.st.repV && REP_AT_KNOWN.includes(c.kind)) repOffense(h.st, c.by, h.st.systems[c.sys]?.faction, c.kind as RepOffense, c.value, `law:${c.id}`, KIND_KO[c.kind]);
   const sys = h.st.systems[c.sys]?.name ?? c.sys;
   const src = { victim: '피해 신고', guard: '경비함 목격', station: '정거장 감시망', inspection: '검문', combat: '교전 기록' }[how];
   if (c.auth) h.ev('warn', `연합 보안국: ${sys} ${KIND_KO[c.kind]} 사건 접수 (${src})${c.fine ? ` — 벌금 ${c.fine.toLocaleString()} cr 부과` : ''}`, { company: c.by, pos: c.pos, ref: c.id, tag: 'law' });

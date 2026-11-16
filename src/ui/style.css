@@ -897,3 +897,18 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .law-cases .law-money span { display: block; white-space: nowrap; }
 .law-cases .law-pay-row { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
 .law-cases .law-pay-row .btn.mini { padding: 2px 8px !important; font-size: 11px !important; letter-spacing: 0 !important; }
+/* P14.0 reputation panel (company HQ → 평판·관계) */
+.rep-bar { position: relative; display: inline-block; width: 120px; max-width: 40vw; height: 6px; margin: 0 6px; vertical-align: middle; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.rep-bar b { position: absolute; left: 0; top: 0; bottom: 0; background: #6fb4ff; }
+.rep-bar b.neg { background: #ff7b6b; }
+.rep-bar .rep-zero { position: absolute; top: -2px; bottom: -2px; width: 1px; background: rgba(255,255,255,.35); }
+.rep-band { display: inline-block; padding: 0 6px; border-radius: 8px; background: rgba(255,255,255,.07); font-size: 11px; margin-right: 4px; }
+.rep-table, .rep-log { table-layout: auto; }
+.rep-table td, .rep-log td { vertical-align: top; white-space: normal; text-align: left; font-family: var(--font); }
+.rep-table th, .rep-log th { text-align: left; }
+.rep-table td:first-child { width: 26%; }
+.rep-table td.rep-val { min-width: 220px; width: 38%; }
+.rep-table td:last-child { min-width: 200px; }
+.rep-log td:nth-child(2) { font-family: var(--mono); white-space: nowrap; }
+.rep-panel .good { color: #7fd48b; }
+@media (max-width: 640px) { .rep-table td.rep-val, .rep-table td:last-child { min-width: 0; } .rep-table td:first-child { width: auto; } .rep-bar { width: 80px; } }

@@ -331,7 +331,7 @@ async function main() {
   }
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1', salvageNew: process.env.SALVAGE_P131 === '1', piracyNew: process.env.PIRACY_P132 === '1', blackMarketNew: process.env.BLACKMARKET_P133 === '1', lawNew: process.env.LAW_P134 === '1',
+    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1', salvageNew: process.env.SALVAGE_P131 === '1', piracyNew: process.env.PIRACY_P132 === '1', blackMarketNew: process.env.BLACKMARKET_P133 === '1', lawNew: process.env.LAW_P134 === '1', repNew: process.env.REPUTATION_P14 === '1', repMigrate: process.env.REPUTATION_P14_MIGRATE === '1',
     // Verify migration conservation before the intentionally granted BB-EX changes the census.
     deferExclusiveGrant: true,
     adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),

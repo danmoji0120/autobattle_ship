@@ -1,0 +1,134 @@
+{
+  "base": "http://127.0.0.1:4173",
+  "checks": [
+    {
+      "ok": true,
+      "label": "client state: repV world, own credit as saved; no applied-event keys or crime tallies",
+      "extra": {
+        "repV": 1,
+        "rep": 27.19999999999999
+      }
+    },
+    {
+      "ok": true,
+      "label": "the rival company's trust and record are not in the client state",
+      "extra": {
+        "rep": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "the HUD reads 신용도 (not 연합 평판) on a repV world",
+      "extra": {}
+    },
+    {
+      "ok": true,
+      "label": "평판·관계 tab: company credit and its band (우호)",
+      "extra": {
+        "credit": 27.19999999999999
+      }
+    },
+    {
+      "ok": true,
+      "label": "six faction rows",
+      "extra": [
+        "ceres",
+        "guild",
+        "iron",
+        "miners",
+        "pirates",
+        "union"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "each row shows that faction's trust and band as in the client state",
+      "extra": {
+        "mism": [],
+        "bands": [
+          "union:-3.8:불신",
+          "guild:19.8:협력",
+          "ceres:0.0:중립",
+          "miners:7.7:중립",
+          "iron:46.4:신뢰",
+          "pirates:-30.0:적대"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "iron (신뢰): the battleship blueprint is listed as unlocked; the next gate shows 계약 12/20건",
+      "extra": {
+        "text": "철갑 사령부 군사 작전, 국경 해적 소탕, 장갑판·무장 부품 공급 — 국경 방위를 중시합니다 46.3 신뢰 다음 단계 핵심 협력사 (60) 조건: 계약 12/20건 · 관계 45.1/12시간 · 주요 작전 0/2회 — 조건 전까지 59.9에서 멈춥니다 특히 높이 평가: 현상금 계약, 해적 격침, 해적 거점 파괴, 토벌 계약 해금: 파수급 지휘형 설계도, 철퇴급 중구축함 설계도, 순양전함 설계도, 전함 설계도"
+      }
+    },
+    {
+      "ok": true,
+      "label": "guild: 다음 혜택 names the item with \"신뢰도 v / need\"",
+      "extra": {
+        "next": "다음 혜택: 감시자급 (완성 함선) — 길드 신뢰도 19.7 / 20 (연합 제7 순찰기지)"
+      }
+    },
+    {
+      "ok": true,
+      "label": "union: 불신 band and the grudge timer after the strike",
+      "extra": {
+        "text": "연합 관리청 해적 토벌·현상금, 합법 계약, 장비·무장 공급 — 치안 질서를 중시합니다 -3.9 불신불신 기간 180분 다음 단계 중립: -3.9 / 0 특히 높이 평가: 현상금 계약, 해적 격침, 해적 거점 파괴, 토벌 계약 아직 해금된 세력 전용 품목 없음 다음 혜택: 랜서급 (완성 함선) — 연합 신뢰도 -3.9 / 5 (헬리오스 조선소) 잠긴 품목 13개"
+      }
+    },
+    {
+      "ok": true,
+      "label": "pirates −30: 적대",
+      "extra": {
+        "band": "적대"
+      }
+    },
+    {
+      "ok": true,
+      "label": "the recent-change log lists the strike",
+      "extra": {}
+    },
+    {
+      "ok": true,
+      "label": "1440px: no table cell is clipped (benefit column wraps)",
+      "extra": {
+        "clipped": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the panel fits (no page scroll; tables scroll inside their own box)",
+      "extra": {
+        "w": 344,
+        "left": 23,
+        "right": 367,
+        "pageOverflow": false,
+        "worst": 0
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: no table cell is clipped",
+      "extra": {
+        "clipped": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors (warnings listed in browser-results.json)",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": []
+}

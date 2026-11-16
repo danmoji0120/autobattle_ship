@@ -1,0 +1,66 @@
+[siderarium] accounts: file · 0 linked PMCs · 0 legacy tokens
+[siderarium] world created (t=0s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] listening on :33641
+[siderarium] account created: p14_a
+[siderarium] account created: p14_b
+[siderarium] account created: p14_c
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.11 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 없음 (새로 시작) (월드보다 미래의 기록(초기화된 월드))
+[siderarium] world restored (t=0s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] migration check OK {"players":3,"credits":15000000,"ships":15,"stations":0,"modules":0,"stored":100,"equipment":{"eq_pd_gun":36,"eq_medium_gun":3,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :33641
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.17 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] world restored (t=5s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] migration check OK {"players":3,"credits":15054924,"ships":15,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":36,"eq_medium_gun":3,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :33641
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.18 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] world restored (t=11s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] migration check OK {"players":3,"credits":14938424,"ships":16,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":42,"eq_medium_gun":4,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :33641
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.18 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] world restored (t=13s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] migration check OK {"players":3,"credits":14938424,"ships":16,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":42,"eq_medium_gun":4,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :33641
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.18 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] world restored (t=14s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] migration check OK {"players":3,"credits":14938424,"ships":16,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":42,"eq_medium_gun":4,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :33641
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.18 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 15 · goods 132 · bases changed 124 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 없음 (새로 시작) (월드보다 미래의 기록(초기화된 월드))
+[siderarium] P14.0 평판 이전: 회사 3곳 · 전환 유예 36건
+[siderarium] world restored (t=0s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] migration check OK {"players":3,"credits":3024000,"ships":15,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":36,"eq_medium_gun":3,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :33641
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.12 MB)
+[siderarium] econ migration DRY RUN e0→e1: markets 15 · goods 132 · bases changed 124 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] P14.0 평판 이전: 이미 적용됨 (변경 없음)
+[siderarium] world restored (t=2s) storage=file /tmp/siderarium-p14-jbOKfp/world.json
+[siderarium] migration check OK {"players":3,"credits":3024000,"ships":15,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":36,"eq_medium_gun":3,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :33641
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.12 MB)

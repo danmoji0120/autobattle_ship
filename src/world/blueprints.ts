@@ -12,6 +12,8 @@ import { TECHS, ITEM_NAME_HOOKS } from './industry';
 import { sysAt } from './geom';
 import { hullBuild } from './hullops';
 import { ensureInfluence } from './factions';
+import { FACTIONS } from './territory';
+import { repOn, repNeed, graceHas, fmtRep, recordOf } from './reputation';
 
 export { STARTER_BLUEPRINTS };
 export const FRAG_PREFIX = 'bpf:';
@@ -58,14 +60,24 @@ export function grantBlueprint(w: WorldState, co: Company, bp: string, src: stri
     if (def.runs && co.blueprints![bp].runs !== undefined) co.blueprints![bp].runs! += def.runs;
     return true;
   }
-  const uq = def.sources.find(s => s.kind === 'unique') as Extract<BlueprintSource, { kind: 'unique' }> | undefined;
-  if (uq && src === 'unique') {
+  // P14.0: the world limit of a unique blueprint holds on every path (a faction sale, a contract, salvage,
+  // exploration — not only the 'unique' award). Restoring an existing holding (migration) is never refused.
+  const uq = uniqueSource(def);
+  if (uq) {
     const holders = ((w.uniques ??= {})[bp] ??= []);
-    if (holders.length >= uq.limit) return false;
-    holders.push(co.id);
+    if (src !== 'migration' && uniqueHolders(w, bp) >= uq.limit) return false;
+    if (!holders.includes(co.id)) holders.push(co.id);
   }
   (co.blueprints ??= {})[bp] = { src, t, ...(def.runs ? { runs: def.runs } : {}) };
   return true;
+}
+
+const uniqueSource = (def: BlueprintDef) => def.sources.find(s => s.kind === 'unique') as Extract<BlueprintSource, { kind: 'unique' }> | undefined;
+/** companies holding a unique blueprint: the award list ∪ every current holder (holdings granted before the fix included) */
+export function uniqueHolders(w: Pick<WorldState, 'uniques' | 'companies'>, bp: string): number {
+  const s = new Set(w.uniques?.[bp] ?? []);
+  for (const c of Object.values(w.companies)) if (c.blueprints?.[bp]) s.add(c.id);
+  return s.size;
 }
 
 /** a build used one run of a limited licence (perpetual blueprints are not consumed) */
@@ -80,19 +92,20 @@ export function offersAt(w: WorldState, st: Station, co: Company): Offer[] {
   if (!st.public) return [];
   const sys = sysAt(w.systems, st.pos);
   if (sys) ensureInfluence(w, sys, w.time);
+  const rv = repOn(w);
   const out: Offer[] = [];
   for (const bp of Object.values(CONTENT.blueprints)) {
     for (const src of bp.sources) {
       if (!('stations' in src) || !src.stations.includes(st.id)) continue;
+      if (src.kind === 'faction' && src.repOnly && !rv) continue;
+      // repV + territory: a faction sells only at the stations it actually holds
+      if (src.kind === 'faction' && rv && w.factions && st.faction !== src.faction) continue;
       let why: string | null = null;
+      const uq = uniqueSource(bp);
       if (holds(co, bp.id) && !bp.runs) why = '보유 중';
-      else if (src.kind === 'commercial' && co.rep < src.rep) why = `연합 평판 ${src.rep} 필요 (현재 ${Math.floor(co.rep)})`;
-      else if (src.kind === 'commercial' && src.contracts && (co.stats.contracts ?? 0) < src.contracts) why = `계약 이행 실적 ${src.contracts}건 필요 (현재 ${co.stats.contracts ?? 0}건) — 정거장 계약을 수행해 신용을 쌓으세요`;
-      else if (src.kind === 'faction') {
-        const inf = sys?.inf?.[src.faction] ?? 0;
-        if (inf < src.influence) why = `${FACTION_NAME[src.faction]} 영향력 ${src.influence} 이상인 성계에서만 판매 (현재 ${Math.round(inf)})`;
-        else if (src.rep !== undefined && co.rep < src.rep) why = `평판 ${src.rep} 필요 (현재 ${Math.floor(co.rep)})`;
-      }
+      else if (uq && uniqueHolders(w, bp.id) >= uq.limit) why = `세계 보유 한도 도달 (${uq.limit}/${uq.limit}부) — 더 이상 발급되지 않습니다`;
+      else if (src.kind === 'commercial') why = commercialWhy(w, co, src);
+      else if (src.kind === 'faction') why = factionWhy(w, co, src, sys?.inf, bp.id);
       if (!why && co.credits < src.price) why = `자금 부족 — ${Math.ceil(src.price - co.credits).toLocaleString()} cr 더 필요`;
       out.push({ bp, src, price: src.price, why });
       break;
@@ -100,16 +113,47 @@ export function offersAt(w: WorldState, st: Station, co: Company): Offer[] {
   }
   return out;
 }
-const FACTION_NAME = { union: '연합', guild: '상인 길드', pirates: '해적' } as const;
+const FACTION_NAME: Record<string, string> = { union: '연합', guild: '상인 길드', pirates: '해적' };
+const facName = (f: string) => FACTION_NAME[f] ?? FACTIONS[f]?.short ?? f;
+
+function commercialWhy(w: WorldState, co: Company, src: Extract<BlueprintSource, { kind: 'commercial' }>): string | null {
+  if (repOn(w)) {
+    const need = src.credit ?? repNeed(src.rep);
+    if (co.rep < need) return `회사 신용도 ${fmtRep(need)} 필요 (현재 ${fmtRep(co.rep)})`;
+  } else if (co.rep < src.rep) return `연합 평판 ${src.rep} 필요 (현재 ${Math.floor(co.rep)})`;
+  if (src.contracts && (co.stats.contracts ?? 0) < src.contracts) return `계약 이행 실적 ${src.contracts}건 필요 (현재 ${co.stats.contracts ?? 0}건) — 정거장 계약을 수행해 신용을 쌓으세요`;
+  return null;
+}
+
+/** faction sale: legacy = influence + Union standing; repV = that faction's trust (+ its contracts), influence where it has one */
+export function factionWhy(w: WorldState, co: Company, src: Extract<BlueprintSource, { kind: 'faction' }>, inf: Record<string, number> | undefined, bp?: string): string | null {
+  const f = src.faction;
+  const infV = (inf as Record<string, number> | undefined)?.[f];
+  if (!repOn(w)) {
+    if ((infV ?? 0) < src.influence) return `${facName(f)} 영향력 ${src.influence} 이상인 성계에서만 판매 (현재 ${Math.round(infV ?? 0)})`;
+    if (src.rep !== undefined && co.rep < src.rep) return `평판 ${src.rep} 필요 (현재 ${Math.floor(co.rep)})`;
+    return null;
+  }
+  if (infV !== undefined && src.influence > 0 && infV < src.influence) return `${facName(f)} 영향력 ${src.influence} 이상인 성계에서만 판매 (현재 ${Math.round(infV)})`;
+  if (bp && graceHas(w, co, `bp:${bp}`)) return null;
+  const need = src.trust ?? repNeed(src.rep);
+  if (w.factions?.[f]) {
+    const t = co.standing?.[f] ?? 0;
+    if (t < need) return `${FACTIONS[f]?.name ?? f} 신뢰도 ${fmtRep(need)} 필요 (현재 ${fmtRep(t)})`;
+    if (src.contracts) { const k = recordOf(w, co, f).contracts; if (k < src.contracts) return `${FACTIONS[f]?.name ?? f} 계약 실적 ${src.contracts}건 필요 (현재 ${k}건)`; }
+  } else if (co.rep < need) return `회사 신용도 ${fmtRep(need)} 필요 (현재 ${fmtRep(co.rep)})`;
+  return null;
+}
 
 /** buy a blueprint at a public station. Credits go into the station's NPC budget (P4). */
 export function buyBlueprint(w: WorldState, co: Company, st: Station, bp: string): string | null {
   const o = offersAt(w, st, co).find(x => x.bp.id === bp);
   if (!o) return '이 정거장에서 판매하지 않는 설계도';
   if (o.why) return o.why;
+  // grant first (it can still refuse: a unique limit), then charge — never take credits for nothing
+  if (!grantBlueprint(w, co, bp, o.src.kind, w.time)) return '설계도를 발급할 수 없습니다 (세계 보유 한도)';
   co.credits -= o.price;
   st.funds = Math.min((st.fundsMax ?? 0) * 1.5, (st.funds ?? 0) + o.price * 0.5);
-  grantBlueprint(w, co, bp, o.src.kind, w.time);
   return null;
 }
 
@@ -124,8 +168,8 @@ export function assembleBlueprint(w: WorldState, co: Company, st: Station, bp: s
   const S = st.storage[co.id];
   const have = Math.floor(qty(S, fragId(bp)) + 1e-9);
   if (have < need) return `설계 조각 부족 (${have}/${need})`;
+  if (!grantBlueprint(w, co, bp, 'salvage', w.time)) return '설계도를 복원할 수 없습니다 (세계 보유 한도) — 조각은 그대로 남습니다';
   addc(S, fragId(bp), -need);
-  grantBlueprint(w, co, bp, 'salvage', w.time);
   return null;
 }
 

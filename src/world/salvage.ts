@@ -22,6 +22,7 @@ import { dist, sysAt } from './geom';
 import { techFx } from './industry';
 import { effSec } from './security';
 import { bumpStanding } from './territory';
+import { repOffense } from './reputation';
 import { lawCrime } from './law';
 import { emit } from './observe';
 import { stationCargoRate } from './stations';
@@ -180,7 +181,9 @@ function crime(h: Host, s: WShip, w: SalvSite, lot: WreckLot, n: number) {
   emit(h.st, { kind: 'salvage', reason: 'unauthorized', item: lot.item, amount: n, value, company: s.owner, ref: w.id, from: lot.owner, system: w.system });
   // P13.4: one law case per site and company, growing with what is really taken (the reputation rule below stays as is)
   if (h.st.lawV) lawCrime(h, { kind: 'salvage', by: s.owner, group: s.groupId, ship: s.id, victim: lot.owner, sys: w.system, pos: s.pos, value, key: `salv:${w.id}:${s.owner}` });
-  if (sec >= SALV.lawSec && co) {
+  // P14.0 (repV): one penalty per site and company, growing with the cumulative value (not per lot)
+  if (h.st.repV && sec >= SALV.lawSec && co) repOffense(h.st, s.owner, sys?.faction, 'salvage', w.crime[s.owner], `salv:${w.id}:${s.owner}`, '무단 인양');
+  else if (sec >= SALV.lawSec && co) {
     const rep = value * SALV.repPerCr * (sec / 100);
     co.rep = Math.max(0, co.rep - rep);
     emit(h.st, { kind: 'reputation', reason: 'unauthorized_salvage', amount: -rep, company: s.owner, system: w.system });
