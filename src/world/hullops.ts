@@ -23,11 +23,16 @@ export interface HullEcon extends ShipEcon { build: number; berth: Size; minFiel
 export const hullIdOf = (s: { classId: string; hull?: string }) => s.hull && CONTENT.hulls[s.hull] ? s.hull : `${s.classId}_mk1`;
 export const hullDefOf = (s: { classId: string; hull?: string }): HullDef | undefined => CONTENT.hulls[hullIdOf(s)];
 
-const econCache = new Map<string, HullEcon>();
+// hull → variant ('' = none) → econ. Content is fixed for the life of the process, so entries never change.
+// Two plain lookups instead of building a key string: this runs for every ship on every tick (A-1 profile:
+// the single largest self-time entry of a world tick).
+const econCache = new Map<string, Map<string, HullEcon>>();
 /** strategic econ of a hull + variant (variant mods applied) */
 export function hullEcon(hullId: string, variantId?: string): HullEcon {
-  const key = `${hullId}|${variantId ?? ''}`;
-  const hit = econCache.get(key); if (hit) return hit;
+  let byVariant = econCache.get(hullId);
+  if (!byVariant) econCache.set(hullId, byVariant = new Map());
+  const key = variantId ?? '';
+  const hit = byVariant.get(key); if (hit) return hit;
   const h = CONTENT.hulls[hullId];
   const base = ECON[h?.classId ?? hullId.replace(/_mk1$/, '')] ?? ECON.corvette;
   const v = variantId ? CONTENT.variants[variantId] : undefined;
@@ -44,7 +49,7 @@ export function hullEcon(hullId: string, variantId?: string): HullEcon {
     berth: o.berth ?? (h ? (h.size === 'XL' || h.size === 'L') && (h.classId === 'miner' || h.classId === 'hauler' || h.classId === 'constructor') ? h.size : 'S' : 'S'),
     minField: o.minField ?? 0,
   };
-  econCache.set(key, e);
+  byVariant.set(key, e);
   return e;
 }
 
@@ -151,14 +156,20 @@ export function hullSale(hullId: string): (HullSale & { price: number }) | undef
 export const shipWorth = (w: Pick<WorldState, 'contentV'>, s: { classId: string; hull?: string; variant?: string }): number =>
   growthOn(w) ? (hullSale(hullIdOf(s))?.price ?? hullPrice(hullIdOf(s)).price) : econOf(s).price;
 /** hulls a public yard stocks at contentV ≥ 3 */
+// the answer depends only on the station id and its shipyard classes (content is fixed per process); keyed on both,
+// so a station whose services change gets a fresh list. Callers only read the array.
+const yardCache = new Map<string, string[]>();
 export function yardHulls(st: Station): string[] {
   if (!st.public) return [];
+  const key = `${st.id}|${st.services.shipyard.join(',')}`;
+  const hit = yardCache.get(key); if (hit) return hit.slice();
   const out: string[] = [];
   for (const h of Object.values(CONTENT.hulls)) {
     if (h.classId === 'platform') continue;
     if (h.sale ? h.sale.stations.includes(st.id) : h.id.endsWith('_mk1') && st.services.shipyard.includes(h.classId) && legacySaleYard(h) !== undefined) out.push(h.id);
   }
-  return out;
+  yardCache.set(key, out);
+  return out.slice();
 }
 
 /** berth size of a station: public hubs by size, own stations grow with dock modules */
