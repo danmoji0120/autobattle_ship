@@ -16,6 +16,7 @@ import { createPoolJob, controlPoolJob, assignMinerTrip, type LogisticsJob } fro
 import { procurementAuthority, sellableStock, companySaleCap } from './operations';
 import { techFx } from './industry';
 import { priceOf, tradeChunk, buyCost } from './market';
+import { shipRate } from './upkeep';
 import { takec } from './types';
 
 export type ProcurementKind = 'construction' | 'production' | 'ship';
@@ -34,6 +35,8 @@ export interface ProcurementPolicy {
   minerTripRetry?: Record<string, { at: number; fails: number }>;
   /** AUTO-P1: last decision of the mining hauler sale planner (shown to the player) */
   minerTrip?: { t: number; ship: string; reason: string };
+  /** A-3.2b.2: per item, when the salvage hauler last left with a part load (no other part load for SALV_PARTIAL_GAP) */
+  salvPartialAt?: Record<string, number>;
   /** AUTO-P1: automatic repair of automated haulers that fell out of dispatch (off by default) */
   repair?: import('./autoRepair').RepairPolicy;
 }
@@ -407,6 +410,30 @@ export const MINER_TRIP_GIVEUP = 900;
 const MINER_TRIP_BACKOFF = 900, MINER_TRIP_BACKOFF_MAX = 4 * 3600;
 /** AUTO-P1.1: mining-hauler sale trips are on unless the player chose "mining haul only" */
 export const minerSalesOn = (p: Pick<ProcurementPolicy, 'minerSales'> | undefined) => !!p && p.minerSales !== false;
+/**
+ * A-3.2b.2: salvage haulers may sell a part load (below 60 % of the hold) once the excess has waited this long at the
+ * store; a part-load trip of an item then blocks the next part-load trip of it for SALV_PARTIAL_GAP (full loads
+ * are not held back). Mining haulers keep the AUTO-P1 rule (10 minutes, only while the store has room).
+ */
+export const SALV_PARTIAL_WAIT = 1200, SALV_PARTIAL_GAP = 1800;
+/** A-3.2b.2: planning estimate of a sale round trip — per jump each way, plus undocking, in-system legs, docking and the sale */
+export const SALV_TRIP_HOP_S = 30, SALV_TRIP_BASE_S = 60;   // calibrated on a measured 2-jump trip: sold after 70 s, back salvaging after 142 s
+export interface SalvTripCost { seconds: number; upkeep: number; opportunity: number; cost: number }
+/**
+ * A-3.2b.2: what a salvage hauler's sale round trip costs. The game has no fuel or tolls; a hauler's running cost
+ * (upkeep, plus a big-berth fee if it has one) is paid whether it flies or not, so the trip is charged its share for
+ * the trip time. The work opportunity is the salvage this hauler would have carried meanwhile: the company's
+ * recovered value per hour since its first salvage, split over its working civilian ships.
+ */
+export function salvTripCost(h: WorldSim, s: WShip, hops: number, workers: number): SalvTripCost {
+  const seconds = 2 * (Math.max(0, hops) * SALV_TRIP_HOP_S) + SALV_TRIP_BASE_S;
+  const r = shipRate(h.st, s), upkeep = (r.credits + r.dock) * seconds / 3600;
+  const sv = h.st.companies[s.owner]?.salvage, age = sv?.first !== undefined ? h.time - sv.first : 0;
+  const perHour = sv && age >= 600 ? sv.value / (age / 3600) / Math.max(1, workers) : 0;
+  const opportunity = perHour * seconds / 3600;
+  return { seconds, upkeep, opportunity, cost: upkeep + opportunity };
+}
+
 const minerRetryWait = (h: WorldSim, p: ProcurementPolicy, item: string) => Math.max(0, (p.minerTripRetry?.[item]?.at ?? 0) - h.time);
 /** AUTO-P1.1: no market will take the trip's cargo — fly it back to its source (real route, docking rules unchanged) */
 function returnMinerTrip(h: WorldSim, p: ProcurementPolicy, j: LogisticsJob, why: string) {
@@ -444,25 +471,43 @@ export function planMinerSaleTrip(h: WorldSim, s: WShip, dock: Station, salvage 
     const back = minerRetryWait(h, policy, item);
     if (back > 0) { why = `${name}: 최근 판매 왕복이 팔지 못하고 복귀 — ${Math.ceil(back / 60)}분 뒤 재시도`; continue; }
     const excess = Math.floor(Math.min(sellableStock(h, co.id, dock, item), companySaleCap(h, co.id, item)) + EPS);
-    if (excess < 1) continue;
-    if (dock.market?.[item] && saleQuote(h, dock, item, excess, rule.minPrice, promised.get(dock.id) ?? 0).sold >= 1) continue;   // sold here by planSales
+    // A-3.2b.2: a salvage store's waiting time counts only while it actually holds excess to ship
+    const clear = () => { if (salvage) { const x = status[item]?.since; if (x) delete x[dock.id]; } };
+    if (excess < 1) { clear(); continue; }
+    if (dock.market?.[item] && saleQuote(h, dock, item, excess, rule.minPrice, promised.get(dock.id) ?? 0).sold >= 1) { clear(); continue; }   // sold here by planSales
     const st0 = status[item] ??= { t: h.time, excess, moving: 0, reason: '', sold: 0, earned: 0 };
     const since = (st0.since ??= {}); since[dock.id] ??= h.time;
-    if (excess < lot * 0.6 && h.room(dock, co.id) > lot && h.time - since[dock.id] < 600) { why = `${name} 초과 ${excess}: 한 번에 실을 만큼 모이면 판매 왕복`; continue; }
+    const waited = h.time - since[dock.id], small = excess < lot * 0.6 && h.room(dock, co.id) > lot;
+    if (!salvage && small && waited < 600) { why = `${name} 초과 ${excess}: 한 번에 실을 만큼 모이면 판매 왕복`; continue; }
+    if (salvage && small) {
+      if (waited < SALV_PARTIAL_WAIT) { why = `${name} 초과 ${excess}: 60% 적재(${Math.ceil(lot * 0.6)})까지 모으는 중 — ${Math.ceil((SALV_PARTIAL_WAIT - waited) / 60)}분 더 쌓여 있으면 부분 적재 판매`; continue; }
+      const gap = (policy.salvPartialAt?.[item] ?? -Infinity) + SALV_PARTIAL_GAP - h.time;
+      if (gap > 0) { why = `${name} 초과 ${excess}: 최근 부분 적재 왕복 — 소량 반복 운송 방지, ${Math.ceil(gap / 60)}분 뒤 다시 판단`; continue; }
+    }
     const amount = Math.min(excess, lot), best = saleMarkets(h, co.id, [s], promised, item, dock, amount, rule)[0];
     if (!best) { why = `${name} 초과 ${excess}: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도`; continue; }
     if (best.hops > MINER_TRIP_MAX_JUMPS) { why = `${name}: 가장 나은 시장 ${best.m.name}이(가) ${best.hops}점프 — ${who} 왕복 한도(${MINER_TRIP_MAX_JUMPS}점프) 초과`; continue; }
     if (best.q.value < MINER_TRIP_MIN_VALUE * Math.max(1, best.hops)) { why = `${name}: 예상 판매액 ${Math.round(best.q.value).toLocaleString()} cr — ${work}을 비울 만한 수익 아님(점프당 ${MINER_TRIP_MIN_VALUE.toLocaleString()} cr 이상)`; continue; }
+    // A-3.2b.2: a salvage trip must earn more than its running-cost share and the salvage the hauler leaves behind
+    const cost = salvage ? salvTripCost(h, s, best.hops, salvageWorkers(h, s)) : undefined;
+    if (cost && best.q.value <= cost.cost) { why = `${name}: 예상 판매액 ${Math.round(best.q.value).toLocaleString()} cr ≤ 왕복 비용 ${Math.round(cost.cost).toLocaleString()} cr(운영비 ${Math.round(cost.upkeep).toLocaleString()} + 인양 기회비용 ${Math.round(cost.opportunity).toLocaleString()}, 약 ${Math.round(cost.seconds / 60)}분) — 손해 예상, 재고 보존`; continue; }
     const err = createPoolJob(h, co.id, { from: dock.id, to: best.m.id, item, kind: 'sell', amount: Math.floor(best.q.sold), priority: 4, repeat: false }, undefined, true);
     if (err) { why = `${name}: ${err}`; continue; }
     const j = Object.values(h.st.logisticsJobs!).at(-1)!;
     assignMinerTrip(h, j, s, salvage);
     delete since[dock.id];
-    policy.minerTrip = { t: h.time, ship: s.id, reason: `${s.name}: ${name} ${Math.round(j.reserved)} → ${best.m.name} 판매 왕복 (${best.hops}점프, 예상 ${Math.round(best.q.value).toLocaleString()} cr)` };
+    const part = salvage && small;
+    if (part) (policy.salvPartialAt ??= {})[item] = h.time;
+    policy.minerTrip = { t: h.time, ship: s.id, reason: `${s.name}: ${name} ${Math.round(j.reserved)} → ${best.m.name} ${part ? '부분 적재 ' : ''}판매 왕복 (${best.hops}점프, 예상 ${Math.round(best.q.value).toLocaleString()} cr${cost ? ` · 왕복 비용 약 ${Math.round(cost.cost).toLocaleString()} cr` : ''})` };
     h.ev('info', `${who} 판매 왕복: ${s.name}이(가) ${dock.name}의 ${name} ${Math.round(j.reserved)}을(를) ${best.m.name}에 판매하러 출발`, { company: co.id, pos: dock.pos });
     return true;
   }
   return note(why);
+}
+/** A-3.2b.2: civilian ships of a salvage hauler's group (the share of salvage income one hauler stands for) */
+function salvageWorkers(h: WorldSim, s: WShip): number {
+  const g = h.st.groups[s.groupId];
+  return g ? g.shipIds.filter(id => { const x = h.st.ships[id]; return x && !econOf(x).military; }).length : 1;
 }
 /**
  * Excess-stock sales, run with the procurement planner. For every item with a sales policy and every store that

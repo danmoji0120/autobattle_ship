@@ -1,0 +1,666 @@
+{
+ "mode": "safe",
+ "seed": 24,
+ "hours": 2,
+ "wallSeconds": 70,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 19,
+    "derelictsMade": 29,
+    "derelictValueMade": 250766,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 68349,
+     "netCash": 56349,
+     "debt": 0,
+     "firstSalvageAt": 180,
+     "firstProfitAt": 180,
+     "targetsSeen": 35,
+     "targetsWorked": 13,
+     "picks": 13,
+     "pickKinds": {
+      "contract": 5,
+      "derelict": 7,
+      "wreck": 1
+     },
+     "recoveredUnits": 1397,
+     "recoveredValue": 63244,
+     "recoveredByItem": {
+      "alloy": 666,
+      "metal": 611,
+      "titanium": 10,
+      "electronics": 62,
+      "machinery": 16,
+      "weapon_parts": 27,
+      "eq_pd_gun": 1,
+      "eq_autocannon": 4
+     },
+     "ledgerUnits": 1397,
+     "ledgerValue": 63244,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "transport",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 2,
+      "haulers": 0,
+      "damagedHaulers": 0,
+      "issues": [
+       "수송선 없음 — 하역지 시장이 사지 않는 회수품을 다른 시장으로 옮길 수 없습니다"
+      ],
+      "comeback": {
+       "credits": 68349,
+       "stage": 0,
+       "offers": [
+        "hauler_mk1@astra 9300"
+       ],
+       "steps": [
+        "창고의 회수품(기준가 약 12,942 cr)은 자동 판매 대상입니다 — 수송선이 없으면 하역지 시장이 사는 품목만 팔립니다",
+        "대체 함선 구입 가능: 짐꾼급 9,300 cr (아스트라 자유항 · 1점프) — 정거장 조선소 탭에서 구입한 뒤 인양반 편대에 넣으세요"
+       ]
+      }
+     },
+     "tripNotes": {
+      "판매할 초과 재고 없음": 1,
+      "정련 금속 초과 #: #% 적재(#)까지 모으는 중 — #분 더 쌓여 있으면 부분 적재 판매": 2
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner"
+     ],
+     "contracts": {
+      "accepted": 5,
+      "done": 5,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 52862,
+     "contractPay": 5100,
+     "salesByItem": {
+      "alloy": 28046,
+      "metal": 10895,
+      "machinery": 1273,
+      "weapon_parts": 12099,
+      "electronics": 549
+     },
+     "upkeep": 1613,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 1,
+     "shipLossValue": 9300,
+     "unsoldStock": {
+      "machinery": 6,
+      "metal": 178,
+      "electronics": 51,
+      "eq_pd_gun": 1,
+      "eq_autocannon": 4,
+      "titanium": 10
+     },
+     "unsoldValue": 17650,
+     "warehousePeak": 204,
+     "minutesIdleNoTarget": 90,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "연합 제7 순찰기지 초과 27: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "machinery": "헬리오스 조선소 초과 6: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "metal": "연합 제7 순찰기지 초과 150: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "titanium": "운송·판매 중 10"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "losses": [
+  {
+   "at": 1502,
+   "ship": "s5",
+   "last": {
+    "t": 1501,
+    "name": "짐꾼 6호",
+    "hull": "hauler_mk1",
+    "sys": "ember",
+    "pos": {
+     "x": 235466,
+     "z": -358
+    },
+    "state": "battle",
+    "hp": 0,
+    "group": "g2",
+    "op": "idle",
+    "gstatus": "정박 대기",
+    "cargo": 8
+   },
+   "engagements": [
+    {
+     "id": "e430",
+     "start": 1282,
+     "done": true,
+     "sides": [
+      [
+       "pirates"
+      ],
+      [
+       "guild"
+      ],
+      [
+       "p1"
+      ]
+     ],
+     "groups": [
+      {
+       "id": "g328",
+       "owner": "pirates",
+       "kind": "pirate",
+       "op": "raid",
+       "ships": 6
+      },
+      {
+       "id": "g420"
+      },
+      {
+       "id": "g2",
+       "owner": "p1",
+       "kind": "player",
+       "op": "idle",
+       "ships": 2
+      }
+     ],
+     "summary": "해적 승리 — 손실 해적 0척 · 성계 상인 길드 1척 · 세레스 인양 1 0척",
+     "dist": 62296
+    },
+    {
+     "id": "e451",
+     "start": 1455,
+     "done": true,
+     "sides": [
+      [
+       "union"
+      ],
+      [
+       "pirates"
+      ],
+      [
+       "p1"
+      ]
+     ],
+     "groups": [
+      {
+       "id": "g96",
+       "owner": "union",
+       "kind": "union",
+       "op": "garrison",
+       "ships": 0
+      },
+      {
+       "id": "g328",
+       "owner": "pirates",
+       "kind": "pirate",
+       "op": "raid",
+       "ships": 6
+      },
+      {
+       "id": "g2",
+       "owner": "p1",
+       "kind": "player",
+       "op": "idle",
+       "ships": 2
+      }
+     ],
+     "summary": "해적 승리 — 손실 연합 관리청 3척 · 해적 0척 · 세레스 인양 1 1척",
+     "dist": 1406
+    }
+   ],
+   "wrecks": [
+    "wk_e451_0"
+   ],
+   "groupHistory": [
+    {
+     "t": 737,
+     "op": "recover:dr_11",
+     "status": "전장 잔해 인양: 인양 중 — 세레스 공업권 소형 유기선 11 (잔여 17) · 화물칸 6%"
+    },
+    {
+     "t": 738,
+     "op": "recover:dr_11",
+     "status": "전장 잔해 인양: 인양 중 — 세레스 공업권 소형 유기선 11 (잔여 9) · 화물칸 7%"
+    },
+    {
+     "t": 739,
+     "op": "recover:dr_11",
+     "status": "전장 잔해 인양: 인양 중 — 세레스 공업권 소형 유기선 11 (잔여 1) · 화물칸 9%"
+    },
+    {
+     "t": 740,
+     "op": "recover:dr_11",
+     "status": "전장 잔해 인양: 인양 중 — 세레스 공업권 소형 유기선 11 (잔여 0) · 화물칸 9%"
+    },
+    {
+     "t": 741,
+     "op": "recover:dr_11",
+     "status": "전장 잔해 인양: 하역하러 이동 — 세레스 제련단지"
+    },
+    {
+     "t": 761,
+     "op": "recover:dr_11",
+     "status": "전장 잔해 인양: 세레스 제련단지 정박·하역 중"
+    },
+    {
+     "t": 764,
+     "op": "idle",
+     "status": "정박 대기"
+    },
+    {
+     "t": 781,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 잔해로 이동 — 아스트라 소형 유기선 3 · 화물칸 0%"
+    },
+    {
+     "t": 822,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 78) · 화물칸 0%"
+    },
+    {
+     "t": 823,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 74) · 화물칸 1%"
+    },
+    {
+     "t": 824,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 70) · 화물칸 1%"
+    },
+    {
+     "t": 825,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 66) · 화물칸 2%"
+    },
+    {
+     "t": 826,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 58) · 화물칸 3%"
+    },
+    {
+     "t": 827,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 51) · 화물칸 4%"
+    },
+    {
+     "t": 828,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 43) · 화물칸 5%"
+    },
+    {
+     "t": 829,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 35) · 화물칸 6%"
+    },
+    {
+     "t": 830,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 27) · 화물칸 7%"
+    },
+    {
+     "t": 831,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 19) · 화물칸 9%"
+    },
+    {
+     "t": 832,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 11) · 화물칸 10%"
+    },
+    {
+     "t": 833,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 3) · 화물칸 11%"
+    },
+    {
+     "t": 834,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 인양 중 — 아스트라 소형 유기선 3 (잔여 0) · 화물칸 11%"
+    },
+    {
+     "t": 835,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 하역하러 이동 — 연합 제7 순찰기지"
+    },
+    {
+     "t": 853,
+     "op": "recover:dr_3",
+     "status": "전장 잔해 인양: 연합 제7 순찰기지 정박·하역 중"
+    },
+    {
+     "t": 856,
+     "op": "idle",
+     "status": "정박 대기"
+    },
+    {
+     "t": 901,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 잔해로 이동 — 헬리오스 소형 유기선 2 · 화물칸 0%"
+    },
+    {
+     "t": 943,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 57) · 화물칸 0%"
+    },
+    {
+     "t": 944,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 53) · 화물칸 1%"
+    },
+    {
+     "t": 945,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 48) · 화물칸 1%"
+    },
+    {
+     "t": 946,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 43) · 화물칸 2%"
+    },
+    {
+     "t": 947,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 35) · 화물칸 3%"
+    },
+    {
+     "t": 948,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 27) · 화물칸 4%"
+    },
+    {
+     "t": 949,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 19) · 화물칸 5%"
+    },
+    {
+     "t": 950,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 11) · 화물칸 7%"
+    },
+    {
+     "t": 951,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 3) · 화물칸 8%"
+    },
+    {
+     "t": 952,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 인양 중 — 헬리오스 소형 유기선 2 (잔여 0) · 화물칸 8%"
+    },
+    {
+     "t": 953,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 하역하러 이동 — 프라임 궤도 거래소"
+    },
+    {
+     "t": 970,
+     "op": "recover:dr_2",
+     "status": "전장 잔해 인양: 프라임 궤도 거래소 정박·하역 중"
+    },
+    {
+     "t": 974,
+     "op": "idle",
+     "status": "정박 대기"
+    },
+    {
+     "t": 1454,
+     "op": "idle",
+     "status": "해적 회피 — 대피 중"
+    },
+    {
+     "t": 1468,
+     "op": "idle",
+     "status": "정박 대기"
+    }
+   ],
+   "path": [
+    {
+     "t": 1412,
+     "sys": "astra",
+     "x": -256441,
+     "z": 45630,
+     "state": "space",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1422,
+     "sys": "astra",
+     "x": -291609,
+     "z": -14895,
+     "state": "space",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1432,
+     "sys": "astra",
+     "x": -301623,
+     "z": -32129,
+     "state": "space",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1433,
+     "sys": "ember",
+     "x": 293716,
+     "z": 23682,
+     "state": "space",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1442,
+     "sys": "ember",
+     "x": 278504,
+     "z": 16945,
+     "state": "space",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1452,
+     "sys": "ember",
+     "x": 236795,
+     "z": -1524,
+     "state": "space",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1455,
+     "sys": "ember",
+     "x": 235783,
+     "z": -541,
+     "state": "battle",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1462,
+     "sys": "ember",
+     "x": 235734,
+     "z": -513,
+     "state": "battle",
+     "task": "none",
+     "job": "sell/sale electronics 8 p9_forge_works→cinderco active"
+    },
+    {
+     "t": 1472,
+     "sys": "ember",
+     "x": 235504,
+     "z": -380,
+     "state": "battle",
+     "task": "none"
+    },
+    {
+     "t": 1482,
+     "sys": "ember",
+     "x": 235466,
+     "z": -358,
+     "state": "battle",
+     "task": "none"
+    },
+    {
+     "t": 1492,
+     "sys": "ember",
+     "x": 235466,
+     "z": -358,
+     "state": "battle",
+     "task": "none"
+    },
+    {
+     "t": 1501,
+     "sys": "ember",
+     "x": 235466,
+     "z": -358,
+     "state": "battle",
+     "task": "none"
+    }
+   ],
+   "events": [
+    "1282 [world] 엠버 성운: 해적 ↔ 성계 상인 길드 교전 발생 (7척) — 클릭하여 관전",
+    "1292 [warn] 검은 송곳니 공역: 검은 송곳니 요새에서 해적 무리가 출격했다 (12척).",
+    "1299 [battle] 교전 합류 — 1척이 진행 중인 전투에 진입",
+    "1317 [battle] 전투 종료: 철수 — 아군 손실 0척",
+    "1317 [info] 엠버 성운 전장 잔해 A 생성 — 격침 1척, 회수 가능 291단위 (약 2.2시간 후 소멸)",
+    "1357 [world] 아스트라: 떠돌이 해적 떠돌이 피의 달 무리이(가) 성계를 떠났다.",
+    "1453.25 [warn] 해, 해적이다! 도망쳐!",
+    "1455 [battle] 교전 발생! 연합 관리청, 해적와(과) 전투 중",
+    "1467.25 [radio] 위협 해제. 작업을 재개합니다.",
+    "1501 [battle] 전투 종료: 전멸 — 아군 손실 1척",
+    "1501 [info] 엠버 성운 전장 잔해 A 생성 — 격침 4척, 회수 가능 591단위 (약 2.7시간 후 소멸)"
+   ],
+   "stations": {
+    "cinderco": {
+     "name": "엠버 광산 조합",
+     "d": 1761
+    }
+   }
+  }
+ ],
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_1",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1050
+   },
+   {
+    "t": 180,
+    "id": "dr_10",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 300,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 480,
+    "id": "dr_14",
+    "kind": "contract",
+    "risk": 28,
+    "value": 1600
+   },
+   {
+    "t": 660,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2108
+   },
+   {
+    "t": 780,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2176
+   },
+   {
+    "t": 900,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1864
+   },
+   {
+    "t": 1920,
+    "id": "wk_e211_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 26770
+   },
+   {
+    "t": 4860,
+    "id": "dr_21",
+    "kind": "contract",
+    "risk": 20,
+    "value": 650
+   },
+   {
+    "t": 5520,
+    "id": "dr_24",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 1932
+   },
+   {
+    "t": 6600,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2472
+   },
+   {
+    "t": 6720,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 8148
+   },
+   {
+    "t": 6840,
+    "id": "dr_29",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   }
+  ]
+ }
+}

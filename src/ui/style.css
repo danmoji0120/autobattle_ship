@@ -312,6 +312,7 @@ select { background: rgba(5, 10, 18, 0.92); color: var(--text); border: 1px soli
 .yard { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
 .ycard { border: 1px solid var(--line); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: rgba(20, 40, 60, .25); }
 .ycard.locked { opacity: .55; }
+.ycard.yfocus { border-color: var(--line2); box-shadow: 0 0 0 1px var(--line2) inset; background: rgba(40, 80, 120, .35); }
 .yn { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .ys { font-size: 11.5px; color: var(--text); opacity: .8; }
 .yrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }

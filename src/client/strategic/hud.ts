@@ -135,7 +135,7 @@ export class PmcHud {
     const goals = h('div', 'panel'); goals.id = 'goals'; root.appendChild(goals);
     const hint = h('div', 'panel hidden'); hint.id = 'modeHint'; root.appendChild(hint);
     this.toastBox = h('div'); this.toastBox.id = 'toasts'; root.appendChild(this.toastBox);
-    this.fb = new FirstBusinessPanel(root, { cmd: c => this.cmd(c), openStation: id => { this.fb.close(); this.openStation(id); }, openLogistics: () => { this.fb.close(); this.openLogistics(); }, toast: (m, k) => this.toast(m, (k as any) ?? 'info') }, () => this.st, () => this.me);
+    this.fb = new FirstBusinessPanel(root, { cmd: c => this.cmd(c), openStation: id => { this.fb.close(); this.openStation(id); }, openYard: (id, hull) => { this.fb.close(); this.openYard(id, hull); }, openLogistics: () => { this.fb.close(); this.openLogistics(); }, toast: (m, k) => this.toast(m, (k as any) ?? 'info') }, () => this.st, () => this.me);
     const tip = h('div', 'hidden'); tip.id = 'tooltip'; root.appendChild(tip);
     const sysbar = h('div', 'panel'); sysbar.id = 'sysbar'; root.appendChild(sysbar);
     const diag = h('div', 'panel hidden'); diag.id = 'netdiag'; root.appendChild(diag);
@@ -1399,13 +1399,25 @@ export class PmcHud {
   openStation(id: string, tab?: string) {
     this.logisticsPanel?.close(); this.opsPanel?.close();
     this.upkOpen = false; this.renderUpkeep(true); this.fb?.close();
-    this.modalStation = id;
+    this.modalStation = id; this.yardFocus = null;
     const s = this.st.stations[id];
     this.modalTab = tab ?? (s.owner === this.me ? 'build' : s.market ? 'market' : 'yard');
     if (!this.modal) { this.modal = h('div', 'modal smodal'); this.root.appendChild(this.modal); this.modal.onclick = e => { if (e.target === this.modal) this.closeModal(); }; }
     this.renderModal(true);
   }
-  closeModal() { this.modal?.remove(); this.modal = null; this.modalStation = null; }
+  closeModal() { this.modal?.remove(); this.modal = null; this.modalStation = null; this.yardFocus = null; }
+  /** A-3.2b.2: the existing shipyard tab of a station, scrolled to one hull's card (the purchase is still confirmed there) */
+  private yardFocus: string | null = null;
+  openYard(id: string, hull: string) {
+    if (!this.st.stations[id]) return;
+    this.openStation(id, 'yard'); this.yardFocus = hull; this.focusYard(true);
+  }
+  private focusYard(scroll: boolean) {
+    const m = this.modal; if (!m || !this.yardFocus || this.modalTab !== 'yard') return;
+    const card = m.querySelector<HTMLElement>(`[data-ycard="${this.yardFocus}"]`); if (!card) return;
+    card.classList.add('yfocus');
+    if (scroll) card.scrollIntoView({ block: 'center' });
+  }
 
   private modalKey = '';
   private fitScreen: FittingScreen | null = null;
@@ -1453,6 +1465,7 @@ export class PmcHud {
     morph(this.modal, `<div class="panel sbox"><div class="shdr"><div><div class="stitle">${esc(s.name)}</div><div class="dim">${esc(s.desc)}</div></div><div class="money">${fmt(co.credits)} cr</div><button class="btn" data-close>✕</button></div>
       <div class="tabs">${vis.map(([k, l]) => `<button class="btn${k === this.modalTab ? ' on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div><div class="sbody2" data-body="${this.modalTab}">${body}</div></div>`);
     const m = this.modal;
+    this.focusYard(false);   // A-3.2b.2: keep the picked hull marked across live re-renders (morph drops the class)
     m.querySelector<HTMLButtonElement>('[data-close]')!.onclick = () => this.closeModal();
     m.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b => b.onclick = () => {
       // each tab keeps its own scroll position

@@ -64,7 +64,7 @@ export function pubYardHtml(w: WorldState, s: Station, me: string, groups: { id:
     const berthOk = berthFits(s, hullEcon(id).berth);
     const ps = presetsOf(id, true).filter(p => !Object.values(p.weapons).some(item => regionalMarketRequired(w, item)));
     const why = !ps.length ? '공영 판매 가능한 기본 무장 구성이 없습니다' : locked ? repWhy! : n < 1 ? `재고 없음 — 다음 함선 건조 ${Math.round(100 * (k?.t ?? 0) / sale.restock)}%${k?.why ? ` (${esc(k.why)})` : ''}` : co.credits < price ? `자금 부족 — ${fmt(price - co.credits)} cr 더 필요` : '';
-    return `<div class="ycard${locked ? ' locked' : ''}"><div class="yn"><b>${esc(hullTitle(id))}</b> <span class="dim small">${h.size} · ${GRADE[h.blueprint]}</span><span class="money">${fmt(price)} cr</span></div>
+    return `<div class="ycard${locked ? ' locked' : ''}" data-ycard="${id}"><div class="yn"><b>${esc(hullTitle(id))}</b> <span class="dim small">${h.size} · ${GRADE[h.blueprint]}</span><span class="money">${fmt(price)} cr</span></div>
       <div class="dim">${esc(h.desc)}</div>
       <div class="ys small">${hullStats(id)}</div>
       ${priceWhy(id)}

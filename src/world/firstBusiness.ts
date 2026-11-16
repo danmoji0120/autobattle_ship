@@ -336,7 +336,7 @@ export const SALVAGE_ROLES: Record<string, string> = {
 };
 
 type SiteLot = { k: string; item: string; n: number; owner: string };
-type SiteView = { id: string; name: string; system: string; pos: Station['pos']; expires: number; lots?: SiteLot[]; origin?: string; grade?: string; est?: number; main?: string[]; contract?: string; size?: number; left?: number; ships?: number };
+type SiteView = { id: string; name: string; system: string; pos: Station['pos']; expires: number; created?: number; eng?: string; lots?: SiteLot[]; origin?: string; grade?: string; est?: number; main?: string[]; contract?: string; size?: number; left?: number; ships?: number };
 
 export interface SalvageOption {
   id: string; name: string; kind: 'derelict' | 'wreck' | 'drop'; grade?: string;
@@ -353,7 +353,16 @@ export interface SalvageOption {
   threat: { near: number; system: number };
   /** safe band and nothing hostile seen at the site */
   recommended: boolean;
+  /**
+   * A-3.2b.2: battlefield wrecks only — when the battle that made it ended (public: the wreck's creation time) and
+   * whether a fight this state can see is going on at the site now. `recent`: ended less than RECENT_BATTLE_S ago
+   * or still fighting — the risk may remain even when no hostile fleet is visible.
+   */
+  battle?: { ago: number; fighting: boolean; recent: boolean };
 }
+
+/** A-3.2b.2: how long after the battle a battlefield wreck still counts as a "recent battle" (30 game minutes) */
+export const RECENT_BATTLE_S = 1800;
 
 /** A-3.2b.1: route-risk bands of the salvager's guide */
 export type RiskBand = 'safe' | 'caution' | 'danger';
@@ -366,12 +375,18 @@ export const SITE_THREAT_R = 8000;
  * the target — the player decides. Danger (route risk > 55): strong warning. Caution (31–55) or hostile armed
  * ships seen at the site even on a safe route: a confirmation.
  */
-export function salvageConfirm(o: Pick<SalvageOption, 'name' | 'risk' | 'band' | 'threat'>): string | null {
-  const t = o.threat.near ? ` 현장 반경 ${SITE_THREAT_R / 1000}k 안에 적대 무장 함선 ${o.threat.near}척이 보입니다(경로 위험과 별개).` : o.threat.system ? ` 같은 성계에 적대 무장 함선 ${o.threat.system}척이 보입니다.` : '';
+export function salvageConfirm(o: Pick<SalvageOption, 'name' | 'risk' | 'band' | 'threat' | 'battle'>): string | null {
+  const b = o.battle?.recent ? battleNote(o.battle) : '';
+  const t = (o.threat.near ? ` 현장 반경 ${SITE_THREAT_R / 1000}k 안에 적대 무장 함선 ${o.threat.near}척이 보입니다(경로 위험과 별개).` : o.threat.system ? ` 같은 성계에 적대 무장 함선 ${o.threat.system}척이 보입니다.` : '') + b;
   if (o.band === 'danger') return `${o.name}: 경로 위험 ${o.risk} (위험) — 호위 없는 인양선은 격침될 수 있고 실린 화물도 잃습니다.${t} 그래도 보낼까요?`;
   if (o.band === 'caution') return `${o.name}: 경로 위험 ${o.risk} (주의) — 초보 인양반에는 위험 30 이하 대상을 권장합니다. 해적·적대 함대를 만나면 함선을 잃을 수 있습니다.${t} 보낼까요?`;
   if (o.threat.near) return `${o.name}: 경로는 안전(위험 ${o.risk})하지만${t} 도착하면 공격받을 수 있습니다. 보낼까요?`;
+  if (b) return `${o.name}: 경로는 안전(위험 ${o.risk})합니다.${b} 지금 보이는 적대 함대는 없지만 전투를 벌인 세력이 근처에 남아 있을 수 있습니다. 보낼까요?`;
   return null;
+}
+/** A-3.2b.2: the recent-battle sentence — the battle time only, never who fought or where they went */
+export function battleNote(b: NonNullable<SalvageOption['battle']>): string {
+  return b.fighting ? ' 현장에서 교전이 진행 중입니다.' : ` ${Math.max(1, Math.round(b.ago / 60))}분 전에 이곳에서 전투가 있었습니다.`;
 }
 /**
  * Hostile armed ships near a point, from what this state holds. On a client that is what the company can see
@@ -391,6 +406,17 @@ export function knownThreat(w: WorldState, me: string, system: string, pos: Stat
     }
   }
   return { near, system: sys };
+}
+
+/**
+ * A-3.2b.2: the recent-battle record of a battlefield wreck, from what this state already holds — the wreck's
+ * public creation time and the engagements this state carries (a client only receives fights it can see or takes
+ * part in). Nothing about the fleets involved is added.
+ */
+function battleAt(w: WorldState, x: { created: number; pos: Station['pos'] }): NonNullable<SalvageOption['battle']> {
+  const ago = Math.max(0, w.time - x.created);
+  const fighting = Object.values(w.engagements ?? {}).some(e => !e.done && Math.hypot(e.pos.x - x.pos.x, e.pos.z - x.pos.z) <= SITE_THREAT_R);
+  return { ago, fighting, recent: fighting || ago < RECENT_BATTLE_S };
 }
 
 const lotVal = (w: WorldState, item: string) => item.startsWith('bpf:') ? 500 : assetReferenceValue(w, item);
@@ -425,14 +451,15 @@ export function salvageOpportunities(w: WorldState, me: string): SalvageOption[]
     const main = known ? [...new Set([...(lots ?? [])].filter(l => l.n > 0).sort((a, b) => b.n * lotVal(w, b.item) - a.n * lotVal(w, a.item)).map(l => l.item.startsWith('bpf:') ? 'bpf' : l.item))].slice(0, 3) : x.main ?? [];
     const k = x.contract ? w.contracts?.[x.contract] : undefined;
     const risk = Math.round(sysRouteRisk(w, home, x.system)), threat = knownThreat(w, me, x.system, x.pos), band = riskBand(risk);
+    const battle = kind === 'wreck' && x.created !== undefined ? battleAt(w, x as SiteView & { created: number }) : undefined;
     out.push({
-      band, threat, recommended: band === 'safe' && threat.near === 0,
+      band, threat, recommended: band === 'safe' && threat.near === 0 && !battle?.recent, ...(battle ? { battle } : {}),
       id: x.id, name: x.name, kind, grade: x.grade, system: x.system, jumps: j, sec: Math.round(effSec(sys)), risk,
       value: Math.round(known ? value : x.est ?? 0), known, main, units: known ? units : undefined, protectedCargo: prot, expiresIn: Math.max(0, x.expires - w.time),
       ...(k && !k.done ? { contract: { id: k.id, title: k.title, reward: k.reward, res: k.res, amount: k.amount, station: k.stationId, mine: k.takenBy === me, taken: !!k.takenBy } } : {}),
     });
   }
-  // A-3.2b.1: recommended (route risk ≤ 30, nobody hostile seen at the site) first, then caution, then danger; near, then value
+  // A-3.2b.1: recommended (route risk ≤ 30, nobody hostile seen at the site; A-3.2b.2: no recent battle) first, then caution, then danger; near, then value
   const rank = (o: SalvageOption) => (o.recommended ? 0 : o.band === 'safe' ? 1 : o.band === 'caution' ? 2 : 3);
   return out.sort((a, b) => rank(a) - rank(b) || a.jumps - b.jumps || b.value - a.value).slice(0, 10);
 }

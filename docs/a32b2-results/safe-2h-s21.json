@@ -1,0 +1,199 @@
+{
+ "mode": "safe",
+ "seed": 21,
+ "hours": 2,
+ "wallSeconds": 67,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 18,
+    "battleWrecksLive": 40,
+    "derelictsMade": 27,
+    "derelictValueMade": 251722,
+    "salvageContractsPosted": 7
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 85163,
+     "netCash": 73163,
+     "debt": 0,
+     "firstSalvageAt": 240,
+     "firstProfitAt": 240,
+     "targetsSeen": 32,
+     "targetsWorked": 11,
+     "picks": 11,
+     "pickKinds": {
+      "contract": 1,
+      "derelict": 8,
+      "wreck": 2
+     },
+     "recoveredUnits": 1172,
+     "recoveredValue": 62830,
+     "recoveredByItem": {
+      "metal": 512,
+      "alloy": 537,
+      "electronics": 53,
+      "machinery": 20,
+      "weapon_parts": 45,
+      "eq_pd_gun": 1,
+      "eq_autocannon": 4
+     },
+     "ledgerUnits": 1172,
+     "ledgerValue": 62830,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "ok",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 3,
+      "haulers": 1,
+      "damagedHaulers": 0,
+      "issues": []
+     },
+     "tripNotes": {
+      "전자부품 초과 #: #% 적재(#)까지 모으는 중 — #분 더 쌓여 있으면 부분 적재 판매": 1,
+      "판매할 초과 재고 없음": 6
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner",
+      "hauler"
+     ],
+     "contracts": {
+      "accepted": 1,
+      "done": 1,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 74499,
+     "contractPay": 800,
+     "salesByItem": {
+      "alloy": 25974,
+      "metal": 14008,
+      "machinery": 2640,
+      "electronics": 11680,
+      "weapon_parts": 20197
+     },
+     "upkeep": 2136,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_pd_gun": 1,
+      "eq_autocannon": 4
+     },
+     "unsoldValue": 4708,
+     "warehousePeak": 134,
+     "minutesIdleNoTarget": 96,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {},
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "losses": [],
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 800
+   },
+   {
+    "t": 240,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2670
+   },
+   {
+    "t": 360,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   },
+   {
+    "t": 420,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2496
+   },
+   {
+    "t": 540,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2232
+   },
+   {
+    "t": 660,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2224
+   },
+   {
+    "t": 3600,
+    "id": "wk_e454_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 4260,
+    "id": "dr_22",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2392
+   },
+   {
+    "t": 5580,
+    "id": "dr_25",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2218
+   },
+   {
+    "t": 5820,
+    "id": "dr_26",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2726
+   },
+   {
+    "t": 6240,
+    "id": "wk_e686_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 24882
+   }
+  ]
+ }
+}
