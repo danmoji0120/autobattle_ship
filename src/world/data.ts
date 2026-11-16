@@ -79,6 +79,7 @@ export function generateCommander(rng: Rng, tier: number): Omit<import('./types'
 export const MILESTONES: { id: string; title: string; desc: string }[] = [
   { id: 'first_sale', title: '첫 수익', desc: '광석을 팔아 첫 수익을 올린다' },
   { id: 'first_contract', title: '첫 계약 완수', desc: '정거장의 계약을 하나 완수한다' },
+  { id: 'first_salvage', title: '첫 인양', desc: '잔해·유기선에서 회수한 물품을 정거장에 처음 하역한다' },
   { id: 'first_victory', title: '첫 승리', desc: '해적과의 전투에서 승리한다' },
   { id: 'fleet_8', title: '함대 8척', desc: '함선 8척을 보유한다' },
   { id: 'commanders_3', title: '지휘부 구성', desc: '지휘관 3명을 보유한다' },

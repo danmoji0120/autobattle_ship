@@ -31,10 +31,13 @@ export function emit(w: WorldState, event: Observation) {
   finally { const ms = Math.max(0, performance.now() - start - (observedMs - before)); observedMs += ms; sink.cost?.(ms); }
 }
 export function moneySupply(w: WorldState) {
-  return Object.values(w.companies).reduce((n, co) => n + co.credits, 0) + Object.values(w.stations).reduce((n, st) => n + (st.funds ?? 0), 0);
+  return Object.values(w.companies).reduce((n, co) => n + co.credits, 0) + Object.values(w.stations).reduce((n, st) => n + (st.funds ?? 0), 0) + escrowed(w);
 }
+/** A-3.2b: salvage-contract rewards reserved from station funds (held by the contract until paid or returned) */
+export const escrowed = (w: WorldState) => Object.values(w.contracts ?? {}).reduce((n, k) => n + (k.escrow ?? 0), 0);
 function balances(w: WorldState) {
-  return new Map([...Object.values(w.companies).map(co => [`co:${co.id}`, co.credits] as const), ...Object.values(w.stations).filter(st => st.funds !== undefined).map(st => [`st:${st.id}`, st.funds!] as const)]);
+  return new Map([...Object.values(w.companies).map(co => [`co:${co.id}`, co.credits] as const), ...Object.values(w.stations).filter(st => st.funds !== undefined).map(st => [`st:${st.id}`, st.funds!] as const),
+    ...Object.values(w.contracts ?? {}).filter(k => k.escrow !== undefined).map(k => [`k:${k.id}`, k.escrow!] as const)]);
 }
 /** Observe a synchronous atomic gameplay operation. Nested operations count once. Matching debits
  * and credits are transfers; unmatched deltas are actual currency creation/destruction. This also

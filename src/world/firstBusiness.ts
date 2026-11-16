@@ -18,9 +18,11 @@ import { isHot, RESTRICTED_ITEMS } from './blackmarket';
 import { effSec } from './security';
 import { territoryRisk } from './territory';
 import { usableRouteGate } from './logistics';
+import { EQUIPMENT } from './industry';
+import { assetReferenceValue } from './valuation';
 
-/** backgrounds that get the first-business guide in this stage (the other four come later) */
-export const FIRST_BUSINESS_BG = ['hauler', 'miner'] as const;
+/** backgrounds that get the first-business guide (A-3.2a hauler/miner, A-3.2b salvager; the other three come later) */
+export const FIRST_BUSINESS_BG = ['hauler', 'miner', 'salvager'] as const;
 export const firstBusinessOn = (co: Company | undefined) => !!co?.background && (FIRST_BUSINESS_BG as readonly string[]).includes(co.background);
 /** how far the guide looks for trades and delivery stations */
 export const TRADE_JUMPS = 3, FIELD_JUMPS = 2;
@@ -29,7 +31,11 @@ const sysId = (w: WorldState, st: { pos: Station['pos'] }) => sysAt(w.systems, s
 const hop = (w: WorldState, a: Station, b: Station) => { const x = sysId(w, a), y = sysId(w, b); return x && y ? jumps(w.systems, x, y) : 99; };
 /** the worst system risk on the shortest route (the same measure the logistics planner uses: 0 safe … 100) */
 export function routeRiskOf(w: WorldState, a: Station, b: Station): number {
-  const s = sysId(w, a), e = sysId(w, b); if (!s || !e) return 100;
+  return sysRouteRisk(w, sysId(w, a), sysId(w, b));
+}
+/** the same measure between two systems (A-3.2b: a salvage target is a point in space, not a station) */
+export function sysRouteRisk(w: WorldState, s: string | undefined, e: string | undefined): number {
+  if (!s || !e) return 100;
   const r = (id: string) => { const y = w.systems[id]; return y ? Math.min(100, 100 - effSec(y) + territoryRisk(w, y)) : 100; };
   if (s === e) return r(s);
   const q = [{ id: s, risk: r(s) }], seen = new Set([s]);
@@ -239,6 +245,8 @@ export interface FirstStatus {
   mining: { group: string; name: string; field?: string; deliver?: string; status?: string }[];
   steps: { id: string; label: string; done: boolean }[];
   warnings: string[];
+  /** A-3.2b salvager: fleets on salvage, what was recovered, its salvage contracts */
+  salvage?: SalvageStatus;
 }
 
 /** the guide's progress view of the company's first business */
@@ -252,7 +260,17 @@ export function firstBusinessStatus(w: WorldState, me: string): FirstStatus | nu
     .map(j => ({ id: j.id, kind: j.kind, from: j.from, to: j.to, item: j.item, amount: j.amount, delivered: j.delivered, earned: j.earned, state: j.state, reason: j.reason }));
   const mining = Object.values(w.groups).filter(g => g.owner === me && g.op.k === 'mine').map(g => { const op = g.op as Extract<typeof g.op, { k: 'mine' }>; return { group: g.id, name: g.name, field: op.field, deliver: op.deliver, status: g.status }; });
   const pnl = pnlSinceFounding(co), done = co.milestones.includes('first_profit'), sold = (pnl.income.sales ?? 0) > 0;
-  const steps = bg === 'hauler'
+  const salv = bg === 'salvager' ? salvageStatus(w, me) : undefined;
+  const contractPaid = (pnl.income.other ?? 0) > 0 || (salv?.contracts.some(k => k.done && !k.ended) ?? false);
+  const steps = bg === 'salvager'
+    ? [
+      { id: 'pick', label: '인양 대상 고르기 · 인양 시작', done: !!salv && (salv.groups.some(g => g.op === 'recover' || g.op === 'salvzone') || salv.units > 0) },
+      { id: 'recover', label: '현장 도착 · 회수', done: !!salv && salv.units > 0 },
+      { id: 'unload', label: '정거장 하역 (또는 계약 납품)', done: co.milestones.includes('first_salvage') },
+      { id: 'sell', label: '회수품 판매 · 계약 보수', done: sold || contractPaid },
+      { id: 'profit', label: '운영비를 뺀 첫 순이익', done },
+    ]
+    : bg === 'hauler'
     ? [
       { id: 'pick', label: '거래 기회 고르기 · 화물 구매', done: (pnl.expense.purchase ?? 0) > 0 || jobs.length > 0 },
       { id: 'ship', label: '수송선 출발 (물류 작업)', done: jobs.some(j => j.state === 'active' || j.delivered > 0) || sold },
@@ -282,12 +300,117 @@ export function firstBusinessStatus(w: WorldState, me: string): FirstStatus | nu
   }
   if (co.stats.lost > 0) warnings.push(`함선 ${co.stats.lost}척을 잃었습니다 — 실려 있던 화물도 함께 잃습니다. 위험도가 높은 항로는 피하거나 호위를 붙이세요`);
   if ((co.upkeep?.debt ?? 0) > 0) warnings.push(`운영비 미납 ${Math.round(co.upkeep!.debt).toLocaleString()} cr — 판매 대금에서 먼저 정산됩니다`);
-  return { bg, start, credits: co.credits, cash: co.credits - start, debt: co.upkeep?.debt ?? 0, done, pnl, stored, aboard, jobs, mining, steps, warnings };
+  if (salv) {
+    const equip = Object.keys(stored).filter(k => EQUIPMENT[k] || k.startsWith('bpf:'));
+    if (equip.length) warnings.push(`회수한 장비·설계도 조각(${equip.map(k => k.startsWith('bpf:') ? '설계도 조각' : itemName(k)).join(', ')})은 일반 재고와 따로 보관됩니다 — 자동 판매 대상에서 빠지며, 정거장 시장이나 연구·조립에 직접 쓰세요`);
+    const unsold = Object.keys(stored).filter(k => !EQUIPMENT[k] && !k.startsWith('bpf:') && !co.procurement?.sales?.[k]);
+    if (unsold.length && co.milestones.includes('first_salvage')) warnings.push(`창고의 회수품(${unsold.map(k => itemName(k)).join(', ')})은 자동 판매가 꺼져 있어 쌓이기만 합니다 — 아래 '회수품 자동 판매'를 켜거나 정거장 시장에서 직접 파세요`);
+  }
+  return { bg, start, credits: co.credits, cash: co.credits - start, debt: co.upkeep?.debt ?? 0, done, pnl, stored, aboard, jobs, mining, steps, warnings, ...(salv ? { salvage: salv } : {}) };
 }
 
 /** server milestone: the company made money from its own business — cash above what it was founded with, no arrears */
 export function firstProfitReached(co: Company): boolean {
   if (!firstBusinessOn(co) || co.milestones.includes('first_profit')) return false;
+  // A-3.2b: a salvager's first business is real salvage unloaded (or handed over) and then the first net profit
+  if (co.background === 'salvager' && !co.milestones.includes('first_salvage')) return false;
   const start = BACKGROUND[co.background!]?.credits ?? Infinity;
   return co.credits > start && !(co.upkeep?.debt ?? 0);
+}
+
+// ───────────────────────────── A-3.2b salvager
+
+/** how far the salvager's guide looks for targets (jumps from home or from its fleets) */
+export const SALVAGE_JUMPS = 3;
+/** goods the guide offers to put on automatic sale after salvage (equipment and blueprint fragments stay apart) */
+export const SALVAGE_SELL_ITEMS = ['alloy', 'metal', 'electronics', 'machinery', 'weapon_parts', 'titanium', 'ore'] as const;
+/** what each starting hull does on a site (units per second, P13.1 SALV.rate) */
+export const SALVAGE_ROLES: Record<string, string> = {
+  hauler: '화물 회수 초당 8 · 450칸 적재 — 회수품을 싣고 하역',
+  miner: '선체 해체 초당 5 · 140칸 — 고철(합금·금속 등) 담당',
+  constructor: '선체 3 · 화물 5 · 장비 0.1 · 설계도 조각 0.05 — 장비·조각은 공작선만',
+};
+
+type SiteLot = { k: string; item: string; n: number; owner: string };
+type SiteView = { id: string; name: string; system: string; pos: Station['pos']; expires: number; lots?: SiteLot[]; origin?: string; grade?: string; est?: number; main?: string[]; contract?: string; size?: number; left?: number; ships?: number };
+
+export interface SalvageOption {
+  id: string; name: string; kind: 'derelict' | 'wreck' | 'drop'; grade?: string;
+  system: string; jumps: number; sec: number; risk: number;
+  /** reference value of what the company may take legally (known lots), else the public survey estimate */
+  value: number; known: boolean; main: string[]; units?: number;
+  /** another company's cargo aboard: skipped by a normal order, a crime if taken on purpose */
+  protectedCargo: boolean;
+  expiresIn: number;
+  contract?: { id: string; title: string; reward: number; res?: string; amount?: number; station: string; mine: boolean; taken: boolean };
+}
+
+const lotVal = (w: WorldState, item: string) => item.startsWith('bpf:') ? 500 : assetReferenceValue(w, item);
+/** home and the systems the company's ships are in */
+function anchors(w: WorldState, me: string): string[] {
+  const co = w.companies[me], out = new Set<string>();
+  const home = w.stations[co?.homeStation ?? '']; const hs = home && sysId(w, home); if (hs) out.add(hs);
+  for (const s of Object.values(w.ships)) if (s.owner === me) { const x = sysAt(w.systems, s.pos)?.id; if (x) out.add(x); }
+  return [...out];
+}
+
+/** salvage targets near the company: natural derelicts, battlefield wrecks and jettisoned cargo it can see */
+export function salvageOpportunities(w: WorldState, me: string): SalvageOption[] {
+  const co = w.companies[me]; if (!co) return [];
+  const from = anchors(w, me); if (!from.length) return [];
+  const home = sysId(w, w.stations[co.homeStation ?? ''] ?? { pos: { x: 0, y: 0, z: 0 } }) ?? from[0];
+  const sites: SiteView[] = [...Object.values(w.wrecks ?? {}) as unknown as SiteView[], ...Object.values((w as { drops?: Record<string, SiteView> }).drops ?? {})];
+  const out: SalvageOption[] = [];
+  for (const x of sites) {
+    const sys = w.systems[x.system]; if (!sys) continue;
+    const j = Math.min(...from.map(f => jumps(w.systems, f, x.system))); if (j > SALVAGE_JUMPS) continue;
+    const lots = x.lots, kind: SalvageOption['kind'] = x.origin === 'derelict' ? 'derelict' : (w as { drops?: Record<string, unknown> }).drops?.[x.id] ? 'drop' : 'wreck';
+    let value = 0, units = 0, prot = false;
+    if (lots) for (const l of lots) {
+      if (l.n < 1) continue;
+      const other = l.k === 'cargo' && !!l.owner && l.owner !== me && l.owner !== 'pirates' && w.companies[l.owner]?.kind !== 'pirate' && !!w.companies[l.owner];
+      if (other) { prot = true; continue; }
+      value += l.n * lotVal(w, l.item); units += l.n;
+    }
+    const known = !!lots;
+    if (known && units < 1) continue;
+    const main = known ? [...new Set([...(lots ?? [])].filter(l => l.n > 0).sort((a, b) => b.n * lotVal(w, b.item) - a.n * lotVal(w, a.item)).map(l => l.item.startsWith('bpf:') ? 'bpf' : l.item))].slice(0, 3) : x.main ?? [];
+    const k = x.contract ? w.contracts?.[x.contract] : undefined;
+    out.push({
+      id: x.id, name: x.name, kind, grade: x.grade, system: x.system, jumps: j, sec: Math.round(effSec(sys)), risk: sysRouteRisk(w, home, x.system),
+      value: Math.round(known ? value : x.est ?? 0), known, main, units: known ? units : undefined, protectedCargo: prot, expiresIn: Math.max(0, x.expires - w.time),
+      ...(k && !k.done ? { contract: { id: k.id, title: k.title, reward: k.reward, res: k.res, amount: k.amount, station: k.stationId, mine: k.takenBy === me, taken: !!k.takenBy } } : {}),
+    });
+  }
+  // safe and near first, then value
+  return out.sort((a, b) => (a.risk > 55 ? 1 : 0) - (b.risk > 55 ? 1 : 0) || a.jumps - b.jumps || b.value - a.value).slice(0, 10);
+}
+
+export interface SalvageStatus {
+  groups: { group: string; name: string; op: string; target?: string; status?: string; ships: string[] }[];
+  units: number; value: number; items: Cargo;
+  /** salvaged goods aboard (not yet unloaded) */
+  aboard: Cargo;
+  contracts: { id: string; title: string; station: string; res?: string; amount?: number; progress: number; reward: number; expiresIn: number; done: boolean; ended?: string; target?: string }[];
+  /** open salvage contracts on the boards near the company (not taken by anyone) */
+  board: { id: string; title: string; station: string; reward: number; res?: string; amount?: number; target?: string; jumps: number; risk: number }[];
+}
+
+export function salvageStatus(w: WorldState, me: string): SalvageStatus {
+  const co = w.companies[me], ships = Object.values(w.ships).filter(s => s.owner === me);
+  const groups = Object.values(w.groups).filter(g => g.owner === me && ships.some(s => s.groupId === g.id)).map(g => ({
+    group: g.id, name: g.name, op: g.op.k, target: g.op.k === 'recover' ? (g.op as { wreck: string }).wreck : undefined, status: g.status,
+    ships: ships.filter(s => s.groupId === g.id).map(s => s.classId),
+  }));
+  const aboard: Cargo = {};
+  for (const s of ships) for (const [k, n] of Object.entries(s.salvaged ?? {})) { const v = Math.min(n, s.cargo[k] ?? 0); if (v > 0.5) aboard[k] = (aboard[k] ?? 0) + v; }
+  const home = w.stations[co?.homeStation ?? ''], hs = home ? sysId(w, home) : undefined;
+  const contracts = Object.values(w.contracts ?? {}).filter(k => k.kind === 'salvage' && k.takenBy === me).sort((a, b) => b.expires - a.expires).slice(0, 4)
+    .map(k => ({ id: k.id, title: k.title, station: k.stationId, res: k.res, amount: k.amount, progress: k.progress, reward: k.reward, expiresIn: Math.max(0, k.expires - w.time), done: k.done, ended: k.ended, target: k.target }));
+  const board = Object.values(w.contracts ?? {}).filter(k => k.kind === 'salvage' && !k.done && !k.takenBy).map(k => {
+    const st = w.stations[k.stationId], ss = st ? sysId(w, st) : undefined, x = k.target ? (w.wrecks?.[k.target] as unknown as SiteView | undefined) : undefined;
+    return { id: k.id, title: k.title, station: k.stationId, reward: k.reward, res: k.res, amount: k.amount, target: k.target, jumps: hs && ss ? jumps(w.systems, hs, ss) : 99, risk: sysRouteRisk(w, hs, x?.system ?? ss) };
+  }).filter(k => k.jumps <= SALVAGE_JUMPS).sort((a, b) => a.jumps - b.jumps || a.risk - b.risk).slice(0, 5);
+  const r = co?.salvage;
+  return { groups, units: r?.units ?? 0, value: Math.round(r?.value ?? 0), items: { ...(r?.items ?? {}) }, aboard, contracts, board };
 }

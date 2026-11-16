@@ -55,6 +55,8 @@ export interface Company {
   lastTrade?: { seq: number; id: string; signature: string };
   /** Optional company procurement policy; absent means transport enabled and purchasing disabled. */
   procurement?: import('./procurement').ProcurementPolicy;
+  /** A-3.2b (derelictV worlds): what the company has recovered by salvage — units by item, reference value, sites worked */
+  salvage?: { units: number; value: number; items: Cargo; sites: string[]; first?: number };
   /** P12.5 (logisticsV worlds): false stops new automatic hauler dispatch; in-flight shipments finish */
   autoLogistics?: boolean;
   /** Company operations (works, approvals policy, cash ledger) — see world/operations.ts. Created lazily. */
@@ -228,6 +230,9 @@ export interface WShip {
   salvaged?: Cargo;
   /** P13.1: salvage work done but not yet a whole unit (per ship, the lot it was working on) */
   salvAcc?: { lot: string; a: number };
+  /** A-3.2b: where the salvaged goods aboard came from (item key → site id → units), so a salvage contract
+   *  counts only goods really recovered from its target (never goods the company already had) */
+  salvSrc?: Record<string, Record<string, number>>;
   /** P13.2: the last cargo demand made to this ship (one demand per ship per PIR.redemand seconds) */
   pir?: { t: number; by: string; ev: string; act: import('./piracy').Response; dropped?: number };
   /** P13.3: inspection outcomes recorded per place and 30-minute window (a retry replays the outcome) */
@@ -508,18 +513,25 @@ export interface StarSystem {
 export interface Contract {
   id: string;
   stationId: string;
-  kind: 'bounty' | 'delivery' | 'lair';
+  kind: 'bounty' | 'delivery' | 'lair' | 'salvage';
   title: string;
   desc: string;
   reward: number;
   rep: number;
-  target?: string;            // group id / lair id
+  target?: string;            // group id / lair id / (A-3.2b salvage) wreck id
   res?: Res;
   amount?: number;
   progress: number;
   expires: number;
   takenBy: string | null;
   done: boolean;
+  /** A-3.2b salvage contract: reward reserved from the posting station's funds at acceptance (paid out on
+   *  completion, returned on failure / expiry) — the money exists in exactly one place at a time */
+  escrow?: number;
+  /** A-3.2b: the target was made for this contract (derelicts.ts) */
+  spawned?: boolean;
+  /** A-3.2b: why it ended without completion (shown to the taker) */
+  ended?: string;
 }
 
 export interface Engagement {
@@ -619,6 +631,9 @@ export interface WorldState {
   logisticsV?: 1;
   /** P13.1 battlefield wrecks and physical salvage (new worlds only): no random derelicts, no remote battle loot */
   salvageV?: 1;
+  /** A-3.2b natural derelicts and salvage contracts (salvageV worlds; new standard worlds, saves by explicit migration) */
+  derelictV?: 1;
+  derelicts?: import('./derelicts').DerelictState;
   /** P13.1: persistent battlefield wrecks (salvageV worlds) */
   wrecks?: Record<string, import('./wrecks').WreckSite>;
   /** P13.2 cargo raiding & jettisoned cargo (new worlds only; implies salvageV) */

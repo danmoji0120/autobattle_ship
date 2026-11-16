@@ -60,6 +60,16 @@ export interface WreckSite {
   seen: string[];
   /** unauthorised recovery of cargo, by company: value taken (crime bookkeeping) */
   crime?: Record<string, number>;
+  /** A-3.2b: a natural derelict (derelicts.ts) instead of a battlefield wreck — ownerless, legal to take */
+  origin?: 'derelict';
+  /** A-3.2b derelict: size class (small = beginner, safe space) and spawn region */
+  grade?: 'small' | 'medium' | 'large';
+  region?: string;
+  /** A-3.2b derelict: public survey report — reference value at creation and its main goods */
+  est?: number;
+  main?: string[];
+  /** A-3.2b: the salvage contract that targets it (one at a time) */
+  contract?: string;
 }
 
 /** what the salvage engine needs of anything it recovers from: a battlefield wreck or (P13.2) jettisoned cargo */
@@ -178,7 +188,9 @@ export function markSeen(st: WorldState) {
 export function wreckFor(w: WreckSite, company: string | undefined) {
   const known = !!company && w.seen.includes(company);
   const units = wreckUnits(w);
-  const base = { id: w.id, name: w.name, eng: w.eng, system: w.system, pos: w.pos, created: w.created, expires: w.expires, initial: w.initial, ships: w.sources.length, size: units > 2000 ? 3 : units > 400 ? 2 : 1, left: known ? units : undefined };
+  const base = { id: w.id, name: w.name, eng: w.eng, system: w.system, pos: w.pos, created: w.created, expires: w.expires, initial: w.initial, ships: w.sources.length, size: units > 2000 ? 3 : units > 400 ? 2 : 1, left: known ? units : undefined,
+    // A-3.2b: a derelict's survey report is public (grade, rough value, main goods, the contract on it); the lots need a visit
+    ...(w.origin ? { origin: w.origin, grade: w.grade, est: w.est, main: w.main, ...(w.contract ? { contract: w.contract } : {}) } : {}) };
   if (!known) return base;
   return { ...base, known: true, sources: w.sources, lots: w.lots, taken: company && w.taken[company] ? { [company]: w.taken[company] } : {} };
 }

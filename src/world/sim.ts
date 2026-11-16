@@ -198,6 +198,8 @@ const START_CREDITS_LEGACY = 7000;
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
+import { enableDerelicts, stepDerelicts, nudgeHomeRegion, DERELICT_CFG } from './derelicts';
+import { acceptSalvageContract, postSalvageContracts, refundSalvage, salvageContractsTick } from './salvageContracts';
 import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContractFailed, hullGate } from './reputation';
 import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
@@ -272,7 +274,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -301,6 +303,8 @@ export class WorldSim {
     if (opts.factionEcon === 'v2') enableFactionEcon2(sim.st);
     if (sim.st.salvageV) delete sim.st.sites;
     if (sim.st.blackMarketV) seedBlackMarkets(sim);
+    // A-3.2b natural derelicts & salvage contracts: opt-in for new salvage worlds (saves: explicit migration)
+    if (opts.derelicts === 'a32b' && sim.st.salvageV) enableDerelicts(sim.st, sim.time);
     return sim;
   }
 
@@ -668,6 +672,8 @@ export class WorldSim {
       let b = hashId(s.id) % BERTH_MAX; let i = 0; while (used.has(b) && i++ < BERTH_MAX) b = (b + 1) % BERTH_MAX; used.add(b);
       s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
     }
+    // A-3.2b: a salvager's home region gets its next derelict now if it is below its caps (shared, never a copy)
+    if (bg.id === 'salvager') nudgeHomeRegion(this.st, this.sysOf(st.pos)?.id, this.time);
     this.ev('world', `신생 PMC "${co.name}"(${bg.name})가 ${st.name}에 등록했다.`);
     this.ev('info', bg.hint, { company: id });
     return id;
@@ -1044,7 +1050,8 @@ export class WorldSim {
         const k = this.st.contracts[cmd.contract]; if (!k || k.takenBy || k.done) return '수주 불가';
         if (Object.values(this.st.contracts).filter(x => x.takenBy === company && !x.done).length >= 3) return '동시 계약은 3건까지';
         emit(this.st, { kind: 'contract', reason: 'accept', amount: 1, company, station: k.stationId, item: k.kind });
-        k.takenBy = company; k.expires = this.time + (k.kind === 'lair' ? 1800 : 1200);
+        if (k.kind === 'salvage') { const why = acceptSalvageContract(this, company, k); if (why) return why; }
+        k.takenBy = company; k.expires = this.time + (k.kind === 'lair' ? 1800 : k.kind === 'salvage' ? DERELICT_CFG.contract.life : 1200);
         this.ev('info', `계약 수주: ${k.title}`, { company, pos: S(k.stationId).pos });
         return null;
       }
@@ -2147,6 +2154,7 @@ export class WorldSim {
       this.slow = 0;
       if (growthOn(st)) for (const co of Object.values(st.companies)) if (co.pendingLoot) this.recoverLoot(co);
       if (st.piracyV && st.drops) for (const d of expireDrops(st, this.time)) for (const c of d.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${d.name} ${d.lots.length ? '소멸 — 남은 화물은 흩어졌습니다' : '회수 완료'}`, { company: c, pos: d.pos, ref: d.id, tag: 'piracy' });
+      if (st.derelictV) stepDerelicts(st, this.time);
       if (st.salvageV && (st.wrecks || st.drops)) { markSeen(st); for (const w of expireWrecks(st, this.time)) for (const c of w.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${w.name} ${w.lots.length ? '소멸 — 남은 잔해는 흩어졌습니다' : '회수 완료'}`, { company: c, pos: w.pos, ref: w.id, tag: 'salvage' }); }
       this.npcSlow();
       if (this.st.combatV === 2) this.detectEngagementsP11(); else this.detectEngagements();
@@ -4635,7 +4643,7 @@ export class WorldSim {
 
   // ===================================================================== contracts & progression
 
-  private offerContract(k: Omit<Contract, 'id' | 'progress' | 'expires' | 'takenBy' | 'done'>, life = 900) {
+  offerContract(k: Omit<Contract, 'id' | 'progress' | 'expires' | 'takenBy' | 'done'>, life = 900) {
     const id = this.id('k');
     this.st.contracts[id] = { ...k, id, progress: 0, expires: this.time + life, takenBy: null, done: false };
     return id;
@@ -4660,6 +4668,7 @@ export class WorldSim {
       if (k.done) continue;
       if (this.time > k.expires) {
         k.done = true;
+        if (k.escrow) refundSalvage(this, k);
         if (k.takenBy) { const co = st.companies[k.takenBy]; const prev = co.rep; if (st.repV) repContractFailed(st, co.id, k); else { co.rep = Math.max(0, co.rep - 2); emit(st, { kind: 'reputation', amount: co.rep - prev, reason: 'contract_expired', company: co.id }); } emit(st, { kind: 'contract', amount: 1, reason: 'fail', company: co.id, item: k.kind, station: k.stationId }); this.ev('warn', `계약 기한 만료: ${k.title} (${st.repV ? '신용도·발주 세력 신뢰도 하락' : '평판 -2'})`, { company: k.takenBy }); }
       }
     }
@@ -4678,6 +4687,8 @@ export class WorldSim {
         this.offerContract({ stationId: s.id, kind: 'delivery', title: `${RES_NAME[res]} ${amount} 납품`, desc: `${s.name}에 ${RES_NAME[res]} ${amount}단위를 납품하라. 시장가의 약 ${mult.toFixed(1)}배를 지급한다.`, reward: Math.round(amount * base * mult / 50) * 50, rep: 2, res, amount });
       }
     }
+    // A-3.2b salvage contracts on derelicts (reward reserved from the station's funds at acceptance)
+    if (st.derelictV) { salvageContractsTick(this); postSalvageContracts(this); }
     // lair assaults posted by the Union
     for (const l of Object.values(st.lairs)) {
       if (!l.alive) continue;
@@ -4697,14 +4708,17 @@ export class WorldSim {
     }
   }
 
-  private completeContract(k: Contract) { return watchMoney(this.st, `contract_${k.kind}`, { company: k.takenBy ?? undefined, station: k.stationId }, () => this.completeContractObserved(k)); }
+  completeContract(k: Contract) { return watchMoney(this.st, `contract_${k.kind}`, { company: k.takenBy ?? undefined, station: k.stationId }, () => this.completeContractObserved(k)); }
 
   private completeContractObserved(k: Contract) {
     if (k.done) return;
     k.done = true;
     const co = k.takenBy ? this.st.companies[k.takenBy] : null;
     if (!co) return;
-    co.credits += k.reward; co.stats.earned += k.reward; co.stats.contracts++;
+    // A-3.2b: a salvage contract pays what was reserved from the station (a transfer), never new money
+    const pay = k.escrow !== undefined ? k.escrow : k.reward;
+    if (k.escrow !== undefined) k.escrow = 0;
+    co.credits += pay; co.stats.earned += pay; co.stats.contracts++;
     const r0 = co.rep, f0 = this.st.stations[k.stationId]?.faction, s0 = f0 ? co.standing?.[f0] ?? 0 : 0;
     if (this.st.repV) repContract(this.st, co.id, k);
     else { co.rep += k.rep; emit(this.st, { kind: 'reputation', reason: `contract_${k.kind}`, amount: k.rep, company: co.id, station: k.stationId }); }
@@ -4728,7 +4742,7 @@ export class WorldSim {
     this.ev('milestone', `첫 사업 성공: 자금 ${cr(BACKGROUND[co.background!]?.credits ?? 0)} → ${cr(co.credits)} cr — 판매 +${cr(p.income.sales ?? 0)}${p.income.other ? ` · 계약·기타 +${cr(p.income.other)}` : ''} · 구매 −${cr(p.expense.purchase ?? 0)} · 운영비 −${cr(p.expense.upkeep ?? 0)}`, { company: co.id });
   }
 
-  private milestone(co: Company, id: string) {
+  milestone(co: Company, id: string) {
     if (co.milestones.includes(id)) return;
     co.milestones.push(id);
     const m = MILESTONES.find(x => x.id === id);

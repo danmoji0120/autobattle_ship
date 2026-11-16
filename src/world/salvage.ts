@@ -28,6 +28,7 @@ import { emit } from './observe';
 import { stationCargoRate } from './stations';
 import { opKey } from './fleetops';
 import { recoveredKey, unloadRisk, warnNoSafeUnload } from './blackmarket';
+import { contractStationFor, deliverSalvage, noteSalvageSource, trimSalvageSource } from './salvageContracts';
 import type { CommanderDef } from '../sim/data/commanders';
 
 type Host = WorldSim;
@@ -149,6 +150,7 @@ function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number):
     const k = recoveredKey(h.st, s.owner, lot);
     addc(s.cargo, k, take);
     addc((s.salvaged ??= {}), k, take);
+    if (h.st.derelictV) noteSalvageSource(h.st, s, k, w.id, take, take * lotValue(h.st, lot));
     const t = (w.taken[s.owner] ??= {}); t[lot.item] = (t[lot.item] ?? 0) + take;
     if (!w.seen.includes(s.owner)) w.seen.push(s.owner);
     recovered(h, s, w, lot, take);
@@ -199,6 +201,14 @@ function crime(h: Host, s: WShip, w: SalvSite, lot: WreckLot, n: number) {
 
 /** unload what came from wrecks (only that) into company storage; staged by the station's cargo rate */
 export function unloadSalvage(h: Host, s: WShip, st: Station): number {
+  // A-3.2b: goods owed to a salvage contract of this station are handed over first (consumed, never stored)
+  const handed = h.st.derelictV && s.salvSrc ? deliverSalvage(h, s, st) : 0;
+  const moved = unloadToStore(h, s, st);
+  if (h.st.derelictV && moved + handed > 0) { const co = h.st.companies[s.owner]; if (co?.kind === 'player') h.milestone(co, 'first_salvage'); }
+  if (s.salvSrc) trimSalvageSource(s);
+  return moved + handed;
+}
+function unloadToStore(h: Host, s: WShip, st: Station): number {
   const sal = s.salvaged; if (!sal) return 0;
   const total = Object.keys(sal).reduce((a, k) => a + Math.min(qty(sal, k), qty(s.cargo, k)), 0);
   if (total <= 1e-9) { delete s.salvaged; return 0; }
@@ -222,6 +232,9 @@ const salvageAboard = (s: WShip) => !!s.salvaged && Object.keys(s.salvaged).some
  *  P13.3.1: never a station an automatic run would reach through an inspection (route gates or the dock) with
  *  contraband aboard — `skip.risky` counts such stations so the caller can say why it waits with the cargo. */
 function pickStation(h: Host, g: WGroup, ships: WShip[], from: V, ignore: Record<string, number> = {}, skip?: { risky: number }): Station | null {
+  // A-3.2b: a salvage contract's station takes the delivery first (the goods owed are handed over, not stored)
+  const owed = h.st.derelictV ? contractStationFor(h, ships) : undefined, cs = owed ? h.st.stations[owed] : undefined;
+  if (cs && (ignore[cs.id] ?? 0) <= h.time && h.canDock(cs, g.owner) && ships.every(s => berthFits(cs, econOf(s).berth)) && unloadRisk(h, g.owner, from, cs, ships) <= 0) return cs;
   const items = new Set<string>(); for (const s of ships) for (const k of Object.keys(s.salvaged ?? {})) items.add(k);
   let best: Station | null = null, bd = Infinity;
   for (const st of Object.values(h.st.stations)) {

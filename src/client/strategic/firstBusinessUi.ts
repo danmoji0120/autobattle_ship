@@ -1,12 +1,13 @@
 // A-3.2a: the first-business guide for hauler and miner starts. It reads the real world (markets, budgets,
 // fields, the company's ledger) through world/firstBusiness.ts and acts only through ordinary commands:
-// `buy` + `poolCreate` (hauler), `setOp` mine (miner), `setOp` dock/idle (moving empty haulers).
+// `buy` + `poolCreate` (hauler), `setOp` mine (miner), `setOp` dock/idle (moving empty haulers); A-3.2b salvager:
+// `setOp` recover (인양 시작), `accept` (only on an explicit click), `salesPolicy` (회수품 자동 판매).
 import type { WorldView } from '../../server/protocol';
 import type { WorldState } from '../../world/types';
 import { itemName } from '../../world/industry';
 import { buyCost } from '../../world/market';
 import { econOf } from '../../world/hullops';
-import { FIELD_JUMPS, fieldOptions, movableGroups, firstBusinessOn, firstBusinessStatus, relocationOptions, riskLabel, sellWalk, TRADE_JUMPS, tradeOpportunities, type FieldOption, type FirstStatus, type Relocation, type TradeOption } from '../../world/firstBusiness';
+import { FIELD_JUMPS, fieldOptions, movableGroups, firstBusinessOn, firstBusinessStatus, relocationOptions, riskLabel, sellWalk, TRADE_JUMPS, tradeOpportunities, salvageOpportunities, SALVAGE_JUMPS, SALVAGE_ROLES, SALVAGE_SELL_ITEMS, type FieldOption, type FirstStatus, type Relocation, type TradeOption, type SalvageOption } from '../../world/firstBusiness';
 import { BACKGROUND } from '../../world/backgrounds';
 import { morph } from '../../ui/morph';
 
@@ -29,7 +30,7 @@ export class FirstBusinessPanel {
   open = false;
   private el: HTMLElement | null = null;
   private key = '';
-  private cache: { at: number; trades: TradeOption[]; reloc: Relocation[]; fields: FieldOption[] } | null = null;
+  private cache: { at: number; trades: TradeOption[]; reloc: Relocation[]; fields: FieldOption[]; salvage: SalvageOption[] } | null = null;
   /** empty haulers this guide sent to another station: switched back to standby (pool) on arrival */
   private moving: { groups: string[]; station: string } | null = null;
 
@@ -68,10 +69,12 @@ export class FirstBusinessPanel {
     const now = performance.now();
     if (force || !this.cache || now - this.cache.at > 4000) {
       const trades = co.background === 'hauler' ? tradeOpportunities(w, me) : [];
-      this.cache = { at: now, trades, reloc: co.background === 'hauler' && !trades.length ? relocationOptions(w, me) : [], fields: co.background === 'miner' ? fieldOptions(w, me).slice(0, 6) : [] };
+      this.cache = { at: now, trades, reloc: co.background === 'hauler' && !trades.length ? relocationOptions(w, me) : [], fields: co.background === 'miner' ? fieldOptions(w, me).slice(0, 6) : [], salvage: co.background === 'salvager' ? salvageOpportunities(w, me) : [] };
     }
     const s = firstBusinessStatus(w, me)!;
-    const key = JSON.stringify([this.cache.at, Math.round(co.credits), s.steps.map(x => x.done), s.jobs.map(j => [j.state, Math.round(j.delivered), Math.round(j.earned)]), s.mining.map(g => [g.field, g.deliver, g.status]), s.warnings, this.moving]);
+    const sv = s.salvage;
+    const key = JSON.stringify([this.cache.at, Math.round(co.credits), s.steps.map(x => x.done), s.jobs.map(j => [j.state, Math.round(j.delivered), Math.round(j.earned)]), s.mining.map(g => [g.field, g.deliver, g.status]), s.warnings, this.moving,
+      sv ? [sv.groups.map(g => [g.op, g.target, g.status]), Math.round(sv.units), Object.values(sv.aboard).map(Math.round), sv.contracts.map(k => [Math.round(k.progress), k.done]), sv.board.map(k => k.id)] : 0]);
     if (!force && key === this.key && this.el) return;
     this.key = key;
     if (!this.el) { this.el = document.createElement('div'); this.el.className = 'upkwrap fbwrap'; this.root.appendChild(this.el); }
@@ -91,7 +94,7 @@ export class FirstBusinessPanel {
       <div class="small">장부상 순이익 <b class="${p.net >= 0 ? 'good' : 'warn'}">${sgn(p.net)} cr</b> — 운영비는 함선이 놀아도 계속 나갑니다${Object.keys(s.stored).length ? ` · 보유 재고: ${Object.entries(s.stored).map(([k, n]) => `${esc(itemName(k))} ${fmt(n)}`).join(', ')}` : ''}</div></div>`;
     const warn = s.warnings.length ? `<ul class="fbwarn">${s.warnings.map(x => `<li class="warnish">${esc(x)}</li>`).join('')}</ul>` : '';
     const doneTxt = s.done ? `<div class="good fbdone">첫 사업 완료 — 운영비를 빼고도 자금이 창업 때보다 늘었습니다. 같은 방법으로 계속 거래하거나, 회사 본부에서 반복 업무로 맡길 수 있습니다.</div>` : '';
-    const body = co.background === 'hauler' ? this.haulerHtml(w, me, s, stn) : this.minerHtml(w, me, s, stn);
+    const body = co.background === 'hauler' ? this.haulerHtml(w, me, s, stn) : co.background === 'salvager' ? this.salvagerHtml(w, me, s, stn) : this.minerHtml(w, me, s, stn);
     return `<div class="panel upk fb"><div class="shdr"><div><div class="stitle">첫 사업 — ${esc(bg?.name ?? '')}</div><div class="dim small">${esc(stn(co.homeStation))}에서 시작 · 지원금 없이 실제 시장과 함선으로 운영합니다</div></div><button class="btn" data-fbclose>✕</button></div>
       ${doneTxt}<ol class="fbsteps">${steps}</ol>${pnl}${warn}${body}</div>`;
   }
@@ -133,6 +136,42 @@ export class FirstBusinessPanel {
       ${fields}`;
   }
 
+  /** A-3.2b: the salvager's guide — nearby targets, contracts on the boards, the fleet's roles and what it recovered */
+  private salvagerHtml(w: WorldState, me: string, s: FirstStatus, stn: (id?: string) => string): string {
+    const sv = s.salvage!, g = this.salvageGroup(w, me), cur = g ? sv.groups.find(x => x.group === g.id) : undefined;
+    const site = (id?: string) => id ? (w.wrecks?.[id]?.name ?? id) : '';
+    const cls: Record<string, string> = { hauler_mk1: 'hauler', hauler: 'hauler', miner_mk1: 'miner', miner: 'miner', constructor_s: 'constructor', constructor: 'constructor' };
+    const roles = cur ? `<ul class="small fbroles">${[...new Set(cur.ships)].map(c => `<li>${esc(c === 'hauler' ? '수송선' : c === 'miner' ? '채굴선' : c === 'constructor' ? '공작선' : c)} — ${esc(SALVAGE_ROLES[cls[c] ?? c] ?? '')}</li>`).join('')}</ul>` : '';
+    const now = cur && (cur.op === 'recover' || cur.op === 'salvzone') ? `<div class="fbcur">현재: <b>${esc(cur.op === 'recover' ? site(cur.target) : '구역 인양')}</b> · <span class="dim">${esc(cur.status ?? '')}</span></div>` : cur ? `<div class="fbcur dim">인양반 대기 중 (${esc(cur.status ?? cur.op)})</div>` : '';
+    const got = sv.units > 0 ? `<div class="small">회수 누계 ${fmt(sv.units)}단위 (기준가 ${fmt(sv.value)} cr): ${Object.entries(sv.items).filter(([, n]) => n >= 1).map(([k, n]) => `${esc(k.startsWith('bpf:') ? '설계도 조각' : itemName(k))} ${fmt(n)}`).join(', ')}${Object.keys(sv.aboard).length ? ` · <b>적재 중(하역 전)</b> ${Object.entries(sv.aboard).map(([k, n]) => `${esc(itemName(k))} ${fmt(n)}`).join(', ')}` : ''}</div>` : '';
+    const sold = Object.entries(s.pnl.sales).filter(([, v]) => v >= 1);
+    const sales = sold.length ? `<div class="small">품목별 판매: ${sold.map(([k, v]) => `${esc(itemName(k))} ${fmt(v)} cr`).join(' · ')}</div>` : '';
+    const autoOn = SALVAGE_SELL_ITEMS.filter(k => w.companies[me].procurement?.sales?.[k]).length;
+    const mine = sv.contracts.length ? `<div class="ptitle"><span>내 인양 계약</span></div><table class="gt">${sv.contracts.map(k => `<tr><td>${esc(k.title)}<div class="dim small">납품처 <a href="#" data-fbst="${k.station}">${stn(k.station)}</a></div></td><td class="n">${fmt(k.progress)}/${fmt(k.amount ?? 0)}</td><td class="n money">${fmt(k.reward)}</td><td class="small">${k.done ? (k.ended ? `<span class="warn">${esc(k.ended)}</span>` : k.progress >= (k.amount ?? 0) ? '<span class="good">완수</span>' : '<span class="warn">만료</span>') : `${Math.round(k.expiresIn / 60)}분 남음`}</td></tr>`).join('')}</table>` : '';
+    const board = sv.board.length ? `<div class="ptitle"><span>계약 게시판 (${SALVAGE_JUMPS}점프 안)</span></div><div class="small fbintro">보수는 수주할 때 발주 정거장 예산에서 예약되고, 대상에서 직접 회수한 물품을 그 정거장에 하역하면 지급됩니다. 이미 가진 같은 물품은 인정되지 않고, 납품분은 발주처에 넘어갑니다. 남는 회수품은 회사 몫입니다. 수주는 직접 눌러야 하며 자동으로 하지 않습니다.</div><table class="gt">${sv.board.map(k => `<tr><td>${esc(k.title)}<div class="dim small">${stn(k.station)} · ${k.jumps ? `${k.jumps}점프` : '같은 성계'} · 대상 <span class="${k.risk > 55 ? 'warn' : k.risk > 30 ? 'warnish' : 'good'}">${riskLabel(k.risk)} ${k.risk}</span>${k.target ? ` · ${esc(site(k.target))}` : ''}</div></td><td class="n money">${fmt(k.reward)}</td><td><button class="btn mini" data-fbaccept="${k.id}">수주</button></td></tr>`).join('')}</table>` : '';
+    const opts = this.cache!.salvage;
+    const kindName = (o: SalvageOption) => o.kind === 'derelict' ? `유기선${o.grade === 'small' ? ' (소형·초보)' : o.grade === 'medium' ? ' (중형)' : o.grade === 'large' ? ' (대형)' : ''}` : o.kind === 'drop' ? '투하 화물' : '전장 잔해';
+    const rows = opts.map((o, i) => `<tr data-fbsalv="${i}"><td><b>${esc(o.name)}</b><div class="dim small">${kindName(o)} · ${o.jumps ? `${o.jumps}점프` : '같은 성계'} · 치안 ${o.sec} · <span class="${o.risk > 55 ? 'warn' : o.risk > 30 ? 'warnish' : 'good'}">경로 ${riskLabel(o.risk)} ${o.risk}</span> · ${Math.round(o.expiresIn / 60)}분 뒤 소멸</div>
+        <div class="small">${o.known ? '확인된 내용' : '보고된 추정'}: ${o.main.map(k => esc(k === 'bpf' ? '설계도 조각' : itemName(k))).join(', ') || '—'}${o.units ? ` · ${fmt(o.units)}단위` : ''}${o.protectedCargo ? ' · <span class="warnish">타사 소유 화물 포함 — 일반 인양은 건너뜀(가져가면 무단 인양)</span>' : o.kind === 'derelict' ? ' · <span class="good">소유자 없음 — 합법 인양</span>' : ''}${o.contract ? `<div class="small">계약: ${esc(o.contract.title)} · ${fmt(o.contract.reward)} cr${o.contract.mine ? ' <span class="good">(수주함)</span>' : o.contract.taken ? ' (다른 회사 수주)' : ''}</div>` : ''}</div></td>
+        <td class="n">${o.value ? `${o.known ? '' : '약 '}${fmt(o.value)}` : '—'}</td>
+        <td>${cur?.target === o.id ? '<span class="good small">인양 중</span>' : `<button class="btn mini${o.risk > 55 ? ' warn' : ''}" data-fbrecover="${i}">${o.risk > 55 ? '위험 — 인양 시작' : '인양 시작'}</button>`}</td></tr>`).join('');
+    const list = rows ? `<table class="gt fbtrades"><tr><th>대상</th><th class="n">기준가 cr</th><th></th></tr>${rows}</table>` : `<div class="small dim">${SALVAGE_JUMPS}점프 안에 보이는 인양 대상이 없습니다. 유기선은 지역마다 정해진 수만큼 불규칙하게 나타나고(모든 회사 공유), 전장 잔해는 실제 전투 뒤에 생깁니다 — 잠시 뒤 다시 확인하세요.</div>`;
+    return `<div class="ptitle"><span>인양반</span><button class="btn mini" data-fblog>물류 현황</button></div>${roles}${now}${got}${sales}
+      <div class="small fbintro"><b>인양 시작</b>을 누르면 인양반 전체가 그 대상으로 가서 회수하고, 화물칸이 차면 가까운 정거장(인양 계약이 있으면 그 납품처)에 하역한 뒤 대상이 빌 때까지 반복합니다. 끝나면 정박 대기로 돌아가 수송선은 공용 물류에 쓰입니다. 금액은 회수 기준가이며 실제 판매가는 시장·예산에 따라 다릅니다. 위험 경로는 함선을 잃을 수 있습니다(호위 없음).</div>
+      <label class="small fbauto"><input type="checkbox" data-fbautosell ${autoOn || !w.companies[me].procurement?.sales ? 'checked' : ''}> 회수품 자동 판매 — 하역한 고철·부품을 그 정거장 시장에 팔고, 사지 않는 품목은 대기 수송선이 다른 시장으로 운송 (물류 관리 › 재고 정책과 같음 · 장비·설계도 조각 제외)${autoOn ? ` <span class="good">켜짐 ${autoOn}품목</span>` : ''}</label>
+      ${list}${mine}${board}`;
+  }
+
+  private salvageGroup(w: WorldState, me: string) {
+    const gs = Object.values(w.groups).filter(g => g.owner === me && Object.values(w.ships).some(s => s.owner === me && s.groupId === g.id));
+    return gs.find(g => g.op.k === 'recover' || g.op.k === 'salvzone') ?? gs.find(g => Object.values(w.ships).some(s => s.owner === me && s.groupId === g.id && s.classId.startsWith('constructor'))) ?? gs[0];
+  }
+
+  private async autoSell(on: boolean) {
+    const w = full(this.w()), cur = w.companies[this.me()].procurement?.sales ?? {};
+    for (const item of SALVAGE_SELL_ITEMS) if (!!cur[item] !== on) await this.host.cmd({ c: 'salesPolicy', settings: { item, sell: on, ...(on ? { minPrice: 0 } : {}) } });
+  }
+
   private minerGroup(w: WorldState, me: string) {
     return Object.values(w.groups).find(g => g.owner === me && Object.values(w.ships).some(s => s.owner === me && s.groupId === g.id && econOf(s).mine > 0));
   }
@@ -171,6 +210,22 @@ export class FirstBusinessPanel {
       if (ok) this.moving = { groups, station: r.station };
       this.cache = null; this.render(true);
     });
+    e.querySelectorAll<HTMLButtonElement>('[data-fbrecover]').forEach(b => b.onclick = async () => {
+      const o = this.cache?.salvage[Number(b.dataset.fbrecover)], g = this.salvageGroup(w, me); if (!o || !g) return;
+      if (o.risk > 55 && !confirm(`${o.name}: 경로 위험 ${o.risk} — 호위 없는 인양선은 격침될 수 있고 실린 화물도 잃습니다. 그래도 보낼까요?`)) return;
+      b.disabled = true;
+      const sell = e.querySelector<HTMLInputElement>('[data-fbautosell]');
+      if (sell?.checked) await this.autoSell(true);
+      if (await this.host.cmd({ c: 'setOp', group: g.id, op: { k: 'recover', wreck: o.id } })) this.host.toast(`인양반 출발: ${o.name}`, 'good');
+      this.cache = null; this.render(true);
+    });
+    e.querySelectorAll<HTMLButtonElement>('[data-fbaccept]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      await this.host.cmd({ c: 'accept', contract: b.dataset.fbaccept! });
+      this.cache = null; this.render(true);
+    });
+    const autoSell = e.querySelector<HTMLInputElement>('[data-fbautosell]');
+    if (autoSell) autoSell.onchange = async () => { autoSell.disabled = true; await this.autoSell(autoSell.checked); autoSell.disabled = false; this.render(true); };
     e.querySelectorAll<HTMLButtonElement>('[data-fbmine]').forEach(b => b.onclick = async () => {
       const [field, deliver] = b.dataset.fbmine!.split('|'); const g = this.minerGroup(w, me); if (!g) return;
       b.disabled = true;
