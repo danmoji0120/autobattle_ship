@@ -51,8 +51,8 @@ function autoOpsHtml(w: WorldView, me: string, busy: boolean): string {
     <ul class="autolg-list">${ships.map(row).join('') || '<li class="dim">수송선이 없습니다</li>'}</ul>
     ${policy?.minerSales && policy.minerTrip ? `<p class="small dim">채굴 수송선 판매 왕복: ${esc(policy.minerTrip.reason)}</p>` : ''}
     <form class="proc-policy-form" data-auto-ops-form>
-      <label><input type="checkbox" name="minerSales" ${policy?.minerSales ? 'checked' : ''}> 채굴 편대 수송선이 하역 후 초과 재고 판매 왕복 (3점프 이내, 공용 수송선이 비어 있으면 그쪽 우선)</label>
-      <label><input type="checkbox" name="repair" ${rep?.enabled ? 'checked' : ''}> 손상으로 배차에서 빠진 수송선 자동 수리</label>
+      <label style="display:block"><input type="checkbox" name="minerSales" ${policy?.minerSales ? 'checked' : ''}> 채굴 편대 수송선이 하역 후 초과 재고 판매 왕복 (3점프 이내, 공용 수송선이 비어 있으면 그쪽 우선)</label>
+      <label style="display:block"><input type="checkbox" name="repair" ${rep?.enabled ? 'checked' : ''}> 손상으로 배차에서 빠진 수송선 자동 수리</label>
       <div class="proc-policy-grid"><label>최소 잔고 (cr)<input name="minCredits" type="number" min="0" step="100" value="${rep?.minCredits ?? 0}"></label><label>1회 최대 수리비<input name="maxPerRepair" type="number" min="0" step="100" value="${rep?.maxPerRepair ?? 0}"></label><label>시간당 수리 예산<input name="perHour" type="number" min="0" step="100" value="${rep?.perHour ?? 0}"></label></div>
       <p class="dim small">자동 수리는 기본 꺼짐. 한도 안에서만 수리하고, 넘으면 화물·작업을 보존한 채 이유를 표시합니다. 정박한 정거장에서 수리할 수 없으면 경로 위험 제한 안의 가장 가까운 수리 정거장으로 갔다가 하던 일로 돌아갑니다.</p>
       <button class="btn mini go" type="submit" ${busy ? 'disabled' : ''}>자동 운영 설정 저장</button></form></div>`;
