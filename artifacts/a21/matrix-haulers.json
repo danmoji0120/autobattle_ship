@@ -1,0 +1,128 @@
+{
+ "case": "haulers",
+ "seed": 21,
+ "awayHours": 26,
+ "fleetBefore": [
+  "hauler_mk1",
+  "hauler_mk1"
+ ],
+ "creditsWhenLeft": 12000,
+ "onReturn": {
+  "t": "복귀",
+  "h": 26,
+  "credits": 0,
+  "debt": 5468,
+  "stage": 4,
+  "perHour": 676,
+  "earned": 0,
+  "paid": 12000,
+  "ships": 2,
+  "inSpace": 0,
+  "recovery": false,
+  "stock": 0,
+  "held": [
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류"
+  ],
+  "fleet": [
+   "hauler_mk1",
+   "hauler_mk1"
+  ]
+ },
+ "steps": [
+  {
+   "t": 26,
+   "c": "recoverySell",
+   "ship": "s11",
+   "swap": "miner_mk1",
+   "err": null
+  },
+  {
+   "t": 26,
+   "c": "recovery",
+   "ship": "곡괭이 48호",
+   "err": "이미 회생 운항 지정"
+  },
+  {
+   "t": 26,
+   "c": "setOp",
+   "err": null
+  }
+ ],
+ "recoveredAfterMin": 36,
+ "recovered": {
+  "since": 93600,
+  "t": 95788.5,
+  "paid": 8846.900000012
+ },
+ "heldAfter": [
+  {
+   "ship": "짐꾼 14호",
+   "hull": "hauler_mk1",
+   "held": null
+  },
+  {
+   "ship": "곡괭이 48호",
+   "hull": "miner_mk1",
+   "held": null
+  }
+ ],
+ "log": [
+  {
+   "t": "복귀",
+   "h": 26,
+   "credits": 0,
+   "debt": 5468,
+   "stage": 4,
+   "perHour": 676,
+   "earned": 0,
+   "paid": 12000,
+   "ships": 2,
+   "inSpace": 0,
+   "recovery": false,
+   "stock": 0
+  },
+  {
+   "t": "조치 직후",
+   "h": 26,
+   "credits": 0,
+   "debt": 8418,
+   "stage": 4,
+   "perHour": 729,
+   "earned": 0,
+   "paid": 12000,
+   "ships": 2,
+   "inSpace": 0,
+   "recovery": true,
+   "stock": 0
+  },
+  {
+   "t": "+30분",
+   "h": 26.5,
+   "credits": 0,
+   "debt": 1452,
+   "stage": 4,
+   "perHour": 729,
+   "earned": 7323,
+   "paid": 19323,
+   "ships": 2,
+   "inSpace": 1,
+   "recovery": true,
+   "stock": 0
+  },
+  {
+   "t": "+40분",
+   "h": 26.67,
+   "credits": 1169,
+   "debt": 0,
+   "stage": 0,
+   "perHour": 729,
+   "earned": 10252,
+   "paid": 21083,
+   "ships": 2,
+   "inSpace": 1,
+   "recovery": false,
+   "stock": 0
+  }
+ ]
+}
