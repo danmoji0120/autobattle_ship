@@ -948,3 +948,18 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .rep-log td:nth-child(2) { font-family: var(--mono); white-space: nowrap; }
 .rep-panel .good { color: #7fd48b; }
 @media (max-width: 640px) { .rep-table td.rep-val, .rep-table td:last-child { min-width: 0; } .rep-table td:first-child { width: auto; } .rep-bar { width: 80px; } }
+
+/* A-3.2a first-business guide */
+#ptop .fbbtn { border-color: var(--good); box-shadow: 0 0 0 1px rgba(120, 220, 160, .35) inset; }
+.fbwrap { z-index: 41; width: min(720px, calc(100vw - 32px)); }
+.fb .fbsteps { margin: 6px 0; padding-left: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; }
+.fb .fbsteps .fbnow { font-weight: 600; }
+.fb .fbpnl { border-left: 3px solid var(--good); padding: 4px 8px; margin: 6px 0; }
+.fb .fbwarn { margin: 4px 0; padding-left: 18px; font-size: 12px; }
+.fb .fbintro { margin: 4px 0 6px; opacity: .85; }
+.fb .fbdone { margin: 4px 0; font-size: 13px; }
+.fb .fbcur { margin: 4px 0; }
+.fb .fbfield { border-top: 1px solid var(--line); padding: 6px 0; }
+.fb .gt { display: block; overflow-x: auto; max-width: 100%; }
+.fb .fbamt { width: 64px; text-align: right; }
+.fb a { color: inherit; text-decoration: underline dotted; }

@@ -27,6 +27,23 @@ export function priceOf(m: Market[string] | undefined, side: 'sell' | 'buy', v3:
   return side === 'sell' ? Math.round(p * 10) / 10 : Math.round(p * 1.18 * 10) / 10;
 }
 
+/**
+ * A-3.2a: trades walk the price in steps no larger than 1/40 of the good's target (at most 50 units). A good with a
+ * small target (equipment, parts) used to sell whole lots at one price and be bought back flat at the floor, so
+ * selling and buying back at the same station made money. Now both sides move the price as stock changes.
+ */
+export const tradeChunk = (m: { target: number }) => Math.max(1, Math.min(50, Math.floor(m.target / 40)));
+
+/** what buying `a` units costs right now: the price rises as the station's stock falls (chunks as above) */
+export function buyCost(m: Market[string] | undefined, a: number, v3: boolean): number {
+  if (!m || a <= 0) return 0;
+  if (!v3) return a * priceOf(m, 'buy', v3);
+  const step = tradeChunk(m), sim = { ...m };
+  let left = a, cost = 0;
+  while (left > 1e-9) { const c = Math.min(left, step); cost += c * priceOf(sim, 'buy', v3); sim.stock -= c; left -= c; }
+  return cost;
+}
+
 /** how fast the region works off a glut of this good (units/s): its own consumption, else a base rate */
 export function absorbRate(s: Station, k: string, target: number): number {
   const use = PROFILES[s.id]?.use?.[k] ?? 0;

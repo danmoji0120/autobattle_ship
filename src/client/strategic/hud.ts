@@ -3,6 +3,7 @@ import { AutoLogisticsPanel } from './autoLogisticsUi';
 import { procurementSourceHtml } from './procurementUi';
 import { AnalyticsPanel } from './analyticsUi';
 import { OperationsPanel } from './operationsUi';
+import { FirstBusinessPanel } from './firstBusinessUi';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
 import type { StrategicView, Pick } from './view';
@@ -106,6 +107,9 @@ export class PmcHud {
   private analyticsPanel: AnalyticsPanel | null = null;
   private opsPanel: OperationsPanel | null = null;
   private upkOpen = false;
+  /** A-3.2a: first-business guide (hauler / miner starts) */
+  private fb!: FirstBusinessPanel;
+  private fbAuto = false;
   private upkEl: HTMLElement | null = null;
   private tabScroll = new Map<string, number>();
   private pointer = { x: 0, y: 0, down: -1, sx: 0, sy: 0, moved: false, over: false };
@@ -131,6 +135,7 @@ export class PmcHud {
     const goals = h('div', 'panel'); goals.id = 'goals'; root.appendChild(goals);
     const hint = h('div', 'panel hidden'); hint.id = 'modeHint'; root.appendChild(hint);
     this.toastBox = h('div'); this.toastBox.id = 'toasts'; root.appendChild(this.toastBox);
+    this.fb = new FirstBusinessPanel(root, { cmd: c => this.cmd(c), openStation: id => { this.fb.close(); this.openStation(id); }, openLogistics: () => { this.fb.close(); this.openLogistics(); }, toast: (m, k) => this.toast(m, (k as any) ?? 'info') }, () => this.st, () => this.me);
     const tip = h('div', 'hidden'); tip.id = 'tooltip'; root.appendChild(tip);
     const sysbar = h('div', 'panel'); sysbar.id = 'sysbar'; root.appendChild(sysbar);
     const diag = h('div', 'panel hidden'); diag.id = 'netdiag'; root.appendChild(diag);
@@ -886,6 +891,8 @@ export class PmcHud {
     this.renderGoals();
     if (this.modal && this.modalStation) this.renderModal(force);
     this.renderUpkeep(force);
+    if (!this.fbAuto && this.st.companies[this.me]) { this.fbAuto = true; this.fb.autoOpen(); }
+    this.fb.render(force);
     this.fitScreen?.update();
   }
 
@@ -908,15 +915,17 @@ export class PmcHud {
       ${this.c.sp ? `<div class="speedgrp">${[[0, '❚❚'], [1, '1×'], [2, '2×'], [4, '4×'], [8, '8×']].map(([v, l]) => `<button class="btn${spd === v ? ' on' : ''}" data-spd="${v}">${l}</button>`).join('')}</div>`
         : `<div class="kv"><span>접속 중</span><b>${this.c.players.filter(p => p.online).length}명</b></div>${players.map(p => `<span class="dot" title="${esc(p.name)}${p.online ? '' : ' (오프라인)'}" style="background:${p.color};opacity:${p.online ? 1 : 0.3}"></span>`).join('')}`}
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
+      ${this.fb.available() ? `<button class="btn${this.fb.done() ? '' : ' fbbtn'}" id="fbBtn" title="첫 사업 안내 — 거래·채굴 기회, 진행, 손익">첫 사업${this.fb.done() ? ' ✓' : ''}</button>` : ''}
       ${growthOn(this.st) ? `<button class="btn" id="opsBtn" title="회사 전체 업무 · 목표 · 재고 · 결재">회사 본부${(() => { const n = Object.values(this.st.approvals ?? {}).filter(a => a.owner === this.me && a.state === 'open').length; return n ? ` <span class="ops-dot">${n}</span>` : ''; })()}</button>` : ''}
       ${growthOn(this.st) ? (this.st.logisticsV ? '<button class="btn" id="logisticsBtn" title="수송선 · 진행 중 운송 · 부족 자재 · 문제">물류 현황</button>' : '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>') : ''}
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
     el.querySelectorAll<HTMLButtonElement>('[data-spd]').forEach(b => b.onclick = () => this.c.setSpeed(Number(b.dataset.spd)));
-    const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
+    const uk = el.querySelector<HTMLElement>('[data-upkeep]'); if (uk) uk.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); this.fb.close(); this.upkOpen = !this.upkOpen; this.renderUpkeep(true); };
     const ab = document.getElementById('acctBtn') as HTMLButtonElement | null; if (ab) ab.onclick = () => this.opts.onAccount?.();
     const logistics = document.getElementById('logisticsBtn'); if (logistics) logistics.onclick = () => this.openLogistics();
     const ops = document.getElementById('opsBtn'); if (ops) ops.onclick = () => this.openOperations();
+    const fbb = document.getElementById('fbBtn'); if (fbb) fbb.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); const was = this.fb.open; this.upkOpen = false; this.renderUpkeep(true); this.fb.open = !was; this.fb.render(true); };
     (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
   }
@@ -932,7 +941,7 @@ export class PmcHud {
     if (!this.upkEl) { this.upkEl = h('div', 'upkwrap'); this.root.appendChild(this.upkEl); }
     morph(this.upkEl, upkeepHtml(this.st, this.me));
     const e = this.upkEl;
-    e.querySelector<HTMLButtonElement>('[data-upclose]')!.onclick = () => { this.upkOpen = false; this.renderUpkeep(true); };
+    e.querySelector<HTMLButtonElement>('[data-upclose]')!.onclick = () => { this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); };
     const pay = e.querySelector<HTMLButtonElement>('[data-payarrears]');
     if (pay) pay.onclick = () => this.cmd({ c: 'payArrears' });
     const ar = e.querySelector<HTMLInputElement>('[data-autores]');
@@ -1356,7 +1365,7 @@ export class PmcHud {
 
   openLogistics(options: { station?: string; group?: string; create?: boolean; construction?: boolean } = {}) {
     if (!growthOn(this.st)) return;
-    this.closeModal(); this.analyticsPanel?.close(); this.logisticsPanel?.close(); this.opsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
+    this.closeModal(); this.analyticsPanel?.close(); this.logisticsPanel?.close(); this.opsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
     if (this.st.logisticsV) {
       // P12.5: status screen only — no routes, no per-item dispatch
       this.logisticsPanel = new AutoLogisticsPanel(this.root, this.c, {
@@ -1376,7 +1385,7 @@ export class PmcHud {
   openOperations(tab?: 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance' | 'rep') {
     if (!growthOn(this.st)) return;
     if (this.opsPanel) { if (tab) this.opsPanel.show(tab); return; }
-    this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.setMode(null);
+    this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
     this.opsPanel = new OperationsPanel(this.root, this.c, {
       station: (id, t) => { this.opsPanel?.close(); this.openStation(id, t ?? 'store'); },
       logistics: () => { this.opsPanel?.close(); this.openLogistics(); },
@@ -1385,11 +1394,11 @@ export class PmcHud {
     }, tab);
   }
 
-  openAnalytics() { this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
+  openAnalytics() { this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
     this.logisticsPanel?.close(); this.opsPanel?.close();
-    this.upkOpen = false; this.renderUpkeep(true);
+    this.upkOpen = false; this.renderUpkeep(true); this.fb?.close();
     this.modalStation = id;
     const s = this.st.stations[id];
     this.modalTab = tab ?? (s.owner === this.me ? 'build' : s.market ? 'market' : 'yard');

@@ -39,7 +39,8 @@ const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
 import { econOf, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth } from './hullops';
 import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
-import { backgroundOf, backgroundsOn, backgroundStanding, backgroundTerms } from './backgrounds';
+import { BACKGROUND, backgroundOf, backgroundsOn, backgroundStanding, backgroundTerms } from './backgrounds';
+import { firstProfitReached, pnlSinceFounding } from './firstBusiness';
 import type { Background, BackgroundTerm } from './backgrounds';
 import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
@@ -47,7 +48,7 @@ import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVA
 import { sortieProblem, buybackProblem, buybackValue, earner, miner, tradeInOpen, recoveryShips, yardStock, RECOVERY_SHIPS, SWAP_HULLS } from './recovery';
 import { enforceExclusive, exclusiveGuard, exclusiveLost, stepExclusive, isExclusiveShip, isExclusiveEquip, grantExclusive } from './exclusive';
 import { BBEX_CLASS } from '../sim/bbex/data';
-import { priceOf, driftV3, fundsStep, fundsIn, seedFunds } from './market';
+import { priceOf, driftV3, fundsStep, fundsIn, seedFunds, buyCost as marketBuyCost, tradeChunk } from './market';
 import { publicCap, storeUsed, reservedSpace, listedSpace, logisticsReservedSpace, setLease, takesSpace, constructionRoom, serviceOf } from './storage';
 import { surveyStep, surveyLeft, salvageLoot, retireSite, siteActive, knows } from './explore';
 import type { Size } from '../content/schema';
@@ -506,7 +507,7 @@ export class WorldSim {
       const actualMarket = regionalMarketRequired(this.st, k);
       const m = actualMarket && st.market && Object.hasOwn(st.market, k) ? st.market[k] : undefined;
       if (actualMarket && (!m || !Number.isFinite(m.stock) || m.stock < short)) return `${e?.name ?? k}: 시장 재고 부족 — 실제 재고가 있는 시장이나 플레이어 거래소를 이용하세요`;
-      const unit = actualMarket ? this.price(st, k, 'buy') : fitServiceUnit(this.st, k, st.market?.[k] ? this.price(st, k, 'buy') : undefined);
+      const unit = actualMarket ? (growthOn(this.st) ? marketBuyCost(m, short, true) / short : this.price(st, k, 'buy')) : fitServiceUnit(this.st, k, st.market?.[k] ? this.price(st, k, 'buy') : undefined);
       if (!Number.isFinite(unit) || unit <= 0) return `${e?.name ?? k}: 유효하지 않은 시장 가격`;
       buyList.push([k, short, unit, actualMarket]);
     }
@@ -933,7 +934,7 @@ export class WorldSim {
           if (saleReceipt) co.lastTrade = saleReceipt;
           this.ev('money', `${RES_NAME[cmd.res]} ${Math.round(r.sold)} 판매 +${Math.round(r.value).toLocaleString()} cr${r.sold < a ? ` — 정거장 구매 예산 소진, ${Math.round(a - r.sold)}은(는) 보관함에 남음` : ''}`, { company, pos: st.pos });
         } else {
-          const m = st.market[cmd.res]; const a = Math.min(amt, Math.floor(m.stock)); const cost = a * this.price(st, cmd.res, 'buy');
+          const m = st.market[cmd.res]; const a = Math.min(amt, Math.floor(m.stock)); const cost = marketBuyCost(m, a, growthOn(this.st));
           if (a <= 0) return '재고 없음'; if (co.credits < cost) return '자금 부족';
           // growth: buy straight into a docked ship's hold (no warehouse needed — e.g. for a new station's materials)
           const ship = cmd.ship && growthOn(this.st) ? this.st.ships[cmd.ship] : undefined;
@@ -3685,7 +3686,7 @@ export class WorldSim {
     const tax = 1 - (st.tax ?? 0);
     const budget = growthOn(this.st) && st.public && st.funds !== undefined;
     while (left > 0.01) {
-      let chunk = Math.min(left, 50);
+      let chunk = Math.min(left, growthOn(this.st) ? tradeChunk(m) : 50);
       const p = this.price(st, r, 'sell');
       if (budget) { const can = p > 0 ? (st.funds ?? 0) / (p * tax) : 0; if (can < chunk) chunk = Math.max(0, Math.floor(can)); if (chunk <= 0) break; st.funds! -= chunk * p * tax; }
       total += chunk * p; m.stock += chunk; left -= chunk; sold += chunk;
@@ -3697,6 +3698,7 @@ export class WorldSim {
     const beforeDebt = co.credits; payFromSale(this.st, co, total);
     if (co.credits !== beforeDebt) book(this, company, 'upkeep', co.credits - beforeDebt);
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
+    if (sold > 0) this.firstProfit(co);
     if (sold) emit(this.st, { kind: 'market', reason: 'sell', amount: sold, value: total, company, station: st.id, item: r });
     // P10: supplying a faction's market slowly improves standing with it (bounded per sale)
     // P14.0 (repV): net weighted trade value, so splitting a sale or buying it back changes nothing
@@ -4666,6 +4668,15 @@ export class WorldSim {
       for (const bp of contractAwards(this.st, co, tier, () => this.rng.next())) this.ev('milestone', `계약 보상 설계도: ${bpName(bp)}`, { company: co.id, tag: 'blueprint' });
     }
     if (!co.milestones.includes('first_contract')) this.milestone(co, 'first_contract');
+    this.firstProfit(co);
+  }
+
+  /** A-3.2a: a hauler/miner start's first business is done when its cash is above what it was founded with */
+  private firstProfit(co: Company) {
+    if (!firstProfitReached(co)) return;
+    co.milestones.push('first_profit');
+    const p = pnlSinceFounding(co), cr = (n: number) => Math.round(n).toLocaleString();
+    this.ev('milestone', `첫 사업 성공: 자금 ${cr(BACKGROUND[co.background!]?.credits ?? 0)} → ${cr(co.credits)} cr — 판매 +${cr(p.income.sales ?? 0)}${p.income.other ? ` · 계약·기타 +${cr(p.income.other)}` : ''} · 구매 −${cr(p.expense.purchase ?? 0)} · 운영비 −${cr(p.expense.upkeep ?? 0)}`, { company: co.id });
   }
 
   private milestone(co: Company, id: string) {

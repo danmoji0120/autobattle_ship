@@ -1,0 +1,444 @@
+{
+ "mode": "miner",
+ "jobs": [],
+ "ships": [
+  {
+   "id": "s3",
+   "name": "곡괭이 4호",
+   "classId": "miner",
+   "state": "space",
+   "hp": 1,
+   "task": "mine",
+   "cargo": {
+    "ore": 24.418574500000002,
+    "alloy": 0,
+    "crystal": 0,
+    "titanium_ore": 66.39210550000003
+   }
+  },
+  {
+   "id": "s4",
+   "name": "곡괭이 5호",
+   "classId": "miner",
+   "state": "space",
+   "hp": 1,
+   "task": "goto",
+   "cargo": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0
+   }
+  },
+  {
+   "id": "s5",
+   "name": "곡괭이 6호",
+   "classId": "miner",
+   "state": "space",
+   "hp": 1,
+   "task": "goto",
+   "cargo": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0
+   }
+  },
+  {
+   "id": "s6",
+   "name": "짐꾼 7호",
+   "classId": "hauler",
+   "state": "space",
+   "hp": 1,
+   "task": "transfer",
+   "cargo": {
+    "ore": 75,
+    "alloy": 0,
+    "crystal": 0
+   }
+  }
+ ],
+ "lostShips": 0,
+ "hours": 2,
+ "seed": 21,
+ "company": "p1",
+ "background": "miner",
+ "start": 12000,
+ "end": 288068,
+ "cash": 276068,
+ "pnl": {
+  "income": {
+   "sales": 279429.62574775645
+  },
+  "expense": {
+   "upkeep": 3362.0000000003765
+  },
+  "sales": {
+   "ore": 91248.83487691302,
+   "titanium_ore": 188180.79087084343
+  },
+  "net": 276067.6257477561
+ },
+ "stored": {},
+ "aboard": {
+  "ore": 99.4185745,
+  "titanium_ore": 66.39210550000003
+ },
+ "firstProfit": true,
+ "upkeepPerHour": 3362,
+ "trades": [],
+ "timeline": [
+  {
+   "min": 0,
+   "credits": 12000,
+   "cash": 0,
+   "debt": 0,
+   "stage": 0,
+   "sales": 0,
+   "purchase": 0,
+   "upkeep": 0,
+   "other": 0,
+   "net": 0,
+   "mined": 0,
+   "stored": {},
+   "aboard": {},
+   "steps": [
+    "pick"
+   ],
+   "warnings": [],
+   "firstProfit": false
+  },
+  {
+   "min": 10,
+   "credits": 32999,
+   "cash": 20999,
+   "debt": 0,
+   "stage": 0,
+   "sales": 21278,
+   "purchase": 0,
+   "upkeep": 280,
+   "other": 0,
+   "net": 20999,
+   "mined": 2176,
+   "stored": {},
+   "aboard": {
+    "ore": 96,
+    "titanium_ore": 41
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 20,
+   "credits": 55819,
+   "cash": 43819,
+   "debt": 0,
+   "stage": 0,
+   "sales": 44375,
+   "purchase": 0,
+   "upkeep": 556,
+   "other": 0,
+   "net": 43819,
+   "mined": 4632,
+   "stored": {},
+   "aboard": {
+    "ore": 339,
+    "titanium_ore": 145
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 30,
+   "credits": 79812,
+   "cash": 67812,
+   "debt": 0,
+   "stage": 0,
+   "sales": 68649,
+   "purchase": 0,
+   "upkeep": 837,
+   "other": 0,
+   "net": 67812,
+   "mined": 6614,
+   "stored": {},
+   "aboard": {
+    "ore": 177,
+    "titanium_ore": 76
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 40,
+   "credits": 101922,
+   "cash": 89922,
+   "debt": 0,
+   "stage": 0,
+   "sales": 91039,
+   "purchase": 0,
+   "upkeep": 1117,
+   "other": 0,
+   "net": 89922,
+   "mined": 8683,
+   "stored": {},
+   "aboard": {
+    "ore": 192,
+    "titanium_ore": 82
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 50,
+   "credits": 122991,
+   "cash": 110991,
+   "debt": 0,
+   "stage": 0,
+   "sales": 112389,
+   "purchase": 0,
+   "upkeep": 1398,
+   "other": 0,
+   "net": 110991,
+   "mined": 10843,
+   "stored": {},
+   "aboard": {
+    "ore": 288,
+    "titanium_ore": 124
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 60,
+   "credits": 143643,
+   "cash": 131643,
+   "debt": 0,
+   "stage": 0,
+   "sales": 133322,
+   "purchase": 0,
+   "upkeep": 1679,
+   "other": 0,
+   "net": 131643,
+   "mined": 12891,
+   "stored": {},
+   "aboard": {
+    "ore": 288,
+    "titanium_ore": 124
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 70,
+   "credits": 168223,
+   "cash": 156223,
+   "debt": 0,
+   "stage": 0,
+   "sales": 158180,
+   "purchase": 0,
+   "upkeep": 1958,
+   "other": 0,
+   "net": 156223,
+   "mined": 14935,
+   "stored": {},
+   "aboard": {
+    "ore": 64,
+    "titanium_ore": 27
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 80,
+   "credits": 193709,
+   "cash": 181709,
+   "debt": 0,
+   "stage": 0,
+   "sales": 183949,
+   "purchase": 0,
+   "upkeep": 2240,
+   "other": 0,
+   "net": 181709,
+   "mined": 17637,
+   "stored": {},
+   "aboard": {
+    "ore": 288,
+    "titanium_ore": 124
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 90,
+   "credits": 215770,
+   "cash": 203770,
+   "debt": 0,
+   "stage": 0,
+   "sales": 206291,
+   "purchase": 0,
+   "upkeep": 2522,
+   "other": 0,
+   "net": 203770,
+   "mined": 19685,
+   "stored": {},
+   "aboard": {
+    "ore": 288,
+    "titanium_ore": 124
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 100,
+   "credits": 239145,
+   "cash": 227145,
+   "debt": 0,
+   "stage": 0,
+   "sales": 229948,
+   "purchase": 0,
+   "upkeep": 2803,
+   "other": 0,
+   "net": 227145,
+   "mined": 21842,
+   "stored": {},
+   "aboard": {
+    "ore": 271,
+    "titanium_ore": 116
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 110,
+   "credits": 265355,
+   "cash": 253355,
+   "debt": 0,
+   "stage": 0,
+   "sales": 256438,
+   "purchase": 0,
+   "upkeep": 3084,
+   "other": 0,
+   "net": 253355,
+   "mined": 24357,
+   "stored": {},
+   "aboard": {
+    "ore": 286,
+    "titanium_ore": 126
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 120,
+   "credits": 288068,
+   "cash": 276068,
+   "debt": 0,
+   "stage": 0,
+   "sales": 279430,
+   "purchase": 0,
+   "upkeep": 3362,
+   "other": 0,
+   "net": 276068,
+   "mined": 26367,
+   "stored": {},
+   "aboard": {
+    "ore": 99,
+    "titanium_ore": 66
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  }
+ ],
+ "rivals": [],
+ "anvil": {
+  "funds": 35000,
+  "fundsMax": 35000
+ },
+ "log": [
+  "[0m] field 앤빌 철광대 → deliver drakeout (1 jumps, est 945 cr / 100 units, budget 96000)",
+  "[0m] setOp {\"c\":\"setOp\",\"group\":\"g2\",\"op\":{\"k\":\"mine\",\"field\":\"p9_anvil_ore\",\"deliver\":\"drakeout\",\"sell\":true}} → ok",
+  "[0m] cash +0 (credits 12000) sales 0 purchase 0 upkeep 0 other 0 net 0 debt 0 ",
+  "[10m] cash +20999 (credits 32999) sales 21278 purchase 0 upkeep 280 other 0 net 20999 debt 0 ",
+  "[20m] cash +43819 (credits 55819) sales 44375 purchase 0 upkeep 556 other 0 net 43819 debt 0 ",
+  "[30m] cash +67812 (credits 79812) sales 68649 purchase 0 upkeep 837 other 0 net 67812 debt 0 ",
+  "[40m] cash +89922 (credits 101922) sales 91039 purchase 0 upkeep 1117 other 0 net 89922 debt 0 ",
+  "[50m] cash +110991 (credits 122991) sales 112389 purchase 0 upkeep 1398 other 0 net 110991 debt 0 ",
+  "[60m] cash +131643 (credits 143643) sales 133322 purchase 0 upkeep 1679 other 0 net 131643 debt 0 ",
+  "[70m] cash +156223 (credits 168223) sales 158180 purchase 0 upkeep 1958 other 0 net 156223 debt 0 ",
+  "[80m] cash +181709 (credits 193709) sales 183949 purchase 0 upkeep 2240 other 0 net 181709 debt 0 ",
+  "[90m] cash +203770 (credits 215770) sales 206291 purchase 0 upkeep 2522 other 0 net 203770 debt 0 ",
+  "[100m] cash +227145 (credits 239145) sales 229948 purchase 0 upkeep 2803 other 0 net 227145 debt 0 ",
+  "[110m] cash +253355 (credits 265355) sales 256438 purchase 0 upkeep 3084 other 0 net 253355 debt 0 ",
+  "[120m] cash +276068 (credits 288068) sales 279430 purchase 0 upkeep 3362 other 0 net 276068 debt 0 "
+ ]
+}

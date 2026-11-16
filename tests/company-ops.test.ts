@@ -1,4 +1,5 @@
 // Company operations (통합 회사 운영): works, goals, approvals, inventory and ledger — scenarios A–H.
+import { buyCost } from '../src/world/market';
 import { describe, expect, it } from 'vitest';
 import { WorldSim } from '../src/world/sim';
 import { qty, type Station } from '../src/world/types';
@@ -14,14 +15,14 @@ import { fixture, run, until, works, approvals, goal, kids } from './helpers/ops
 
 describe('A — simple purchase', () => {
   it('records a finished work immediately, spends exactly the market cost, never asks for approval', () => {
-    const f = fixture(), price = f.sim.price(f.a, 'alloy', 'buy'), credits = f.co.credits, stock = f.a.market!.alloy.stock;
+    const f = fixture(), cost = buyCost(f.a.market!.alloy, 100, true), credits = f.co.credits, stock = f.a.market!.alloy.stock;   // A-3.2a: the purchase walks the price
     expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 100 })).toBeNull();
     const ws = works(f.sim, f.p).filter(w => w.kind === 'buy');
-    expect(ws).toHaveLength(1); expect(ws[0].state).toBe('done'); expect(ws[0].cost).toBeCloseTo(price * 100, 6);
-    expect(credits - f.co.credits).toBeCloseTo(price * 100, 6); expect(stock - f.a.market!.alloy.stock).toBe(100); expect(qty(f.a.storage[f.p], 'alloy')).toBe(100);
+    expect(ws).toHaveLength(1); expect(ws[0].state).toBe('done'); expect(ws[0].cost).toBeCloseTo(cost, 6);
+    expect(credits - f.co.credits).toBeCloseTo(cost, 6); expect(stock - f.a.market!.alloy.stock).toBe(100); expect(qty(f.a.storage[f.p], 'alloy')).toBe(100);
     expect(approvals(f.sim, f.p, false)).toHaveLength(0);
     // the cash ledger books it as a purchase; a retried request with the same identity changes nothing
-    expect(f.co.ops!.ledger.at(-1)!.exp.purchase).toBeCloseTo(price * 100, 6);
+    expect(f.co.ops!.ledger.at(-1)!.exp.purchase).toBeCloseTo(cost, 6);
     expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 5, request: { seq: 1, id: 'retry-abcdef' } })).toBeNull();
     const after = f.co.credits; expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 5, request: { seq: 1, id: 'retry-abcdef' } })).toBeNull();
     expect(f.co.credits).toBe(after); expect(works(f.sim, f.p).filter(w => w.kind === 'buy')).toHaveLength(2);
@@ -148,7 +149,7 @@ describe('F — recurring trade', () => {
   it('buys, carries and sells per cycle, tracks real profit, and stops after two losing cycles', () => {
     const f = fixture(1203, 60);
     const to = f.sim.st.stations.drakeout; expect(to.market?.alloy).toBeTruthy(); const credits = f.co.credits;
-    expect(f.sim.command(f.p, { c: 'workCreate', goal: { k: 'trade', item: 'alloy', from: 'astra', to: 'drakeout', amount: 200, maxBuy: 60, minSell: 30, minProfit: 0, cycles: 2 }, budget: 100000 })).toBeNull();
+    expect(f.sim.command(f.p, { c: 'workCreate', goal: { k: 'trade', item: 'alloy', from: 'astra', to: 'drakeout', amount: 100, maxBuy: 60, minSell: 30, minProfit: 0, cycles: 2 }, budget: 100000 })).toBeNull();   // A-3.2a: purchases and sales walk the price; 100 a cycle still pays twice
     const g = goal(f.sim, f.p); expect(g.rt!.phase).toBe('move'); expect(g.rt!.sellQuote).toBeGreaterThan(0);
     expect(until(f.sim, () => terminal(g), 6000)).toBe(true);
     expect(g.state).toBe('done'); expect(g.rt!.cycles).toBe(2);

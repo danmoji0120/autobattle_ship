@@ -1,0 +1,526 @@
+{
+ "mode": "miner-crowd",
+ "jobs": [],
+ "ships": [
+  {
+   "id": "s3",
+   "name": "곡괭이 4호",
+   "classId": "miner",
+   "state": "space",
+   "hp": 1,
+   "task": "goto",
+   "cargo": {
+    "ore": 11.745085240000003,
+    "alloy": 0,
+    "crystal": 0,
+    "titanium_ore": 16.778693200000003,
+    "silicate": 5.0336079599999985
+   }
+  },
+  {
+   "id": "s4",
+   "name": "곡괭이 5호",
+   "classId": "miner",
+   "state": "space",
+   "hp": 1,
+   "task": "goto",
+   "cargo": {
+    "ore": 0.309053024,
+    "alloy": 0,
+    "crystal": 0,
+    "titanium_ore": 0.44150432000000006,
+    "silicate": 0.13245129600000002
+   }
+  },
+  {
+   "id": "s5",
+   "name": "곡괭이 6호",
+   "classId": "miner",
+   "state": "space",
+   "hp": 1,
+   "task": "goto",
+   "cargo": {
+    "ore": 0.30898959,
+    "alloy": 0,
+    "crystal": 0,
+    "titanium_ore": 0.4414137,
+    "silicate": 0.13242411
+   }
+  },
+  {
+   "id": "s6",
+   "name": "짐꾼 7호",
+   "classId": "hauler",
+   "state": "space",
+   "hp": 1,
+   "task": "transfer",
+   "cargo": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0
+   }
+  }
+ ],
+ "lostShips": 0,
+ "hours": 2,
+ "seed": 21,
+ "company": "p1",
+ "background": "miner",
+ "start": 12000,
+ "end": 72036,
+ "cash": 60036,
+ "pnl": {
+  "income": {
+   "sales": 63594.8176538146
+  },
+  "expense": {
+   "upkeep": 3558.9999999996035
+  },
+  "sales": {
+   "ore": 32371.35989130936,
+   "titanium_ore": 31223.45776250522
+  },
+  "net": 60035.817653815
+ },
+ "stored": {
+  "silicate": 1477.0938637739994
+ },
+ "aboard": {
+  "ore": 11.745085240000003,
+  "titanium_ore": 16.778693200000003,
+  "silicate": 5.0336079599999985
+ },
+ "firstProfit": true,
+ "upkeepPerHour": 3559,
+ "trades": [],
+ "timeline": [
+  {
+   "min": 0,
+   "credits": 12000,
+   "cash": 0,
+   "debt": 0,
+   "stage": 0,
+   "sales": 0,
+   "purchase": 0,
+   "upkeep": 0,
+   "other": 0,
+   "net": 0,
+   "mined": 0,
+   "stored": {},
+   "aboard": {},
+   "steps": [
+    "pick"
+   ],
+   "warnings": [],
+   "firstProfit": false
+  },
+  {
+   "min": 10,
+   "credits": 25271,
+   "cash": 13271,
+   "debt": 0,
+   "stage": 0,
+   "sales": 13555,
+   "purchase": 0,
+   "upkeep": 283,
+   "other": 0,
+   "net": 13271,
+   "mined": 4180,
+   "stored": {},
+   "aboard": {
+    "ore": 257,
+    "titanium_ore": 155
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 20,
+   "credits": 40315,
+   "cash": 28315,
+   "debt": 0,
+   "stage": 0,
+   "sales": 28886,
+   "purchase": 0,
+   "upkeep": 571,
+   "other": 0,
+   "net": 28315,
+   "mined": 8307,
+   "stored": {},
+   "aboard": {
+    "ore": 217,
+    "titanium_ore": 138
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [],
+   "firstProfit": true
+  },
+  {
+   "min": 30,
+   "credits": 51846,
+   "cash": 39846,
+   "debt": 0,
+   "stage": 0,
+   "sales": 40697,
+   "purchase": 0,
+   "upkeep": 851,
+   "other": 0,
+   "net": 39846,
+   "mined": 11876,
+   "stored": {
+    "silicate": 130
+   },
+   "aboard": {
+    "ore": 245,
+    "titanium_ore": 350,
+    "silicate": 105
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 40,
+   "credits": 57258,
+   "cash": 45258,
+   "debt": 0,
+   "stage": 0,
+   "sales": 46401,
+   "purchase": 0,
+   "upkeep": 1143,
+   "other": 0,
+   "net": 45258,
+   "mined": 13594,
+   "stored": {
+    "silicate": 479
+   },
+   "aboard": {
+    "ore": 31,
+    "silicate": 13,
+    "titanium_ore": 44
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 50,
+   "credits": 58817,
+   "cash": 46817,
+   "debt": 0,
+   "stage": 0,
+   "sales": 48263,
+   "purchase": 0,
+   "upkeep": 1447,
+   "other": 0,
+   "net": 46817,
+   "mined": 14418,
+   "stored": {
+    "silicate": 607
+   },
+   "aboard": {
+    "silicate": 9,
+    "titanium_ore": 30,
+    "ore": 21
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 60,
+   "credits": 60471,
+   "cash": 48471,
+   "debt": 0,
+   "stage": 0,
+   "sales": 50221,
+   "purchase": 0,
+   "upkeep": 1750,
+   "other": 0,
+   "net": 48471,
+   "mined": 15243,
+   "stored": {
+    "silicate": 735
+   },
+   "aboard": {
+    "ore": 11,
+    "silicate": 5,
+    "titanium_ore": 15
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 70,
+   "credits": 62101,
+   "cash": 50101,
+   "debt": 0,
+   "stage": 0,
+   "sales": 52151,
+   "purchase": 0,
+   "upkeep": 2050,
+   "other": 0,
+   "net": 50101,
+   "mined": 16068,
+   "stored": {
+    "silicate": 854
+   },
+   "aboard": {
+    "silicate": 9,
+    "ore": 21,
+    "titanium_ore": 30
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 80,
+   "credits": 63961,
+   "cash": 51961,
+   "debt": 0,
+   "stage": 0,
+   "sales": 54314,
+   "purchase": 0,
+   "upkeep": 2353,
+   "other": 0,
+   "net": 51961,
+   "mined": 16892,
+   "stored": {
+    "silicate": 983
+   },
+   "aboard": {
+    "ore": 11,
+    "titanium_ore": 16,
+    "silicate": 5
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 90,
+   "credits": 65767,
+   "cash": 53767,
+   "debt": 0,
+   "stage": 0,
+   "sales": 56419,
+   "purchase": 0,
+   "upkeep": 2653,
+   "other": 0,
+   "net": 53767,
+   "mined": 17719,
+   "stored": {
+    "silicate": 1101
+   },
+   "aboard": {
+    "ore": 22,
+    "titanium_ore": 32,
+    "silicate": 10
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 100,
+   "credits": 67825,
+   "cash": 55825,
+   "debt": 0,
+   "stage": 0,
+   "sales": 58781,
+   "purchase": 0,
+   "upkeep": 2956,
+   "other": 0,
+   "net": 55825,
+   "mined": 18543,
+   "stored": {
+    "silicate": 1229
+   },
+   "aboard": {
+    "ore": 12,
+    "silicate": 6,
+    "titanium_ore": 17
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 110,
+   "credits": 69791,
+   "cash": 57791,
+   "debt": 0,
+   "stage": 0,
+   "sales": 61046,
+   "purchase": 0,
+   "upkeep": 3256,
+   "other": 0,
+   "net": 57791,
+   "mined": 19368,
+   "stored": {
+    "silicate": 1349
+   },
+   "aboard": {
+    "ore": 23,
+    "silicate": 10,
+    "titanium_ore": 32
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  },
+  {
+   "min": 120,
+   "credits": 72036,
+   "cash": 60036,
+   "debt": 0,
+   "stage": 0,
+   "sales": 63595,
+   "purchase": 0,
+   "upkeep": 3559,
+   "other": 0,
+   "net": 60036,
+   "mined": 20191,
+   "stored": {
+    "silicate": 1477
+   },
+   "aboard": {
+    "ore": 12,
+    "titanium_ore": 17,
+    "silicate": 5
+   },
+   "steps": [
+    "pick",
+    "mine",
+    "sell",
+    "profit"
+   ],
+   "warnings": [
+    "앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다",
+    "앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+   ],
+   "firstProfit": true
+  }
+ ],
+ "rivals": [
+  {
+   "id": "p7",
+   "credits": 81423
+  },
+  {
+   "id": "p13",
+   "credits": 46952
+  },
+  {
+   "id": "p19",
+   "credits": 35122
+  }
+ ],
+ "anvil": {
+  "funds": 34777,
+  "fundsMax": 35000
+ },
+ "log": [
+  "[0m] field 앤빌 철광대 → deliver p9_anvil_port (0 jumps, est 339 cr / 100 units, budget 21000)",
+  "[0m] setOp {\"c\":\"setOp\",\"group\":\"g2\",\"op\":{\"k\":\"mine\",\"field\":\"p9_anvil_ore\",\"deliver\":\"p9_anvil_port\",\"sell\":true}} → ok",
+  "[0m] cash +0 (credits 12000) sales 0 purchase 0 upkeep 0 other 0 net 0 debt 0 ",
+  "[10m] cash +13271 (credits 25271) sales 13555 purchase 0 upkeep 283 other 0 net 13271 debt 0 ",
+  "[20m] cash +28315 (credits 40315) sales 28886 purchase 0 upkeep 571 other 0 net 28315 debt 0 ",
+  "[25m] field exhausted → switch to 앤빌 티타늄맥, deliver p9_anvil_port",
+  "[25m] setOp {\"c\":\"setOp\",\"group\":\"g2\",\"op\":{\"k\":\"mine\",\"field\":\"p9_anvil_titanium\",\"deliver\":\"p9_anvil_port\",\"sell\":true}} → ok",
+  "[30m] cash +39846 (credits 51846) sales 40697 purchase 0 upkeep 851 other 0 net 39846 debt 0 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[40m] cash +45258 (credits 57258) sales 46401 purchase 0 upkeep 1143 other 0 net 45258 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[50m] cash +46817 (credits 58817) sales 48263 purchase 0 upkeep 1447 other 0 net 46817 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[60m] cash +48471 (credits 60471) sales 50221 purchase 0 upkeep 1750 other 0 net 48471 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[70m] cash +50101 (credits 62101) sales 52151 purchase 0 upkeep 2050 other 0 net 50101 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[80m] cash +51961 (credits 63961) sales 54314 purchase 0 upkeep 2353 other 0 net 51961 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[90m] cash +53767 (credits 65767) sales 56419 purchase 0 upkeep 2653 other 0 net 53767 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[100m] cash +55825 (credits 67825) sales 58781 purchase 0 upkeep 2956 other 0 net 55825 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[110m] cash +57791 (credits 69791) sales 61046 purchase 0 upkeep 3256 other 0 net 57791 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다",
+  "[120m] cash +60036 (credits 72036) sales 63595 purchase 0 upkeep 3559 other 0 net 60036 debt 0 앤빌 티타늄맥 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다 | 앤빌 광부조합은(는) silicate을(를) 사지 않습니다 — 팔리지 않는 몫(15%)은 창고에 쌓입니다"
+ ]
+}

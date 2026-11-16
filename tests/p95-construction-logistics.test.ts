@@ -1,3 +1,4 @@
+import { buyCost } from '../src/world/market';
 import { describe, expect, it } from 'vitest';
 import { WorldSim } from '../src/world/sim';
 import { FOUND_COST, MODULES } from '../src/world/data';
@@ -107,11 +108,11 @@ describe('P9.5 construction logistics', () => {
   it('buys at the market, carries a reserved multi-gate shipment through restart, and consumes exactly once', () => {
     const f = fixture(), site = createSite(f), market = f.sim.st.stations.astra;
     expect(jumps(f.sim.st.systems, 'astra', 'quiet')).toBeGreaterThanOrEqual(2);
-    const beforeCredits = f.sim.st.companies[f.p].credits, beforeFunds = market.funds!, stock = market.market!.alloy.stock, price = f.sim.price(market, 'alloy', 'buy');
+    const beforeCredits = f.sim.st.companies[f.p].credits, beforeFunds = market.funds!, stock = market.market!.alloy.stock, cost = buyCost(market.market!.alloy, 600, true);   // A-3.2a: the purchase walks the price
     const observations: Observation[] = []; const unobserve = observeWorld(f.sim.st, event => observations.push(event));
     expect(f.sim.command(f.p, { c: 'buy', station: 'astra', res: 'alloy', amount: 600 })).toBeNull();
-    expect(f.sim.st.companies[f.p].credits).toBeCloseTo(beforeCredits - 600 * price, 8);
-    expect(market.funds).toBeCloseTo(Math.min(market.fundsMax! * 1.5, beforeFunds + 600 * price * FUNDS_INFLOW), 8);
+    expect(f.sim.st.companies[f.p].credits).toBeCloseTo(beforeCredits - cost, 8);
+    expect(market.funds).toBeCloseTo(Math.min(market.fundsMax! * 1.5, beforeFunds + cost * FUNDS_INFLOW), 8);
     expect(market.market!.alloy.stock).toBe(stock - 600);
     expect(qty(market.storage[f.p], 'alloy')).toBe(600);
     expect(qty(site.storage[f.p], 'alloy')).toBe(0);
