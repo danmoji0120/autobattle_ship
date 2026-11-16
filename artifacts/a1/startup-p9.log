@@ -1,0 +1,9 @@
+p9 idle 21 {"errs":[],"firstDebtH":5.18,"stage3H":null,"end":{"h":6,"credits":0,"debt":1883,"stage":2,"perHour":2329,"earned":0,"mined":0,"ships":5},"earnedPerH":0}
+p9 idle 41 {"errs":[],"firstDebtH":5.18,"stage3H":null,"end":{"h":6,"credits":0,"debt":1883,"stage":2,"perHour":2329,"earned":0,"mined":0,"ships":5},"earnedPerH":0}
+p9 mine 21 {"errs":[],"firstDebtH":null,"stage3H":null,"end":{"h":6,"credits":106778,"debt":0,"stage":0,"perHour":2329,"earned":109329,"mined":29269,"ships":5},"earnedPerH":18222}
+p9 mine 41 {"errs":[],"firstDebtH":null,"stage3H":null,"end":{"h":6,"credits":104008,"debt":0,"stage":0,"perHour":2329,"earned":106559,"mined":29269,"ships":5},"earnedPerH":17760}
+p9 mine+escort 21 {"errs":[],"firstDebtH":null,"stage3H":null,"end":{"h":6,"credits":106835,"debt":0,"stage":0,"perHour":2329,"earned":109386,"mined":29269,"ships":5},"earnedPerH":18231}
+p9 mine+escort 41 {"errs":[],"firstDebtH":null,"stage3H":null,"end":{"h":6,"credits":74999,"debt":0,"stage":0,"perHour":2329,"earned":77550,"mined":29269,"ships":5},"earnedPerH":12925}
+p9 mine+reserve 21 {"errs":[],"firstDebtH":null,"stage3H":null,"end":{"h":6,"credits":114737,"debt":0,"stage":0,"perHour":1002,"earned":109329,"mined":29269,"ships":5},"earnedPerH":18222}
+p9 mine+reserve 41 {"errs":[],"firstDebtH":null,"stage3H":null,"end":{"h":6,"credits":111966,"debt":0,"stage":0,"perHour":1002,"earned":106559,"mined":29269,"ships":5},"earnedPerH":17760}
+{"p9":{"startCredits":12000,"perHour":2349,"runwayH":5.11,"ships":[{"hull":"miner_mk1","group":"제1 채굴반","perHour":385},{"hull":"miner_mk1","group":"제1 채굴반","perHour":385},{"hull":"destroyer_mk1","group":"경비대","perHour":825},{"hull":"corvette_mk1","group":"경비대","perHour":330},{"hull":"corvette_mk1","group":"경비대","perHour":330}],"shipCredits":2050,"overhead":205,"supplies":94,"lease":0,"dock":0}}

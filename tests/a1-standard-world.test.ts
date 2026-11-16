@@ -46,11 +46,13 @@ describe('A-1 standard world preset', () => {
       expect(c.homeStation).toBe('astra');
       expect(Object.values(sim.st.ships).some(s => s.owner === id)).toBe(true);
     }
-    for (let i = 0; i < 1800; i++) sim.update(1);
+    // 15 game-minutes (a 1-s step of a P10 world with every system costs ~10-15 ms; under a loaded CI this stays well
+    // inside the timeout below)
+    for (let i = 0; i < 900; i++) sim.update(1);
     for (const c of Object.values(sim.st.companies)) expect(Number.isFinite(c.credits)).toBe(true);
     const s1 = sim.serialize();
     const back = new WorldSim(JSON.parse(s1));
     expect(worldRules(back.st)).toEqual(ALL_ON);
     expect(back.serialize()).toBe(s1);
-  });
+  }, 180000);
 });

@@ -1,0 +1,600 @@
+{
+ "hours": 6,
+ "seeds": [
+  21,
+  41
+ ],
+ "breakdown": {
+  "p9": {
+   "startCredits": 12000,
+   "perHour": 2349,
+   "runwayH": 5.11,
+   "ships": [
+    {
+     "hull": "miner_mk1",
+     "group": "제1 채굴반",
+     "perHour": 385
+    },
+    {
+     "hull": "miner_mk1",
+     "group": "제1 채굴반",
+     "perHour": 385
+    },
+    {
+     "hull": "destroyer_mk1",
+     "group": "경비대",
+     "perHour": 825
+    },
+    {
+     "hull": "corvette_mk1",
+     "group": "경비대",
+     "perHour": 330
+    },
+    {
+     "hull": "corvette_mk1",
+     "group": "경비대",
+     "perHour": 330
+    }
+   ],
+   "shipCredits": 2050,
+   "overhead": 205,
+   "supplies": 94,
+   "lease": 0,
+   "dock": 0
+  }
+ },
+ "runs": {
+  "p9/idle": [
+   {
+    "seed": 21,
+    "errs": [],
+    "firstDebtH": 5.18,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 9681,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 7362,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 5042,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 2723,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 404,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 0,
+      "debt": 1883,
+      "stage": 2,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     }
+    ]
+   },
+   {
+    "seed": 41,
+    "errs": [],
+    "firstDebtH": 5.18,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 9681,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 7362,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 5042,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 2723,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 404,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 0,
+      "debt": 1883,
+      "stage": 2,
+      "perHour": 2329,
+      "earned": 0,
+      "mined": 0,
+      "ships": 5
+     }
+    ]
+   }
+  ],
+  "p9/mine": [
+   {
+    "seed": 21,
+    "errs": [],
+    "firstDebtH": null,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 27767,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 18192,
+      "mined": 4809,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 43424,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 36273,
+      "mined": 9756,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 59582,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 54858,
+      "mined": 14597,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 75126,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 72826,
+      "mined": 19520,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 90714,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 90838,
+      "mined": 24460,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 106778,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 109329,
+      "mined": 29269,
+      "ships": 5
+     }
+    ]
+   },
+   {
+    "seed": 41,
+    "errs": [],
+    "firstDebtH": null,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 27303,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 17727,
+      "mined": 4809,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 42406,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 35255,
+      "mined": 9756,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 58030,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 53306,
+      "mined": 14597,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 73061,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 70761,
+      "mined": 19520,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 88300,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 88424,
+      "mined": 24460,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 104008,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 106559,
+      "mined": 29269,
+      "ships": 5
+     }
+    ]
+   }
+  ],
+  "p9/mine+escort": [
+   {
+    "seed": 21,
+    "errs": [],
+    "firstDebtH": null,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 27793,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 18217,
+      "mined": 4809,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 43372,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 36220,
+      "mined": 9756,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 59547,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 54823,
+      "mined": 14597,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 75168,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 72868,
+      "mined": 19520,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 90775,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 90899,
+      "mined": 24460,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 106835,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 109386,
+      "mined": 29269,
+      "ships": 5
+     }
+    ]
+   },
+   {
+    "seed": 41,
+    "errs": [],
+    "firstDebtH": null,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 26798,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 17222,
+      "mined": 4809,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 39262,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 32111,
+      "mined": 9756,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 49893,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 45169,
+      "mined": 14597,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 58301,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 56001,
+      "mined": 19520,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 66500,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 66624,
+      "mined": 24460,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 74999,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 2329,
+      "earned": 77550,
+      "mined": 29269,
+      "ships": 5
+     }
+    ]
+   }
+  ],
+  "p9/mine+reserve": [
+   {
+    "seed": 21,
+    "errs": [],
+    "firstDebtH": null,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 29094,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 18192,
+      "mined": 4809,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 46077,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 36273,
+      "mined": 9756,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 63561,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 54858,
+      "mined": 14597,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 80432,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 72826,
+      "mined": 19520,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 97346,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 90838,
+      "mined": 24460,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 114737,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 109329,
+      "mined": 29269,
+      "ships": 5
+     }
+    ]
+   },
+   {
+    "seed": 41,
+    "errs": [],
+    "firstDebtH": null,
+    "stage3H": null,
+    "hourly": [
+     {
+      "h": 1,
+      "credits": 28629,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 17727,
+      "mined": 4809,
+      "ships": 5
+     },
+     {
+      "h": 2,
+      "credits": 45059,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 35255,
+      "mined": 9756,
+      "ships": 5
+     },
+     {
+      "h": 3,
+      "credits": 62010,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 53306,
+      "mined": 14597,
+      "ships": 5
+     },
+     {
+      "h": 4,
+      "credits": 78367,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 70761,
+      "mined": 19520,
+      "ships": 5
+     },
+     {
+      "h": 5,
+      "credits": 94933,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 88424,
+      "mined": 24460,
+      "ships": 5
+     },
+     {
+      "h": 6,
+      "credits": 111966,
+      "debt": 0,
+      "stage": 0,
+      "perHour": 1002,
+      "earned": 106559,
+      "mined": 29269,
+      "ships": 5
+     }
+    ]
+   }
+  ]
+ }
+}
