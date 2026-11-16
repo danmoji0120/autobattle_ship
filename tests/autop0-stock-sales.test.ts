@@ -26,18 +26,22 @@ const totalOf = (sim: WorldSim, me: string, item: string) => {
 const soldOf = (sim: WorldSim, me: string, item: string) => Object.values(sim.st.logisticsJobs ?? {}).filter(j => j.owner === me && j.item === item && j.kind === 'sell').reduce((n, j) => n + j.delivered, 0);
 
 describe('AUTO-P0 common stock floor', () => {
-  it('the floor adds the minimum stock and stockpile goals; only the rest is sellable', () => {
+  it('the floor is the larger of the minimum stock and the stockpile goals (one reserve, not counted twice)', () => {
     const { sim, me, port, store } = start();
     addc(store(), 'ore', 900);
     expect(sim.command(me, { c: 'salesPolicy', settings: { item: 'ore', sell: false, station: port.id, keep: 500 } })).toBeNull();
     expect(stockFloor(sim, me, port, 'ore')).toBe(500);
     expect(sellableStock(sim, me, port, 'ore')).toBe(400);
     expect(createGoal(sim, me, { k: 'stockpile', station: port.id, item: 'ore', target: 300, maintain: true, buy: false, produce: false })).toBeNull();
-    expect(stockFloor(sim, me, port, 'ore')).toBe(800);
-    expect(sellableStock(sim, me, port, 'ore')).toBe(100);
+    expect(stockFloor(sim, me, port, 'ore')).toBe(500);   // AUTO-P0.1: a 300 goal is already covered by the 500 kept
+    expect(sellableStock(sim, me, port, 'ore')).toBe(400);
+    const goal = Object.values(sim.st.works!).find(x => x.owner === me && x.goal?.k === 'stockpile')!;
+    (goal.goal as { target: number }).target = 700;
+    expect(stockFloor(sim, me, port, 'ore')).toBe(700);
+    expect(sellableStock(sim, me, port, 'ore')).toBe(200);
     // keep 0 clears it
     expect(sim.command(me, { c: 'salesPolicy', settings: { item: 'ore', sell: false, station: port.id, keep: 0 } })).toBeNull();
-    expect(stockFloor(sim, me, port, 'ore')).toBe(300);
+    expect(stockFloor(sim, me, port, 'ore')).toBe(700);
   });
 
   it('a miner selling at the dock first fills the store up to the floor, then sells the rest', () => {

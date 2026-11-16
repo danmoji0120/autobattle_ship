@@ -13,6 +13,7 @@ import { usableRouteGate, incomingRoutes } from './logistics';
 import { emit, watchMoney } from './observe';
 import { effSec } from './security';
 import { stockFloor } from './operations';
+import { saleQuote } from './procurement';
 
 export interface PoolRequest {
   from: string; to: string; item: string;
@@ -39,7 +40,7 @@ export interface LogisticsJob extends PoolRequest {
   /** AUTO-P0: created by the excess-stock sales planner (procurement.ts `planSales`) — may be re-targeted */
   sale?: true;
 }
-type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev'>;
+type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev' | 'price'>;
 const EPS = 1e-9;
 const isTerminal = (j: LogisticsJob) => j.state === 'complete' || j.state === 'cancelled';
 const compatibleItem = (item: string) => Object.hasOwn(ITEMS, item) || Object.hasOwn(EQUIPMENT, item) || item.startsWith('bp:') || item.startsWith('bpf:');
@@ -317,8 +318,13 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
     let moved = 0;
     if (j.kind === 'sell') {
       if (!station.market?.[j.item]) { wait(h, j, s, 'market', '시장 수요 없음 — 시장 회복 대기'); return true; }
-      const result = watchMoney(h.st, 'market_sale', { company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item }, () => h.sellAt(station, j.owner, j.item, j.carried));
+      // AUTO-P0.1: an automatic sale shipment honours the item's minimum sale price at the moment of sale too
+      const rule = j.sale ? h.st.companies[j.owner]?.procurement?.sales?.[j.item] : undefined;
+      let offer = j.carried;
+      if (rule) { const whole = Math.floor(j.carried + EPS), q = saleQuote(h, station, j.item, whole, rule.minPrice); if (q.sold < whole) offer = q.sold; }
+      const result = offer > EPS ? watchMoney(h.st, 'market_sale', { company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item }, () => h.sellAt(station, j.owner, j.item, offer)) : { sold: 0, value: 0 };
       moved = result.sold; j.earned += result.value; if (moved > 0) takec(s.cargo, j.item, moved);
+      if (rule && offer < j.carried - EPS && result.sold + EPS >= offer) { j.carried -= moved; j.delivered += moved; j.cycleDelivered += moved; j.updated = h.time; wait(h, j, s, 'price', '최저 판매 단가 미달 — 화물 보존, 다른 시장 탐색'); return true; }
     } else {
       const desired = Math.min(j.carried, j.procurement ? Math.max(0, j.amount - j.cycleDelivered) : Infinity, h.intakeRoom(station, j.owner, j.item, site), site ? constructionRoom(station, j.item, true) : Infinity);
       const permit = h.cargoPermit(s, station, `pool:${j.id}:unload`, desired); if (permit === null) return true;

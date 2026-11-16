@@ -727,9 +727,7 @@ function outboundClaims(h: WorldSim, owner: string, station: string, item: strin
 /** free stock at a station after protections, outbound promises and other goals' targets */
 export function freeStock(h: WorldSim, owner: string, station: Station, item: string, exceptGoal?: string) {
   const co = h.st.companies[owner];
-  const protectedN = co.procurement?.protectedStock[station.id]?.[item] ?? 0;
-  const goalHold = Object.values(h.st.works ?? {}).filter(w => w.owner === owner && w.id !== exceptGoal && !terminal(w) && w.goal?.k === 'stockpile' && (w.goal.scope ?? 'station') === 'station' && w.goal.station === station.id && w.goal.item === item).reduce((n, w) => n + (w.goal as Extract<GoalSpec, { k: 'stockpile' }>).target, 0);
-  return Math.max(0, qty(station.storage[owner], item) - protectedN - goalHold - outboundClaims(h, owner, station.id, item));
+  return Math.max(0, qty(station.storage[owner], item) - reserveLevel(h, owner, station, item, exceptGoal) - outboundClaims(h, owner, station.id, item));
 }
 
 /**
@@ -739,11 +737,20 @@ export function freeStock(h: WorldSim, owner: string, station: Station, item: st
  * pool sale shipments and the excess-stock planner) leaves at least this much in the store.
  */
 export function stockFloor(h: Pick<WorldSim, 'st'>, owner: string, station: Station, item: string): number {
-  const co = h.st.companies[owner]; if (!co) return 0;
-  const keep = co.procurement?.protectedStock[station.id]?.[item] ?? 0;
-  let goals = 0;
-  for (const w of Object.values(h.st.works ?? {})) if (w.owner === owner && !terminal(w) && w.goal?.k === 'stockpile' && (w.goal.scope ?? 'station') === 'station' && w.goal.station === station.id && w.goal.item === item) goals += w.goal.target;
-  return keep + goals + industryHold(h, owner, station, item);
+  if (!h.st.companies[owner]) return 0;
+  return reserveLevel(h, owner, station, item) + industryHold(h, owner, station, item);
+}
+/**
+ * AUTO-P0.1: the reserve level of one item in one store. The minimum stock (`protectedStock`) and every
+ * station-scope stockpile goal for the same item and store all ask for the same thing — "keep N units here" — and a
+ * stockpile goal measures its progress against the store's stock, so one set of units satisfies all of them. The
+ * level is therefore the largest of them, not their sum. Consumption reservations (construction, builds,
+ * production) are separate demands and are added on top by `stockFloor`.
+ */
+export function reserveLevel(h: Pick<WorldSim, 'st'>, owner: string, station: Station, item: string, exceptGoal?: string): number {
+  let level = h.st.companies[owner]?.procurement?.protectedStock[station.id]?.[item] ?? 0;
+  for (const w of Object.values(h.st.works ?? {})) if (w.owner === owner && w.id !== exceptGoal && !terminal(w) && w.goal?.k === 'stockpile' && (w.goal.scope ?? 'station') === 'station' && w.goal.station === station.id && w.goal.item === item) level = Math.max(level, w.goal.target);
+  return level;
 }
 /** AUTO-P0: the most units (≤ n) whose walked purchase cost fits in `spend` */
 export function affordableLot(m: Parameters<typeof buyCost>[0], n: number, spend: number): number {
@@ -757,13 +764,19 @@ export function sellableStock(h: Pick<WorldSim, 'st'>, owner: string, station: S
   const promised = Object.values(h.st.logisticsJobs ?? {}).filter(j => j.owner === owner && j.from === station.id && j.item === item && liveJob(j) && !j.stow).reduce((n, j) => n + Math.max(0, outstanding(j) - j.reserved - j.carried), 0);
   return Math.max(0, qty(station.storage[owner], item) - stockFloor(h, owner, station, item) - promised);
 }
-/** AUTO-P0: company-scope stockpile targets cap what may leave the company: holding − target − pending sales */
-export function companySaleCap(h: Pick<WorldSim, 'st'>, owner: string, item: string): number {
+/**
+ * AUTO-P0: company-scope stockpile targets cap what may leave the company: holding − target − pending sales.
+ * AUTO-P0.1: several company-scope goals for one item share one stock (each measures the same company holding), so
+ * the target is the largest of them. `extra` counts units in hand that are in no store yet (cargo being unloaded).
+ * Holding counts every store and the cargo of non-sale shipments; free cargo aboard other ships is not counted, so
+ * the cap never relies on goods still at sea.
+ */
+export function companySaleCap(h: Pick<WorldSim, 'st'>, owner: string, item: string, extra = 0): number {
   let target = 0;
-  for (const w of Object.values(h.st.works ?? {})) if (w.owner === owner && !terminal(w) && w.goal?.k === 'stockpile' && w.goal.scope === 'company' && w.goal.item === item) target += w.goal.target;
+  for (const w of Object.values(h.st.works ?? {})) if (w.owner === owner && !terminal(w) && w.goal?.k === 'stockpile' && w.goal.scope === 'company' && w.goal.item === item) target = Math.max(target, w.goal.target);
   if (!target) return Infinity;
   const pending = Object.values(h.st.logisticsJobs ?? {}).filter(j => j.owner === owner && j.item === item && j.kind === 'sell' && liveJob(j)).reduce((n, j) => n + Math.max(0, outstanding(j) - j.reserved - j.carried), 0);
-  return Math.max(0, companyHolding(h, owner, item) - target - pending);
+  return Math.max(0, companyHolding(h, owner, item) + extra - target - pending);
 }
 
 // ─────────────────────────────────────────────────────────────────────── goals

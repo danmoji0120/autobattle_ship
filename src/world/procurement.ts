@@ -398,9 +398,9 @@ export function planSales(h: WorldSim) {
       const reasons: string[] = [];
       // shipments waiting at a market that cannot pay go on to another one (cargo kept aboard throughout)
       // (a market that no longer buys at once; one short of budget when it cannot pay for half the load)
-      for (const j of jobs) if (j.sale && j.item === item && j.carried > EPS && j.ship && j.state === 'waiting' && (j.code === 'market' || j.code === 'budget' && (() => { const here = h.st.stations[j.to]; return !here || saleQuote(h, here, item, j.carried, rule.minPrice).sold < j.carried / 2; })())) {
+      for (const j of jobs) if (j.sale && j.item === item && j.carried > EPS && j.ship && j.state === 'waiting' && (j.code === 'market' || j.code === 'price' || j.code === 'budget' && (() => { const here = h.st.stations[j.to]; return !here || saleQuote(h, here, item, j.carried, rule.minPrice).sold < j.carried / 2; })())) {
         const here = h.st.stations[j.to]; const alt = here && markets(item, here, j.carried, { minPrice: rule.minPrice }, j.to)[0];
-        if (alt) { j.to = alt.m.id; j.state = 'active'; delete j.code; delete j.retryAt; j.attempts = 0; j.reason = `${here.name} 예산 소진 — ${alt.m.name}(으)로 이동해 판매`; promise(alt.m, item, j.carried); }
+        if (alt) { const why = j.code === 'price' ? '최저 단가 미달' : j.code === 'market' ? '매입 중단' : '예산 소진'; j.to = alt.m.id; j.state = 'active'; delete j.code; delete j.retryAt; j.attempts = 0; j.reason = `${here.name} ${why} — ${alt.m.name}(으)로 이동해 판매`; promise(alt.m, item, j.carried); }
       }
       let cap = companySaleCap(h, co.id, item), excessTotal = 0;
       for (const st of Object.values(h.st.stations).filter(x => qty(x.storage[co.id], item) >= 1).sort((a, b) => a.id.localeCompare(b.id))) {

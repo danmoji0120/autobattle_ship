@@ -9,8 +9,8 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
-import { planProcurement, planSales, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
-import { registerCommand, stockFloor, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
+import { planProcurement, planSales, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
+import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -3651,6 +3651,24 @@ export class WorldSim {
         const need = Math.max(0, stockFloor(this, s.owner, st, r) - qty(this.storage(st, s.owner), r));
         const put = Math.max(0, Math.min(amt, need, takesSpace(r) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : Infinity));
         if (put > epsilon) { addc(this.storage(st, s.owner), r, put); if (takesSpace(r)) room -= put; amt -= put; msg += `${RES_NAME[r]} ${Math.round(put)} 비축 `; }
+        if (amt <= epsilon) continue;
+        // AUTO-P0.1: the company-wide stockpile target (counting these units in hand) and the item's auto-sale
+        // minimum price bound the direct sale too; what may not be sold is stored, or stays aboard when there is no room
+        const byCap = Math.min(amt, companySaleCap(this, s.owner, r, amt));
+        let canSell = byCap;
+        const rule = co.procurement?.sales?.[r];
+        if (rule && canSell > epsilon) {
+          const whole = Math.floor(canSell + epsilon), q = saleQuote(this, st, r, whole, rule.minPrice);
+          if (q.sold < whole || whole < 1 && this.price(st, r, 'sell') * (1 - (st.tax ?? 0)) < rule.minPrice - epsilon) canSell = q.sold;
+        }
+        const keep = amt - canSell;
+        if (keep > epsilon) {
+          const put = Math.max(0, Math.min(keep, takesSpace(r) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : Infinity));
+          if (put > epsilon) { addc(this.storage(st, s.owner), r, put); if (takesSpace(r)) room -= put; }
+          if (keep - put > epsilon) { addc(s.cargo, r, keep - put); held += keep - put; }
+          msg += `${RES_NAME[r]} ${Math.round(keep)} 판매 보류(${canSell < byCap - epsilon ? '최저 판매 단가 미달' : '회사 비축 목표'}) `;
+          amt = canSell;
+        }
         if (amt <= epsilon) continue;
       }
       if (sell && st.market?.[r]) {
