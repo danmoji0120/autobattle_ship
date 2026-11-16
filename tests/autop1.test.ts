@@ -60,20 +60,22 @@ describe('AUTO-P1 stock accounting by purpose', () => {
 });
 
 describe('AUTO-P1 mining hauler sale round trips (3 miners + 1 hauler)', () => {
-  it('off by default: the mining hauler only collects, the excess stays and the reason says how to allow trips', () => {
+  it('turned off explicitly ("mining haul only"): the mining hauler only collects, the excess stays and the reason says so', () => {
     const { sim, me, co, port, mine } = start();
     sellSilicate(sim, me); mine();
+    expect(sim.command(me, { c: 'autoOpsPolicy', minerSales: false })).toBeNull();
     run(sim, 900);
     expect(minerJobs(sim, me)).toHaveLength(0);
+    expect(co.procurement!.minerSales).toBe(false);
     expect(qty(sim.storage(port, me), 'silicate')).toBeGreaterThan(100);
-    expect(co.procurement!.salesStatus!.silicate.reason).toMatch(/공용 수송선 없음.*채굴 수송선 판매 왕복/);
+    expect(co.procurement!.salesStatus!.silicate.reason).toMatch(/공용 수송선 없음.*채굴 운반 전용/);
   });
 
-  it('allowed: the hauler sells the excess at another market, keeps 500 ore, returns to mining, miners unload meanwhile', () => {
+  it('on by default once an item is set to auto-sell (new miner, sales policy only): the hauler sells the excess at another market, keeps 500 ore, returns to mining, miners unload meanwhile', () => {
     const { sim, me, co, port, hauler, g, mine } = start();
     sellSilicate(sim, me);
     expect(sim.command(me, { c: 'salesPolicy', settings: { item: 'ore', sell: true, minPrice: 1, station: port.id, keep: 500 } })).toBeNull();
-    expect(sim.command(me, { c: 'autoOpsPolicy', minerSales: true })).toBeNull();
+    expect(co.procurement!.minerSales).toBeUndefined();   // never chosen: trips allowed
     mine();
     let minersDocked = 0, oreLow = Infinity, collectedAfter = false, tripSeen = 0, lastOre = 0;
     const minerOre = () => sim.subtreeShips(g).filter(s => s.classId === 'miner').reduce((n, s) => n + qty(s.cargo, 'ore'), 0);

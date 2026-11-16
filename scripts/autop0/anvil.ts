@@ -2,6 +2,7 @@
 // modes: base (no policy: the A-3.2a result) | policy (silicate auto-sale, ore 500 kept, hauler moved to the pool)
 //        | nohauler (policy, but the hauler stays in the mining fleet) | blocked (policy, every silicate market closed)
 //        | p1 (AUTO-P1: policy, the hauler stays in the mining fleet, sale round trips and automatic repair allowed)
+//        | p11 (AUTO-P1.1: policy only — sale trips by default, nothing else set) | haulonly (policy, trips explicitly off)
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { WorldSim } from '../../src/world/sim';
 import { STANDARD_WORLD } from '../../src/world/worldPreset';
@@ -28,6 +29,7 @@ if (hauler) {
 if (mode === 'p1') {
   ok(sim.command(me, { c: 'autoOpsPolicy', minerSales: true, repair: { enabled: true, minCredits: 5000, maxPerRepair: 5000, perHour: 10000 } }), 'auto ops');
 }
+if (mode === 'haulonly') ok(sim.command(me, { c: 'autoOpsPolicy', minerSales: false }), 'haul only');
 if (mode === 'blocked') for (const id of silMarkets) delete sim.st.stations[id].market!.silicate;
 ok(sim.command(me, { c: 'setOp', group: g.id, op: { k: 'mine', field: 'p9_anvil_titanium', deliver: port.id, sell: true } }), 'mine');
 const c0 = co.credits;
@@ -62,7 +64,7 @@ const minerTrips = jobs.filter(j => j.miner);
 const sum = {
   mode, hours, credits0: c0, repairs, repairCost: Math.round(repairCost), mined: Math.round(co.stats.mined),
   autoRepairs: autoRepairs.length, autoRepairCost: Math.round(autoRepairs.reduce((n, x) => n + x.n, 0)),
-  minerTrips: { started: minerTrips.length, complete: minerTrips.filter(j => j.state === 'complete').length, cancelled: minerTrips.filter(j => j.state === 'cancelled').length, sold: Math.round(minerTrips.reduce((n, j) => n + j.delivered, 0)), earned: Math.round(minerTrips.reduce((n, j) => n + j.earned, 0)) },
+  minerTrips: { started: minerTrips.length, complete: minerTrips.filter(j => j.state === 'complete').length, cancelled: minerTrips.filter(j => j.state === 'cancelled').length, returned: minerTrips.filter(j => j.returning || j.withdrawn > 0).length, sold: Math.round(minerTrips.reduce((n, j) => n + j.delivered, 0)), earned: Math.round(minerTrips.reduce((n, j) => n + j.earned, 0)) },
   minerTripReason: co.procurement?.minerTrip?.reason, haulerHp: sim.subtreeShips(g).find(x => x.classId === 'hauler')?.hp, credits: Math.round(co.credits), net: Math.round(co.credits - c0), pnl: s.pnl,
   storeEnd: samples.at(-1).store, usedEnd: samples.at(-1).used, aboardEnd: samples.at(-1).aboard, fullAt: full,
   silicateHeldEnd: Math.round(silicateTotal()), silicateShipped: salesBy('silicate'), oreKeptMinAfter30min: Math.round(oreAfter500),

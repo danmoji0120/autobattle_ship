@@ -49,9 +49,9 @@ function autoOpsHtml(w: WorldView, me: string, busy: boolean): string {
   };
   return `<div class="auto-ops" data-auto-ops><h4>채굴 수송선 · 자동 수리</h4>
     <ul class="autolg-list">${ships.map(row).join('') || '<li class="dim">수송선이 없습니다</li>'}</ul>
-    ${policy?.minerSales && policy.minerTrip ? `<p class="small dim">채굴 수송선 판매 왕복: ${esc(policy.minerTrip.reason)}</p>` : ''}
+    ${policy && policy.minerSales !== false && policy.minerTrip ? `<p class="small dim">채굴 수송선 판매 왕복: ${esc(policy.minerTrip.reason)}</p>` : ''}
     <form class="proc-policy-form" data-auto-ops-form>
-      <label style="display:block"><input type="checkbox" name="minerSales" ${policy?.minerSales ? 'checked' : ''}> 채굴 편대 수송선이 하역 후 초과 재고 판매 왕복 (3점프 이내, 공용 수송선이 비어 있으면 그쪽 우선)</label>
+      <label style="display:block"><input type="checkbox" name="haulOnly" ${policy?.minerSales === false ? 'checked' : ''}> 채굴 운반 전용 — 채굴 편대 수송선은 판매 왕복을 하지 않음 (기본: 자동 판매 품목의 초과 재고를 3점프 이내 시장에 팔고 복귀, 유휴 공용 수송선이 있으면 그쪽 우선)</label>
       <label style="display:block"><input type="checkbox" name="repair" ${rep?.enabled ? 'checked' : ''}> 손상으로 배차에서 빠진 수송선 자동 수리</label>
       <div class="proc-policy-grid"><label>최소 잔고 (cr)<input name="minCredits" type="number" min="0" step="100" value="${rep?.minCredits ?? 0}"></label><label>1회 최대 수리비<input name="maxPerRepair" type="number" min="0" step="100" value="${rep?.maxPerRepair ?? 0}"></label><label>시간당 수리 예산<input name="perHour" type="number" min="0" step="100" value="${rep?.perHour ?? 0}"></label></div>
       <p class="dim small">자동 수리는 기본 꺼짐. 한도 안에서만 수리하고, 넘으면 화물·작업을 보존한 채 이유를 표시합니다. 정박한 정거장에서 수리할 수 없으면 경로 위험 제한 안의 가장 가까운 수리 정거장으로 갔다가 하던 일로 돌아갑니다.</p>
@@ -71,7 +71,7 @@ export function bindSalesPanel(el: HTMLElement, send: (cmd: Cmd, ok: string) => 
   const ops = el.querySelector<HTMLFormElement>('[data-auto-ops-form]');
   if (ops) ops.onsubmit = e => {
     e.preventDefault(); const d = new FormData(ops);
-    send({ c: 'autoOpsPolicy', minerSales: d.has('minerSales'), repair: { enabled: d.has('repair'), minCredits: Number(d.get('minCredits') || 0), maxPerRepair: Number(d.get('maxPerRepair') || 0), perHour: Number(d.get('perHour') || 0) } }, '자동 운영 설정을 저장했습니다');
+    send({ c: 'autoOpsPolicy', minerSales: !d.has('haulOnly'), repair: { enabled: d.has('repair'), minCredits: Number(d.get('minCredits') || 0), maxPerRepair: Number(d.get('maxPerRepair') || 0), perHour: Number(d.get('perHour') || 0) } }, '자동 운영 설정을 저장했습니다');
   };
   el.querySelectorAll<HTMLElement>('[data-sale-off]').forEach(b => b.onclick = () => send({ c: 'salesPolicy', settings: { item: b.dataset.saleOff!, sell: false } }, '자동 판매를 껐습니다. 이미 실린 화물은 판매를 마칩니다'));
 }

@@ -5,6 +5,8 @@
 //   - never below the company's minimum balance (the larger of this policy's and the company operations policy's),
 //   - never more than `maxPerRepair` for one repair, and never more than `perHour` over the last game hour,
 //   - and inside the company's hourly automatic-spending limit (operations policy), which the repair also uses up.
+// AUTO-P1.1: a ship docked at a repair station is repaired there even with cargo aboard (a damaged mining hauler stuck
+// with cargo it cannot unload); one that must fly to a repair yard still goes only with an empty hold if it is a mining hauler.
 // The price is the existing manual repair quote (repair.ts) and the charge goes through the existing `repair`
 // command (ledger, work record, events); the policy itself is the player's prior approval. A ship docked at a repair
 // station is repaired there; otherwise it flies to the nearest reachable repair station within the logistics risk
@@ -99,10 +101,15 @@ export function planAutoRepairs(h: WorldSim) {
       if (s.owner !== co.id) continue;
       if (s.repairAt) { if (!covered(h, s) || s.hp >= HAULER_MIN_HP) delete s.repairAt; continue; }
       if (s.hp >= HAULER_MIN_HP || !covered(h, s) || s.logisticsJob || s.state === 'battle') { if (p.status?.[s.id] && s.hp >= HAULER_MIN_HP && h.time - p.status[s.id].t > 600) delete p.status[s.id]; continue; }
-      // a mining hauler goes only when its hold is empty, so the fleet's ore is never carried off to a repair yard
-      if (h.opOf(h.st.groups[s.groupId]).k === 'mine' && cargoSum(s.cargo) > EPS) { note(h, p, s, '손상 — 화물 하역 후 자동 수리'); continue; }
+      // AUTO-P1.1: docked at a station that repairs — repaired there, cargo and all (the cargo stays aboard untouched)
       const docked = s.state === 'docked' && s.task.k === 'docked' ? h.st.stations[s.task.station] : undefined;
-      if (docked && canRepairAt(docked, s.owner)) { repairHere(h, s, p); continue; }
+      if (docked && canRepairAt(docked, s.owner) && h.canDock(docked, s.owner)) { repairHere(h, s, p); continue; }
+      // otherwise a mining hauler goes only when its hold is empty, so the fleet's ore is never carried off to a repair yard
+      if (h.opOf(h.st.groups[s.groupId]).k === 'mine' && cargoSum(s.cargo) > EPS) {
+        const prev = p.status?.[s.id], held = prev && h.time - prev.t < 60 && !prev.reason.startsWith('손상 — 화물') ? ` (정박지 수리 보류: ${prev.reason})` : '';
+        if (!prev?.reason.startsWith('손상 — 화물')) note(h, p, s, `손상 — 화물 하역 후 수리 정거장으로 이동해 자동 수리${held}`);
+        continue;
+      }
       const q = repairQuote(h.st, s, co), why = budgetProblem(h, s.owner, p, q.cost);
       if (why) { note(h, p, s, `손상(내구 ${Math.round(s.hp * 100)}%) — 자동 수리 보류: ${why}. 화물·작업 보존`); continue; }
       const st = repairStation(h, s);

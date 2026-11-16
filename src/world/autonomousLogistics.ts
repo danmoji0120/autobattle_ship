@@ -42,6 +42,10 @@ export interface LogisticsJob extends PoolRequest {
   /** AUTO-P1: a sale round trip flown by a mining fleet's own hauler (the group it mines with). It never enters the
    *  pool: the hauler returns to mining when it ends, and it is cancelled if the ship is lost or the fleet's order changes. */
   miner?: string;
+  /** AUTO-P1.1: no market would take the trip's cargo for MINER_TRIP_GIVEUP s — it flies back to its source (`to` = `from`) */
+  returning?: true;
+  /** AUTO-P1.1: when the trip started waiting without any market to go on to (and how much it had sold then) */
+  stuck?: { since: number; delivered: number };
 }
 type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev' | 'price'>;
 const EPS = 1e-9;
@@ -336,13 +340,23 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
   const limit = !site && !externalPickup ? stationBerths(station) : undefined;
   if (limit !== undefined && !(s.state === 'docked' && s.task.k === 'docked' && s.task.station === station.id) && occupiedBerths(h.st, station.id, s.id) >= limit) { wait(h, j, s, 'berth_full', '정박 공간 부족 — 다른 함선이 출항하면 자동 재개'); return true; }
   if (!path(h, s.pos, station.pos, j.procurement || j.sale ? h.st.companies[j.owner]?.procurement?.maxRisk ?? 100 : undefined)) { wait(h, j, s, 'path', '허용된 점프 경로가 없습니다 — 경로 또는 위험 제한 회복 대기'); return true; }
-  clearWait(h, j, s); j.state = 'active'; delete j.reason;
+  clearWait(h, j, s); j.state = 'active'; if (!j.returning) delete j.reason;   // AUTO-P1.1: a trip flying home says why
   if (!(site || externalPickup ? h.goConstruction(s, station, dt, speed) : h.goDock(s, station, dt, speed, true, true))) return true;
   if (j.carried > EPS) {
     const present = Math.min(j.carried, qty(s.cargo, j.item));
     if (present < j.carried) { j.withdrawn += j.carried - present; j.carried = present; }
     if (j.carried <= EPS) { detach(h, j, '화물이 작업에서 회수됨 — 잔량 재배차'); j.state = 'queued'; return true; }
     let moved = 0;
+    // AUTO-P1.1: a sale trip that gave up is back at its source: store what fits, keep the rest aboard (still this job's)
+    if (j.kind === 'sell' && j.returning && j.to === j.from) {
+      const desired = Math.min(j.carried, h.intakeRoom(station, j.owner, j.item));
+      const permit = desired > EPS ? h.cargoPermit(s, station, `pool:${j.id}:return`, desired) : 0; if (permit === null) return true;
+      moved = Math.min(desired, permit);
+      if (moved > EPS) { takec(s.cargo, j.item, moved); addc(h.storage(station, j.owner), j.item, moved); j.carried -= moved; j.withdrawn += moved; j.amount = Math.max(j.cycleDelivered, j.amount - moved); j.updated = h.time; j.lastAction = h.time; emit(h.st, { kind: 'logistics', reason: 'unload', amount: moved, company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item }); }
+      if (j.carried > EPS) { wait(h, j, s, 'returned', `판매 실패로 ${station.name}에 복귀 — 창고 가득, 화물 ${Math.round(j.carried)} 함선에 보존 · 공간이 생기면 보관, 판매 시장이 생기면 다시 판매`); return true; }
+      j.carried = 0; delete s.logisticsJob; delete j.ship; j.state = 'cancelled'; j.reason = `판매 실패로 ${station.name}에 복귀 — 화물 창고 보관`;
+      return true;
+    }
     if (j.kind === 'sell') {
       if (!station.market?.[j.item]) { wait(h, j, s, 'market', '시장 수요 없음 — 시장 회복 대기'); return true; }
       // AUTO-P0.1: an automatic sale shipment honours the item's minimum sale price at the moment of sale too
@@ -362,6 +376,7 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
     if (j.procurement && j.cycleDelivered + EPS >= j.amount && j.carried > EPS) { j.withdrawn += j.carried; j.reason = '수요 감소로 남은 화물은 함선에 보존'; j.carried = 0; }
     if (j.carried > EPS) { wait(h, j, s, j.kind === 'sell' ? 'budget' : site ? 'construction' : 'storage', j.kind === 'sell' ? '시장 예산 부족 — 화물 보존·자동 재시도' : site ? '건설 현장의 필요량 또는 공간 부족 — 화물 보존·자동 재시도' : '목적지 창고 가득 — 공간 확보 후 자동 재개'); return true; }
     delete s.logisticsJob; delete j.ship; j.carried = 0;
+    if (j.miner) { const r = h.st.companies[j.owner]?.procurement?.minerTripRetry; if (r) delete r[j.item]; delete j.stuck; }   // a sale went through: no back-off
     if (j.cycleDelivered + EPS >= j.amount) { j.cycles++; if (j.repeat) { j.cycleDelivered = 0; j.state = 'queued'; } else j.state = 'complete'; }
     else j.state = 'queued';
     return true;

@@ -27,8 +27,11 @@ export interface ProcurementPolicy {
   sales?: Record<string, SalesRule>;
   /** AUTO-P0: last planning result per sold item (shown to the player; recomputed every pass) */
   salesStatus?: Record<string, SalesStatus>;
-  /** AUTO-P1: a mining fleet's own hauler may fly sale round trips of its station's excess stock (off by default) */
+  /** AUTO-P1: a mining fleet's own hauler may fly sale round trips of its station's excess stock. AUTO-P1.1: allowed
+   *  unless the player turned it off (`false`, "채굴 운반 전용"); unset — every company that never chose — means allowed. */
   minerSales?: boolean;
+  /** AUTO-P1.1: per item, after a sale trip came back unsold: no new trip before `at`; `fails` grows the wait */
+  minerTripRetry?: Record<string, { at: number; fails: number }>;
   /** AUTO-P1: last decision of the mining hauler sale planner (shown to the player) */
   minerTrip?: { t: number; ship: string; reason: string };
   /** AUTO-P1: automatic repair of automated haulers that fell out of dispatch (off by default) */
@@ -398,6 +401,24 @@ function saleMarkets(h: WorldSim, owner: string, carriers: WShip[], promised: Ma
 /** AUTO-P1: a mining hauler's sale trip must stay short and pay for the mining time it takes */
 export const MINER_TRIP_MAX_JUMPS = 3;
 export const MINER_TRIP_MIN_VALUE = 1500;   // expected sale value per jump of the one-way trip (at least one)
+/** AUTO-P1.1: a sale trip waits this long with no market to go on to before it flies its cargo back */
+export const MINER_TRIP_GIVEUP = 900;
+/** AUTO-P1.1: after a trip comes back unsold, no new trip of that item for 15 min, doubling per further failure (≤ 4 h) */
+const MINER_TRIP_BACKOFF = 900, MINER_TRIP_BACKOFF_MAX = 4 * 3600;
+/** AUTO-P1.1: mining-hauler sale trips are on unless the player chose "mining haul only" */
+export const minerSalesOn = (p: Pick<ProcurementPolicy, 'minerSales'> | undefined) => !!p && p.minerSales !== false;
+const minerRetryWait = (h: WorldSim, p: ProcurementPolicy, item: string) => Math.max(0, (p.minerTripRetry?.[item]?.at ?? 0) - h.time);
+/** AUTO-P1.1: no market will take the trip's cargo — fly it back to its source (real route, docking rules unchanged) */
+function returnMinerTrip(h: WorldSim, p: ProcurementPolicy, j: LogisticsJob, why: string) {
+  const home = h.st.stations[j.from], name = ITEMS[j.item]?.name ?? EQUIPMENT[j.item]?.name ?? j.item;
+  const r = (p.minerTripRetry ??= {})[j.item] ??= { at: 0, fails: 0 };
+  r.fails++; r.at = h.time + Math.min(MINER_TRIP_BACKOFF_MAX, MINER_TRIP_BACKOFF * 2 ** (r.fails - 1));
+  j.amount = j.cycleDelivered + j.carried;   // nothing more is promised from the source store
+  j.to = j.from; j.returning = true; delete j.stuck; j.state = 'active'; delete j.code; delete j.retryAt; j.attempts = 0;
+  j.reason = `${why} — 맞는 시장이 ${Math.round(MINER_TRIP_GIVEUP / 60)}분 동안 없어 ${home?.name ?? j.from}(으)로 복귀`;
+  p.minerTrip = { t: h.time, ship: j.ship ?? '', reason: `${name} 판매 실패 — ${home?.name ?? j.from}(으)로 복귀, ${Math.round((r.at - h.time) / 60)}분 뒤 판매 왕복 재시도` };
+  h.ev('info', `채굴 수송선 판매 왕복 복귀: ${name} ${Math.round(j.carried)} — ${j.reason}`, { company: j.owner, pos: home?.pos });
+}
 /**
  * AUTO-P1: a mining fleet's hauler that has just unloaded (docked, empty, at its fleet's delivery station) takes one
  * sale round trip of the station's excess stock when the player allowed it, no idle usable pool hauler is there to
@@ -408,7 +429,7 @@ export const MINER_TRIP_MIN_VALUE = 1500;   // expected sale value per jump of t
 export function planMinerSaleTrip(h: WorldSim, s: WShip, dock: Station): boolean {
   if (!growthOn(h.st)) return false;
   const co = h.st.companies[s.owner], policy = co?.kind === 'player' ? co.procurement : undefined;
-  if (!policy?.minerSales || !policy.sales || !Object.keys(policy.sales).length) return false;
+  if (!minerSalesOn(policy) || !policy?.sales || !Object.keys(policy.sales).length) return false;
   if (s.logisticsJob || cargoSum(s.cargo) > EPS || s.state !== 'docked' || s.task.k !== 'docked' || s.task.station !== dock.id) return false;
   const note = (reason: string) => { policy.minerTrip = { t: h.time, ship: s.id, reason }; return false; };
   if (poolShips(h, co.id).some(p => p.hp >= HAULER_MIN_HP && !p.logisticsJob)) return note('유휴 공용 수송선이 판매 운송을 맡음');
@@ -419,6 +440,8 @@ export function planMinerSaleTrip(h: WorldSim, s: WShip, dock: Station): boolean
   let why = '판매할 초과 재고 없음';
   for (const item of Object.keys(policy.sales).sort()) {
     const rule = policy.sales[item], name = ITEMS[item]?.name ?? EQUIPMENT[item]?.name ?? item;
+    const back = minerRetryWait(h, policy, item);
+    if (back > 0) { why = `${name}: 최근 판매 왕복이 팔지 못하고 복귀 — ${Math.ceil(back / 60)}분 뒤 재시도`; continue; }
     const excess = Math.floor(Math.min(sellableStock(h, co.id, dock, item), companySaleCap(h, co.id, item)) + EPS);
     if (excess < 1) continue;
     if (dock.market?.[item] && saleQuote(h, dock, item, excess, rule.minPrice, promised.get(dock.id) ?? 0).sold >= 1) continue;   // sold here by planSales
@@ -459,16 +482,25 @@ export function planSales(h: WorldSim) {
     const promised = salePromised(h, co.id);
     const promise = (st: Station, item: string, n: number) => promised.set(st.id, (promised.get(st.id) ?? 0) + n * h.price(st, item, 'sell') * (1 - (st.tax ?? 0)));
     // AUTO-P1: an idle mining hauler may carry when the pool has no usable ship (its trips are planned when it docks)
-    const minerCarriers = policy.minerSales ? Object.values(h.st.ships).filter(s => s.owner === co.id && s.classId === 'hauler' && (() => { const g = h.st.groups[s.groupId]; return !!g && h.opOf(g).k === 'mine'; })()) : [];
+    const minerCarriers = minerSalesOn(policy) ? Object.values(h.st.ships).filter(s => s.owner === co.id && s.classId === 'hauler' && (() => { const g = h.st.groups[s.groupId]; return !!g && h.opOf(g).k === 'mine'; })()) : [];
     const markets = (item: string, from: Station, amount: number, rule: SalesRule, exclude?: string) => saleMarkets(h, co.id, ships.length ? ships : minerCarriers, promised, item, from, amount, rule, exclude);
     for (const item of Object.keys(rules).sort()) {
       const rule = rules[item], st0 = status[item] ?? { t: h.time, excess: 0, moving: 0, reason: '', sold: 0, earned: 0 };
       const reasons: string[] = [];
       // shipments waiting at a market that cannot pay go on to another one (cargo kept aboard throughout)
       // (a market that no longer buys at once; one short of budget when it cannot pay for half the load)
-      for (const j of jobs) if (j.sale && j.item === item && j.carried > EPS && j.ship && j.state === 'waiting' && (j.code === 'market' || j.code === 'price' || j.code === 'budget' && (() => { const here = h.st.stations[j.to]; return !here || saleQuote(h, here, item, j.carried, rule.minPrice).sold < j.carried / 2; })())) {
+      for (const j of jobs) {
+        if (!(j.sale && j.item === item && j.carried > EPS && j.ship && j.state === 'waiting')) { if (j.stuck && j.state !== 'waiting') delete j.stuck; continue; }
+        // AUTO-P1.1: a mining-hauler trip back home with unsold cargo it could not store tries a market again after its back-off
+        const home = j.returning && j.code === 'returned';
+        if (home ? minerRetryWait(h, policy, item) > 0 : !(j.code === 'market' || j.code === 'price' || j.code === 'budget' && (() => { const here = h.st.stations[j.to]; return !here || saleQuote(h, here, item, j.carried, rule.minPrice).sold < j.carried / 2; })())) { delete j.stuck; continue; }
         const here = h.st.stations[j.to]; const alt = here && markets(item, here, j.carried, { minPrice: rule.minPrice }, j.to)[0];
-        if (alt) { const why = j.code === 'price' ? '최저 단가 미달' : j.code === 'market' ? '매입 중단' : '예산 소진'; j.to = alt.m.id; j.state = 'active'; delete j.code; delete j.retryAt; j.attempts = 0; j.reason = `${here.name} ${why} — ${alt.m.name}(으)로 이동해 판매`; promise(alt.m, item, j.carried); }
+        const why = home ? '복귀 화물' : j.code === 'price' ? '최저 단가 미달' : j.code === 'market' ? '매입 중단' : '예산 소진';
+        if (alt) { j.to = alt.m.id; j.state = 'active'; delete j.code; delete j.retryAt; delete j.stuck; delete j.returning; j.attempts = 0; j.reason = `${here.name} ${why} — ${alt.m.name}(으)로 이동해 판매`; promise(alt.m, item, j.carried); continue; }
+        // AUTO-P1.1: no market for a mining hauler's trip: after MINER_TRIP_GIVEUP of that (selling nothing meanwhile) fly back
+        if (!j.miner || j.returning) continue;
+        if (!j.stuck || j.delivered > j.stuck.delivered + EPS) j.stuck = { since: h.time, delivered: j.delivered };
+        else if (h.time - j.stuck.since >= MINER_TRIP_GIVEUP) returnMinerTrip(h, policy, j, `${here?.name ?? j.to} ${why}`);
       }
       let cap = companySaleCap(h, co.id, item), excessTotal = 0;
       for (const st of Object.values(h.st.stations).filter(x => qty(x.storage[co.id], item) >= 1).sort((a, b) => a.id.localeCompare(b.id))) {
@@ -491,10 +523,10 @@ export function planSales(h: WorldSim) {
           // AUTO-P1: the mining fleet's hauler sells on its next stop at this station (planMinerSaleTrip)
           const trip = jobs.find(j => j.miner && j.from === st.id && j.item === item);
           const miner = minerCarriers.find(s => { const g = h.st.groups[s.groupId], op = g && h.opOf(g); return op?.k === 'mine' && op.deliver === st.id; });
-          if (trip) { reasons.push(`채굴 수송선 판매 왕복 중 → ${h.st.stations[trip.to]?.name ?? trip.to}`); continue; }
+          if (trip) { reasons.push(trip.returning ? `채굴 수송선이 팔지 못한 화물을 싣고 ${h.st.stations[trip.to]?.name ?? trip.to}(으)로 복귀 — ${trip.reason ?? ''}` : `채굴 수송선 판매 왕복 중 → ${h.st.stations[trip.to]?.name ?? trip.to}`); continue; }
           if (miner) { reasons.push(`${st.name} 초과 ${excess}: 채굴 수송선이 다음 하역 때 판매 왕복 — ${policy.minerTrip?.reason ?? '대기'}`); continue; }
           reasons.push(!ships.length
-            ? `${st.name} 초과 ${excess}: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 수송선 판매 왕복'을 허용하면 자동 운송`
+            ? `${st.name} 초과 ${excess}: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송`
             : `${st.name} 초과 ${excess}: 공용 수송선 손상(내구 ${Math.round(Math.max(...ships.map(s => s.hp)) * 100)}%) — 수리 후 자동 운송, 재고 보존`);
           continue;
         }

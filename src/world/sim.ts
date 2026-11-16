@@ -3395,7 +3395,8 @@ export class WorldSim {
       if (s.state === 'docked') {
         if (cargoSum(s.cargo) > 0 && dock && s.task.k === 'docked' && s.task.station === dock.id && !this.unloadWhenReady(s, dock, op.sell)) { g.status = `${dock.name}: 화물 하역 중`; return; }
         // AUTO-P1: empty at the fleet's station — fly one sale round trip of its excess stock when allowed and worth it
-        if (dock) autoRepairDocked(this, s);
+        // AUTO-P1.1: damaged and docked at a repair station — repaired before leaving, even with cargo it could not unload
+        autoRepairDocked(this, s);
         if (dock && planMinerSaleTrip(this, s, dock)) return;
         this.undock(s);
       }

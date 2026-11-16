@@ -96,9 +96,11 @@ describe('AUTO-P0 excess-stock sales', () => {
     expect(Object.values(sim.st.logisticsJobs ?? {}).filter(j => j.owner === me && j.sale)).toHaveLength(0);
   });
 
-  it('no pool hauler (the hauler stays in the mining fleet): no shipment, the stock stays, the reason is shown', () => {
+  it('no pool hauler (the hauler stays in the mining fleet, "mining haul only"): no shipment, the stock stays, the reason is shown', () => {
     const { sim, me, co, store, g, port } = start(true);
     addc(store(), 'silicate', 600);
+    // AUTO-P1.1: mining-hauler sale trips are on by default; this case is the player's explicit "mining haul only"
+    expect(sim.command(me, { c: 'autoOpsPolicy', minerSales: false })).toBeNull();
     expect(sim.command(me, { c: 'setOp', group: g.id, op: { k: 'mine', field: 'p9_anvil_ore', deliver: port.id, sell: true } })).toBeNull();
     expect(sim.command(me, { c: 'salesPolicy', settings: { item: 'silicate', sell: true, minPrice: 5 } })).toBeNull();
     run(sim, 60);
