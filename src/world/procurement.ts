@@ -1,6 +1,6 @@
 // Server-authoritative demand planning; all movement is executed by the existing logistics pool.
 import type { WorldSim } from './sim';
-import { poolMember } from './haulers';
+import { poolMember, HAULER_MIN_HP } from './haulers';
 import type { Cargo, Company, Station, WShip } from './types';
 import { qty } from './types';
 import { missing, planMats, prereqBuilt } from './construction';
@@ -13,14 +13,23 @@ import { dist } from './geom';
 import { effSec } from './security';
 import { usableRouteGate, incomingRoutes } from './logistics';
 import { createPoolJob, controlPoolJob, type LogisticsJob } from './autonomousLogistics';
-import { procurementAuthority } from './operations';
+import { procurementAuthority, sellableStock, companySaleCap } from './operations';
+import { techFx } from './industry';
+import { priceOf, tradeChunk, buyCost } from './market';
+import { takec } from './types';
 
 export type ProcurementKind = 'construction' | 'production' | 'ship';
 export interface ProcurementPolicy {
   enabled: boolean; autoBuy: boolean; budget: number; spent: number; minCredits: number; maxRisk: number;
   maxPrice: Record<string, number>; protectedStock: Record<string, Cargo>;
   disabled: Record<string, boolean>; priority: Record<string, number>;
+  /** AUTO-P0: items whose excess stock (above every hold) is sold automatically, never below `minPrice` a unit */
+  sales?: Record<string, SalesRule>;
+  /** AUTO-P0: last planning result per sold item (shown to the player; recomputed every pass) */
+  salesStatus?: Record<string, SalesStatus>;
 }
+export interface SalesRule { minPrice: number }
+export interface SalesStatus { t: number; excess: number; moving: number; reason: string; sold: number; earned: number; since?: Record<string, number> }
 export interface ProcurementPlan {
   id: string; owner: string; station: string; sourceKind: ProcurementKind; sourceId: string; item: string;
   required: number; used: number; secured: number; local: number; otherIncoming: number;
@@ -85,7 +94,12 @@ function demandList(h: WorldSim, co: Company): Demand[] {
     const key = sourceKey(st.id, kind, id); if (policy?.disabled[key] || required <= EPS) return;
     out.push({ owner: co.id, station: st, kind, source: id, item, required, used, secured, need: Math.max(0, required - used - secured), priority: policy?.priority[key] ?? (kind === 'production' ? 5 : 7), order: order++ });
   };
-  for (const st of Object.values(h.st.stations).filter(s => s.owner === co.id).sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const st of Object.values(h.st.stations).filter(s => s.owner === co.id).sort((a, b) => a.id.localeCompare(b.id))) stationDemand(h, co, st, push);
+  return out.sort((a, b) => b.priority - a.priority || a.order - b.order || a.station.id.localeCompare(b.station.id) || a.item.localeCompare(b.item));
+}
+/** what construction, ship builds and production orders at one own station still need (by `push`) */
+function stationDemand(h: Pick<WorldSim, 'st'>, co: Company, st: Station, push: (st: Station, kind: ProcurementKind, id: string, item: string, required: number, used?: number, secured?: number) => void) {
+  {
     for (const m of st.modules) if (!m.built && !m.paused && m.id && prereqBuilt(st, m)) for (const item of planMats(m)) push(st, 'construction', m.id, item, moduleMaterials(m)[item] ?? 0, m.used?.[item] ?? 0, m.reserved?.[item] ?? 0);
     for (const b of st.builds ?? []) if (!b.started && !b.paused) {
       const spec = buildSpec(b);
@@ -98,7 +112,18 @@ function demandList(h: WorldSim, co: Company): Demand[] {
       for (const [item, amount] of Object.entries(r.in)) push(st, 'production', o.id, item, amount);
     }
   }
-  return out.sort((a, b) => b.priority - a.priority || a.order - b.order || a.station.id.localeCompare(b.station.id) || a.item.localeCompare(b.item));
+}
+/** AUTO-P0: units of `item` at an own station still needed by its construction, ship builds and production
+ *  (the same demand the procurement planner fills) — never sold or counted as excess */
+export function industryHold(h: Pick<WorldSim, 'st'>, owner: string, station: Station, item: string): number {
+  const co = h.st.companies[owner];
+  if (!co || station.owner !== owner) return 0;
+  let n = 0;
+  stationDemand(h, co, station, (_st, kind, id, it, required, used = 0, secured = 0) => {
+    if (it !== item || co.procurement?.disabled[sourceKey(station.id, kind, id)] || required <= EPS) return;
+    n += Math.max(0, required - used - secured);
+  });
+  return n;
 }
 /** Only ordinary stations are considered: sites, deposits and other hidden exploration data are never searched. */
 function routeScore(h: WorldSim, a: Station, b: Station, maxRisk: number): number {
@@ -260,7 +285,14 @@ export function planProcurement(h: WorldSim) {
         for (const { st, price } of markets) {
           if (remaining < 1 - EPS) break;
           const room = destRoom.get(d.station.id) ?? 0;
-          const amount = Math.floor(Math.min(remaining, maxCargo, st.market![d.item].stock, h.room(st, d.owner), takesSpace(d.item) ? room : Infinity, budgetLeft() / price, (co.credits - floor) / price) + EPS);
+          let amount = Math.floor(Math.min(remaining, maxCargo, st.market![d.item].stock, h.room(st, d.owner), takesSpace(d.item) ? room : Infinity, budgetLeft() / price, (co.credits - floor) / price) + EPS);
+          // a purchase walks the price up (market.buyCost): buy only what the budget and the credit floor really cover
+          const spendable = Math.min(budgetLeft(), co.credits - floor);
+          if (amount >= 1 && buyCost(st.market![d.item], amount, true) > spendable + EPS) {
+            let lo = 0, hi = amount;
+            while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (buyCost(st.market![d.item], mid, true) <= spendable + EPS) lo = mid; else hi = mid - 1; }
+            amount = lo;
+          }
           if (amount < 1) continue;
           const stockBefore = qty(st.storage[d.owner], d.item), creditsBefore = co.credits;
           const err = h.command(d.owner, { c: 'buy', station: st.id, res: d.item, amount });
@@ -288,5 +320,125 @@ export function planProcurement(h: WorldSim) {
     else if (!(policy.maxPrice[d.item] > 0)) p.reason = '품목별 구매 최대 단가를 설정하세요';
     else if (policy.spent >= policy.budget || co.credits <= policy.minCredits) p.reason = '구매 예산 또는 최소 보유 크레딧 제한';
     else if (!p.reason) p.reason = '접근 가능한 재고·시장·경로 또는 구매 조건 대기';
+  }
+}
+
+// ─────────────────────────────────────────── AUTO-P0: stock floors and excess-stock sales
+
+export interface SalesSettings { item: string; sell: boolean; minPrice?: number; station?: string; keep?: number }
+const sellableItem = (item: unknown): item is string => typeof item === 'string' && (Object.hasOwn(ITEMS, item) || Object.hasOwn(EQUIPMENT, item));
+/**
+ * One item's sales policy: sell its excess automatically (never below `minPrice` a unit) or stop, and optionally
+ * the minimum stock to keep at one store (the procurement `protectedStock`, shared with every automatic path).
+ */
+export function setSalesPolicy(h: WorldSim, owner: string, s: SalesSettings): string | null {
+  const co = h.st.companies[owner];
+  if (!growthOn(h.st) || !co || co.kind !== 'player' || !s || typeof s !== 'object') return '이 세계에서는 판매 정책을 사용할 수 없습니다';
+  if (!sellableItem(s.item) || typeof s.sell !== 'boolean') return '품목과 자동 판매 여부를 확인하세요';
+  if (s.minPrice !== undefined && !finiteMoney(s.minPrice)) return '최저 판매 단가를 확인하세요';
+  if (s.station !== undefined || s.keep !== undefined) {
+    const st = typeof s.station === 'string' && Object.hasOwn(h.st.stations, s.station) ? h.st.stations[s.station] : undefined;
+    if (!st || !(h.canDock(st, owner) || Object.hasOwn(st.storage, owner)) || !finiteMoney(s.keep) || s.keep! > 1e9) return '최소 비축 수량과 보관 정거장을 확인하세요';
+  }
+  const policy = co.procurement ??= defaultProcurementPolicy();
+  if (s.sell) (policy.sales ??= {})[s.item] = { minPrice: s.minPrice ?? 0 };
+  else if (policy.sales?.[s.item]) {
+    delete policy.sales[s.item]; delete policy.salesStatus?.[s.item];
+    // unassigned automatic shipments of this item stop; loaded ones finish their sale
+    for (const j of Object.values(h.st.logisticsJobs ?? {})) if (j.owner === owner && j.sale && j.item === s.item && live(j) && !j.ship && j.carried <= EPS) controlPoolJob(h, owner, j.id, 'cancel');
+  }
+  if (s.station !== undefined) {
+    const stocks = policy.protectedStock[s.station] ??= {};
+    if (s.keep! > 0) stocks[s.item] = s.keep!; else delete stocks[s.item];
+    if (!Object.keys(stocks).length) delete policy.protectedStock[s.station];
+  }
+  return null;
+}
+/** what selling up to `amount` at `st` pays — walking the price down, within the station's budget (less `promised`
+ *  to shipments already on their way), stopping where the unit price falls under `minPrice` */
+export function saleQuote(h: Pick<WorldSim, 'st' | 'price'>, st: Station, item: string, amount: number, minPrice: number, promised = 0): { sold: number; value: number } {
+  const m = st.market?.[item]; if (!m || amount < 1) return { sold: 0, value: 0 };
+  const tax = 1 - (st.tax ?? 0), budget = st.public && st.funds !== undefined;
+  const sim = { ...m }; let funds = (st.funds ?? 0) - promised, left = Math.floor(amount), sold = 0, value = 0;
+  while (left >= 1) {
+    let chunk = Math.min(left, tradeChunk(m));
+    const p = priceOf(sim, 'sell', true);
+    if (p * tax < minPrice - EPS || p <= 0) break;
+    if (budget) { const can = Math.floor(funds / (p * tax)); if (can < chunk) chunk = can; if (chunk <= 0) break; funds -= chunk * p * tax; }
+    value += chunk * p * tax; sim.stock += chunk; left -= chunk; sold += chunk;
+  }
+  return { sold, value };
+}
+const hopsOf = (score: number) => Math.floor(score / 200000);
+/**
+ * Excess-stock sales, run with the procurement planner. For every item with a sales policy and every store that
+ * holds more than its floor: sell at that station when its market pays the floor price, otherwise create a pool
+ * sale shipment to the best reachable market (price walk, station budget less other shipments, jumps, risk limit,
+ * docking and berths). Only idle pool haulers carry — a mining fleet's own hauler keeps its mining role. With no
+ * market or no hauler the goods stay where they are and the next pass retries. A shipment stuck at a market whose
+ * budget ran out is sent on to another market with its cargo.
+ */
+export function planSales(h: WorldSim) {
+  if (!growthOn(h.st)) return;
+  for (const co of Object.values(h.st.companies)) {
+    const policy = co.kind === 'player' ? co.procurement : undefined, rules = policy?.sales;
+    if (!policy || !rules || !Object.keys(rules).length) continue;
+    const status = policy.salesStatus ??= {};
+    const ships = poolShips(h, co.id), maxCargo = ships.length ? Math.max(...ships.map(s => econOf(s).cargo * techFx(co.tech).cargoMul)) : 0;
+    const jobs = Object.values(h.st.logisticsJobs ?? {}).filter(j => j.owner === co.id && j.kind === 'sell' && live(j));
+    const promised = new Map<string, number>();
+    const promise = (st: Station, item: string, n: number) => promised.set(st.id, (promised.get(st.id) ?? 0) + n * h.price(st, item, 'sell') * (1 - (st.tax ?? 0)));
+    for (const j of jobs) { const st = h.st.stations[j.to]; if (st?.market?.[j.item]) promise(st, j.item, j.carried + j.reserved + Math.max(0, outstanding(j) - j.reserved - j.carried)); }
+    const markets = (item: string, from: Station, amount: number, rule: SalesRule, exclude?: string) => Object.values(h.st.stations)
+      .filter(m => m.id !== from.id && m.id !== exclude && m.public && m.market?.[item] && h.canDock(m, co.id) && canCarry(ships, from, m, false))
+      .map(m => { const score = routeScore(h, from, m, policy.maxRisk); const own = promised.get(m.id) ?? 0; const q = Number.isFinite(score) ? saleQuote(h, m, item, amount, rule.minPrice, own) : { sold: 0, value: 0 }; return { m, hops: hopsOf(score), q, rank: q.value * Math.max(0.5, 1 - 0.06 * hopsOf(score)) }; })
+      .filter(x => x.q.sold >= 1).sort((a, b) => b.rank - a.rank || a.hops - b.hops || a.m.id.localeCompare(b.m.id));
+    for (const item of Object.keys(rules).sort()) {
+      const rule = rules[item], st0 = status[item] ?? { t: h.time, excess: 0, moving: 0, reason: '', sold: 0, earned: 0 };
+      const reasons: string[] = [];
+      // shipments waiting at a market that cannot pay go on to another one (cargo kept aboard throughout)
+      // (a market that no longer buys at once; one short of budget when it cannot pay for half the load)
+      for (const j of jobs) if (j.sale && j.item === item && j.carried > EPS && j.ship && j.state === 'waiting' && (j.code === 'market' || j.code === 'budget' && (() => { const here = h.st.stations[j.to]; return !here || saleQuote(h, here, item, j.carried, rule.minPrice).sold < j.carried / 2; })())) {
+        const here = h.st.stations[j.to]; const alt = here && markets(item, here, j.carried, { minPrice: rule.minPrice }, j.to)[0];
+        if (alt) { j.to = alt.m.id; j.state = 'active'; delete j.code; delete j.retryAt; j.attempts = 0; j.reason = `${here.name} 예산 소진 — ${alt.m.name}(으)로 이동해 판매`; promise(alt.m, item, j.carried); }
+      }
+      let cap = companySaleCap(h, co.id, item), excessTotal = 0;
+      for (const st of Object.values(h.st.stations).filter(x => qty(x.storage[co.id], item) >= 1).sort((a, b) => a.id.localeCompare(b.id))) {
+        let excess = Math.floor(Math.min(sellableStock(h, co.id, st, item), cap) + EPS); if (excess < 1) continue;
+        excessTotal += excess;
+        // 1. this station's own market pays enough: sell here, no shipment
+        if (st.market?.[item] && h.canDock(st, co.id)) {
+          const q = saleQuote(h, st, item, excess, rule.minPrice, promised.get(st.id) ?? 0);
+          if (q.sold >= 1) {
+            const r = h.sellAt(st, co.id, item, q.sold); takec(h.storage(st, co.id), item, r.sold);
+            st0.sold += r.sold; st0.earned += r.value; excess -= r.sold; cap -= r.sold;
+            if (r.sold > 0) h.ev('money', `자동 판매: ${st.name}에서 ${ITEMS[item]?.name ?? EQUIPMENT[item]?.name ?? item} ${Math.round(r.sold)} 판매 +${Math.round(r.value).toLocaleString()} cr (초과 재고)`, { company: co.id, pos: st.pos });
+          }
+          if (excess < 1) continue;
+        }
+        if (!h.canDock(st, co.id)) { reasons.push(`${st.name}: 정박할 수 없어 운송 불가`); continue; }
+        // 2. ship it to another market
+        if (!ships.length) { reasons.push(`${st.name} 초과 ${excess}: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송`); continue; }
+        const usable = ships.filter(s => s.hp >= HAULER_MIN_HP);
+        if (!usable.length) { reasons.push(`${st.name} 초과 ${excess}: 공용 수송선 손상(내구 ${Math.round(Math.max(...ships.map(s => s.hp)) * 100)}%) — 수리 후 자동 운송, 재고 보존`); continue; }
+        const waiting = jobs.filter(j => j.sale && j.from === st.id && j.item === item && !j.ship && j.reserved <= EPS && j.state !== 'paused').length;
+        if (waiting >= usable.length) continue;
+        // ship full loads: a part load only when the store is nearly full or the excess has waited 10 minutes
+        const since = (st0.since ??= {});
+        since[st.id] ??= h.time;
+        const lot = Math.floor(maxCargo + EPS);
+        if (excess < lot * 0.6 && h.room(st, co.id) > lot && h.time - since[st.id] < 600) continue;
+        const amount = Math.min(excess, lot), best = markets(item, st, amount, rule)[0];
+        if (!best) { reasons.push(`${st.name} 초과 ${excess}: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도`); continue; }
+        const err = createPoolJob(h, co.id, { from: st.id, to: best.m.id, item, kind: 'sell', amount: Math.floor(best.q.sold), priority: 4, repeat: false }, undefined, true);
+        if (err) { reasons.push(`${st.name}: ${err}`); continue; }
+        const j = Object.values(h.st.logisticsJobs!).at(-1)!; jobs.push(j); promise(best.m, item, j.amount); cap -= j.amount; delete since[st.id];
+      }
+      const mine = jobs.filter(j => j.sale && j.item === item && live(j));
+      st0.t = h.time; st0.excess = excessTotal;
+      st0.moving = mine.reduce((n, j) => n + Math.max(0, outstanding(j)), 0);
+      st0.reason = reasons[0] ?? (st0.moving > 0 ? `운송·판매 중 ${Math.round(st0.moving)}` : excessTotal > 0 ? '초과 재고 처리 중' : '초과 재고 없음 — 최소 비축 유지');
+      status[item] = st0;
+    }
   }
 }

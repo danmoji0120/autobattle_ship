@@ -8,6 +8,7 @@ import { planProcurement, defaultProcurementPolicy } from '../src/world/procurem
 import { observeWorld } from '../src/world/observe';
 import { grantBlueprint, hullBlueprint } from '../src/world/blueprints';
 import { dispatchPool } from '../src/world/autonomousLogistics';
+import { buyCost } from '../src/world/market';
 import { GameServer, type Conn } from '../src/server/core';
 import { TIER_BASE } from '../src/world/hullops';
 
@@ -75,9 +76,14 @@ describe('P9.8.2 procurement planner', () => {
     for (const [item, n] of Object.entries(needs)) expect(Object.values(f.sim.st.logisticsJobs ?? {}).filter(j => j.procurement && j.item === item).reduce((sum, j) => sum + j.delivered, 0)).toBeCloseTo(n, 5);
   }, 30000);
   it('purchases once through the real market, restores, physically delivers and produces', () => {
-    const f = fixture(), r = recipeFor(f.sim.st, 'alloy_direct')!, price = f.sim.price(f.a, 'ore', 'buy');
+    // A-3.2a/AUTO-P0: a purchase walks the price up, so 60 units cost buyCost(…, 60), a little over 60 × the first unit's price
+    const f = fixture(), r = recipeFor(f.sim.st, 'alloy_direct')!, unit = f.sim.price(f.a, 'ore', 'buy'), price = buyCost(f.a.market!.ore, 60, true) / 60;
     expect(f.sim.command(f.p, { c: 'prodOrder', station: f.dst.id, recipe: r.id, mode: 'count', n: 1 })).toBeNull();
-    expect(f.sim.command(f.p, { c: 'procPolicy', settings: { enabled: true, autoBuy: true, budget: price * 60, minCredits: 0, maxRisk: 100, priceItem: 'ore', maxUnitPrice: price } })).toBeNull();
+    // one credit short of the real cost buys 59, never overspends
+    const probe = fixture(); probe.sim.command(probe.p, { c: 'prodOrder', station: probe.dst.id, recipe: r.id, mode: 'count', n: 1 });
+    probe.sim.command(probe.p, { c: 'procPolicy', settings: { enabled: true, autoBuy: true, budget: price * 60 - 1, minCredits: 0, maxRisk: 100, priceItem: 'ore', maxUnitPrice: unit } }); planProcurement(probe.sim);
+    expect(probe.co.procurement!.spent).toBeLessThanOrEqual(price * 60 - 1 + 1e-6); expect(qty(probe.a.storage[probe.p], 'ore')).toBe(59);
+    expect(f.sim.command(f.p, { c: 'procPolicy', settings: { enabled: true, autoBuy: true, budget: price * 60, minCredits: 0, maxRisk: 100, priceItem: 'ore', maxUnitPrice: unit } })).toBeNull();
     const credits = f.co.credits, market = f.a.market!.ore.stock; planProcurement(f.sim);
     expect(f.co.procurement!.spent).toBeCloseTo(price * 60, 6); expect(credits - f.co.credits).toBeCloseTo(price * 60, 6); expect(market - f.a.market!.ore.stock).toBe(60);
     expect(qty(f.a.storage[f.p], 'ore')).toBe(60); expect(qty(f.dst.storage[f.p], 'ore')).toBe(0);

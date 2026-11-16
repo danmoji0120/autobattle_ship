@@ -1,0 +1,5109 @@
+{
+ "mode": "blocked",
+ "hours": 2,
+ "credits0": 12000,
+ "repairs": 0,
+ "repairCost": 0,
+ "credits": 56575,
+ "net": 44575,
+ "pnl": {
+  "income": {
+   "sales": 47722.64076168541
+  },
+  "expense": {
+   "upkeep": 3147.999999997408
+  },
+  "sales": {
+   "titanium_ore": 35293.92676912201,
+   "ore": 12428.713992563371
+  },
+  "net": 44574.640761688
+ },
+ "storeEnd": {
+  "ore": 500,
+  "alloy": 0,
+  "crystal": 0,
+  "silicate": 1500
+ },
+ "usedEnd": 2000,
+ "aboardEnd": 412,
+ "fullAt": 2100,
+ "silicateHeldEnd": 1912,
+ "silicateShipped": {
+  "n": 0,
+  "v": 0,
+  "lost": 0
+ },
+ "oreKeptMinAfter30min": 500,
+ "salesStatus": {
+  "ore": {
+   "t": 7191,
+   "excess": 0,
+   "moving": 0,
+   "reason": "초과 재고 없음 — 최소 비축 유지",
+   "sold": 0,
+   "earned": 0
+  },
+  "silicate": {
+   "t": 7191,
+   "excess": 1500,
+   "moving": 0,
+   "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+   "sold": 0,
+   "earned": 0,
+   "since": {
+    "p9_anvil_port": 91
+   }
+  },
+  "titanium_ore": {
+   "t": 7191,
+   "excess": 0,
+   "moving": 0,
+   "reason": "초과 재고 없음 — 최소 비축 유지",
+   "sold": 0,
+   "earned": 0
+  }
+ },
+ "jobs": [],
+ "samples": [
+  {
+   "t": 60,
+   "credits": 11975,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0
+   },
+   "used": 0,
+   "aboard": 402,
+   "silicate": 60,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 120,
+   "credits": 12950,
+   "store": {
+    "ore": 145,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 62
+   },
+   "used": 207,
+   "aboard": 160,
+   "silicate": 86,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 180,
+   "credits": 13980,
+   "store": {
+    "ore": 289,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 413,
+   "aboard": 0,
+   "silicate": 124,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 240,
+   "credits": 13955,
+   "store": {
+    "ore": 289,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 413,
+   "aboard": 413,
+   "silicate": 186,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 300,
+   "credits": 15080,
+   "store": {
+    "ore": 434,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 186
+   },
+   "used": 620,
+   "aboard": 312,
+   "silicate": 233,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 360,
+   "credits": 16451,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 248
+   },
+   "used": 748,
+   "aboard": 70,
+   "silicate": 258,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 420,
+   "credits": 18029,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 310
+   },
+   "used": 810,
+   "aboard": 0,
+   "silicate": 310,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 480,
+   "credits": 18004,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 310
+   },
+   "used": 810,
+   "aboard": 413,
+   "silicate": 372,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 540,
+   "credits": 19582,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 372
+   },
+   "used": 872,
+   "aboard": 222,
+   "silicate": 405,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 600,
+   "credits": 21161,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 434
+   },
+   "used": 934,
+   "aboard": 0,
+   "silicate": 434,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 660,
+   "credits": 21136,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 434
+   },
+   "used": 934,
+   "aboard": 413,
+   "silicate": 496,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 720,
+   "credits": 22714,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 496
+   },
+   "used": 996,
+   "aboard": 374,
+   "silicate": 552,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 780,
+   "credits": 24291,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 558
+   },
+   "used": 1058,
+   "aboard": 132,
+   "silicate": 578,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 840,
+   "credits": 25867,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 620
+   },
+   "used": 1120,
+   "aboard": 0,
+   "silicate": 620,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 900,
+   "credits": 25842,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 620
+   },
+   "used": 1120,
+   "aboard": 413,
+   "silicate": 682,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 960,
+   "credits": 27420,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 682
+   },
+   "used": 1182,
+   "aboard": 283,
+   "silicate": 724,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1020,
+   "credits": 28997,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 744
+   },
+   "used": 1244,
+   "aboard": 42,
+   "silicate": 750,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1080,
+   "credits": 30573,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 806
+   },
+   "used": 1306,
+   "aboard": 0,
+   "silicate": 806,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1140,
+   "credits": 30549,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 806
+   },
+   "used": 1306,
+   "aboard": 412,
+   "silicate": 868,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1200,
+   "credits": 32127,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 868
+   },
+   "used": 1368,
+   "aboard": 193,
+   "silicate": 897,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1260,
+   "credits": 33703,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 930
+   },
+   "used": 1430,
+   "aboard": 0,
+   "silicate": 930,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1320,
+   "credits": 33678,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 930
+   },
+   "used": 1430,
+   "aboard": 413,
+   "silicate": 992,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1380,
+   "credits": 35257,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 992
+   },
+   "used": 1492,
+   "aboard": 345,
+   "silicate": 1044,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1440,
+   "credits": 36833,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1054
+   },
+   "used": 1554,
+   "aboard": 103,
+   "silicate": 1069,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1500,
+   "credits": 38410,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1116
+   },
+   "used": 1616,
+   "aboard": 0,
+   "silicate": 1116,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1560,
+   "credits": 38385,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1116
+   },
+   "used": 1616,
+   "aboard": 413,
+   "silicate": 1178,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1620,
+   "credits": 39961,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1178
+   },
+   "used": 1678,
+   "aboard": 255,
+   "silicate": 1216,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1680,
+   "credits": 41538,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1240
+   },
+   "used": 1740,
+   "aboard": 21,
+   "silicate": 1243,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1740,
+   "credits": 42586,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1281
+   },
+   "used": 1781,
+   "aboard": 138,
+   "silicate": 1302,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1800,
+   "credits": 43101,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1302
+   },
+   "used": 1802,
+   "aboard": 398,
+   "silicate": 1362,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1860,
+   "credits": 44677,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1364
+   },
+   "used": 1864,
+   "aboard": 165,
+   "silicate": 1389,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1920,
+   "credits": 46254,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1426
+   },
+   "used": 1926,
+   "aboard": 0,
+   "silicate": 1426,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1980,
+   "credits": 46229,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1426
+   },
+   "used": 1926,
+   "aboard": 413,
+   "silicate": 1488,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2040,
+   "credits": 47805,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1488
+   },
+   "used": 1988,
+   "aboard": 317,
+   "silicate": 1535,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2100,
+   "credits": 49382,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 125,
+   "silicate": 1561,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2160,
+   "credits": 50762,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 104,
+   "silicate": 1604,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2220,
+   "credits": 51129,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 328,
+   "silicate": 1650,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2280,
+   "credits": 51922,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 414,
+   "silicate": 1690,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2340,
+   "credits": 52922,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1723,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2400,
+   "credits": 53763,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 408,
+   "silicate": 1751,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2460,
+   "credits": 54474,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 409,
+   "silicate": 1775,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2520,
+   "credits": 55077,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 413,
+   "silicate": 1796,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2580,
+   "credits": 55730,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 381,
+   "silicate": 1814,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2640,
+   "credits": 56133,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 386,
+   "silicate": 1829,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2700,
+   "credits": 56582,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 367,
+   "silicate": 1841,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2760,
+   "credits": 56947,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 367,
+   "silicate": 1854,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2820,
+   "credits": 57153,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 395,
+   "silicate": 1866,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2880,
+   "credits": 57376,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 401,
+   "silicate": 1876,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2940,
+   "credits": 57555,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 393,
+   "silicate": 1881,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3000,
+   "credits": 57701,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 395,
+   "silicate": 1888,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3060,
+   "credits": 57777,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 404,
+   "silicate": 1892,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3120,
+   "credits": 57854,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 408,
+   "silicate": 1897,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3180,
+   "credits": 57941,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 403,
+   "silicate": 1900,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3240,
+   "credits": 57965,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 408,
+   "silicate": 1902,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3300,
+   "credits": 57996,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 410,
+   "silicate": 1904,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3360,
+   "credits": 58025,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 408,
+   "silicate": 1906,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3420,
+   "credits": 58029,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 410,
+   "silicate": 1907,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3480,
+   "credits": 58028,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 411,
+   "silicate": 1908,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3540,
+   "credits": 58033,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 410,
+   "silicate": 1909,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3600,
+   "credits": 58019,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 411,
+   "silicate": 1910,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3660,
+   "credits": 58007,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 411,
+   "silicate": 1910,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3720,
+   "credits": 57993,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1911,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3780,
+   "credits": 57978,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 413,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3840,
+   "credits": 57958,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 413,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3900,
+   "credits": 57936,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3960,
+   "credits": 57911,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4020,
+   "credits": 57886,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4080,
+   "credits": 57862,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4140,
+   "credits": 57837,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4200,
+   "credits": 57812,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4260,
+   "credits": 57787,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4320,
+   "credits": 57763,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4380,
+   "credits": 57738,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4440,
+   "credits": 57713,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4500,
+   "credits": 57688,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4560,
+   "credits": 57664,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4620,
+   "credits": 57639,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4680,
+   "credits": 57614,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4740,
+   "credits": 57589,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4800,
+   "credits": 57565,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4860,
+   "credits": 57540,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4920,
+   "credits": 57515,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4980,
+   "credits": 57490,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5040,
+   "credits": 57466,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5100,
+   "credits": 57441,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5160,
+   "credits": 57416,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5220,
+   "credits": 57391,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5280,
+   "credits": 57367,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5340,
+   "credits": 57342,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5400,
+   "credits": 57317,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5460,
+   "credits": 57292,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5520,
+   "credits": 57268,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5580,
+   "credits": 57243,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5640,
+   "credits": 57218,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5700,
+   "credits": 57193,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5760,
+   "credits": 57169,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5820,
+   "credits": 57144,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5880,
+   "credits": 57119,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5940,
+   "credits": 57094,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6000,
+   "credits": 57070,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6060,
+   "credits": 57045,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6120,
+   "credits": 57020,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6180,
+   "credits": 56995,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6240,
+   "credits": 56971,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6300,
+   "credits": 56946,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6360,
+   "credits": 56921,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6420,
+   "credits": 56896,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6480,
+   "credits": 56872,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6540,
+   "credits": 56847,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6600,
+   "credits": 56822,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6660,
+   "credits": 56797,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6720,
+   "credits": 56773,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6780,
+   "credits": 56748,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6840,
+   "credits": 56723,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6900,
+   "credits": 56698,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6960,
+   "credits": 56674,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7020,
+   "credits": 56649,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7080,
+   "credits": 56624,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7140,
+   "credits": 56599,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7200,
+   "credits": 56575,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 412,
+   "silicate": 1912,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 조건에 맞는 매입 시장 없음(최저 단가·예산·경로 위험·정박) — 재고 보존, 재시도",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 91
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  }
+ ]
+}

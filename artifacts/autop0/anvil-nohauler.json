@@ -1,0 +1,4746 @@
+{
+ "mode": "nohauler",
+ "hours": 2,
+ "credits0": 12000,
+ "repairs": 0,
+ "repairCost": 0,
+ "credits": 67194,
+ "net": 55194,
+ "pnl": {
+  "income": {
+   "sales": 58341.582631685014
+  },
+  "expense": {
+   "upkeep": 3147.9999999960874
+  },
+  "sales": {
+   "titanium_ore": 42884.420674413486,
+   "ore": 15457.161957271515
+  },
+  "net": 55193.58263168893
+ },
+ "storeEnd": {
+  "ore": 500,
+  "alloy": 0,
+  "crystal": 0,
+  "silicate": 1500
+ },
+ "usedEnd": 2000,
+ "aboardEnd": 829,
+ "fullAt": 1980,
+ "silicateHeldEnd": 2329,
+ "silicateShipped": {
+  "n": 0,
+  "v": 0,
+  "lost": 0
+ },
+ "oreKeptMinAfter30min": 500,
+ "salesStatus": {
+  "ore": {
+   "t": 7191,
+   "excess": 0,
+   "moving": 0,
+   "reason": "초과 재고 없음 — 최소 비축 유지",
+   "sold": 0,
+   "earned": 0
+  },
+  "silicate": {
+   "t": 7191,
+   "excess": 1500,
+   "moving": 0,
+   "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+   "sold": 0,
+   "earned": 0
+  },
+  "titanium_ore": {
+   "t": 7191,
+   "excess": 0,
+   "moving": 0,
+   "reason": "초과 재고 없음 — 최소 비축 유지",
+   "sold": 0,
+   "earned": 0
+  }
+ },
+ "jobs": [],
+ "samples": [
+  {
+   "t": 60,
+   "credits": 11975,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0
+   },
+   "used": 0,
+   "aboard": 402,
+   "silicate": 60,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 120,
+   "credits": 12920,
+   "store": {
+    "ore": 166,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 49
+   },
+   "used": 215,
+   "aboard": 413,
+   "silicate": 124,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 180,
+   "credits": 13983,
+   "store": {
+    "ore": 290,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 415,
+   "aboard": 49,
+   "silicate": 132,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 240,
+   "credits": 14160,
+   "store": {
+    "ore": 316,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 135
+   },
+   "used": 451,
+   "aboard": 452,
+   "silicate": 203,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 300,
+   "credits": 14524,
+   "store": {
+    "ore": 364,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 156
+   },
+   "used": 520,
+   "aboard": 593,
+   "silicate": 245,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 360,
+   "credits": 16260,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 223
+   },
+   "used": 723,
+   "aboard": 276,
+   "silicate": 280,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 420,
+   "credits": 17261,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 280
+   },
+   "used": 780,
+   "aboard": 254,
+   "silicate": 318,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 480,
+   "credits": 18870,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 342
+   },
+   "used": 842,
+   "aboard": 370,
+   "silicate": 399,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 540,
+   "credits": 19921,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 384
+   },
+   "used": 884,
+   "aboard": 174,
+   "silicate": 411,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 600,
+   "credits": 20430,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 405
+   },
+   "used": 905,
+   "aboard": 543,
+   "silicate": 487,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 660,
+   "credits": 22051,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 461
+   },
+   "used": 961,
+   "aboard": 413,
+   "silicate": 530,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 720,
+   "credits": 23597,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 530
+   },
+   "used": 1030,
+   "aboard": 200,
+   "silicate": 560,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 780,
+   "credits": 23572,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 530
+   },
+   "used": 1030,
+   "aboard": 769,
+   "silicate": 645,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 840,
+   "credits": 25678,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 613
+   },
+   "used": 1113,
+   "aboard": 406,
+   "silicate": 674,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 900,
+   "credits": 27268,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 675
+   },
+   "used": 1175,
+   "aboard": 442,
+   "silicate": 741,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 960,
+   "credits": 27783,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 696
+   },
+   "used": 1196,
+   "aboard": 609,
+   "silicate": 787,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1020,
+   "credits": 29948,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 763
+   },
+   "used": 1263,
+   "aboard": 276,
+   "silicate": 820,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1080,
+   "credits": 30947,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 820
+   },
+   "used": 1320,
+   "aboard": 279,
+   "silicate": 862,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1140,
+   "credits": 30922,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 820
+   },
+   "used": 1320,
+   "aboard": 819,
+   "silicate": 943,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1200,
+   "credits": 33553,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 924
+   },
+   "used": 1424,
+   "aboard": 258,
+   "silicate": 963,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1260,
+   "credits": 35134,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 986
+   },
+   "used": 1486,
+   "aboard": 357,
+   "silicate": 1040,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1320,
+   "credits": 35649,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1007
+   },
+   "used": 1507,
+   "aboard": 487,
+   "silicate": 1080,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1380,
+   "credits": 37293,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1054
+   },
+   "used": 1554,
+   "aboard": 459,
+   "silicate": 1138,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1440,
+   "credits": 38286,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1111
+   },
+   "used": 1611,
+   "aboard": 339,
+   "silicate": 1161,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1500,
+   "credits": 39932,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1156
+   },
+   "used": 1656,
+   "aboard": 413,
+   "silicate": 1235,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1560,
+   "credits": 40447,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1177
+   },
+   "used": 1677,
+   "aboard": 431,
+   "silicate": 1258,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1620,
+   "credits": 42013,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1243
+   },
+   "used": 1743,
+   "aboard": 413,
+   "silicate": 1318,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1680,
+   "credits": 43033,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1298
+   },
+   "used": 1798,
+   "aboard": 293,
+   "silicate": 1342,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1740,
+   "credits": 44217,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1344
+   },
+   "used": 1844,
+   "aboard": 429,
+   "silicate": 1409,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1800,
+   "credits": 44732,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1365
+   },
+   "used": 1865,
+   "aboard": 586,
+   "silicate": 1453,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1860,
+   "credits": 46890,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1432
+   },
+   "used": 1932,
+   "aboard": 276,
+   "silicate": 1489,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1920,
+   "credits": 47406,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1453
+   },
+   "used": 1953,
+   "aboard": 430,
+   "silicate": 1533,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1980,
+   "credits": 48992,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 427,
+   "silicate": 1593,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2040,
+   "credits": 49977,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 379,
+   "silicate": 1618,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2100,
+   "credits": 50491,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 524,
+   "silicate": 1658,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2160,
+   "credits": 51391,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 553,
+   "silicate": 1692,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2220,
+   "credits": 52234,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 550,
+   "silicate": 1720,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2280,
+   "credits": 52748,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 674,
+   "silicate": 1756,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2340,
+   "credits": 54662,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 417,
+   "silicate": 1782,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2400,
+   "credits": 55341,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 670,
+   "silicate": 1844,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2460,
+   "credits": 56904,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 500,
+   "silicate": 1870,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2520,
+   "credits": 57339,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 763,
+   "silicate": 1925,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2580,
+   "credits": 58394,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 721,
+   "silicate": 1955,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2640,
+   "credits": 59058,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 760,
+   "silicate": 1984,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2700,
+   "credits": 60324,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 760,
+   "silicate": 2025,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2760,
+   "credits": 61379,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 592,
+   "silicate": 2036,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2820,
+   "credits": 61636,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 824,
+   "silicate": 2081,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2880,
+   "credits": 62694,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 581,
+   "silicate": 2081,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2940,
+   "credits": 62668,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2119,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3000,
+   "credits": 63541,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 717,
+   "silicate": 2134,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3060,
+   "credits": 63661,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 795,
+   "silicate": 2150,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3120,
+   "credits": 64237,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2177,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3180,
+   "credits": 64889,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 707,
+   "silicate": 2182,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3240,
+   "credits": 64980,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2204,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3300,
+   "credits": 65535,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 809,
+   "silicate": 2220,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3360,
+   "credits": 65921,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 745,
+   "silicate": 2224,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3420,
+   "credits": 65980,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2239,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3480,
+   "credits": 66377,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2253,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3540,
+   "credits": 66706,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 781,
+   "silicate": 2257,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3600,
+   "credits": 66793,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 806,
+   "silicate": 2264,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3660,
+   "credits": 66963,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2274,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3720,
+   "credits": 67199,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2283,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3780,
+   "credits": 67397,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 806,
+   "silicate": 2286,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3840,
+   "credits": 67470,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 808,
+   "silicate": 2290,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3900,
+   "credits": 67532,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2296,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3960,
+   "credits": 67664,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2301,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4020,
+   "credits": 67771,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 817,
+   "silicate": 2303,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4080,
+   "credits": 67809,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 816,
+   "silicate": 2305,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4140,
+   "credits": 67889,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 818,
+   "silicate": 2309,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4200,
+   "credits": 67909,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2312,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4260,
+   "credits": 67968,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 821,
+   "silicate": 2313,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4320,
+   "credits": 68013,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 822,
+   "silicate": 2316,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4380,
+   "credits": 68019,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 823,
+   "silicate": 2317,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4440,
+   "credits": 68029,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 828,
+   "silicate": 2319,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4500,
+   "credits": 68046,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2320,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4560,
+   "credits": 68067,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 826,
+   "silicate": 2321,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4620,
+   "credits": 68063,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2322,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4680,
+   "credits": 68073,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 827,
+   "silicate": 2323,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4740,
+   "credits": 68066,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2324,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4800,
+   "credits": 68065,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2325,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4860,
+   "credits": 68061,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 828,
+   "silicate": 2325,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4920,
+   "credits": 68047,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2326,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4980,
+   "credits": 68043,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2326,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5040,
+   "credits": 68029,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2327,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5100,
+   "credits": 68014,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2327,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5160,
+   "credits": 68000,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 828,
+   "silicate": 2327,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5220,
+   "credits": 67982,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 828,
+   "silicate": 2328,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5280,
+   "credits": 67961,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2328,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5340,
+   "credits": 67943,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2328,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5400,
+   "credits": 67922,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2328,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5460,
+   "credits": 67904,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2328,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5520,
+   "credits": 67887,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5580,
+   "credits": 67862,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5640,
+   "credits": 67837,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5700,
+   "credits": 67812,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5760,
+   "credits": 67788,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5820,
+   "credits": 67763,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5880,
+   "credits": 67738,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5940,
+   "credits": 67713,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6000,
+   "credits": 67689,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6060,
+   "credits": 67664,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6120,
+   "credits": 67639,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6180,
+   "credits": 67614,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6240,
+   "credits": 67590,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6300,
+   "credits": 67565,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6360,
+   "credits": 67540,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6420,
+   "credits": 67515,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6480,
+   "credits": 67491,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6540,
+   "credits": 67466,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6600,
+   "credits": 67441,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6660,
+   "credits": 67416,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6720,
+   "credits": 67392,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6780,
+   "credits": 67367,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6840,
+   "credits": 67342,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6900,
+   "credits": 67317,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6960,
+   "credits": 67293,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7020,
+   "credits": 67268,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7080,
+   "credits": 67243,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7140,
+   "credits": 67218,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7200,
+   "credits": 67194,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1500
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2329,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 1500,
+     "moving": 0,
+     "reason": "앤빌 광부조합 초과 1500: 공용 수송선 없음(채굴 편대 소속 수송선은 채굴 운반 전용) — 재고 보존, 대기 편대에 수송선을 두면 자동 운송",
+     "sold": 0,
+     "earned": 0
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  }
+ ]
+}

@@ -12,6 +12,7 @@ import { departureHeld } from './upkeep';
 import { usableRouteGate, incomingRoutes } from './logistics';
 import { emit, watchMoney } from './observe';
 import { effSec } from './security';
+import { stockFloor } from './operations';
 
 export interface PoolRequest {
   from: string; to: string; item: string;
@@ -35,6 +36,8 @@ export interface LogisticsJob extends PoolRequest {
   stow?: true;
   /** P13.2: part of `lost` that was jettisoned under a raider's demand (not a destroyed ship) */
   pirated?: number;
+  /** AUTO-P0: created by the excess-stock sales planner (procurement.ts `planSales`) — may be re-targeted */
+  sale?: true;
 }
 type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev'>;
 const EPS = 1e-9;
@@ -55,10 +58,10 @@ function problem(h: Host, owner: string, r: PoolRequest, external = false, reser
   if (!validAmount || !Number.isSafeInteger(r.priority) || r.priority < 0 || r.priority > 9 || typeof r.repeat !== 'boolean') return '수량은 양의 정수, 우선순위는 0–9여야 합니다';
   return null;
 }
-export function createPoolJob(h: Host, owner: string, request: PoolRequest, procurement?: string): string | null {
+export function createPoolJob(h: Host, owner: string, request: PoolRequest, procurement?: string, sale = false): string | null {
   const err = problem(h, owner, request, !!procurement); if (err) return err;
   const { from, to, item, kind, amount, priority, repeat } = request;
-  const job: LogisticsJob = { id: h.id('lj'), owner, from, to, item, kind, amount, priority, repeat, created: h.time, updated: h.time, state: 'queued', reserved: 0, carried: 0, delivered: 0, cycleDelivered: 0, lost: 0, withdrawn: 0, earned: 0, cycles: 0, ...(procurement ? { procurement } : {}) };
+  const job: LogisticsJob = { id: h.id('lj'), owner, from, to, item, kind, amount, priority, repeat, created: h.time, updated: h.time, state: 'queued', reserved: 0, carried: 0, delivered: 0, cycleDelivered: 0, lost: 0, withdrawn: 0, earned: 0, cycles: 0, ...(procurement ? { procurement } : {}), ...(sale && kind === 'sell' ? { sale: true as const } : {}) };
   (h.st.logisticsJobs ??= {})[job.id] = job;
   return null;
 }
@@ -233,12 +236,13 @@ export function dispatchPool(h: Host) {
   const ships = Object.values(h.st.ships).filter(s => free(h, s, held)).sort((a, b) => a.id.localeCompare(b.id));
   for (const j of jobs) {
     const a = h.st.stations[j.from], b = h.st.stations[j.to];
-    const maxRisk = j.procurement ? h.st.companies[j.owner]?.procurement?.maxRisk ?? 100 : undefined;
+    const maxRisk = j.procurement || j.sale ? h.st.companies[j.owner]?.procurement?.maxRisk ?? 100 : undefined;
     const external = !!a && !!j.procurement && !h.canDock(a, j.owner) && !a.public && a.owner !== j.owner && qty(a.storage[j.owner], j.item) > EPS;
     if (!a || !b || (!h.canDock(a, j.owner) && !external) || (j.kind === 'construction' ? b.owner !== j.owner : !h.canDock(b, j.owner))) { j.state = 'waiting'; j.reason = '정거장 또는 이용 권한을 확인하세요'; j.code = 'station'; continue; }
-    const protectedAmount = j.procurement ? h.st.companies[j.owner]?.procurement?.protectedStock?.[a.id]?.[j.item] ?? 0 : 0;
+    // AUTO-P0: a sale shipment (manual or automatic) leaves the common stock floor (minimum stock, stockpile goals, industry needs)
+    const protectedAmount = j.kind === 'sell' ? stockFloor(h, j.owner, a, j.item) : j.procurement ? h.st.companies[j.owner]?.procurement?.protectedStock?.[a.id]?.[j.item] ?? 0 : 0;
     const freeStock = Math.max(0, qty(a.storage[j.owner], j.item) - protectedAmount);
-    if (freeStock <= EPS) { j.state = 'waiting'; j.reason = '출발지 자유 재고 부족 또는 보호 재고 — 재고가 생기면 자동 재시도'; j.code = 'source'; continue; }
+    if (freeStock <= EPS) { j.state = 'waiting'; j.reason = j.kind === 'sell' && protectedAmount > 0 ? '출발지 재고가 최소 비축·생산 예약 이하 — 초과분이 생기면 자동 재시도' : '출발지 자유 재고 부족 또는 보호 재고 — 재고가 생기면 자동 재시도'; j.code = 'source'; continue; }
     if (j.kind === 'construction' && constructionRoom(b, j.item, true) - incomingRoutes(h, j.owner, j.to, j.item) - incomingPool(h.st, j.owner, j.to, j.item) <= EPS) { j.state = 'waiting'; j.reason = '현장 필요량 확보 또는 운송 중 — 추가 수요 대기'; j.code = 'construction'; continue; }
     if (!path(h, a.pos, b.pos, maxRisk)) { j.state = 'waiting'; j.reason = '허용된 점프 경로가 없습니다 — 경로 또는 위험 제한을 확인하세요'; j.code = 'path'; continue; }
     const candidates = ships.filter(s => s.owner === j.owner && (external || berthFits(a, econOf(s).berth)) && (j.kind === 'construction' || berthFits(b, econOf(s).berth)) && path(h, s.pos, a.pos, maxRisk));
@@ -303,7 +307,7 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
   if (!site && !externalPickup && !berthFits(station, econOf(s).berth)) { wait(h, j, s, 'berth', '정박 규격 부족 — 시설이나 함선을 확인하세요'); return true; }
   const limit = !site && !externalPickup ? stationBerths(station) : undefined;
   if (limit !== undefined && !(s.state === 'docked' && s.task.k === 'docked' && s.task.station === station.id) && occupiedBerths(h.st, station.id, s.id) >= limit) { wait(h, j, s, 'berth_full', '정박 공간 부족 — 다른 함선이 출항하면 자동 재개'); return true; }
-  if (!path(h, s.pos, station.pos, j.procurement ? h.st.companies[j.owner]?.procurement?.maxRisk ?? 100 : undefined)) { wait(h, j, s, 'path', '허용된 점프 경로가 없습니다 — 경로 또는 위험 제한 회복 대기'); return true; }
+  if (!path(h, s.pos, station.pos, j.procurement || j.sale ? h.st.companies[j.owner]?.procurement?.maxRisk ?? 100 : undefined)) { wait(h, j, s, 'path', '허용된 점프 경로가 없습니다 — 경로 또는 위험 제한 회복 대기'); return true; }
   clearWait(h, j, s); j.state = 'active'; delete j.reason;
   if (!(site || externalPickup ? h.goConstruction(s, station, dt, speed) : h.goDock(s, station, dt, speed, true, true))) return true;
   if (j.carried > EPS) {

@@ -1,0 +1,1720 @@
+{
+ "mode": "base",
+ "hours": 2,
+ "credits0": 12000,
+ "repairs": 0,
+ "repairCost": 0,
+ "credits": 81428,
+ "net": 69428,
+ "pnl": {
+  "income": {
+   "sales": 72726.43156589476
+  },
+  "expense": {
+   "upkeep": 3297.9999999978554
+  },
+  "sales": {
+   "ore": 20633.004490413834,
+   "titanium_ore": 52093.427075480875
+  },
+  "net": 69428.4315658969
+ },
+ "storeEnd": {
+  "ore": 0,
+  "alloy": 0,
+  "crystal": 0,
+  "silicate": 2000
+ },
+ "usedEnd": 2000,
+ "aboardEnd": 830,
+ "fullAt": 2640,
+ "silicateHeldEnd": 2830,
+ "silicateShipped": {
+  "n": 0,
+  "v": 0,
+  "lost": 0
+ },
+ "oreKeptMinAfter30min": 0,
+ "jobs": [],
+ "samples": [
+  {
+   "t": 60,
+   "credits": 11975,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0
+   },
+   "used": 0,
+   "aboard": 402,
+   "silicate": 60,
+   "status": {}
+  },
+  {
+   "t": 120,
+   "credits": 13373,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 49
+   },
+   "used": 49,
+   "aboard": 413,
+   "silicate": 124,
+   "status": {}
+  },
+  {
+   "t": 180,
+   "credits": 14827,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 124,
+   "aboard": 49,
+   "silicate": 132,
+   "status": {}
+  },
+  {
+   "t": 240,
+   "credits": 15083,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 135
+   },
+   "used": 135,
+   "aboard": 452,
+   "silicate": 203,
+   "status": {}
+  },
+  {
+   "t": 300,
+   "credits": 15598,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 156
+   },
+   "used": 156,
+   "aboard": 593,
+   "silicate": 245,
+   "status": {}
+  },
+  {
+   "t": 360,
+   "credits": 17762,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 223
+   },
+   "used": 223,
+   "aboard": 276,
+   "silicate": 280,
+   "status": {}
+  },
+  {
+   "t": 420,
+   "credits": 18762,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 280
+   },
+   "used": 280,
+   "aboard": 254,
+   "silicate": 318,
+   "status": {}
+  },
+  {
+   "t": 480,
+   "credits": 20371,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 342
+   },
+   "used": 342,
+   "aboard": 370,
+   "silicate": 399,
+   "status": {}
+  },
+  {
+   "t": 540,
+   "credits": 21422,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 384
+   },
+   "used": 384,
+   "aboard": 174,
+   "silicate": 411,
+   "status": {}
+  },
+  {
+   "t": 600,
+   "credits": 21932,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 405
+   },
+   "used": 405,
+   "aboard": 543,
+   "silicate": 487,
+   "status": {}
+  },
+  {
+   "t": 660,
+   "credits": 23552,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 461
+   },
+   "used": 461,
+   "aboard": 413,
+   "silicate": 530,
+   "status": {}
+  },
+  {
+   "t": 720,
+   "credits": 25098,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 530
+   },
+   "used": 530,
+   "aboard": 200,
+   "silicate": 560,
+   "status": {}
+  },
+  {
+   "t": 780,
+   "credits": 25073,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 530
+   },
+   "used": 530,
+   "aboard": 769,
+   "silicate": 645,
+   "status": {}
+  },
+  {
+   "t": 840,
+   "credits": 27179,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 613
+   },
+   "used": 613,
+   "aboard": 406,
+   "silicate": 674,
+   "status": {}
+  },
+  {
+   "t": 900,
+   "credits": 28769,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 675
+   },
+   "used": 675,
+   "aboard": 442,
+   "silicate": 741,
+   "status": {}
+  },
+  {
+   "t": 960,
+   "credits": 29285,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 696
+   },
+   "used": 696,
+   "aboard": 609,
+   "silicate": 787,
+   "status": {}
+  },
+  {
+   "t": 1020,
+   "credits": 31450,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 763
+   },
+   "used": 763,
+   "aboard": 276,
+   "silicate": 820,
+   "status": {}
+  },
+  {
+   "t": 1080,
+   "credits": 32448,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 820
+   },
+   "used": 820,
+   "aboard": 279,
+   "silicate": 862,
+   "status": {}
+  },
+  {
+   "t": 1140,
+   "credits": 32423,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 820
+   },
+   "used": 820,
+   "aboard": 819,
+   "silicate": 943,
+   "status": {}
+  },
+  {
+   "t": 1200,
+   "credits": 35054,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 924
+   },
+   "used": 924,
+   "aboard": 258,
+   "silicate": 963,
+   "status": {}
+  },
+  {
+   "t": 1260,
+   "credits": 36636,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 986
+   },
+   "used": 986,
+   "aboard": 357,
+   "silicate": 1040,
+   "status": {}
+  },
+  {
+   "t": 1320,
+   "credits": 37151,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1007
+   },
+   "used": 1007,
+   "aboard": 487,
+   "silicate": 1080,
+   "status": {}
+  },
+  {
+   "t": 1380,
+   "credits": 38794,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1054
+   },
+   "used": 1054,
+   "aboard": 459,
+   "silicate": 1138,
+   "status": {}
+  },
+  {
+   "t": 1440,
+   "credits": 39787,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1111
+   },
+   "used": 1111,
+   "aboard": 339,
+   "silicate": 1161,
+   "status": {}
+  },
+  {
+   "t": 1500,
+   "credits": 41434,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1156
+   },
+   "used": 1156,
+   "aboard": 413,
+   "silicate": 1235,
+   "status": {}
+  },
+  {
+   "t": 1560,
+   "credits": 41948,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1177
+   },
+   "used": 1177,
+   "aboard": 431,
+   "silicate": 1258,
+   "status": {}
+  },
+  {
+   "t": 1620,
+   "credits": 43514,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1243
+   },
+   "used": 1243,
+   "aboard": 413,
+   "silicate": 1318,
+   "status": {}
+  },
+  {
+   "t": 1680,
+   "credits": 44534,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1298
+   },
+   "used": 1298,
+   "aboard": 293,
+   "silicate": 1342,
+   "status": {}
+  },
+  {
+   "t": 1740,
+   "credits": 45718,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1344
+   },
+   "used": 1344,
+   "aboard": 429,
+   "silicate": 1409,
+   "status": {}
+  },
+  {
+   "t": 1800,
+   "credits": 46233,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1365
+   },
+   "used": 1365,
+   "aboard": 586,
+   "silicate": 1453,
+   "status": {}
+  },
+  {
+   "t": 1860,
+   "credits": 48392,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1432
+   },
+   "used": 1432,
+   "aboard": 276,
+   "silicate": 1489,
+   "status": {}
+  },
+  {
+   "t": 1920,
+   "credits": 48907,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1453
+   },
+   "used": 1453,
+   "aboard": 430,
+   "silicate": 1533,
+   "status": {}
+  },
+  {
+   "t": 1980,
+   "credits": 50493,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1514
+   },
+   "used": 1514,
+   "aboard": 413,
+   "silicate": 1593,
+   "status": {}
+  },
+  {
+   "t": 2040,
+   "credits": 51478,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1572
+   },
+   "used": 1572,
+   "aboard": 310,
+   "silicate": 1619,
+   "status": {}
+  },
+  {
+   "t": 2100,
+   "credits": 53075,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1633
+   },
+   "used": 1633,
+   "aboard": 405,
+   "silicate": 1696,
+   "status": {}
+  },
+  {
+   "t": 2160,
+   "credits": 53590,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1654
+   },
+   "used": 1654,
+   "aboard": 533,
+   "silicate": 1736,
+   "status": {}
+  },
+  {
+   "t": 2220,
+   "credits": 55178,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1717
+   },
+   "used": 1717,
+   "aboard": 473,
+   "silicate": 1789,
+   "status": {}
+  },
+  {
+   "t": 2280,
+   "credits": 55693,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1738
+   },
+   "used": 1738,
+   "aboard": 658,
+   "silicate": 1838,
+   "status": {}
+  },
+  {
+   "t": 2340,
+   "credits": 57856,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1806
+   },
+   "used": 1806,
+   "aboard": 296,
+   "silicate": 1866,
+   "status": {}
+  },
+  {
+   "t": 2400,
+   "credits": 58366,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1827
+   },
+   "used": 1827,
+   "aboard": 557,
+   "silicate": 1926,
+   "status": {}
+  },
+  {
+   "t": 2460,
+   "credits": 59948,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1889
+   },
+   "used": 1889,
+   "aboard": 472,
+   "silicate": 1976,
+   "status": {}
+  },
+  {
+   "t": 2520,
+   "credits": 60947,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1946
+   },
+   "used": 1946,
+   "aboard": 495,
+   "silicate": 2021,
+   "status": {}
+  },
+  {
+   "t": 2580,
+   "credits": 62131,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1993
+   },
+   "used": 1993,
+   "aboard": 584,
+   "silicate": 2080,
+   "status": {}
+  },
+  {
+   "t": 2640,
+   "credits": 62646,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 674,
+   "silicate": 2113,
+   "status": {}
+  },
+  {
+   "t": 2700,
+   "credits": 63678,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 725,
+   "silicate": 2155,
+   "status": {}
+  },
+  {
+   "t": 2760,
+   "credits": 65587,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 387,
+   "silicate": 2171,
+   "status": {}
+  },
+  {
+   "t": 2820,
+   "credits": 66487,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 546,
+   "silicate": 2227,
+   "status": {}
+  },
+  {
+   "t": 2880,
+   "credits": 67279,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 425,
+   "silicate": 2239,
+   "status": {}
+  },
+  {
+   "t": 2940,
+   "credits": 67977,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 332,
+   "silicate": 2252,
+   "status": {}
+  },
+  {
+   "t": 3000,
+   "credits": 67953,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 415,
+   "silicate": 2264,
+   "status": {}
+  },
+  {
+   "t": 3060,
+   "credits": 68712,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 310,
+   "silicate": 2276,
+   "status": {}
+  },
+  {
+   "t": 3120,
+   "credits": 68890,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 340,
+   "silicate": 2289,
+   "status": {}
+  },
+  {
+   "t": 3180,
+   "credits": 69084,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 370,
+   "silicate": 2301,
+   "status": {}
+  },
+  {
+   "t": 3240,
+   "credits": 69498,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 351,
+   "silicate": 2314,
+   "status": {}
+  },
+  {
+   "t": 3300,
+   "credits": 69710,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 381,
+   "silicate": 2326,
+   "status": {}
+  },
+  {
+   "t": 3360,
+   "credits": 69921,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 410,
+   "silicate": 2338,
+   "status": {}
+  },
+  {
+   "t": 3420,
+   "credits": 70358,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 392,
+   "silicate": 2351,
+   "status": {}
+  },
+  {
+   "t": 3480,
+   "credits": 70574,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 419,
+   "silicate": 2363,
+   "status": {}
+  },
+  {
+   "t": 3540,
+   "credits": 70782,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 452,
+   "silicate": 2375,
+   "status": {}
+  },
+  {
+   "t": 3600,
+   "credits": 71145,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 447,
+   "silicate": 2388,
+   "status": {}
+  },
+  {
+   "t": 3660,
+   "credits": 71317,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 484,
+   "silicate": 2400,
+   "status": {}
+  },
+  {
+   "t": 3720,
+   "credits": 71690,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 476,
+   "silicate": 2412,
+   "status": {}
+  },
+  {
+   "t": 3780,
+   "credits": 71862,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 511,
+   "silicate": 2425,
+   "status": {}
+  },
+  {
+   "t": 3840,
+   "credits": 72038,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 551,
+   "silicate": 2437,
+   "status": {}
+  },
+  {
+   "t": 3900,
+   "credits": 72435,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 542,
+   "silicate": 2449,
+   "status": {}
+  },
+  {
+   "t": 3960,
+   "credits": 72622,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 581,
+   "silicate": 2462,
+   "status": {}
+  },
+  {
+   "t": 4020,
+   "credits": 72809,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 618,
+   "silicate": 2474,
+   "status": {}
+  },
+  {
+   "t": 4080,
+   "credits": 73204,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 607,
+   "silicate": 2486,
+   "status": {}
+  },
+  {
+   "t": 4140,
+   "credits": 73357,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 655,
+   "silicate": 2499,
+   "status": {}
+  },
+  {
+   "t": 4200,
+   "credits": 73412,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 709,
+   "silicate": 2512,
+   "status": {}
+  },
+  {
+   "t": 4260,
+   "credits": 73400,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 785,
+   "silicate": 2524,
+   "status": {}
+  },
+  {
+   "t": 4320,
+   "credits": 73724,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 788,
+   "silicate": 2534,
+   "status": {}
+  },
+  {
+   "t": 4380,
+   "credits": 74779,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 649,
+   "silicate": 2548,
+   "status": {}
+  },
+  {
+   "t": 4440,
+   "credits": 75022,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 675,
+   "silicate": 2561,
+   "status": {}
+  },
+  {
+   "t": 4500,
+   "credits": 74997,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 757,
+   "silicate": 2573,
+   "status": {}
+  },
+  {
+   "t": 4560,
+   "credits": 75427,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 742,
+   "silicate": 2586,
+   "status": {}
+  },
+  {
+   "t": 4620,
+   "credits": 76084,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 675,
+   "silicate": 2598,
+   "status": {}
+  },
+  {
+   "t": 4680,
+   "credits": 76449,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 668,
+   "silicate": 2609,
+   "status": {}
+  },
+  {
+   "t": 4740,
+   "credits": 76620,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 713,
+   "silicate": 2623,
+   "status": {}
+  },
+  {
+   "t": 4800,
+   "credits": 76595,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 790,
+   "silicate": 2634,
+   "status": {}
+  },
+  {
+   "t": 4860,
+   "credits": 77289,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 688,
+   "silicate": 2642,
+   "status": {}
+  },
+  {
+   "t": 4920,
+   "credits": 77428,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 770,
+   "silicate": 2660,
+   "status": {}
+  },
+  {
+   "t": 4980,
+   "credits": 77685,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 790,
+   "silicate": 2672,
+   "status": {}
+  },
+  {
+   "t": 5040,
+   "credits": 78131,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 766,
+   "silicate": 2684,
+   "status": {}
+  },
+  {
+   "t": 5100,
+   "credits": 78343,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 780,
+   "silicate": 2693,
+   "status": {}
+  },
+  {
+   "t": 5160,
+   "credits": 78719,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 764,
+   "silicate": 2704,
+   "status": {}
+  },
+  {
+   "t": 5220,
+   "credits": 78997,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 809,
+   "silicate": 2720,
+   "status": {}
+  },
+  {
+   "t": 5280,
+   "credits": 79380,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 795,
+   "silicate": 2732,
+   "status": {}
+  },
+  {
+   "t": 5340,
+   "credits": 79648,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 787,
+   "silicate": 2740,
+   "status": {}
+  },
+  {
+   "t": 5400,
+   "credits": 79842,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2753,
+   "status": {}
+  },
+  {
+   "t": 5460,
+   "credits": 80180,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 807,
+   "silicate": 2762,
+   "status": {}
+  },
+  {
+   "t": 5520,
+   "credits": 80408,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 794,
+   "silicate": 2768,
+   "status": {}
+  },
+  {
+   "t": 5580,
+   "credits": 80562,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 804,
+   "silicate": 2775,
+   "status": {}
+  },
+  {
+   "t": 5640,
+   "credits": 80674,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2784,
+   "status": {}
+  },
+  {
+   "t": 5700,
+   "credits": 80872,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 817,
+   "silicate": 2789,
+   "status": {}
+  },
+  {
+   "t": 5760,
+   "credits": 81004,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 798,
+   "silicate": 2791,
+   "status": {}
+  },
+  {
+   "t": 5820,
+   "credits": 81087,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 815,
+   "silicate": 2797,
+   "status": {}
+  },
+  {
+   "t": 5880,
+   "credits": 81146,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2802,
+   "status": {}
+  },
+  {
+   "t": 5940,
+   "credits": 81257,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2807,
+   "status": {}
+  },
+  {
+   "t": 6000,
+   "credits": 81350,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 819,
+   "silicate": 2808,
+   "status": {}
+  },
+  {
+   "t": 6060,
+   "credits": 81374,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 822,
+   "silicate": 2810,
+   "status": {}
+  },
+  {
+   "t": 6120,
+   "credits": 81402,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2814,
+   "status": {}
+  },
+  {
+   "t": 6180,
+   "credits": 81460,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2816,
+   "status": {}
+  },
+  {
+   "t": 6240,
+   "credits": 81509,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2819,
+   "status": {}
+  },
+  {
+   "t": 6300,
+   "credits": 81543,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 819,
+   "silicate": 2819,
+   "status": {}
+  },
+  {
+   "t": 6360,
+   "credits": 81540,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 826,
+   "silicate": 2821,
+   "status": {}
+  },
+  {
+   "t": 6420,
+   "credits": 81536,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2822,
+   "status": {}
+  },
+  {
+   "t": 6480,
+   "credits": 81550,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2824,
+   "status": {}
+  },
+  {
+   "t": 6540,
+   "credits": 81564,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2825,
+   "status": {}
+  },
+  {
+   "t": 6600,
+   "credits": 81568,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 825,
+   "silicate": 2825,
+   "status": {}
+  },
+  {
+   "t": 6660,
+   "credits": 81554,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 829,
+   "silicate": 2826,
+   "status": {}
+  },
+  {
+   "t": 6720,
+   "credits": 81541,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2827,
+   "status": {}
+  },
+  {
+   "t": 6780,
+   "credits": 81534,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2827,
+   "status": {}
+  },
+  {
+   "t": 6840,
+   "credits": 81530,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2828,
+   "status": {}
+  },
+  {
+   "t": 6900,
+   "credits": 81520,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 828,
+   "silicate": 2828,
+   "status": {}
+  },
+  {
+   "t": 6960,
+   "credits": 81499,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2829,
+   "status": {}
+  },
+  {
+   "t": 7020,
+   "credits": 81479,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 832,
+   "silicate": 2829,
+   "status": {}
+  },
+  {
+   "t": 7080,
+   "credits": 81466,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2829,
+   "status": {}
+  },
+  {
+   "t": 7140,
+   "credits": 81448,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 831,
+   "silicate": 2830,
+   "status": {}
+  },
+  {
+   "t": 7200,
+   "credits": 81428,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 2000
+   },
+   "used": 2000,
+   "aboard": 830,
+   "silicate": 2830,
+   "status": {}
+  }
+ ]
+}

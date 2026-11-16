@@ -6,9 +6,10 @@ import type { GameClient } from '../net';
 import type { LogisticsJob } from '../../world/autonomousLogistics';
 import type { WGroup, WShip, Op } from '../../world/types';
 import { itemName } from '../../world/industry';
-import { econOf } from '../../world/hullops';
 import { haulerAvailability, poolMember } from '../../world/haulers';
-import { morph } from '../../ui/morph';
+import { morph, trackSelects } from '../../ui/morph';
+import { econOf, growthOn } from '../../world/hullops';
+import { salesPanelHtml, bindSalesPanel } from './salesPolicyUi';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const num = (v: number) => (Math.round(v * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -25,7 +26,7 @@ export class AutoLogisticsPanel {
     this.el.className = 'modal lg-modal autolg'; this.el.tabIndex = -1;
     this.el.setAttribute('role', 'dialog'); this.el.setAttribute('aria-label', '물류 현황'); this.el.setAttribute('aria-modal', 'true');
     this.el.onkeydown = e => e.stopPropagation(); this.el.onclick = e => { if (e.target === this.el) this.close(); };
-    root.appendChild(this.el); c.onSnap.push(this.onSnap); window.addEventListener('keydown', this.key, true); this.el.focus(); this.render();
+    root.appendChild(this.el); trackSelects(this.el); c.onSnap.push(this.onSnap); window.addEventListener('keydown', this.key, true); this.el.focus(); this.render();
   }
   close() { if (this.closed) return; this.closed = true; const i = this.c.onSnap.indexOf(this.onSnap); if (i >= 0) this.c.onSnap.splice(i, 1); window.removeEventListener('keydown', this.key, true); this.el.remove(); this.actions.close(); document.getElementById('logisticsBtn')?.focus(); }
   private async send(command: Parameters<GameClient['cmd']>[0], ok: string) {
@@ -68,6 +69,7 @@ export class AutoLogisticsPanel {
         <div class="lg-cards">${liveJobs.filter(j => !problems.includes(j)).map(j => this.job(j)).join('') || '<p class="dim">진행 중인 운송이 없습니다. 건설·생산·조선에 자재가 부족하면 자동으로 시작됩니다.</p>'}</div></section>
       <section class="pool-section"><div class="pool-section-head"><div><h3>부족 자재</h3><p>필요 − 현지 재고 − 운송 중·예정 물량. 자사 재고가 없으면 자동 구매 정책에 따릅니다.</p></div><span>${plans.length}건</span></div>
         ${plans.length ? `<ul class="autolg-list">${plans.map(p => `<li><b>${esc(itemName(p.item))} ${num(p.shortage)}</b> <span class="dim">· ${this.stn(p.station)} ${SOURCE[p.sourceKind]}</span><div class="dim small">${esc(p.reason || '대기')}</div></li>`).join('')}</ul>` : '<p class="dim">부족한 자재가 없습니다.</p>'}</section>
+      ${growthOn(w) ? salesPanelHtml(w, me, this.busy) : ''}
       <section class="pool-section"><div class="pool-section-head"><div><h3>수송선</h3><p>등록할 필요 없습니다. 직접 명령을 받은 함선은 명령이 끝나 대기하면 자동 물류로 돌아옵니다.</p></div><span>${rows.length}척</span></div>
         <ul class="autolg-list">${rows.map(r => this.ship(r.s, r.a, r.member)).join('') || '<li class="dim">화물칸이 있는 수송선이 없습니다.</li>'}</ul></section>
       ${compat.length ? `<section class="pool-section"><div class="pool-section-head"><div><h3>기존 반복 노선 (호환 모드)</h3><p>이전에 설정한 반복 판매·재고 이동입니다. 새로 만들 수 없으며 정지·재개·취소만 가능합니다.</p></div></div>
@@ -111,6 +113,7 @@ export class AutoLogisticsPanel {
   }
   private bind() {
     const q = <T extends HTMLElement>(sel: string) => this.el.querySelectorAll<T>(sel);
+    bindSalesPanel(this.el, (cmd, ok) => void this.send(cmd, ok), msg => { this.error = msg; this.render(); });
     q('[data-al-close]').forEach(b => b.onclick = () => this.close());
     q('[data-al-toggle]').forEach(b => b.onclick = () => { const on = this.c.state?.companies[this.c.company]?.autoLogistics !== false; this.send({ c: 'autoLogistics', on: !on }, on ? '새 자동 운송을 멈췄습니다' : '자동 물류를 켰습니다'); });
     q('[data-al-open]').forEach(b => b.onclick = () => { const id = b.dataset.alOpen!; if (this.open.has(id)) this.open.delete(id); else this.open.add(id); this.render(); });

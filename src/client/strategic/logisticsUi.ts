@@ -9,6 +9,7 @@ import { sysAt } from '../../world/geom';
 import { morph, trackSelects } from '../../ui/morph';
 import { queueShortfall } from '../../world/construction';
 import type { PoolRequest, LogisticsJob } from '../../world/autonomousLogistics';
+import { salesPanelHtml, bindSalesPanel } from './salesPolicyUi';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const num = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -99,7 +100,7 @@ export class LogisticsPanel {
     const rank = (j: LogisticsJob) => j.state === 'active' || j.state === 'waiting' || j.state === 'queued' ? 0 : j.state === 'paused' ? 1 : 2;
     const sorted = [...jobs].sort((a, b) => rank(a) - rank(b) || b.created - a.created || b.id.localeCompare(a.id));
     return `<div class="lg-layout ${this.editing ? 'editing' : ''}"><main class="lg-list pool-main">
-      ${growthOn(w) ? this.procurementPanel() : ''}
+      ${growthOn(w) ? salesPanelHtml(w, this.c.company, this.busy) + this.procurementPanel() : ''}
       <section class="pool-section"><div class="pool-section-head"><div><h3>작업 대기열</h3><p>우선순위가 높은 요청부터 가용 함선에 배정합니다. 완료한 함선은 다음 작업을 받습니다.</p></div><span>${jobs.length}개 요청</span></div>
       <div class="lg-cards">${sorted.map(j => this.poolCard(j)).join('') || `<div class="lg-empty"><div class="lg-orbit" aria-hidden="true">◉ ─── ◉</div><h3>운송 작업을 요청하세요</h3><p>출발지와 목적지를 정하고 아래에서 수송선을 공용 배차에 참여시키세요.</p><button class="btn go" data-pool-new>작업 요청</button></div>`}</div></section>
       <section class="pool-section pool-participants"><div class="pool-section-head"><div><h3>참여 수송선</h3><p>대기 중인 수송선만 참여할 수 있습니다. 직접 명령이나 편제 변경은 공용 배차보다 우선합니다.</p></div><span>${groups.length}개 편대</span></div>
@@ -216,6 +217,7 @@ export class LogisticsPanel {
       const settings = { enabled: data.has('enabled'), autoBuy: data.has('autoBuy'), budget: Number(data.get('budget')), minCredits: Number(data.get('minCredits')), maxRisk: Number(data.get('maxRisk')), ...(priceItem ? { priceItem, maxUnitPrice: Number(price) } : {}), ...(protectStation ? { protectStation, protectItem, protectAmount: Number(protect) } : {}) };
       void this.send({ c: 'procPolicy', settings }, '조달 설정을 저장했습니다', () => { this.policyEditing = false; });
     });
+    bindSalesPanel(this.el, (cmd, ok) => void this.send(cmd, ok), msg => { this.error = msg; this.render(); });
     on('[data-pool-form-close]', 'click', () => { this.editing = false; this.render(); });
     this.el.querySelectorAll<HTMLElement>('[data-pool-ship]').forEach(b => b.onclick = () => void this.send({ c: 'poolShips', ships: [b.dataset.poolShip!], on: b.dataset.poolOn === 'true' }, b.dataset.poolOn === 'true' ? '함선이 공용 배차에 참여합니다' : '함선을 제외했습니다. 적재된 화물은 보존됩니다'));
     this.el.querySelectorAll<HTMLElement>('[data-pool-group]').forEach(b => b.onclick = () => { const on = b.dataset.poolOn === 'true', g = this.c.state?.groups[b.dataset.poolGroup!]; const ships = (g?.shipIds ?? []).map(id => this.c.state?.ships[id]).filter(s => s?.classId === 'hauler' && !!s.logisticsPool !== on).map(s => s!.id); if (ships.length) void this.send({ c: 'poolShips', ships, on }, on ? '편대 수송선이 공용 배차에 참여합니다' : '편대 수송선을 제외했습니다. 적재된 화물은 보존됩니다'); });

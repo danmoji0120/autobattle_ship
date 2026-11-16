@@ -25,6 +25,8 @@ import { effSec } from './security';
 import { usableRouteGate } from './logistics';
 import { CONTENT } from '../content/registry';
 import { dist } from './geom';
+import { industryHold } from './procurement';
+import { buyCost } from './market';
 
 // ───────────────────────────────────────────────────────────────────────── types
 
@@ -730,6 +732,40 @@ export function freeStock(h: WorldSim, owner: string, station: Station, item: st
   return Math.max(0, qty(station.storage[owner], item) - protectedN - goalHold - outboundClaims(h, owner, station.id, item));
 }
 
+/**
+ * AUTO-P0: the common stock-protection rule. Units of `item` at `station` that must stay: the player's minimum
+ * stock there (procurement `protectedStock`), station-scope stockpile goals, and what the station's own
+ * construction / ship builds / production still need. Every automatic sale (mining direct sale, condition goals,
+ * pool sale shipments and the excess-stock planner) leaves at least this much in the store.
+ */
+export function stockFloor(h: Pick<WorldSim, 'st'>, owner: string, station: Station, item: string): number {
+  const co = h.st.companies[owner]; if (!co) return 0;
+  const keep = co.procurement?.protectedStock[station.id]?.[item] ?? 0;
+  let goals = 0;
+  for (const w of Object.values(h.st.works ?? {})) if (w.owner === owner && !terminal(w) && w.goal?.k === 'stockpile' && (w.goal.scope ?? 'station') === 'station' && w.goal.station === station.id && w.goal.item === item) goals += w.goal.target;
+  return keep + goals + industryHold(h, owner, station, item);
+}
+/** AUTO-P0: the most units (≤ n) whose walked purchase cost fits in `spend` */
+export function affordableLot(m: Parameters<typeof buyCost>[0], n: number, spend: number): number {
+  let lo = 0, hi = Math.max(0, Math.floor(n + EPS));
+  if (spend <= 0) return 0;
+  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (buyCost(m, mid, true) <= spend + EPS) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+/** AUTO-P0: units at `station` that can be sold now: stored − floor − units already promised to outbound shipments */
+export function sellableStock(h: Pick<WorldSim, 'st'>, owner: string, station: Station, item: string): number {
+  const promised = Object.values(h.st.logisticsJobs ?? {}).filter(j => j.owner === owner && j.from === station.id && j.item === item && liveJob(j) && !j.stow).reduce((n, j) => n + Math.max(0, outstanding(j) - j.reserved - j.carried), 0);
+  return Math.max(0, qty(station.storage[owner], item) - stockFloor(h, owner, station, item) - promised);
+}
+/** AUTO-P0: company-scope stockpile targets cap what may leave the company: holding − target − pending sales */
+export function companySaleCap(h: Pick<WorldSim, 'st'>, owner: string, item: string): number {
+  let target = 0;
+  for (const w of Object.values(h.st.works ?? {})) if (w.owner === owner && !terminal(w) && w.goal?.k === 'stockpile' && w.goal.scope === 'company' && w.goal.item === item) target += w.goal.target;
+  if (!target) return Infinity;
+  const pending = Object.values(h.st.logisticsJobs ?? {}).filter(j => j.owner === owner && j.item === item && j.kind === 'sell' && liveJob(j)).reduce((n, j) => n + Math.max(0, outstanding(j) - j.reserved - j.carried), 0);
+  return Math.max(0, companyHolding(h, owner, item) - target - pending);
+}
+
 // ─────────────────────────────────────────────────────────────────────── goals
 
 export function createGoal(h: WorldSim, owner: string, spec: GoalSpec, opts: { title?: string; priority?: number; budget?: number; maxPrice?: number } = {}): string | null {
@@ -1061,10 +1097,11 @@ function buyFor(h: WorldSim, w: Work, st: Station, item: string, need: number, p
   if (batch < 1) return setState(h, w, 'waiting', [...parts, h.room(use.s, w.owner) < 1 ? `${use.s.name} 보관 공간 부족 — 구획 임대 필요` : destRoom < 1 ? '목적지 보관 공간 부족 — 창고 증설 또는 재고 이동' : '시장 재고 부족'].join(' · '));
   // money: buy what the balance allows; a pure lack of funds is a waiting reason, not a decision
   const pol2 = opsOf(co).policy, floor = (w.rt?.creditsOk ?? -1) >= h.time ? 0 : pol2.minCredits;
-  const affordable = Math.floor((co.credits - floor) / use.price + EPS);
+  const affordable = affordableLot(use.s.market![item], batch, co.credits - floor);
   if (affordable < 1 && co.credits < use.price) return setState(h, w, 'waiting', [...parts, `자금 부족 — ${fmt(use.price)} cr/개, 보유 ${fmt(co.credits)} cr · 수입 발생 시 자동 재개`].join(' · '));
   const batchN = affordable >= 1 ? Math.min(batch, affordable) : batch;
-  const cost = batchN * use.price, whole = Math.ceil(need) * use.price;
+  // AUTO-P0: the walked purchase cost (market.buyCost), so authorisation and budgets match the money spent
+  const cost = buyCost(use.s.market![item], batchN, growthOn(h.st)), whole = Math.max(cost, Math.ceil(need) * use.price);
   const auth = authorize(h, w, cost, use.price, item, whole);
   if (!auth.ok) {
     purchaseApproval(h, w, auth, [{ item, amount: Math.ceil(need), price: use.price, station: use.s.id }], { context: `${st.name}에 ${itemName(item)} ${fmt(need)} 부족 — 자사 재고${parts.length ? '·이송' : ''}로 충당되지 않음. 최저가 시장 ${use.s.name} (${use.hops}점프, 추정)` });
@@ -1168,11 +1205,14 @@ function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
       w.state = 'paused'; w.reason = '연속 손실 — 결재 대기'; w.updated = h.time; return;
     }
   }
-  const buy = h.price(a, g.item, 'buy'), sell = h.price(b, g.item, 'sell');
+  const ships = poolShips(h, w.owner);
+  // AUTO-P0: a purchase walks the price up (market.buyCost), so the quote is the average price this cycle's
+  // amount really costs, not the first unit's price (the authorisation and the profit check use the same figure)
+  const lot = Math.floor(Math.min(g.amount, a.market![g.item].stock, h.room(a, w.owner), ships.length ? Math.max(...ships.map(s => econOf(s).cargo)) : g.amount));
+  const buy = lot >= 1 ? buyCost(a.market![g.item], lot, growthOn(h.st)) / lot : h.price(a, g.item, 'buy'), sell = h.price(b, g.item, 'sell');
   // expected realised price: the quote times the ratio actually realised by earlier cycles (0.9 until measured)
   const ratio = rt.sellRatio ?? 0.9, expect = sell * ratio;
   if (buy > g.maxBuy + EPS) return setState(h, w, 'waiting', `매수가 ${fmt(buy)} cr > 상한 ${fmt(g.maxBuy)} cr — 대기`);
-  const ships = poolShips(h, w.owner);
   const hops = chainOn(h.st) ? routeRisk(h, a, b, 100)?.hops ?? 0 : 0, haulAll = tradeHaulCost(h, ships[0], hops, g.amount);
   if (sell < g.minSell - EPS || (expect - buy) * g.amount - haulAll < g.minProfit - EPS || expect <= buy) return setState(h, w, 'waiting', `매도 호가 ${fmt(sell)} cr · 실현 예상 ${fmt(expect)} cr (${rt.sellRatio === undefined ? '초기 추정 90%' : `지난 회차 실현율 ${Math.round(ratio * 100)}%`}) vs 매수 ${fmt(buy)} cr${haulAll ? ` · 운송비 추정 ${fmt(haulAll)} cr` : ''} — 수익 조건 미충족, 대기`);
   if (!ships.length) return setState(h, w, 'waiting', '공용 배차 수송선이 없습니다');
@@ -1182,9 +1222,9 @@ function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
     if (any) raise(h, w, 'risk', 'risk', { title: `${w.title} — 위험 경로`, reason: `경로 위험도 ${Math.round(any.risk)}가 허용치를 넘습니다`, situation: `${a.name} → ${b.name}: ${any.hops}점프 (보안 등급 기반 추정)`, items: [], estimate: { cost: buy * g.amount, note: '1회차 매입 추정' }, risk: { level: any.risk, hops: any.hops, note: '보안 등급 기반 추정 — 실제 교전 여부는 알 수 없음' }, options: [{ id: 'approve', label: '위험 경로로 진행', detail: '이 목표에 한해 위험 경로를 허용합니다', scopes: ['work'] }, { id: 'pause', label: '일시정지', detail: '', recommended: true, scopes: ['once'] }, { id: 'reject', label: '거절', detail: '6시간 동안 다시 묻지 않음', scopes: ['once'] }], rejectEffect: '무역을 진행하지 않습니다', scopeNote: '이 목표 전체' });
     return setState(h, w, 'waiting', any ? '경로 위험 결재 대기' : '경로 없음');
   }
-  const n = Math.floor(Math.min(g.amount, a.market![g.item].stock, h.room(a, w.owner), Math.max(...ships.map(s => econOf(s).cargo))));
+  const n = lot;
   if (n < 1) return setState(h, w, 'waiting', '시장 재고 또는 보관 공간 부족');
-  const cost = n * buy, auth = authorize(h, w, cost, buy, g.item, cost);
+  const cost = buyCost(a.market![g.item], n, growthOn(h.st)), auth = authorize(h, w, cost, buy, g.item, cost);
   if (!auth.ok) { purchaseApproval(h, w, auth, [{ item: g.item, amount: n, price: buy, station: a.id }], { context: `${rt.cycles + 1}회차 매입 — 예상 매도가 ${fmt(sell)} cr (현재 시세, 도착 시 달라질 수 있음)` }); return setState(h, w, 'waiting', `결재 대기: ${auth.why}`); }
   const co = h.st.companies[w.owner], before = co.credits, held = qty(a.storage[w.owner], g.item);
   const err = cmd(h, w, { c: 'buy', station: a.id, res: g.item, amount: n }); if (err) return setState(h, w, 'waiting', `매입 실패: ${err}`);
@@ -1205,13 +1245,14 @@ function runCondition(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'condition
   if (g.side === 'buy') {
     const n = Math.floor(Math.min(g.amount, st.market[g.item].stock, h.room(st, w.owner)));
     if (n < 1) return setState(h, w, 'waiting', '시장 재고 또는 보관 공간 부족');
-    const auth = authorize(h, w, n * p, p, g.item);
+    const auth = authorize(h, w, buyCost(st.market[g.item], n, growthOn(h.st)), p, g.item);
     if (!auth.ok) { purchaseApproval(h, w, auth, [{ item: g.item, amount: n, price: p, station: st.id }], { context: '가격 조건 충족' }); return setState(h, w, 'waiting', `결재 대기: ${auth.why}`); }
     const err = cmd(h, w, { c: 'buy', station: st.id, res: g.item, amount: n }); if (err) return setState(h, w, 'waiting', err);
     charge(h, w, before - co.credits, p, g.item);
   } else {
-    const n = Math.floor(Math.min(g.amount, qty(st.storage[w.owner], g.item)));
-    if (n < 1) return setState(h, w, 'waiting', '판매할 보관 재고 없음');
+    // AUTO-P0: a condition sale never digs into the minimum stock, stockpile goals or industry needs
+    const n = Math.floor(Math.min(g.amount, sellableStock(h, w.owner, st, g.item), companySaleCap(h, w.owner, g.item)) + EPS);
+    if (n < 1) return setState(h, w, 'waiting', qty(st.storage[w.owner], g.item) >= 1 ? '보관 재고가 최소 비축·생산 예약 이하 — 초과분이 생기면 판매' : '판매할 보관 재고 없음');
     const err = cmd(h, w, { c: 'sell', station: st.id, res: g.item, amount: n }); if (err) return setState(h, w, 'waiting', err);
     w.income = (w.income ?? 0) + (co.credits - before);
   }

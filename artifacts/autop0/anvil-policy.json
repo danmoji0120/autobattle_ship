@@ -1,0 +1,5267 @@
+{
+ "mode": "policy",
+ "hours": 2,
+ "credits0": 12000,
+ "repairs": 0,
+ "repairCost": 0,
+ "credits": 121563,
+ "net": 109563,
+ "pnl": {
+  "income": {
+   "sales": 112849.02063716693
+  },
+  "expense": {
+   "upkeep": 3285.999999990918
+  },
+  "sales": {
+   "titanium_ore": 57068.60249149864,
+   "ore": 21132.96814566828,
+   "silicate": 34647.45
+  },
+  "net": 109563.02063717601
+ },
+ "storeEnd": {
+  "ore": 500,
+  "alloy": 0,
+  "crystal": 0,
+  "silicate": 83
+ },
+ "usedEnd": 583,
+ "aboardEnd": 207,
+ "fullAt": -1,
+ "silicateHeldEnd": 114,
+ "silicateShipped": {
+  "n": 3016,
+  "v": 34647.45,
+  "lost": 0
+ },
+ "oreKeptMinAfter30min": 500,
+ "salesStatus": {
+  "ore": {
+   "t": 7191,
+   "excess": 0,
+   "moving": 0,
+   "reason": "초과 재고 없음 — 최소 비축 유지",
+   "sold": 0,
+   "earned": 0
+  },
+  "silicate": {
+   "t": 7191,
+   "excess": 83,
+   "moving": 0,
+   "reason": "초과 재고 처리 중",
+   "sold": 0,
+   "earned": 0,
+   "since": {
+    "p9_anvil_port": 6911
+   }
+  },
+  "titanium_ore": {
+   "t": 7191,
+   "excess": 0,
+   "moving": 0,
+   "reason": "초과 재고 없음 — 최소 비축 유지",
+   "sold": 0,
+   "earned": 0
+  }
+ },
+ "jobs": [
+  {
+   "id": "lj295",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "astra",
+   "amount": 309,
+   "state": "complete",
+   "delivered": 309,
+   "earned": 3354,
+   "sale": true
+  },
+  {
+   "id": "lj337",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 310,
+   "state": "complete",
+   "delivered": 310,
+   "earned": 3424,
+   "sale": true
+  },
+  {
+   "id": "lj405",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 310,
+   "state": "complete",
+   "delivered": 310,
+   "earned": 3473,
+   "sale": true
+  },
+  {
+   "id": "lj429",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 310,
+   "state": "complete",
+   "delivered": 310,
+   "earned": 3488,
+   "sale": true
+  },
+  {
+   "id": "lj503",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 290,
+   "state": "complete",
+   "delivered": 290,
+   "earned": 3289,
+   "sale": true
+  },
+  {
+   "id": "lj519",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 330,
+   "state": "complete",
+   "delivered": 330,
+   "earned": 3761,
+   "sale": true
+  },
+  {
+   "id": "lj583",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 289,
+   "state": "complete",
+   "delivered": 289,
+   "earned": 3310,
+   "sale": true
+  },
+  {
+   "id": "lj605",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 186,
+   "state": "complete",
+   "delivered": 186,
+   "earned": 2192,
+   "sale": true
+  },
+  {
+   "id": "lj672",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 145,
+   "state": "complete",
+   "delivered": 145,
+   "earned": 1718,
+   "sale": true
+  },
+  {
+   "id": "lj756",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 145,
+   "state": "complete",
+   "delivered": 145,
+   "earned": 1791,
+   "sale": true
+  },
+  {
+   "id": "lj816",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 124,
+   "state": "complete",
+   "delivered": 124,
+   "earned": 1534,
+   "sale": true
+  },
+  {
+   "id": "lj851",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 144,
+   "state": "complete",
+   "delivered": 144,
+   "earned": 1779,
+   "sale": true
+  },
+  {
+   "id": "lj908",
+   "item": "silicate",
+   "kind": "sell",
+   "from": "p9_anvil_port",
+   "to": "nova",
+   "amount": 124,
+   "state": "complete",
+   "delivered": 124,
+   "earned": 1534,
+   "sale": true
+  }
+ ],
+ "samples": [
+  {
+   "t": 60,
+   "credits": 11975,
+   "store": {
+    "ore": 0,
+    "alloy": 0,
+    "crystal": 0
+   },
+   "used": 0,
+   "aboard": 402,
+   "silicate": 60,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 120,
+   "credits": 12950,
+   "store": {
+    "ore": 145,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 62
+   },
+   "used": 207,
+   "aboard": 160,
+   "silicate": 86,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 180,
+   "credits": 13980,
+   "store": {
+    "ore": 289,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 413,
+   "aboard": 0,
+   "silicate": 124,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 240,
+   "credits": 13955,
+   "store": {
+    "ore": 289,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 413,
+   "aboard": 413,
+   "silicate": 186,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 300,
+   "credits": 15080,
+   "store": {
+    "ore": 434,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 186
+   },
+   "used": 620,
+   "aboard": 312,
+   "silicate": 233,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 360,
+   "credits": 16451,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 248
+   },
+   "used": 748,
+   "aboard": 70,
+   "silicate": 258,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 420,
+   "credits": 18029,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 310
+   },
+   "used": 810,
+   "aboard": 0,
+   "silicate": 310,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 480,
+   "credits": 18004,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 722,
+   "silicate": 372,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 540,
+   "credits": 22936,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 222,
+   "silicate": 96,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 600,
+   "credits": 24514,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 0,
+   "silicate": 125,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 660,
+   "credits": 24489,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 413,
+   "silicate": 187,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 720,
+   "credits": 26067,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 374,
+   "silicate": 243,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 780,
+   "credits": 27644,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 249
+   },
+   "used": 749,
+   "aboard": 132,
+   "silicate": 269,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 840,
+   "credits": 29220,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 0,
+   "silicate": 1,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 900,
+   "credits": 29195,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 413,
+   "silicate": 63,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 960,
+   "credits": 30773,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 593,
+   "silicate": 415,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1020,
+   "credits": 35772,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 42,
+   "silicate": 131,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1080,
+   "credits": 37348,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 0,
+   "silicate": 187,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1140,
+   "credits": 37324,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 412,
+   "silicate": 249,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1200,
+   "credits": 38902,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 249
+   },
+   "used": 749,
+   "aboard": 193,
+   "silicate": 278,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1260,
+   "credits": 40478,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 0,
+   "silicate": 1,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1320,
+   "credits": 40454,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 413,
+   "silicate": 63,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1380,
+   "credits": 42031,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 655,
+   "silicate": 425,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1440,
+   "credits": 47079,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 103,
+   "silicate": 140,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1500,
+   "credits": 48656,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 0,
+   "silicate": 187,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1560,
+   "credits": 48631,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 413,
+   "silicate": 249,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1620,
+   "credits": 50207,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 249
+   },
+   "used": 749,
+   "aboard": 255,
+   "silicate": 287,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1680,
+   "credits": 51784,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 21,
+   "silicate": 4,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1740,
+   "credits": 52831,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 448,
+   "silicate": 373,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1800,
+   "credits": 53346,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 708,
+   "silicate": 433,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1860,
+   "credits": 58410,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 165,
+   "silicate": 150,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1920,
+   "credits": 59986,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 0,
+   "silicate": 187,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 1980,
+   "credits": 59962,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 413,
+   "silicate": 249,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2040,
+   "credits": 61538,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 249
+   },
+   "used": 749,
+   "aboard": 317,
+   "silicate": 296,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2100,
+   "credits": 63114,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 75,
+   "silicate": 32,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2160,
+   "credits": 64690,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 83
+   },
+   "used": 583,
+   "aboard": 290,
+   "silicate": 373,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2220,
+   "credits": 67953,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 83
+   },
+   "used": 583,
+   "aboard": 413,
+   "silicate": 145,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2280,
+   "credits": 69529,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 145
+   },
+   "used": 645,
+   "aboard": 227,
+   "silicate": 179,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2340,
+   "credits": 71106,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 207
+   },
+   "used": 707,
+   "aboard": 7,
+   "silicate": 208,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2400,
+   "credits": 72154,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 248
+   },
+   "used": 748,
+   "aboard": 138,
+   "silicate": 269,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2460,
+   "credits": 72669,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 269
+   },
+   "used": 769,
+   "aboard": 379,
+   "silicate": 326,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2520,
+   "credits": 74245,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 137,
+   "silicate": 21,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2580,
+   "credits": 75821,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 330,
+   "silicate": 393,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2640,
+   "credits": 79556,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 413,
+   "silicate": 125,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2700,
+   "credits": 81133,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 289,
+   "silicate": 168,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2760,
+   "credits": 82667,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 51,
+   "silicate": 194,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2820,
+   "credits": 83651,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 228
+   },
+   "used": 728,
+   "aboard": 138,
+   "silicate": 249,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2880,
+   "credits": 84126,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 249
+   },
+   "used": 749,
+   "aboard": 402,
+   "silicate": 309,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 2940,
+   "credits": 85562,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 22
+   },
+   "used": 522,
+   "aboard": 199,
+   "silicate": 51,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3000,
+   "credits": 86955,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 84
+   },
+   "used": 584,
+   "aboard": 289,
+   "silicate": 373,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3060,
+   "credits": 90239,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 84
+   },
+   "used": 584,
+   "aboard": 298,
+   "silicate": 128,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3120,
+   "credits": 90681,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 104
+   },
+   "used": 604,
+   "aboard": 243,
+   "silicate": 141,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3180,
+   "credits": 91174,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 187,
+   "silicate": 153,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3240,
+   "credits": 91149,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 260,
+   "silicate": 164,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3300,
+   "credits": 91658,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 146
+   },
+   "used": 646,
+   "aboard": 215,
+   "silicate": 178,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3360,
+   "credits": 91634,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 146
+   },
+   "used": 646,
+   "aboard": 298,
+   "silicate": 190,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3420,
+   "credits": 92148,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 166
+   },
+   "used": 666,
+   "aboard": 241,
+   "silicate": 202,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3480,
+   "credits": 92655,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 187
+   },
+   "used": 687,
+   "aboard": 187,
+   "silicate": 215,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3540,
+   "credits": 92630,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 254,
+   "silicate": 39,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3600,
+   "credits": 93669,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 262,
+   "silicate": 240,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3660,
+   "credits": 95836,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 159,
+   "silicate": 66,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3720,
+   "credits": 96357,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 104,
+   "silicate": 79,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3780,
+   "credits": 96332,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 187,
+   "silicate": 91,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3840,
+   "credits": 96307,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 246,
+   "silicate": 100,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3900,
+   "credits": 96828,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 84
+   },
+   "used": 584,
+   "aboard": 214,
+   "silicate": 116,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 3960,
+   "credits": 96803,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 84
+   },
+   "used": 584,
+   "aboard": 295,
+   "silicate": 128,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4020,
+   "credits": 97324,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 104
+   },
+   "used": 604,
+   "aboard": 240,
+   "silicate": 140,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4080,
+   "credits": 97833,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 185,
+   "silicate": 153,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4140,
+   "credits": 97808,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 267,
+   "silicate": 165,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4200,
+   "credits": 98322,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 214,
+   "silicate": 33,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4260,
+   "credits": 98296,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 442,
+   "silicate": 190,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4320,
+   "credits": 100529,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 241,
+   "silicate": 57,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4380,
+   "credits": 100504,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 324,
+   "silicate": 70,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4440,
+   "credits": 101025,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 265,
+   "silicate": 82,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4500,
+   "credits": 102054,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 83
+   },
+   "used": 583,
+   "aboard": 75,
+   "silicate": 94,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4560,
+   "credits": 102029,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 83
+   },
+   "used": 583,
+   "aboard": 155,
+   "silicate": 106,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4620,
+   "credits": 102544,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 104
+   },
+   "used": 604,
+   "aboard": 102,
+   "silicate": 119,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4680,
+   "credits": 102519,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 104
+   },
+   "used": 604,
+   "aboard": 185,
+   "silicate": 131,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4740,
+   "credits": 103040,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 624,
+   "aboard": 129,
+   "silicate": 144,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4800,
+   "credits": 103015,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 624,
+   "aboard": 212,
+   "silicate": 156,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4860,
+   "credits": 102990,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 624,
+   "aboard": 268,
+   "silicate": 165,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4920,
+   "credits": 104034,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 101,
+   "silicate": 36,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 4980,
+   "credits": 104009,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 329,
+   "silicate": 193,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5040,
+   "credits": 106320,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 41
+   },
+   "used": 541,
+   "aboard": 130,
+   "silicate": 61,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5100,
+   "credits": 106295,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 41
+   },
+   "used": 541,
+   "aboard": 211,
+   "silicate": 73,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5160,
+   "credits": 106811,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 62
+   },
+   "used": 562,
+   "aboard": 139,
+   "silicate": 83,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5220,
+   "credits": 106786,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 62
+   },
+   "used": 562,
+   "aboard": 237,
+   "silicate": 98,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5280,
+   "credits": 106761,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 62
+   },
+   "used": 562,
+   "aboard": 321,
+   "silicate": 110,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5340,
+   "credits": 107817,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 103
+   },
+   "used": 603,
+   "aboard": 129,
+   "silicate": 123,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5400,
+   "credits": 107793,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 103
+   },
+   "used": 603,
+   "aboard": 212,
+   "silicate": 135,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5460,
+   "credits": 108307,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 624,
+   "aboard": 156,
+   "silicate": 147,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5520,
+   "credits": 108282,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 0
+   },
+   "used": 500,
+   "aboard": 238,
+   "silicate": 36,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5580,
+   "credits": 108257,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 0
+   },
+   "used": 500,
+   "aboard": 320,
+   "silicate": 48,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5640,
+   "credits": 108777,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 389,
+   "silicate": 185,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5700,
+   "credits": 110285,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 348,
+   "silicate": 73,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5760,
+   "credits": 110806,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 41
+   },
+   "used": 541,
+   "aboard": 275,
+   "silicate": 83,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5820,
+   "credits": 111832,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 83
+   },
+   "used": 583,
+   "aboard": 100,
+   "silicate": 98,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5880,
+   "credits": 112346,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 103
+   },
+   "used": 603,
+   "aboard": 43,
+   "silicate": 110,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 5940,
+   "credits": 112321,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 103
+   },
+   "used": 603,
+   "aboard": 127,
+   "silicate": 122,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6000,
+   "credits": 112296,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 103
+   },
+   "used": 603,
+   "aboard": 207,
+   "silicate": 134,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6060,
+   "credits": 112817,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 624,
+   "aboard": 155,
+   "silicate": 147,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6120,
+   "credits": 112792,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 124
+   },
+   "used": 624,
+   "aboard": 237,
+   "silicate": 160,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6180,
+   "credits": 113308,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 145
+   },
+   "used": 645,
+   "aboard": 180,
+   "silicate": 172,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6240,
+   "credits": 113817,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 127,
+   "silicate": 40,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6300,
+   "credits": 113791,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 21
+   },
+   "used": 521,
+   "aboard": 353,
+   "silicate": 197,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6360,
+   "credits": 116088,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 154,
+   "silicate": 65,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6420,
+   "credits": 116063,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 237,
+   "silicate": 77,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6480,
+   "credits": 116577,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 182,
+   "silicate": 90,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6540,
+   "credits": 116552,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 263,
+   "silicate": 102,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6600,
+   "credits": 116528,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 63
+   },
+   "used": 563,
+   "aboard": 328,
+   "silicate": 112,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6660,
+   "credits": 117570,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 104
+   },
+   "used": 604,
+   "aboard": 153,
+   "silicate": 127,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6720,
+   "credits": 117546,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 104
+   },
+   "used": 604,
+   "aboard": 236,
+   "silicate": 139,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6780,
+   "credits": 118066,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 125
+   },
+   "used": 625,
+   "aboard": 181,
+   "silicate": 152,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6840,
+   "credits": 118042,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 264,
+   "silicate": 40,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6900,
+   "credits": 118016,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 1
+   },
+   "used": 501,
+   "aboard": 447,
+   "silicate": 173,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 6960,
+   "credits": 119048,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 277,
+   "silicate": 189,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7020,
+   "credits": 120556,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 42
+   },
+   "used": 542,
+   "aboard": 235,
+   "silicate": 77,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7080,
+   "credits": 121077,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 62
+   },
+   "used": 562,
+   "aboard": 181,
+   "silicate": 90,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7140,
+   "credits": 121588,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 83
+   },
+   "used": 583,
+   "aboard": 125,
+   "silicate": 102,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  },
+  {
+   "t": 7200,
+   "credits": 121563,
+   "store": {
+    "ore": 500,
+    "alloy": 0,
+    "crystal": 0,
+    "silicate": 83
+   },
+   "used": 583,
+   "aboard": 207,
+   "silicate": 114,
+   "status": {
+    "ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    },
+    "silicate": {
+     "t": 7191,
+     "excess": 83,
+     "moving": 0,
+     "reason": "초과 재고 처리 중",
+     "sold": 0,
+     "earned": 0,
+     "since": {
+      "p9_anvil_port": 6911
+     }
+    },
+    "titanium_ore": {
+     "t": 7191,
+     "excess": 0,
+     "moving": 0,
+     "reason": "초과 재고 없음 — 최소 비축 유지",
+     "sold": 0,
+     "earned": 0
+    }
+   }
+  }
+ ]
+}

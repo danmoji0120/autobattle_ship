@@ -15,7 +15,7 @@ import type { WreckLot } from './wrecks';
 import { lotValue, itemLabel, wreckUnits, WRECK_SEEN_R } from './wrecks';
 import { coRelation } from './battleAuth';
 import { econOf, growthOn } from './hullops';
-import { priceOf } from './market';
+import { priceOf, tradeChunk } from './market';
 import type { Station } from './types';
 import { shipValue } from './data';
 import { dist, sysAt } from './geom';
@@ -489,7 +489,7 @@ function legalVictim(h: Host, g: WGroup, t: WGroup, op: PlunderOp): boolean {
 }
 // ------------------------------------------------------------------ target choice (P13.2.2)
 
-/** what selling `n` units of `item` at this station would really pay now: the same 50-unit walk down the bid,
+/** what selling `n` units of `item` at this station would really pay now: the same walk down the bid,
  *  station tax and purchase budget as WorldSim.sellAt, on a copy (pure) */
 export function saleQuote(h: Host, st: Station, item: string, n: number): { sold: number; value: number } {
   const m = st.market?.[item]; if (!m || n <= 0) return { sold: 0, value: 0 };
@@ -497,7 +497,7 @@ export function saleQuote(h: Host, st: Station, item: string, n: number): { sold
   const budget = v3 && st.public && st.funds !== undefined;
   let funds = st.funds ?? 0, stock = m.stock, left = n, sold = 0, total = 0;
   while (left > 0.01) {
-    let chunk = Math.min(left, 50);
+    let chunk = Math.min(left, v3 ? tradeChunk(m) : 50);   // the same chunks as WorldSim.sellAt (A-3.2a)
     const p = priceOf({ ...m, stock }, 'sell', v3);
     if (budget) { const can = p > 0 ? funds / (p * tax) : 0; if (can < chunk) chunk = Math.max(0, Math.floor(can)); if (chunk <= 0) break; funds -= chunk * p * tax; }
     total += chunk * p; stock += chunk; left -= chunk; sold += chunk;

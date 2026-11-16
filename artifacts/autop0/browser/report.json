@@ -1,0 +1,102 @@
+{
+ "base": "http://127.0.0.1:34973",
+ "checks": [
+  {
+   "ok": true,
+   "label": "1440: the form saves the sales policy and the minimum stock on the server",
+   "extra": {
+    "sales": {
+     "silicate": {
+      "minPrice": 5
+     },
+     "ore": {
+      "minPrice": 1
+     }
+    },
+    "keep": {
+     "p9_anvil_port": {
+      "ore": 500
+     }
+    }
+   }
+  },
+  {
+   "ok": true,
+   "label": "1440: the table shows items, the minimum stock and the policy",
+   "extra": {
+    "text": "재고 정책 · 자동 판매\n\n보관함마다 남길 최소 수량을 정하고, 초과분만 공용 수송선으로 매입 시장에 팔아 창고가 차지 않게 합니다.\n\n품목\t보관\t최소 비축\t자동 판매\t상태\t\n규산염\t0\t없음\t켜짐 · 최저 5 cr\t초과 재고 없음 — 최소 비축 유지\t끄기\n철광석\t0\t앤빌 광부조합 500\t켜짐 · 최저 1 cr\t초과 재고 없음 — 최소 비축 유지\t끄기\n품목\n고강도 특수 합금\n고밀도 티타늄 원광\n공명 결정\n공명 광학 소재\n구조재\n규산염\n기계부품\n무장 부품\n반응로\n복합소재\n불안정 동위원소\n센서\n수소 가스\n실리콘\n안정화 동위원소\n엔진\n장갑판\n전자부품\n정련 금속\n정밀부품\n집속 광학체\n철광석\n크리스탈\n탄약·추진제\n특이 광석\n특이 합금\n티타늄\n티타늄광\n합금\n화학소재\n희토류 금속\n희토류광\n 초과분 자동 판매\n최저 판매 단가 (cr)\n최소 비축 보관함\n변경 안 함\n헬리오스 조선소\n프라임 궤도 거래소\n아스트라 자유항\n연합 제7 순찰기지\n노바 정제소\n바르카 채굴 조합\n드레이크 전초기지\n엠버 광산 조합\n"
+   }
+  },
+  {
+   "ok": true,
+   "label": "1440: the panel fits the screen",
+   "extra": {
+    "l": 17,
+    "r": 1423,
+    "vw": 1440,
+    "sw": 1440
+   }
+  },
+  {
+   "ok": true,
+   "label": "1440: the off button turns the item's auto-sale off"
+  },
+  {
+   "ok": true,
+   "label": "390: the form saves the sales policy and the minimum stock on the server",
+   "extra": {
+    "sales": {
+     "silicate": {
+      "minPrice": 5
+     },
+     "ore": {
+      "minPrice": 1
+     }
+    },
+    "keep": {
+     "p9_anvil_port": {
+      "ore": 500
+     }
+    }
+   }
+  },
+  {
+   "ok": true,
+   "label": "390: the table shows items, the minimum stock and the policy",
+   "extra": {
+    "text": "재고 정책 · 자동 판매\n\n보관함마다 남길 최소 수량을 정하고, 초과분만 공용 수송선으로 매입 시장에 팔아 창고가 차지 않게 합니다.\n\n품목\t보관\t최소 비축\t자동 판매\t상태\t\n규산염\t0\t없음\t켜짐 · 최저 5 cr\t초과 재고 없음 — 최소 비축 유지\t끄기\n철광석\t0\t앤빌 광부조합 500\t켜짐 · 최저 1 cr\t초과 재고 없음 — 최소 비축 유지\t끄기\n품목\n고강도 특수 합금\n고밀도 티타늄 원광\n공명 결정\n공명 광학 소재\n구조재\n규산염\n기계부품\n무장 부품\n반응로\n복합소재\n불안정 동위원소\n센서\n수소 가스\n실리콘\n안정화 동위원소\n엔진\n장갑판\n전자부품\n정련 금속\n정밀부품\n집속 광학체\n철광석\n크리스탈\n탄약·추진제\n특이 광석\n특이 합금\n티타늄\n티타늄광\n합금\n화학소재\n희토류 금속\n희토류광\n 초과분 자동 판매\n최저 판매 단가 (cr)\n최소 비축 보관함\n변경 안 함\n헬리오스 조선소\n프라임 궤도 거래소\n아스트라 자유항\n연합 제7 순찰기지\n노바 정제소\n바르카 채굴 조합\n드레이크 전초기지\n엠버 광산 조합\n"
+   }
+  },
+  {
+   "ok": true,
+   "label": "390: the panel fits the screen",
+   "extra": {
+    "l": 7,
+    "r": 383,
+    "vw": 390,
+    "sw": 390
+   }
+  },
+  {
+   "ok": true,
+   "label": "390: the off button turns the item's auto-sale off"
+  },
+  {
+   "ok": true,
+   "label": "no page errors",
+   "extra": {
+    "errors": []
+   }
+  },
+  {
+   "ok": true,
+   "label": "no console errors",
+   "extra": {
+    "errors": []
+   }
+  }
+ ],
+ "errors": [],
+ "console": [],
+ "timeline": []
+}

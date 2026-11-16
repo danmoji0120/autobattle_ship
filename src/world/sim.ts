@@ -9,8 +9,8 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
-import { planProcurement, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
-import { registerCommand, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
+import { planProcurement, planSales, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
+import { registerCommand, stockFloor, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
 import { Rng } from '../sim/rng';
 import { World } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
@@ -158,6 +158,8 @@ export type Cmd =
   | { c: 'poolControl'; job: string; action: 'pause' | 'resume' | 'cancel' }
   | { c: 'procPolicy'; settings: ProcurementSettings }
   | { c: 'procSource'; station: string; kind: ProcurementKind; source: string; enabled: boolean; priority?: number }
+  /** AUTO-P0: an item's automatic excess-stock sale and/or its minimum stock at one store */
+  | { c: 'salesPolicy'; settings: SalesSettings }
   // ── company operations (world/operations.ts)
   | { c: 'workOp'; work: string; op: WorkOp; value?: number; price?: number }
   | { c: 'workCreate'; goal: GoalSpec; title?: string; priority?: number; budget?: number; maxPrice?: number }
@@ -728,7 +730,7 @@ export class WorldSim {
         if (cmd.c === 'buildOp' && (cmd.op === 'pause' || cmd.op === 'cancel')) stopProcurement(this, company, cmd.op === 'pause' ? 'paused' : 'closed', cmd.station, 'ship', cmd.build);
       }
       if (!err && ['poolCreate', 'poolControl', 'poolShips', 'autoLogistics'].includes(cmd.c)) this.poolDispatchAt = 0;
-      if (!err && ['poolCreate', 'poolControl', 'poolShips', 'procPolicy', 'procSource', 'queueModule', 'planOp', 'prodOrder', 'prodOp', 'buildShip', 'buildOp'].includes(cmd.c)) this.procurementAt = 0;
+      if (!err && ['poolCreate', 'poolControl', 'poolShips', 'procPolicy', 'salesPolicy', 'procSource', 'queueModule', 'planOp', 'prodOrder', 'prodOp', 'buildShip', 'buildOp'].includes(cmd.c)) this.procurementAt = 0;
       if (!err && cmd.c === 'setOp') emit(this.st, { kind: 'logistics', reason: 'resumed', amount: 0, company, group: cmd.group });
       return err;
     });
@@ -1550,6 +1552,7 @@ export class WorldSim {
       case 'poolCreate': return createPoolJob(this, company, cmd.request);
       case 'poolControl': return controlPoolJob(this, company, cmd.job, cmd.action);
       case 'procPolicy': return setProcurementPolicy(this, company, cmd.settings);
+      case 'salesPolicy': return setSalesPolicy(this, company, cmd.settings);
       case 'procSource': return setProcurementSource(this, company, cmd.station, cmd.kind, cmd.source, cmd.enabled, cmd.priority);
       case 'workOp': return growthOn(this.st) ? workOp(this, company, cmd.work, cmd.op, cmd.value, cmd.price) : '이 세계에서는 회사 업무를 사용할 수 없습니다';
       case 'workCreate': return createGoal(this, company, cmd.goal, { title: typeof cmd.title === 'string' ? cmd.title.slice(0, 60) : undefined, priority: cmd.priority, budget: cmd.budget, maxPrice: cmd.maxPrice });
@@ -2122,7 +2125,7 @@ export class WorldSim {
     this.slow += dt;
     this.economy(dt);
     this.npcs(dt);
-    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if ((st.logisticsJobs || st.logisticsV) && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); this.procurementAt = this.time + 10; } stepOperations(this); if (st.logisticsV && this.time >= this.pruneAt) { pruneLogisticsJobs(st, AUTO_JOB_HISTORY); this.pruneAt = this.time + 60; } }
+    if (this.slow >= 1 && growthOn(st)) { this.reconcileFoundEscrows(); if (st.logistics) maintainRoutes(this); if (st.logisticsJobs) maintainPool(this); if ((st.logisticsJobs || st.logisticsV) && this.time >= this.poolDispatchAt) { dispatchPool(this); this.poolDispatchAt = this.time + 5; } if (this.time >= this.procurementAt) { planProcurement(this); planSales(this); this.procurementAt = this.time + 10; } stepOperations(this); if (st.logisticsV && this.time >= this.pruneAt) { pruneLogisticsJobs(st, AUTO_JOB_HISTORY); this.pruneAt = this.time + 60; } }
     this.speedCap.clear(); this.escortPlans.clear(); this.escortIdx = null;
     for (const g of Object.values(st.groups)) {
       if (g.cooldown > 0) g.cooldown -= dt;
@@ -2999,7 +3002,7 @@ export class WorldSim {
     const here = this.sysOf(s.pos), there = this.sysOf(to);
     if (here && there && here.id !== there.id) {
       const job = s.logisticsJob ? this.st.logisticsJobs?.[s.logisticsJob] : undefined;
-      const maxRisk = managed && job?.procurement ? this.st.companies[s.owner]?.procurement?.maxRisk ?? 100 : undefined;
+      const maxRisk = managed && (job?.procurement || job?.sale) ? this.st.companies[s.owner]?.procurement?.maxRisk ?? 100 : undefined;
       const open = this.st.conflicts ? (gate: Gate) => gateOpen(this.st, gate) : undefined;
       const gate = nextGate(this.st.systems, here.id, there.id, managed ? gate => usableRouteGate(this.st, gate) && (maxRisk === undefined || 100 - effSec(this.st.systems[gate.to]) <= maxRisk) : open);
       if (!gate) { s.vel.x *= 0.9; s.vel.z *= 0.9; return false; }
@@ -3643,6 +3646,13 @@ export class WorldSim {
       }
       if (amt <= epsilon) continue;
       if (co.kind !== 'player') { if (st.market?.[r]) st.market[r].stock += amt; continue; }
+      // AUTO-P0: a direct sale first tops the store up to the common stock floor (minimum stock, goals, industry)
+      if (sell && st.market?.[r] && growthOn(this.st)) {
+        const need = Math.max(0, stockFloor(this, s.owner, st, r) - qty(this.storage(st, s.owner), r));
+        const put = Math.max(0, Math.min(amt, need, takesSpace(r) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : Infinity));
+        if (put > epsilon) { addc(this.storage(st, s.owner), r, put); if (takesSpace(r)) room -= put; amt -= put; msg += `${RES_NAME[r]} ${Math.round(put)} 비축 `; }
+        if (amt <= epsilon) continue;
+      }
       if (sell && st.market?.[r]) {
         const v = watchMoney(this.st, 'market_sale', { company: s.owner, group: s.groupId, ship: s.id, station: st.id, item: r }, () => this.sellAt(st, s.owner, r, amt));
         msg += `${RES_NAME[r]} ${Math.round(v.sold)} → +${Math.round(v.value).toLocaleString()} cr `;

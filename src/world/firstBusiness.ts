@@ -271,7 +271,7 @@ export function firstBusinessStatus(w: WorldState, me: string): FirstStatus | nu
     if (f && f.amount < f.max * 0.1) warnings.push(`${f.name} 고갈 — 재생을 기다리는 동안 다른 광구로 옮기면 수입이 이어집니다`);
     if (st && f) {
       const mix = believedMix(w, me, f), v = loadValue(w, st, mix);
-      if (v.unsold >= 10) warnings.push(`${st.name}은(는) ${Object.keys(mix).filter(k => !st.market?.[k]).map(k => itemName(k)).join(', ')}을(를) 사지 않습니다 — 팔리지 않는 몫(${v.unsold}%)은 창고에 쌓입니다`);
+      if (v.unsold >= 10) warnings.push(`${st.name}은(는) ${Object.keys(mix).filter(k => !st.market?.[k]).map(k => itemName(k)).join(', ')}을(를) 사지 않습니다 — 팔리지 않는 몫(${v.unsold}%)은 창고에 쌓입니다${Object.keys(mix).filter(k => !st.market?.[k]).every(k => w.companies[me]?.procurement?.sales?.[k]) ? ' (자동 판매 정책으로 다른 시장에 운송)' : ' — 물류 관리 › 재고 정책에서 자동 판매를 켜고 대기 편대에 수송선을 두면 다른 시장으로 운송합니다'}`);
       if (st.funds !== undefined && v.per100 > 0 && st.funds < v.per100 * 3) warnings.push(`${st.name} 구매 예산이 거의 바닥났습니다 (${Math.round(st.funds).toLocaleString()} cr) — 예산은 시간이 지나면 회복되며, 이웃 성계 하역지를 고를 수도 있습니다`);
     }
   }
