@@ -2,6 +2,7 @@
 // and by the in-browser LocalTransport (single player) — the same code path in both modes.
 
 import { migrateRep } from '../world/repMigrate';
+import { newWorldOptions, type WorldPreset } from '../world/worldPreset';
 import { Analytics, type AnalyticsOptions } from './analytics';
 import { pruneLogisticsJobs } from '../world/retention';
 import { WorldSim } from '../world/sim';
@@ -55,6 +56,9 @@ export interface ServerOptions {
   lawNew?: boolean;
   /** P14.0 reputation for new worlds (REPUTATION_P14=1) */
   repNew?: boolean;
+  /** A-1: 'standard' = a brand-new world is the integrated P10 world (world/worldPreset.ts) and the per-system
+   *  *New flags above are ignored; 'legacy' or unset = those flags decide (the old opt-in behaviour) */
+  worldPreset?: WorldPreset;
   /** P14.0: convert an existing growth save to the reputation rules (REPUTATION_P14_MIGRATE=1; idempotent) */
   repMigrate?: boolean;
   analytics?: AnalyticsOptions;
@@ -111,7 +115,7 @@ export class GameServer {
 
   constructor(save: SaveFile | null, opts: ServerOptions, seed = (Date.now() & 0xffffff)) {
     this.opts = opts;
-    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, { ...(opts.econNew ? { econ: 'chain' as const } : {}), ...(opts.combatNew ? { combat: 'p11' as const } : {}), ...(opts.opsNew ? { ops: 'p12' as const } : {}), ...(opts.logisticsNew ? { logistics: 'p125' as const } : {}), ...(opts.salvageNew ? { salvage: 'p131' as const } : {}), ...(opts.piracyNew ? { piracy: 'p132' as const } : {}), ...(opts.blackMarketNew ? { blackMarket: 'p133' as const } : {}), ...(opts.lawNew ? { law: 'p134' as const } : {}), ...(opts.repNew ? { rep: 'p14' as const } : {}) });
+    this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, newWorldOptions(opts));
     if (save && opts.repMigrate) { const r = migrateRep(this.sim.st); console.log(`[siderarium] P14.0 평판 이전: ${r.ok ? (r.why ?? `회사 ${r.companies}곳 · 전환 유예 ${Object.values(r.grace ?? {}).reduce((a, b) => a + b, 0)}건`) : `거부 — ${r.why}`}`); }
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }
@@ -261,7 +265,7 @@ export class GameServer {
           // identity is the verified account only; tokens and names in the message are ignored
           if (!c.account) return c.send({ t: 'auth', need: 'login' });
           const company = this.companyOf(c.account);
-          if (!company) return c.send({ t: 'needPmc' });
+          if (!company) return c.send({ t: 'needPmc', start: this.sim.starterTerms() });
           if (c.account === this.opts.exclusiveOwner) this.grantExclusive();
           return this.enter(c, company, '');
         }

@@ -1,0 +1,42 @@
+[siderarium] accounts: file · 0 linked PMCs · 0 legacy tokens
+[siderarium] world created (t=0s) storage=file /tmp/siderarium-a1-rVRah2/world.json rules={"layout":"p10","systems":40,"factions":6,"factionEcon":true,"combat":true,"ops":true,"logistics":true,"salvage":true,"piracy":true,"blackMarket":true,"law":true,"rep":true,"econChain":false}
+[siderarium] listening on :38899
+[siderarium] account created: a1_a
+[siderarium] account created: a1_b
+[siderarium] account created: a1_c
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.16 MB)
+[siderarium] WORLD_PRESET=standard — 개별 기능 플래그(COMBAT_P11 등)는 새 월드 생성에 쓰이지 않습니다
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] world restored (t=3s) storage=file /tmp/siderarium-a1-rVRah2/world.json rules={"layout":"p10","systems":40,"factions":6,"factionEcon":true,"combat":true,"ops":true,"logistics":true,"salvage":true,"piracy":true,"blackMarket":true,"law":true,"rep":true,"econChain":false}
+[siderarium] migration check OK {"players":3,"credits":36000,"ships":15,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":36,"eq_medium_gun":3,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :38899
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.19 MB)
+[siderarium] WORLD_PRESET=standard — 개별 기능 플래그(COMBAT_P11 등)는 새 월드 생성에 쓰이지 않습니다
+[siderarium] WORLD RESET applied (token a1reset01) — previous world kept as backup-reset-a1reset01
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 0 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 없음 (새로 시작)
+[siderarium] world restored (t=0s) storage=file /tmp/siderarium-a1-rVRah2/world.json rules={"layout":"p10","systems":40,"factions":6,"factionEcon":true,"combat":true,"ops":true,"logistics":true,"salvage":true,"piracy":true,"blackMarket":true,"law":true,"rep":true,"econChain":false}
+[siderarium] migration check OK {"players":0,"credits":0,"ships":0,"stations":0,"modules":0,"stored":0,"equipment":{},"granted":{}} · restore round-trip identical
+[siderarium] listening on :38899
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.17 MB)
+[siderarium] WORLD_RESET a1reset01: 이미 적용된 초기화 토큰 — 초기화하지 않음
+[siderarium] econ migration DRY RUN e0→e1: markets 23 · goods 177 · bases changed 159 · census OK — 적용하지 않음 (ECON_MIGRATE=apply 로 적용)
+[siderarium] accounts: file · 3 linked PMCs · 0 legacy tokens
+[siderarium] analytics history: 별도 기록
+[siderarium] world restored (t=3s) storage=file /tmp/siderarium-a1-rVRah2/world.json rules={"layout":"p10","systems":40,"factions":6,"factionEcon":true,"combat":true,"ops":true,"logistics":true,"salvage":true,"piracy":true,"blackMarket":true,"law":true,"rep":true,"econChain":false}
+[siderarium] migration check OK {"players":3,"credits":36000,"ships":15,"stations":0,"modules":0,"stored":0,"equipment":{"eq_pd_gun":36,"eq_medium_gun":3,"eq_autocannon":24},"granted":{}} · restore round-trip identical
+[siderarium] listening on :38899
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.19 MB)
+[siderarium] accounts: file · 0 linked PMCs · 0 legacy tokens
+[siderarium] world created (t=0s) storage=file /tmp/siderarium-a1-legacy-obErnD/world.json rules={"layout":"p9","systems":22,"factions":0,"factionEcon":false,"combat":false,"ops":false,"logistics":false,"salvage":false,"piracy":false,"blackMarket":false,"law":false,"rep":false,"econChain":false}
+[siderarium] listening on :38899
+[siderarium] saving before exit…
+[siderarium] 종료 저장 완료 (0.06 MB)
+[siderarium] !!! WORLD_PRESET 값 오류: standrad (standard | legacy)

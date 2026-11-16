@@ -1,0 +1,5 @@
+[siderarium] accounts: file · 0 linked PMCs · 0 legacy tokens
+[siderarium] world created (t=0s) storage=file /tmp/siderarium-a1-browser-H3hUj1/world.json rules={"layout":"p10","systems":40,"factions":6,"factionEcon":true,"combat":true,"ops":true,"logistics":true,"salvage":true,"piracy":true,"blackMarket":true,"law":true,"rep":true,"econChain":false}
+[siderarium] listening on :45927
+[siderarium] account created: a1_browser_a
+[siderarium] account created: a1_browser_b

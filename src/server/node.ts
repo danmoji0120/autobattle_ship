@@ -23,6 +23,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { GameServer, type Conn } from './core';
 import type { ClientMsg, SaveFile } from './protocol';
 import { WorldSim } from '../world/sim';
+import { newWorldOptions, worldRules, type WorldPreset } from '../world/worldPreset';
 import { INDUSTRY_VERSION } from '../world/economy';
 import { WORLD_VERSION } from '../world/worldgen';
 import { CONTENT_VERSION, census, compareCensus, migrateContent } from '../world/migrate';
@@ -233,12 +234,22 @@ async function main() {
   }
   if (storage.name.startsWith('file')) saved = await storage.load();
   if (!ANALYTICS_SEPARATE) { delete storage.saveAnalytics; delete storage.loadAnalytics; }
+  // A-1: one set of creation rules for a first start (empty storage) and for an operator reset. WORLD_PRESET=standard
+  // (the default) = the integrated P10 world; WORLD_PRESET=legacy = the old per-system opt-in flags below.
+  const presetEnv = (process.env.WORLD_PRESET ?? 'standard').trim();
+  if (presetEnv !== 'standard' && presetEnv !== 'legacy') { console.error(`[siderarium] !!! WORLD_PRESET 값 오류: ${presetEnv} (standard | legacy)`); process.exit(1); }
+  const worldFlags = {
+    worldPreset: presetEnv as WorldPreset, econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1',
+    salvageNew: process.env.SALVAGE_P131 === '1', piracyNew: process.env.PIRACY_P132 === '1', blackMarketNew: process.env.BLACKMARKET_P133 === '1', lawNew: process.env.LAW_P134 === '1', repNew: process.env.REPUTATION_P14 === '1',
+  };
+  if (presetEnv === 'standard' && Object.entries(worldFlags).some(([k, v]) => k !== 'worldPreset' && v))
+    console.log('[siderarium] WORLD_PRESET=standard — 개별 기능 플래그(COMBAT_P11 등)는 새 월드 생성에 쓰이지 않습니다');
   // operator-requested world reset (env WORLD_RESET=<token>): applied once per token
   const resetTok = (process.env.WORLD_RESET ?? '').trim();
   if (resetTok) {
     if (!/^[A-Za-z0-9_-]{4,40}$/.test(resetTok)) { console.error('[siderarium] !!! WORLD_RESET 토큰 형식 오류 (영숫자·_- 4~40자)'); process.exit(1); }
     const seed = Number(process.env.WORLD_SEED ?? 1);
-    const r = await storage.reset(resetTok, () => ({ v: 1, world: JSON.parse(WorldSim.create(seed, { ...(process.env.ECON_PRICING === 'chain' ? { econ: 'chain' as const } : {}), ...(process.env.COMBAT_P11 === '1' ? { combat: 'p11' as const } : {}), ...(process.env.FLEET_OPS_P12 === '1' ? { ops: 'p12' as const } : {}), ...(process.env.AUTO_LOGISTICS_P125 === '1' ? { logistics: 'p125' as const } : {}), ...(process.env.SALVAGE_P131 === '1' ? { salvage: 'p131' as const } : {}), ...(process.env.PIRACY_P132 === '1' ? { piracy: 'p132' as const } : {}), ...(process.env.BLACKMARKET_P133 === '1' ? { blackMarket: 'p133' as const } : {}), ...(process.env.LAW_P134 === '1' ? { law: 'p134' as const } : {}) }).serialize()), auth: {}, accounts: {} }));
+    const r = await storage.reset(resetTok, () => ({ v: 1, world: JSON.parse(WorldSim.create(seed, newWorldOptions(worldFlags)).serialize()), auth: {}, accounts: {} }));
     // accounts are separate from the world: they survive; each account simply gets "create your PMC" again
     if (r.done) {
       console.log(`[siderarium] WORLD RESET applied (token ${resetTok}) — previous world kept as ${r.backup ?? '(없음)'}`);
@@ -331,7 +342,7 @@ async function main() {
   }
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1', salvageNew: process.env.SALVAGE_P131 === '1', piracyNew: process.env.PIRACY_P132 === '1', blackMarketNew: process.env.BLACKMARKET_P133 === '1', lawNew: process.env.LAW_P134 === '1', repNew: process.env.REPUTATION_P14 === '1', repMigrate: process.env.REPUTATION_P14_MIGRATE === '1',
+    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, ...worldFlags, repMigrate: process.env.REPUTATION_P14_MIGRATE === '1',
     // Verify migration conservation before the intentionally granted BB-EX changes the census.
     deferExclusiveGrant: true,
     adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),
@@ -340,7 +351,7 @@ async function main() {
     ...(Number(process.env.LOGISTICS_JOB_RETAIN) > 0 ? { logisticsJobRetain: Math.floor(Number(process.env.LOGISTICS_JOB_RETAIN)) } : {}),
   }, Number(process.env.WORLD_SEED ?? 1));
   saver = new Saver(storage, game, { analyticsEveryS: Math.max(30, Number(process.env.ANALYTICS_SAVE_INTERVAL_S ?? 300) || 300) });
-  console.log(`[siderarium] world ${saved ? 'restored' : 'created'} (t=${game.sim.time.toFixed(0)}s) storage=${storage.name}`);
+  console.log(`[siderarium] world ${saved ? 'restored' : 'created'} (t=${game.sim.time.toFixed(0)}s) storage=${storage.name} rules=${JSON.stringify(worldRules(game.sim.st))}`);
   if (before) {
     const after = census(game.sim.st);
     const bad = compareCensus(before, after);

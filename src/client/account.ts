@@ -99,12 +99,15 @@ function showCode(app: HTMLElement, code: string, title: string, next: () => voi
 }
 
 /** first sign-in in this world: name the PMC (or carry over the one this browser used before accounts) */
-export function showPmcCreate(host: HTMLElement, o: { loginId: string; legacy: boolean; onSubmit: (name: string, legacy: boolean) => void; onLogout: () => void }) {
+export function showPmcCreate(host: HTMLElement, o: { loginId: string; legacy: boolean; start?: { credits: number; station: string }; onSubmit: (name: string, legacy: boolean) => void; onLogout: () => void }) {
   let el = host.querySelector('#pmcCreate') as HTMLElement | null;
   if (!el) { el = document.createElement('div'); el.id = 'pmcCreate'; host.appendChild(el); }
+  // the server states what this world gives (an older server sends nothing: then no amount is promised)
+  const where = o.start?.station ? `${esc(o.start.station)}에 등록되고` : '모항에 등록되고';
+  const funds = o.start ? `운영 자금 ${Math.round(o.start.credits).toLocaleString('en-US')} cr` : '운영 자금';
   el.innerHTML = `<div id="menu"><div class="panel mbox abox">
     <div class="mlogo">SIDERARIUM</div><div class="msub">PMC 설립 — ${esc(o.loginId)}</div>
-    <div class="mdesc">이 계정에는 아직 이 세계의 PMC가 없습니다. 회사 이름을 정하면 아스트라 자유항에 등록되고, 채굴선 2척·구축함 1척·코르벳 2척과 운영 자금 7,000 cr이 지급됩니다 (계정당 한 번).</div>
+    <div class="mdesc" data-pmc-start="${o.start ? Math.round(o.start.credits) : ''}">이 계정에는 아직 이 세계의 PMC가 없습니다. 회사 이름을 정하면 ${where}, 채굴선 2척·구축함 1척·코르벳 2척과 ${funds}이 지급됩니다 (계정당 한 번).</div>
     ${field('pmcNew', 'PMC 이름', 'text', 'maxlength="20" placeholder="2~20자"')}
     ${o.legacy ? `<label class="dim small"><input type="checkbox" id="pmcLegacy" /> 이 브라우저에서 계정 도입 전에 쓰던 PMC를 이 계정으로 가져오기 (이름 입력 불필요)</label>` : ''}
     <div class="aerr" id="pmcErr"></div>

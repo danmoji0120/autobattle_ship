@@ -39,7 +39,7 @@ export type ServerMsg =
   /** the connection has no signed-in account */
   | { t: 'auth'; need: 'login' }
   /** signed in, but the account has no PMC in this world yet */
-  | { t: 'needPmc' }
+  | { t: 'needPmc'; /** what the new company will receive in this world (absent from older servers) */ start?: { credits: number; station: string } }
   | { t: 'pmcErr'; msg: string }
   | { t: 'analytics'; id: number; data?: import('./analytics').AnalyticsResult; error?: string; admin?: boolean };
 

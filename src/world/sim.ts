@@ -181,6 +181,8 @@ const vlerp = (a: V, b: V, t: number): V => ({ x: a.x + (b.x - a.x) * t, y: a.y 
  *  small hull on top of its starter fleet */
 export { START_CREDITS_GROWTH } from './econConfig';
 import { START_CREDITS_GROWTH } from './econConfig';
+/** starting funds of a company in a pre-growth world (contentV < 3) */
+const START_CREDITS_LEGACY = 7000;
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
@@ -610,11 +612,16 @@ export class WorldSim {
 
   addPlayer(name: string): string { return watchMoney(this.st, 'company_creation', {}, () => this.createPlayer(name)); }
 
+  /** what a new company in this world receives (shown on the company-creation screen before it exists) */
+  starterTerms(): { credits: number; station: string } {
+    return { credits: growthOn(this.st) ? START_CREDITS_GROWTH : START_CREDITS_LEGACY, station: this.st.stations.astra?.name ?? '' };
+  }
+
   private createPlayer(name: string): string {
     const n = Object.values(this.st.companies).filter(c => c.kind === 'player').length;
     const id = this.id('p');
     this.st.companies[id] = {
-      id, name: name.slice(0, 20) || `PMC-${id}`, kind: 'player', color: PLAYER_COLORS[n % PLAYER_COLORS.length], credits: 7000, rep: 0,
+      id, name: name.slice(0, 20) || `PMC-${id}`, kind: 'player', color: PLAYER_COLORS[n % PLAYER_COLORS.length], credits: START_CREDITS_LEGACY, rep: 0,
       createdAt: this.time, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [], homeStation: 'astra', tech: [], research: [],
     };
     if (growthOn(this.st)) { const co = this.st.companies[id]; co.credits = START_CREDITS_GROWTH; for (const b of STARTER_BLUEPRINTS) grantBlueprint(this.st, co, b, 'starter', this.time); upkeepOf(co).last = this.time; }

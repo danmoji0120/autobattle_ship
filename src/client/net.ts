@@ -119,7 +119,7 @@ export class GameClient {
   onWelcome: (() => void)[] = [];
   /** accounts: the server wants a sign-in / a PMC for this account / refused the PMC request */
   onAuthNeeded: (() => void) | null = null;
-  onNeedPmc: (() => void) | null = null;
+  onNeedPmc: ((start?: { credits: number; station: string }) => void) | null = null;
   onPmcErr: ((msg: string) => void) | null = null;
   onBattle: ((m: Extract<ServerMsg, { t: 'binit' | 'border' }>) => void) | null = null;
   private analyticsAcks = new Map<number, (m: Extract<ServerMsg, { t: 'analytics' }>) => void>();
@@ -164,7 +164,7 @@ export class GameClient {
       case 'binit': case 'border': this.onBattle?.(m); break;
       case 'error': console.warn('[server]', m.msg); break;
       case 'auth': this.onAuthNeeded?.(); break;
-      case 'needPmc': this.onNeedPmc?.(); break;
+      case 'needPmc': this.onNeedPmc?.(m.start); break;
       case 'pmcErr': this.onPmcErr?.(m.msg); break;
     }
   }

@@ -1,0 +1,398 @@
+{
+ "pass": 17,
+ "total": 17,
+ "checks": [
+  {
+   "ok": true,
+   "label": "1-1: an empty storage with no world flags creates the integrated standard world",
+   "extra": {
+    "layout": "p10",
+    "systems": 40,
+    "factions": 6,
+    "factionEcon": true,
+    "combat": true,
+    "ops": true,
+    "logistics": true,
+    "salvage": true,
+    "piracy": true,
+    "blackMarket": true,
+    "law": true,
+    "rep": true,
+    "econChain": false
+   },
+   "t": 0
+  },
+  {
+   "ok": true,
+   "label": "1-2: three accounts each create their own company",
+   "extra": {
+    "A": "p1",
+    "B": "p142",
+    "C": "p151"
+   },
+   "t": 2
+  },
+  {
+   "ok": true,
+   "label": "1-3: the client sees the P10 factions and the integrated rules",
+   "extra": {
+    "factions": [
+     "union",
+     "guild",
+     "ceres",
+     "miners",
+     "iron",
+     "pirates"
+    ],
+    "repV": 1,
+    "lawV": 1
+   },
+   "t": 2
+  },
+  {
+   "ok": true,
+   "label": "1-4: the saved world carries the standard rules",
+   "extra": {
+    "layout": "p10",
+    "systems": 40,
+    "factions": 6,
+    "factionEcon": true,
+    "combat": true,
+    "ops": true,
+    "logistics": true,
+    "salvage": true,
+    "piracy": true,
+    "blackMarket": true,
+    "law": true,
+    "rep": true,
+    "econChain": false
+   },
+   "t": 3
+  },
+  {
+   "ok": true,
+   "label": "1-5: every company starts with credits, starter ships and neutral credit",
+   "extra": {
+    "A 통합 PMC": {
+     "credits": 12000,
+     "ships": [
+      "corvette_mk1",
+      "corvette_mk1",
+      "destroyer_mk1",
+      "miner_mk1",
+      "miner_mk1"
+     ],
+     "rep": 0,
+     "standing": {}
+    },
+    "B 통합 PMC": {
+     "credits": 12000,
+     "ships": [
+      "corvette_mk1",
+      "corvette_mk1",
+      "destroyer_mk1",
+      "miner_mk1",
+      "miner_mk1"
+     ],
+     "rep": 0,
+     "standing": {}
+    },
+    "C 통합 PMC": {
+     "credits": 12000,
+     "ships": [
+      "corvette_mk1",
+      "corvette_mk1",
+      "destroyer_mk1",
+      "miner_mk1",
+      "miner_mk1"
+     ],
+     "rep": 0,
+     "standing": {}
+    }
+   },
+   "t": 3
+  },
+  {
+   "ok": true,
+   "label": "1-6: the company-creation prompt states the real starting funds and station",
+   "extra": {
+    "credits": 12000,
+    "station": "아스트라 자유항"
+   },
+   "t": 3
+  },
+  {
+   "ok": true,
+   "label": "2-1: a restart restores the same standard world",
+   "extra": {
+    "layout": "p10",
+    "systems": 40,
+    "factions": 6,
+    "factionEcon": true,
+    "combat": true,
+    "ops": true,
+    "logistics": true,
+    "salvage": true,
+    "piracy": true,
+    "blackMarket": true,
+    "law": true,
+    "rep": true,
+    "econChain": false
+   },
+   "t": 4
+  },
+  {
+   "ok": true,
+   "label": "2-2: legacy per-system flags under the standard preset are reported as unused",
+   "t": 4
+  },
+  {
+   "ok": true,
+   "label": "2-3: an existing account reconnects to its company",
+   "extra": {
+    "id": "p1"
+   },
+   "t": 4
+  },
+  {
+   "ok": true,
+   "label": "3-1: WORLD_RESET builds a world with exactly the standard rules",
+   "extra": {
+    "layout": "p10",
+    "systems": 40,
+    "factions": 6,
+    "factionEcon": true,
+    "combat": true,
+    "ops": true,
+    "logistics": true,
+    "salvage": true,
+    "piracy": true,
+    "blackMarket": true,
+    "law": true,
+    "rep": true,
+    "econChain": false
+   },
+   "t": 4
+  },
+  {
+   "ok": true,
+   "label": "3-2: companies and their links are gone after the reset",
+   "extra": {
+    "accounts": {},
+    "players": 0
+   },
+   "t": 4
+  },
+  {
+   "ok": true,
+   "label": "3-3: every account still logs in after the reset",
+   "extra": [
+    200,
+    200,
+    200
+   ],
+   "t": 5
+  },
+  {
+   "ok": true,
+   "label": "3-4: each account is asked to create a new company",
+   "t": 6
+  },
+  {
+   "ok": true,
+   "label": "3-5: the new companies get the same starting conditions as on the first start",
+   "extra": {
+    "first": {
+     "A 통합 PMC": {
+      "credits": 12000,
+      "ships": [
+       "corvette_mk1",
+       "corvette_mk1",
+       "destroyer_mk1",
+       "miner_mk1",
+       "miner_mk1"
+      ],
+      "rep": 0,
+      "standing": {}
+     },
+     "B 통합 PMC": {
+      "credits": 12000,
+      "ships": [
+       "corvette_mk1",
+       "corvette_mk1",
+       "destroyer_mk1",
+       "miner_mk1",
+       "miner_mk1"
+      ],
+      "rep": 0,
+      "standing": {}
+     },
+     "C 통합 PMC": {
+      "credits": 12000,
+      "ships": [
+       "corvette_mk1",
+       "corvette_mk1",
+       "destroyer_mk1",
+       "miner_mk1",
+       "miner_mk1"
+      ],
+      "rep": 0,
+      "standing": {}
+     }
+    },
+    "second": {
+     "A 통합 PMC": {
+      "credits": 12000,
+      "ships": [
+       "corvette_mk1",
+       "corvette_mk1",
+       "destroyer_mk1",
+       "miner_mk1",
+       "miner_mk1"
+      ],
+      "rep": 0,
+      "standing": {}
+     },
+     "B 통합 PMC": {
+      "credits": 12000,
+      "ships": [
+       "corvette_mk1",
+       "corvette_mk1",
+       "destroyer_mk1",
+       "miner_mk1",
+       "miner_mk1"
+      ],
+      "rep": 0,
+      "standing": {}
+     },
+     "C 통합 PMC": {
+      "credits": 12000,
+      "ships": [
+       "corvette_mk1",
+       "corvette_mk1",
+       "destroyer_mk1",
+       "miner_mk1",
+       "miner_mk1"
+      ],
+      "rep": 0,
+      "standing": {}
+     }
+    }
+   },
+   "t": 7
+  },
+  {
+   "ok": true,
+   "label": "3-6: the same reset token a second time changes nothing",
+   "extra": "WORLD_RESET a1reset01: 이미 적용된 초기화 토큰 — 초기화하지 않음",
+   "t": 8
+  },
+  {
+   "ok": true,
+   "label": "4-1: WORLD_PRESET=legacy still creates the old P9 world",
+   "extra": {
+    "layout": "p9",
+    "systems": 22,
+    "factions": 0,
+    "factionEcon": false,
+    "combat": false,
+    "ops": false,
+    "logistics": false,
+    "salvage": false,
+    "piracy": false,
+    "blackMarket": false,
+    "law": false,
+    "rep": false,
+    "econChain": false
+   },
+   "t": 8
+  },
+  {
+   "ok": true,
+   "label": "4-2: an unknown WORLD_PRESET stops the server before any world is written",
+   "extra": {
+    "code": 1
+   },
+   "t": 8
+  }
+ ],
+ "facts": {
+  "seed": "41",
+  "firstStart": {
+   "A 통합 PMC": {
+    "credits": 12000,
+    "ships": [
+     "corvette_mk1",
+     "corvette_mk1",
+     "destroyer_mk1",
+     "miner_mk1",
+     "miner_mk1"
+    ],
+    "rep": 0,
+    "standing": {}
+   },
+   "B 통합 PMC": {
+    "credits": 12000,
+    "ships": [
+     "corvette_mk1",
+     "corvette_mk1",
+     "destroyer_mk1",
+     "miner_mk1",
+     "miner_mk1"
+    ],
+    "rep": 0,
+    "standing": {}
+   },
+   "C 통합 PMC": {
+    "credits": 12000,
+    "ships": [
+     "corvette_mk1",
+     "corvette_mk1",
+     "destroyer_mk1",
+     "miner_mk1",
+     "miner_mk1"
+    ],
+    "rep": 0,
+    "standing": {}
+   }
+  },
+  "afterReset": {
+   "A 통합 PMC": {
+    "credits": 12000,
+    "ships": [
+     "corvette_mk1",
+     "corvette_mk1",
+     "destroyer_mk1",
+     "miner_mk1",
+     "miner_mk1"
+    ],
+    "rep": 0,
+    "standing": {}
+   },
+   "B 통합 PMC": {
+    "credits": 12000,
+    "ships": [
+     "corvette_mk1",
+     "corvette_mk1",
+     "destroyer_mk1",
+     "miner_mk1",
+     "miner_mk1"
+    ],
+    "rep": 0,
+    "standing": {}
+   },
+   "C 통합 PMC": {
+    "credits": 12000,
+    "ships": [
+     "corvette_mk1",
+     "corvette_mk1",
+     "destroyer_mk1",
+     "miner_mk1",
+     "miner_mk1"
+    ],
+    "rep": 0,
+    "standing": {}
+   }
+  }
+ }
+}

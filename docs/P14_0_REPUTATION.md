@@ -79,7 +79,7 @@
 
 ## 5. 적용 범위와 이전(마이그레이션) 정책
 
-- **새 월드**: `WorldSim.create(seed, { rep: 'p14' })`, 서버는 `REPUTATION_P14=1`일 때만 새 월드를 repV로 만든다.
+- **새 월드**: `WorldSim.create(seed, { rep: 'p14' })`, 서버는 `REPUTATION_P14=1`일 때만 새 월드를 repV로 만든다. (A-1 이후: 서버 기본값 `WORLD_PRESET=standard`는 항상 repV를 포함한다. `REPUTATION_P14`는 `WORLD_PRESET=legacy`에서만 쓰인다. `docs/A1_STANDARD_WORLD.md` 참조.)
 - **기존 저장**: 서버를 `REPUTATION_P14_MIGRATE=1`로 시작할 때만 `migrateRep`이 실행된다. 레거시 월드(contentV < 3)는 거부.
   두 번째 실행은 "이미 적용됨 (변경 없음)".
 - **자산**: 함선·설계도·자금·화물·통계는 건드리지 않는다.

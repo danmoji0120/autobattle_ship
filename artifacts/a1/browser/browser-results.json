@@ -1,0 +1,120 @@
+{
+  "base": "http://127.0.0.1:45927",
+  "checks": [
+    {
+      "ok": true,
+      "label": "server: an empty storage with no flags created the standard world",
+      "extra": "rules={\"layout\":\"p10\",\"systems\":40,\"factions\":6,\"factionEcon\":true,\"combat\":true,\"ops\":true,\"logistics\":true,\"salvage\":true,\"piracy\":true,\"blackMarket\":true,\"law\":true,\"rep\":true,\"econChain\":false}"
+    },
+    {
+      "ok": true,
+      "label": "signup through the page",
+      "extra": {
+        "signup": 200
+      }
+    },
+    {
+      "ok": true,
+      "label": "PMC-creation screen states the starting funds and the home station",
+      "extra": {
+        "start": 12000,
+        "text": "이 계정에는 아직 이 세계의 PMC가 없습니다. 회사 이름을 정하면 아스트라 자유항에 등록되고, 채굴선 2척·구축함 1척·코르벳 2척과 운영 자금 12,000 cr이 지급됩니다 (계정당 한 번)."
+      }
+    },
+    {
+      "ok": true,
+      "label": "client: six P10 factions",
+      "extra": [
+        "ceres",
+        "guild",
+        "iron",
+        "miners",
+        "pirates",
+        "union"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "client: every integrated rule is on",
+      "extra": {
+        "factionEcon": 2,
+        "combatV": 2,
+        "opsV": 1,
+        "logisticsV": 1,
+        "salvageV": 1,
+        "piracyV": 1,
+        "blackMarketV": 1,
+        "lawV": 1,
+        "repV": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "client: the map has systems",
+      "extra": {
+        "systems": 32
+      }
+    },
+    {
+      "ok": true,
+      "label": "the new company holds the promised funds and the five starter ships",
+      "extra": {
+        "credits": 12000,
+        "ships": 5
+      }
+    },
+    {
+      "ok": true,
+      "label": "HUD reads 신용도"
+    },
+    {
+      "ok": true,
+      "label": "본부 → 평판·관계: six faction rows",
+      "extra": [
+        "ceres",
+        "guild",
+        "iron",
+        "miners",
+        "pirates",
+        "union"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "390px: a second account founds its PMC; no horizontal page scroll",
+      "extra": {
+        "prompt": 12000,
+        "pageOverflow": false
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors (warnings listed in browser-results.json)",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": [],
+  "preSignup": [
+    {
+      "vp": 1440,
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    },
+    {
+      "vp": 390,
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    }
+  ]
+}

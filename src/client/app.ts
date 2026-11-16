@@ -37,12 +37,12 @@ function accountFlow(ws: WsTransport, client: GameClient, app: HTMLElement, name
   };
   client.onAuthNeeded = () => authLost('로그인이 필요합니다.');
   const dropLegacy = () => { if (legacyTried) { try { localStorage.removeItem(LEGACY_KEY); } catch { /* */ } } };
-  client.onNeedPmc = () => {
+  client.onNeedPmc = start => {
     fetchMe().then(me => {
       if (!me) return authLost('세션이 만료되었습니다. 다시 로그인하세요.');
       if (ended || client.company) return;
       showPmcCreate(document.body, {
-        loginId: me.account.loginId, legacy: !!LS.get(LEGACY_KEY),
+        loginId: me.account.loginId, legacy: !!LS.get(LEGACY_KEY), start,
         onSubmit: (n, useLegacy) => { if (useLegacy) { legacyTried = true; client.createPmc('', LS.get(LEGACY_KEY) ?? ''); } else client.createPmc(n); },
         onLogout: () => camp().logout?.(),
       });
