@@ -325,6 +325,8 @@ export interface WCommander extends Omit<CommanderDef, 'team'> {
   level: number;
   injuredUntil: number;
   battles: number;
+  /** B-1 officer development (officerV worlds; created for player and recruit-pool officers only) */
+  of?: import('./officers').OfficerState;
 }
 
 export interface Module {
@@ -633,6 +635,10 @@ export interface WorldState {
   salvageV?: 1;
   /** A-3.2b natural derelicts and salvage contracts (salvageV worlds; new standard worlds, saves by explicit migration) */
   derelictV?: 1;
+  /** B-1 officer development (new standard worlds; saves by explicit migration OFFICERS_B1_MIGRATE) */
+  officerV?: 1;
+  /** B-1: which named officers this world has already produced (each appears at most once per world) */
+  officerNamed?: Record<string, string>;
   derelicts?: import('./derelicts').DerelictState;
   /** P13.1: persistent battlefield wrecks (salvageV worlds) */
   wrecks?: Record<string, import('./wrecks').WreckSite>;

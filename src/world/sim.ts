@@ -82,7 +82,9 @@ const SCRAMBLE_R = 3000;   // hostile warships this close prevent warping out
 const ALIGN: Record<string, number> = { corvette: 3, frigate: 3.5, destroyer: 4, light_cruiser: 5, cruiser: 6, battlecruiser: 7, battleship: 8, dreadnought: 11, miner: 5, hauler: 6, constructor: 7 };
 
 /** outcome of a battle, from the tactical engine or the NPC auto-resolver */
-interface BattleResult { winner: number; ships: { ref: string; dead: boolean; hp: number; escaped: boolean; dmg: number }[]; groupKills: Map<string, number>; sides?: SideResult[] }
+interface BattleResult { winner: number; ships: { ref: string; dead: boolean; hp: number; escaped: boolean; dmg: number }[]; groupKills: Map<string, number>; sides?: SideResult[];
+  /** B-1: per world group, what its ships did in a tactical battle (officer experience) */
+  groupStats?: Map<string, { dmg: number; taken: number; intercepts: number; rear: number; ships: number }> }
 
 export type Cmd =
   | { c: 'setOp'; group: string; op: Op }
@@ -113,6 +115,10 @@ export type Cmd =
   | { c: 'refit'; ship: string; loadoutId: string }
   | { c: 'hire'; commander: string }
   | { c: 'dismiss'; commander: string }
+  /** B-1 officer development (officerV worlds) */
+  | { c: 'officerLearn'; commander: string; node: string }
+  | { c: 'officerFocus'; commander: string; tree: string | null }
+  | { c: 'officerPost'; commander: string; post: string | null }
   | { c: 'accept'; contract: string }
   | { c: 'queueModule'; station: string; kind: string }
   | { c: 'removeModule'; station: string; slot: number }
@@ -204,6 +210,8 @@ import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContra
 import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
+import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, type XpSource, type Officer } from './officers';
+import type { Tree } from './officerData';
 
 export class WorldSim {
   st: WorldState;
@@ -269,12 +277,13 @@ export class WorldSim {
       this.battles.set(e.id, w);
     }
     enforceExclusive(st);
+    ensureOfficers(st);
     const c = st.clock;
     if (c) { this.acc = c.acc; this.slow = c.slow; this.npcRot = c.npcRot; for (const [k, v] of Object.entries(c.battleAcc ?? {})) if (this.battles.has(k)) this.battleAcc.set(k, v); }
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -305,6 +314,8 @@ export class WorldSim {
     if (sim.st.blackMarketV) seedBlackMarkets(sim);
     // A-3.2b natural derelicts & salvage contracts: opt-in for new salvage worlds (saves: explicit migration)
     if (opts.derelicts === 'a32b' && sim.st.salvageV) enableDerelicts(sim.st, sim.time);
+    // B-1 officer development: opt-in for new worlds (saves: explicit migration, migrateOfficers)
+    if (opts.officers === 'b1') { sim.st.officerV = 1; ensureOfficers(sim.st); }
     return sim;
   }
 
@@ -337,9 +348,35 @@ export class WorldSim {
 
   cmdr(g: WGroup): CommanderDef {
     const c = g.commanderId ? this.st.commanders[g.commanderId] : null;
+    if (this.st.officerV) return this.officerDef(g, c);
     if (c && c.injuredUntil <= this.time) return { ...c, team: 0 };
     return { ...ACTING_CAPTAIN, name: c ? `${c.name} (부상)` : '선임 함장' };
   }
+  /** B-1: the commander a group fights and works with — effective judgement, and the battle effects of its own
+   *  officer and of officers above it (memoised per tick: called for every group every step) */
+  private cmdrMemo = { t: -1, m: new Map<string, CommanderDef>() };
+  private officerDef(g: WGroup, c: WCommander | null): CommanderDef {
+    if (this.cmdrMemo.t !== this.time) this.cmdrMemo = { t: this.time, m: new Map() };
+    const hit = this.cmdrMemo.m.get(g.id); if (hit) return hit;
+    let d: CommanderDef;
+    if (c && c.injuredUntil <= this.time) {
+      const { of: _of, owner: _o, stationId: _s, hireCost: _h, xp: _x, level: _l, injuredUntil: _i, battles: _b, ...def } = c;
+      d = { ...def, skill: effSkill(c), team: 0 };
+    } else d = { ...ACTING_CAPTAIN, name: c ? `${c.name} (부상)` : '선임 함장' };
+    const ofx = battleFx(this.st, g);
+    if (ofx) d.ofx = ofx;
+    this.cmdrMemo.m.set(g.id, d);
+    return d;
+  }
+  /** B-1: pay experience to an officer for real work, and tell the owner about level-ups and milestones */
+  officerXp(c: WCommander | null | undefined, src: XpSource, amount: number, split: Partial<Record<Tree, number>>, key?: string): number {
+    if (!c || !this.st.officerV) return 0;
+    const r = grantXp(this.st, c, src, amount, split, key);
+    if (r.notes.length && c.owner && this.st.companies[c.owner]?.kind === 'player') for (const n of r.notes) this.ev('milestone', `${c.rank} ${c.name}: ${n}`, { company: c.owner, who: c.name, color: c.color, tag: 'officer' });
+    return r.gain;
+  }
+  /** B-1: the officer of a group (or null) — for work experience */
+  groupOfficer(g: WGroup | null | undefined) { return groupOfficer(this.st, g); }
 
   shipsOf(g: WGroup): WShip[] { return g.shipIds.map(id => this.st.ships[id]).filter(Boolean); }
   groupCenter(g: WGroup): V | null {
@@ -620,6 +657,7 @@ export class WorldSim {
   newCommander(owner: string | null, tier: number, stationId: string | null = null): WCommander {
     const c: WCommander = { id: this.id('c'), owner, stationId, ...generateCommander(this.rng, tier) };
     this.st.commanders[c.id] = c;
+    if (this.st.officerV && wantsOfficer(this.st, c)) initOfficer(this.st, c);
     return c;
   }
 
@@ -878,6 +916,7 @@ export class WorldSim {
         if (cmd.commander) {
           const c = this.st.commanders[cmd.commander]; if (!c || c.owner !== company) return '지휘관 없음';
           for (const o of Object.values(this.st.groups)) if (o.commanderId === c.id) o.commanderId = null;
+          onAssigned(this.st, c);
         }
         g.commanderId = cmd.commander;
         if (cmd.commander) this.say(g, `${g.name} 지휘를 맡겠습니다.`, 'radio', 0);
@@ -1037,14 +1076,33 @@ export class WorldSim {
         const c = this.st.commanders[cmd.commander]; if (!c || c.owner) return '고용 불가';
         if (co.credits < c.hireCost) return '자금 부족';
         co.credits -= c.hireCost; c.owner = company; c.stationId = null;
+        if (this.st.officerV) { if (!c.of) initOfficer(this.st, c); onHired(this.st, c); }
         this.ev('money', `${c.rank} ${c.name} 영입 -${c.hireCost.toLocaleString()} cr`, { company, who: c.name, color: c.color });
         return null;
       }
       case 'dismiss': {
         const c = this.st.commanders[cmd.commander]; if (!c || c.owner !== company) return '대상 없음';
         for (const g of Object.values(this.st.groups)) if (g.commanderId === c.id) g.commanderId = null;
+        // B-1: a named officer is unique in the world — dismissed, they go back to a recruitment pool with what they learned
+        if (c.of?.named && c.of.named !== 'n_bb') {
+          const pool = Object.values(this.st.stations).filter(x => x.public && x.services.recruit).sort((a, b) => a.id < b.id ? -1 : 1);
+          const home = pool[hashId(c.id + ':' + Math.floor(this.time)) % Math.max(1, pool.length)];
+          if (home) { c.owner = null; c.stationId = home.id; delete c.of.post; return null; }
+        }
         delete this.st.commanders[c.id];
         return null;
+      }
+      case 'officerLearn': {
+        const c = this.st.commanders[cmd.commander]; if (!this.st.officerV || !c || c.owner !== company) return '장교 없음';
+        return learn(this.st, c, cmd.node);
+      }
+      case 'officerFocus': {
+        const c = this.st.commanders[cmd.commander]; if (!this.st.officerV || !c || c.owner !== company) return '장교 없음';
+        return setFocus(this.st, c, cmd.tree);
+      }
+      case 'officerPost': {
+        const c = this.st.commanders[cmd.commander]; if (!this.st.officerV || !c || c.owner !== company) return '장교 없음';
+        return setPost(this.st, company, c, cmd.post);
       }
       case 'accept': {
         const k = this.st.contracts[cmd.contract]; if (!k || k.takenBy || k.done) return '수주 불가';
@@ -4307,7 +4365,17 @@ export class WorldSim {
     for (const tg of w.groups) if (tg.ref) groupKills.set(tg.ref.replace('#civ', ''), (groupKills.get(tg.ref.replace('#civ', '')) ?? 0) + tg.stats.killValue);
     const ships: BattleResult['ships'] = [];
     for (const ts of w.ships) if (ts.ref) ships.push({ ref: ts.ref, dead: ts.state === 'dead' || ts.state === 'dying', hp: ts.hp / ts.maxHp, escaped: ts.state === 'escaped', dmg: ts.stats.dmgDealt });
-    return { winner: w.outcome?.winner ?? -1, ships, groupKills, sides: w.outcome?.sides };
+    let groupStats: BattleResult['groupStats'];
+    if (this.st.officerV) {
+      groupStats = new Map();
+      for (const ts of w.ships) {
+        const tg = w.groupById.get(ts.groupId); if (!tg?.ref) continue;
+        const k = tg.ref.replace('#civ', ''); const r = groupStats.get(k) ?? { dmg: 0, taken: 0, intercepts: 0, rear: 0, ships: 0 };
+        r.dmg += ts.stats.dmgDealt; r.taken += ts.stats.dmgTaken; r.intercepts += ts.stats.intercepts; r.rear += ts.stats.rearHits; r.ships++;
+        groupStats.set(k, r);
+      }
+    }
+    return { winner: w.outcome?.winner ?? -1, ships, groupKills, sides: w.outcome?.sides, ...(groupStats ? { groupStats } : {}) };
   }
 
   private resolveAuto() {
@@ -4424,6 +4492,17 @@ export class WorldSim {
     let salvage = 0;
     const deadShips: DeadShip[] = [];
     const killsByGroup = res.groupKills;
+    // B-1: what each group did (strength-model fights have no tactical statistics: damage dealt and hull lost stand in)
+    const shares = new Map<string, { dmg: number; taken: number; intercepts: number; rear: number; ships: number; role: string }>();
+    if (st.officerV) for (const ts of res.ships) {
+      const s = st.ships[ts.ref]; if (!s) continue;
+      const r = shares.get(s.groupId) ?? { dmg: 0, taken: 0, intercepts: 0, rear: 0, ships: 0, role: 'line' };
+      const ts2 = res.groupStats?.get(s.groupId);
+      if (!ts2) { r.dmg += ts.dmg; r.taken += Math.max(0, s.hp - ts.hp) * shipValue(s.classId) * 4; }
+      r.ships++; if (s.classId === 'corvette') r.role = 'raider';
+      shares.set(s.groupId, r);
+    }
+    if (res.groupStats) for (const [k, v] of res.groupStats) { const r = shares.get(k); if (r) Object.assign(r, { dmg: v.dmg, taken: v.taken, intercepts: v.intercepts, rear: v.rear }); }
     for (const ts of res.ships) {
       const owner = ts.ref.startsWith('lair:') ? 'pirates' : ts.ref.startsWith('station:') ? st.stations[ts.ref.slice(8)]?.owner : st.ships[ts.ref]?.owner;
       if (owner) dmgBy.set(owner, (dmgBy.get(owner) ?? 0) + ts.dmg);
@@ -4485,7 +4564,15 @@ export class WorldSim {
       g.cooldown = 25; g.fleeing = false;
       if (g.owner === 'pirates' && g.op.k === 'raid') { g.op.target = undefined; (g as any)._nextPick = this.time + 40; }
       const cm = g.commanderId ? st.commanders[g.commanderId] : null;
-      if (cm && cm.injuredUntil <= this.time) {
+      if (cm?.of && st.officerV && cm.injuredUntil <= this.time) {
+        // B-1: experience from what the group really did, against hostile companies only (never the legacy formula)
+        cm.battles++;
+        const myK = e.sides.findIndex(x => x.includes(g.owner));
+        const foes = [...new Set(e.sides.flatMap((x, k) => k === myK ? [] : x))].filter(c => c !== g.owner && (e.v === 2 ? engRel(st, e, g.owner, c) === -1 : true));
+        const b = shares.get(gid);
+        if (b) { const r = combatXp(st, cm as Officer, { ...b, killValue: killsByGroup.get(gid) ?? 0, op: g.op.k }, foes, `b:${e.id}:${gid}`); if (r.notes.length && cm.owner && st.companies[cm.owner]?.kind === 'player') for (const n of r.notes) this.ev('milestone', `${cm.rank} ${cm.name}: ${n}`, { company: cm.owner, who: cm.name, color: cm.color, tag: 'officer' }); }
+        if (!g.shipIds.length) { cm.injuredUntil = this.time + 240; if (cm.owner) this.ev('warn', `${cm.name}의 함대가 전멸했다. 탈출 포드로 귀환, 4분간 부상.`, { company: cm.owner }); }
+      } else if (cm && cm.injuredUntil <= this.time) {
         cm.battles++;
         const gain = (12 + (killsByGroup.get(gid) ?? 0) / 12) * (cm.owner ? techFx(st.companies[cm.owner]?.tech).skillGain : 1);
         cm.xp += gain;
@@ -4700,8 +4787,14 @@ export class WorldSim {
       const pool = Object.values(st.commanders).filter(c => !c.owner && c.stationId === s.id);
       // veterans gather where the fighting is (and where the money is)
       const sec = this.secAt(s.pos);
-      if (pool.length < 3 && this.rng.chance(0.05)) this.newCommander(null, s.id === 'helios' ? 2 : sec < 40 ? 1.8 : 1, s.id);
+      if (pool.length < 3 && this.rng.chance(0.05)) {
+        // B-1: now and then one of the world's named officers turns up instead (each at most once per world)
+        const nm = this.st.officerV && this.rng.chance(0.06) ? nextNamed(this.st, this.rng.next()) : null;
+        if (nm) { const c = makeNamed(this.st, nm, this.id('c'), s.id); this.st.commanders[c.id] = c; this.ev('world', `${s.name}에 ${c.rank} ${c.name}이(가) 일자리를 찾고 있다는 소문이 돈다.`); }
+        else this.newCommander(null, s.id === 'helios' ? 2 : sec < 40 ? 1.8 : 1, s.id);
+      }
     }
+    if (st.officerV) ensureOfficers(st);
   }
 
   completeContract(k: Contract) { return watchMoney(this.st, `contract_${k.kind}`, { company: k.takenBy ?? undefined, station: k.stationId }, () => this.completeContractObserved(k)); }

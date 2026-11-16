@@ -15,6 +15,9 @@ export interface CommanderDef {
   team: 0 | 1;
   /** causality interference (the unique commander BB): may intervene before a result is final */
   causal?: boolean;
+  /** B-1 officer effects for this group in battle (resolved and capped by the world when the battle is set up;
+   *  replays carry them in the setup, so a replay is the same battle) */
+  ofx?: Record<string, number>;
 }
 
 export const SPECIALTY_TEXT: Record<Specialty, string> = {
