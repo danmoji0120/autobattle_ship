@@ -1,0 +1,327 @@
+{
+ "mode": "base",
+ "seed": 21,
+ "hours": 6,
+ "wallSeconds": 191,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 0,
+    "battleWrecksLive": 26,
+    "derelictsMade": 0,
+    "derelictValueMade": 0,
+    "salvageContractsPosted": 0
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 175456,
+     "netCash": 163456,
+     "debt": 0,
+     "firstSalvageAt": null,
+     "firstProfitAt": null,
+     "targetsSeen": 27,
+     "targetsWorked": 0,
+     "picks": 7,
+     "pickKinds": {
+      "wreck": 7
+     },
+     "recoveredUnits": 1829,
+     "recoveredValue": 165074,
+     "recoveredByItem": {
+      "weapon_parts": 170,
+      "electronics": 170,
+      "eq_torpedo": 2,
+      "alloy": 827,
+      "eq_medium_gun": 1,
+      "eq_autocannon": 16,
+      "bpf:bp_destroyer_heavy_armored": 1,
+      "metal": 639,
+      "eq_pd_gun": 3
+     },
+     "ledgerUnits": 0,
+     "ledgerValue": 0,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "ok",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 3,
+      "haulers": 1,
+      "damagedHaulers": 0,
+      "issues": []
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner",
+      "hauler"
+     ],
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 165580,
+     "contractPay": 0,
+     "salesByItem": {
+      "alloy": 41790,
+      "weapon_parts": 77384,
+      "electronics": 30800,
+      "metal": 15606
+     },
+     "upkeep": 2124,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_autocannon": 16,
+      "eq_pd_gun": 3,
+      "electronics": 27,
+      "eq_torpedo": 2,
+      "metal": 102,
+      "eq_medium_gun": 1,
+      "bpf:bp_destroyer_heavy_armored": 1
+     },
+     "unsoldValue": 32872,
+     "warehousePeak": 310,
+     "minutesIdleNoTarget": 100,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "연합 제7 순찰기지 초과 27: 인양 수송선이 이곳에 하역한 뒤 판매 왕복 — 대기",
+      "metal": "연합 제7 순찰기지 초과 102: 인양 수송선이 이곳에 하역한 뒤 판매 왕복 — 대기"
+     },
+     "milestones": [
+      "first_sale",
+      "rich",
+      "first_victory"
+     ]
+    }
+   ]
+  },
+  "6h": {
+   "world": {
+    "derelictsLive": 0,
+    "battleWrecksLive": 11,
+    "derelictsMade": 0,
+    "derelictValueMade": 0,
+    "salvageContractsPosted": 0
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 21600,
+     "credits": 318245,
+     "netCash": 306245,
+     "debt": 0,
+     "firstSalvageAt": null,
+     "firstProfitAt": null,
+     "targetsSeen": 54,
+     "targetsWorked": 0,
+     "picks": 14,
+     "pickKinds": {
+      "wreck": 14
+     },
+     "recoveredUnits": 3349,
+     "recoveredValue": 306374,
+     "recoveredByItem": {
+      "weapon_parts": 312,
+      "electronics": 312,
+      "eq_torpedo": 4,
+      "alloy": 1513,
+      "eq_medium_gun": 3,
+      "eq_autocannon": 25,
+      "bpf:bp_destroyer_heavy_armored": 1,
+      "metal": 1169,
+      "eq_pd_gun": 10
+     },
+     "ledgerUnits": 0,
+     "ledgerValue": 0,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "ok",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 3,
+      "haulers": 1,
+      "damagedHaulers": 0,
+      "issues": []
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner",
+      "hauler"
+     ],
+     "contracts": {
+      "accepted": 0,
+      "done": 0,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 312639,
+     "contractPay": 0,
+     "salesByItem": {
+      "alloy": 75499,
+      "weapon_parts": 135651,
+      "electronics": 66668,
+      "metal": 34821
+     },
+     "upkeep": 6394,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_pd_gun": 10,
+      "eq_autocannon": 25,
+      "eq_torpedo": 4,
+      "eq_medium_gun": 3,
+      "bpf:bp_destroyer_heavy_armored": 1
+     },
+     "unsoldValue": 52062,
+     "warehousePeak": 310,
+     "minutesIdleNoTarget": 323,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {},
+     "milestones": [
+      "first_sale",
+      "rich",
+      "first_victory"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 360,
+    "id": "wk_e291_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 44360
+   },
+   {
+    "t": 660,
+    "id": "wk_e293_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 9242
+   },
+   {
+    "t": 960,
+    "id": "wk_e346_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 27702
+   },
+   {
+    "t": 1620,
+    "id": "wk_e430_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 15648
+   },
+   {
+    "t": 2040,
+    "id": "wk_e500_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 25830
+   },
+   {
+    "t": 2940,
+    "id": "wk_e594_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 14708
+   },
+   {
+    "t": 7020,
+    "id": "wk_e912_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 27584
+   },
+   {
+    "t": 7860,
+    "id": "wk_e985_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19290
+   },
+   {
+    "t": 12180,
+    "id": "wk_e1312_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 19290
+   },
+   {
+    "t": 12900,
+    "id": "wk_e1356_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 26770
+   },
+   {
+    "t": 13440,
+    "id": "wk_e1406_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 19320,
+    "id": "wk_e1829_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 52000
+   },
+   {
+    "t": 19380,
+    "id": "wk_e1829_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 52000
+   },
+   {
+    "t": 19680,
+    "id": "wk_e1843_0",
+    "kind": "wreck",
+    "risk": 52,
+    "value": 7354
+   }
+  ]
+ }
+}
