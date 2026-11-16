@@ -1,0 +1,186 @@
+{
+  "base": "http://127.0.0.1:40881",
+  "checks": [
+    {
+      "ok": true,
+      "label": "a recent-battle wreck shows \"최근 전투 n분 전\" on its own line apart from the hostile-fleet line and is not 추천",
+      "extra": {
+        "bw": {
+          "id": "dr_1",
+          "name": "헬리오스 소형 유기선 1"
+        },
+        "row": "헬리오스 소형 유기선 1 전장 잔해 · 2점프 · 치안 100 · 경로 안전 20 · 180분 뒤 소멸 안전 경로 · 최근 전투 · 현장 주변 적대 함대 미확인 최근 전투 5분 전 — 전투 세력이 남아 있을 수 있음(위 적대 함대와 별개) 보고된 추정: 정련 금속, 합금 약 2,200 인양 시작"
+      }
+    },
+    {
+      "ok": true,
+      "label": "it sorts after every recommended target",
+      "extra": {
+        "idx": 5,
+        "firstNonRec": 5,
+        "order": [
+          "세레스 공업권 소형 유기선 10 유기선 (소형·초보) · 같은 성계 · ",
+          "세레스 공업권 소형 유기선 11 유기선 (소형·초보) · 같은 성계 · ",
+          "아스트라 소형 유기선 3 유기선 (소형·초보) · 1점프 · 치안 84 ",
+          "리라 교역권 소형 유기선 2 유기선 (소형·초보) · 1점프 · 치안 8",
+          "아스트라 소형 유기선 4 유기선 (소형·초보) · 1점프 · 치안 84 ",
+          "헬리오스 소형 유기선 1 전장 잔해 · 2점프 · 치안 100 · 경로 ",
+          "서리 변경 버려진 수송선 5 유기선 (중형) · 2점프 · 치안 68 ·",
+          "심층 광산 대형 난파선 6 유기선 (대형) · 2점프 · 치안 39 · ",
+          "엠버 성운 대형 난파선 7 유기선 (대형) · 2점프 · 치안 24 · ",
+          "검은 송곳니 공역 대형 난파선 8 유기선 (대형) · 3점프 · 치안 4"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "recent-battle target: asks first (battle time, no fleet details); cancel sends no order",
+      "extra": {
+        "asked": "헬리오스 소형 유기선 1: 경로는 안전(위험 20)합니다. 5분 전에 이곳에서 전투가 있었습니다. 지금 보이는 적대 함대는 없지만 전투를 벌인 세력이 근처에 남아 있을 수 있습니다. 보낼까요?",
+        "op": {
+          "k": "idle"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "confirming sends the fleet to exactly the chosen target (never refused or swapped)",
+      "extra": {
+        "op": {
+          "k": "recover",
+          "wreck": "dr_1"
+        },
+        "id": "dr_1"
+      }
+    },
+    {
+      "ok": true,
+      "label": "each replacement ship has \"조선소 열기\"; the guide says the purchase is confirmed in the yard screen",
+      "extra": {
+        "yardBtns": [
+          {
+            "v": "astra|constructor_s",
+            "text": "조선소 열기",
+            "row": "땜장이급 장비·설계도 조각·선체 아스트라 자유항 1점프 6,900 cr 조선소 열기"
+          },
+          {
+            "v": "astra|miner_mk1",
+            "text": "조선소 열기",
+            "row": "곡괭이급 선체 해체 아스트라 자유항 1점프 7,600 cr 조선소 열기"
+          },
+          {
+            "v": "astra|hauler_mk1",
+            "text": "조선소 열기",
+            "row": "짐꾼급 화물 회수·운송 아스트라 자유항 1점프 9,300 cr 조선소 열기"
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "\"조선소 열기\" opens that station's existing shipyard tab with the hull's card picked out and in view",
+      "extra": {
+        "open": true,
+        "tab": "조선소",
+        "title": "아스트라 자유항",
+        "focus": true,
+        "focusCount": 1,
+        "inView": true,
+        "buy": true,
+        "card": "짐꾼급 수송선 S · 일반 9,300 cr 거대한 컨테이너 수송선. 채굴선에서 광석을 받아 정거장으로 나른다. 내구 3,200 · 순항 85 · 전력 10 · 적재 9 · 하드포인트 2 · 베이 1 · 화물 450 · 정박 S급 · 운영비 300 cr/h + 화학소재 0.2/h 가격 구성 — 생산원가 22,124 cr × 소형 양산 배율 0.42 × 등급 ",
+        "guideClosed": true,
+        "stName": "아스트라 자유항",
+        "pick": {
+          "v": "astra|hauler_mk1",
+          "text": "조선소 열기",
+          "row": "짐꾼급 화물 회수·운송 아스트라 자유항 1점프 9,300 cr 조선소 열기"
+        }
+      }
+    },
+    {
+      "ok": true,
+      "label": "the picked hull stays marked across live re-renders",
+      "extra": {
+        "still": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "opening the yard buys nothing",
+      "extra": {
+        "before": 12000,
+        "mid": 12000
+      }
+    },
+    {
+      "ok": true,
+      "label": "the existing buy button really buys one ship of that hull at the yard price",
+      "extra": {
+        "before": 12000,
+        "after": {
+          "credits": 2700,
+          "fresh": [
+            {
+              "id": "s201",
+              "hull": "hauler_mk1",
+              "at": "astra"
+            }
+          ]
+        },
+        "price": 9300
+      }
+    },
+    {
+      "ok": true,
+      "label": "a recommended (low-risk, no recent battle) target is sent without a question",
+      "extra": {
+        "asked": "",
+        "op": {
+          "k": "recover",
+          "wreck": "dr_10"
+        },
+        "first": "세레스 공업권 소형 유기선 10 유기선 (소형·초보) · 같은 성계 · 치안 80 · 경로 안전 20 · 179분 뒤 소멸 추천 — 안전 경로 · 현장 주변 적대 함대 미확인 보고된 추정: 합금, 정련 금속, 전자부품 · 소유자 없음 — 합법 인양 약 2,700 인양 시작"
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: the comeback block with \"조선소 열기\" fits the screen",
+      "extra": {
+        "found": true,
+        "l": 31,
+        "r": 359,
+        "vw": 390,
+        "overflow": false,
+        "btns": 3
+      }
+    },
+    {
+      "ok": true,
+      "label": "390px: tapping \"조선소 열기\" opens the yard tab with the hull picked out",
+      "extra": {
+        "tab": "조선소",
+        "focus": true,
+        "inView": true,
+        "overflow": false,
+        "v": "astra|constructor_s"
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": {
+        "errors": []
+      }
+    },
+    {
+      "ok": true,
+      "label": "no console errors",
+      "extra": {
+        "errors": [],
+        "warnings": 0
+      }
+    }
+  ],
+  "errors": [],
+  "console": []
+}

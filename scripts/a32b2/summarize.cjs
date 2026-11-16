@@ -23,7 +23,7 @@ for (const s of [21, 22, 23, 24]) {
   const o = load('safe', 2, s); if (!o) continue;
   if (!(o.losses ?? []).length) { console.log(`- **s${s}** — 손실 없음`); continue; }
   for (const l of o.losses) {
-    const e = l.engagements[0];
+    const e = [...l.engagements].sort((a, b) => (a.dist ?? 1e18) - (b.dist ?? 1e18))[0];
     const job = [...(l.path ?? [])].reverse().find(p => p.job)?.job;
     console.log(`- **s${s}** — ${l.at}s ${l.last.name} (${l.last.hull}) · 성계 ${l.last.sys} · 편대 작전 ${l.last.op} "${l.last.gstatus}" · 직전 물류 작업: ${job ?? '없음'} · 교전 ${e ? `${e.id} (시작 ${e.start}s, 진영 ${e.sides.map(x => x.join('+')).join(' / ')}; ${e.groups.filter(g => g.kind === 'pirate').map(g => `${g.id} ${g.op} ${g.ships}척`).join(', ')})` : '없음'} · 회피: ${(l.groupHistory ?? []).filter(h => /회피/.test(h.status)).map(h => `${h.t}s ${h.status}`).join(', ') || '기록 없음'}`);
   }

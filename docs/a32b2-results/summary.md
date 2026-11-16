@@ -20,4 +20,4 @@
 - **s21** — 손실 없음
 - **s22** — 손실 없음
 - **s23** — 손실 없음
-- **s24** — 1502s 짐꾼 6호 (hauler_mk1) · 성계 ember · 편대 작전 idle "정박 대기" · 직전 물류 작업: sell/sale electronics 8 p9_forge_works→cinderco active · 교전 e430 (시작 1282s, 진영 pirates / guild / p1; g328 raid 6척) · 회피: 1454s 해적 회피 — 대피 중
+- **s24** — 1502s 짐꾼 6호 (hauler_mk1) · 성계 ember · 편대 작전 idle "정박 대기" · 직전 물류 작업: sell/sale electronics 8 p9_forge_works→cinderco active · 교전 e451 (시작 1455s, 진영 union / pirates / p1; g328 raid 6척) · 회피: 1454s 해적 회피 — 대피 중
