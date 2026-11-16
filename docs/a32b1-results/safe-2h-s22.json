@@ -1,0 +1,247 @@
+{
+ "mode": "safe",
+ "seed": 22,
+ "hours": 2,
+ "wallSeconds": 68,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 15,
+    "battleWrecksLive": 29,
+    "derelictsMade": 28,
+    "derelictValueMade": 227324,
+    "salvageContractsPosted": 8
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 172876,
+     "netCash": 160876,
+     "debt": 0,
+     "firstSalvageAt": 180,
+     "firstProfitAt": 180,
+     "targetsSeen": 46,
+     "targetsWorked": 18,
+     "picks": 18,
+     "pickKinds": {
+      "contract": 6,
+      "derelict": 7,
+      "wreck": 5
+     },
+     "recoveredUnits": 2436,
+     "recoveredValue": 148640,
+     "recoveredByItem": {
+      "electronics": 136,
+      "alloy": 1124,
+      "metal": 1017,
+      "machinery": 16,
+      "titanium": 12,
+      "weapon_parts": 117,
+      "eq_pd_gun": 5,
+      "eq_torpedo": 2,
+      "eq_autocannon": 7
+     },
+     "ledgerUnits": 2436,
+     "ledgerValue": 148640,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "ok",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 3,
+      "haulers": 1,
+      "damagedHaulers": 0,
+      "issues": []
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner",
+      "hauler"
+     ],
+     "contracts": {
+      "accepted": 6,
+      "done": 6,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 157542,
+     "contractPay": 5500,
+     "salesByItem": {
+      "alloy": 47173,
+      "metal": 29031,
+      "machinery": 2368,
+      "electronics": 28878,
+      "titanium": 797,
+      "weapon_parts": 49295
+     },
+     "upkeep": 2166,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 0,
+     "shipLossValue": 0,
+     "unsoldStock": {
+      "eq_pd_gun": 5,
+      "eq_torpedo": 2,
+      "eq_autocannon": 7
+     },
+     "unsoldValue": 16708,
+     "warehousePeak": 305,
+     "minutesIdleNoTarget": 80,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {},
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 180,
+    "id": "dr_3",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1250
+   },
+   {
+    "t": 300,
+    "id": "dr_1",
+    "kind": "contract",
+    "risk": 28,
+    "value": 700
+   },
+   {
+    "t": 480,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2304
+   },
+   {
+    "t": 660,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2080
+   },
+   {
+    "t": 720,
+    "id": "dr_14",
+    "kind": "derelict",
+    "risk": 28,
+    "value": 6226
+   },
+   {
+    "t": 900,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2448
+   },
+   {
+    "t": 1200,
+    "id": "wk_e430_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 23010
+   },
+   {
+    "t": 1380,
+    "id": "wk_e430_1",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 11936
+   },
+   {
+    "t": 2700,
+    "id": "dr_21",
+    "kind": "contract",
+    "risk": 20,
+    "value": 700
+   },
+   {
+    "t": 2880,
+    "id": "dr_22",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1100
+   },
+   {
+    "t": 2940,
+    "id": "wk_e617_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 15656
+   },
+   {
+    "t": 3300,
+    "id": "wk_e634_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 35870
+   },
+   {
+    "t": 4560,
+    "id": "dr_23",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2332
+   },
+   {
+    "t": 5160,
+    "id": "dr_26",
+    "kind": "contract",
+    "risk": 20,
+    "value": 1050
+   },
+   {
+    "t": 5280,
+    "id": "wk_e800_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 25838
+   },
+   {
+    "t": 5940,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2144
+   },
+   {
+    "t": 6180,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2694
+   }
+  ]
+ }
+}
