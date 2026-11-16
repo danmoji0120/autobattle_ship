@@ -3,7 +3,7 @@
 //  2. a caution target (31–55) asks and cancel sends nothing (when one is listed)
 //  3. a hostile armed ship at a safe target (client-view injection, the server is untouched): shown apart from route
 //     risk; asks; cancel sends nothing; confirm sends exactly that target
-//  4. 사업 중단 (client-view injection: our ships removed from the view) shows cash, replacement ships and the way back
+//  4. 사업 중단 (client-view injection: our ships re-labelled to another owner in the view) shows cash, replacement ships and the way back
 //  5. 390 px: fits; a recommended target is sent without a question
 //   node scripts/a32b1/a32b1-browser.cjs <outDir>
 const { chromium } = require('playwright');
@@ -25,7 +25,7 @@ const outDir = process.argv[2] ?? 'artifacts/a32b1/browser';
   const check = (ok, label, extra) => { report.checks.push({ ok: !!ok, label, ...(extra ? { extra } : {}) }); console.log(ok ? 'PASS' : 'FAIL', label, extra ? JSON.stringify(extra).slice(0, 700) : ''); };
   const browser = await chromium.launch({ args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const watch = (page, vp) => {
-    page.on('pageerror', e => report.errors.push(e.message));
+    page.on('pageerror', e => report.errors.push(`[${report.checks.length} after: ${report.checks.at(-1)?.label ?? 'start'}] ` + e.message + ' @ ' + String(e.stack ?? '').split('\n').slice(1, 4).join(' | ')));
     page.on('console', m => { if (['error', 'warning'].includes(m.type())) report.console.push({ vp, type: m.type(), text: m.text().slice(0, 300) }); });
   };
   const signUp = async (page, id, pw) => {
@@ -79,7 +79,7 @@ const outDir = process.argv[2] ?? 'artifacts/a32b1/browser';
       if (!o) return null;
       const any = Object.values(w.ships).find(s => s.owner === 'pirates') ?? Object.values(w.ships)[0];
       const pir = any.owner === 'pirates', copy = JSON.parse(JSON.stringify(any));
-      if (!pir) { delete copy.hull; delete copy.variant; copy.classId = 'corvette'; copy.loadoutId = 'gun'; }
+      if (!pir || !copy.classId) { delete copy.hull; delete copy.variant; delete copy.fitting; copy.classId = 'corvette'; copy.loadoutId = 'gun'; }
       w.ships.zz_probe = { ...copy, id: 'zz_probe', owner: 'pirates', state: 'space', pos: { ...o.pos, x: o.pos.x + 600 }, groupId: 'zz_probe_g', task: { k: 'none' } };
       w.groups.zz_probe_g = { id: 'zz_probe_g', owner: 'pirates', name: 'probe', op: { k: 'idle' }, shipIds: ['zz_probe'] };
       return o.name;
@@ -101,7 +101,7 @@ const outDir = process.argv[2] ?? 'artifacts/a32b1/browser';
       check(s2.op?.k === 'recover' && s2.op.wreck === wid, 'confirming sends the fleet to exactly the chosen target', { op: s2.op, wid });
     }
     // 4. halted: the client view without our ships (injection) shows 사업 중단 and the comeback block with real yard prices
-    await page.evaluate(() => { const c = window.siderarium.client, w = c.state; for (const s of Object.values(w.ships)) if (s.owner === c.company) delete w.ships[s.id]; });
+    await page.evaluate(() => { const c = window.siderarium.client, w = c.state; for (const s of Object.values(w.ships)) if (s.owner === c.company) s.owner = 'zz_view_only'; });
     await reopen(page); await page.waitForTimeout(500);
     const t4 = await fbText(page);
     check(/운영 상태: 사업 중단/.test(t4) && /사업 재개 방법/.test(t4) && /현금 [\d,]+ cr/.test(t4) && /(대체 함선 구입 가능|가장 싼 대체 함선|재고가 없습니다)/.test(t4) && /달성한 이정표는 그대로/.test(t4), 'halted: 사업 중단 with cash, replacement ships and how to restart', { t4: t4.slice(0, 1400) });
@@ -118,9 +118,12 @@ const outDir = process.argv[2] ?? 'artifacts/a32b1/browser';
     await page.screenshot({ path: `${outDir}/guide-390.png` });
     // a recommended target sends at once (no question)
     let asked = ''; page.once('dialog', d => { asked = d.message(); d.dismiss(); });
-    await page.tap('[data-fbrecover="0"]'); await page.waitForTimeout(2000);
+    const first = (await rows(page))[0];
+    await page.tap('[data-fbrecover="0"]');
+    await page.waitForFunction(() => { const c = window.siderarium.client, g = Object.values(c.state.groups).find(x => x.owner === c.company); return g?.op?.k === 'recover'; }, null, { timeout: 8000 }).catch(() => {});
     const s5 = await state(page);
-    check(!asked && s5.op?.k === 'recover', 'a recommended target is sent without a question', { asked, op: s5.op });
+    if (s5.op?.k !== 'recover') report.console.push({ vp: 390, type: 'info', text: `first row: ${first?.text?.slice(0, 200)}` });
+    check(!asked && s5.op?.k === 'recover', 'a recommended target is sent without a question', { asked, op: s5.op, first: first?.text?.slice(0, 160) });
     await ctx.close();
   } catch (e) { check(false, 'browser run', { error: String(e && e.stack || e).slice(0, 800) }); }
   check(!report.errors.length, 'no page errors', { errors: report.errors.slice(0, 5) });
