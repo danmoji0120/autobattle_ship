@@ -1,0 +1,242 @@
+{
+ "mode": "safe",
+ "seed": 21,
+ "hours": 2,
+ "wallSeconds": 66,
+ "snapshots": {
+  "2h": {
+   "world": {
+    "derelictsLive": 17,
+    "battleWrecksLive": 31,
+    "derelictsMade": 29,
+    "derelictValueMade": 229530,
+    "salvageContractsPosted": 9
+   },
+   "companies": [
+    {
+     "company": "세레스 인양 1",
+     "time": 7200,
+     "credits": 81013,
+     "netCash": 69013,
+     "debt": 0,
+     "firstSalvageAt": 240,
+     "firstProfitAt": 240,
+     "targetsSeen": 38,
+     "targetsWorked": 15,
+     "picks": 15,
+     "pickKinds": {
+      "contract": 4,
+      "derelict": 8,
+      "wreck": 3
+     },
+     "recoveredUnits": 1523,
+     "recoveredValue": 76252,
+     "recoveredByItem": {
+      "metal": 695,
+      "alloy": 688,
+      "electronics": 62,
+      "machinery": 20,
+      "weapon_parts": 54,
+      "eq_pd_gun": 2,
+      "eq_autocannon": 2
+     },
+     "ledgerUnits": 1523,
+     "ledgerValue": 76252,
+     "saleTrips": {
+      "n": 0,
+      "done": 0,
+      "returned": 0,
+      "sold": 0,
+      "earned": 0,
+      "items": {}
+     },
+     "operating": {
+      "state": "transport",
+      "can": {
+       "hull": true,
+       "cargo": true,
+       "equip": true,
+       "frag": true
+      },
+      "workers": 2,
+      "haulers": 0,
+      "damagedHaulers": 0,
+      "issues": [
+       "수송선 없음 — 하역지 시장이 사지 않는 회수품을 다른 시장으로 옮길 수 없습니다"
+      ],
+      "comeback": {
+       "credits": 81013,
+       "stage": 0,
+       "offers": [
+        "hauler_mk1@astra 9300"
+       ],
+       "steps": [
+        "창고의 회수품(기준가 약 11,874 cr)은 자동 판매 대상입니다 — 수송선이 없으면 하역지 시장이 사는 품목만 팔립니다",
+        "대체 함선 구입 가능: 짐꾼급 9,300 cr (아스트라 자유항 · 1점프) — 정거장 조선소 탭에서 구입한 뒤 인양반 편대에 넣으세요"
+       ]
+      }
+     },
+     "shipsLeft": [
+      "constructor",
+      "miner"
+     ],
+     "contracts": {
+      "accepted": 4,
+      "done": 4,
+      "failed": 0,
+      "open": 0,
+      "failReasons": {},
+      "deliveredOnFailed": 0
+     },
+     "marketRevenue": 67423,
+     "contractPay": 3300,
+     "salesByItem": {
+      "alloy": 31106,
+      "metal": 13497,
+      "machinery": 2073,
+      "electronics": 5033,
+      "weapon_parts": 15715
+     },
+     "upkeep": 1710,
+     "repair": 0,
+     "otherExpense": 0,
+     "shipsLost": 1,
+     "shipLossValue": 9300,
+     "unsoldStock": {
+      "machinery": 5,
+      "metal": 161,
+      "weapon_parts": 18,
+      "eq_pd_gun": 2,
+      "eq_autocannon": 2
+     },
+     "unsoldValue": 15650,
+     "warehousePeak": 176,
+     "minutesIdleNoTarget": 91,
+     "minutesBlocked": 0,
+     "stalls": {},
+     "salesStatus": {
+      "electronics": "운송·판매 중 36",
+      "machinery": "헬리오스 조선소 초과 5: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "metal": "헬리오스 조선소 초과 25: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송",
+      "weapon_parts": "아스트라 자유항 초과 18: 공용 수송선 없음 — 재고 보존. 대기 편대에 수송선을 두거나 '채굴 운반 전용'을 해제하면 자동 운송"
+     },
+     "milestones": [
+      "first_contract",
+      "first_salvage",
+      "first_sale",
+      "first_profit"
+     ]
+    }
+   ]
+  }
+ },
+ "picks": {
+  "p1": [
+   {
+    "t": 60,
+    "id": "dr_4",
+    "kind": "contract",
+    "risk": 20,
+    "value": 800
+   },
+   {
+    "t": 240,
+    "id": "dr_10",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2670
+   },
+   {
+    "t": 360,
+    "id": "dr_11",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2314
+   },
+   {
+    "t": 420,
+    "id": "dr_3",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2496
+   },
+   {
+    "t": 540,
+    "id": "dr_2",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2232
+   },
+   {
+    "t": 660,
+    "id": "dr_1",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2224
+   },
+   {
+    "t": 1800,
+    "id": "wk_e454_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 1980,
+    "id": "wk_e513_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 16596
+   },
+   {
+    "t": 2820,
+    "id": "wk_e597_0",
+    "kind": "wreck",
+    "risk": 20,
+    "value": 14708
+   },
+   {
+    "t": 4260,
+    "id": "dr_21",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 1946
+   },
+   {
+    "t": 4860,
+    "id": "dr_22",
+    "kind": "contract",
+    "risk": 20,
+    "value": 950
+   },
+   {
+    "t": 4920,
+    "id": "dr_23",
+    "kind": "contract",
+    "risk": 28,
+    "value": 800
+   },
+   {
+    "t": 5520,
+    "id": "dr_26",
+    "kind": "contract",
+    "risk": 20,
+    "value": 750
+   },
+   {
+    "t": 5640,
+    "id": "dr_27",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2360
+   },
+   {
+    "t": 5820,
+    "id": "dr_28",
+    "kind": "derelict",
+    "risk": 20,
+    "value": 2656
+   }
+  ]
+ }
+}
