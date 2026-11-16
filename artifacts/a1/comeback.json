@@ -1,0 +1,55 @@
+{
+ "awayHours": 10,
+ "onReturn": {
+  "h": 10,
+  "credits": 0,
+  "debt": 11032,
+  "stage": 4,
+  "held": [
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류",
+   "운영비 체납 — 신규 출항 보류"
+  ]
+ },
+ "mineOrderErr": null,
+ "after": [
+  {
+   "h": 1,
+   "credits": 0,
+   "debt": 13287,
+   "stage": 4,
+   "mined": 0,
+   "minersInSpace": 0,
+   "minersStatus": "운영비 체납 — 신규 출항 보류"
+  },
+  {
+   "h": 2,
+   "credits": 0,
+   "debt": 15542,
+   "stage": 4,
+   "mined": 0,
+   "minersInSpace": 0,
+   "minersStatus": "운영비 체납 — 신규 출항 보류"
+  },
+  {
+   "h": 3,
+   "credits": 0,
+   "debt": 17797,
+   "stage": 4,
+   "mined": 0,
+   "minersInSpace": 0,
+   "minersStatus": "운영비 체납 — 신규 출항 보류"
+  },
+  {
+   "h": 4,
+   "credits": 0,
+   "debt": 20052,
+   "stage": 4,
+   "mined": 0,
+   "minersInSpace": 0,
+   "minersStatus": "운영비 체납 — 신규 출항 보류"
+  }
+ ]
+}
