@@ -1,0 +1,904 @@
+{
+ "result": {
+  "system": "gloam",
+  "cls": "outer",
+  "capital": 4000000,
+  "established": true,
+  "hours": 23,
+  "milestones": {
+   "station": 0.07,
+   "fleet": 0.28,
+   "declared": 4.28,
+   "governance": 5.28
+  },
+  "creditsStart": 4011876,
+  "creditsEnd": 1943060,
+  "netSpent": 2068816,
+  "ledger": {
+   "income": {
+    "other": 4000000,
+    "sales": 812699
+   },
+   "expense": {
+    "upkeep": 676371,
+    "ships": 758070,
+    "construction": 432000,
+    "purchase": 924164,
+    "crew": 7500,
+    "sov_admin": 20000,
+    "sov_upkeep": 63534
+   }
+  },
+  "ships": [
+   [
+    "miner",
+    6
+   ],
+   [
+    "hauler",
+    3
+   ],
+   [
+    "constructor",
+    1
+   ],
+   [
+    "frigate",
+    12
+   ],
+   [
+    "destroyer",
+    4
+   ]
+  ],
+  "report": {
+   "upkeep": 2611,
+   "supply": {
+    "in": 30240,
+    "need": 24642,
+    "stock": {
+     "alloy": 197,
+     "chemicals": 141.33333333333383,
+     "machinery": 22.20000000000059,
+     "electronics": 13.26666666666696
+    },
+    "demand": {
+     "alloy": 30,
+     "chemicals": 20,
+     "machinery": 4,
+     "electronics": 2
+    },
+    "reserved": {
+     "chemicals": 20,
+     "machinery": 4,
+     "alloy": 30,
+     "electronics": 2
+    },
+    "lack": {},
+    "stalled": 0
+   },
+   "power": 1353,
+   "needPower": 1200
+  },
+  "hold": {
+   "hours": 24,
+   "ownerAtEnd": true,
+   "stabMin": 71,
+   "stabEnd": 100,
+   "arrearsMax": 0,
+   "creditsAtEst": 2186457,
+   "creditsEnd": 1943060,
+   "netPerHour": -10142,
+   "stalledMaxS": 0
+  },
+  "wallS": 2151
+ },
+ "timeline": [
+  {
+   "h": 1,
+   "stage": "거점",
+   "credits": 2780930,
+   "ctl": 4,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 90576,
+   "fails": [
+    "econ[최근 6시간 최저 보유 자금 0 / 150,000 cr;최근 12시간 영업 수입 92,719 / 150,000 cr]",
+    "infra[성계 통치청 미건설]",
+    "logi[통치청이 가동되어야 보급 실적을 측정합니다]",
+    "ctl[실효 지배 4 / 60]",
+    "legit[영유권 선언 전]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 2,
+   "stage": "거점",
+   "credits": 2795220,
+   "ctl": 9,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 119692,
+   "fails": [
+    "econ[최근 6시간 최저 보유 자금 0 / 150,000 cr;최근 12시간 영업 수입 122,300 / 150,000 cr]",
+    "infra[성계 통치청 미건설]",
+    "logi[통치청이 가동되어야 보급 실적을 측정합니다]",
+    "ctl[실효 지배 9 / 60]",
+    "legit[영유권 선언 전]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 3,
+   "stage": "거점",
+   "credits": 2810001,
+   "ctl": 14,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 150000,
+   "fails": [
+    "econ[최근 6시간 최저 보유 자금 0 / 150,000 cr]",
+    "infra[성계 통치청 미건설]",
+    "logi[통치청이 가동되어야 보급 실적을 측정합니다]",
+    "ctl[실효 지배 14 / 60]",
+    "legit[영유권 선언 전]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 4,
+   "stage": "거점",
+   "credits": 2824367,
+   "ctl": 19,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 180121,
+   "fails": [
+    "econ[최근 6시간 최저 보유 자금 0 / 150,000 cr]",
+    "infra[성계 통치청 미건설]",
+    "logi[통치청이 가동되어야 보급 실적을 측정합니다]",
+    "ctl[실효 지배 19 / 60]",
+    "legit[영유권 선언 전]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 5,
+   "stage": "선언",
+   "credits": 2233847,
+   "ctl": 24,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 206638,
+   "fails": [
+    "econ[최근 6시간 최저 보유 자금 11,876 / 150,000 cr]",
+    "infra[성계 통치청 미건설]",
+    "logi[통치청이 가동되어야 보급 실적을 측정합니다]",
+    "ctl[실효 지배 24 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 6,
+   "stage": "통치기반",
+   "credits": 2225827,
+   "ctl": 29,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 227658,
+   "fails": [
+    "logi[보급 측정 2 / 6시간]",
+    "ctl[실효 지배 29 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 7,
+   "stage": "통치기반",
+   "credits": 2203257,
+   "ctl": 34,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 246068,
+   "fails": [
+    "logi[보급 측정 3 / 6시간]",
+    "ctl[실효 지배 34 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 8,
+   "stage": "통치기반",
+   "credits": 2203558,
+   "ctl": 39,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 264414,
+   "fails": [
+    "logi[보급 측정 4 / 6시간]",
+    "ctl[실효 지배 39 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 9,
+   "stage": "통치기반",
+   "credits": 2205671,
+   "ctl": 44,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 282850,
+   "fails": [
+    "logi[보급 측정 5 / 6시간]",
+    "ctl[실효 지배 44 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 10,
+   "stage": "통치기반",
+   "credits": 2198410,
+   "ctl": 49,
+   "prog": 0,
+   "power": 1592,
+   "need": 1200,
+   "ships": 26,
+   "sales": 300770,
+   "fails": [
+    "ctl[실효 지배 49 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 11,
+   "stage": "통치기반",
+   "credits": 2202163,
+   "ctl": 54,
+   "prog": 0,
+   "power": 1576,
+   "need": 1200,
+   "ships": 26,
+   "sales": 319080,
+   "fails": [
+    "ctl[실효 지배 54 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 12,
+   "stage": "통치기반",
+   "credits": 2200795,
+   "ctl": 59,
+   "prog": 0,
+   "power": 1552,
+   "need": 1200,
+   "ships": 26,
+   "sales": 337524,
+   "fails": [
+    "ctl[실효 지배 59 / 60]",
+    "stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 13,
+   "stage": "안정화",
+   "credits": 2197160,
+   "ctl": 64,
+   "prog": 0.77,
+   "power": 1528,
+   "need": 1200,
+   "ships": 26,
+   "sales": 355845,
+   "fails": [
+    "stab[안정화 0.8 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 14,
+   "stage": "안정화",
+   "credits": 2197518,
+   "ctl": 69,
+   "prog": 1.88,
+   "power": 1504,
+   "need": 1200,
+   "ships": 26,
+   "sales": 374293,
+   "fails": [
+    "stab[안정화 1.9 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 15,
+   "stage": "안정화",
+   "credits": 2195838,
+   "ctl": 74,
+   "prog": 3.06,
+   "power": 1481,
+   "need": 1200,
+   "ships": 26,
+   "sales": 392597,
+   "fails": [
+    "stab[안정화 3.1 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 16,
+   "stage": "안정화",
+   "credits": 2193419,
+   "ctl": 79,
+   "prog": 4.29,
+   "power": 1457,
+   "need": 1200,
+   "ships": 26,
+   "sales": 411039,
+   "fails": [
+    "stab[안정화 4.3 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 17,
+   "stage": "안정화",
+   "credits": 2193195,
+   "ctl": 84,
+   "prog": 5.49,
+   "power": 1433,
+   "need": 1200,
+   "ships": 26,
+   "sales": 428882,
+   "fails": [
+    "stab[안정화 5.5 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 18,
+   "stage": "안정화",
+   "credits": 2195164,
+   "ctl": 89,
+   "prog": 6.67,
+   "power": 1409,
+   "need": 1200,
+   "ships": 26,
+   "sales": 447287,
+   "fails": [
+    "stab[안정화 6.7 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 19,
+   "stage": "안정화",
+   "credits": 2189064,
+   "ctl": 94,
+   "prog": 7.84,
+   "power": 1385,
+   "need": 1200,
+   "ships": 26,
+   "sales": 465612,
+   "fails": [
+    "stab[안정화 7.8 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 20,
+   "stage": "안정화",
+   "credits": 2191059,
+   "ctl": 99,
+   "prog": 8.98,
+   "power": 1361,
+   "need": 1200,
+   "ships": 26,
+   "sales": 483980,
+   "fails": [
+    "stab[안정화 9.0 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 21,
+   "stage": "안정화",
+   "credits": 2190910,
+   "ctl": 100,
+   "prog": 10.11,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 502444,
+   "fails": [
+    "stab[안정화 10.1 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 22,
+   "stage": "안정화",
+   "credits": 2185690,
+   "ctl": 100,
+   "prog": 11.24,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 520648,
+   "fails": [
+    "stab[안정화 11.2 / 12시간 (모든 조건을 유지하는 동안 진행)]"
+   ]
+  },
+  {
+   "h": 23,
+   "stage": "확립",
+   "credits": 2186457,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 538897,
+   "fails": []
+  },
+  {
+   "h": 24,
+   "stage": "확립",
+   "credits": 2184243,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 557114,
+   "fails": []
+  },
+  {
+   "h": 25,
+   "stage": "확립",
+   "credits": 2179327,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 575388,
+   "fails": []
+  },
+  {
+   "h": 26,
+   "stage": "확립",
+   "credits": 2175546,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 593498,
+   "fails": []
+  },
+  {
+   "h": 27,
+   "stage": "확립",
+   "credits": 2176886,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 611990,
+   "fails": []
+  },
+  {
+   "h": 28,
+   "stage": "확립",
+   "credits": 2165107,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 629532,
+   "fails": []
+  },
+  {
+   "h": 29,
+   "stage": "확립",
+   "credits": 2153371,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 639000,
+   "fails": []
+  },
+  {
+   "h": 30,
+   "stage": "확립",
+   "credits": 2139984,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 642706,
+   "fails": []
+  },
+  {
+   "h": 31,
+   "stage": "확립",
+   "credits": 2144659,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 671310,
+   "fails": []
+  },
+  {
+   "h": 32,
+   "stage": "확립",
+   "credits": 2170698,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 716222,
+   "fails": []
+  },
+  {
+   "h": 33,
+   "stage": "확립",
+   "credits": 2171211,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 738584,
+   "fails": []
+  },
+  {
+   "h": 34,
+   "stage": "확립",
+   "credits": 2158044,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 751119,
+   "fails": []
+  },
+  {
+   "h": 35,
+   "stage": "확립",
+   "credits": 2147786,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 761192,
+   "fails": []
+  },
+  {
+   "h": 36,
+   "stage": "확립",
+   "credits": 2137812,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 771004,
+   "fails": []
+  },
+  {
+   "h": 37,
+   "stage": "확립",
+   "credits": 2122712,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 780878,
+   "fails": []
+  },
+  {
+   "h": 38,
+   "stage": "확립",
+   "credits": 2112234,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 790592,
+   "fails": []
+  },
+  {
+   "h": 39,
+   "stage": "확립",
+   "credits": 2103353,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 800584,
+   "fails": []
+  },
+  {
+   "h": 40,
+   "stage": "확립",
+   "credits": 2086742,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 810892,
+   "fails": []
+  },
+  {
+   "h": 41,
+   "stage": "확립",
+   "credits": 2071432,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 812699,
+   "fails": []
+  },
+  {
+   "h": 42,
+   "stage": "확립",
+   "credits": 2049491,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 812699,
+   "fails": [
+    "econ[최근 12시간 영업 수입 141,388 / 150,000 cr]"
+   ]
+  },
+  {
+   "h": 43,
+   "stage": "확립",
+   "credits": 2023173,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 812699,
+   "fails": [
+    "econ[최근 12시간 영업 수입 96,477 / 150,000 cr]"
+   ]
+  },
+  {
+   "h": 44,
+   "stage": "확립",
+   "credits": 2006582,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 812699,
+   "fails": [
+    "econ[최근 12시간 영업 수입 74,114 / 150,000 cr]"
+   ]
+  },
+  {
+   "h": 45,
+   "stage": "확립",
+   "credits": 1985296,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 812699,
+   "fails": [
+    "econ[최근 12시간 영업 수입 61,580 / 150,000 cr]"
+   ]
+  },
+  {
+   "h": 46,
+   "stage": "확립",
+   "credits": 1962495,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 812699,
+   "fails": [
+    "econ[최근 12시간 영업 수입 51,506 / 150,000 cr]"
+   ]
+  },
+  {
+   "h": 47,
+   "stage": "확립",
+   "credits": 1943060,
+   "ctl": 100,
+   "prog": 0,
+   "power": 1353,
+   "need": 1200,
+   "ships": 26,
+   "sales": 812699,
+   "fails": [
+    "econ[최근 12시간 영업 수입 41,694 / 150,000 cr]"
+   ]
+  }
+ ],
+ "log": [
+  "[0.00h] target gloam (outer, 3 jumps), capital 4,011,876.25 cr; rule: station M, defence 2, stabilise 12 h",
+  "[0.02h] constructor sent to found the station in gloam",
+  "[0.07h] station founded: 개척 기지 (M)",
+  "[0.28h] warships: 3 posts × 5 patrol frigates (requirement 1200)",
+  "[0.35h]   bought frigate/patrol at astra",
+  "[0.35h]   bought frigate/patrol at astra",
+  "[0.35h]   bought frigate/patrol at astra",
+  "[0.35h]   bought frigate/patrol at astra",
+  "[0.35h]   bought frigate/patrol at drakeout",
+  "[0.35h]   bought frigate/patrol at drakeout",
+  "[0.35h]   bought frigate/patrol at drakeout",
+  "[0.35h]   bought frigate/patrol at drakeout",
+  "[0.35h]   bought frigate/patrol at bastion",
+  "[0.35h]   bought frigate/patrol at bastion",
+  "[0.35h]   bought frigate/patrol at bastion",
+  "[0.35h]   bought frigate/patrol at bastion",
+  "[0.35h]   bought destroyer/aa at astra",
+  "[0.35h]   bought destroyer/aa at astra",
+  "[0.35h]   bought destroyer/aa at drakeout",
+  "[0.35h]   bought destroyer/aa at drakeout",
+  "[1.00h] 거점 ctl 4 prog 0/12 power 1592/1200 ships 26 cr 2,780,930 sales 90,576 | econ[최근 6시간 최저 보유 자금 0 / 150,000 cr;최근 12시간 영업 수입 92,719 / 150,000 cr] infra[성계 통치청 미건설] logi[통치청이 가동되어야 보급 실적을 측정합니다] ctl[실효 지배 4 / 60] legit[영유권 선언 전] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (46s)",
+  "[2.00h] 거점 ctl 9 prog 0/12 power 1592/1200 ships 26 cr 2,795,220 sales 119,692 | econ[최근 6시간 최저 보유 자금 0 / 150,000 cr;최근 12시간 영업 수입 122,300 / 150,000 cr] infra[성계 통치청 미건설] logi[통치청이 가동되어야 보급 실적을 측정합니다] ctl[실효 지배 9 / 60] legit[영유권 선언 전] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (94s)",
+  "[3.00h] 거점 ctl 14 prog 0/12 power 1592/1200 ships 26 cr 2,810,001 sales 150,000 | econ[최근 6시간 최저 보유 자금 0 / 150,000 cr] infra[성계 통치청 미건설] logi[통치청이 가동되어야 보급 실적을 측정합니다] ctl[실효 지배 14 / 60] legit[영유권 선언 전] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (139s)",
+  "[4.00h] 거점 ctl 19 prog 0/12 power 1592/1200 ships 26 cr 2,824,367 sales 180,121 | econ[최근 6시간 최저 보유 자금 0 / 150,000 cr] infra[성계 통치청 미건설] logi[통치청이 가동되어야 보급 실적을 측정합니다] ctl[실효 지배 19 / 60] legit[영유권 선언 전] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (187s)",
+  "[4.28h] declared",
+  "[4.28h] governance queued",
+  "[5.00h] 선언 ctl 24 prog 0/12 power 1592/1200 ships 26 cr 2,233,847 sales 206,638 | econ[최근 6시간 최저 보유 자금 11,876 / 150,000 cr] infra[성계 통치청 미건설] logi[통치청이 가동되어야 보급 실적을 측정합니다] ctl[실효 지배 24 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (237s)",
+  "[5.28h] governance facility running",
+  "[5.52h]   admin goods: bought 90 alloy at drakeout, logistics job → seat",
+  "[5.52h]   admin goods: bought 60 chemicals at p10_tundra_camp, logistics job → seat",
+  "[5.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[5.52h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[6.00h] 통치기반 ctl 29 prog 0/12 power 1592/1200 ships 26 cr 2,225,827 sales 227,658 | logi[보급 측정 2 / 6시간] ctl[실효 지배 29 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (282s)",
+  "[6.02h]   admin goods: bought 90 alloy at p10_bulwark_yard, logistics job → seat",
+  "[6.02h]   admin goods: bought 60 chemicals at p10_tundra_camp, logistics job → seat",
+  "[6.02h]   admin goods: bought 12 machinery at p9_anvil_port, logistics job → seat",
+  "[6.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[6.52h]   admin goods: bought 90 alloy at p10_bulwark_yard, logistics job → seat",
+  "[6.52h]   admin goods: bought 60 chemicals at p10_tundra_camp, logistics job → seat",
+  "[6.52h]   admin goods: bought 12 machinery at p9_anvil_port, logistics job → seat",
+  "[6.52h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[7.00h] 통치기반 ctl 34 prog 0/12 power 1592/1200 ships 26 cr 2,203,257 sales 246,068 | logi[보급 측정 3 / 6시간] ctl[실효 지배 34 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (330s)",
+  "[7.52h]   admin goods: bought 60 chemicals at p10_tundra_camp, logistics job → seat",
+  "[8.00h] 통치기반 ctl 39 prog 0/12 power 1592/1200 ships 26 cr 2,203,558 sales 264,414 | logi[보급 측정 4 / 6시간] ctl[실효 지배 39 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (373s)",
+  "[8.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[9.00h] 통치기반 ctl 44 prog 0/12 power 1592/1200 ships 26 cr 2,205,671 sales 282,850 | logi[보급 측정 5 / 6시간] ctl[실효 지배 44 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (417s)",
+  "[9.02h]   admin goods: bought 90 alloy at p10_bulwark_yard, logistics job → seat",
+  "[9.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[9.52h]   admin goods: bought 60 chemicals at p10_tundra_camp, logistics job → seat",
+  "[10.00h] 통치기반 ctl 49 prog 0/12 power 1592/1200 ships 26 cr 2,198,410 sales 300,770 | ctl[실효 지배 49 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (459s)",
+  "[11.00h] 통치기반 ctl 54 prog 0/12 power 1576/1200 ships 26 cr 2,202,163 sales 319,080 | ctl[실효 지배 54 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (502s)",
+  "[11.02h]   admin goods: bought 60 chemicals at p10_tundra_camp, logistics job → seat",
+  "[11.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[12.00h] 통치기반 ctl 59 prog 0/12 power 1552/1200 ships 26 cr 2,200,795 sales 337,524 | ctl[실효 지배 59 / 60] stab[안정화 0.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (547s)",
+  "[12.02h]   admin goods: bought 90 alloy at p10_bulwark_yard, logistics job → seat",
+  "[12.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[13.00h] 안정화 ctl 64 prog 0.77/12 power 1528/1200 ships 26 cr 2,197,160 sales 355,845 | stab[안정화 0.8 / 12시간 (모든 조건을 유지하는 동안 진행)] (590s)",
+  "[13.02h]   admin goods: bought 60 chemicals at p10_bulwark_yard, logistics job → seat",
+  "[14.00h] 안정화 ctl 69 prog 1.88/12 power 1504/1200 ships 26 cr 2,197,518 sales 374,293 | stab[안정화 1.9 / 12시간 (모든 조건을 유지하는 동안 진행)] (636s)",
+  "[14.02h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[14.52h]   admin goods: bought 60 chemicals at p10_bulwark_yard, logistics job → seat",
+  "[15.00h] 안정화 ctl 74 prog 3.06/12 power 1481/1200 ships 26 cr 2,195,838 sales 392,597 | stab[안정화 3.1 / 12시간 (모든 조건을 유지하는 동안 진행)] (681s)",
+  "[15.00h] mid-stabilisation snapshot saved",
+  "[15.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[15.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[16.00h] 안정화 ctl 79 prog 4.29/12 power 1457/1200 ships 26 cr 2,193,419 sales 411,039 | stab[안정화 4.3 / 12시간 (모든 조건을 유지하는 동안 진행)] (729s)",
+  "[16.52h]   admin goods: bought 60 chemicals at p10_bulwark_yard, logistics job → seat",
+  "[17.00h] 안정화 ctl 84 prog 5.49/12 power 1433/1200 ships 26 cr 2,193,195 sales 428,882 | stab[안정화 5.5 / 12시간 (모든 조건을 유지하는 동안 진행)] (776s)",
+  "[17.02h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[18.00h] 안정화 ctl 89 prog 6.67/12 power 1409/1200 ships 26 cr 2,195,164 sales 447,287 | stab[안정화 6.7 / 12시간 (모든 조건을 유지하는 동안 진행)] (821s)",
+  "[18.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[18.02h]   admin goods: bought 60 chemicals at p10_bulwark_yard, logistics job → seat",
+  "[18.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[19.00h] 안정화 ctl 94 prog 7.84/12 power 1385/1200 ships 26 cr 2,189,064 sales 465,612 | stab[안정화 7.8 / 12시간 (모든 조건을 유지하는 동안 진행)] (865s)",
+  "[19.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[20.00h] 안정화 ctl 99 prog 8.98/12 power 1361/1200 ships 26 cr 2,191,059 sales 483,980 | stab[안정화 9.0 / 12시간 (모든 조건을 유지하는 동안 진행)] (912s)",
+  "[20.02h]   admin goods: bought 60 chemicals at p10_bulwark_yard, logistics job → seat",
+  "[21.00h] 안정화 ctl 100 prog 10.11/12 power 1353/1200 ships 26 cr 2,190,910 sales 502,444 | stab[안정화 10.1 / 12시간 (모든 조건을 유지하는 동안 진행)] (958s)",
+  "[21.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[21.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[21.52h]   admin goods: bought 60 chemicals at p10_arsenal_works, logistics job → seat",
+  "[22.00h] 안정화 ctl 100 prog 11.24/12 power 1353/1200 ships 26 cr 2,185,690 sales 520,648 | stab[안정화 11.2 / 12시간 (모든 조건을 유지하는 동안 진행)] (1002s)",
+  "[22.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[23.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,186,457 sales 538,897 |  (1046s)",
+  "[23.00h] ESTABLISHED",
+  "[23.52h]   admin goods: bought 60 chemicals at p10_arsenal_works, logistics job → seat",
+  "[24.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,184,243 sales 557,114 |  (1091s)",
+  "[24.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[24.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[25.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,179,327 sales 575,388 |  (1136s)",
+  "[25.02h]   admin goods: bought 60 chemicals at p10_arsenal_works, logistics job → seat",
+  "[25.02h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[26.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,175,546 sales 593,498 |  (1180s)",
+  "[27.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,176,886 sales 611,990 |  (1224s)",
+  "[27.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[27.02h]   admin goods: bought 60 chemicals at p10_arsenal_works, logistics job → seat",
+  "[27.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[27.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[28.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,165,107 sales 629,532 |  (1268s)",
+  "[28.52h]   admin goods: bought 60 chemicals at p10_arsenal_works, logistics job → seat",
+  "[29.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,153,371 sales 639,000 |  (1310s)",
+  "[30.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,139,984 sales 642,706 |  (1354s)",
+  "[30.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[30.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[30.52h]   ore glut at p9_anvil_port (stock 17436 / target 4000) → selling at drakeout",
+  "[30.52h]   admin goods: bought 60 chemicals at p10_arsenal_works, logistics job → seat",
+  "[30.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[31.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,144,659 sales 671,310 |  (1398s)",
+  "[32.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,170,698 sales 716,222 |  (1445s)",
+  "[32.02h]   admin goods: bought 60 chemicals at p10_arsenal_works, logistics job → seat",
+  "[33.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,171,211 sales 738,584 |  (1491s)",
+  "[33.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[33.02h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[33.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[34.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,158,044 sales 751,119 |  (1537s)",
+  "[34.02h]   admin goods: bought 60 chemicals at p10_muster_depot, logistics job → seat",
+  "[35.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,147,786 sales 761,192 |  (1584s)",
+  "[35.52h]   admin goods: bought 60 chemicals at p10_muster_depot, logistics job → seat",
+  "[36.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,137,812 sales 771,004 |  (1632s)",
+  "[36.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[36.02h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[36.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[37.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,122,712 sales 780,878 |  (1679s)",
+  "[37.52h]   admin goods: bought 60 chemicals at p10_muster_depot, logistics job → seat",
+  "[38.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,112,234 sales 790,592 |  (1728s)",
+  "[38.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[39.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,103,353 sales 800,584 |  (1775s)",
+  "[39.02h]   ore glut at drakeout (stock 12768 / target 3000) → selling at p10_deepmine_post",
+  "[39.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[39.02h]   admin goods: bought 60 chemicals at p10_muster_depot, logistics job → seat",
+  "[39.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[40.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,086,742 sales 810,892 |  (1820s)",
+  "[41.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,071,432 sales 812,699 |  (1870s)",
+  "[41.02h]   admin goods: bought 60 chemicals at p10_muster_depot, logistics job → seat",
+  "[41.52h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[42.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,049,491 sales 812,699 | econ[최근 12시간 영업 수입 141,388 / 150,000 cr] (1919s)",
+  "[42.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[42.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[42.52h]   admin goods: bought 60 chemicals at p10_muster_depot, logistics job → seat",
+  "[43.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,023,173 sales 812,699 | econ[최근 12시간 영업 수입 96,477 / 150,000 cr] (1970s)",
+  "[44.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 2,006,582 sales 812,699 | econ[최근 12시간 영업 수입 74,114 / 150,000 cr] (2017s)",
+  "[44.02h]   admin goods: bought 12 machinery at p10_tundra_camp, logistics job → seat",
+  "[44.52h]   admin goods: bought 60 chemicals at p10_meridian_port, logistics job → seat",
+  "[45.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 1,985,296 sales 812,699 | econ[최근 12시간 영업 수입 61,580 / 150,000 cr] (2059s)",
+  "[45.02h]   admin goods: bought 90 alloy at p10_tundra_camp, logistics job → seat",
+  "[45.02h]   admin goods: bought 6 electronics at astra, logistics job → seat",
+  "[46.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 1,962,495 sales 812,699 | econ[최근 12시간 영업 수입 51,506 / 150,000 cr] (2105s)",
+  "[46.02h]   admin goods: bought 60 chemicals at p10_meridian_port, logistics job → seat",
+  "[47.00h] 확립 ctl 100 prog 0/12 power 1353/1200 ships 26 cr 1,943,060 sales 812,699 | econ[최근 12시간 영업 수입 41,694 / 150,000 cr] (2151s)"
+ ]
+}

@@ -105,9 +105,12 @@ function setMining() {
 let lastDeliver = '';
 function rotateMarket() {
   const op = mineGroup.op as any; if (op.k !== 'mine') return;
-  const cur = w.stations[op.deliver]?.market?.ore; if (cur && cur.stock < cur.target * 4) return;
+  const cur = w.stations[op.deliver]?.market?.ore; if (cur && cur.stock < cur.target * 4 && !/하역지 사용 불가/.test(mineGroup.status ?? '')) return;
   const fs = sim.sysOf(w.fields[op.field].pos)!.id;
-  const m = Object.values(w.stations).filter(x => x.public && x.market?.ore && x.id !== op.deliver && x.market.ore.stock < x.market.ore.target)
+  // the market must buy everything the field yields (an ore field also gives titanium ore): a market that does not
+  // take part of the hold leaves the miners waiting with cargo ("하역지 사용 불가")
+  const yields = Object.keys(w.fields[op.field].mix ?? { [w.fields[op.field].res]: 1 });
+  const m = Object.values(w.stations).filter(x => x.public && x.market && yields.every(k => x.market![k]) && x.id !== op.deliver && yields.every(k => x.market![k].stock < x.market![k].target))
     .map(x => ({ x, j: jumps(w.systems, fs, sim.sysOf(x.pos)!.id) })).sort((a, b) => a.j - b.j || (a.x.id < b.x.id ? -1 : 1))[0]?.x;
   if (m && m.id !== lastDeliver && !cmd({ c: 'setOp', group: mineGroup.id, op: { ...op, deliver: m.id, sell: true } })) { lastDeliver = m.id; say(`  ore glut at ${op.deliver} (stock ${Math.round(cur?.stock ?? 0)} / target ${cur?.target}) → selling at ${m.id}`); }
 }

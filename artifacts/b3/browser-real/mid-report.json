@@ -1,0 +1,270 @@
+{
+ "label": "mid",
+ "save": "artifacts/b3/realloop-gloam.mid.save.keep.json",
+ "company": "p1",
+ "checks": [
+  {
+   "ok": true,
+   "label": "real server: the engine-played company is controlled by this account; server state is not sent",
+   "extra": {
+    "id": "p1",
+    "name": "개척 광업"
+   }
+  },
+  {
+   "ok": true,
+   "label": "the server report has gloam",
+   "extra": {
+    "stage": 7,
+    "status": "pioneering",
+    "ctl": 73.7,
+    "claim": {
+     "at": 15720,
+     "prog": 11028,
+     "need": 43200,
+     "legit": "pioneer"
+    },
+    "power": 1481,
+    "need": 1200,
+    "supply": {
+     "in": 33030,
+     "need": 21608,
+     "stock": {
+      "alloy": 167.5,
+      "chemicals": 155.666666666667,
+      "machinery": 30.2666666666668,
+      "electronics": 11.300000000000066
+     },
+     "demand": {
+      "alloy": 30,
+      "chemicals": 20,
+      "machinery": 4,
+      "electronics": 2
+     },
+     "reserved": {
+      "chemicals": 20,
+      "machinery": 4,
+      "alloy": 30,
+      "electronics": 2
+     },
+     "lack": {},
+     "stalled": 0
+    },
+    "fails": [
+     "stab:안정화 3.1 / 12시간 (모든 조건을 유지하는 동안 진행)"
+    ]
+   }
+  },
+  {
+   "ok": true,
+   "label": "report: governance reservation per item (server computed)",
+   "extra": {
+    "in": 33030,
+    "need": 21608,
+    "stock": {
+     "alloy": 167.5,
+     "chemicals": 155.666666666667,
+     "machinery": 30.2666666666668,
+     "electronics": 11.300000000000066
+    },
+    "demand": {
+     "alloy": 30,
+     "chemicals": 20,
+     "machinery": 4,
+     "electronics": 2
+    },
+    "reserved": {
+     "chemicals": 20,
+     "machinery": 4,
+     "alloy": 30,
+     "electronics": 2
+    },
+    "lack": {},
+    "stalled": 0
+   }
+  },
+  {
+   "ok": true,
+   "label": "gloam is mid-stabilisation (from the real loop)",
+   "extra": {
+    "at": 15720,
+    "prog": 11028,
+    "need": 43200,
+    "legit": "pioneer"
+   }
+  },
+  {
+   "ok": true,
+   "label": "top bar has the 영토 button"
+  },
+  {
+   "ok": true,
+   "label": "detail: the seven conditions table",
+   "extra": {
+    "text": "SIDERARIUM / TERRITORY\n영토 영유 0 · 주장 1 · 전쟁 0\n✕\n자사 영토·주장 1\n성계 정보\n전쟁·조약\n영유권 안내\n어스름 공역\n주장 · 안정화 · 개척 중\n어스름 공역 개척 중\n0. 미진출\n1. 진출\n2. 거점\n3. 영향력\n4. 선언\n5. 통치기반\n6. 실효지배\n7. 안정화\n8. 확립\n안정화 3.1시간 / 12.0시간 · 정당성 개척 · 선언 10.7시간 전 · 조건이 2개 이상 무너지면 진행이 시간당 3%씩 줄고, 48시간 진척이 없으면 주장이 소멸합니다\n등급\n외곽 미개척\n지배력\n73.7\n성계 내 전력\n1,481 / 1,200\n유지비(시간당)\n2,611\n통치 거점: 개척 기지 (M · 통치청 ✓ · 방어 시설 2/2 · 전력 정상) · 필요 M급 이상 · 지도에서 보기\n조건\t상태\t부족한 점 · 해결 방법\n경제력\t충족\t\n기반시설\t충족\t\n물류\t충족\t\n군사 통제력\t충족\t\n실효 지배\t충족\t\n정치적 정당성\t충족\t\n안정화\t미달\t\n안정화 3.1 / 12시간 (모든 조건을 유지하는 동안 진행)\n나머지 여섯 조건을 계속 유지하세요. 일부가 모자라면 진행이 멈추고, 여럿이 모자라면 조금씩 줄어듭니다 (초기화되지 않음).\n행정 물자 (시간당 필요)\nalloy 30 재고 168 · 예약 30\nchemicals 20 재고 156 · 예약 20\nmachinery 4 재고 30 · 예약 4\nelectronics 2 재고 11 · 예약 "
+   }
+  },
+  {
+   "ok": true,
+   "label": "detail: supply shows stock and the reservation with its explanation",
+   "extra": {}
+  },
+  {
+   "ok": true,
+   "label": "detail: control and stabilisation progress",
+   "extra": {}
+  },
+  {
+   "ok": true,
+   "label": "detail: unmet conditions show their reasons",
+   "extra": {}
+  },
+  {
+   "ok": true,
+   "label": "desktop: no horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "real server refuses a declaration without footing, with a reason",
+   "extra": {
+    "err": "선언하려면 이 성계에 자사 운영 정거장이 있고 지배력이 20 이상이어야 합니다 (현재 미진출 단계)"
+   }
+  },
+  {
+   "ok": true,
+   "label": "galaxy: gloam carries the public territory record from the server",
+   "extra": {
+    "status": "pioneering",
+    "cls": "outer",
+    "claims": [
+     {
+      "co": "p1",
+      "name": "개척 광업",
+      "stage": 7
+     }
+    ],
+    "top": [
+     {
+      "p": "p1",
+      "ctl": 74
+     }
+    ]
+   }
+  },
+  {
+   "ok": true,
+   "label": "galaxy info: 영유권 section (자사 영토) and the territory button",
+   "extra": {
+    "own": false,
+    "btn": true
+   }
+  },
+  {
+   "ok": true,
+   "label": "phone: top-bar 영토 button reachable",
+   "extra": {
+    "w": 34.25,
+    "h": 30,
+    "covered": false
+   }
+  },
+  {
+   "ok": true,
+   "label": "phone: detail with conditions and reservation",
+   "extra": {}
+  },
+  {
+   "ok": true,
+   "label": "phone: detail without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: tab sys without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: tab war without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: tab help without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "no page errors",
+   "extra": []
+  },
+  {
+   "ok": true,
+   "label": "no console errors",
+   "extra": []
+  }
+ ],
+ "errors": [],
+ "console": [],
+ "topbar390": [
+  {
+   "id": "acctBtn",
+   "top": 16,
+   "left": 937,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "fbBtn",
+   "top": 16,
+   "left": 991,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "opsBtn",
+   "top": 17,
+   "left": 112,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "milBtn",
+   "top": 17,
+   "left": 178,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "sovBtn",
+   "top": 17,
+   "left": 244,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "officerBtn",
+   "top": 17,
+   "left": 286,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "logisticsBtn",
+   "top": 17,
+   "left": 351,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "analyticsBtn",
+   "top": 17,
+   "left": 417,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "menuBtn",
+   "top": 15,
+   "left": 1077,
+   "covered": false,
+   "by": ""
+  }
+ ]
+}
