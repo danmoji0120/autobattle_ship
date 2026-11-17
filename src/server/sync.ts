@@ -29,7 +29,7 @@ const COLLECTIONS = ['companies', 'groups', 'commanders', 'stations', 'fields', 
 type Col = typeof COLLECTIONS[number];
 const IS_COL = new Set<string>(COLLECTIONS);
 /** never replicated: server-only state */
-const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive', 'econLog', 'piracy', 'law']);
+const HIDDEN = new Set(['events', 'rng', 'grants', 'conversions', 'exclusive', 'econLog', 'piracy', 'law', 'mil']);
 /** factions as clients see them: the v2 economy ledger stays on the server (it is large and changes every cycle) */
 export function publicFactions(fs: WorldState['factions']) {
   if (!fs) return fs;

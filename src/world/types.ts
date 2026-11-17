@@ -17,6 +17,8 @@ export interface V { x: number; y: number; z: number }
 export type CompanyKind = 'player' | 'union' | 'guild' | 'pirate';
 
 export interface Company {
+  /** B-2: the company's last settled military contracts (operation P&L, shown in the contract screen) */
+  milLog?: import('./military').MilLogRow[];
   id: string;
   name: string;
   kind: CompanyKind;
@@ -517,7 +519,7 @@ export interface StarSystem {
 export interface Contract {
   id: string;
   stationId: string;
-  kind: 'bounty' | 'delivery' | 'lair' | 'salvage';
+  kind: 'bounty' | 'delivery' | 'lair' | 'salvage' | 'mil';
   title: string;
   desc: string;
   reward: number;
@@ -536,6 +538,8 @@ export interface Contract {
   spawned?: boolean;
   /** A-3.2b: why it ended without completion (shown to the taker) */
   ended?: string;
+  /** B-2 military contract terms, progress and settlement (kind 'mil'; world/military.ts) */
+  mil?: import('./military').MilTerms;
 }
 
 export interface Engagement {
@@ -639,6 +643,10 @@ export interface WorldState {
   derelictV?: 1;
   /** B-1 officer development (new standard worlds; saves by explicit migration OFFICERS_B1_MIGRATE) */
   officerV?: 1;
+  /** B-2 PMC military contracts (new standard worlds; saves by explicit migration MILITARY_B2_MIGRATE) */
+  milV?: 1;
+  /** B-2: posting cooldowns, battles counted per company, settled results (server-side) */
+  mil?: import('./military').MilState;
   /** B-1: which named officers this world has already produced (each appears at most once per world) */
   officerNamed?: Record<string, string>;
   derelicts?: import('./derelicts').DerelictState;

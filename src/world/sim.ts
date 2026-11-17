@@ -119,7 +119,11 @@ export type Cmd =
   | { c: 'officerLearn'; commander: string; node: string }
   | { c: 'officerFocus'; commander: string; tree: string | null }
   | { c: 'officerPost'; commander: string; post: string | null }
-  | { c: 'accept'; contract: string }
+  | { c: 'accept'; contract: string; group?: string }
+  /** B-2 military contracts: send the committed fleet, give up a contract, post an escort job for one's own cargo group */
+  | { c: 'milDispatch'; contract: string }
+  | { c: 'milCancel'; contract: string }
+  | { c: 'milPostEscort'; group: string; to: string; reward: number }
   | { c: 'queueModule'; station: string; kind: string }
   | { c: 'removeModule'; station: string; slot: number }
   | { c: 'planOp'; station: string; plan: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
@@ -210,6 +214,7 @@ import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContra
 import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
+import { enableMilitary, milOn, isMil, acceptMil, milDispatch, milCancel, milPostEscort, milTick, milOnBattle, milEscortAllowed, milWardHold, milIsWard, milTraderDocked } from './military';
 import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, groupFx, mineBonus, shipFx, stationFx, stationDirector, type XpSource, type Officer } from './officers';
 import { XP_RATE, type Tree } from './officerData';
 
@@ -283,7 +288,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -316,6 +321,7 @@ export class WorldSim {
     if (opts.derelicts === 'a32b' && sim.st.salvageV) enableDerelicts(sim.st, sim.time);
     // B-1 officer development: opt-in for new worlds (saves: explicit migration, migrateOfficers)
     if (opts.officers === 'b1') { sim.st.officerV = 1; ensureOfficers(sim.st); }
+    if (opts.military === 'b2') enableMilitary(sim.st);
     return sim;
   }
 
@@ -1116,12 +1122,23 @@ export class WorldSim {
       case 'accept': {
         const k = this.st.contracts[cmd.contract]; if (!k || k.takenBy || k.done) return '수주 불가';
         if (Object.values(this.st.contracts).filter(x => x.takenBy === company && !x.done).length >= 3) return '동시 계약은 3건까지';
+        if (k.kind === 'mil') {
+          if (!isMil(k) || !milOn(this.st)) return '수주 불가';
+          const why = acceptMil(this, company, k, cmd.group); if (why) return why;
+          // the committed fleet sorties at once (the player may still give it other orders)
+          const sortie = milDispatch(this, company, k.id);
+          if (sortie) this.ev('warn', `${k.title}: 자동 출격 실패 — ${sortie}. 계약 화면에서 다시 출격시키거나 직접 명령하세요.`, { company });
+          return null;
+        }
         emit(this.st, { kind: 'contract', reason: 'accept', amount: 1, company, station: k.stationId, item: k.kind });
         if (k.kind === 'salvage') { const why = acceptSalvageContract(this, company, k); if (why) return why; }
         k.takenBy = company; k.expires = this.time + (k.kind === 'lair' ? 1800 : k.kind === 'salvage' ? DERELICT_CFG.contract.life : 1200);
         this.ev('info', `계약 수주: ${k.title}`, { company, pos: S(k.stationId).pos });
         return null;
       }
+      case 'milDispatch': return milOn(this.st) ? milDispatch(this, company, cmd.contract) : '군사 계약 월드가 아님';
+      case 'milCancel': return milOn(this.st) ? milCancel(this, company, cmd.contract) : '군사 계약 월드가 아님';
+      case 'milPostEscort': return milPostEscort(this, company, cmd.group, cmd.to, cmd.reward);
       case 'queueModule': {
         const st = S(cmd.station); const md = typeof cmd.kind === 'string' && Object.hasOwn(MODULES, cmd.kind) ? MODULES[cmd.kind] : undefined;
         if (!st || st.owner !== company || !md || (md.growth && !growthOn(this.st))) return '건설 불가';
@@ -1992,7 +2009,7 @@ export class WorldSim {
         if (op.focus !== undefined && !['auto', 'work', 'cargo', 'all'].includes(op.focus)) return '호위 보호 대상 오류';
         // an escort cannot protect itself, its own subgroups (they move with it) or a group it commands
         for (let x: WGroup | undefined = t, i = 0; x && i < 12; x = x.parentId ? this.st.groups[x.parentId] : undefined, i++) if (x.id === g.id) return '호위 대상 오류 — 자기 편대나 하위 편대는 호위할 수 없습니다';
-        return t && t.owner === company && t.id !== g.id ? null : '호위 대상 오류';
+        return t && (t.owner === company || milEscortAllowed(this.st, company, t.id)) && t.id !== g.id ? null : '호위 대상 오류';
       }
       case 'attack': {
         if (op.lair) return this.st.lairs[op.lair]?.alive ? null : '대상 없음';
@@ -2623,6 +2640,7 @@ export class WorldSim {
   }
 
   private postBounty(g: WGroup, comp: [string, string][], sys: StarSystem) {
+    if (this.st.milV) return;   // B-2: hunt contracts on real bands, reserved from station budgets (military.ts)
     const host = Object.values(this.st.stations).filter(x => x.public && x.services.contracts && this.sysOf(x.pos)?.id === sys.id)[0] ?? this.st.stations.astra;
     const risk = 1 + (100 - sys.security) / 120;
     this.offerContract({ stationId: host.id, kind: 'bounty', title: `현상금: ${g.name}`, desc: `${sys.name}에서 활동하는 해적 ${comp.length}척을 격멸하라.`, reward: Math.round((comp.reduce((a, [c]) => a + shipValue(c), 0) * 40 * risk + 2500) / 100) * 100, rep: 3, target: g.id });
@@ -2672,7 +2690,12 @@ export class WorldSim {
       g.status = '해적 회피 — 대피 중';
       return;
     }
-    const ward = this.st.companies[g.owner]?.kind === 'player' ? this.wardControl(g, ships, op) : null;
+    // B-2: a guild trader with an escort contract waits docked for its escort (bounded), then keeps to the escort's pace
+    if (this.st.milV && g.owner === 'guild') {
+      const held = milWardHold(this, g, ships);
+      if (held.length) { ships = ships.filter(s => !held.includes(s)); if (!ships.length) return; }
+    }
+    const ward = this.st.companies[g.owner]?.kind === 'player' || (this.st.milV && g.owner === 'guild' && milIsWard(this.st, g.id)) ? this.wardControl(g, ships, op) : null;
     if (ward?.hold.size) {
       for (const s of ward.hold) if (s.state === 'space') { s.vel.x *= 0.85; s.vel.z *= 0.85; s.pos = vadd(s.pos, s.vel, dt); }
       ships = ships.filter(s => !ward.hold.has(s));
@@ -3899,6 +3922,7 @@ export class WorldSim {
       m[best].stock -= amt; addc(s.cargo, best, amt);
       op.leg = (op.leg + 1) % op.route.length;
       (s as any)._wait = 6;
+      if (this.st.milV) milTraderDocked(this, g, target);
     }
   }
 
@@ -4658,6 +4682,7 @@ export class WorldSim {
     const vsPir = (c: string) => { let v = 0; for (const p of pirCos) v += e.dmg?.[c]?.[p] ?? 0; return v; };
     const statusOf = (c: string) => { const k = e.sides.findIndex(x => x.includes(c)); return res.sides?.[k]?.status ?? (k === res.winner ? 'victor' : 'survived'); };
     const STATUS_KO: Record<string, string> = { victor: '승리', survived: '교전 종료 (생존)', withdrawn: '철수', routed: '패주', destroyed: '전멸' };
+    const bountyBy = new Map<string, number>();
     const p11Settle = () => {
       const hunters = players.filter(c => vsPir(c) > 0);
       const total = hunters.reduce((a, c) => a + vsPir(c), 0);
@@ -4668,7 +4693,7 @@ export class WorldSim {
         const co = st.companies[c];
         const share = total > 0 ? vsPir(c) / total : 0;
         const pay = Math.round(bounty * share);
-        if (pay > 0) { co.credits += pay; co.stats.earned += pay; }
+        if (pay > 0) { co.credits += pay; co.stats.earned += pay; bountyBy.set(c, pay); if (st.milV) book(this, c, 'bounty', pay); }
         if (st.repV) repBattle(st, co.id, e.id, st.systems[e.sys ?? ''], [...destroyedPirateValue.values()], share);
         else {
           const standing = Math.round(destroyedPirateValue.size * share); co.rep += standing;
@@ -4720,6 +4745,11 @@ export class WorldSim {
       if (g && g.shipIds.length) continue;
       if (k.takenBy && players.includes(k.takenBy) && (e.v === 2 ? vsPir(k.takenBy) > 0 : (dmgBy.get(k.takenBy) ?? 0) > 0)) this.completeContract(k);
       else { k.done = true; if (k.takenBy) this.ev('info', `계약 "${k.title}" 대상이 다른 세력에 의해 소멸했다.`, { company: k.takenBy }); }
+    }
+    // B-2: the battle counts toward at most one military contract per company (hunt targets, escorts, patrol / defence areas)
+    if (st.milV && e.v === 2) {
+      let pv = 0; for (const v of destroyedPirateValue.values()) pv += v;
+      milOnBattle(this, e, { players, vsPir, pirateKilled: pv, bountyBy, lairKilled: e.lairId && !st.lairs[e.lairId]?.alive ? e.lairId : undefined });
     }
     // P13.1: the dead ships themselves become wreck fields (real cargo, fitted equipment, hull scrap)
     if (st.salvageV && deadShips.length) {
@@ -4805,8 +4835,10 @@ export class WorldSim {
 
   private contracts() {
     const st = this.st;
+    // B-2: military contracts settle themselves (own escrow source, fault rules) before the generic expiry pass
+    if (st.milV) milTick(this);
     for (const k of Object.values(st.contracts)) {
-      if (k.done) continue;
+      if (k.done || k.kind === 'mil') continue;
       if (this.time > k.expires) {
         k.done = true;
         if (k.escrow) refundSalvage(this, k);
@@ -4830,9 +4862,9 @@ export class WorldSim {
     }
     // A-3.2b salvage contracts on derelicts (reward reserved from the station's funds at acceptance)
     if (st.derelictV) { salvageContractsTick(this); postSalvageContracts(this); }
-    // lair assaults posted by the Union
+    // lair assaults posted by the Union (B-2 worlds: replaced by hunt / strike contracts paid from station budgets)
     for (const l of Object.values(st.lairs)) {
-      if (!l.alive) continue;
+      if (!l.alive || st.milV) continue;
       if (Object.values(st.contracts).some(k => !k.done && k.kind === 'lair' && k.target === l.id)) continue;
       const lsys = this.sysOf(l.pos);
       const host = Object.values(st.stations).filter(x => x.public && x.services.contracts).sort((a, b) => this.routeDistance(a.pos, l.pos) - this.routeDistance(b.pos, l.pos))[0];

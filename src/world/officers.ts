@@ -210,7 +210,7 @@ export const stationFx = (w: WorldState, stationId: string): FxMap => officerFx(
 
 // ------------------------------------------------------------------------------------- experience
 
-export type XpSource = 'combat' | 'mine' | 'salvage' | 'logistics' | 'industry' | 'research' | 'build' | 'construct' | 'survey' | 'discover' | 'site' | 'support';
+export type XpSource = 'combat' | 'mine' | 'salvage' | 'logistics' | 'industry' | 'research' | 'build' | 'construct' | 'survey' | 'discover' | 'site' | 'support' | 'contract';
 export interface XpResult { gain: number; notes: string[] }
 
 function note(of: OfficerState, t: number, k: OfficerLog['k'], text: string) {

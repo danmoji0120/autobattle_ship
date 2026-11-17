@@ -2,7 +2,7 @@
 //   P10 layout (40 systems, six factions, territory, exploration fog) · faction economy v2 · P11 multi-side combat & PvP
 //   · P12 fleet operations · P12.5 automatic logistics · P13.1 salvage · P13.2 piracy · P13.3 black markets
 //   · P13.4 law enforcement · P14.0 company credit and faction trust · A-3.2b natural derelicts and salvage
-//   contracts · B-1 officer growth — on top of the construction, production, market,
+//   contracts · B-1 officer growth · B-2 military contracts — on top of the construction, production, market,
 //   shipyard and research systems every growth world has.
 // Value-chain pricing (econ 'chain') stays out: it is an unapproved pricing variant, not one of the systems above.
 // A world's rules are fixed when it is created; an existing save is never converted by choosing a preset.
@@ -13,7 +13,7 @@ export type WorldPreset = 'standard' | 'legacy';
 
 export const STANDARD_WORLD: Readonly<WorldCreateOpts> = Object.freeze({
   layout: 'p10', factionEcon: 'v2', combat: 'p11', ops: 'p12', logistics: 'p125', salvage: 'p131', piracy: 'p132',
-  blackMarket: 'p133', law: 'p134', rep: 'p14', derelicts: 'a32b', officers: 'b1',
+  blackMarket: 'p133', law: 'p134', rep: 'p14', derelicts: 'a32b', officers: 'b1', military: 'b2',
 } as const);
 
 /** the per-system switches of the legacy preset (one opt-in flag per system, P9 layout) */
@@ -33,10 +33,10 @@ export function newWorldOptions(o: LegacyWorldFlags & { worldPreset?: WorldPrese
 }
 
 /** what a world actually runs, read from its state (for logs, status and checks) */
-export function worldRules(w: { factions?: unknown; factionEcon?: unknown; combatV?: number; opsV?: number; logisticsV?: number; salvageV?: number; piracyV?: number; blackMarketV?: number; lawV?: number; repV?: number; derelictV?: number; officerV?: number; econ?: unknown; systems: Record<string, unknown> }) {
+export function worldRules(w: { factions?: unknown; factionEcon?: unknown; combatV?: number; opsV?: number; logisticsV?: number; salvageV?: number; piracyV?: number; blackMarketV?: number; lawV?: number; repV?: number; derelictV?: number; officerV?: number; milV?: number; econ?: unknown; systems: Record<string, unknown> }) {
   return {
     layout: w.factions ? 'p10' : 'p9', systems: Object.keys(w.systems).length, factions: w.factions ? Object.keys(w.factions as object).length : 0,
     factionEcon: !!w.factionEcon, combat: w.combatV === 2, ops: !!w.opsV, logistics: !!w.logisticsV, salvage: !!w.salvageV, piracy: !!w.piracyV,
-    blackMarket: !!w.blackMarketV, law: !!w.lawV, rep: !!w.repV, derelicts: !!w.derelictV, officers: !!w.officerV, econChain: !!w.econ,
+    blackMarket: !!w.blackMarketV, law: !!w.lawV, rep: !!w.repV, derelicts: !!w.derelictV, officers: !!w.officerV, military: !!w.milV, econChain: !!w.econ,
   };
 }

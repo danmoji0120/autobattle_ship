@@ -20,7 +20,7 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&a
 const n0 = (v: number) => Math.round(v).toLocaleString();
 const SRC_NAME: Record<string, string> = {
   combat: '교전', mine: '채굴', salvage: '인양', logistics: '수송', industry: '생산', research: '연구', build: '조선', construct: '건설',
-  survey: '탐사', discover: '발견', site: '현장 작업', support: '정비',
+  survey: '탐사', discover: '발견', site: '현장 작업', support: '정비', contract: '군사 계약',
 };
 /** which posting makes an effect domain count */
 const DOMAIN_POST: Record<Domain, 'group' | 'station'> = {
