@@ -50,6 +50,8 @@ button { font-family: var(--font); }
 .speedgrp .btn { padding: 4px 8px; font-family: var(--mono); font-size: 13px; }
 
 #camgrp { position: absolute; top: 10px; right: 10px; display: flex; gap: 4px; padding: 6px; }
+#camgrp .shakesel { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--dim); padding: 0 2px 0 6px; white-space: nowrap; }
+#camgrp .shakesel select { font-size: 12px; }
 
 /* ------------------------------------------------------------------ fleet tree */
 #tree { position: absolute; left: 10px; top: 10px; width: 300px; max-height: calc(100vh - 260px); display: flex; flex-direction: column; }

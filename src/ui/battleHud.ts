@@ -4,6 +4,7 @@ import type { Group, Ship, Order, SimEvent, RadioMsg, Team } from '../sim/types'
 import { SPECIALTY_TEXT } from '../sim/data/commanders';
 import { orderKey } from '../sim/ai/commander';
 import { Perspective, REL_TEXT } from './perspective';
+import { SHAKE_LEVELS, saveShakeLevel, type ShakeLevel } from '../render/camera';
 
 type TargetMode = null | 'attack' | 'escort' | 'move' | 'flank_l' | 'flank_r';
 
@@ -138,6 +139,7 @@ export class BattleHUD {
       <button class="btn on" data-cam="tactical" title="전술 지도 (Tab)">전술 지도</button>
       <button class="btn" data-cam="follow" title="선택 함선 추적 (F)">추적</button>
       <button class="btn" data-cam="director" title="자동 시네마틱 (C)">시네마틱</button>
+      <label class="shakesel" title="화면 흔들림 (전술 지도에서는 흔들리지 않음)">흔들림 <select id="shakeSel">${SHAKE_LEVELS.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}</select></label>
       <button class="btn" id="helpBtn" title="조작법">?</button>
       <button class="btn" id="muteBtn" title="소리">♪</button>`);
     cam.id = 'camgrp';
@@ -172,6 +174,9 @@ export class BattleHUD {
 
     top.querySelectorAll<HTMLButtonElement>('[data-sp]').forEach(b => b.onclick = () => this.setSpeed(Number(b.dataset.sp)));
     cam.querySelectorAll<HTMLButtonElement>('[data-cam]').forEach(b => b.onclick = () => this.setCam(b.dataset.cam as any));
+    const shakeSel = cam.querySelector<HTMLSelectElement>('#shakeSel')!;
+    shakeSel.value = this.s.view.rig.shakeLevel;
+    shakeSel.onchange = () => { const l = shakeSel.value as ShakeLevel; this.s.view.rig.setShakeLevel(l); saveShakeLevel(l); shakeSel.blur(); };
     (document.getElementById('helpBtn') as HTMLButtonElement).onclick = () => help.classList.toggle('show');
     (document.getElementById('muteBtn') as HTMLButtonElement).onclick = (e) => {
       const a = this.s.view.audio as any;
@@ -269,7 +274,7 @@ export class BattleHUD {
     on(cv, 'wheel', (e: WheelEvent) => { e.preventDefault(); this.s.view.rig.zoom(Math.exp(e.deltaY * 0.0012)); }, { passive: false });
     on(window, 'resize', () => this.resize());
     on(window, 'keydown', (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      const tg = (e.target as HTMLElement)?.tagName; if (tg === 'INPUT' || tg === 'SELECT') return;
       this.keys.add(e.code);
       const k = e.code;
       if (k === 'Space') { e.preventDefault(); this.setSpeed(0); }

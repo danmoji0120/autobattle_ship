@@ -11,7 +11,7 @@ import { worldDirToLocal, Vec3 } from '../sim/math';
 import { ParticleSystem, TrailBatch, Shockwaves, FlashLights, Debris } from './effects';
 import { buildShip, wreckMaterial, engineColor, type ShipModel } from './shipMesh';
 import { Environment, type Backdrop } from './environment';
-import { CameraRig, type FollowTarget, type ShotRequest } from './camera';
+import { CameraRig, type FollowTarget, type ShotRequest, type ShakeKind } from './camera';
 import { BbexFx, type FxHost } from './bbex/fx';
 
 export interface AudioSink { play(name: string, pos: THREE.Vector3 | null, vol?: number, rate?: number): void }
@@ -34,6 +34,7 @@ interface TrailRec { pts: THREE.Vector3[]; kind: string; team: number; dead: num
 
 const V = (v: { x: number; y: number; z: number }) => new THREE.Vector3(v.x, v.y, v.z);
 const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), tmpQ = new THREE.Quaternion();
+const shakeTmp = new THREE.Vector3();
 const C = (hex: number) => new THREE.Color(hex);
 
 export class BattleView implements FxHost {
@@ -70,7 +71,7 @@ export class BattleView implements FxHost {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     const w = canvas.clientWidth || window.innerWidth, h = canvas.clientHeight || window.innerHeight;
     this.renderer.setSize(w, h, false);
-    this.rig = new CameraRig(w / h);
+    this.rig = new CameraRig(w / h); this.rig.setViewHeight(h);
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     this.scene.environmentIntensity = 0.32;
@@ -93,6 +94,7 @@ export class BattleView implements FxHost {
     this.composer.setSize(w, h);
     this.rig.camera.aspect = w / h;
     this.rig.camera.updateProjectionMatrix();
+    this.rig.setViewHeight(h);
   }
 
   /** P11: whose point of view (side index; null = spectator). Hull designs and effect colours follow it. */
@@ -133,7 +135,7 @@ export class BattleView implements FxHost {
   // ── FxHost (what the BB-EX effects need from the view)
   shipPose(id: number) { const v = this.views.get(id); return v && !v.gone ? { pos: v.wpos, fwd: v.wfwd, root: v.model.root as THREE.Object3D, front: v.model.front as THREE.Object3D, rear: v.model.rear as THREE.Object3D, ship: v.ship } : null; }
   beam(a: THREE.Vector3, b: THREE.Vector3, life: number, w: number, color: number) { this.beams.push({ a, b, life, max: life, w, c: C(color) }); }
-  shake(p: THREE.Vector3, amount: number, range = 1200) { this.shakeNear(p, amount, range); }
+  shake(p: THREE.Vector3, amount: number, range = 1200) { this.shakeNear(p, amount, range, 'special'); }
 
   dispose() {
     this.ex?.dispose();
@@ -232,7 +234,7 @@ export class BattleView implements FxHost {
         if (rail) this.beams.push({ a: mp, b: mp.clone().addScaledVector(dir, 400), life: 0.12, max: 0.12, w: 1.4, c: C(0x9fe8ff) });
         this.flashes.flash(mp, 60, 300, 0.25, rail ? 0x9fe0ff : 0xffc080);
         this.audio?.play(rail ? 'rail' : 'heavy', mp, 1);
-        this.shakeNear(mp, 0.9);
+        this.shakeNear(mp, 0.9, 1200, 'fire');
         this.noteInterest(shipId, 4, 'salvo', v.ship.mounts[mountIdx]?.targetId);
         break;
       }
@@ -241,7 +243,7 @@ export class BattleView implements FxHost {
         this.glow.emit(mp, { life: 0.12, size: 9, size1: 14, color: 0xffd090, alpha: 1.2 });
         this.smoke.emit(mp, { life: 1.8, size: 3, size1: 9, color: 0x6a6460, alpha: 0.25, vel: dir.clone().multiplyScalar(15), drag: 1 });
         if (Math.random() < 0.6) this.audio?.play('medium', mp, 0.55);
-        this.shakeNear(mp, 0.2);
+        this.shakeNear(mp, 0.2, 1200, 'fire');
         break;
       }
       case 'autocannon': {
@@ -272,7 +274,7 @@ export class BattleView implements FxHost {
         this.glow.emit(mp, { life: w.kind === 'shell' ? 0.12 : 0.3, size: 4 + w.caliber * 5, size1: 2 + w.caliber * 4, color: col, alpha: 1.2 });
         if (w.vis?.beam) this.beams.push({ a: mp, b: mp.clone().addScaledVector(dir, Math.min(w.range, 260 + w.vis.len * 3)), life: big ? 0.2 : 0.09, max: big ? 0.2 : 0.09, w: w.vis.wid, c: C(col) });
         if (w.kind === 'missile' || w.kind === 'torpedo') this.noteInterest(shipId, w.kind === 'torpedo' ? 7 : 2.5, w.kind, v.ship.mounts[mountIdx]?.targetId);
-        if (big) { this.flashes.flash(mp, 50, 260, 0.2, col); this.shakeNear(mp, 0.5); }
+        if (big) { this.flashes.flash(mp, 50, 260, 0.2, col); this.shakeNear(mp, 0.5, 1200, 'fire'); }
         if (Math.random() < (big ? 1 : 0.4)) this.audio?.play(w.sound as never, mp, big ? 0.9 : 0.4);
         break;
       }
@@ -313,7 +315,7 @@ export class BattleView implements FxHost {
     if (heavy) for (let i = 0; i < 4 * scale; i++) this.debris.spawn(p, dir.clone().multiplyScalar(-30).add(new THREE.Vector3((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60)), 0.4 + Math.random() * 0.8 * scale, 6, 1);
     this.flashes.flash(p, heavy ? 40 * scale : 12, heavy ? 260 : 120, heavy ? 0.35 : 0.15, 0xffa050);
     this.audio?.play(e.weapon === 'torpedo' ? 'torphit' : heavy ? 'hitheavy' : 'hit', p, heavy ? 1 : 0.5, 0.85 + Math.random() * 0.3);
-    if (heavy) this.shakeNear(p, e.weapon === 'torpedo' ? 1.6 : 0.8);
+    if (heavy) this.shakeNear(p, e.weapon === 'torpedo' ? 1.6 : 0.8, 1200, 'hit');
     if (v && v.ship.state !== 'dead') {
       v.hitFlash = 1;
       // attach a burning breach in ship-local space
@@ -360,7 +362,7 @@ export class BattleView implements FxHost {
     }
     this.flashes.flash(p, 260 * k * (0.4 + size), 1400 * k, 1.4 * k, 0xffb070);
     this.audio?.play(big ? 'explode_big' : 'explode', p, big ? 1.2 : 0.7, magazine ? 0.75 : 0.9 + Math.random() * 0.2);
-    this.shakeNear(p, big ? 2.4 * k : 0.8, big ? 2500 : 900);
+    this.shakeNear(p, big ? 2.4 * k : 0.8, big ? 2500 : 900, 'blast');
     // wreck halves
     if (big) {
       const root = v.model.root;
@@ -402,10 +404,15 @@ export class BattleView implements FxHost {
     this.selectedShipIds.delete(v.ship.id);
   }
 
-  private shakeNear(p: THREE.Vector3, amount: number, range = 1200) {
-    const d = p.distanceTo(this.rig.camera.position);
-    const dd = this.rig.mode === 'tactical' ? d * 0.5 : d;
-    if (dd < range) this.rig.addShake(amount * (1 - dd / range));
+  /** feed a nearby event to the camera shake: falls off with distance, and an event the camera is not looking at counts half.
+   *  The rig decides by setting, camera mode and event kind whether it shakes at all and caps the on-screen size. */
+  private shakeNear(p: THREE.Vector3, amount: number, range: number, kind: ShakeKind) {
+    const cam = this.rig.camera;
+    const d = p.distanceTo(cam.position);
+    if (d >= range) return;
+    shakeTmp.copy(p).project(cam);
+    const inView = shakeTmp.z < 1 && Math.abs(shakeTmp.x) < 1.15 && Math.abs(shakeTmp.y) < 1.15;
+    this.rig.addShake(amount * (1 - d / range) * (inView ? 1 : 0.5), kind);
   }
 
   burst(p: THREE.Vector3, n: number, c0: number, c1: number, size: number, speed: number, bias?: THREE.Vector3) {
@@ -426,7 +433,7 @@ export class BattleView implements FxHost {
     this.smoke.emit(p, { life: 4, size: 8 * s, size1: 26 * s, color: 0x302c2a, alpha: 0.5, drag: 0.6 });
     this.flashes.flash(p, 50 * s, 300 * s, 0.35, 0xffa050);
     this.audio?.play('explode', p, 0.5 * s, 1.1 + Math.random() * 0.3);
-    this.shakeNear(p, 0.5 * s);
+    this.shakeNear(p, 0.5 * s, 1200, 'blast');
   }
 
   private worldToShipLocal(v: ShipView, p: THREE.Vector3): THREE.Vector3 {
