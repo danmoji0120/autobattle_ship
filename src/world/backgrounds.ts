@@ -21,6 +21,7 @@ import { OVERHEAD } from './econConfig';
 import { FACTIONS } from './territory';
 import { bandOf } from './reputation';
 import { sysAt } from './geom';
+import { PAY } from './officerData';
 
 export type BackgroundId = 'hauler' | 'miner' | 'salvager' | 'security' | 'veteran' | 'raider';
 export interface BackgroundShip { hull: string; variant: string; preset?: string; group: number; n: number; role: string }
@@ -159,7 +160,18 @@ export function backgroundUpkeep(w: WorldState, b: Background): number {
   const m = st && supplyMarket(w, st);
   let suppliesCr = 0;
   for (const [k, q] of Object.entries(supplies)) suppliesCr += q * (m?.market?.[k] ? priceOf(m.market[k], 'buy', true) : itemPrice(k) * 2);
-  return credits * (1 + OVERHEAD) + suppliesCr;
+  return credits * (1 + OVERHEAD) + suppliesCr + backgroundSalary(w, b);
+}
+/** B-1: salary of the starting commanders (a new commander is level 1; the same terms as officers.ts payroll) */
+function backgroundSalary(w: WorldState, b: Background): number {
+  if (w.officerV !== 1) return 0;
+  let pay = 0;
+  b.groups.forEach((g, i) => {
+    if (!g.commander) return;
+    const ships = b.ships.filter(s => s.group === i).reduce((n, s) => n + s.n, 0);
+    pay += Math.round(PAY.command + Math.min(PAY.shipCap, ships * PAY.perShip));
+  });
+  return pay;
 }
 
 /** list value of the starting fleet (public-yard list price of each hull) */

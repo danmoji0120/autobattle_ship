@@ -5,7 +5,7 @@ import { WorldSim } from '../src/world/sim';
 import { GameServer } from '../src/server/core';
 import { STANDARD_WORLD, newWorldOptions, worldRules } from '../src/world/worldPreset';
 
-const ALL_ON = { layout: 'p10', systems: 40, factions: 6, factionEcon: true, combat: true, ops: true, logistics: true, salvage: true, piracy: true, blackMarket: true, law: true, rep: true, derelicts: true, econChain: false };
+const ALL_ON = { layout: 'p10', systems: 40, factions: 6, factionEcon: true, combat: true, ops: true, logistics: true, salvage: true, piracy: true, blackMarket: true, law: true, rep: true, derelicts: true, officers: true, econChain: false };
 
 describe('A-1 standard world preset', () => {
   it('a standard world runs every integrated system', () => {

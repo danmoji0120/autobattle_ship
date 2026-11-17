@@ -354,10 +354,13 @@ export class WorldSim {
   }
   /** B-1: the commander a group fights and works with — effective judgement, and the battle effects of its own
    *  officer and of officers above it (memoised per tick: called for every group every step) */
-  private cmdrMemo = { t: -1, m: new Map<string, CommanderDef>() };
+  private cmdrMemo = { t: -1, m: new Map<string, { k: string; d: CommanderDef }>() };
+  /** forget memoised commanders (a command may change postings, skills or the chain of command mid-tick) */
+  dropCmdrMemo() { this.cmdrMemo.t = -1; }
   private officerDef(g: WGroup, c: WCommander | null): CommanderDef {
     if (this.cmdrMemo.t !== this.time) this.cmdrMemo = { t: this.time, m: new Map() };
-    const hit = this.cmdrMemo.m.get(g.id); if (hit) return hit;
+    const key = `${c?.id ?? ''}|${c && c.injuredUntil <= this.time ? 1 : 0}|${c?.of?.rev ?? 0}|${g.parentId ?? ''}`;
+    const hit = this.cmdrMemo.m.get(g.id); if (hit && hit.k === key) return hit.d;
     let d: CommanderDef;
     if (c && c.injuredUntil <= this.time) {
       const { of: _of, owner: _o, stationId: _s, hireCost: _h, xp: _x, level: _l, injuredUntil: _i, battles: _b, ...def } = c;
@@ -365,7 +368,7 @@ export class WorldSim {
     } else d = { ...ACTING_CAPTAIN, name: c ? `${c.name} (부상)` : '선임 함장' };
     const ofx = battleFx(this.st, g);
     if (ofx) d.ofx = ofx;
-    this.cmdrMemo.m.set(g.id, d);
+    this.cmdrMemo.m.set(g.id, { k: key, d });
     return d;
   }
   /** reserve reactivation time; B-1 readiness drills of the ship's commanding officer shorten it */
@@ -667,7 +670,7 @@ export class WorldSim {
   }
 
   /** server-only: bind BB / BB-EX to the PMC of a verified account (idempotent — world/exclusive.ts) */
-  grantExclusive(account: string, company: string) { return grantExclusive(this, account, company); }
+  grantExclusive(account: string, company: string) { const r = grantExclusive(this, account, company); ensureOfficers(this.st); return r; }
 
   /** a new player company. `background` (A-3.1) is a background id the client chose: the server resolves it here and
    *  ignores anything this world does not offer (no background → the original start) */
@@ -746,6 +749,7 @@ export class WorldSim {
   // ===================================================================== commands
 
   command(company: string, cmd: Cmd): string | null {
+    if (this.st.officerV) this.dropCmdrMemo();
     const meta = { company, ...('station' in cmd ? { station: cmd.station } : {}), ...('group' in cmd && typeof cmd.group === 'string' ? { group: cmd.group } : {}), ...('ship' in cmd && typeof cmd.ship === 'string' ? { ship: cmd.ship, group: this.st.ships[cmd.ship]?.groupId } : {}) };
     const manual = growthOn(this.st) && ['setOp', 'release', 'setParent', 'deleteGroup', 'moveShip', 'listShip', 'unloadCargo'].includes(cmd.c) ? manualRoutes(this, company, 'group' in cmd ? cmd.group : undefined, 'ship' in cmd ? cmd.ship : undefined) : [];
     if (cmd.c === 'setParent' && cmd.parent && growthOn(this.st)) manual.push(...manualRoutes(this, company, cmd.parent));

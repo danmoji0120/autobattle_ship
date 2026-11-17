@@ -88,13 +88,14 @@ export function initOfficer(w: WorldState, c: WCommander, o: { named?: NamedOffi
   const frac = Math.max(0, Math.min(0.999, (c.xp || 0) / legacyNext));
   c.level = L;
   c.xp = o.legacy ? Math.round(frac * xpToNext(L)) : Math.max(0, Math.min(xpToNext(L) - 1, Math.round(c.xp || 0)));
-  const named = o.named ?? (c.id === 'bb' ? NAMED_BB : undefined);
+  const isBB = !!c.causal;   // the account-exclusive commander (exclusive.ts BB_COMMANDER_ID)
+  const named = o.named ?? (isBB ? NAMED_BB : undefined);
   const of: OfficerState = {
     v: 1, trait: named?.trait ?? pickTrait(c), talent: named ? 0 : 0.05 + ((hashId(c.id + ':talent') >>> 3) % 26) / 100,
     mastery: { ...(named?.mastery ?? {}) }, skills: {}, sp: spForLevel(L), spGiven: spForLevel(L),
     lvBase: L, earned: {}, log: [], feats: [], rev: 1, ...(named ? { named: named.id } : {}),
   };
-  if (!named || c.id === 'bb') seedMastery(c, of);
+  if (!named || isBB) seedMastery(c, of);
   c.of = of;
   if (o.legacy) { of.migrated = { at: w.time, level: L, xp: c.xp, battles: c.battles || 0 }; note(of, w.time, 'migrate', `장교 육성 체계 전환 — Lv.${L}, 스킬 포인트 ${of.sp}`); }
   checkFeats(c as Officer, w.time);
@@ -264,8 +265,10 @@ export function grantXp(w: WorldState, c: WCommander | null | undefined, src: Xp
     }
     if (c.level >= MAX_LEVEL) c.xp = 0;
   }
-  // field mastery (trait, focus; a named officer's weak field grows slower)
-  const tot = Object.values(split).reduce((x, v) => x + (v ?? 0), 0);
+  // field mastery (trait, focus; a named officer's weak field grows slower). The main field of the work gets the
+  // full gain and the others a share in proportion to their weight — a battle (seven fields) teaches its main field
+  // as much as an hour of mining teaches mining, instead of thinning one gain over every field.
+  const tot = Object.values(split).reduce((x, v) => Math.max(x, v ?? 0), 0);
   const tr = TRAIT[of.trait];
   if (tot > 0) for (const [t, wgt] of Object.entries(split) as [Tree, number][]) {
     if (!wgt) continue;
@@ -289,7 +292,7 @@ export function combatXp(w: WorldState, c: Officer, b: BattleShare, foes: string
   const fought = b.dmg > 0 || b.taken > 0 || b.intercepts > 0;
   if (!fought || !foes.length) return { gain: 0, notes: [] };
   if (c.of.seen?.includes(key)) return { gain: 0, notes: [] };
-  const amount = 15 + Math.min(400, b.killValue / 8) + Math.min(200, b.dmg / 300) + Math.min(100, b.intercepts * 2) + Math.min(80, b.taken / 600);
+  const amount = 25 + Math.min(400, b.killValue / 6) + Math.min(200, b.dmg / 300) + Math.min(100, b.intercepts * 2) + Math.min(80, b.taken / 600);
   const foesRec = (c.of.foes ??= {});
   let rep = 0;
   for (const f of foes) { const r = foesRec[f]; if (r && w.time - r.t < 7200) rep = Math.max(rep, r.n); }
@@ -355,7 +358,7 @@ export function setFocus(w: WorldState, c: WCommander, tree: unknown): string | 
 export function setPost(w: WorldState, company: string, c: WCommander, stationId: unknown): string | null {
   if (!isOfficer(c) || c.owner !== company) return '장교 없음';
   if (stationId === null || stationId === '') {
-    if (c.of.post) { note(c.of, w.time, 'post', `${w.stations[c.of.post.id]?.name ?? ''} 책임자 해임`); delete c.of.post; }
+    if (c.of.post) { note(c.of, w.time, 'post', `${w.stations[c.of.post.id]?.name ?? ''} 책임자 해임`); delete c.of.post; dirCache.delete(w); }
     return null;
   }
   const st = typeof stationId === 'string' ? w.stations[stationId] : undefined;
@@ -364,12 +367,13 @@ export function setPost(w: WorldState, company: string, c: WCommander, stationId
   if (other) return `${other.name}이(가) 이미 책임자`;
   for (const g of Object.values(w.groups)) if (g.commanderId === c.id) g.commanderId = null;
   c.of.post = { k: 'station', id: st.id, since: w.time };
+  dirCache.delete(w);
   note(c.of, w.time, 'post', `${st.name} 정거장 책임자 부임`);
   return null;
 }
 /** a group command ends a station posting (one posting at a time) */
 export function onAssigned(w: WorldState, c: WCommander) {
-  if (isOfficer(c) && c.of.post) { note(c.of, w.time, 'post', `${w.stations[c.of.post.id]?.name ?? ''} 책임자 → 함대 지휘로 이동`); delete c.of.post; }
+  if (isOfficer(c) && c.of.post) { note(c.of, w.time, 'post', `${w.stations[c.of.post.id]?.name ?? ''} 책임자 → 함대 지휘로 이동`); delete c.of.post; dirCache.delete(w); }
 }
 
 // ------------------------------------------------------------------------------------- pay & roster
