@@ -68,7 +68,11 @@ const outDir = process.argv[2] ?? 'artifacts/b2/browser';
     // accept the best-fitting offer (first card: the board sorts fit first)
     const pick = await page.evaluate(() => { const c = document.querySelector('.mil-card [data-a="accept"]'); const s = c?.closest('.mil-card')?.querySelector('select'); return { id: c?.getAttribute('data-id'), group: s?.value }; });
     if (pick.id) {
-      await page.click(`[data-a="accept"][data-id="${pick.id}"]`); await page.waitForTimeout(2500);
+      await page.click(`[data-a="accept"][data-id="${pick.id}"]`); await page.waitForTimeout(400);
+      // an offer below the recommended strength asks for a second click
+      const again = await page.$(`[data-a="accept"][data-id="${pick.id}"]`);
+      if (again && /위험 감수/.test(await again.innerText())) { check(true, 'below-strength offer asks for confirmation'); await again.click(); }
+      await page.waitForTimeout(2500);
       const after = await page.evaluate(([id, g]) => { const st = window.siderarium.client.state, me = window.siderarium.client.company; const k = st.contracts[id]; return { taken: k?.takenBy === me, group: k?.mil?.group, op: st.groups[g]?.op?.k, type: k?.mil?.type }; }, [pick.id, pick.group]);
       check(after.taken && after.group === pick.group && after.op && after.op !== 'idle' && after.op !== 'dock', 'accept on the page: taken by us with the chosen fleet, which sorties', after);
       const act = await page.innerText('.mil-body');

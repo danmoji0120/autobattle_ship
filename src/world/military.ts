@@ -246,10 +246,13 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
       // the way there counts: the most dangerous system on the route (pirate space on the way is part of the job)
       const worst = Math.min(tsec, ...routeSystems(w, sys.id, c.sys.id).map(x => effSec(w.systems[x])));
       const risk = 1 + c.value / (type === 'hunt' ? 420 : 360) + (100 - worst) / 150;
-      const power = Math.round(c.value * (c.lair ? 1.6 : 1.25) * (1 + (100 - worst) / 300));
+      // pirate bands fight well above their nominal value against small PMC fleets (scripts/b2/duel.ts: a 150 fleet
+      // trades evenly with a 90 band, 210 with 215) — the recommended strength is what usually wins, not parity
+      const power = Math.round(c.value * (c.lair ? 2.8 : 2.2) * (1 + (100 - worst) / 300));
       const est = 360 + c.j * 120 + (c.lair ? 300 : 0) + (c.key.startsWith('lane:') ? 1200 : 0);
-      const base = round(price(power, est, risk, c.value * (type === 'hunt' ? 10 : 14)));
-      const bonus = round(c.value * (type === 'hunt' ? 8 : 12));
+      // a fixed part for the target's danger: combat jobs expect damage and the occasional lost hull
+      const base = round(price(power, est, risk, c.value * (type === 'hunt' ? 24 : 30)));
+      const bonus = round(c.value * (type === 'hunt' ? 12 : 16));
       const lane = c.key.startsWith('lane:');
       const what = c.lair ? `해적 소굴 ${c.name} (등급 ${c.lair})` : lane ? `${c.sys.name}의 해적 전력` : `해적 무리 ${c.name} (${w.groups[c.key]?.shipIds.length ?? 0}척)`;
       return post(h, st, type, `${type === 'hunt' ? '토벌' : lane ? '항로 확보' : '강습'}: ${c.name}`,
@@ -738,6 +741,8 @@ export interface MilOffer {
   id: string; type: MilType; title: string; desc: string; station: string; sys: string; jumps: number;
   base: number; bonus: number; power: number; est: number; risk: number; riskLabel: string;
   netMin: number; netMax: number; cost: number; fit: 'ok' | 'weak' | 'danger'; poster?: string; expires: number;
+  /** why the offer is riskier than its strength suggests (e.g. an escort the fleet cannot reach in time) */
+  warn?: string;
 }
 export interface MilActive { id: string; type: MilType; title: string; group?: string; fleet?: string; fleetStatus?: string; progress: MilProgress; left: number; base: number; bonus: number; bounty: number; poster?: string }
 export interface MilGuide {
@@ -779,9 +784,13 @@ export function milGuide(w: WorldState, me: string): MilGuide | null {
     const j = from && m.sys ? (from === m.sys ? 0 : jumps(w.systems, from, m.sys)) : 0;
     const o = milOutlook(m, rate(best?.ships ?? 3));
     const p = best?.power ?? 0;
+    let fit: MilOffer['fit'] = p >= m.power * 0.85 ? 'ok' : p >= m.power * 0.55 ? 'weak' : 'danger', warn: string | undefined;
+    // an escort must reach the docked trader before it gives up waiting (joinMax): ~90 s per jump plus the approach
+    const sj = from && st ? (() => { const ss = sysOfPos(w, st.pos)?.id; return ss ? (ss === from ? 0 : jumps(w.systems, from, ss)) : 0; })() : 0;
+    if (m.type === 'escort' && !m.poster && Number.isFinite(sj) && sj * 90 + 120 > MIL.joinMax * 0.8) { warn = `합류 기한 ${Math.round(MIL.joinMax / 60)}분 — 함대가 ${sj}도약 떨어져 있어 늦으면 상선이 단독 출항합니다`; if (fit === 'ok') fit = 'weak'; }
     return { id: k.id, type: m.type, title: k.title, desc: k.desc, station: st?.name ?? k.stationId, sys: w.systems[m.sys]?.name ?? m.sys, jumps: Number.isFinite(j) ? j : 99,
       base: m.base, bonus: m.bonus, power: m.power, est: m.est, risk: m.risk, riskLabel: o.risk, netMin: o.min, netMax: o.max, cost: o.cost,
-      fit: p >= m.power * 0.85 ? 'ok' : p >= m.power * 0.55 ? 'weak' : 'danger', ...(m.poster ? { poster: w.companies[m.poster]?.name ?? m.poster } : {}), expires: k.expires } as MilOffer;
+      fit, ...(warn ? { warn } : {}), ...(m.poster ? { poster: w.companies[m.poster]?.name ?? m.poster } : {}), expires: k.expires } as MilOffer;
   }).sort((a, b) => (a.fit === 'ok' ? 0 : a.fit === 'weak' ? 1 : 2) - (b.fit === 'ok' ? 0 : b.fit === 'weak' ? 1 : 2) || a.jumps - b.jumps || a.risk - b.risk).slice(0, 24);
   const active: MilActive[] = mine.map(k => { const g = k.mil.group ? w.groups[k.mil.group] : undefined; return { id: k.id, type: k.mil.type, title: k.title, group: g?.id, fleet: g?.name, fleetStatus: g?.status, progress: milProgress(w, k), left: Math.max(0, k.expires - w.time), base: k.mil.base, bonus: k.mil.bonus, bounty: Math.round(k.mil.bounty ?? 0), ...(k.mil.poster ? { poster: w.companies[k.mil.poster]?.name } : {}) }; });
   const results = [...(co.milLog ?? [])].reverse();

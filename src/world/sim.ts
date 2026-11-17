@@ -2680,7 +2680,9 @@ export class WorldSim {
     const c = this.cmdr(g);
     // ---- commander threat assessment for civilian work
     if (this.st.companies[g.owner]?.kind === 'player' || g.owner === 'guild') this.threatCheck(g, ships, op, c);
-    for (const s of ships) { s.fx = undefined; }
+    // the fleet-march warp hold is set every tick by marchShip; a ship that has switched to another kind of order
+    // (e.g. patrol → escort while aligning) must not keep a stale hold, or it never enters warp (B-2 escort finding)
+    for (const s of ships) { s.fx = undefined; if ((s as any)._holdWarp !== undefined) delete (s as any)._holdWarp; }
     if (g.fleeing) {
       for (const s of ships) {
         if (econOf(s).military && op.k !== 'mine' && op.k !== 'haul') { this.behave(s, g, op, dt, c); continue; }
