@@ -144,7 +144,7 @@ export function cpuRange(arch: CpuArch, b: Bands): number | null {
     case 'line': return b.dps > 0 ? b.med * 0.88 : null;
     case 'picket': return b.dps > 0 ? b.med * 0.85 : b.pd > 0 ? b.pd * 0.45 : null;
     case 'artillery': return b.dps > 0 ? b.max * 0.9 : null;
-    case 'siege': return b.torp > 0 ? b.torp * (b.unguided ? 0.62 : 0.85) : null;
+    case 'siege': return b.torp > 0 ? b.torp * (b.unguided ? 0.55 : 0.85) : null;
     default: return null;
   }
 }
@@ -177,7 +177,7 @@ export function orderAllows(g: Group, o: Order, arch: CpuArch): boolean {
 /** torpedo launch distance factor of a siege computer (World.torpRangeFactor) */
 export function cpuLaunchFactor(s: Ship): number | undefined {
   if (s.cpu?.acting !== 'siege') return undefined;
-  return s.cpu.bands?.unguided ? 0.62 : 0.85;
+  return s.cpu.bands?.unguided ? 0.55 : 0.85;
 }
 
 /** do this ship's guns pick their own targets (threat-first) instead of following the assigned target? */
@@ -331,8 +331,9 @@ function line(w: World, g: Group, s: Ship, mates: Ship[], b: Bands): boolean {
   if (!ts.length) return false;
   const Tc = w.centroid(ts, new Vec3());
   const C = w.centroid(mates, new Vec3());
-  const meds = mates.map(x => x.cpu!.bands!.med).sort((a, b2) => a - b2);
-  const R = meds[meds.length >> 1] * 0.88;
+  // P15.1.1: a mixed line stands where EVERY member's median band reaches (the shortest median), not at
+  // the middle value — that left shorter-ranged members holding station out of their own gun range
+  const R = Math.min(...mates.map(x => x.cpu!.bands!.med)) * 0.88;
   const away = tmp.subVectors(C, Tc); away.y *= 0.3;
   if (away.lengthSq() < 1) away.copy(w.sides[s.team].home);
   away.normalize();
@@ -451,8 +452,12 @@ function siege(w: World, g: Group, s: Ship, o: Order, b: Bands, decide: boolean)
   const ready = tubes.some(m => m.cooldown <= 0.4 || m.salvoLeft > 0);
   const d = s.pos.distTo(t.pos);
   const tLeft = tmp2.crossVectors(UP, t.fwd).normalize();
+  // P15.1.1: leave the waiting station when the tubes will be loaded by the time the boat reaches launch
+  // distance (not after they are loaded), so no time is spent running in with loaded tubes
+  const reload = Math.min(...tubes.map(m => m.salvoLeft > 0 ? 0 : m.cooldown));
+  const soon = ready || reload - 0.4 <= Math.max(0, d - L) / Math.max(1, s.maxSpeed * 0.6);
   if (c.mode === 'approach') {
-    if (!ready && d > L * 1.4) {
+    if (!soon && d > L * 1.4) {
       // tubes reloading: wait outside the run-in, on the chosen side
       s.ai.moveTo.copy(t.pos).addScaled(tLeft, c.side * L * 1.7).addScaled(t.fwd, -L * 0.4);
       s.ai.faceTo = t.pos;
@@ -471,17 +476,22 @@ function siege(w: World, g: Group, s: Ship, o: Order, b: Bands, decide: boolean)
     c.armed = ready;
     if (fired || d < Math.max(140, L * 0.35)) {
       if (fired) c.launches++;
+      // P15.1.1: break across the target's line of fire and outward on the boat's own side, not onward along
+      // the run-in heading (which carried boats across the target's bow or stern into its secondary guns) and
+      // not straight away (no crossing motion: an easy shot for the guns)
       c.mode = 'break'; c.breaks++; c.timer = w.time + 9;
-      const out = tmp3.copy(s.vel); out.y = 0; if (out.lengthSq() < 1) out.copy(s.fwd); out.normalize();
-      const perp = tmp.crossVectors(out, UP).normalize().scale(c.side);
-      c.point.copy(s.pos).addScaled(perp, L * 1.3).addScaled(out, L * 0.6);
+      const away = tmp3.copy(s.pos).sub(t.pos); away.y = 0; if (away.lengthSq() < 1) away.copy(s.fwd).scale(-1); away.normalize();
+      const lat = tmp.crossVectors(UP, away).normalize();
+      if (lat.dot(tLeft) * c.side < 0) lat.scale(-1);
+      c.point.copy(t.pos).addScaled(away, L * 1.1).addScaled(lat, L * 1.3);
       c.point.y = t.pos.y;
     }
   } else {
     c.armed = false;
     s.ai.moveTo.copy(c.point);
     s.ai.faceTo = null;
-    if (s.pos.distTo(c.point) < 160 || w.time >= c.timer) { c.mode = 'approach'; c.side = -c.side; c.reentries++; }
+    // the break ends once the boat is clear of the launch band (or at the point / after the timer)
+    if (d > L * 1.45 || s.pos.distTo(c.point) < 160 || w.time >= c.timer) { c.mode = 'approach'; c.side = -c.side; c.reentries++; }
   }
   s.ai.speedCap = s.maxSpeed;
   s.ai.run = null;

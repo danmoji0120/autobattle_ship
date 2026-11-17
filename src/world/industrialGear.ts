@@ -111,5 +111,16 @@ export function migrateIndustrial(st: WorldState): IndMigration {
   return { applied: true, ships, gear, markets };
 }
 
+export interface CpuMigration { applied: boolean; reason?: string; markets: number }
+/** P15.1 explicit save migration (idempotent, COMPUTERS_P151_MIGRATE=1): public stations of an existing growth
+ *  world get the standard combat-computer market rows (same rows as a new standard world). Nothing else changes:
+ *  ships, fittings, credits, items, blueprints and existing market rows are untouched. A fitted computer only
+ *  acts in battles recorded with rules >= 2, so no running or recorded battle changes. */
+export function migrateComputers(st: WorldState): CpuMigration {
+  if ((st.contentV ?? 0) < 3) return { applied: false, reason: '성장 콘텐츠(c3) 이전 월드', markets: 0 };
+  if (st.cpuV) return { applied: false, reason: '이미 적용됨', markets: 0 };
+  return { applied: true, markets: stockComputers(st) };
+}
+
 /** ships a world spawns for a player in an indV world come under the rules */
 export function markIndustrial(st: WorldState, s: WShip) { if (indOn(st) && s.fitting) s.ind = 1; }

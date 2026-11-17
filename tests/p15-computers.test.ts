@@ -15,6 +15,7 @@ import { cpuOfFitting } from '../src/world/fitting';
 import { CPU_MODULES, CPU_MARKETS } from '../src/content/packs/growth/computers';
 import { WorldSim } from '../src/world/sim';
 import { STANDARD_WORLD } from '../src/world/worldPreset';
+import { migrateComputers } from '../src/world/industrialGear';
 
 const S = (c: string, l: string, n: number, cpu?: CpuArch): ShipSpec[] =>
   Array.from({ length: n }, () => ({ classId: c, loadoutId: l, ...(cpu && cpu !== 'basic' ? { cpu: { id: `cpu_${cpu}`, arch: cpu } } : {}) }));
@@ -95,6 +96,28 @@ describe('P15.1 content: computer bay and equipment', () => {
   });
 });
 
+describe('P15.1.1 existing-world migration (COMPUTERS_P151_MIGRATE)', () => {
+  it('adds only the computer market rows, once; pre-growth worlds are refused', () => {
+    const { computers: _c, ...legacy } = STANDARD_WORLD;
+    const sim = WorldSim.create(5, legacy);
+    expect(sim.st.cpuV).toBeUndefined();
+    const before = JSON.parse(JSON.stringify(sim.st));
+    const r = migrateComputers(sim.st);
+    expect(r.applied).toBe(true);
+    expect(r.markets).toBe(Object.entries(CPU_MARKETS).filter(([sid]) => before.stations[sid]?.public && before.stations[sid]?.market).reduce((n, [, ids]) => n + ids.length, 0));
+    const after = JSON.parse(JSON.stringify(sim.st));
+    for (const sid of Object.keys(after.stations)) {
+      const m0 = before.stations[sid].market ?? {}, m1 = after.stations[sid].market ?? {};
+      for (const k of Object.keys(m1)) if (!k.startsWith('cpu_')) expect(m1[k], `${sid}/${k}`).toEqual(m0[k]);
+    }
+    delete after.cpuV; for (const st of Object.values<any>(after.stations)) if (st.market) for (const k of Object.keys(st.market)) if (k.startsWith('cpu_')) delete st.market[k];
+    expect(after).toEqual(before);
+    expect(migrateComputers(sim.st)).toMatchObject({ applied: false, reason: '이미 적용됨' });
+    const old = structuredClone(before); old.contentV = 2;
+    expect(migrateComputers(old).applied).toBe(false);
+  });
+});
+
 describe('P15.1 range bands and UI summary', () => {
   it('bands come from the usable weapons as min / median / max, and the UI uses the same aim distance', () => {
     const rows = [{ w: WEAPONS.heavy_cannon, f: 0, arc: 150 }, { w: WEAPONS.autocannon, f: 0, arc: 150 }];
@@ -149,6 +172,37 @@ describe('P15.1 behaviour differs by computer (rules 2)', () => {
     };
     expect(runs('basic')).toBe(0);
     expect(runs('siege')).toBeGreaterThan(0);
+  });
+
+  it('a mixed line stands where every member reaches: cruisers in a battleship line keep their guns in range (P15.1.1)', () => {
+    const w = world(G([...S('battleship', 'std', 2, 'line'), ...S('cruiser', 'multi', 2, 'line')]), G([...S('battleship', 'std', 2), ...S('cruiser', 'multi', 2)], 'engage', 'vorn'), BATTLE_RULES, 11);
+    const ds: number[] = [];
+    while (!w.outcome && w.time < 70) {
+      w.step();
+      if (w.time > 35 && w.tick % 30 === 0) for (const s of w.ships) if (s.team === 0 && s.cls.id === 'cruiser' && s.state === 'alive' && s.cpu?.acting === 'line') {
+        const t = w.shipById.get(s.ai.targetId); if (t && t.state === 'alive') ds.push(t.pos.distTo(s.pos));
+      }
+    }
+    expect(ds.length).toBeGreaterThan(10);
+    const med = w.ships.find(s => s.team === 0 && s.cls.id === 'cruiser')!.cpu!.bands!.med;
+    expect(ds.reduce((a, b) => a + b, 0) / ds.length).toBeLessThan(med * 1.02);
+  });
+
+  it('a siege boat breaks across and away from its target, not onward past it (P15.1.1)', () => {
+    const w = world(G(S('corvette', 'torp', 4, 'siege'), 'engage', 'kostov'), G(S('battleship', 'std', 1), 'engage', 'vorn'), BATTLE_RULES, 11);
+    const start = new Map<number, number>(), gain: number[] = [];
+    while (!w.outcome && w.time < 90) {
+      w.step();
+      for (const s of w.ships) if (s.team === 0 && s.state === 'alive' && s.cpu) {
+        const t = w.shipById.get(s.ai.targetId); if (!t) continue;
+        const d = t.pos.distTo(s.pos);
+        if (s.cpu.mode === 'break' && !start.has(s.id)) start.set(s.id, d);
+        if (s.cpu.mode !== 'break' && start.has(s.id)) { gain.push(d - start.get(s.id)!); start.delete(s.id); }
+      }
+    }
+    expect(gain.length).toBeGreaterThan(3);
+    // a break ends farther from the target than it started
+    expect(gain.filter(g => g > 0).length / gain.length).toBeGreaterThan(0.8);
   });
 
   it('an off-role fit falls back to basic control and fights normally', () => {

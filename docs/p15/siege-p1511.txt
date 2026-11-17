@@ -1,0 +1,48 @@
+
+== C 6CVtorp vs 1BB+2DDaa (rules 2, seeds 4, T 180s)
+basic  launches 33.8 first@19.3s | hit 0.17 intercepted 0.82 miss 0.01 | dmg/launch 138.0 | BB dmg 3547 BB killed 0.00 | our lost 5.75 | ship-time with a ready tube 0.25
+       time share: basic:ready 0.25 · basic:reload 0.75
+       launch phase: basic n135 hit 0.17 miss 0.01 d365
+       losses by phase: basic 4.75
+       launch bow <60     n 100 hit 0.16 icp 0.83 | dmg/hit 788 | hit facing front/side/rear 8/8/0 (dmg 842/734/NaN)
+       launch beam 60-120 n  19 hit 0.37 icp 0.63 | dmg/hit 860 | hit facing front/side/rear 0/5/2 (dmg NaN/814/974)
+       launch stern >120  n  16 hit 0.00 icp 1.00 | dmg/hit NaN | hit facing front/side/rear 0/0/0 (dmg NaN/NaN/NaN)
+siege  launches 24.8 first@17.8s | hit 0.48 intercepted 0.51 miss 0.01 | dmg/launch 364.9 | BB dmg 9900 BB killed 0.00 | our lost 5.25 | ship-time with a ready tube 0.31
+       time share: basic:ready 0.07 · basic:reload 0.04 · break:ready 0.03 · break:reload 0.21 · final:ready 0.05 · final:reload 0.08 · runin:ready 0.15 · runin:reload 0.03 · wait 0.33
+       launch phase: break n2 hit 0.00 miss 0.00 d261 · final n86 hit 0.53 miss 0.01 d384 · runin n11 hit 0.18 miss 0.00 d416
+       losses by phase: basic 1.00 · break 3.00 · final 0.75
+       launch bow <60     n  30 hit 0.40 icp 0.60 | dmg/hit 716 | hit facing front/side/rear 12/0/0 (dmg 716/NaN/NaN)
+       launch beam 60-120 n  40 hit 0.57 icp 0.40 | dmg/hit 699 | hit facing front/side/rear 0/23/0 (dmg NaN/699/NaN)
+       launch stern >120  n  29 hit 0.45 icp 0.55 | dmg/hit 881 | hit facing front/side/rear 0/1/12 (dmg NaN/696/896)
+
+== C2 6CVtorp (gray) vs 1BB+2DDaa (rules 2, seeds 4, T 180s)
+basic  launches 37.3 first@19.7s | hit 0.19 intercepted 0.76 miss 0.05 | dmg/launch 147.7 | BB dmg 4646 BB killed 0.00 | our lost 6.00 | ship-time with a ready tube 0.24
+       time share: basic:ready 0.24 · basic:reload 0.76
+       launch phase: basic n149 hit 0.19 miss 0.05 d422
+       losses by phase: basic 5.00
+       launch bow <60     n 116 hit 0.17 icp 0.77 | dmg/hit 813 | hit facing front/side/rear 17/3/0 (dmg 776/1022/NaN)
+       launch beam 60-120 n  27 hit 0.26 icp 0.70 | dmg/hit 695 | hit facing front/side/rear 0/7/0 (dmg NaN/695/NaN)
+       launch stern >120  n   6 hit 0.17 icp 0.83 | dmg/hit 880 | hit facing front/side/rear 0/0/1 (dmg NaN/NaN/880)
+siege  launches 24.5 first@19.1s | hit 0.50 intercepted 0.50 miss 0.00 | dmg/launch 373.5 | BB dmg 8839 BB killed 0.25 | our lost 5.25 | ship-time with a ready tube 0.31
+       time share: basic:ready 0.06 · basic:reload 0.04 · break:ready 0.03 · break:reload 0.21 · final:ready 0.06 · final:reload 0.06 · runin:ready 0.16 · runin:reload 0.03 · wait 0.36
+       launch phase: basic n1 hit 0.00 miss 0.00 d422 · break n6 hit 0.50 miss 0.00 d185 · final n90 hit 0.51 miss 0.00 d388 · runin n1 hit 0.00 miss 0.00 d309
+       losses by phase: basic 0.25 · break 2.75 · final 1.00 · runin 0.75 · wait 0.25
+       launch bow <60     n  29 hit 0.31 icp 0.69 | dmg/hit 729 | hit facing front/side/rear 9/0/0 (dmg 729/NaN/NaN)
+       launch beam 60-120 n  53 hit 0.58 icp 0.42 | dmg/hit 703 | hit facing front/side/rear 0/31/0 (dmg NaN/703/NaN)
+       launch stern >120  n  16 hit 0.56 icp 0.44 | dmg/hit 915 | hit facing front/side/rear 0/0/9 (dmg NaN/NaN/915)
+
+== L 6CVtorp vs lone BB (geometry only) (rules 2, seeds 4, T 180s)
+basic  launches 27.8 first@19.7s | hit 0.62 intercepted 0.32 miss 0.05 | dmg/launch 427.4 | BB dmg 13000 BB killed 1.00 | our lost 1.50 | ship-time with a ready tube 0.28
+       time share: basic:ready 0.28 · basic:reload 0.72
+       launch phase: basic n111 hit 0.62 miss 0.05 d369
+       losses by phase: basic 1.50
+       launch bow <60     n  38 hit 0.61 icp 0.34 | dmg/hit 701 | hit facing front/side/rear 14/9/0 (dmg 704/697/NaN)
+       launch beam 60-120 n  49 hit 0.69 icp 0.24 | dmg/hit 705 | hit facing front/side/rear 1/33/0 (dmg 757/704/NaN)
+       launch stern >120  n  24 hit 0.50 icp 0.46 | dmg/hit 611 | hit facing front/side/rear 0/4/8 (dmg NaN/0/917)
+siege  launches 25.3 first@18.0s | hit 0.66 intercepted 0.19 miss 0.15 | dmg/launch 473.8 | BB dmg 12384 BB killed 0.75 | our lost 4.00 | ship-time with a ready tube 0.31
+       time share: basic:ready 0.05 · basic:reload 0.01 · break:ready 0.04 · break:reload 0.22 · final:ready 0.06 · final:reload 0.06 · runin:ready 0.16 · runin:reload 0.03 · wait 0.37
+       launch phase: final n101 hit 0.66 miss 0.15 d390
+       losses by phase: basic 0.50 · break 2.75 · wait 0.25
+       launch bow <60     n  25 hit 0.52 icp 0.16 | dmg/hit 715 | hit facing front/side/rear 13/0/0 (dmg 715/NaN/NaN)
+       launch beam 60-120 n  54 hit 0.74 icp 0.15 | dmg/hit 680 | hit facing front/side/rear 1/36/3 (dmg 709/659/915)
+       launch stern >120  n  22 hit 0.64 icp 0.32 | dmg/hit 812 | hit facing front/side/rear 0/2/12 (dmg NaN/328/893)
