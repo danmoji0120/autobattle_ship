@@ -18,6 +18,8 @@ export interface ShotRequest {
 const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
 /** the cinematic camera never cuts twice within this many seconds */
 const MIN_CUT = 2.2;
+/** the cinematic camera's aim never turns faster than this (rad/s) outside a cut */
+const MAX_TURN = THREE.MathUtils.degToRad(90);
 
 // ── screen shake ─────────────────────────────────────────────────────────────────────────────────────────────
 // One viewer setting for every battle screen (live spectating, replays, the combat lab), kept in the browser.
@@ -74,6 +76,7 @@ export class CameraRig {
   private camPos = new THREE.Vector3();
   private lookAt = new THREE.Vector3();
   private smoothedLook = new THREE.Vector3();
+  private lookAt2 = new THREE.Vector3();
   directorPick: (() => ShotRequest | null) | null = null;
 
   constructor(aspect: number) {
@@ -301,7 +304,17 @@ export class CameraRig {
     else {
       const kk = sh.kind === 'flyby' || sh.kind === 'impact' ? 1 : 1 - Math.exp(-realDt * 3);
       this.camera.position.lerp(want, kk);
-      this.smoothedLook.lerp(lookAt, 1 - Math.exp(-realDt * 6));
+      // ease the aim toward the new look point, but never swing the view faster than MAX_TURN (a retarget is a pan, not a whip)
+      tmp.copy(this.smoothedLook).lerp(lookAt, 1 - Math.exp(-realDt * 4));
+      const cp = this.camera.position;
+      const d0 = tmp2.copy(this.smoothedLook).sub(cp), d1 = this.lookAt2.copy(tmp).sub(cp);
+      const ang = d0.angleTo(d1), lim = MAX_TURN * realDt;
+      if (ang > lim && d0.lengthSq() > 1e-6) {
+        const q = new THREE.Quaternion().setFromUnitVectors(d0.clone().normalize(), d1.clone().normalize());
+        q.slerp(new THREE.Quaternion(), 1 - lim / ang);   // keep only `lim` of the rotation
+        tmp.copy(cp).add(d0.applyQuaternion(q).setLength(d1.length()));
+      }
+      this.smoothedLook.copy(tmp);
     }
     this.camera.lookAt(this.smoothedLook);
     void dt;

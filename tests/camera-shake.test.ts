@@ -139,3 +139,19 @@ describe('cinematic camera pacing', () => {
     expect(r.camera.position.distanceTo(before)).toBeLessThan(60);
   });
 });
+
+describe('cinematic camera aim', () => {
+  it('turns toward a new look target no faster than 90°/s (a pan, not a whip)', () => {
+    const { r } = rig('director', 'off');
+    const ship: FollowTarget = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, 1), length: 100, alive: true };
+    const look = new THREE.Vector3(0, 0, 2000);
+    r.offer({ kind: 'orbit', subject: () => ship, look: () => look, duration: 30, priority: 10 });
+    run(r, 2);
+    look.set(2000, 0, -2000);   // the subject retargets far to the side
+    const dir = new THREE.Vector3(), prev = new THREE.Vector3(); r.camera.getWorldDirection(prev);
+    let maxStep = 0;
+    run(r, 2, () => { r.camera.getWorldDirection(dir); maxStep = Math.max(maxStep, dir.angleTo(prev)); prev.copy(dir); });
+    // 90°/s at 60 fps = 1.5° per frame, plus the slow orbit of the camera itself
+    expect(THREE.MathUtils.radToDeg(maxStep)).toBeLessThan(2);
+  });
+});
