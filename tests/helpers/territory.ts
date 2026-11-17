@@ -12,7 +12,7 @@ import { emptyCargo } from '../../src/world/types';
 import { dist } from '../../src/world/geom';
 import { book } from '../../src/world/operations';
 import { supplyNeed, regionClass, sovTick, powerNeed } from '../../src/world/sovereignty';
-import { shipValue } from '../../src/world/data';
+import { rateClass } from '../../src/world/combatRating';
 
 export const run = (sim: WorldSim, s: number) => { for (let i = 0; i < s; i++) sim.update(1); };
 export const hours = (sim: WorldSim, h: number, each?: (hr: number) => void) => { for (let i = 0; i < h; i++) { run(sim, 3600); each?.(i); } };
@@ -90,14 +90,14 @@ export function ff(sim: WorldSim, h: number, each?: (hr: number) => void) {
   }
 }
 /** finished territory kit + garrison + money: what a grown company brings to a system. Unless the posts are given,
- *  the station squadron is sized to 130 % of the system's military requirement (cruisers, value 140 each). */
+ *  the station squadron is sized to 130 % of the system's military requirement (standard cruisers, combat rating ≈ 140 each). */
 export function kit(sim: WorldSim, co: string, sysId: string, opts: { size?: 'M' | 'L' | 'XL'; perGate?: string[]; atStation?: string[]; credits?: number } = {}) {
   const st = outpost(sim, co, sysId, opts.size ?? 'M', ['power', 'power', 'warehouse']);
   const perGate = opts.perGate ?? ['cruiser', 'destroyer'];
   let atStation = opts.atStation;
   if (!atStation) {
-    const gates = sim.st.systems[sysId].gates.length * perGate.reduce((a, c) => a + shipValue(c), 0);
-    const n = Math.max(2, Math.ceil((powerNeed(sim, co, sysId) * 1.3 - gates) / shipValue('cruiser')));
+    const gates = sim.st.systems[sysId].gates.length * perGate.reduce((a, c) => a + rateClass(c), 0);
+    const n = Math.max(2, Math.ceil((powerNeed(sim, co, sysId) * 1.3 - gates) / rateClass('cruiser')));
     atStation = Array(n).fill('cruiser');
   }
   const gs = garrison(sim, co, sysId, st, perGate, atStation);

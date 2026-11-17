@@ -14,11 +14,12 @@ import { STANDARD_WORLD } from '../src/world/worldPreset';
 import type { WorldState, WShip } from '../src/world/types';
 import {
   CLASS, SOV, evaluate, stageOf, regionClass, upkeepOf, powerIn, legalOf, warSides, sovWarHostile, sovGateTransit, sovMineBlock, sovMined,
-  sovFoundRule, migrateTerritory, sovReport, type SovSys,
+  sovFoundRule, migrateTerritory, sovReport, supplyNeed, sovTick, govReservedSpace, supplyStats, points, type SovSys,
 } from '../src/world/sovereignty';
 import { bumpStanding } from '../src/world/territory';
 import { visit, sysLevel } from '../src/world/intel';
 import { isMil } from '../src/world/military';
+import { stepUpkeep } from '../src/world/upkeep';
 import { moneySupply } from '../src/world/observe';
 import { legacyView } from '../src/server/sync';
 import { GameServer, type Conn } from '../src/server/core';
@@ -596,6 +597,95 @@ describe('B-3 governance, upkeep and protection', () => {
     ff(sim, 4); ff(back, 4);
     expect(JSON.stringify(back.st.sov!.sys.gloam)).toBe(JSON.stringify(sim.st.sov!.sys.gloam));
     expect(JSON.stringify(back.st.sov!.wars)).toBe(JSON.stringify(sim.st.sov!.wars));
+  }, 120_000);
+  it('24 · administration goods are reserved: fleet supply cannot take them, the excess stays usable, nothing is created, save keeps it, release returns it', () => {
+    const sim = restore(ruled);
+    const r = rec(sim, 'gloam'), need = supplyNeed(regionClass(sim.st, sim.st.systems.gloam));
+    const G = Object.values(sim.st.stations).find(s => s.owner === B && sim.sysOf(s.pos)?.id === 'gloam' && s.modules.some(m => m.kind === 'governance'))!;
+    const sto = G.storage[B];
+    // exactly 3 h of need in storage, then one territory cycle: 1 h is moved into the reservation
+    for (const k of Object.keys(need)) sto[k] = need[k] * 3;
+    for (const k of Object.keys(r.gov![B].res ?? {})) delete r.gov![B].res![k];
+    r.gov![B].stock = undefined;
+    ff(sim, 0); for (let m = 0; m < 1; m++) { sim.st.time += 60; sovTick(sim, 60); }
+    const L = r.gov![B];
+    for (const k of Object.keys(need)) {
+      expect(L.res![k]).toBeCloseTo(need[k], 3);
+      // conservation: storage + reservation = 3 h − the minute consumed
+      expect(sto[k] + L.res![k]).toBeCloseTo(need[k] * 3 - need[k] / 60, 3);
+    }
+    // the fleet's upkeep wants far more alloy than is free: it takes the free stock, never the reservation
+    const u = sim.st.companies[B].upkeep!; u.stage = 0; u.supplies = { alloy: 10_000 }; u.last = -1e9;
+    const before = sto.alloy ?? 0;
+    stepUpkeep(sim.st, sim.st.companies[B], 60);
+    expect(before).toBeGreaterThan(0);
+    expect(sto.alloy ?? 0).toBe(before - Math.floor(before));
+    expect(L.res!.alloy).toBeCloseTo(need.alloy, 3);
+    // the seat keeps running on its reservation for the next hour although the free alloy is gone
+    for (let m = 0; m < 50; m++) { sim.st.time += 60; sovTick(sim, 60); }
+    expect(L.short ?? 0).toBe(0);
+    expect(L.lack?.alloy).toBeGreaterThan(0);               // the shortfall is reported before the seat stops
+    expect(evaluate(sim, B, 'gloam').logi.miss.join(' ')).toMatch(/예약 부족/);
+    const rep = sovReport(sim, B).rows.find(x => x.sys === 'gloam')!;
+    expect(rep.supply!.reserved!.alloy).toBeGreaterThan(0); expect(rep.supply!.lack!.alloy).toBeGreaterThan(0);
+    // save / restore keeps reservation, shortfall and stall state
+    const back = restore(sim.serialize());
+    expect(JSON.stringify(back.st.sov!.sys.gloam.gov)).toBe(JSON.stringify(r.gov));
+    // reserved goods hold warehouse space
+    expect(govReservedSpace(sim.st, G.id, B)).toBeGreaterThan(0);
+    // the governance stops (facility demolished): the reservation goes back to storage, nothing lost or made
+    const tot = (k: string) => (sto[k] ?? 0) + (L.res?.[k] ?? 0);
+    const t0 = Object.fromEntries(Object.keys(need).map(k => [k, tot(k)]));
+    G.modules = G.modules.filter(m => m.kind !== 'governance');
+    sim.st.time += 60; sovTick(sim, 60);
+    expect(L.res).toBeUndefined();
+    for (const k of Object.keys(need)) expect(sto[k] ?? 0).toBeCloseTo(t0[k], 6);
+  }, 120_000);
+  it('25 · two claimants in one system keep separate administration records: one company’s shortage never touches the other', () => {
+    const sim = fresh();
+    const a = outpost(sim, A, 'gloam', 'M', GOV_KIT(2), 0);
+    const b = outpost(sim, B, 'gloam', 'M', GOV_KIT(2), 5);
+    sim.st.companies[A].credits += 2_500_000; sim.st.companies[B].credits += 2_500_000;
+    warships(sim, A, a.pos, ['cruiser', 'cruiser']); warships(sim, B, b.pos, ['cruiser', 'cruiser']);
+    const r = rec(sim, 'gloam');
+    r.claims[A] = { co: A, at: sim.time, prog: 0, live: sim.time, stage: 4 } as never;
+    r.claims[B] = { co: B, at: sim.time, prog: 0, live: sim.time, stage: 4 } as never;
+    // A's haulers keep a buffer and deliver every hour; B's seat gets nothing
+    deliver(sim, A, a, 1, 2);
+    ff(sim, 4, () => { deliver(sim, A, a, 1.2); earn(sim, A, 30_000); earn(sim, B, 30_000); });
+    const LA = r.gov![A], LB = r.gov![B];
+    expect(LA.short ?? 0).toBe(0);
+    expect(LB.short).toBeGreaterThan(3600);
+    expect(supplyStats(r, A, sim.time).ratio).toBeGreaterThanOrEqual(SOV.supplyShare);
+    expect(supplyStats(r, B, sim.time).ratio).toBe(0);
+    expect(LA.seat).toBe(a.id); expect(LB.seat).toBe(b.id);
+    expect(Object.keys(LB.res ?? {})).toHaveLength(0);
+    // only B's seat lost its weight as a control point; A's still counts as a government
+    const pts = points(sim, 'gloam');
+    expect(pts.find(p => p.id === 'st:' + a.id)!.w).toBe(3);
+    expect(pts.find(p => p.id === 'st:' + b.id)!.w).toBe(2);
+    // and only B's report shows a stalled seat
+    expect(evaluate(sim, B, 'gloam').logi.miss.join(' ')).toMatch(/멈춰/);
+    expect(evaluate(sim, A, 'gloam').logi.miss.join(' ')).not.toMatch(/멈춰|예약 부족/);
+    // B's claim ends: its record is dropped, A's is untouched
+    const keep = JSON.stringify(LA);
+    expect(cmd(sim, B, { op: 'withdraw', sys: 'gloam' })).toBeNull();
+    sim.st.time += 60; sovTick(sim, 60);
+    expect(r.gov![B]).toBeUndefined();
+    expect(JSON.parse(keep).seat).toBe(r.gov![A].seat);
+  }, 120_000);
+  it('26 · a save from before the split: the shared administration record moves to the sovereign, the seat keeps working', () => {
+    const sim = restore(ruled);
+    const r = rec(sim, 'gloam'), g = r.gov![B];
+    const G = sim.st.stations[g.seat!];
+    for (const [k, n] of Object.entries(g.res ?? {})) G.storage[B][k] = (G.storage[B][k] ?? 0) + n;   // old saves had no reservation
+    delete r.gov; r.sup = g.sup; r.stock = g.stock; r.short = 0;
+    sim.st.time += 60; sovTick(sim, 60);
+    expect(r.sup).toBeUndefined(); expect(r.stock).toBeUndefined();
+    expect(r.gov![B].sup.length).toBe(g.sup.length);
+    expect(Object.keys(r.gov![B].res ?? {}).length).toBeGreaterThan(0);
+    expect(r.owner).toBe(B);
+    expect(evaluate(sim, B, 'gloam').logi.ok).toBe(true);
   }, 120_000);
 });
 

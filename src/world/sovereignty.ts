@@ -38,6 +38,9 @@ import { book } from './operations';
 import { watchMoney } from './observe';
 import { coRelation } from './battleAuth';
 import { isMil } from './military';
+import { rate, calibOf } from './combatRating';
+import { shipLoadout, legacySig } from './fitting';
+import { SHIP_CLASSES } from '../sim/data/ships';
 
 type Host = WorldSim;
 type Size = 'S' | 'M' | 'L' | 'XL';
@@ -141,11 +144,14 @@ export interface SovSys {
   arrears: number;
   /** unpaid royalties per company */
   owed: Record<string, number>;
-  /** logistics: hourly [hour, inflow value-weighted units, demand units] at the governance seat */
-  sup: [number, number, number][];
-  /** last storage snapshot at the governance seat (for inflow) */
+  /** administration logistics per company (the sovereign and every claimant keep their own seat, stock, measured
+   *  inflow, shortage and reservation — one company's shortage never touches another's) */
+  gov?: Record<string, GovLog>;
+  /** @deprecated pre-split saves: one shared record per system; moved into `gov` on the first cycle (migrateGov) */
+  sup?: [number, number, number][];
+  /** @deprecated see `sup` */
   stock?: Record<string, number>;
-  /** consecutive shortage (seconds) */
+  /** @deprecated see `sup` */
   short?: number;
   /** dispute bookkeeping */
   disputeT?: number;
@@ -158,6 +164,25 @@ export interface SovSys {
   ceded?: string;
   /** cached derived flags */
   eff?: number;
+}
+/** one company's administration logistics at its governance seat in one system */
+export interface GovLog {
+  /** hourly [hour, inflow value-weighted units, demand units] */
+  sup: [number, number, number][];
+  /** last snapshot of storage + reservation at the seat (for inflow) */
+  stock?: Record<string, number>;
+  /** consecutive shortage (seconds) */
+  short?: number;
+  /** inflow counted this hour per item (the hourly counting cap) */
+  raw?: { h: number; in: Record<string, number> };
+  /** the station whose goods are reserved */
+  seat?: string;
+  /** administration goods set aside for the next operating cycle: moved out of the seat's free storage (like a
+   *  construction reservation), so fleet supply, sales, logistics and production cannot take them; consumed first;
+   *  returned to the seat's storage when the governance stops. Never created — only real stock is reserved. */
+  res?: Record<string, number>;
+  /** last reservation shortfall per item (target − reserved) */
+  lack?: Record<string, number>;
 }
 export interface SovCo {
   /** hourly lowest credits (hour, low) */
@@ -220,7 +245,7 @@ export interface SovRow {
   claim?: { at: number; prog: number; need: number; legit?: Legit };
   rep?: Report; ctl: number; stab?: number; power: number; needPower: number;
   upkeep: number; income: { tax: number; toll: number; permit: number; up: number };
-  arrears?: number; policy?: SovPolicy; permits?: SovSys['permits']; supply?: { in: number; need: number; stock: Record<string, number>; demand: Record<string, number> };
+  arrears?: number; policy?: SovPolicy; permits?: SovSys['permits']; supply?: { in: number; need: number; stock: Record<string, number>; demand: Record<string, number>; /** goods set aside for the next cycle, the reservation shortfall, seconds the seat has been stalled */ reserved?: Record<string, number>; lack?: Record<string, number>; stalled?: number };
   facilities?: { gov?: string; station?: string; size?: string; defense: number; power: boolean };
   rivals: { co: string; name: string; ctl: number; stage: number }[];
   occ?: TerrPub['occ'];
@@ -248,7 +273,7 @@ function rec(w: WorldState, id: string): SovSys {
   if (!r) {
     const sys = w.systems[id];
     const f = sys?.faction;
-    r = s.sys[id] = { id, cls: sys ? regionClass(w, sys) : 'outer', claims: {}, ctl: {}, pts: {}, act: {}, stab: 100, policy: DEFAULT_POLICY(), permits: { mine: {}, build: {}, pass: {} }, arrears: 0, owed: {}, sup: [], led: [] };
+    r = s.sys[id] = { id, cls: sys ? regionClass(w, sys) : 'outer', claims: {}, ctl: {}, pts: {}, act: {}, stab: 100, policy: DEFAULT_POLICY(), permits: { mine: {}, build: {}, pass: {} }, arrears: 0, owed: {}, gov: {}, led: [] };
     // NPC space starts fully controlled by its faction (pirate space by the pirates)
     if (f) r.ctl[f === 'pirates' ? 'pirates' : 'fac:' + f] = f === 'pirates' ? 70 : 100;
   }
@@ -323,12 +348,38 @@ export function presence(h: Host): Presence {
       for (const p of parties) {
         let m = out.get(sys.id); if (!m) out.set(sys.id, m = new Map());
         let l = m.get(p); if (!l) m.set(p, l = []);
-        l.push({ pos: s.pos, val: shipValue(s.classId) * (0.4 + 0.6 * s.hp), g: g.id, docked: s.state === 'docked', officer: off, hp: s.hp });
+        l.push({ pos: s.pos, val: shipRating(h, s, g), g: g.id, docked: s.state === 'docked', officer: off, hp: s.hp });
       }
     }
   }
   cache = { t: h.time, w, p: out };
   return out;
+}
+/** B-3 combat rating of a ship as it would fight now (combatRating.ts, calibrated in real battles): its mounts and
+ *  fitting, research and armoury effects (as the battle engine gets them), its group commander's judgement,
+ *  speciality and officer effects, × √hull (Lanchester: staying power is linear in hull, the rating is a root),
+ *  × supply state (owner's upkeep stage ≥ 2: no resupply or maintenance → 0.85; heavy wear → down to 0.85).
+ *  The undamaged rating is cached per ship and refreshed when anything it depends on changes. */
+const rcache = new Map<string, { k: string; r: number }>();
+export function shipRating(h: Host, s: WShip, g: WGroup): number {
+  const c = h.cmdr(g), co = h.st.companies[s.owner];
+  const sig = s.fitting?.sig ?? '';
+  const key = `${s.classId}|${s.loadoutId}|${sig}|${(s.fit ?? []).join(',')}|${co?.tech?.length ?? 0}|${c.skill.toFixed(3)}|${c.specialty}|${c.ofx ? JSON.stringify(c.ofx) : ''}|${hourOf(h.time)}`;
+  let e = rcache.get(s.id);
+  if (!e || e.k !== key) {
+    const cls = SHIP_CLASSES[s.classId];
+    let r = shipValue(s.classId);
+    if (cls?.loadouts.length) {
+      const custom = !!s.fitting && sig !== legacySig(s.loadoutId, s.fit);
+      const lo = s.fitting ? shipLoadout(s) : cls.loadouts.find(l => l.id === s.loadoutId) ?? cls.loadouts[0];
+      const fx = co?.kind === 'player' ? h.shipFxOf(s) : undefined;
+      r = rate({ cls, lo, fx, skill: c.skill, spec: c.specialty, ofx: c.ofx }).cr * calibOf(s.classId, custom ? undefined : lo.id === s.loadoutId ? s.loadoutId : undefined);
+    }
+    rcache.set(s.id, e = { k: key, r });
+    if (rcache.size > 20000) rcache.clear();
+  }
+  const supply = co?.kind === 'player' && (co.upkeep?.stage ?? 0) >= 2 ? 0.85 : 1 - 0.15 * Math.max(0, (s.wear ?? 0) - 0.5) * 2;
+  return e.r * Math.sqrt(Math.max(0, s.hp)) * supply;
 }
 /** group:system → parties it works for under a contract (guard: the poster; war contracts: the side that posted) */
 function contractParties(w: WorldState): Map<string, string[]> {
@@ -409,7 +460,7 @@ export function points(h: Host, sysId: string): Pt[] {
   for (const st of stationsIn(h, sysId)) {
     if (!st.public && !builtN(st, 'core')) continue;
     // a governance seat without administration goods for over an hour is a building, not a government
-    const gov = !st.public && builtN(st, 'governance') > 0 && (w.sov?.sys[sysId]?.short ?? 0) < 3600;
+    const gov = !st.public && builtN(st, 'governance') > 0 && (w.sov?.sys[sysId]?.gov?.[st.owner]?.short ?? 0) < 3600;
     const base = st.public ? fac : st.owner;
     const def = st.public ? (base ? (st.garrison ?? 0) * 400 + 200 : 0) : (stationSupportOnline(st) ? builtN(st, 'defense') * 300 * st.defenseHp : 0);
     out.push({ id: 'st:' + st.id, pos: st.pos, r: SOV.stationR, w: gov ? 3 : st.public ? (base ? 2 : 1) : 2, base, def, name: st.name });
@@ -514,32 +565,71 @@ export function netAssets(h: Host, co: string): number {
 
 export const supplyNeed = (cls: RegionClass) => Object.fromEntries(Object.entries(SOV.supply).map(([k, n]) => [k, n * CLASS[cls].mult]));
 const valueOfCargo = (c: Record<string, number>) => Object.entries(c).reduce((a, [k, n]) => a + n * itemPrice(k), 0);
-/** consume administration goods for this cycle and measure the inflow since the last cycle */
+/** a company's administration logistics record in a system (created on first use) */
+export function govLog(r: SovSys, co: string): GovLog { const g = (r.gov ??= {}); return (g[co] ??= { sup: [] }); }
+/** pre-split saves kept one shared record per system: it belonged to the sovereign (or the only claimant) */
+function migrateGov(r: SovSys) {
+  if (!r.sup && r.stock === undefined && r.short === undefined && !(r as any).raw) return;
+  const who = r.owner ?? (Object.keys(r.claims).length === 1 ? Object.keys(r.claims)[0] : undefined);
+  if (who && !r.gov?.[who]) { const g = govLog(r, who); g.sup = r.sup ?? []; if (r.stock) g.stock = r.stock; if (r.short) g.short = r.short; if ((r as any).raw) g.raw = (r as any).raw; }
+  delete r.sup; delete r.stock; delete r.short; delete (r as any).raw;
+}
+/** goods reserved for the next operating cycle (hours of need) */
+const RESERVE_H = 1;
+/** give a reservation back to the seat's storage (governance stopped, seat moved, claim ended) */
+function releaseRes(h: Host, g: GovLog, co: string) {
+  const st = g.seat ? h.st.stations[g.seat] : undefined;
+  if (st && g.res) { const sto = (st.storage[co] ??= {}); for (const [k, n] of Object.entries(g.res)) if (n > 0) sto[k] = (sto[k] ?? 0) + n; }
+  delete g.res; delete g.lack; delete g.seat;
+}
+/** consume administration goods for this cycle (reservation first), measure the inflow since the last cycle, and
+ *  reserve the next cycle's goods from free stock */
 function stepSupply(h: Host, r: SovSys, co: string, G: Station, cls: RegionClass, dt: number) {
-  const need = supplyNeed(cls), sto = (G.storage[co] ??= {});
+  const L = govLog(r, co);
+  if (L.seat && L.seat !== G.id) releaseRes(h, L, co);
+  L.seat = G.id;
+  const need = supplyNeed(cls), sto = (G.storage[co] ??= {}), res = (L.res ??= {});
   const hr = hourOf(h.time);
-  let b = r.sup.at(-1); if (!b || b[0] !== hr) { b = [hr, 0, 0]; r.sup.push(b); if (r.sup.length > SOV.supplyWindowH + 1) r.sup.splice(0, r.sup.length - SOV.supplyWindowH - 1); }
-  const prev = r.stock ?? {};
+  let b = L.sup.at(-1); if (!b || b[0] !== hr) { b = [hr, 0, 0]; L.sup.push(b); if (L.sup.length > SOV.supplyWindowH + 1) L.sup.splice(0, L.sup.length - SOV.supplyWindowH - 1); }
+  const prev = L.stock ?? {};
   let short = false, inV = 0, needV = 0;
-  const raw = ((r as any).raw ??= { h: hr, in: {} as Record<string, number> });
+  const raw = (L.raw ??= { h: hr, in: {} });
   if (raw.h !== hr) { raw.h = hr; raw.in = {}; }
+  const lack: Record<string, number> = {};
   for (const [k, perH] of Object.entries(need)) {
-    const want = perH * dt / 3600, have = sto[k] ?? 0, took = Math.min(have, want);
+    const want = perH * dt / 3600;
+    // consume: the reservation first, then free stock
+    const fromRes = Math.min(res[k] ?? 0, want), fromSto = Math.min(sto[k] ?? 0, want - fromRes), took = fromRes + fromSto;
     if (took < want - 1e-6) short = true;
-    if (took > 0) { sto[k] = have - took; if (sto[k] < 1e-9) delete sto[k]; }
-    const now = sto[k] ?? 0, before = prev[k];
+    res[k] = (res[k] ?? 0) - fromRes;
+    if (fromSto > 0) { sto[k] = (sto[k] ?? 0) - fromSto; if (sto[k] < 1e-9) delete sto[k]; }
+    // inflow on storage + reservation (moving goods into the reservation is not inflow)
+    const now = (sto[k] ?? 0) + res[k], before = prev[k];
     const inflow = before === undefined ? 0 : Math.max(0, now - (before - took));
     // a big delivery counts for at most a few hours of need in the hour it arrived (stockpiling does not carry the window)
     const cap = perH * SOV.supplyCapMul, already = raw.in[k] ?? 0, counted = Math.max(0, Math.min(inflow, cap - already));
     raw.in[k] = already + counted;
     inV += counted * itemPrice(k); needV += want * itemPrice(k);
+    // reserve the next cycle from free stock (only what is really there)
+    const target = perH * RESERVE_H, top = Math.min(sto[k] ?? 0, Math.max(0, target - res[k]));
+    if (top > 0) { sto[k] -= top; if (sto[k] < 1e-9) delete sto[k]; res[k] += top; }
+    if (res[k] < 1e-9) delete res[k];
+    if (target - (res[k] ?? 0) > 1e-6) lack[k] = target - (res[k] ?? 0);
   }
   b[1] += inV; b[2] += needV;
-  r.stock = Object.fromEntries(Object.keys(need).map(k => [k, sto[k] ?? 0]));
-  r.short = short ? (r.short ?? 0) + dt : 0;
+  L.stock = Object.fromEntries(Object.keys(need).map(k => [k, (sto[k] ?? 0) + (res[k] ?? 0)]));
+  L.lack = Object.keys(lack).length ? lack : undefined;
+  if (!L.lack) delete L.lack;
+  L.short = short ? (L.short ?? 0) + dt : 0;
 }
-export function supplyStats(r: SovSys, now: number) {
-  const hr = hourOf(now), win = r.sup.filter(x => x[0] > hr - SOV.supplyWindowH);
+/** goods a company's governance reservations hold at a station (they keep their warehouse space) */
+export function govReservedSpace(w: WorldState, station: string, co: string): number {
+  let n = 0;
+  for (const r of Object.values(w.sov?.sys ?? {})) { const g = r.gov?.[co]; if (g?.seat === station && g.res) for (const v of Object.values(g.res)) n += v; }
+  return n;
+}
+export function supplyStats(r: SovSys, co: string, now: number) {
+  const hr = hourOf(now), win = (r.gov?.[co]?.sup ?? []).filter(x => x[0] > hr - SOV.supplyWindowH);
   const inV = win.reduce((a, x) => a + x[1], 0), needV = win.reduce((a, x) => a + x[2], 0);
   return { hours: win.length, inV, needV, ratio: needV > 0 ? inV / needV : 0 };
 }
@@ -597,15 +687,16 @@ export function evaluate(h: Host, co: string, sysId: string): Report {
   const infra = C(!im.length, G ? 1 - im.length / 5 : 0, 1, im, im.length ? `${rule.station}급 이상 정거장에 통치청·발전소·창고·방어시설 ${rule.defense}기를 건설하세요.` : '');
   // logistics
   const gov = G && builtN(G, 'governance') ? G : undefined;
-  const ss = supplyStats(r, h.time);
+  const ss = supplyStats(r, co, h.time), GL = r.gov?.[co];
   const lm: string[] = [];
   if (!gov) lm.push('통치청이 가동되어야 보급 실적을 측정합니다');
   else {
     if (ss.hours < SOV.supplyMinH) lm.push(`보급 측정 ${ss.hours} / ${SOV.supplyMinH}시간`);
     if (ss.ratio < SOV.supplyShare) lm.push(`최근 ${SOV.supplyWindowH}시간 보급 반입 ${Math.round(ss.ratio * 100)}% / ${Math.round(SOV.supplyShare * 100)}% (한 번에 쌓아 둔 재고는 시간이 지나면 인정되지 않음)`);
-    if ((r.short ?? 0) > 600) lm.push('행정 물자 부족 — 통치청이 멈춰 있음');
+    if ((GL?.short ?? 0) > 600) lm.push(`행정 물자 부족 — 통치청이 멈춰 있음 (${Math.round((GL!.short ?? 0) / 60)}분째${GL?.lack ? ': ' + Object.entries(GL.lack).map(([k, n]) => `${k} ${Math.ceil(n)}`).join(', ') + ' 모자람' : ''})`);
+    else if (GL?.lack) lm.push(`다음 운영 주기 예약 부족: ${Object.entries(GL.lack).map(([k, n]) => `${k} ${Math.ceil(n)}`).join(', ')} — 재고가 바닥나면 통치청이 멈춥니다`);
   }
-  const logi = C(!lm.length, ss.ratio, SOV.supplyShare, lm, lm.length ? `통치청 정거장 창고에 ${Object.entries(supplyNeed(cls)).map(([g, n]) => `${g} ${Math.round(n)}/시간`).join(', ')}을 꾸준히 반입하세요 (자체 생산·구매·물류 계약 모두 인정). 이 정거장 창고는 자사 함선 운영 보급품도 먼저 꺼내 쓰므로 주둔 함대 소모분까지 함께 반입해야 합니다.` : '');
+  const logi = C(!lm.length, ss.ratio, SOV.supplyShare, lm, lm.length ? `통치청 정거장 창고에 ${Object.entries(supplyNeed(cls)).map(([g, n]) => `${g} ${Math.round(n)}/시간`).join(', ')}을 꾸준히 반입하세요 (자체 생산·구매·물류 계약 모두 인정). 통치청은 다음 1시간분을 예약해 두므로 함대 보급·판매·물류가 그 몫을 가져가지 못하지만, 예약 외 재고는 함대 보급에도 쓰이니 주둔 함대 소모분은 따로 반입해야 합니다.` : '');
   // military
   const pw = powerIn(h, co, sysId), pn = powerNeed(h, co, sysId);
   const units = presence(h).get(sysId)?.get(co) ?? [];
@@ -1234,6 +1325,7 @@ function autoDefend(h: Host, war: SovWar) {
 
 function stepSystem(h: Host, r: SovSys, dt: number) {
   const w = h.st, sys = w.systems[r.id];
+  migrateGov(r);
   stepControl(h, r, dt);
   const cls = regionClass(w, sys);
   // claims
@@ -1267,6 +1359,12 @@ function stepSystem(h: Host, r: SovSys, dt: number) {
     if (!fails && claim.prog >= need && !r.owner && !activeWar(w, r.id)) { establish(h, r, claim.co, claim.legit ?? 'pioneer'); }
   }
   if (r.owner) stepOwner(h, r, dt, cls);
+  // a company that no longer governs here (claim ended, title lost, seat gone) gets its reservation back
+  for (const [co, g] of Object.entries(r.gov ?? {})) {
+    const active = (co === r.owner || r.claims[co]) && govStation(h, co, r.id)?.id === g.seat;
+    if (!active && g.res) releaseRes(h, g, co);
+    if (co !== r.owner && !r.claims[co]) delete r.gov![co];
+  }
 }
 
 function stepOwner(h: Host, r: SovSys, dt: number, cls: RegionClass) {
@@ -1352,7 +1450,7 @@ export function sovReport(h: Host, co: string): SovX {
     const cls = regionClass(w, sys);
     const rep = evaluate(h, co, r.id);
     const G = govStation(h, co, r.id) ?? ownStations(h, co, r.id).sort((a, b) => sizeRank(b.size) - sizeRank(a.size))[0];
-    const ss = supplyStats(r, h.time);
+    const ss = supplyStats(r, co, h.time), L = r.gov?.[co];
     const led = r.led.filter(x => x.h > hourOf(h.time) - 24);
     const income = { tax: 0, toll: 0, permit: 0, up: 0 }; if (mine) for (const x of led) { income.tax += x.tax; income.toll += x.toll; income.permit += x.permit; income.up += x.up; }
     rows.push({
@@ -1360,7 +1458,7 @@ export function sovReport(h: Host, co: string): SovX {
       ...(claim ? { claim: { at: claim.at, prog: Math.round(claim.prog), need: CLASS[cls].stabH * 3600, legit: claim.legit } } : {}),
       rep, ctl: Math.round((r.ctl[co] ?? 0) * 10) / 10, ...(mine ? { stab: Math.round(r.stab), arrears: Math.round(r.arrears), policy: r.policy, permits: r.permits } : {}),
       power: Math.round(powerIn(h, co, r.id)), needPower: powerNeed(h, co, r.id), upkeep: upkeepOf(h, co, r.id), income,
-      ...(G && builtN(G, 'governance') ? { supply: { in: Math.round(ss.inV), need: Math.round(ss.needV), stock: r.stock ?? {}, demand: supplyNeed(cls) } } : {}),
+      ...(G && builtN(G, 'governance') ? { supply: { in: Math.round(ss.inV), need: Math.round(ss.needV), stock: L?.stock ?? {}, demand: supplyNeed(cls), reserved: L?.res ?? {}, lack: L?.lack ?? {}, stalled: Math.round(L?.short ?? 0) } } : {}),
       facilities: { gov: G && builtN(G, 'governance') ? G.id : undefined, station: G?.id, size: G?.size, defense: G ? builtN(G, 'defense') : 0, power: !!G && stationSupportOnline(G) },
       rivals: [...Object.values(r.claims).filter(c => c.co !== co).map(c => ({ co: c.co, name: w.companies[c.co]?.name ?? c.co, ctl: Math.round(r.ctl[c.co] ?? 0), stage: c.stage })),
         ...Object.entries(r.ctl).filter(([p]) => p !== co && !r.claims[p] && (r.ctl[p] ?? 0) >= 10).map(([p, v]) => ({ co: p, name: partyName(w, p), ctl: Math.round(v), stage: p === r.owner ? 8 : 0 }))],

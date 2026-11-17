@@ -216,7 +216,7 @@ import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContra
 import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
-import { enableTerritory, sovTick, sovCommand, sovGateTransit, sovMineBlock, sovMined, sovFoundRule, sovFoundPay, sovGovernanceRule, sovSieged, sovSiegeTargets, relIn, type SovCmd } from './sovereignty';
+import { enableTerritory, sovTick, sovCommand, sovGateTransit, sovMineBlock, sovMined, sovFoundRule, sovFoundPay, sovGovernanceRule, sovSieged, sovSiegeTargets, relIn, govReservedSpace, type SovCmd } from './sovereignty';
 import { enableMilitary, milOn, isMil, acceptMil, milDispatch, milCancel, milPostEscort, milTick, milOnBattle, milEscortAllowed, milWardHold, milIsWard, milTraderDocked } from './military';
 import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, groupFx, mineBonus, shipFx, stationFx, stationDirector, type XpSource, type Officer } from './officers';
 import { XP_RATE, type Tree } from './officerData';
@@ -611,7 +611,7 @@ export class WorldSim {
     if (st.owner !== company) return Infinity;
     const cap = storageCap(st);
     if (growthOn(this.st) && !this.hasModule(st, 'core')) return Object.keys(queueShortfall(st)).reduce((n, k) => n + constructionRoom(st, k, true), 0);
-    const held = growthOn(this.st) ? reservedSpace(st) + listedSpace(st, company) + logisticsReservedSpace(this.st, st.id, company) : 0;
+    const held = growthOn(this.st) ? reservedSpace(st) + listedSpace(st, company) + logisticsReservedSpace(this.st, st.id, company) + govReservedSpace(this.st, st.id, company) : 0;
     return cap > 0 ? Math.max(0, cap - (growthOn(this.st) ? storeUsed(st.storage[company]) + held : cargoSum(this.storage(st, company)))) : Infinity;
   }
   overCap(st: Station, company: string, add: number) { return this.room(st, company) < add; }
@@ -1187,7 +1187,7 @@ export class WorldSim {
         const limit = stationBerths(after);
         if (limit !== undefined && occupiedBerths(this.st, st.id) > limit) return '정박 함선이 많습니다 — 출항 후 철거하세요';
         const recovered = Object.fromEntries(Object.entries(moduleMaterials(m)).map(([item, n]) => [item, Math.floor(n * 0.5)] as const).filter(([, n]) => n > 0));
-        const store = this.storage(st, company), room = storageCap(after) - storeUsed(store) - reservedSpace(after) - listedSpace(after, company) - logisticsReservedSpace(this.st, st.id, company);
+        const store = this.storage(st, company), room = storageCap(after) - storeUsed(store) - reservedSpace(after) - listedSpace(after, company) - logisticsReservedSpace(this.st, st.id, company) - govReservedSpace(this.st, st.id, company);
         if (Object.entries(recovered).reduce((n, [item, amount]) => n + (takesSpace(item) ? amount : 0), 0) > room + 1e-9) return '회수 자재를 보관할 공간이 부족합니다 — 먼저 재고를 옮기세요';
         st.modules = remaining;
         for (const [item, amount] of Object.entries(recovered)) {
