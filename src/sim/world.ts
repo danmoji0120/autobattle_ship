@@ -266,13 +266,18 @@ export class World {
     const lo: LoadoutDef = fit ? { id: base.id, name: fit.name, desc: '', mounts: fit.mounts, hpMul: fit.hpMul, armorMul: fit.armorMul, speedMul: fit.speedMul, costDelta: base.costDelta, ...(fit.mesh ? { mesh: fit.mesh } : {}) } : base;
     const cmd = g.commander;
     const spec = cmd.specialty;
-    const speedMul = (lo.speedMul ?? 1) * (spec === 'maneuver' ? 1.08 : 1) * (fx.speedMul ?? 1);
-    const armorMul = (lo.armorMul ?? 1) * (fx.armorMul ?? 1);
-    const hp = cls.hp * (lo.hpMul ?? 1) * (fx.hpMul ?? 1);
+    // B-1 officer effects (only present when the battle setup carries them: the world resolved and capped them)
+    const ox = cmd.ofx;
+    const o = (k: string) => ox?.[k] ?? 0;
+    const speedMul = (lo.speedMul ?? 1) * (spec === 'maneuver' ? 1.08 : 1) * (fx.speedMul ?? 1) * (ox ? 1 + o('speed') : 1);
+    const armorMul = (lo.armorMul ?? 1) * (fx.armorMul ?? 1) * (ox ? 1 + o('armor') : 1);
+    const hp = cls.hp * (lo.hpMul ?? 1) * (fx.hpMul ?? 1) * (ox ? 1 + o('hp') : 1);
     // range / reload changes are baked into per-mount weapon copies (deterministic, replay-safe)
     const wmod = (id: string) => {
       const w = WEAPONS[id]; const fm = w.family ? fx.fam?.[w.family] : undefined;
-      const r = (w.kind === 'pd' ? 1 : fx.rangeMul ?? 1) * (fm?.range ?? 1), rl = (fx.reloadMul ?? 1) * (fm?.reload ?? 1), mg = fx.magMul ?? 1, dm = fm?.dmg ?? 1;
+      let r = (w.kind === 'pd' ? 1 : fx.rangeMul ?? 1) * (fm?.range ?? 1), rl = (fx.reloadMul ?? 1) * (fm?.reload ?? 1);
+      const mg = fx.magMul ?? 1, dm = fm?.dmg ?? 1;
+      if (ox) { if (w.kind === 'pd') r *= 1 + o('pdRange'); else { rl *= 1 - o('rof'); if (w.kind === 'shell') r *= 1 + o('gunRange'); } }
       if (r === 1 && rl === 1 && dm === 1 && (mg === 1 || w.magazine === undefined)) return w;
       const out = { ...w, range: w.range * r, reload: w.reload * rl, magazine: w.magazine !== undefined ? Math.round(w.magazine * mg) : undefined };
       if (dm !== 1) out.damage = w.damage * dm;
@@ -283,17 +288,18 @@ export class World {
       pos: new Vec3(), prevPos: new Vec3(), vel: new Vec3(), yaw: team === 0 ? 0 : Math.PI, pitch: 0, prevYaw: 0, prevPitch: 0, fwd: new Vec3(0, 0, 1),
       hp, maxHp: hp,
       armor: { front: cls.armor.front * armorMul, side: cls.armor.side * armorMul, rear: cls.armor.rear * armorMul },
-      maxSpeed: cls.maxSpeed * speedMul, accel: cls.accel * speedMul, turnRate: cls.turnRate * (spec === 'maneuver' ? 1.15 : 1) * Math.PI / 180,
+      maxSpeed: cls.maxSpeed * speedMul, accel: cls.accel * speedMul * (ox ? 1 + o('accel') : 1), turnRate: cls.turnRate * (spec === 'maneuver' ? 1.15 : 1) * (ox ? 1 + o('turn') : 1) * Math.PI / 180,
       lateral: cls.lateral, radius: cls.radius, halfLen: cls.length / 2,
       mounts: [], state: 'alive', dyingTimer: 0, deathTime: 0,
       crit: { engine: 0, fire: 0, bridge: 0 },
       ai: { moveTo: new Vec3(), faceTo: null, speedCap: cls.maxSpeed, targetId: -1, run: null, jink: this.rng.range(0, 10), lastRetarget: 0 },
       stats: { dmgDealt: 0, dmgTaken: 0, kills: 0, killValue: 0, shots: 0, hits: 0, ricochets: 0, intercepts: 0, torpHits: 0, rearHits: 0 },
-      gunnery: (0.75 + 0.4 * cmd.skill + (spec === 'gunnery' ? 0.22 : 0)) * (fx.accMul ?? 1),
-      pdBonus: (1 + (spec === 'defense' ? 0.3 : 0) + cmd.skill * 0.15) * (fx.pdMul ?? 1),
+      gunnery: (0.75 + 0.4 * cmd.skill + (spec === 'gunnery' ? 0.22 : 0)) * (fx.accMul ?? 1) * (ox ? 1 + o('acc') : 1),
+      pdBonus: (1 + (spec === 'defense' ? 0.3 : 0) + cmd.skill * 0.15) * (fx.pdMul ?? 1) * (ox ? 1 + o('pd') : 1),
       evasion: fx.evasion ?? 0,
       value: shipCost(classId, loadoutId), recentDamage: 0, lastAttacker: -1, throttle: 0, killedBy: -1,
     };
+    if (ox) s.ofx = ox;
     if (fx.shield) { s.maxShield = s.shield = hp * fx.shield; s.shieldRegen = fx.shieldRegen ?? 0.02; s.shieldHitAt = -99; }
     lo.mounts.forEach((md, i) => {
       const f = md.facing * Math.PI / 180;
@@ -625,7 +631,8 @@ export class World {
   private moveShip(s: Ship) {
     const dt = this.dt;
     const ai = s.ai;
-    const engineMul = s.crit.engine > 0 ? 0.5 : 1;
+    let engineMul = s.crit.engine > 0 ? 0.5 : 1;
+    if (s.ofx) engineMul *= this.officerSpeed(s);
     const maxSpeed = s.maxSpeed * engineMul;
     const accel = s.accel * engineMul;
     const desired = tmpA.subVectors(ai.moveTo, s.pos);
@@ -700,13 +707,18 @@ export class World {
   private updateStatus(s: Ship) {
     const dt = this.dt;
     s.recentDamage *= Math.exp(-dt / 1.6);
+    // B-1 emergency repair: after 4 s without a hull hit, up to a total share of the hull per battle
+    if (s.ofx?.regen && s.hp < s.maxHp && this.time - (s.ofHit ?? -99) > 4) {
+      const room = s.maxHp * (0.1 + (s.ofx.regenCap ?? 0)) - (s.ofHeal ?? 0);
+      if (room > 0) { const h = Math.min(room, s.maxHp - s.hp, s.maxHp * s.ofx.regen * dt); s.hp += h; s.ofHeal = (s.ofHeal ?? 0) + h; }
+    }
     // shields recover once the ship has not been hit for 4 s
     if (s.maxShield && s.shield! < s.maxShield && this.time - (s.shieldHitAt ?? -99) > 4) s.shield = Math.min(s.maxShield, s.shield! + s.maxShield * (s.shieldRegen ?? 0) * dt);
     if (s.crit.engine > 0) s.crit.engine -= dt;
     if (s.crit.bridge > 0) s.crit.bridge -= dt;
     if (s.crit.fire > 0) {
       s.crit.fire -= dt;
-      const dmg = s.maxHp * 0.006 * dt;
+      const dmg = s.maxHp * 0.006 * dt * (s.ofx?.fire ? 1 - s.ofx.fire : 1);
       s.hp -= dmg; s.stats.dmgTaken += dmg;
       if (s.hp <= 0) this.startDying(s, s.lastAttacker, false, 'fire');
     }
@@ -817,6 +829,7 @@ export class World {
         let score = -d;
         if (mu.kind === 'torpedo') score += 200;
         if (mu.targetId === s.id) score += 120;
+        else if (s.ofx?.pdNet) { const at = this.shipById.get(mu.targetId); if (at && at.team === s.team && at.pos.distTo(s.pos) < 600) score += 160; }
         // a 16-emitter array spreads over the salvo instead of all tracking the nearest round
         if (s.ex) score -= ((mu.id * 31 + m.index * 17) % 13) * 22;
         if (score > bestScore) { bestScore = score; best = mu.id; }
@@ -837,7 +850,7 @@ export class World {
     const range = w.range * (w.kind === 'torpedo' ? this.torpRangeFactor(s) : 1);
     // prefer commander-assigned target
     const pri = this.shipById.get(s.ai.targetId);
-    if (pri && pri.state === 'alive' && this.hostile(s.team, pri.team) && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > (w.kind === 'torpedo' ? 0 : 0.2)) {
+    if (pri && pri.state === 'alive' && this.hostile(s.team, pri.team) && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > (w.kind === 'torpedo' ? 0 : s.ofx?.focus ? 0.05 : 0.2)) {
       m.targetId = pri.id; return;
     }
     let best = -1, bestScore = 0;
@@ -851,7 +864,7 @@ export class World {
       if (!inArc(t.pos)) continue;
       const suit = this.suitability(w, t);
       const hitP = clamp((t.radius + 3) / (d * Math.max(w.spread, 0.004) * 3 + 1), 0.05, 1);
-      const score = suit * hitP * (1.2 - 0.5 * t.hp / t.maxHp) * (t.id === s.ai.targetId ? 1.5 : 1) * (1 + t.value / 600);
+      const score = suit * hitP * (1.2 - 0.5 * t.hp / t.maxHp) * (t.id === s.ai.targetId ? (s.ofx?.focus ? 2.5 : 1.5) : 1) * (1 + t.value / 600);
       if (score > bestScore) { bestScore = score; best = t.id; }
     }
     m.targetId = best;
@@ -886,9 +899,13 @@ export class World {
     if (kind === 'shell') {
       // small, fast targets are much harder to track
       const tgt = this.shipById.get(m.targetId);
-      const agility = tgt ? 1 + clamp(tgt.vel.length() / tgt.radius / 25, 0, 2.2) : 1;
-      // ECM / evasive drives on the target widen the dispersion
-      let spread = w.spread / s.gunnery * (s.crit.bridge > 0 ? 1.6 : 1) * agility / (1 - Math.min(0.5, tgt?.evasion ?? 0));
+      let agility = tgt ? 1 + clamp(tgt.vel.length() / tgt.radius / 25, 0, 2.2) : 1;
+      if (s.ofx?.agile) agility = 1 + (agility - 1) * (1 - s.ofx.agile);
+      // ECM / evasive drives on the target widen the dispersion (B-1: officer ECCM cuts through them)
+      const eccm = s.ofx?.eccm ? 1 - s.ofx.eccm : 1;
+      let spread = w.spread / s.gunnery * (s.crit.bridge > 0 ? 1.6 : 1) * agility / (1 - Math.min(0.5, (tgt?.evasion ?? 0) * eccm));
+      if (tgt?.ofx) { const ev = (tgt.ofx.jam ?? 0) + (tgt.ofx.evade ?? 0) + (tgt.hp < tgt.maxHp * 0.35 ? tgt.ofx.lastDitch ?? 0 : 0); if (ev) spread *= 1 + ev * eccm; }
+      if (s.ofx?.longAcc && tgt && tgt.pos.distTo(s.pos) > w.range * 0.55) spread /= 1 + s.ofx.longAcc;
       if (s.jamUntil !== undefined && s.jamUntil > this.time) spread *= 1.9;   // BLACKOUT
       const side = new Vec3().crossVectors(dir, UP).normalize();
       const up = new Vec3().crossVectors(side, dir).normalize();
@@ -905,6 +922,7 @@ export class World {
       pos: muzzle.clone(), prevPos: muzzle.clone(), vel, life: kind === 'shell' ? w.range * 1.2 / w.speed : w.range / w.speed * 1.7,
       targetId: m.targetId, hp: w.munitionHp ?? 1, age: 0, dead: false,
     };
+    if (s.ofx?.mGuide && kind !== 'shell') mu.gm = 1 + s.ofx.mGuide;
     this.munitions.push(mu); this.munitionById.set(mu.id, mu);
     this.events.push({ t: 'fire', ship: s.id, mount: m.index, kind, weapon: w.id, pos: muzzle.clone(), dir: dir.clone() });
     if (s.ex) exNoteShot(s, w.id);
@@ -917,7 +935,7 @@ export class World {
     m.lastFire = this.time;
     if (m.targetIsMunition) {
       const mu = this.munitionById.get(m.targetId)!;
-      let chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.6 : 1);
+      let chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.6 * (s.ofx?.torpPd ? 1 + s.ofx.torpPd : 1) : 1);
       if (s.jamUntil !== undefined && s.jamUntil > this.time) chance *= 0.55;   // BLACKOUT
       const hit = this.rng.chance(chance);
       const to = mu.pos.clone();
@@ -936,7 +954,7 @@ export class World {
     } else {
       const t = this.shipById.get(m.targetId);
       if (!t) return;
-      const hit = this.rng.chance(0.2);
+      const hit = this.rng.chance(0.2 * (s.ofx?.antiRaider ? 1 + s.ofx.antiRaider : 1));
       const to = t.pos.clone().add(new Vec3(this.rng.range(-t.radius, t.radius), this.rng.range(-2, 2), this.rng.range(-t.halfLen, t.halfLen) * 0.5));
       if (!hit) to.add(new Vec3(this.rng.range(-10, 10), this.rng.range(-10, 10), this.rng.range(-10, 10)));
       this.events.push({ t: 'pd', ship: s.id, mount: m.index, from: muzzle.clone(), to, hit });
@@ -945,6 +963,25 @@ export class World {
         this.applyHit(t, w, s.id, to, dir, 'shell');
       }
     }
+  }
+
+  /** B-1: officer speed effects — pursuit of a fleeing or crippled target, and a faster withdrawal */
+  private officerSpeed(s: Ship): number {
+    const ox = s.ofx!; let m = 1;
+    const g = this.groupById.get(s.groupId)!;
+    if (ox.retreatSpd && g.order.type === 'retreat') m *= 1 + ox.retreatSpd;
+    else if (ox.pursuit) {
+      const t = this.shipById.get(s.ai.targetId);
+      if (t && t.state === 'alive') { const tg = this.groupById.get(t.groupId); if (t.hp < t.maxHp * 0.4 || tg?.order.type === 'retreat' || tg?.ai.routed) m *= 1 + ox.pursuit; }
+    }
+    return m;
+  }
+  /** B-1: own-group ships within 350 m (defensive formation) */
+  private formation(t: Ship): number {
+    const g = this.groupById.get(t.groupId); if (!g) return 0;
+    let n = 0;
+    for (const id of g.shipIds) { if (id === t.id) continue; const o = this.shipById.get(id); if (o && o.state === 'alive' && o.pos.distTo(t.pos) < 350) n++; }
+    return n;
   }
 
   teamIntercepts(team: Team): number { let n = 0; for (const s of this.ships) if (s.team === team) n += s.stats.intercepts; return n; }
@@ -1012,6 +1049,9 @@ export class World {
     const dt = this.dt;
     const w = mu.weapon;
     let t = this.shipById.get(mu.targetId);
+    if (mu.lost) { const sp = mu.vel.length(); mu.vel.scale(Math.min(w.speed, sp + w.speed * 1.2 * dt) / Math.max(sp, 1e-6)); return; }
+    // B-1 decoys: once, inside 250 m, a guided round aimed at the officer's ship may lose its lock for good
+    if (t?.ofx?.decoy && !mu.decoyed && t.pos.distTo(mu.pos) < 250) { mu.decoyed = true; if (this.rng.chance(t.ofx.decoy)) { mu.lost = true; mu.targetId = -1; mu.life = Math.min(mu.life, 1.5); return; } }
     if (!t || t.state !== 'alive') {
       // retarget to nearest enemy
       let bd = 900, best: Ship | undefined;
@@ -1030,7 +1070,7 @@ export class World {
     if (t && mu.age > boost) {
       const tt = t.pos.distTo(mu.pos) / Math.max(speed, 50);
       const aim = new Vec3(t.pos.x + t.vel.x * tt - mu.pos.x, t.pos.y + t.vel.y * tt - mu.pos.y, t.pos.z + t.vel.z * tt - mu.pos.z).normalize();
-      let turn = (w.guidedTurn ?? 1) * dt * (mu.age < boost + 0.6 ? 2.2 : 1);
+      let turn = (w.guidedTurn ?? 1) * dt * (mu.age < boost + 0.6 ? 2.2 : 1) * (mu.gm ?? 1) * (t.ofx?.mJam ? 1 - t.ofx.mJam : 1);
       if (this.exShips.length) { const o = this.shipById.get(mu.ownerId); if (o && o.jamUntil !== undefined && o.jamUntil > this.time) turn *= 0.4; }   // BLACKOUT
       rotateToward(dir, aim, turn);
     }
@@ -1061,15 +1101,19 @@ export class World {
         return;
       }
     }
-    const armor = t.armor[facing];
-    const ratio = w.pen / armor;
+    const ax = this.shipById.get(attackerId)?.ofx;
+    let armor = t.armor[facing];
+    if (t.ofx?.formArmor && this.formation(t) >= 2) armor *= 1 + t.ofx.formArmor;
+    const ratio = w.pen * (ax?.pen ? 1 + ax.pen : 1) / armor;
     let mul: number; let result: 'pen' | 'ricochet' | 'blocked';
     if (ratio >= 1) { mul = 1; result = 'pen'; }
     else if (ratio < 0.55 && this.rng.chance(0.75)) { mul = 0.06; result = 'ricochet'; }
     else { mul = Math.pow(ratio, 1.6); result = mul > 0.35 ? 'pen' : 'blocked'; }
     // causality interference (commander BB): a glancing result of BB-EX's own fire is overruled
     if (mul < 1 && this.exShips.length) { const ax = this.shipById.get(attackerId); if (ax?.ex && exRewrite(this, ax, pos)) { mul = 1; result = 'pen'; } }
-    const dmg = w.damage * mul * this.rng.range(0.85, 1.15) * through;
+    let dmg = w.damage * mul * this.rng.range(0.85, 1.15) * through;
+    if (ax) { const big = t.role === 'line'; dmg *= 1 + (big ? ax.dmgCap ?? 0 : ax.dmgSmall ?? 0) + (facing === 'rear' ? ax.rearDmg ?? 0 : 0); }
+    if (t.ofx) { if (t.ofx.brace && t.hp < t.maxHp * 0.3) dmg *= 1 - t.ofx.brace; t.ofHit = this.time; }
     t.hp -= dmg;
     t.stats.dmgTaken += dmg;
     t.recentDamage += dmg;
@@ -1088,7 +1132,7 @@ export class World {
     this.intensity += dmg / 300;
     // critical hits
     if (result === 'pen' && t.state === 'alive') {
-      const p = clamp(w.damage / 900, 0.01, 0.4) * (facing === 'rear' ? 1.8 : 1);
+      const p = clamp(w.damage / 900, 0.01, 0.4) * (facing === 'rear' ? 1.8 : 1) * (ax?.crit ? 1 + ax.crit : 1) * (t.ofx?.critRes ? 1 - t.ofx.critRes : 1);
       if (this.rng.chance(p)) this.applyCrit(t);
     }
     if (t.hp <= 0 && t.state === 'alive') this.startDying(t, attackerId, facing === 'rear', kind);
@@ -1097,13 +1141,14 @@ export class World {
   private applyCrit(t: Ship) {
     const r = this.rng.next();
     let crit: 'engine' | 'weapon' | 'fire' | 'bridge';
-    if (r < 0.3) { crit = 'engine'; t.crit.engine = 14; }
+    const dc = t.ofx?.dc ? 1 - t.ofx.dc : 1;
+    if (r < 0.3) { crit = 'engine'; t.crit.engine = 14 * dc; }
     else if (r < 0.62) {
       crit = 'weapon';
       const live = t.mounts.filter(m => m.disabled <= 0);
-      if (live.length) this.rng.pick(live).disabled = 16;
-    } else if (r < 0.9) { crit = 'fire'; t.crit.fire = 12; }
-    else { crit = 'bridge'; t.crit.bridge = 10; }
+      if (live.length) this.rng.pick(live).disabled = 16 * dc;
+    } else if (r < 0.9) { crit = 'fire'; t.crit.fire = 12 * dc; }
+    else { crit = 'bridge'; t.crit.bridge = 10 * dc; }
     this.events.push({ t: 'crit', ship: t.id, crit, pos: t.pos.clone() });
     if (t.role !== 'raider' && (t.team === 0 || this.dynamic)) {
       const g = this.groupById.get(t.groupId)!;

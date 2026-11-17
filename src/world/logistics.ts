@@ -4,7 +4,8 @@ import type { WorldSim } from './sim';
 import type { WorldState, WShip, WGroup, Gate } from './types';
 import { cargoSum, qty, takec, addc } from './types';
 import { econOf, growthOn, berthFits } from './hullops';
-import { ITEMS, EQUIPMENT, recipeFor, techFx } from './industry';
+import { ITEMS, EQUIPMENT, recipeFor, techFx, itemPrice } from './industry';
+import { XP_RATE } from './officerData';
 import { orderWants } from './production';
 import { nextGate } from './geom';
 import { departureHeld } from './upkeep';
@@ -32,7 +33,7 @@ export interface LogisticsRoute {
   /** P12.5 conversion: a player-set repeating sale/transfer loop kept on this legacy path (pause/cancel only) */
   compat?: true;
 }
-type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'undock' | 'sellAt' | 'ev'>;
+type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'undock' | 'sellAt' | 'ev' | 'officerXp' | 'groupOfficer'>;
 export const routeShips = (w: Pick<WorldState, 'ships' | 'groups'>, route: Pick<LogisticsRoute, 'group' | 'owner'>): WShip[] => {
   const out: WShip[] = [], root = w.groups[route.group]; if (!root) return out;
   const walk = (g: WGroup) => { for (const id of g.shipIds) { const s = w.ships[id]; if (s?.owner === route.owner && econOf(s).cargo > 0) out.push(s); } for (const id of g.childIds) { const child = w.groups[id]; if (child && !child.override) walk(child); } }; walk(root); return out;
@@ -209,6 +210,8 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
       if (moved) { takec(s.cargo, m.item, moved); addc(h.storage(st, r.owner), m.item, moved); }
     }
     m.amount -= moved;
+    // B-1 experience: cargo really delivered on a route (sales and construction in full; plain transfers at half)
+    if (moved && h.st.officerV) { const oc = h.groupOfficer(h.st.groups[s.groupId]); if (oc) h.officerXp(oc, 'logistics', moved * itemPrice(m.item) * XP_RATE.logistics * (m.mode === 'sell' || m.mode === 'construction' ? 1 : 0.5), { logistics: 1 }); }
     if (moved) { record(r, h.time, { delivered: moved }); c.lastAction = h.time; emit(h.st, { kind: 'logistics', reason: 'unload', amount: moved, company: r.owner, group: g.id, ship: s.id, station: st.id, item: m.item, route: r.id }); }
     if (m.amount > 1e-9) { block(h, r, s, c, m.mode === 'sell' ? 'budget' : m.mode === 'construction' ? 'construction' : m.mode === 'supply' && qty(h.storage(st, r.owner), m.item) >= (m.targetStock ?? 0) ? 'target' : 'storage', m.mode === 'sell' ? '시장 구매 예산 부족 — 남은 화물 보존·예산 회복 대기' : m.mode === 'construction' ? '현장에 더 받을 자재가 없거나 창고가 가득 찼습니다 — 화물 보존·노선 변경 가능' : m.mode === 'supply' && qty(h.storage(st, r.owner), m.item) >= (m.targetStock ?? 0) ? '목표 재고 충족 — 화물 보존·소비 후 자동 공급' : '목적지 창고 가득 — 재고 이동·임대·증설 후 자동 재개', st.id); return; }
     delete r.manifests[s.id]; record(r, h.time, { trips: 1 }); resetCursor(c, r.config.repeat ? 'source' : 'complete'); c.lastAction = h.time;

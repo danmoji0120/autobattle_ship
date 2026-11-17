@@ -4,7 +4,9 @@ import type { WShip, WGroup, Station, WorldState } from './types';
 import { addc, takec, qty, cargoSum, cargoKeys } from './types';
 import { autoLogistics, poolMember, haulerAvailability } from './haulers';
 import { econOf, berthFits, growthOn } from './hullops';
-import { EQUIPMENT, ITEMS, techFx } from './industry';
+import { EQUIPMENT, ITEMS, techFx, itemPrice } from './industry';
+import { shipFx } from './officers';
+import { XP_RATE } from './officerData';
 import { constructionRoom } from './storage';
 import { occupiedBerths, stationBerths } from './stations';
 import { dist, jumps, nextGate } from './geom';
@@ -49,7 +51,7 @@ export interface LogisticsJob extends PoolRequest {
   /** AUTO-P1.1: when the trip started waiting without any market to go on to (and how much it had sold then) */
   stuck?: { since: number; delivered: number };
 }
-type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev' | 'price'>;
+type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev' | 'price' | 'officerXp' | 'groupOfficer'>;
 const EPS = 1e-9;
 const isTerminal = (j: LogisticsJob) => j.state === 'complete' || j.state === 'cancelled';
 const compatibleItem = (item: string) => Object.hasOwn(ITEMS, item) || Object.hasOwn(EQUIPMENT, item) || item.startsWith('bp:') || item.startsWith('bpf:');
@@ -343,6 +345,12 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
   const limit = !site && !externalPickup ? stationBerths(station) : undefined;
   if (limit !== undefined && !(s.state === 'docked' && s.task.k === 'docked' && s.task.station === station.id) && occupiedBerths(h.st, station.id, s.id) >= limit) { wait(h, j, s, 'berth_full', '정박 공간 부족 — 다른 함선이 출항하면 자동 재개'); return true; }
   if (!path(h, s.pos, station.pos, j.procurement || j.sale ? h.st.companies[j.owner]?.procurement?.maxRisk ?? 100 : undefined)) { wait(h, j, s, 'path', '허용된 점프 경로가 없습니다 — 경로 또는 위험 제한 회복 대기'); return true; }
+  // B-1 route judgement: a logistics officer keeps a docked ship in port while a battle is on at the destination
+  const lfx = h.st.officerV ? shipFx(h.st, s) : undefined;
+  if (lfx?.safeRoute && s.state === 'docked') {
+    const sys = h.sysOf(station.pos)?.id;
+    if (sys && Object.values(h.st.engagements).some(e => !e.done && e.sys === sys)) { wait(h, j, s, 'safe_route', '경로 판단: 목적지 성계에서 교전 중 — 끝날 때까지 출항 보류'); return true; }
+  }
   clearWait(h, j, s); j.state = 'active'; if (!j.returning) delete j.reason;   // AUTO-P1.1: a trip flying home says why
   if (!(site || externalPickup ? h.goConstruction(s, station, dt, speed) : h.goDock(s, station, dt, speed, true, true))) return true;
   if (j.carried > EPS) {
@@ -376,6 +384,8 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
     }
     j.carried -= moved; j.delivered += moved; j.cycleDelivered += moved; j.updated = h.time;
     if (moved > 0) { j.lastAction = h.time; emit(h.st, { kind: 'logistics', reason: 'unload', amount: moved, company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item }); }
+    // B-1 experience: cargo really delivered (sales, procurement and construction in full; internal transfers at half)
+    if (moved > 0 && h.st.officerV) { const c = h.groupOfficer(h.st.groups[s.groupId]); if (c) h.officerXp(c, 'logistics', moved * itemPrice(j.item) * XP_RATE.logistics * (j.kind === 'sell' || j.kind === 'construction' || j.procurement ? 1 : 0.5), { logistics: 1 }); }
     if (j.procurement && j.cycleDelivered + EPS >= j.amount && j.carried > EPS) { j.withdrawn += j.carried; j.reason = '수요 감소로 남은 화물은 함선에 보존'; j.carried = 0; }
     if (j.carried > EPS) { wait(h, j, s, j.kind === 'sell' ? 'budget' : site ? 'construction' : 'storage', j.kind === 'sell' ? '시장 예산 부족 — 화물 보존·자동 재시도' : site ? '건설 현장의 필요량 또는 공간 부족 — 화물 보존·자동 재시도' : '목적지 창고 가득 — 공간 확보 후 자동 재개'); return true; }
     delete s.logisticsJob; delete j.ship; j.carried = 0;

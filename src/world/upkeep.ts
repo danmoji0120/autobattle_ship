@@ -15,6 +15,8 @@
 //   stage 4 (120 min)        idle docked ships are proposed for reserve; moved only with consent
 //                            (the player's command, or the company's opt-in auto-reserve)
 // Nothing is ever deleted or confiscated, no interest is charged, and paying the debt clears it.
+import { shipFx, payroll, groupOfficer, grantXp } from './officers';
+import { XP_RATE } from './officerData';
 import { emit, watchMoney } from './observe';
 import type { Company, Station, WorldState, WShip, Cargo, UpkeepState } from './types';
 import { qty, addc } from './types';
@@ -64,10 +66,13 @@ export function shipRate(w: WorldState, s: WShip): { credits: number; supplies: 
   const supplies: Record<string, number> = res ? {} : { ...(u.supplies ?? {}) };
   if (!res && s.fitting) for (const id of Object.values(s.fitting.hp ?? {})) for (const [k, n] of Object.entries(EQUIPMENT[id]?.supply ?? {})) supplies[k] = (supplies[k] ?? 0) + n;
   if (tf.supplyMul !== 1) for (const k of Object.keys(supplies)) supplies[k] *= tf.supplyMul;
+  // B-1: the commanding officer's supply management
+  const sup = w.officerV ? shipFx(w, s).supply ?? 0 : 0;
+  if (sup) for (const k of Object.keys(supplies)) supplies[k] *= 1 - sup;
   return { credits: u.credits * mul * tf.upkeepMul, supplies, dock };
 }
 
-export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; lease: number; station: number; perHour: number }
+export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; lease: number; station: number; perHour: number; /** B-1 officer salaries */ officers: number }
 /** what the company's fleet costs per hour at current prices */
 export function forecast(w: WorldState, co: Company): Forecast {
   const ships = Object.values(w.ships).filter(s => s.owner === co.id && s.classId !== 'platform');
@@ -81,7 +86,8 @@ export function forecast(w: WorldState, co: Company): Forecast {
   const overhead = credits * (om - 1);
   const lease = leaseRate(w, co);
   const station = Object.values(w.stations).filter(s => s.owner === co.id).reduce((n, s) => n + stationUpkeep(s), 0);
-  return { ships: ships.length, credits, supplies, suppliesCr, dock, overhead, lease, station, perHour: credits + overhead + dock + suppliesCr + lease + station };
+  const officers = payroll(w, co.id).perHour;
+  return { ships: ships.length, credits, supplies, suppliesCr, dock, overhead, lease, station, officers, perHour: credits + overhead + dock + suppliesCr + lease + station + officers };
 }
 
 /** the market a company buys its consumables at: its home station's, else the nearest public market */
@@ -110,8 +116,15 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     for (const [k, n] of Object.entries(r.supplies)) u.supplies[k] = (u.supplies[k] ?? 0) + n * h;
     // wear: accumulates while the ship works in space; slower without supplies (stage ≥ 2 doubles it)
     const wr = hullUpkeep(hullIdOf(s), s.variant).wear ?? 0;
-    if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : 1));
+    if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) {
+      // B-1: preventive maintenance slows wear; bulk mining wears equipment faster while it mines
+      const ofx = w.officerV ? shipFx(w, s) : undefined;
+      const om = ofx ? (1 - (ofx.wear ?? 0)) * (s.task.k === 'mine' ? 1 + (ofx.mineWear ?? 0) : 1) : 1;
+      s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : 1) * om);
+    }
   }
+  // B-1 officer salaries: posting, command size and a small allowance per level (unpaid → ordinary upkeep debt)
+  if (w.officerV) { const pay = payroll(w, co.id).perHour * h; if (pay > 0) { u.acc += pay; emit(w, { kind: 'cost', reason: 'officer_salary', amount: pay, company: co.id }); } }
   for (const st of Object.values(w.stations)) if (st.owner === co.id) {
     const amount = stationUpkeep(st) * h;
     if (amount > 0) { u.acc += amount; emit(w, { kind: 'cost', reason: 'station_upkeep', amount, company: co.id, station: st.id }); }
@@ -220,7 +233,9 @@ export function maintainOnDock(w: WorldState, s: WShip, st: Station, repairCapab
   if (pts > cap) { fix *= cap / pts; s.dockWait = w.time; }
   if (fix < 1e-4) return 0;
   useDock(st, repairPoints(s, fix));
-  const cost = Math.round(fix * shipWorth(w, s) * 0.12 * (st.owner === co.id ? 0.5 : serviceOf(st).fee));
+  const off = w.officerV ? shipFx(w, s) : undefined;   // B-1 maintenance management
+  const cost = Math.round(fix * shipWorth(w, s) * 0.12 * (st.owner === co.id ? 0.5 : serviceOf(st).fee) * (1 - (off?.maint ?? 0)));
+  if (off && cost > 0) { const c = groupOfficer(w, w.groups[s.groupId]); if (c) grantXp(w, c, 'support', cost * XP_RATE.support, { support: 1 }); }
   emit(w, { kind: 'cost', reason: 'maintenance', amount: cost, company: co.id, group: s.groupId, ship: s.id, station: st.id });
   s.wear = s.wear! - fix;
   upkeepOf(co).acc += cost;

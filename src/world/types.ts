@@ -360,6 +360,8 @@ export interface Station {
   public: boolean;
   /** P9.6 station structure; absent for public and legacy stations with their original rules. */
   size?: Size;
+  /** B-1: fractional material savings of the station director, per item (whole units are returned) */
+  ofSave?: Record<string, number>;
   style: number;
   pos: V;
   radius: number;

@@ -34,6 +34,8 @@ import { stepPoolShip } from './autonomousLogistics';
 import { planMinerSaleTrip } from './procurement';
 
 type Host = WorldSim;
+import { shipFx, groupFx } from './officers';
+import { XP_RATE } from './officerData';
 
 export interface SalvState {
   mode: 'recover' | 'zone' | 'auto';
@@ -84,7 +86,10 @@ const roleOf = (s: WShip): 'hauler' | 'constructor' | 'miner' | 'military' | 'ot
 /** what this ship can hold of salvage (warships: a small salvage hold) */
 export function salvageHold(h: Pick<Host, 'st'>, s: WShip): number {
   const e = econOf(s);
-  return e.military ? Math.round(shipValue(s.classId) * SALV.warHold) : e.cargo * techFx(h.st.companies[s.owner]?.tech).cargoMul;
+  const base = e.military ? Math.round(shipValue(s.classId) * SALV.warHold) : e.cargo * techFx(h.st.companies[s.owner]?.tech).cargoMul;
+  // B-1: a scrap master packs the salvage hold tighter (salvage only — mining and trade holds are unchanged)
+  const hold = h.st.officerV ? shipFx(h.st, s).salvHold ?? 0 : 0;
+  return hold ? Math.round(base * (1 + hold)) : base;
 }
 export const salvageRoom = (h: Pick<Host, 'st'>, s: WShip) => Math.max(0, salvageHold(h, s) - cargoSum(s.cargo));
 /** units / s this ship works a lot of this kind (0 = cannot) */
@@ -94,6 +99,12 @@ export function salvageRate(h: Pick<Host, 'st'>, s: WShip, k: WreckLot['k']): nu
   let r = t[role] ?? t.other ?? 0;
   if (tech && !r && k === 'equip') r = SALV.techEquip;
   if (tech && !r && k === 'frag') r = SALV.techFrag;
+  // B-1 salvage officer: faster recovery; hull cutting extended to haulers and warships
+  const fx = h.st.officerV ? shipFx(h.st, s) : undefined;
+  if (fx) {
+    if (k === 'hull' && !r && fx.salvHull) r = role === 'military' ? 0.8 : role === 'hauler' ? 1.5 : 0;
+    r *= 1 + (fx.salv ?? 0) + (k === 'equip' ? fx.salvEquip ?? 0 : k === 'frag' ? fx.salvFrag ?? 0 : 0);
+  }
   return r * (tech ? SALV.techMul : 1) * (s.hp > 0.5 ? 1 : 0.5);
 }
 const weightless = (l: WreckLot) => l.k === 'frag';
@@ -109,8 +120,9 @@ const PRI: Record<WreckLot['k'], number> = { cargo: 0, equip: 1, frag: 2, hull: 
 /** lots this ship may and can work now, best first */
 function lotsFor(h: Host, s: WShip, w: SalvSite, illegal: boolean): WreckLot[] {
   const room = salvageRoom(h, s);
+  const byValue = h.st.officerV && !!shipFx(h.st, s).salvValue;   // B-1 appraisal: the most valuable lot first
   return w.lots.filter(l => l.n >= 1 && (illegal || !protectedLot(h, s.owner, l)) && salvageRate(h, s, l.k) > 0 && (weightless(l) || room >= 1))
-    .sort((a, b) => PRI[a.k] - PRI[b.k] || lotValue(h.st, b) - lotValue(h.st, a) || a.id.localeCompare(b.id));
+    .sort((a, b) => (byValue ? lotValue(h.st, b) - lotValue(h.st, a) : 0) || PRI[a.k] - PRI[b.k] || lotValue(h.st, b) - lotValue(h.st, a) || a.id.localeCompare(b.id));
 }
 /** can any of these ships still do something at this wreck */
 export function workable(h: Host, ships: WShip[], w: SalvSite, illegal: boolean): boolean {
@@ -158,6 +170,8 @@ function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number):
     recovered(h, s, w, lot, take);
     emit(h.st, { kind: 'salvage', reason: 'recover', item: k, amount: take, company: s.owner, group: s.groupId, ship: s.id, system: w.system, ref: w.id, from: lot.owner });
     if (protectedLot(h, s.owner, lot)) crime(h, s, w, lot, take);
+    // B-1 experience: real recovered value — never for taking back one's own goods or for protected (stolen) cargo
+    else if (h.st.officerV && lot.owner !== s.owner) { const g = h.st.groups[s.groupId]; const c = h.groupOfficer(g); if (c) h.officerXp(c, 'salvage', take * lotValue(h.st, lot) * XP_RATE.salvage, { salvage: 1 }); }
   }
   s.salvAcc = { lot: key, a: Math.min(a, 1) };
   return take;
@@ -373,7 +387,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
       if (!workable(h, ships, w, illegal)) continue;
       const p = prospect(h, ships, w, illegal); if (p.value <= 0) continue;
       const travel = h.routeDistance(center, w.pos) / Math.max(50, h.groupSpeedOf(g));
-      const risk = hostileNear(h, g.owner, w.pos, SALV.hostileR) ? 0.2 : 1;
+      const risk = hostileNear(h, g.owner, w.pos, SALV.hostileR * (h.st.officerV ? 1 + (groupFx(h.st, g).salvRisk ?? 0) : 1)) ? 0.2 : 1;
       const left = w.expires - h.time; if (left < travel + 30) continue;
       const score = p.value / (travel + p.time + 30) * risk;
       if (score > best) { best = score; target = w; }
@@ -457,6 +471,9 @@ function status(h: Host, g: WGroup, S: SalvState, op: Op): string {
 /** automatic on-site pickup after a battle: short, close, legal, safe; never overrides an order */
 function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boolean {
   const st = h.st;
+  // B-1 salvage officer: wider on-site search and longer work; a wider hostile watch while working
+  const ofx = st.officerV ? groupFx(st, g) : undefined;
+  const reachMul = 1 + (ofx?.salvRange ?? 0), riskMul = 1 + (ofx?.salvRisk ?? 0);
   const mobile = ships.filter(s => s.state === 'space' && econOf(s).cruise > 0 && !s.logisticsJob && !s.cargoWork);
   let S = g.salv;
   if (!S) {
@@ -467,13 +484,13 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
     const center = h.groupCenter(g); if (!center) return false;
     let best: SalvSite | undefined, bd = Infinity;
     for (const w of allSites(st)) {
-      const d = dist(w.pos, center); if (d > SALV.autoRange || d >= bd) continue;
+      const d = dist(w.pos, center); if (d > SALV.autoRange * reachMul || d >= bd) continue;
       if (!autoAllowed(h, g, op, w) || !workable(h, mobile, w, false)) continue;
       best = w; bd = d;
     }
     if (!best || hostileNear(h, g.owner, best.pos, SALV.hostileR)) return false;
-    S = g.salv = { mode: 'auto', key: opKey(op), phase: 'transit', wreck: best.id, since: h.time, next: 0, until: h.time + SALV.autoTime, anchor: center };
-    h.say(g, `${best.name} 회수 가능 — 현장 자동 인양 (최대 ${Math.round(SALV.autoTime / 60)}분)`, 'radio', 0);
+    S = g.salv = { mode: 'auto', key: opKey(op), phase: 'transit', wreck: best.id, since: h.time, next: 0, until: h.time + SALV.autoTime * reachMul, anchor: center };
+    h.say(g, `${best.name} 회수 가능 — 현장 자동 인양 (최대 ${Math.round(SALV.autoTime * reachMul / 60)}분)`, 'radio', 0);
   }
   if (S.phase === 'unload') {
     // after an on-site pickup an idle fleet takes what it recovered to a warehouse; any order takes over
@@ -486,7 +503,7 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
   }
   const w = siteOf(st, S.wreck);
   const why = !w ? '잔해 소멸' : !autoAllowed(h, g, op, w) ? '명령 변경' : h.time > (S.until ?? 0) ? '작업 시간 초과' : !workable(h, mobile, w, false) ? (mobile.some(s => salvageRoom(h, s) >= 1) ? '회수 가능한 물품 없음' : '화물칸 부족')
-    : S.anchor && dist(w.pos, S.anchor) > SALV.autoRange + 500 ? '거리 초과' : (h.time >= S.next && hostileNear(h, g.owner, w.pos, SALV.hostileR)) ? '적대 함대 접근' : '';
+    : S.anchor && dist(w.pos, S.anchor) > SALV.autoRange * reachMul + 500 ? '거리 초과' : (h.time >= S.next && hostileNear(h, g.owner, w.pos, SALV.hostileR * riskMul)) ? '적대 함대 접근' : '';
   if (why) {
     delete g.salv;
     const got = Object.entries(mobile.reduce((acc: Cargo, s) => { for (const [k, n] of Object.entries(s.salvaged ?? {})) acc[k] = (acc[k] ?? 0) + n; return acc; }, {}));

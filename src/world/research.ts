@@ -10,6 +10,7 @@
 //  - kinds: 'lab' (normal), 'salvage' (reverse-engineering a captured item: consumes the item, faster,
 //    cheaper), 'copy' (prints a tradeable blueprint item `bp:<tech>` of a known tech).
 
+import { stationFx } from './officers';
 import { emit } from './observe';
 import type { Station, Company, ResearchProject, WorldState } from './types';
 import { qty, addc, hasAll } from './types';
@@ -130,7 +131,7 @@ export function stepResearch(stt: WorldState, co: Company, dt: number): Research
       emit(stt, { kind: 'research', reason: 'start', amount: 1, baseline: p.total, method: p.source ?? 'lab', company: co.id, item: p.tech, ref: p.id, station: p.station });
     }
     const [slot] = slots.splice(i, 1);
-    const speed = stationPower(st).factor * mul;
+    const speed = stationPower(st).factor * mul * (stt.officerV ? 1 + (stationFx(stt, st.id).research ?? 0) : 1);   // B-1 director
     p.left = Math.max(0, p.left - dt * speed);
     p.why = `연구 중 — ${FACILITIES[slot.kind]?.name ?? '연구소'} ×${speed.toFixed(2)}`;
     if (p.left <= 0) done.push(p);

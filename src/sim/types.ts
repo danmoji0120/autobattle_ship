@@ -111,6 +111,10 @@ export interface Ship {
   throttle: number;     // 0..1 for visuals
   killedBy: number;
   ref?: string;
+  /** B-1 officer effects of the commanding officer (absent without one: every rule below is skipped) */
+  ofx?: Record<string, number>;
+  /** B-1: last hull hit and emergency repair done (regen) */
+  ofHit?: number; ofHeal?: number;
 }
 
 export interface Munition {
@@ -130,6 +134,8 @@ export interface Munition {
   through?: number[];
   /** phase: the munition already made its spatial skip / is untouchable until this age */
   phased?: boolean; ghost?: number;
+  /** B-1: guidance multiplier from the launching officer; lost lock (decoy) */
+  gm?: number; lost?: boolean; decoyed?: boolean;
 }
 
 export interface GroupAI {

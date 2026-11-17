@@ -3,6 +3,7 @@
 
 import { backgroundOf } from '../world/backgrounds';
 import { migrateRep } from '../world/repMigrate';
+import { migrateOfficers } from '../world/officers';
 import { enableDerelicts } from '../world/derelicts';
 import { newWorldOptions, type WorldPreset } from '../world/worldPreset';
 import { Analytics, type AnalyticsOptions } from './analytics';
@@ -65,6 +66,8 @@ export interface ServerOptions {
   repMigrate?: boolean;
   /** A-3.2b: turn natural derelicts & salvage contracts on for an existing salvage save (DERELICTS_A32B_MIGRATE=1; idempotent) */
   derelictMigrate?: boolean;
+  /** B-1: convert an existing save's player commanders into growing officers (OFFICERS_B1_MIGRATE=1; idempotent) */
+  officerMigrate?: boolean;
   analytics?: AnalyticsOptions;
   /** keep only this many finished logistics jobs per company (see world/retention.ts); unset = keep all */
   logisticsJobRetain?: number;
@@ -122,6 +125,7 @@ export class GameServer {
     this.sim = save ? new WorldSim(save.world, { migrateContent: opts.migrateContent, migrateEcon: opts.migrateEcon }) : WorldSim.create(seed, newWorldOptions(opts));
     if (save && opts.repMigrate) { const r = migrateRep(this.sim.st); console.log(`[siderarium] P14.0 평판 이전: ${r.ok ? (r.why ?? `회사 ${r.companies}곳 · 전환 유예 ${Object.values(r.grace ?? {}).reduce((a, b) => a + b, 0)}건`) : `거부 — ${r.why}`}`); }
     if (save && opts.derelictMigrate) { const on = !!this.sim.st.derelictV, r = enableDerelicts(this.sim.st, this.sim.time); console.log(`[siderarium] A-3.2b 유기선: ${!this.sim.st.salvageV ? '거부 — 인양(P13.1) 월드가 아님' : on ? '이미 적용됨' : `적용 — 초기 유기선 ${r.made}척`}`); }
+    if (save && opts.officerMigrate) { const r = migrateOfficers(this.sim.st); console.log(`[siderarium] B-1 장교 육성: 전환 ${r.converted}명 · 기존 ${r.already}명 · 제외 ${r.skipped}명`); }
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }
     this.auth = save?.auth ?? {};

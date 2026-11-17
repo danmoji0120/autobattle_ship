@@ -210,8 +210,8 @@ import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContra
 import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
-import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, type XpSource, type Officer } from './officers';
-import type { Tree } from './officerData';
+import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, groupFx, mineBonus, shipFx, stationFx, stationDirector, type XpSource, type Officer } from './officers';
+import { XP_RATE, type Tree } from './officerData';
 
 export class WorldSim {
   st: WorldState;
@@ -369,6 +369,11 @@ export class WorldSim {
     return d;
   }
   /** B-1: pay experience to an officer for real work, and tell the owner about level-ups and milestones */
+  /** reserve reactivation time; B-1 readiness drills of the ship's commanding officer shorten it */
+  reactivateS(s: WShip): number {
+    return REACTIVATE_S * (this.st.officerV ? 1 - (shipFx(this.st, s).readiness ?? 0) : 1);
+  }
+
   officerXp(c: WCommander | null | undefined, src: XpSource, amount: number, split: Partial<Record<Tree, number>>, key?: string): number {
     if (!c || !this.st.officerV) return 0;
     const r = grantXp(this.st, c, src, amount, split, key);
@@ -1572,8 +1577,9 @@ export class WorldSim {
         const fee = Math.round(shipRate(this.st, { ...s, reserve: undefined }).credits * 2);
         if (co.credits < fee) return `재취역 비용 ${fee.toLocaleString()} cr 필요`;
         co.credits -= fee;
-        s.reserve.until = this.time + REACTIVATE_S;
-        this.ev('info', `${s.name} 재취역 시작 — ${REACTIVATE_S / 60}분 후 출항 가능 (-${fee.toLocaleString()} cr)`, { company, tag: 'reserve' });
+        const rt = this.reactivateS(s);
+        s.reserve.until = this.time + rt;
+        this.ev('info', `${s.name} 재취역 시작 — ${Math.round(rt / 60)}분 후 출항 가능 (-${fee.toLocaleString()} cr)`, { company, tag: 'reserve' });
         return null;
       }
       case 'unloadCargo': {
@@ -1677,8 +1683,9 @@ export class WorldSim {
       const units = moneyUnits(fee);
       addDebt(co, units, this.time); chargeTotals(co, units);
       emit(this.st, { kind: 'cost', reason: 'reactivation', amount: fee, company: co.id, ship: s!.id });
-      s!.reserve.until = this.time + REACTIVATE_S;
-      note = ` · 재취역 비용 ${fee.toLocaleString()} cr은 미납금에 더해짐, ${REACTIVATE_S / 60}분 후 출항 가능`;
+      const rt = this.reactivateS(s!);
+      s!.reserve.until = this.time + rt;
+      note = ` · 재취역 비용 ${fee.toLocaleString()} cr은 미납금에 더해짐, ${Math.round(rt / 60)}분 후 출항 가능`;
     }
     s!.recovery = true;
     this.ev('info', `${s!.name} 회생 운항 지정 — ${earner(s!) ? '채굴·운송·인양 작전으로만 출항할 수 있습니다. 판매 대금은 미납금부터 갚습니다' : '전투함은 매입 조선소로 정박 이동만 할 수 있습니다'}${note} (미납 ${Math.round(u.debt).toLocaleString()} cr)`, { company: co.id, tag: 'upkeep' });
@@ -1923,6 +1930,7 @@ export class WorldSim {
   /** a finished hull leaves the yard: docked at the station, in its assigned group */
   private launchBuild(st: Station, b: import('./types').ShipBuild) {
     const company = st.owner;
+    if (this.st.officerV) { const d = stationDirector(this.st, st.id); if (d) this.officerXp(d, 'build', shipValue(b.classId) * XP_RATE.build, { industry: 1 }, `bd:${b.id}`); }
     const cls = SHIP_CLASSES[b.classId];
     let g = b.group ? this.st.groups[b.group] : undefined;
     if (!g || g.owner !== company) g = this.newGroup(company, ECON[b.classId]?.military ? '신조함 편대' : `${cls.type}반`);
@@ -2228,9 +2236,14 @@ export class WorldSim {
     this.moveTo(s, { x: sys.origin.x + Math.cos(a) * r, y: 0, z: sys.origin.z + Math.sin(a) * r }, speed * 0.8, dt, 80);
     if (this.sysOf(s.pos) !== sys) { g.status = `${sys.name}로 이동 (탐사)`; return; }
     const co = this.st.companies[g.owner];
-    const power = dt * (co.tech?.includes('long_sensors') ? 1.5 : 1);
+    // B-1 exploration officer: survey power (deeper in lawless space), field-intel speed; experience for real scanning
+    const ofx = this.st.officerV ? groupFx(this.st, g) : undefined, ocm = ofx ? groupOfficer(this.st, g) : null;
+    const power = dt * (co.tech?.includes('long_sensors') ? 1.5 : 1) * (ofx ? 1 + (ofx.survey ?? 0) + ((sys.security ?? 50) < 25 ? ofx.deepScan ?? 0 : 0) : 1);
     if (this.st.fog && g.shipIds[0] === s.id) {
-      const r = surveyIntel(this.st, g.owner, sys.id, power * g.shipIds.length);
+      const lvl0 = this.st.intel?.[g.owner]?.sys[sys.id] ?? 0;
+      const r = surveyIntel(this.st, g.owner, sys.id, power * g.shipIds.length * (ofx?.intel ? 1 + ofx.intel : 1));
+      if (ocm && lvl0 < 3) this.officerXp(ocm, 'survey', dt * g.shipIds.length * XP_RATE.survey, { explore: 1 });
+      if (ocm) for (const f of r.fields) this.officerXp(ocm, 'discover', XP_RATE.discover, { explore: 0.7, mining: 0.3 }, `fd:${f.id}`);
       for (const f of r.fields) this.ev('info', `${sys.name}: 미확인 광구 "${f.name}" 발견 — 시험 채굴로 성분을 확인해야 합니다`, { company: g.owner, pos: f.pos, ref: f.id });
       if (r.done) this.ev('info', `${sys.name} 정밀 탐사 완료`, { company: g.owner, ref: sys.id });
     }
@@ -2242,7 +2255,9 @@ export class WorldSim {
       else g.status = `${sys.name} 정밀 탐사 중 (광구 조사)`;
       return;
     }
+    if (ocm && !this.st.fog && surveyLeft(this.st, g.owner, sys.id) > 0) this.officerXp(ocm, 'survey', dt * XP_RATE.survey, { explore: 1 });
     for (const site of surveyStep(this.st, g.owner, sys.id, power)) {
+      if (ocm) this.officerXp(ocm, 'discover', XP_RATE.discover * site.tier, { explore: 0.8, salvage: 0.2 }, `st:${site.id}`);
       this.say(g, `탐사 성과: ${site.name} 발견 (${['', '얕은', '깊은', '심층'][site.tier]} 유적). 인양 작전을 지시할 수 있습니다.`, 'info', 0);
       this.ev('info', `${sys.name}: ${site.name} 발견 — 등급 ${site.tier} 인양 지점`, { company: g.owner, pos: site.pos, ref: site.id });
     }
@@ -2283,7 +2298,7 @@ export class WorldSim {
     const spot = this.formationSlot(s, g, site.pos, 90);
     if (!this.moveTo(s, spot, speed, dt, 40) && dist(s.pos, site.pos) > 320) { g.status = `${site.name}로 이동 (${Math.round(dist(s.pos, site.pos))}m)`; return; }
     const w = s.classId === 'miner' || s.classId === 'constructor' ? 2 : 1;
-    site.work += dt * w * (s.hp > 0.5 ? 1 : 0.5);
+    site.work += dt * w * (s.hp > 0.5 ? 1 : 0.5) * (this.st.officerV ? 1 + (groupFx(this.st, g).siteWork ?? 0) : 1);
     g.status = `${site.name} 인양 ${Math.min(99, Math.floor(site.work / site.need * 100))}%`;
     if (site.work < site.need) return;
     const co = this.st.companies[g.owner];
@@ -2300,6 +2315,7 @@ export class WorldSim {
     if (sys) sys.heat = Math.min(100, sys.heat + 4 * site.tier);       // word gets around: pirates come looking
     retireSite(this.st, site);
     const got = Object.entries(haul.cargo).map(([k, n]) => `${RES_NAME[k] ?? k} ${n}`).join(', ');
+    if (this.st.officerV) { const oc = groupOfficer(this.st, g); if (oc) this.officerXp(oc, 'site', Object.entries(haul.cargo).reduce((a, [k, n]) => a + (k.startsWith('bpf:') ? 2000 : n * itemPriceOf(k)), 0) * XP_RATE.site + haul.blueprints.length * 200, { explore: 0.6, salvage: 0.4 }, `sw:${site.id}`); }
     this.ev('money', `${site.name} 인양 완료: ${got}${lost ? ` (화물칸 부족으로 ${lost}단위 포기)` : ''}`, { company: g.owner, pos: site.pos, tag: 'salvage' });
     for (const b of haul.blueprints) this.ev('world', `${co.name}이(가) ${site.name}의 기록고에서 ${bpName(b)}을(를) 복원했다.`, { company: g.owner, pos: site.pos });
     this.say(g, `인양 완료. 화물을 정거장에 하역하세요.${haul.blueprints.length ? ` 설계도 확보: ${haul.blueprints.map(bpName).join(', ')}` : ''}`, 'info', 0);
@@ -2371,6 +2387,8 @@ export class WorldSim {
         this.stationWorks(s, dt);
         for (const b of stepBuilds(s, st.companies[s.owner], dt, st)) this.launchBuild(s, b);
         for (const e of stepProduction(s, st.companies[s.owner], dt, st)) {
+          // B-1 experience: the value a finished batch added, for the station's director
+          if (e.kind === 'done' && st.officerV) { const d = stationDirector(st, s.id), r = RECIPES[e.recipe]; if (d && r) { const va = Object.entries(r.out).reduce((a, [k, n]) => a + n * itemPriceOf(k), 0) - Object.entries(r.in).reduce((a, [k, n]) => a + n * itemPriceOf(k), 0); this.officerXp(d, 'industry', Math.max(va, Object.entries(r.out).reduce((a, [k, n]) => a + n * itemPriceOf(k), 0) * 0.1) * XP_RATE.industry, { industry: 1 }); } }
           if (e.kind === 'finished') this.ev('info', `${s.name}: 생산 주문 완료 — ${RECIPES[e.recipe].name}`, { company: s.owner, pos: s.pos, tag: 'prod_done' });
         }
       }
@@ -2389,6 +2407,7 @@ export class WorldSim {
       if (co.kind !== 'player' || !co.research?.length) continue;
       for (const p of stepResearch(st, co, dt)) {
         const t = TECHS[p.tech];
+        if (st.officerV && p.station) { const d = stationDirector(st, p.station); if (d) this.officerXp(d, 'research', (p.total ?? 0) * XP_RATE.research, { industry: 0.7, explore: 0.3 }, `rs:${p.id}`); }
         if (p.source === 'copy') this.ev('info', `설계도 복제 완료: ${t.name} — ${st.stations[p.station]?.name ?? ''} 창고`, { company: co.id, tag: 'research_done' });
         else this.ev('milestone', `연구 완료: ${t.name} — ${techUnlocks(p.tech, growthOn(this.st))}${growthOn(this.st) ? unlockSummary(p.tech) : ''}`, { company: co.id, tag: 'research_done' });
       }
@@ -2644,7 +2663,7 @@ export class WorldSim {
       for (const s of ships) {
         if (econOf(s).military && op.k !== 'mine' && op.k !== 'haul') { this.behave(s, g, op, dt, c); continue; }
         const st = this.nearestDock(s.pos, g.owner);
-        if (st) this.goDock(s, st, dt, this.cruiseOf(s) * 1.1);
+        if (st) this.goDock(s, st, dt, this.cruiseOf(s) * 1.1 * (this.st.officerV ? 1 + (groupFx(this.st, g).flee ?? 0) : 1));
       }
       g.status = '해적 회피 — 대피 중';
       return;
@@ -2835,7 +2854,7 @@ export class WorldSim {
     const heading = toward && dist(toward, wc) > 300 ? unit(toward.x - wc.x, toward.z - wc.z) : spd > 15 ? unit(v.x, v.z) : null;
     const moving = !atField && (spd > 15 || (!!toward && dist(toward, wc) > 1500 && live.some(s => s.state === 'space')));
     // threats: the attacker closest to a ward, within detection, never beyond the leash
-    const detect = ESCORT.detect + c.skill * ESCORT.detectSkill;
+    const detect = (ESCORT.detect + c.skill * ESCORT.detectSkill) * (this.st.officerV ? 1 + (groupFx(this.st, g).detect ?? 0) : 1);
     let threat: V | null = null, best = Infinity;
     for (const p of Object.values(this.st.groups)) {
       // P12 worlds: the escort answers every hostile fleet (P11 relations), not only pirates
@@ -2938,6 +2957,9 @@ export class WorldSim {
 
   /** update (once per tick) and return the fleet's march state; null → no coordinated move */
   /** `goal` (P12 operations): march to an arbitrary point under a key instead of the move/attack order */
+  /** warp alignment time of a hull (B-1: shortened by the commanding officer's alignment drills) */
+  alignTime(s: WShip): number { const a = ALIGN[s.classId] ?? 5; return this.st.officerV ? a * (1 - (shipFx(this.st, s).align ?? 0)) : a; }
+
   fleetMarch(g: WGroup, op: Op, dt: number, goal?: { key: string; to: V }): March | null {
     const owner = this.marchOwner(g);
     if ((owner as any)._marchT === this.time && owner.march && (!goal || owner.march.key === goal.key)) return owner.march;
@@ -2957,10 +2979,11 @@ export class WorldSim {
       if (ships.length > 1) this.say(owner, `함대 집결 — ${ships.length}척, 가장 느린 함선에 맞춰 함께 이동한다.`, 'radio', 5);
     }
     // the slowest hull sets the pace; a skilled commander keeps the line tighter and moves a bit faster
-    m.speed = Math.min(...ships.map(s => this.cruiseOf(s) * (0.6 + 0.4 * s.hp))) * (0.92 + c.skill * 0.08);
+    const march = this.st.officerV ? groupFx(this.st, owner).march ?? 0 : 0;   // B-1: formation keeping / march speed
+    m.speed = Math.min(...ships.map(s => this.cruiseOf(s) * (0.6 + 0.4 * s.hp))) * (0.92 + c.skill * 0.08) * (1 + march);
     m.members = ships.length;
     const leash = 260 + 70 * Math.sqrt(ships.length) * (1.25 - c.skill * 0.4);
-    const patience = 60 + c.skill * 120 - c.aggression * 40;     // seconds before stragglers are left behind
+    const patience = (60 + c.skill * 120 - c.aggression * 40) * (1 - march);     // seconds before stragglers are left behind
     const near = (p: V) => ships.filter(s => dist(s.pos, p) < leash + 120 + Math.sqrt(ships.length) * 60).length;
     const warn = (txt: string) => this.say(owner, txt, 'warn', 30);
     // stage short of an attack target; aggressive commanders stage closer
@@ -2982,7 +3005,7 @@ export class WorldSim {
         m.at = wp;
         m.inPlace = near(wp);
         // all ships aligned (or not warping) → release the drives together
-        m.warpGo = ships.every(s => !s.warp || s.warp.phase === 'warp' || s.warp.t >= (ALIGN[s.classId] ?? 5)) || this.time - m.since > patience;
+        m.warpGo = ships.every(s => !s.warp || s.warp.phase === 'warp' || s.warp.t >= this.alignTime(s)) || this.time - m.since > patience;
         if (m.inPlace >= ships.length || (m.inPlace >= ships.length * 0.75 && this.time - m.since > patience * 3)) {
           if (!last) { m.i++; m.since = this.time; m.warpGo = false; break; }
           m.phase = op.k === 'move' || goal ? 'arrived' : 'ready'; m.since = this.time;
@@ -3030,7 +3053,19 @@ export class WorldSim {
   private threatCheck(g: WGroup, ships: WShip[], op: Op, c: CommanderDef) {
     const civ = ships.filter(s => !econOf(s).military && s.state === 'space');
     if (!civ.length && !g.fleeing) return;
-    const detect = 900 + c.skill * 2300;
+    let detect = 900 + c.skill * 2300;
+    // B-1: the officer's threat detection; with early warning, nearby own groups share a better watch officer's range
+    const ofx = this.st.officerV ? groupFx(this.st, g) : undefined;
+    if (ofx?.detect) detect *= 1 + ofx.detect;
+    if (this.st.officerV) {
+      const gc0 = this.groupCenter(g);
+      if (gc0) for (const o of Object.values(this.st.groups)) {
+        if (o === g || o.owner !== g.owner) continue;
+        const ox = groupFx(this.st, o); if (!ox.warnNet) continue;
+        const oc = this.groupCenter(o); if (!oc || dist(oc, gc0) > 3000) continue;
+        const oc2 = this.cmdr(o); detect = Math.max(detect, (900 + oc2.skill * 2300) * (1 + (ox.detect ?? 0)));
+      }
+    }
     let threat = 0, nearest = Infinity;
     for (const p of Object.values(this.st.groups)) {
       if (!p.shipIds.length || (this.st.logisticsV ? p.owner === g.owner || p.cooldown > 0 || coRelation(this.st, g.owner, p.owner) !== -1 || !p.shipIds.some(id => { const x = this.st.ships[id]; return !!x && econOf(x).military; }) : p.owner !== 'pirates')) continue;
@@ -3045,7 +3080,7 @@ export class WorldSim {
         if (o === g || (o.owner !== g.owner && o.owner !== 'union')) continue;
         const oc = this.groupCenter(o); if (oc && dist(oc, gc) < 1800) guard += this.groupValue(o, true);
       }
-      if (guard < threat * (1.15 - c.aggression * 0.4)) {
+      if (guard < threat * (1.15 - c.aggression * 0.4) && !(ofx?.readThreat && guard >= threat * 0.9)) {
         g.fleeing = true;
         (g as any)._safeSince = this.time;
         this.say(g, c.skill > 0.6 ? `해적 접근 포착 (${Math.round(nearest)}m)! 작업 중단, 정거장으로 철수한다.` : '해, 해적이다! 도망쳐!', 'warn', 3);
@@ -3139,7 +3174,7 @@ export class WorldSim {
         s.vel = { x: Math.sin(s.heading) * fv, y: 0, z: Math.cos(s.heading) * fv };
         s.pos = vadd(s.pos, s.vel, dt);
         // fleet warps wait until every ship is aligned, then go together
-        if (w.t >= (ALIGN[s.classId] ?? 5) && !(s as any)._holdWarp) { w.phase = 'warp'; w.t = 0; }
+        if (w.t >= this.alignTime(s) && !(s as any)._holdWarp) { w.phase = 'warp'; w.t = 0; }
         return false;
       }
       w.t += dt;
@@ -3182,7 +3217,7 @@ export class WorldSim {
       w = s.cargoWork = { station: st.id, key, amount, done: 0, time: this.time };
       return null;
     }
-    w.done += Math.max(0, this.time - w.time) * rate * stationPower(st).factor; w.time = this.time;
+    w.done += Math.max(0, this.time - w.time) * rate * stationPower(st).factor * (this.st.officerV ? 1 + (shipFx(this.st, s).cargoRate ?? 0) : 1); w.time = this.time;
     const target = Math.min(w.amount, amount);
     if (w.done + 1e-9 < target) return null;
     delete s.cargoWork;
@@ -3256,6 +3291,8 @@ export class WorldSim {
     if (ec.cruise <= 0) return;
     let speed = this.cruiseOf(s) * (0.6 + 0.4 * s.hp) * (c.specialty === 'maneuver' ? 1.08 : 1);
     // an escorted ship does not outrun its escort (set by wardControl for this tick)
+    // B-1: a logistics officer's cargo ships cruise faster on transport work (logistics jobs, routes, hauling)
+    if (this.st.officerV && ec.cargo > 0 && !ec.military && (s.logisticsJob || op.k === 'haul')) speed *= 1 + (groupFx(this.st, g).haulSpd ?? 0);
     const cap = this.speedCap.get(s.id); if (cap !== undefined) speed = Math.min(speed, cap);
     const st = this.st;
     if (s.logisticsJob && stepPoolShip(this, s, g, dt, speed)) return;
@@ -3432,18 +3469,32 @@ export class WorldSim {
       if (this.moveTo(s, spot, speed, dt, 18)) {
         // growth: worn equipment mines slower; big hulls work small fields at half efficiency
         const g3 = growthOn(this.st);
-        const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp) * (f.rich ?? 1) * (g3 ? wearMul(s) * (ec.minField && f.max < ec.minField ? 0.5 : 1) : 1);
+        // B-1: the officer of the ship's own group (or a mining chief above it) — mining domain only
+        const og = st.groups[s.groupId] ?? g, ocm = st.officerV ? groupOfficer(st, og) : null, ofx = st.officerV ? groupFx(st, og) : undefined;
+        const smallPen = ec.minField && f.max < ec.minField && !ofx?.smallField ? 0.5 : 1;
+        const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp) * (f.rich ?? 1) * (g3 ? wearMul(s) * smallPen : 1) * (st.officerV ? 1 + mineBonus(st, og) : 1);
         const a = Math.min(rate * dt * techFx(this.st.companies[g.owner]?.tech).mineMul, f.amount, cap - cargoSum(s.cargo));
         f.amount -= a;
+        let got: Cargo = {};
         if (f.geo) {
           // unidentified deposit: discrete units drawn from the local (zone, depth) composition; the company learns only these
           const units = mineGeo(f, s, a, rock, this.st.fields);
           for (const [k, n] of Object.entries(units)) { addc(s.cargo, k, n); emit(st, { kind: 'produce', amount: n, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: 'mining', ref: f.id }); }
-          if (cargoKeys(units).length) this.sampled(s.owner, f, units);
+          // B-1 assay: the officer reads a trial cut better — the same ore counts as a bigger sample (knowledge only)
+          if (cargoKeys(units).length) this.sampled(s.owner, f, ofx?.assay ? Object.fromEntries(Object.entries(units).map(([k, n]) => [k, n * (1 + ofx.assay!)])) : units);
+          got = units;
         } else {
-          for (const [k, w] of Object.entries(f.mix ?? { [f.res]: 1 })) { addc(s.cargo, k, a * w); if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
-          if (this.st.intel && a > 0 && !f.salvage) recordSample(this.st, s.owner, f, Object.fromEntries(Object.entries(f.mix ?? { [f.res]: 1 }).map(([k, w]) => [k, a * w])));
+          let mix = f.mix ?? { [f.res]: 1 };
+          // B-1 selective mining: the same tonnage, more of the most valuable component of a mixed field
+          if (ofx?.select && Object.keys(mix).length > 1) {
+            const best = Object.keys(mix).sort((x, y) => itemPriceOf(y) - itemPriceOf(x))[0];
+            mix = Object.fromEntries(Object.entries(mix).map(([k, w]) => [k, w * (1 - ofx.select!) + (k === best ? ofx.select! : 0)]));
+          }
+          for (const [k, w] of Object.entries(mix)) { addc(s.cargo, k, a * w); got[k] = a * w; if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
+          if (this.st.intel && a > 0 && !f.salvage) recordSample(this.st, s.owner, f, Object.fromEntries(Object.entries(f.mix ?? { [f.res]: 1 }).map(([k, w]) => [k, a * w * (1 + (ofx?.assay ?? 0))])));
         }
+        // B-1 experience: the value of what was really extracted
+        if (ocm && a > 0) { let v = 0; for (const [k, n] of Object.entries(got)) v += n * itemPriceOf(k); this.officerXp(ocm, 'mine', v * XP_RATE.mine, { mining: 1 }); }
         s.task = { k: 'mine', field: f.id, rock };
         s.fx = { mining: f.id, rock };
         const r = rockPos(f, rock); s.heading = Math.atan2(r.x - s.pos.x, r.z - s.pos.z);
@@ -3472,7 +3523,7 @@ export class WorldSim {
         const near = vadd(donor.pos, { x: 0, y: 26, z: 0 });
         s.task = { k: 'transfer', with: donor.id };
         if (this.moveTo(s, near, speed, dt, 40)) {
-          const amt = Math.min(30 * dt, cargoSum(donor.cargo), cap - load);
+          const amt = Math.min(30 * dt * (st.officerV ? 1 + (groupFx(st, st.groups[s.groupId]).transfer ?? 0) : 1), cargoSum(donor.cargo), cap - load);
           let left = amt;
           for (const r of cargoKeys(donor.cargo)) { const t = takec(donor.cargo, r, left); addc(s.cargo, r, t); if (t > 0 && growthOn(this.st)) withdrawRouteCargo(this, donor.owner, donor.id, r, t); left -= t; if (left <= 1e-9) break; }
           s.fx = { transfer: donor.id };
@@ -3621,7 +3672,10 @@ export class WorldSim {
     if (unloaded) this.stationWorks(st, 0);
     if (active) {
       const md = MODULES[active.kind];
-      this.workOn(st, active, dt / moduleWork(active) * (0.8 + c.skill * 0.5) * techFx(this.st.companies[s.owner]?.tech).constructMul * (growthOn(this.st) ? econOf(s).build * wearMul(s) : 1), g);
+      // B-1: a construction officer (industry "건설 지휘") speeds the build; experience per ship-second of real work
+      const cfx = this.st.officerV ? groupFx(this.st, g) : undefined;
+      this.workOn(st, active, dt / moduleWork(active) * (0.8 + c.skill * 0.5) * techFx(this.st.companies[s.owner]?.tech).constructMul * (growthOn(this.st) ? econOf(s).build * wearMul(s) : 1) * (cfx?.construct ? 1 + cfx.construct : 1), g);
+      if (cfx && !active.built) { const oc = groupOfficer(this.st, g); if (oc) this.officerXp(oc, 'construct', dt * XP_RATE.construct, { industry: 0.7, logistics: 0.3 }); }
       s.fx = { welding: `${st.id}:${active.slot}` };
       g.status = active.built ? `${md.name} 완공` : `${md.name} 건설 ${Math.round(active.progress * 100)}%`;
       return;
@@ -3900,7 +3954,7 @@ export class WorldSim {
       if (this.unionNear(c, 4500) > myVal * 0.8) continue;
       // P13.2: what the band could actually carry off counts, not only the hulls
       const loot = this.st.piracyV ? raidLootValue(this, g, o) : 0;
-      const score = (civ * 2 + 60 + loot * 0.5) / (mil + 80) / (dist(c, this.groupCenter(g) ?? home) + 1200) * (k === 'guild' ? 0.35 : 1);
+      const score = (civ * 2 + 60 + loot * 0.5) / (mil + 80) / (dist(c, this.groupCenter(g) ?? home) + 1200) * (k === 'guild' ? 0.35 : 1) * (this.st.officerV ? 1 - (groupFx(this.st, o).stealth ?? 0) : 1);
       if (score > bs) { bs = score; best = o.id; }
     }
     return best;

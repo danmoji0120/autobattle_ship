@@ -56,7 +56,7 @@ export function updateAI(w: World) {
     if (!ships.length) { g.ai.nextThink = Infinity; continue; }
     think(w, g, ships);
     const c = g.commander;
-    const interval = lerp(3.4, 0.9, c.skill) * (c.specialty === 'tactics' ? 0.75 : 1);
+    const interval = lerp(3.4, 0.9, c.skill) * (c.specialty === 'tactics' ? 0.75 : 1) * (c.ofx?.think ? 1 - c.ofx.think : 1);
     g.ai.nextThink = w.time + interval + w.rng.range(0, 0.5);
   }
   if (w.tick % 3 === 0) for (const g of w.groups) if (g.shipIds.length) steer(w, g);
@@ -175,7 +175,7 @@ function thinkComposite(w: World, g: Group) {
     }
     if (!T) return;
     g.ai.mainTarget = T.id;
-    const coordinated = c.skill >= 0.45;
+    const coordinated = c.skill + (c.ofx?.coord ?? 0) >= 0.45;
     for (const k of kids) {
       if (k.role === 'line') assign.set(k.id, { type: 'attack', targetGroup: T.id });
       else if (k.role === 'raider') {
@@ -188,7 +188,7 @@ function thinkComposite(w: World, g: Group) {
         if (rt.role !== 'line') { assign.set(k.id, { type: 'attack', targetGroup: rt.id }); continue; }
         const kc = w.groupCenter(k, new Vec3());
         const side: -1 | 1 = prevOrder.type === 'flank' && prevOrder.targetGroup === rt.id ? prevOrder.side : sideAway(w, g, rt, kc);
-        const waitFor = c.skill >= 0.7 && anvil && rt.role === 'line' ? anvil.id : undefined;
+        const waitFor = c.skill + (c.ofx?.coord ?? 0) >= 0.7 && anvil && rt.role === 'line' ? anvil.id : undefined;
         assign.set(k.id, { type: 'flank', side, targetGroup: rt.id, waitFor });
       } else {
         const guard = anvil ?? lineKids[0];

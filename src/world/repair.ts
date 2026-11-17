@@ -6,6 +6,7 @@
 // older worlds from the class economy), so the client must never price it from ECON on its own.
 // This is the *manual* repair of hull damage (hp). Wear maintenance on docking (upkeep.ts
 // maintainOnDock) and running costs are separate charges and are not part of this quote.
+import { shipFx } from './officers';
 import type { Company, Station, WShip, WorldState } from './types';
 import { shipWorth } from './hullops';
 import { techFx } from './industry';
@@ -30,10 +31,12 @@ const hasModule = (st: Station, kind: string) => st.modules.some(m => m.kind ===
 export const canRepairAt = (st: Station, company: string) => !!st.services.repair || (st.owner === company && hasModule(st, 'repair'));
 
 /** the price and the conditions of repairing a ship to full hull, exactly as the server charges it */
-export function repairQuote(w: Pick<WorldState, 'contentV' | 'stations'>, s: WShip, co: Pick<Company, 'id' | 'credits' | 'tech'> | undefined): RepairQuote {
+export function repairQuote(w: Pick<WorldState, 'contentV' | 'stations'> & Partial<Pick<WorldState, 'officerV' | 'groups' | 'commanders' | 'time'>>, s: WShip, co: Pick<Company, 'id' | 'credits' | 'tech'> | undefined): RepairQuote {
   const repairMul = techFx(co?.tech).repairMul;
   const worth = shipWorth(w, s), damage = Math.max(0, 1 - s.hp);
-  const cost = Math.round(damage * worth * REPAIR_RATE / repairMul);
+  // B-1: the commanding officer's repair supervision (same rule on the server and in the client's quote)
+  const off = w.officerV && w.groups && w.commanders ? shipFx(w as WorldState, s).repair ?? 0 : 0;
+  const cost = Math.round(damage * worth * REPAIR_RATE / repairMul * (1 - off));
   const q: RepairQuote = { cost, why: null, damage, worth, repairMul };
   if (!co || s.owner !== co.id || s.state !== 'docked' || s.task.k !== 'docked') return { ...q, why: '정박 중인 함선만 수리 가능' };
   const st = w.stations[s.task.station];

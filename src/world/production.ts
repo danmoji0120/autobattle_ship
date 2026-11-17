@@ -13,6 +13,7 @@
 //  - Every order carries `why`: the exact reason it is not producing right now.
 
 import { emit } from './observe';
+import { stationFx } from './officers';
 import type { Station, Cargo, Company, WorldState } from './types';
 import { qty, addc, cargoSum, hasAll } from './types';
 import { FACILITIES, RECIPES, ITEMS, itemName, recipeFor, techFx, type RecipeDef } from './industry';
@@ -86,7 +87,9 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
   const jobs = (st.jobs ??= []);
   if (!orders.length && !jobs.length) return out;
   const store = (st.storage[st.owner] ??= { ore: 0, alloy: 0, crystal: 0 });
-  const speed = prodSpeed(st, co);
+  // B-1: the station director's production and material-saving skills (only at the station they direct)
+  const ofx = world?.officerV ? stationFx(world, st.id) : undefined;
+  const speed = prodSpeed(st, co) * (ofx?.prod ? 1 + ofx.prod : 1);
   const sized = !!stationSize(st);
   const logisticsHeld = logisticsReservedSpace(world, st.id, st.owner);
   const capacity = sized ? storageCap(st) : 0;
@@ -136,7 +139,12 @@ export function stepProduction(st: Station, co: Company | undefined, dt: number,
       // During preserved overflow, consuming a net-reducing batch is safe even if that batch
       // alone cannot clear the entire overflow. Completed output still waits for actual space.
       if (sized ? projected - space(r.in) + space(r.out) > Math.max(cap, projected) + 1e-9 : cap > 0 && used + outN > cap) { o.why = `창고 가득 (${fmt(sized ? storeUsed(store) : used)}/${fmt(cap)})`; break; }
-      for (const [k, n] of Object.entries(r.in)) { addc(store, k, -n); if (world) emit(world, { kind: 'consume', reason: 'industry', amount: n, company: co?.id, station: st.id, item: k }); }
+      for (const [k, n] of Object.entries(r.in)) {
+        // material saving: a share of each input comes back, in whole units, accumulated per station (never more than was used)
+        let back = 0;
+        if (ofx?.saveIn) { const acc = (st.ofSave ??= {}); acc[k] = (acc[k] ?? 0) + n * ofx.saveIn; back = Math.min(n, Math.floor(acc[k] + 1e-9)); acc[k] -= back; }
+        addc(store, k, -(n - back)); if (world) emit(world, { kind: 'consume', reason: 'industry', amount: n - back, company: co?.id, station: st.id, item: k });
+      }
       if (sized) projected += space(r.out) - space(r.in);
       jobs.push({ id: `j${(st.seq = (st.seq ?? 0) + 1)}`, order: o.id, recipe: r.id, fac: r.fac, left: r.time, total: r.time, ...(r.out !== RECIPES[r.id]?.out ? { out: { ...r.out } } : {}) });
       busy[r.fac] = (busy[r.fac] ?? 0) + 1;
@@ -234,7 +242,7 @@ export function stepBuilds(st: Station, co: Company | undefined, dt: number, wor
   const slots = yardSlots(st);
   const taken = assignSlots(st);
   const used = new Set(taken.values());
-  const speed = buildSpeed(st, co);
+  const speed = buildSpeed(st, co) * (world?.officerV ? 1 + (stationFx(world, st.id).build ?? 0) : 1);
   const done: ShipBuild[] = [];
   for (const b of [...q]) {
     const h = buildSpec(b);

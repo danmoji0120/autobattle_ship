@@ -431,11 +431,13 @@ export const XP_HARD_HOUR = 4000;
 export const FOCUS_BONUS = 0.25;
 export const FOCUS_COOLDOWN = 3600;
 
-/** experience per credit of real output, by activity (calibrated in scripts/b1/officer-growth.ts) */
+/** experience per credit of real output, by activity (research: per second of research time) */
 export const XP_RATE = {
-  mine: 0.012, salvage: 0.012, logistics: 0.004, industry: 0.02, research: 0.01, build: 0.004, construct: 0.02,
-  /** survey: per ship-second of scanning in a system that still has something to find */
-  survey: 0.12, discover: 60, site: 0.08,
+  mine: 0.012, salvage: 0.012, logistics: 0.004, industry: 0.02, research: 0.3, build: 0.004,
+  /** construction: per ship-second of real building work on a module */
+  construct: 0.2,
+  /** survey: per ship-second of scanning in a system that still has something to find; per discovery; per credit from a site */
+  survey: 0.12, discover: 60, site: 0.012,
   /** maintenance credits saved or spent under the officer, in-battle repair hp */
   support: 0.05,
 } as const;

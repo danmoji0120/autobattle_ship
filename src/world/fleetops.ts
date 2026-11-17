@@ -16,6 +16,7 @@ import { gateOpen } from './territory';
 import { effSec } from './security';
 import { canRepairAt, REPAIR_RATE } from './repair';
 import type { CommanderDef } from '../sim/data/commanders';
+import { groupFx } from './officers';
 
 export type OpPhase = 'transit' | 'hold' | 'engage' | 'alert' | 'evade' | 'docking' | 'blocked' | 'done' | 'follow' | 'sweep';
 
@@ -273,9 +274,11 @@ function chase(h: Host, owner: WGroup, x: OpState, anchor: V, leash: number, own
   if (!t || !ss.length) why = t && h.shipsOf(t).some(s => s.state === 'battle') ? '' : '목표 상실';
   else if (coRelation(h.st, owner.owner, t.owner) !== -1) why = '적대 관계 해제';
   else if (h.sysOf(pc!)?.id !== h.sysOf(anchor)?.id) why = '목표가 성계를 벗어남';
-  else if (dist(pc!, anchor) > leash) why = '추격 한계 도달';
-  else if (h.time - (x.chaseT ?? h.time) > OPS.chaseMax) why = '추격 시간 초과';
-  else if (milValue(h, ss) / Math.max(1, own) > lim * 1.25) why = '적 전력 우세';
+  // B-1 tracking: an interception officer chases longer and further
+  const ch = 1 + (groupFx(h.st, owner).chase ?? 0);
+  if (!why && dist(pc!, anchor) > leash * ch) why = '추격 한계 도달';
+  else if (!why && h.time - (x.chaseT ?? h.time) > OPS.chaseMax * ch) why = '추격 시간 초과';
+  else if (!why && milValue(h, ss) / Math.max(1, own) > lim * 1.25) why = '적 전력 우세';
   if (why) {
     (x.ignore ??= {})[x.target] = h.time + OPS.ignoreFor;
     x.target = undefined; x.chaseFrom = undefined; x.chaseT = undefined; x.phase = 'hold'; x.since = h.time;
@@ -313,7 +316,8 @@ export function planOp(h: Host, owner: WGroup, op: Op, c: CommanderDef): Plan | 
   if (think) { x.next = h.time + OPS.think; pruneIgnore(h, x); }
   const own = Math.max(1, milValue(h, ships));
   const lim = engageLimit(c, hpOf(ships));
-  const detectBonus = c.skill * 1500;
+  const odet = groupFx(h.st, owner).detect ?? 0;   // B-1 threat detection
+  const detectBonus = c.skill * 1500 * (1 + odet) + odet * 1500;
 
   switch (op.k) {
     case 'return': {
@@ -488,7 +492,7 @@ export function planOp(h: Host, owner: WGroup, op: Op, c: CommanderDef): Plan | 
 }
 
 function recon(h: Host, owner: WGroup, x: OpState, ships: WShip[], c: CommanderDef) {
-  const st = h.st, R = OPS.reconSensor + c.skill * 1500;
+  const st = h.st, R = (OPS.reconSensor + c.skill * 1500) * (1 + (groupFx(h.st, owner).detect ?? 0));
   const seen = new Map((x.report ?? []).map(r => [r.id, r]));
   const sees = (p: V) => ships.some(s => dist(s.pos, p) < R);
   for (const g of Object.values(st.groups)) {
