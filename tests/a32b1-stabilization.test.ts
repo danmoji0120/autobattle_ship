@@ -218,7 +218,9 @@ describe('A-3.2b.1 salvage hauler sale round trip (AUTO-P1.1 rules)', () => {
     expect(k.progress).toBeGreaterThan(0);
     expect(k.progress).toBe(k.amount);                       // the owed goods were handed over (consumed, not stored)
     // a trip only carries stored stock: the contract's goods were never in the store, so no trip carried them before delivery
-    for (const j of salvJobs(sim, me)) { expect(j.from).toBe(home.id); expect(j.created).toBeGreaterThanOrEqual(handedAt); }
+    // (indV: the starter's gearless hauler is idle from the start, so it may sell stored electronics before the handover —
+    // never the contract's item)
+    for (const j of salvJobs(sim, me)) { expect(j.from).toBe(home.id); if (j.created < handedAt) expect(j.item).not.toBe(lot.item); }
     // equipment is not on the guide's sale list: it stays stored
     expect(salvJobs(sim, me).some(j => j.item === 'eq_autocannon')).toBe(false);
     expect(qty(sim.storage(home, me), 'eq_autocannon')).toBe(2);

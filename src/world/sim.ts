@@ -135,7 +135,7 @@ export type Cmd =
   | { c: 'list'; station: string; item: string; qty: number; price: number; request?: { seq: number; id: string } }
   | { c: 'delist'; station: string; listing: string; request?: { seq: number; id: string } }
   | { c: 'buyListing'; station: string; listing: string; qty: number; request?: { seq: number; id: string } }
-  | { c: 'buildShip'; station: string; classId: string; loadoutId: string; fit?: string[]; group?: string; hull?: string; variant?: string; preset?: string }
+  | { c: 'buildShip'; station: string; classId: string; loadoutId: string; fit?: string[]; group?: string; hull?: string; variant?: string; preset?: string; outfit?: 'hull' | 'standard' | 'preset'; fitPreset?: string }
   | { c: 'buildOp'; station: string; build: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
   | { c: 'fitShip'; ship: string; fit: string[] }
   /** Fitting V2: set hardpoint weapons and bay modules (and optionally the structural variant).
@@ -1918,10 +1918,22 @@ export class WorldSim {
     const berth = hullEcon(ch.hull).berth;
     if (!berthFits(st, berth)) return `${berth}급 선체를 수용할 정박 시설이 없습니다 (하역시설 증설 필요, 현재 ${berthOf(st)})`;
     const p = ch.preset ? CONTENT.presets[ch.preset] : undefined;
-    const fit = (Array.isArray(cmd.fit) ? cmd.fit : []).filter(k => EQUIPMENT[k]?.kind === 'module').slice(0, 16);
-    const pl = placeModules(ch.variant, fit);
+    let fit = (Array.isArray(cmd.fit) ? cmd.fit : []).filter(k => EQUIPMENT[k]?.kind === 'module').slice(0, 16);
+    // launch fitting: hull only, standard (preset weapons + the hull's standard industrial gear), or a saved
+    // company preset. Every item comes out of this station's storage when the keel is laid (buildNeeds).
+    let out: { hp: Record<string, string>; bay: Record<string, string> } | undefined;
+    if (cmd.outfit !== undefined && cmd.outfit !== 'hull' && cmd.outfit !== 'standard' && cmd.outfit !== 'preset') return '알 수 없는 출고 피팅';
+    if (cmd.outfit === 'hull') out = { hp: {}, bay: {} };
+    else if (cmd.outfit === 'preset') {
+      const fp = co.fitPresets?.find(x => x.id === cmd.fitPreset); if (!fp) return '저장된 피팅 프리셋이 없습니다';
+      if (fp.variant !== ch.variant) return '이 선체 변형의 피팅 프리셋이 아님';
+      out = { hp: { ...fp.hp }, bay: { ...fp.bay } };
+    } else if (cmd.outfit === 'standard') fit = [...fit, ...(h.ops?.gear ?? [])].slice(0, 16);
+    const pl = placeModules(ch.variant, out ? [] : fit);
     if (pl.unplaced.length) return `내부 베이 부족 — ${pl.unplaced.map(k => EQUIPMENT[k].name).join(', ')} 장착 불가`;
-    const rep = checkFitting(ch.variant, { hp: { ...(p?.weapons ?? {}) }, bay: pl.bay });
+    if (cmd.outfit === 'standard') out = { hp: { ...(p?.weapons ?? {}) }, bay: pl.bay };
+    if (out && !growthOn(this.st)) { const gx = [...Object.values(out.hp), ...Object.values(out.bay)].find(k => EQUIPMENT[k]?.growth); if (gx) return `${EQUIPMENT[gx].name}: 이 월드에서는 아직 사용할 수 없는 장비`; }
+    const rep = checkFitting(ch.variant, out ?? { hp: { ...(p?.weapons ?? {}) }, bay: pl.bay });
     if (rep.errors.length) return rep.errors[0];
     if ((st.builds ?? []).length >= 20) return '건조 대기열은 20척까지';
     // own yards pay their own dock time (econConfig YARD_FEE): the real cost of a large hull
@@ -1931,12 +1943,13 @@ export class WorldSim {
     co.credits -= pay;
     useRun(co, hullBlueprint(ch.hull));
     st.seq = (st.seq ?? 0) + 1;
-    const label = p ? loadoutLabel(h.classId, ch.variant, { hp: p.weapons, bay: {} }) : getLoadout(h.classId, '').id;
+    const label = out ? loadoutLabel(h.classId, ch.variant, out) : p ? loadoutLabel(h.classId, ch.variant, { hp: p.weapons, bay: {} }) : getLoadout(h.classId, '').id;
     const regionalMaterials = regionalHullMaterials(this.st, ch.hull);
-    const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: h.classId, loadoutId: label, hull: ch.hull, variant: ch.variant, preset: p?.id, fit, group: g?.id, left: b.time, total: b.time, started: false, paid: pay, requiredYard: b.yard, ...(regionalMaterials ? { regionalMaterials } : {}) };
+    const nb: import('./types').ShipBuild = { id: `b${st.seq}`, classId: h.classId, loadoutId: label, hull: ch.hull, variant: ch.variant, preset: cmd.outfit === 'hull' || cmd.outfit === 'preset' ? undefined : p?.id, fit: out ? [] : fit, ...(out ? { hp: out.hp, bay: out.bay, outfit: cmd.outfit } : {}), group: g?.id, left: b.time, total: b.time, started: false, paid: pay, requiredYard: b.yard, ...(regionalMaterials ? { regionalMaterials } : {}) };
     (st.builds ??= []).push(nb);
     stepBuilds(st, co, 0, this.st);
-    this.ev('info', `${st.name}: ${h.name} 건조 등록 (${CONTENT.variants[ch.variant]?.name ?? ''}${p ? ` · ${p.name}` : ''})`, { company: co.id, pos: st.pos, tag: 'build_plan' });
+    const outName = cmd.outfit === 'hull' ? '선체만' : cmd.outfit === 'preset' ? `프리셋 ${co.fitPresets?.find(x => x.id === cmd.fitPreset)?.name ?? ''}` : cmd.outfit === 'standard' ? `표준 피팅${h.ops?.gear?.length ? ' + 산업 장비' : ''}` : p?.name;
+    this.ev('info', `${st.name}: ${h.name} 건조 등록 (${CONTENT.variants[ch.variant]?.name ?? ''}${outName ? ` · ${outName}` : ''})`, { company: co.id, pos: st.pos, tag: 'build_plan' });
     return null;
   }
 
@@ -1999,8 +2012,20 @@ export class WorldSim {
     const cls = SHIP_CLASSES[b.classId];
     let g = b.group ? this.st.groups[b.group] : undefined;
     if (!g || g.owner !== company) g = this.newGroup(company, ECON[b.classId]?.military ? '신조함 편대' : `${cls.type}반`);
-    const s = b.preset && b.hull && b.variant ? this.spawnHull(company, b.hull, b.variant, b.preset, g.id, st.pos) : this.spawnShip(company, b.classId, b.loadoutId, g.id, st.pos);
+    const s = (b.preset || b.hp) && b.hull && b.variant ? this.spawnHull(company, b.hull, b.variant, b.preset, g.id, st.pos) : this.spawnShip(company, b.classId, b.loadoutId, g.id, st.pos);
     s.fit = [...b.fit];
+    if (b.hp && this.fitsV2(s) && s.fitting && s.variant) {
+      // an explicit launch fitting: exactly the weapons and bay items the build consumed
+      s.fitting = { hp: { ...b.hp }, bay: { ...(b.bay ?? {}) } };
+      s.fit = bayModules(s.variant, s.fitting);
+      s.loadoutId = loadoutLabel(s.classId, s.variant, s.fitting);
+      s.fitting.sig = legacySig(s.loadoutId, s.fit);
+      markIndustrial(this.st, s);
+      this.dockShip(s, st);
+      this.ev('world', `${this.st.companies[company]?.name}: ${st.name} 조선소에서 ${cls.name} ${cls.type} "${s.name}" 진수!`, { pos: st.pos, ref: st.id });
+      this.ev('info', `${st.name}: ${hullName(b.classId)} "${s.name}" 진수 — ${g.name}에 배속`, { company, pos: st.pos, tag: 'ship_done' });
+      return;
+    }
     const legacyHull = !s.hull || Object.values(CONTENT.legacy).some(l => l.hull === s.hull);
     if (this.fitsV2(s) && legacyHull) for (const m of this.legacyFitting(s)) addc(this.storage(st, company), m, 1);
     else if (this.fitsV2(s) && s.fitting && s.variant) {
@@ -2098,6 +2123,7 @@ export class WorldSim {
         if (!site || !siteActive(site, this.st.time)) return '인양 지점이 없거나 이미 인양됨';
         if (!knows(site, company)) return '아직 발견하지 못한 지점 — 먼저 그 성계를 탐사하세요';
         if (!sub.some(s => econOf(s).cargo > 0)) return '인양물을 실을 화물칸이 있는 함선이 필요 (채굴선·수송선·공작선)';
+        if (sub.some(s => s.ind) && !sub.some(s => !s.ind || (econOf(s).salv ?? 0) > 0)) return '인양 장비를 단 함선이 필요 — 산업 하드포인트에 인양 장비를 장착하세요';
         return null;
       }
       default: return null;
@@ -2367,6 +2393,7 @@ export class WorldSim {
     if (!this.moveTo(s, spot, speed, dt, 40) && dist(s.pos, site.pos) > 320) { g.status = `${site.name}로 이동 (${Math.round(dist(s.pos, site.pos))}m)`; return; }
     // industrial-hardpoint ships work a site only with salvage gear (rig M = the old ×2 civilian rate)
     const w = s.ind ? 2 * (econOf(s).salv ?? 0) : s.classId === 'miner' || s.classId === 'constructor' ? 2 : 1;
+    if (s.ind && !this.shipsOf(g).some(x => !x.ind || (econOf(x).salv ?? 0) > 0)) { g.status = `${site.name}: 인양 장비를 단 함선 없음 — 작업 불가`; return; }
     site.work += dt * w * (s.hp > 0.5 ? 1 : 0.5) * (this.st.officerV ? 1 + (groupFx(this.st, g).siteWork ?? 0) : 1);
     g.status = `${site.name} 인양 ${Math.min(99, Math.floor(site.work / site.need * 100))}%`;
     if (site.work < site.need) return;

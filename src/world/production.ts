@@ -195,10 +195,12 @@ export function yardSlots(st: Station): { kind: string; size: number }[] {
 }
 /** everything a hull build consumes when it starts: hull parts (+ variant parts) + the preset's or
  *  loadout's weapons + fitted modules */
-export function buildNeeds(classId: string, loadoutId: string, fit: string[], b?: { hull?: string; variant?: string; preset?: string; regionalMaterials?: Cargo }): Record<string, number> {
+export function buildNeeds(classId: string, loadoutId: string, fit: string[], b?: { hull?: string; variant?: string; preset?: string; regionalMaterials?: Cargo; hp?: Record<string, string>; bay?: Record<string, string> }): Record<string, number> {
   const need: Record<string, number> = { ...(b?.hull ? hullBuild(b.hull, b.variant).parts : HULLS[classId]?.parts ?? {}) };
   for (const [k, n] of Object.entries(b?.regionalMaterials ?? {})) need[k] = (need[k] ?? 0) + n;
-  for (const [k, n] of Object.entries(buildWeapons(classId, loadoutId, b?.preset))) need[k] = (need[k] ?? 0) + n;
+  // an explicit launch fitting: exactly its weapons and bay items (real items from storage, never free)
+  if (b?.hp) { for (const k of [...Object.values(b.hp), ...Object.values(b.bay ?? {})]) need[k] = (need[k] ?? 0) + 1; }
+  else for (const [k, n] of Object.entries(buildWeapons(classId, loadoutId, b?.preset))) need[k] = (need[k] ?? 0) + n;
   for (const k of fit) need[k] = (need[k] ?? 0) + 1;
   return need;
 }

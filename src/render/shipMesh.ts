@@ -520,6 +520,22 @@ function designExtra(base: string, L: number, team: 0 | 1): Design | undefined {
         p.engines.push({ x: 1.6, y: 0, z: -L * 0.5 - 1.6, r: 1.3 }, { x: -1.6, y: 0, z: -L * 0.5 - 1.6, r: 1.3 });
       } };
     }
+    case 'salv_s': {            // salvage tug: low hull, twin claw arms forward, tow-beam emitter, rear scrap cradle
+      const profile: Profile = [[-0.5, 0.85], [0.1, 1], [0.5, 0.65]];
+      const W = 4.6;
+      return { profile, W, build: (p) => {
+        p.hull.push(slab(profile, L, W, -0.5, 0, -2, 4), slab(profile, L, W, 0, 0.5, -2, 4));
+        p.hull.push(box(3, 1.8, 3.6, 0, 2.9, -1));
+        for (const x of [-2.4, 2.4]) {
+          p.trim.push(box(0.8, 0.8, 8, x, 0.6, L * 0.5 + 2), box(0.8, 0.8, 2.6, x * 0.75, 0.6, L * 0.5 + 6.4));
+          p.dark.push(box(0.6, 2.2, 0.8, x * 0.75, -0.2, L * 0.5 + 7.4));
+        }
+        p.accent.push(cyl(0.7, 0.9, 1.4, 0, 1.8, L * 0.5 + 0.8, 'z', 10));
+        p.dark.push(box(5.4, 0.5, 6, 0, -1.6, -L * 0.25), box(0.5, 2.4, 6, 2.7, -0.6, -L * 0.25), box(0.5, 2.4, 6, -2.7, -0.6, -L * 0.25));
+        p.light.push(V(0, 4, -1), V(0, 1.8, L * 0.5 + 1.6));
+        p.engines.push({ x: 1.5, y: 0, z: -L * 0.5 - 1.5, r: 1.2 }, { x: -1.5, y: 0, z: -L * 0.5 - 1.5, r: 1.2 });
+      } };
+    }
     case 'con_l': {             // broad platform with twin gantries and a fabricator drum
       const profile: Profile = [[-0.5, 1], [0.35, 1], [0.5, 0.75]];
       const W = 6.5;

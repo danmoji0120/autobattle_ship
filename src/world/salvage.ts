@@ -95,13 +95,16 @@ export function salvageHold(h: Pick<Host, 'st'>, s: WShip): number {
   return hold ? Math.round(base * (1 + hold)) : base;
 }
 export const salvageRoom = (h: Pick<Host, 'st'>, s: WShip) => Math.max(0, salvageHold(h, s) - cargoSum(s.cargo));
-/** units / s this ship works a lot of this kind (0 = cannot) */
-export function salvageRate(h: Pick<Host, 'st'>, s: WShip, k: WreckLot['k']): number {
+/** is this site loose cargo (P13.2 jettisoned cargo pods), not a wreck to be cut open */
+export const looseSite = (h: Pick<Host, 'st'>, w: Pick<SalvSite, 'id'> | undefined) => !!w && !!h.st.drops?.[w.id];
+/** units / s this ship works a lot of this kind (0 = cannot). `loose`: the lot is cargo already separated
+ *  from any wreck (jettisoned pods) — picking it up is cargo handling, not salvage work */
+export function salvageRate(h: Pick<Host, 'st'>, s: WShip, k: WreckLot['k'], loose = false): number {
   const role = roleOf(s), tech = !!h.st.companies[s.owner]?.tech?.includes('salvage_ops');
-  // industrial hardpoint rules: a civilian hull salvages only with salvage gear fitted, at the gear's rate
-  // (× hull bonus); research and officers then make that work faster but never grant it. Warships keep
-  // their small battlefield pickup (they have no industrial hardpoint).
-  const gear = s.ind && role !== 'military';
+  // industrial hardpoint rules: every such ship — warships included — works a wreck only with salvage gear
+  // fitted, at the gear's rate (× hull bonus); research and officers then make that work faster but never
+  // grant it. Loose cargo pods need no gear: any ship with a hold picks them up at its class pickup rate.
+  const gear = !!s.ind && !(loose && k === 'cargo');
   const t = SALV.rate[k] as Record<string, number>;
   let r = gear ? SALV.gear[k] * (econOf(s).salv ?? 0) : t[role] ?? t.other ?? 0;
   if (!gear && tech && !r && k === 'equip') r = SALV.techEquip;
@@ -126,9 +129,9 @@ export function protectedLot(h: Pick<Host, 'st'>, company: string, l: WreckLot):
 const PRI: Record<WreckLot['k'], number> = { cargo: 0, equip: 1, frag: 2, hull: 3 };
 /** lots this ship may and can work now, best first */
 function lotsFor(h: Host, s: WShip, w: SalvSite, illegal: boolean): WreckLot[] {
-  const room = salvageRoom(h, s);
+  const room = salvageRoom(h, s), loose = looseSite(h, w);
   const byValue = h.st.officerV && !!shipFx(h.st, s).salvValue;   // B-1 appraisal: the most valuable lot first
-  return w.lots.filter(l => l.n >= 1 && (illegal || !protectedLot(h, s.owner, l)) && salvageRate(h, s, l.k) > 0 && (weightless(l) || room >= 1))
+  return w.lots.filter(l => l.n >= 1 && (illegal || !protectedLot(h, s.owner, l)) && salvageRate(h, s, l.k, loose) > 0 && (weightless(l) || room >= 1))
     .sort((a, b) => (byValue ? lotValue(h.st, b) - lotValue(h.st, a) : 0) || PRI[a.k] - PRI[b.k] || lotValue(h.st, b) - lotValue(h.st, a) || a.id.localeCompare(b.id));
 }
 /** can any of these ships still do something at this wreck */
@@ -138,8 +141,8 @@ export function workable(h: Host, ships: WShip[], w: SalvSite, illegal: boolean)
 /** rough value the fleet could take from a wreck (capped by free hold) */
 function prospect(h: Host, ships: WShip[], w: SalvSite, illegal: boolean): { value: number; units: number; time: number } {
   let room = ships.reduce((a, s) => a + salvageRoom(h, s), 0), value = 0, units = 0, time = 0;
-  const rates: Record<string, number> = {};
-  for (const s of ships) for (const k of ['cargo', 'equip', 'hull', 'frag'] as const) rates[k] = (rates[k] ?? 0) + salvageRate(h, s, k);
+  const rates: Record<string, number> = {}, loose = looseSite(h, w);
+  for (const s of ships) for (const k of ['cargo', 'equip', 'hull', 'frag'] as const) rates[k] = (rates[k] ?? 0) + salvageRate(h, s, k, loose);
   for (const l of [...w.lots].sort((a, b) => lotValue(h.st, b) - lotValue(h.st, a))) {
     if (l.n < 1 || !rates[l.k] || (!illegal && protectedLot(h, ships[0]?.owner ?? '', l))) continue;
     const n = weightless(l) ? l.n : Math.min(l.n, room); if (n <= 0) continue;
@@ -163,7 +166,7 @@ function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number):
   if (s.logisticsJob || s.cargoWork) return 0;
   const lot = lotsFor(h, s, w, illegal)[0]; if (!lot) return 0;
   const key = `${w.id}:${lot.id}`;
-  let a = (s.salvAcc?.lot === key ? s.salvAcc.a : 0) + salvageRate(h, s, lot.k) * dt;
+  let a = (s.salvAcc?.lot === key ? s.salvAcc.a : 0) + salvageRate(h, s, lot.k, looseSite(h, w)) * dt;
   const take = Math.min(Math.floor(a + 1e-9), lot.n, weightless(lot) ? Infinity : Math.floor(salvageRoom(h, s) + 1e-9));
   if (take > 0) {
     lot.n -= take; a -= take;
@@ -530,6 +533,7 @@ function stepAuto(h: Host, g: WGroup, ships: WShip[], op: Op, dt: number): boole
   return true;
 }
 
+export const NO_SALV_GEAR = '인양 장비를 단 함선이 없습니다 — 잔해 인양에는 산업 하드포인트의 인양 장비가 필요합니다 (투하된 화물 회수는 장비 없이 가능)';
 /** validate a recover / salvzone order (null = ok) */
 export function validateSalvage(h: Host, company: string, ships: WShip[], op: Op): string | null {
   if (!h.st.salvageV) return '이 월드에서는 전장 잔해 인양을 사용할 수 없습니다';
@@ -539,12 +543,16 @@ export function validateSalvage(h: Host, company: string, ships: WShip[], op: Op
   if (op.k === 'recover') {
     const w = siteOf(h.st, op.wreck);
     if (!w) return '잔해가 없거나 이미 소멸했습니다';
-    if (!can.some(s => (['cargo', 'equip', 'hull', 'frag'] as const).some(k => salvageRate(h, s, k) > 0 && w.lots.some(l => l.k === k && l.n >= 1 && (op.illegal || !protectedLot(h, company, l))))))
-      return w.seen.includes(company) ? '이 편대가 회수할 수 있는 물품이 없습니다 (선체 해체는 채굴선·공작선, 장비는 공작선)' : null;
+    const loose = looseSite(h, w);
+    // industrial hardpoint rules: a wreck needs a ship with salvage gear (loose cargo pods do not) — said up front
+    if (h.st.indV && !loose && !can.some(s => salvageRate(h, s, 'cargo') > 0 || salvageRate(h, s, 'hull') > 0)) return NO_SALV_GEAR;
+    if (!can.some(s => (['cargo', 'equip', 'hull', 'frag'] as const).some(k => salvageRate(h, s, k, loose) > 0 && w.lots.some(l => l.k === k && l.n >= 1 && (op.illegal || !protectedLot(h, company, l))))))
+      return w.seen.includes(company) ? `이 편대가 회수할 수 있는 물품이 없습니다 (${h.st.indV ? '잔해 인양은 인양 장비를 단 함선' : '선체 해체는 채굴선·공작선, 장비는 공작선'})` : null;
     return null;
   }
   if (op.k === 'salvzone') {
     if (!(op.radius >= 500 && op.radius <= 30000)) return '작업 반경은 500~30000m';
+    if (h.st.indV && !can.some(s => salvageRate(h, s, 'cargo') > 0)) return NO_SALV_GEAR;
     if (!h.sysOf(op.at)) return '성계 안의 좌표를 지정하세요';
     return null;
   }

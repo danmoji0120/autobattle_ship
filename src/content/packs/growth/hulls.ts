@@ -157,6 +157,18 @@ export const GROWTH_HULLS: HullDef[] = [
     internals: [{ id: 'bay1', kind: 'special', size: 'M' }, { id: 'ind1', kind: 'industrial', size: 'S' }],
     hardpoints: [pd('pd1', 2.4, 2.6, 4, 90)],
   },
+  // ───────────────────────────────────────────── salvage (classId hauler: a civilian hold that also carries the goods)
+  {
+    id: 'salvager_s', classId: 'hauler', name: '갈고리급', maker: '러스트포트 해체조합', tier: 1, size: 'S', moduleSlots: 1, power: 12, mass: 14, blueprint: 'common',
+    mesh: { base: 'salv_s', scale: 0.8 },
+    desc: '견인 빔과 집게 팔 두 개, 절단 토치를 단 소형 인양선. 인양 장비 효율 ×1.3. 화물칸은 짐꾼급보다 작고, 산업 하드포인트가 M이라 중형 인양 장비까지 단다.',
+    ops: { bonus: { salvage: 1.3 }, gear: ['ind_salv_s'], cruise: 92, cargo: 300, berth: 'S' },
+    build: { yard: 1, time: 1800, credits: 1300, parts: { structure: 22, machinery: 10, engine: 1, reactor: 1, composite: 2 } },
+    upkeep: { credits: 300, wear: 0.03 },
+    sale: { stations: ['rustport', 'drakeout', 'astra', 'p9_ceres_works'], stock: 3, restock: 2400 },
+    internals: [{ id: 'bay1', kind: 'special', size: 'S' }, { id: 'ind1', kind: 'industrial', size: 'M' }],
+    hardpoints: [pd('pd1', 2.2, 2.6, -3, 90)],
+  },
   {
     id: 'constructor_l', classId: 'constructor', name: '조립함급', maker: '아스트라 공작소', tier: 2, size: 'L', moduleSlots: 3, power: 32, mass: 45, blueprint: 'advanced',
     mesh: { base: 'con_l', scale: 1.6 },
@@ -204,6 +216,7 @@ export const GROWTH_VARIANTS: VariantDef[] = [
   std('hauler_l', '벌크선급', ''),
   std('hauler_xl', '화물모함급', ''),
   std('constructor_s', '땜장이급', ''),
+  std('salvager_s', '갈고리급', ''),
   std('constructor_l', '조립함급', ''),
   std('constructor_xl', '궤도조선창급', ''),
 ];
@@ -232,6 +245,7 @@ export const GROWTH_PRESETS: PresetDef[] = [
   P('hauler_l_std', 'hauler_l', 'hauler_l_std', '표준 수송', '방공포 3.', pds('pd1', 'pd2', 'pd3')),
   P('hauler_xl_std', 'hauler_xl', 'hauler_xl_std', '표준 수송', '방공포 4.', pds('pd1', 'pd2', 'pd3', 'pd4')),
   P('constructor_s_std', 'constructor_s', 'constructor_s_std', '표준 공작', '방공포 1.', pds('pd1')),
+  P('salvager_s_std', 'salvager_s', 'salvager_s_std', '표준 인양', '방공포 1.', pds('pd1')),
   P('constructor_l_std', 'constructor_l', 'constructor_l_std', '표준 공작', '방공포 2.', pds('pd1', 'pd2')),
   P('constructor_xl_std', 'constructor_xl', 'constructor_xl_std', '표준 공작', '방공포 4.', pds('pd1', 'pd2', 'pd3', 'pd4')),
 ];

@@ -13,6 +13,7 @@ import { SHIP_CLASSES } from '../../sim/data/ships';
 import { EQUIPMENT, TECHS, FACILITIES, itemName } from '../../world/industry';
 import { MODULES } from '../../world/data';
 import { yardSlots, buildNeeds, YARD_NAME } from '../../world/production';
+import { placeModules } from '../../world/fitting';
 import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFits } from '../../world/hullops';
 import { hullGate } from '../../world/reputation';
 import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBlueprints, bpName, SRC_NAME, FRAG_PREFIX, fragmentsNeeded } from '../../world/blueprints';
@@ -89,8 +90,9 @@ export function pubYardHtml(w: WorldState, s: Station, me: string, groups: { id:
 
 // ───────────────────────────────────────────────────────── own yard (build by hull)
 
-export interface GrowthYardUi { hull: string | null; preset: string | null; fit: string[] }
-export const newGrowthYardUi = (): GrowthYardUi => ({ hull: null, preset: null, fit: [] });
+/** own-yard build panel: hull, weapon preset, extra modules and the launch fitting (standard / hull only / a saved company preset `fp:<id>`) */
+export interface GrowthYardUi { hull: string | null; preset: string | null; fit: string[]; outfit?: string }
+export const newGrowthYardUi = (): GrowthYardUi => ({ hull: null, preset: null, fit: [], outfit: 'standard' });
 
 /** why this company cannot build this hull + variant here ('' = it can) */
 function buildWhy(w: WorldState, s: Station, me: string, hull: string, variant: string): string {
@@ -131,11 +133,17 @@ function ownHullDetail(w: WorldState, s: Station, me: string, ui: GrowthYardUi, 
   const id = ui.hull!; const h = CONTENT.hulls[id];
   const ps = presetsOf(id);
   const p = ps.find(x => x.id === ui.preset) ?? ps[0];
-  const variant = p?.variant ?? `${id}_std`;
+  // launch fitting (server: sim.buildHull outfit) — the same items the build will take from this storage
+  const fps = (co.fitPresets ?? []).filter(x => x.hull === id);
+  const fp = ui.outfit?.startsWith('fp:') ? fps.find(x => `fp:${x.id}` === ui.outfit) : undefined;
+  const outfit: 'standard' | 'hull' | 'preset' = fp ? 'preset' : ui.outfit === 'hull' ? 'hull' : 'standard';
+  const variant = fp?.variant ?? p?.variant ?? `${id}_std`;
   const b = hullBuild(id, variant);
   const store: Cargo = s.storage[me] ?? {};
-  const fit = ui.fit.filter(k => EQUIPMENT[k]?.kind === 'module');
-  const need = buildNeeds(h.classId, '', fit, { hull: id, variant, preset: p?.id, regionalMaterials: regionalHullMaterials(w, id) });
+  const fit = outfit === 'standard' ? ui.fit.filter(k => EQUIPMENT[k]?.kind === 'module') : [];
+  const gear = h.ops?.gear ?? [];
+  const out = outfit === 'hull' ? { hp: {}, bay: {} } : fp ? { hp: fp.hp, bay: fp.bay } : { hp: { ...(p?.weapons ?? {}) }, bay: placeModules(variant, [...fit, ...gear]).bay };
+  const need = buildNeeds(h.classId, '', [], { hull: id, variant, regionalMaterials: regionalHullMaterials(w, id), ...out });
   const rows = Object.entries(need).map(([k, n]) => `<tr><td>${iname(k)}${REGIONAL_ORIGINS[k] ? `<div class="dim small">주요 산지: ${esc(REGIONAL_ORIGINS[k])}</div>` : ''}</td><td class="n">${fmt(n)}</td><td class="n">${fmt(qty(store, k))}</td><td class="n">${qty(store, k) >= n ? '<span class="good">충분</span>' : `<span class="warn">${fmt(n - qty(store, k))} 부족</span>`}</td></tr>`).join('');
   const pay = b.credits + yardFee(b);
   const why = buildWhy(w, s, me, id, variant) || (co.credits < pay ? `자금 부족 — ${fmt(pay - co.credits)} cr` : '');
@@ -143,15 +151,20 @@ function ownHullDetail(w: WorldState, s: Station, me: string, ui: GrowthYardUi, 
   const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module' && qty(store, x.id) >= 1);
   return `<div class="bdh"><b>${esc(hullTitle(id))}</b> <span class="dim">· ${esc(h.maker ?? '')} · ${GRADE[h.blueprint]} 설계</span></div>
     <div class="dim small">${esc(h.desc)}</div>
-    <div class="bdr small">${hullStats(id, variant, !!w.indV)}${w.indV && h.internals.some(x => x.kind === 'industrial') ? '<div class="dim">직접 건조한 함선에는 산업 장비가 포함되지 않습니다 — 아래 모듈 목록에서 보관 중인 채굴·건설·인양 장비를 골라 함께 장착하세요.</div>' : ''}</div>
+    <div class="bdr small">${hullStats(id, variant, !!w.indV)}</div>
     ${baseChecklist(w, s, me, id, variant)}
     <div class="bdr small">예상 재료 원가 <b>${fmt(materialReferenceCost(w, need))} cr</b> · 등록 시 공임 및 조선소 비용 <b>${fmt(pay)} cr</b> · 합계 약 <b>${fmt(materialReferenceCost(w, need) + pay)} cr</b></div>
     <div class="dim small">선택한 부품·무장·지역 소재의 참고 가치로 계산한 추정치입니다. 실제 거래 가격이나 판매 수익을 보장하지 않습니다.</div>
     <div class="bdr">조선소 <b>${YARD_NAME[b.yard]}</b> 이상 · 건조 ${dur(b.time)} · 공임 및 조선소 비용 <b class="money">${fmt(pay)} cr</b>${b.facilities?.length ? ` · 시설 ${b.facilities.map(f => esc(MODULES[f]?.name ?? f)).join(', ')}` : ''}${b.tech?.length ? ` · 연구 ${b.tech.map(t => esc(TECHS[t]?.name ?? t)).join(', ')}` : ''}</div>
-    <div class="yrow"><select data-gpre data-keep>${ps.map(x => `<option value="${x.id}"${x.id === p?.id ? ' selected' : ''}>${esc(x.name)} — ${esc(CONTENT.variants[x.variant]?.name ?? '')}${CONTENT.variants[x.variant]?.blueprint !== 'common' ? ' (변형 설계도)' : ''}</option>`).join('')}</select>
+    <div class="yrow"><select data-goutfit data-keep title="출고 피팅 — 필요한 무장·장비는 이 정거장 창고에서 실제로 소모됩니다">
+      <option value="standard"${outfit === 'standard' ? ' selected' : ''}>표준 피팅${gear.length ? ` + ${gear.map(g => EQUIPMENT[g]?.name ?? g).join(', ')}` : ''}</option>
+      <option value="hull"${outfit === 'hull' ? ' selected' : ''}>선체만 (무장·장비 없음)</option>
+      ${fps.map(x => `<option value="fp:${x.id}"${fp?.id === x.id ? ' selected' : ''}>회사 프리셋: ${esc(x.name)}${x.variant !== `${id}_std` ? ` (${esc(CONTENT.variants[x.variant]?.name ?? '')})` : ''}</option>`).join('')}
+    </select>${outfit === 'standard' ? ` <select data-gpre data-keep>${ps.map(x => `<option value="${x.id}"${x.id === p?.id ? ' selected' : ''}>${esc(x.name)} — ${esc(CONTENT.variants[x.variant]?.name ?? '')}${CONTENT.variants[x.variant]?.blueprint !== 'common' ? ' (변형 설계도)' : ''}</option>`).join('')}</select>` : ''}
     <select data-ggrp data-keep><option value="">새 편대</option>${groups.map(g => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select></div>
-    ${p ? `<div class="dim small">${esc(p.desc)}${vb ? ` · 변형 설계도 ${holds(co, vb) ? '<span class="good">보유</span>' : '<span class="warn">미보유</span>'}` : ''}</div>` : ''}
-    <div class="bdr small">모듈 (창고 보유분): ${mods.map(m => `<button class="chip${fit.includes(m.id) ? ' on' : ''}" data-gfit="${m.id}" title="${esc(m.desc)}">${esc(m.name)} <span class="dim">${fmt(qty(store, m.id))}</span></button>`).join(' ') || '<span class="dim">없음</span>'}</div>
+    <div class="dim small">${outfit === 'hull' ? '선체만 건조합니다 — 무장·장비는 진수 후 피팅 화면에서 장착하세요.' : fp ? `저장된 프리셋 구성으로 출고합니다 — 아래 표의 무장·모듈·장비가 이 창고에서 소모됩니다.` : `표준 무장${gear.length ? '과 선체 표준 산업 장비' : ''}를 달고 출고합니다 — 아래 표의 무장·장비가 이 창고에서 소모됩니다 (무상 지급 없음).`}</div>
+    ${outfit === 'standard' && p ? `<div class="dim small">${esc(p.desc)}${vb ? ` · 변형 설계도 ${holds(co, vb) ? '<span class="good">보유</span>' : '<span class="warn">미보유</span>'}` : ''}</div>` : ''}
+    ${outfit !== 'standard' ? '' : `<div class="bdr small">모듈 (창고 보유분): ${mods.map(m => `<button class="chip${fit.includes(m.id) ? ' on' : ''}" data-gfit="${m.id}" title="${esc(m.desc)}">${esc(m.name)} <span class="dim">${fmt(qty(store, m.id))}</span></button>`).join(' ') || '<span class="dim">없음</span>'}</div>`}
     <table class="gt bmat"><tr><th>소모 부품·장비</th><th class="n">필요</th><th class="n">창고</th><th class="n">상태</th></tr>${rows}</table>
     ${why ? `<div class="warn">${why}</div>` : ''}<button class="btn go" data-gbuild="${id}" ${why ? 'disabled' : ''}>건조 등록</button>
     <div class="dim small">부품이 모자라도 등록할 수 있습니다. 조선소 슬롯이 비고 부품이 모두 이 정거장 창고에 있으면 자동으로 기공합니다.</div>`;

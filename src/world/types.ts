@@ -436,6 +436,12 @@ export interface ShipBuild {
   preset?: string;
   /** fitting modules installed at launch */
   fit: string[];
+  /** explicit launch fitting chosen at registration (hull only / standard with industrial gear / a saved
+   *  company preset): its weapons and bay items are consumed with the hull parts. Absent = preset + fit. */
+  hp?: Record<string, string>;
+  bay?: Record<string, string>;
+  /** how the launch fitting was chosen (UI label) */
+  outfit?: 'hull' | 'standard' | 'preset';
   group?: string;
   /** seconds of yard work left / total; started = parts consumed */
   left: number; total: number; started: boolean;

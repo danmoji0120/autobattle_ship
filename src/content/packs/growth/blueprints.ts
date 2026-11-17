@@ -40,6 +40,7 @@ export const BLUEPRINTS: BlueprintDef[] = [
   H('hauler_l', '수송선 L (벌크선급)', 'advanced', [{ kind: 'faction', faction: 'guild', stations: ['exchange', 'nova'], price: 55000, influence: 40, trust: 10 }, { kind: 'explore', tier: 1, chance: 0.05 }], ['logistics_ai']),
   H('hauler_xl', '수송선 XL (화물모함급)', 'rare', [{ kind: 'faction', faction: 'guild', stations: ['exchange'], price: 220000, influence: 60, rep: 30, trust: 24, contracts: 4 }, F('guild', ['astra', 'p10_crossroads_bazaar'], 220000, 24, 4)], ['logistics_ai', 'capital_hulls']),
   H('constructor_s', '공작선 S (땜장이급)', 'common', [shop(3000, ['astra', 'barcaco', 'drakeout'])]),
+  H('salvager_s', '인양선 S (갈고리급)', 'common', [shop(3000, ['rustport', 'drakeout', 'astra'])]),
   H('constructor_l', '공작선 L (조립함급)', 'advanced', [{ kind: 'commercial', stations: ['astra'], price: 50000, rep: 10, contracts: 2 }, F('ceres', ['p9_ceres_works', 'p10_kiln_works'], 48000, 12, 2)], ['station_engineering']),
   H('constructor_xl', '공작선 XL (궤도조선창급)', 'rare', [{ kind: 'commercial', stations: ['helios'], price: 200000, rep: 35, contracts: 8 }, F('ceres', ['p9_ceres_works'], 195000, 30, 8), { kind: 'explore', tier: 3, chance: 0.04 }], ['station_engineering', 'capital_hulls']),
   // ── non-common variants (common variants are covered by their hull's blueprint)

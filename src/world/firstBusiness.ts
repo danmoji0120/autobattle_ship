@@ -497,6 +497,8 @@ export function salvageStatus(w: WorldState, me: string): SalvageStatus {
 
 /** hulls a salvager can buy back to keep working (the founding fleet's hulls) */
 export const SALVAGE_REBUY = ['miner_mk1', 'hauler_mk1', 'constructor_s'] as const;
+/** industrial hardpoint worlds: the dedicated salvage hull (sold with its salvage rig) and a hauler */
+export const SALVAGE_REBUY_IND = ['salvager_s', 'hauler_mk1'] as const;
 /** how far from home the guide looks for a yard selling them */
 export const REBUY_JUMPS = 3;
 /** a hauler below this hull share is not sent on automatic runs (haulers.ts HAULER_MIN_HP) */
@@ -527,7 +529,7 @@ const roleOfShip = (s: { classId: string; hull?: string; variant?: string; ind?:
   const e = econOf(s);
   return e.military ? 'military' : s.classId === 'constructor' ? 'constructor' : s.classId === 'miner' ? 'miner' : s.classId === 'hauler' || e.cargo > 0 ? 'hauler' : 'other';
 };
-const ROLE_NAME: Record<string, string> = { miner_mk1: '선체 해체', hauler_mk1: '화물 회수·운송', constructor_s: '장비·설계도 조각·선체' };
+const ROLE_NAME: Record<string, string> = { miner_mk1: '선체 해체', hauler_mk1: '화물 회수·운송', constructor_s: '장비·설계도 조각·선체', salvager_s: '잔해 인양 (인양 장비 포함)' };
 
 /**
  * A-3.2b.1: what the salvager can do right now, apart from the milestones it already reached (those stay):
@@ -571,7 +573,8 @@ function salvageComeback(w: WorldState, me: string, can: SalvageOpStatus['can'],
   const debt = co.upkeep?.debt ?? 0, stage = co.upkeep?.stage ?? 0;
   let stockValue = 0;
   for (const st of Object.values(w.stations)) for (const [k, n] of Object.entries(st.storage?.[me] ?? {})) if (n > 0.5 && co.procurement?.sales?.[k]) stockValue += n * assetReferenceValue(w, k);
-  const want = SALVAGE_REBUY.filter(h => h === 'miner_mk1' ? !can.hull : h === 'constructor_s' ? !can.equip : !hauler);
+  const want: string[] = w.indV ? SALVAGE_REBUY_IND.filter(h => h === 'salvager_s' ? !can.hull || !can.equip : !hauler)
+    : SALVAGE_REBUY.filter(h => h === 'miner_mk1' ? !can.hull : h === 'constructor_s' ? !can.equip : !hauler);
   const offers: SalvageComeback['offers'] = [];
   for (const st of Object.values(w.stations)) {
     if (!st.public || !hs) continue;

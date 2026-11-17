@@ -5,6 +5,7 @@ export const EXTRA_MESH_BASES = [
   'miner_m', 'miner_l', 'miner_xl',
   'hauler_m', 'hauler_l', 'hauler_xl',
   'con_s', 'con_l', 'con_xl',
+  'salv_s',
   'bbex',
 ] as const;
 export const isExtraMeshBase = (b: string) => (EXTRA_MESH_BASES as readonly string[]).includes(b);

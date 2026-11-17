@@ -1632,13 +1632,17 @@ export class PmcHud {
     });
     m.querySelectorAll<HTMLElement>('[data-ghull]').forEach(b => b.onclick = () => { this.gy.hull = b.dataset.ghull!; this.gy.preset = null; this.gy.fit = []; this.renderModal(true); });
     const gpre = m.querySelector<HTMLSelectElement>('[data-gpre]'); if (gpre) gpre.onchange = () => { this.gy.preset = gpre.value; this.renderModal(true); };
+    const gout = m.querySelector<HTMLSelectElement>('[data-goutfit]'); if (gout) gout.onchange = () => { this.gy.outfit = gout.value; this.renderModal(true); };
     m.querySelectorAll<HTMLButtonElement>('[data-gfit]').forEach(b => b.onclick = () => { const k = b.dataset.gfit!; const i = this.gy.fit.indexOf(k); if (i >= 0) this.gy.fit.splice(i, 1); else this.gy.fit.push(k); this.renderModal(true); });
     m.querySelectorAll<HTMLButtonElement>('[data-gbuild]').forEach(b => b.onclick = async () => {
       const id = b.dataset.gbuild!; const hh = CONTENT.hulls[id];
       const pre = m.querySelector<HTMLSelectElement>('[data-gpre]')?.value || undefined;
       const grp = m.querySelector<HTMLSelectElement>('[data-ggrp]')?.value || undefined;
-      const variant = pre ? CONTENT.presets[pre]?.variant : undefined;
-      if (await this.cmd({ c: 'buildShip', station: s.id, classId: hh.classId, loadoutId: '', hull: id, variant, preset: pre, fit: [...this.gy.fit], group: grp })) { sfx.play('confirm', null, 0.3); this.toast('건조 등록', 'good'); }
+      const o = m.querySelector<HTMLSelectElement>('[data-goutfit]')?.value ?? 'standard';
+      const fp = o.startsWith('fp:') ? this.st.companies[this.me]?.fitPresets?.find(x => `fp:${x.id}` === o) : undefined;
+      const outfit = fp ? 'preset' as const : o === 'hull' ? 'hull' as const : 'standard' as const;
+      const variant = fp ? fp.variant : outfit === 'standard' && pre ? CONTENT.presets[pre]?.variant : undefined;
+      if (await this.cmd({ c: 'buildShip', station: s.id, classId: hh.classId, loadoutId: '', hull: id, variant, preset: outfit === 'standard' ? pre : undefined, fit: outfit === 'standard' ? [...this.gy.fit] : [], group: grp, outfit, ...(fp ? { fitPreset: fp.id } : {}) })) { sfx.play('confirm', null, 0.3); this.toast('건조 등록', 'good'); }
     });
     m.querySelectorAll<HTMLButtonElement>('[data-buylist]').forEach(b => b.onclick = async () => {
       const l = b.dataset.buylist!; const grp = m.querySelector<HTMLSelectElement>(`[data-lgrp="${l}"]`)?.value || undefined;
