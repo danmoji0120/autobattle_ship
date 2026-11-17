@@ -3,6 +3,8 @@
 // save/restore, migration of an existing save, replay determinism, and the growth of a combat rookie and an
 // industry rookie in the real world simulation. See docs/B1_OFFICERS.md.
 import { describe, expect, it } from 'vitest';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { WorldSim } from '../src/world/sim';
 import { World } from '../src/sim/world';
 import {
@@ -81,6 +83,15 @@ describe('B-1 data: 13 trees, structure, descriptions', () => {
     }
     for (const t of TRAITS) for (const k of Object.keys(t.fx)) { expect(FX[k as FxKey], `${t.id}.${k}`).toBeDefined(); used.add(k); }
     for (const k of FX_KEYS) expect(used.has(k), `unused effect ${k}`).toBe(true);
+  });
+
+  it('every effect key is read by the engine (sim, AI, world systems), not only by the data table and the UI', () => {
+    const files: string[] = [];
+    const walk = (d: string) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) { if (!p.includes('client')) walk(p); } else if (p.endsWith('.ts') && !p.endsWith('officerData.ts')) files.push(p); } };
+    walk('src');
+    const code = files.map(f => readFileSync(f, 'utf8')).join('\n');
+    const unread = FX_KEYS.filter(k => !new RegExp(`(\\.|\\?\\.)${k}\\b|'${k}'`).test(code));
+    expect(unread).toEqual([]);
   });
 
   it('air defence and interception are separate fields: no shared effect inside their own nodes', () => {
@@ -451,7 +462,7 @@ describe('B-1 named officers, BB, save/restore and migration', () => {
 // ------------------------------------------------------------------------------------------------ growth
 
 describe('B-1 growth simulations in the real world', () => {
-  it('an industry rookie: hired at level 1, mines for game hours, levels up, learns mining skills that raise output, posts as a station director', () => {
+  it('an industry rookie: hired at level 1, mines for game hours, levels up, gains mining mastery and learns tier-1 and tier-2 mining skills', () => {
     const { sim, me } = mk(4);
     for (const l of Object.values(sim.st.lairs)) { l.alive = false; l.respawnAt = 1e9; }
     const c = hire(sim, me);
