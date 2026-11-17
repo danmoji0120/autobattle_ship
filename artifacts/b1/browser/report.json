@@ -1,0 +1,161 @@
+{
+ "checks": [
+  {
+   "ok": true,
+   "label": "hire a recruit (second officer)",
+   "extra": {
+    "ok": true,
+    "err": null,
+    "id": "c158",
+    "cost": 3300
+   }
+  },
+  {
+   "ok": true,
+   "label": "standard world runs B-1: the company has officers with growth state",
+   "extra": {
+    "v": 1,
+    "list": [
+     {
+      "id": "c148",
+      "name": "코왈스키 아이리스",
+      "level": 1,
+      "sp": 1,
+      "skills": {}
+     },
+     {
+      "id": "c158",
+      "name": "박 서진",
+      "level": 1,
+      "sp": 1,
+      "skills": {}
+     }
+    ]
+   }
+  },
+  {
+   "ok": true,
+   "label": "top bar shows the 장교 button",
+   "extra": {
+    "text": "장교 2"
+   }
+  },
+  {
+   "ok": true,
+   "label": "roster lists every officer",
+   "extra": [
+    "코왈 소령 코왈스키 아이리스 Lv.1 · 방공 장교 출신 · 경비대 지휘 · 3척 1P 125 cr/h +",
+    "박서 중령 박 서진 Lv.1 · 참모 장교 · 대기 1P 30 cr/h +"
+   ]
+  },
+  {
+   "ok": true,
+   "label": "profile: level, SP, salary, mastery, posting",
+   "extra": {
+    "prof": "SIDERARIUM / OFFICERS\n장교 관리 2명 · 급여 155 cr/시간\n✕\n전체\n편대 지휘\n정거장 책임자\n대기\n고유 장교\n부상\n레벨순\n숙련도(포술)순\n미사용 포인트순\n급여순\n이름순\n신입 2\n코왈\n소령 코왈스키 아이리스\nLv.1 · 방공 장교 출신 · 경비대 지휘 · 3척\n1P\n125 cr/h\n+\n박서\n중령 박 서진\nLv.1 · 참모 장교 · 대기\n1P\n30 cr/h\n+\n코왈\n소령 코왈스키 아이리스 신입\n방공 장교 출신 — 호위함 방공 지휘 경력.\n프로필\n스킬 트리\n비교\n기록\n성장\nLv.1\n0 / 60 XP\n3\n8\n15\n25\n40\n스킬 포인트\n1 사용 가능 · 총 1\n판단력\n50\n성장 재능\n경험치 +5%\n교전\n0회\n보직\n현재 보직\n대기 (급여 최소)\n경비대 · 3척\n편대 보기 →\n훈련 방향 (해당 분야 숙련도 +25%, 1시간마다 변경 가능)\n없음\n포술\n방공\n요격\n기동\n방어\n작전\n전자전\n채광\n인양\n물류\n산업\n탐사\n군수·정비\n급여\n125 cr/시간 — 경비대 지휘 (3척)\n급여는 보직과 지휘 규모에 따라 정해지고 레벨당 소폭 오릅니다. 체불되면 일반 운영비 미납금이 되며, 장교가 명령을 거부하거나 이탈하지 않습니다.\n분야 숙련도 — 누르면 해당 스킬 트리\n전투\n◎ 포술\n미숙 0/500\n✦ 방공 +35%\n미숙 0/500\n➶ 요격\n미숙 0/500\n➤ 기동\n미숙 0/500\n⛨ 방어\n미숙 0/500\n♜ 작전\n미숙 0/500\n≋ 전자전 +15%\n미숙 0/500\n산업·지원\n⛏ 채광\n미숙 0/500\n⚓ 인양\n미숙 0/500\n⇄ 물류\n미숙 0/500\n⚙ 산업\n미숙 0/500\n✧ 탐사\n미숙 0/500\n✚ 군수·정비\n미숙 0/500\n현재 효과\n전투(지휘 편대 함선)\n적용 중\n근접방어(PD) 요격 확률 +3%\n경험치는 실제 성과(격침·피해·요격·채굴량·회수 가치·운송·생산·연구·탐사)로만 쌓입니다"
+   }
+  },
+  {
+   "ok": true,
+   "label": "search narrows and restores the roster",
+   "extra": {
+    "n0": 0,
+    "n1": 2
+   }
+  },
+  {
+   "ok": true,
+   "label": "tree: 13 tree chips, ≥8 nodes with lines",
+   "extra": {
+    "nodes": 9,
+    "lines": 12,
+    "chips": 13
+   }
+  },
+  {
+   "ok": true,
+   "label": "an open (learnable) node exists for a level-1 officer",
+   "extra": {
+    "target": "gn_aim"
+   }
+  },
+  {
+   "ok": true,
+   "label": "learning on the page reaches the server: rank set, SP spent",
+   "extra": {
+    "target": "gn_aim",
+    "who": {
+     "id": "c148",
+     "name": "코왈스키 아이리스",
+     "level": 1,
+     "sp": 0,
+     "skills": {
+      "gn_aim": 1
+     }
+    },
+    "prevSp": 1
+   }
+  },
+  {
+   "ok": true,
+   "label": "node shows as learned after the server update",
+   "extra": {
+    "st": "of-node have sel"
+   }
+  },
+  {
+   "ok": true,
+   "label": "a locked node shows its reason and no learn button",
+   "extra": {
+    "why": "장전 훈련 0/2단계 · 1포인트\n습득 시\n주무장 재장전 시간 단축 +4%\n적용 범위\n전투(지휘 편대 함선)\n조건\n기초: 장교 Lv.1\n스킬 포인트 1 필요 (보유 0)"
+   }
+  },
+  {
+   "ok": true,
+   "label": "compare table shows the two picked officers",
+   "extra": {
+    "th": 3
+   }
+  },
+  {
+   "ok": true,
+   "label": "log tab renders"
+  },
+  {
+   "ok": true,
+   "label": "desktop: no horizontal page scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: roster without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: picking an officer shows the detail with a back button",
+   "extra": {
+    "list": false,
+    "back": true
+   }
+  },
+  {
+   "ok": true,
+   "label": "phone: tree without page-level horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: back returns to the roster"
+  },
+  {
+   "ok": true,
+   "label": "no page errors",
+   "extra": []
+  },
+  {
+   "ok": true,
+   "label": "no console errors",
+   "extra": []
+  }
+ ],
+ "errors": [],
+ "console": []
+}
