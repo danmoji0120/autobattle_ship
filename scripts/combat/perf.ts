@@ -1,6 +1,6 @@
 // P11 combat performance: step time of 100- and 200-ship battles. The legacy 2-side cases run on any commit
 // (compare the base branch with HEAD); the P11 cases (three sides, a mid-battle reinforcement) need P11.
-//   npx vite-node scripts/combat/perf.ts -- [ticks=1800] [repeats=3]
+//   [RULES=n] npx vite-node scripts/combat/perf.ts -- [ticks=1800] [repeats=3]   (RULES: BattleSetup.rules, default the setup's)
 import { World, type BattleSetup } from '../../src/sim/world';
 import { lineFleet } from '../../src/sim/bbex/trials';
 
@@ -22,7 +22,7 @@ const q = (a: number[], p: number) => a.slice().sort((x, y) => x - y)[Math.min(a
 for (const c of cases) {
   const runs: { mean: number; p95: number; max: number; steps: number; digest: string; ships: number }[] = [];
   for (let r = 0; r < repeats; r++) {
-    const w = new World(c.setup()), dts: number[] = [];
+    const w = new World({ ...c.setup(), ...(process.env.RULES ? { rules: Number(process.env.RULES) } : {}) }), dts: number[] = [];
     for (let i = 0; i < ticks && !w.outcome; i++) { c.each?.(w); const t0 = performance.now(); w.step(); dts.push(performance.now() - t0); }
     runs.push({ mean: dts.reduce((a, b) => a + b, 0) / dts.length, p95: q(dts, .95), max: Math.max(...dts), steps: dts.length, digest: w.digest(), ships: w.ships.length });
   }

@@ -1,0 +1,56 @@
+M1 8CVtorp vs 1BB              A 6/6 B 0/6 draw 0 | 28s | HP A 74% B 0% | lost A 0.0/8 B 1.0/1 | cost 360:300
+   capital dmg taken: shell 2% missile 0% torp 98% pd 0% fire 0% | crits 3.2 (torp 3.2) | TTK(B capitals) first 24s all 24s (6/6)
+   torps fired 16.0 [cap facing f7.2/s8.0/r0.0] hit 15.2 intercepted 0.8 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 2.59
+   capital guns: busy 32% distinct targets/ship 0.75 | shots 32 at raiders 99% hits 6 (raider 6) | heavy shots at raiders 100% | 36 ms/battle
+M2 6FFpatrol vs 2CA            A 6/6 B 0/6 draw 0 | 47s | HP A 85% B 0% | lost A 0.5/6 B 2.0/2 | cost 360:280
+   capital dmg taken: shell 3% missile 0% torp 96% pd 0% fire 1% | crits 4.5 (torp 4.5) | TTK(B capitals) first 24s all 45s (6/6)
+   torps fired 23.7 [cap facing f10.0/s10.8/r0.0] hit 20.8 intercepted 0.7 | missiles fired 31.8 intercepted 21.2 | PD trackers/munition 4.32
+   capital guns: busy 45% distinct targets/ship 0.66 | shots 30 at raiders 0% hits 3 (raider 0) | heavy shots at raiders 0% | 37 ms/battle
+M3 13FFpatrol vs 9CA (issue)   A 5/6 B 1/6 draw 0 | 119s | HP A 20% B 7% | lost A 9.5/13 B 8.2/9 | cost 780:1260
+   capital dmg taken: shell 6% missile 0% torp 93% pd 0% fire 1% | crits 15.3 (torp 13.8) | TTK(B capitals) first 24s all 125s (5/6)
+   torps fired 72.8 [cap facing f36.8/s11.0/r0.7] hit 48.5 intercepted 18.7 | missiles fired 250.2 intercepted 142.7 | PD trackers/munition 3.86
+   capital guns: busy 63% distinct targets/ship 1.20 | shots 500 at raiders 0% hits 96 (raider 0) | heavy shots at raiders 0% | 178 ms/battle
+M4 12CVtorp vs 1DN             A 6/6 B 0/6 draw 0 | 32s | HP A 84% B 0% | lost A 1.2/12 B 1.0/1 | cost 540:600
+   capital dmg taken: shell 1% missile 0% torp 96% pd 0% fire 2% | crits 10.0 (torp 10.0) | TTK(B capitals) first 28s all 28s (6/6)
+   torps fired 24.0 [cap facing f12.2/s10.7/r0.0] hit 22.8 intercepted 1.2 | missiles fired 8.0 intercepted 2.7 | PD trackers/munition 3.82
+   capital guns: busy 36% distinct targets/ship 1.01 | shots 59 at raiders 100% hits 7 (raider 7) | heavy shots at raiders 100% | 35 ms/battle
+M5 6FFpatrol vs 1BC            A 6/6 B 0/6 draw 0 | 30s | HP A 96% B 0% | lost A 0.0/6 B 1.0/1 | cost 360:220
+   capital dmg taken: shell 0% missile 0% torp 99% pd 0% fire 0% | crits 3.0 (torp 3.0) | TTK(B capitals) first 27s all 27s (6/6)
+   torps fired 12.0 [cap facing f8.2/s2.8/r0.0] hit 11.0 intercepted 1.0 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 3.45
+   capital guns: busy 39% distinct targets/ship 0.52 | shots 37 at raiders 0% hits 2 (raider 0) | heavy shots at raiders 0% | 12 ms/battle
+M6 8CVgun vs 1BB (no torp)     A 0/6 B 6/6 draw 0 | 164s | HP A 0% B 61% | lost A 8.0/8 B 0.0/1 | cost 360:300
+   capital dmg taken: shell 100% missile 0% torp 0% pd 0% fire 0% | crits 0.0 (torp 0.0) | TTK(B capitals) first -s all -s (0/6)
+   torps fired 0.0 [cap facing f0.0/s0.0/r0.0] hit 0.0 intercepted 0.0 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 0.00
+   capital guns: busy 62% distinct targets/ship 1.10 | shots 352 at raiders 100% hits 50 (raider 50) | heavy shots at raiders 100% | 94 ms/battle
+M7 8CVtorp vs 1BB+2DDaa        A 6/6 B 0/6 draw 0 | 53s | HP A 76% B 0% | lost A 0.7/8 B 3.0/3 | cost 360:460
+   capital dmg taken: shell 0% missile 0% torp 98% pd 0% fire 2% | crits 4.5 (torp 4.5) | TTK(B capitals) first 43s all 43s (6/6)
+   torps fired 31.3 [cap facing f7.0/s6.5/r0.5] hit 20.3 intercepted 9.8 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 4.94
+   capital guns: busy 54% distinct targets/ship 1.18 | shots 82 at raiders 100% hits 8 (raider 8) | heavy shots at raiders 100% | 40 ms/battle
+M8 16CVtorp vs 2BB+2DDaa       A 6/6 B 0/6 draw 0 | 50s | HP A 87% B 0% | lost A 0.8/16 B 4.0/4 | cost 720:760
+   capital dmg taken: shell 1% missile 0% torp 97% pd 0% fire 1% | crits 11.2 (torp 11.2) | TTK(B capitals) first 24s all 46s (6/6)
+   torps fired 57.8 [cap facing f8.5/s28.0/r1.3] hit 45.2 intercepted 8.7 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 4.56
+   capital guns: busy 46% distinct targets/ship 1.11 | shots 128 at raiders 100% hits 11 (raider 11) | heavy shots at raiders 100% | 69 ms/battle
+M9 2BB vs 4CAgun (gunline)     A 6/6 B 0/6 draw 0 | 109s | HP A 80% B 0% | lost A 0.0/2 B 4.0/4 | cost 600:560
+   capital dmg taken: shell 90% missile 0% torp 0% pd 0% fire 10% | crits 33.8 (torp 0.0) | TTK(B capitals) first 44s all 107s (6/6)
+   torps fired 0.0 [cap facing f0.0/s0.0/r0.0] hit 0.0 intercepted 0.0 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 0.00
+   capital guns: busy 45% distinct targets/ship 0.70 | shots 807 at raiders 0% hits 248 (raider 0) | heavy shots at raiders 0% | 61 ms/battle
+M10 2BB vs 2BB                 A 5/6 B 1/6 draw 0 | 152s | HP A 14% B 8% | lost A 1.2/2 B 1.8/2 | cost 600:600
+   capital dmg taken: shell 84% missile 0% torp 0% pd 0% fire 16% | crits 43.3 (torp 0.0) | TTK(B capitals) first 75s all 155s (5/6)
+   torps fired 0.0 [cap facing f0.0/s0.0/r0.0] hit 0.0 intercepted 0.0 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 0.00
+   capital guns: busy 22% distinct targets/ship 0.78 | shots 247 at raiders 0% hits 113 (raider 0) | heavy shots at raiders 0% | 49 ms/battle
+M11 1BB+3DDaa vs 4CAmissile    A 0/6 B 6/6 draw 0 | 87s | HP A 0% B 89% | lost A 4.0/4 B 0.0/4 | cost 540:600
+   capital dmg taken: shell 13% missile 73% torp 0% pd 0% fire 14% | crits 19.2 (torp 0.0) | TTK(B capitals) first -s all -s (0/6)
+   torps fired 0.0 [cap facing f0.0/s0.0/r0.0] hit 0.0 intercepted 0.0 | missiles fired 318.0 intercepted 99.8 | PD trackers/munition 3.96
+   capital guns: busy 52% distinct targets/ship 0.77 | shots 37 at raiders 0% hits 6 (raider 0) | heavy shots at raiders 0% | 65 ms/battle
+M12 1DN vs 2BB                 A 0/6 B 6/6 draw 0 | 93s | HP A 0% B 59% | lost A 1.0/1 B 0.0/2 | cost 600:600
+   capital dmg taken: shell 77% missile 2% torp 0% pd 0% fire 21% | crits 35.3 (torp 0.0) | TTK(B capitals) first -s all -s (0/6)
+   torps fired 0.0 [cap facing f0.0/s0.0/r0.0] hit 0.0 intercepted 0.0 | missiles fired 36.8 intercepted 26.2 | PD trackers/munition 5.01
+   capital guns: busy 23% distinct targets/ship 0.68 | shots 157 at raiders 0% hits 85 (raider 0) | heavy shots at raiders 0% | 34 ms/battle
+M13 4CVtorp vs 1BB             A 6/6 B 0/6 draw 0 | 54s | HP A 56% B 0% | lost A 1.0/4 B 1.0/1 | cost 180:300
+   capital dmg taken: shell 2% missile 0% torp 92% pd 0% fire 6% | crits 4.8 (torp 4.8) | TTK(B capitals) first 50s all 50s (6/6)
+   torps fired 15.3 [cap facing f3.8/s9.2/r1.0] hit 14.0 intercepted 1.3 | missiles fired 0.0 intercepted 0.0 | PD trackers/munition 2.21
+   capital guns: busy 51% distinct targets/ship 1.12 | shots 90 at raiders 100% hits 10 (raider 10) | heavy shots at raiders 99% | 21 ms/battle
+M14 16CVtorp vs 1DN+3DDaa      A 6/6 B 0/6 draw 0 | 56s | HP A 75% B 0% | lost A 2.5/16 B 4.0/4 | cost 720:840
+   capital dmg taken: shell 2% missile 0% torp 90% pd 0% fire 9% | crits 9.8 (torp 9.8) | TTK(B capitals) first 50s all 50s (6/6)
+   torps fired 56.8 [cap facing f4.0/s17.2/r2.0] hit 35.3 intercepted 19.3 | missiles fired 17.3 intercepted 7.2 | PD trackers/munition 4.13
+   capital guns: busy 58% distinct targets/ship 1.65 | shots 156 at raiders 100% hits 16 (raider 16) | heavy shots at raiders 100% | 82 ms/battle

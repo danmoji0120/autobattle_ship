@@ -41,6 +41,10 @@ export interface WeaponDef {
   phase?: boolean;
   /** not fired by the ordinary mount logic: driven by its own system (sim/bbex/system.ts) */
   special?: 'dcp';
+  /** P15 battle rules (BattleSetup.rules ≥ 1; older recorded battles keep the fields above unchanged):
+   *  `unguided` — leaves the tube on a lead solution and runs straight (no homing, no retargeting);
+   *  `magazine` — salvos carried, for a weapon that had no magazine before */
+  p15?: { unguided?: boolean; magazine?: number };
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {
@@ -73,8 +77,8 @@ export const WEAPONS: Record<string, WeaponDef> = {
   torpedo: {
     id: 'torpedo', name: '중(重) 플라즈마 어뢰', kind: 'torpedo',
     damage: 1100, pen: 100, range: 820, speed: 175, reload: 21, salvo: 2, salvoGap: 0.45,
-    spread: 0.05, turnSpeed: 360, caliber: 1.8, guidedTurn: 0.65, munitionHp: 2, sound: 'torpedo',
-    desc: '근접해야만 쏠 수 있는 필살의 일격. 전함도 두세 발이면 치명상.',
+    spread: 0.05, turnSpeed: 360, caliber: 1.8, guidedTurn: 0.65, munitionHp: 2, sound: 'torpedo', p15: { unguided: true },
+    desc: '비유도 플라즈마 어뢰. 발사 순간의 예측 사격 방향으로 직진하며 탄약 제한이 없다. 크고 느린 함선을 근접에서 노리는 필살의 일격.',
   },
   pd_gun: {
     id: 'pd_gun', name: '근접 방어 기관포', kind: 'pd',

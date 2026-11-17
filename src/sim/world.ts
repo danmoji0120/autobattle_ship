@@ -30,7 +30,16 @@ export interface BattleSetup {
   /** 'ranks': very large fleets form up in several ranks instead of one endless line abreast
    *  (opt-in, so recorded battles keep their exact layout) */
   layout?: 'ranks';
+  /** battle rules version. Absent/0 = the rules every battle recorded so far was fought under (replays and
+   *  battles restored after a restart re-run their setup, so they keep them); new battles stamp
+   *  BATTLE_RULES. 1 = P15.0 capital-ship rules: hull structure (World.applyHit), unguided plasma
+   *  torpedoes and limited guided torpedoes (WeaponDef.p15), threat-aware secondary batteries and
+   *  point-defence allocation (World.chooseMountTarget). */
+  rules?: number;
 }
+
+/** the rules new battles are fought under (BattleSetup.rules) */
+export const BATTLE_RULES = 1;
 
 export const DT = 1 / 30;
 export const FIELD_RADIUS = 3600;
@@ -97,9 +106,14 @@ export class World {
   nextRadioId() { return this.radioId++; }
   readonly setup: BattleSetup;
   readonly spawnZ: number;
+  /** BattleSetup.rules (0 = pre-P15 rules) */
+  readonly rules: number;
+  /** P15: point-defence mounts following each munition (kept current as mounts retarget) */
+  private pdLoad = new Map<number, number>();
 
   constructor(setup: BattleSetup) {
     this.setup = setup;
+    this.rules = setup.rules ?? 0;
     this.spawnZ = setup.spawnZ ?? SPAWN_Z;
     this.rng = new Rng(setup.seed);
     this.lineRng = new Rng(setup.seed ^ 0x5bd1e995);
@@ -306,7 +320,7 @@ export class World {
       const mount: Mount = {
         index: i, def: md, weapon: wmod(md.weapon), facingLocal: new Vec3(Math.sin(f), 0, Math.cos(f)),
         aim: new Vec3(), cooldown: this.rng.range(0, WEAPONS[md.weapon].reload), salvoLeft: 0, salvoTimer: 0,
-        targetId: -1, targetIsMunition: false, retarget: this.rng.range(0, 0.4), disabled: 0, lastFire: -99, ammo: wmod(md.weapon).magazine ?? Infinity,
+        targetId: -1, targetIsMunition: false, retarget: this.rng.range(0, 0.4), disabled: 0, lastFire: -99, ammo: this.magazineOf(wmod(md.weapon), fx),
       };
       s.mounts.push(mount);
     });
@@ -314,6 +328,15 @@ export class World {
     if (cls.id === BBEX_CLASS) initEx(this, s, exSpec, !!cmd.causal);
     return s;
   }
+
+  /** salvos a mount carries: the weapon's magazine; under P15 rules also a guided torpedo's (WeaponDef.p15) */
+  private magazineOf(w: WeaponDef, fx: ShipFx): number {
+    if (w.magazine !== undefined) return w.magazine;
+    if (this.rules >= 1 && w.p15?.magazine !== undefined) return Math.max(1, Math.round(w.p15.magazine * (fx.magMul ?? 1)));
+    return Infinity;
+  }
+  /** P15: an unguided weapon in this battle (it leaves on a lead solution like a shell) */
+  unguided(w: WeaponDef): boolean { return this.rules >= 1 && !!w.p15?.unguided; }
 
   /** formation of a fleet's leaf groups. Without a frame: the classic layout (side 0 at -z facing +z,
    *  side 1 mirrored at +z). With a frame (more than two sides, reinforcements): the side-0 layout
@@ -619,6 +642,11 @@ export class World {
       else if (s.state === 'dying') this.updateDying(s);
     }
     if (this.exShips.length) updateEx(this);
+    if (this.rules >= 1) {
+      // P15: which rounds point defence is following (rebuilt each tick; mounts adjust it as they retarget)
+      this.pdLoad.clear();
+      if (this.munitions.length) for (const s of this.ships) if (s.state === 'alive') for (const m of s.mounts) if (m.targetIsMunition && m.targetId >= 0) this.pdLoad.set(m.targetId, (this.pdLoad.get(m.targetId) ?? 0) + 1);
+    }
     for (const s of this.ships) if (s.state === 'alive') { this.updateWeapons(s); this.updateStatus(s); }
     this.updateMunitions();
     this.intensity *= Math.exp(-this.dt / 3);
@@ -751,7 +779,7 @@ export class World {
       const muzzle = localToWorld({ x: m.def.pos[0], y: m.def.pos[1], z: m.def.pos[2] }, s.pos, s.yaw, s.pitch, tmpA);
       const desiredDir = tmpB;
       if (tPos) {
-        if (m.weapon.kind === 'shell') {
+        if (m.weapon.kind === 'shell' || this.unguided(m.weapon)) {
           // lead prediction
           let tt = muzzle.distTo(tPos) / m.weapon.speed;
           for (let k = 0; k < 2; k++) {
@@ -828,13 +856,15 @@ export class World {
         if (!inArc(mu.pos)) continue;
         let score = -d;
         if (mu.kind === 'torpedo') score += 200;
-        if (mu.targetId === s.id) score += 120;
+        if (this.rules >= 1) score += this.pdThreat(s, mu, m);
+        else if (mu.targetId === s.id) score += 120;
         else if (s.ofx?.pdNet) { const at = this.shipById.get(mu.targetId); if (at && at.team === s.team && at.pos.distTo(s.pos) < 600) score += 160; }
         // a 16-emitter array spreads over the salvo instead of all tracking the nearest round
         if (s.ex) score -= ((mu.id * 31 + m.index * 17) % 13) * 22;
         if (score > bestScore) { bestScore = score; best = mu.id; }
       }
-      if (best >= 0) { m.targetId = best; m.targetIsMunition = true; return; }
+      if (best >= 0) { this.pdAssign(m, best); m.targetId = best; m.targetIsMunition = true; return; }
+      this.pdAssign(m, -1);
       m.targetIsMunition = false;
       m.targetId = -1;
       let bd = w.range;
@@ -848,8 +878,11 @@ export class World {
     m.targetIsMunition = false;
     if (m.ammo <= 0) { m.targetId = -1; return; }
     const range = w.range * (w.kind === 'torpedo' ? this.torpRangeFactor(s) : 1);
+    // P15: a capital ship's secondary battery chooses for itself (threats first) instead of following the
+    // commander's target with every gun; main guns and other ships keep the commander's target
+    const own = this.rules >= 1 && s.role === 'line' && w.kind === 'shell' && w.damage < 250;
     // prefer commander-assigned target
-    const pri = this.shipById.get(s.ai.targetId);
+    const pri = own ? undefined : this.shipById.get(s.ai.targetId);
     if (pri && pri.state === 'alive' && this.hostile(s.team, pri.team) && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > (w.kind === 'torpedo' ? 0 : s.ofx?.focus ? 0.05 : 0.2)) {
       m.targetId = pri.id; return;
     }
@@ -864,10 +897,58 @@ export class World {
       if (!inArc(t.pos)) continue;
       const suit = this.suitability(w, t);
       const hitP = clamp((t.radius + 3) / (d * Math.max(w.spread, 0.004) * 3 + 1), 0.05, 1);
-      const score = suit * hitP * (1.2 - 0.5 * t.hp / t.maxHp) * (t.id === s.ai.targetId ? (s.ofx?.focus ? 2.5 : 1.5) : 1) * (1 + t.value / 600);
+      let score = suit * hitP * (1.2 - 0.5 * t.hp / t.maxHp) * (t.id === s.ai.targetId ? (s.ofx?.focus ? 2.5 : 1.5) : 1) * (1 + t.value / 600);
+      if (own) score *= this.gunThreat(s, m, t, d);
       if (score > bestScore) { bestScore = score; best = t.id; }
     }
     m.targetId = best;
+  }
+
+  /** P15 secondary battery: a ship that can torpedo this one soon is shot first; small craft already under
+   *  fire from enough of this ship's guns are left to them (the rest spread over other targets) */
+  private gunThreat(s: Ship, m: Mount, t: Ship, d: number): number {
+    let k = 1;
+    if (t.role !== 'line') {
+      for (const tm of t.mounts) if (tm.weapon.kind === 'torpedo' && tm.ammo > 0 && tm.disabled <= 0 && d < tm.weapon.range * 1.5) { k *= 3; break; }
+      let n = 0;
+      for (const o of s.mounts) if (o !== m && o.targetId === t.id && !o.targetIsMunition && o.weapon.kind !== 'pd') n++;
+      // enough guns for its size: a raider ~2, an escort ~3
+      const enough = t.role === 'raider' ? 2 : 3;
+      if (n >= enough) k /= 1 + (n - enough + 1) * 0.8;
+    }
+    return k;
+  }
+
+  /** P15 point defence: how much a round matters to this mount — guided rounds after this ship or a
+   *  friend close by, unguided rounds only if they will actually pass close to one — and how many
+   *  emitters already follow it (enough for its armour are left to it; the rest look elsewhere). */
+  private pdThreat(s: Ship, mu: Munition, m: Mount): number {
+    let score = Math.min(150, mu.weapon.damage / 8);
+    if (mu.straight) {
+      // closest approach of the straight run to this ship, or to the friend it was fired at (within 600 m)
+      const at = this.shipById.get(mu.targetId);
+      const friend = at && at !== s && at.team === s.team && at.state === 'alive' && at.pos.distTo(s.pos) < 600 ? at : undefined;
+      score += this.onCourse(mu, s) ? 160 : friend && this.onCourse(mu, friend) ? 120 : -400;
+    } else if (mu.targetId === s.id) score += 120;
+    else { const at = this.shipById.get(mu.targetId); if (at && at.team === s.team && at.pos.distTo(s.pos) < 600) score += s.ofx?.pdNet ? 160 : 60; }
+    const load = (this.pdLoad.get(mu.id) ?? 0) - (m.targetIsMunition && m.targetId === mu.id ? 1 : 0);
+    const need = mu.hp + 1;
+    if (load >= need) score -= 140 * (load - need + 1);
+    return score;
+  }
+  /** does a straight-running round pass within the hull of ship f (closest approach of the two tracks)? */
+  private onCourse(mu: Munition, f: Ship): boolean {
+    const px = mu.pos.x - f.pos.x, py = mu.pos.y - f.pos.y, pz = mu.pos.z - f.pos.z;
+    const vx = mu.vel.x - f.vel.x, vy = mu.vel.y - f.vel.y, vz = mu.vel.z - f.vel.z;
+    const vv = vx * vx + vy * vy + vz * vz;
+    const tc = clamp(-(px * vx + py * vy + pz * vz) / Math.max(vv, 1e-6), 0, mu.life);
+    const mx = px + vx * tc, my = py + vy * tc, mz = pz + vz * tc;
+    return mx * mx + my * my + mz * mz < (f.radius + f.halfLen + 6) ** 2;
+  }
+  private pdAssign(m: Mount, id: number) {
+    if (this.rules < 1) return;
+    if (m.targetIsMunition && m.targetId >= 0) { const n = (this.pdLoad.get(m.targetId) ?? 1) - 1; if (n > 0) this.pdLoad.set(m.targetId, n); else this.pdLoad.delete(m.targetId); }
+    if (id >= 0) this.pdLoad.set(id, (this.pdLoad.get(id) ?? 0) + 1);
   }
 
   /** expected damage multiplier of a weapon vs a target's side armor */
@@ -914,6 +995,13 @@ export class World {
     } else if (kind === 'missile') {
       const out = new Vec3().subVectors(muzzle, s.pos).normalize();
       vel = new Vec3().copy(UP).scale(70).addScaled(out, 30).addScaled(s.vel, 1).addScaled(dir, 20);
+    } else if (this.unguided(w)) {
+      // P15: a plasma torpedo leaves on the fire-control lead solution (with launch dispersion) and runs straight
+      const side = new Vec3().crossVectors(dir, UP).normalize();
+      const up = new Vec3().crossVectors(side, dir).normalize();
+      const sp = w.spread / s.gunnery * (s.crit.bridge > 0 ? 1.6 : 1);
+      dir.addScaled(side, this.rng.gauss() * sp).addScaled(up, this.rng.gauss() * sp * 0.3).normalize();
+      vel = dir.clone().scale(w.speed * 0.7);
     } else {
       vel = s.fwd.clone().scale(w.speed * 0.7).addScaled(s.vel, 0.5);
     }
@@ -923,6 +1011,7 @@ export class World {
       targetId: m.targetId, hp: w.munitionHp ?? 1, age: 0, dead: false,
     };
     if (s.ofx?.mGuide && kind !== 'shell') mu.gm = 1 + s.ofx.mGuide;
+    if (kind !== 'shell' && this.unguided(w)) mu.straight = true;
     this.munitions.push(mu); this.munitionById.set(mu.id, mu);
     this.events.push({ t: 'fire', ship: s.id, mount: m.index, kind, weapon: w.id, pos: muzzle.clone(), dir: dir.clone() });
     if (s.ex) exNoteShot(s, w.id);
@@ -937,6 +1026,8 @@ export class World {
       const mu = this.munitionById.get(m.targetId)!;
       let chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.6 * (s.ofx?.torpPd ? 1 + s.ofx.torpPd : 1) : 1);
       if (s.jamUntil !== undefined && s.jamUntil > this.time) chance *= 0.55;   // BLACKOUT
+      // P15: an unguided round runs a predictable straight line — fire control leads it far better
+      if (mu.straight) chance *= 1.6;
       const hit = this.rng.chance(chance);
       const to = mu.pos.clone();
       if (!hit) to.add(new Vec3(this.rng.range(-8, 8), this.rng.range(-8, 8), this.rng.range(-8, 8)));
@@ -1048,6 +1139,7 @@ export class World {
   private guide(mu: Munition) {
     const dt = this.dt;
     const w = mu.weapon;
+    if (mu.straight) { const sp = mu.vel.length(); mu.vel.scale(Math.min(w.speed, sp + w.speed * 1.2 * dt) / Math.max(sp, 1e-6)); return; }
     let t = this.shipById.get(mu.targetId);
     if (mu.lost) { const sp = mu.vel.length(); mu.vel.scale(Math.min(w.speed, sp + w.speed * 1.2 * dt) / Math.max(sp, 1e-6)); return; }
     // B-1 decoys: once, inside 250 m, a guided round aimed at the officer's ship may lose its lock for good
@@ -1114,6 +1206,9 @@ export class World {
     let dmg = w.damage * mul * this.rng.range(0.85, 1.15) * through;
     if (ax) { const big = t.role === 'line'; dmg *= 1 + (big ? ax.dmgCap ?? 0 : ax.dmgSmall ?? 0) + (facing === 'rear' ? ax.rearDmg ?? 0 : 0); }
     if (t.ofx) { if (t.ofx.brace && t.hp < t.maxHp * 0.3) dmg *= 1 - t.ofx.brace; t.ofHit = this.time; }
+    // P15: a large hull's subdivision limits what one hit can wreck (the stern is less protected)
+    const struct = this.rules >= 1 ? t.cls.structure : undefined;
+    if (struct && dmg > struct.bulk) dmg = struct.bulk + (dmg - struct.bulk) * (1 - struct.absorb * (facing === 'rear' ? 0.5 : 1));
     t.hp -= dmg;
     t.stats.dmgTaken += dmg;
     t.recentDamage += dmg;
@@ -1132,7 +1227,8 @@ export class World {
     this.intensity += dmg / 300;
     // critical hits
     if (result === 'pen' && t.state === 'alive') {
-      const p = clamp(w.damage / 900, 0.01, 0.4) * (facing === 'rear' ? 1.8 : 1) * (ax?.crit ? 1 + ax.crit : 1) * (t.ofx?.critRes ? 1 - t.ofx.critRes : 1);
+      let p = clamp(w.damage / 900, 0.01, 0.4) * (facing === 'rear' ? 1.8 : 1) * (ax?.crit ? 1 + ax.crit : 1) * (t.ofx?.critRes ? 1 - t.ofx.critRes : 1);
+      if (struct) p *= 1 - struct.critRes * (facing === 'rear' ? 0.5 : 1);
       if (this.rng.chance(p)) this.applyCrit(t);
     }
     if (t.hp <= 0 && t.state === 'alive') this.startDying(t, attackerId, facing === 'rear', kind);
@@ -1141,7 +1237,7 @@ export class World {
   private applyCrit(t: Ship) {
     const r = this.rng.next();
     let crit: 'engine' | 'weapon' | 'fire' | 'bridge';
-    const dc = t.ofx?.dc ? 1 - t.ofx.dc : 1;
+    const dc = (t.ofx?.dc ? 1 - t.ofx.dc : 1) * (this.rules >= 1 ? t.cls.structure?.dc ?? 1 : 1);
     if (r < 0.3) { crit = 'engine'; t.crit.engine = 14 * dc; }
     else if (r < 0.62) {
       crit = 'weapon';

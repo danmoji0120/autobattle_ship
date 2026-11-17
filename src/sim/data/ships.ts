@@ -38,6 +38,13 @@ export interface ShipClassDef {
   cost: number;
   desc: string;
   loadouts: LoadoutDef[];
+  /** P15 (BattleSetup.rules ≥ 1): internal structure of a large hull — subdivision, torpedo bulkheads,
+   *  redundant systems and damage-control parties. Content values per hull class (an old or poor design
+   *  can carry less or none); the battle rule that reads them is World.applyHit / applyCrit.
+   *  `bulk`: damage one hit does in full before the compartment walls take a share of the rest;
+   *  `absorb`: share of the damage above `bulk` the subdivision soaks up (front/side; rear hits get half);
+   *  `critRes`: share of critical hits shrugged off (rear hits get half); `dc`: crit duration multiplier. */
+  structure?: { bulk: number; absorb: number; critRes: number; dc: number };
 }
 
 const m = (weapon: string, pos: [number, number, number], facing: number, arc: number): MountDef => ({ weapon, pos, facing, arc });
@@ -47,6 +54,7 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
     id: 'battleship', name: '아퀼라급', enemyName: '타이런트급', type: '전함', role: 'line',
     length: 64, radius: 8.5, hp: 13000, armor: { front: 72, side: 52, rear: 30 },
     maxSpeed: 32, accel: 6, turnRate: 9, lateral: 0.35, cost: 300,
+    structure: { bulk: 380, absorb: 0.55, critRes: 0.4, dc: 0.7 },
     desc: '함대의 중심. 압도적인 주포와 두꺼운 전면 장갑. 측후방은 상대적으로 취약하다.',
     loadouts: [
       {
@@ -85,6 +93,7 @@ export const SHIP_CLASSES: Record<string, ShipClassDef> = {
     id: 'cruiser', name: '세이버급', enemyName: '레이저백급', type: '중순양함', role: 'line',
     length: 38, radius: 5.5, hp: 5000, armor: { front: 40, side: 30, rear: 18 },
     maxSpeed: 46, accel: 10, turnRate: 17, lateral: 0.4, cost: 140,
+    structure: { bulk: 320, absorb: 0.3, critRes: 0.2, dc: 0.85 },
     desc: '다재다능한 주력함. 미사일 일제사격으로 적 방공망을 시험한다.',
     loadouts: [
       {
@@ -194,6 +203,7 @@ Object.assign(SHIP_CLASSES, {
     id: 'battlecruiser', name: '발키리급', enemyName: '레비아탄급', type: '순양전함', role: 'line',
     length: 54, radius: 7, hp: 9000, armor: { front: 54, side: 38, rear: 22 },
     maxSpeed: 42, accel: 9, turnRate: 12, lateral: 0.38, cost: 220,
+    structure: { bulk: 380, absorb: 0.35, critRes: 0.25, dc: 0.8 },
     desc: '전함급 주포와 순양함의 속도. 대신 장갑이 얇아 정면 난타전은 피해야 한다.',
     loadouts: [
       { id: 'heavy', name: '주포', desc: '주포 2 + 부포 4 + 방공 4.', mounts: [m('heavy_cannon', [0, 4.6, 14], 0, 150), m('heavy_cannon', [0, 6.4, 6], 0, 150), m('medium_gun', [5.2, 3, 8], 90, 100), m('medium_gun', [-5.2, 3, 8], -90, 100), m('medium_gun', [5.2, 3, -6], 90, 100), m('medium_gun', [-5.2, 3, -6], -90, 100), m('pd_gun', [4.4, 3.6, 19], 90, 175), m('pd_gun', [-4.4, 3.6, 19], -90, 175), m('pd_gun', [4.6, 3.6, -20], 90, 175), m('pd_gun', [-4.6, 3.6, -20], -90, 175)] },
@@ -205,6 +215,7 @@ Object.assign(SHIP_CLASSES, {
     id: 'dreadnought', name: '임페라토르급', enemyName: '아포칼립스급', type: '초대형 전함', role: 'line',
     length: 92, radius: 12, hp: 26000, armor: { front: 90, side: 66, rear: 40 },
     maxSpeed: 24, accel: 4, turnRate: 6, lateral: 0.3, cost: 600,
+    structure: { bulk: 420, absorb: 0.65, critRes: 0.5, dc: 0.6 },
     desc: '움직이는 요새. 대형 조선소로도 부족해 전용 건조 독이 필요하다.',
     loadouts: [
       { id: 'std', name: '전열', desc: '주포 5 + 부포 6 + VLS 2 + 방공 8.', mounts: [

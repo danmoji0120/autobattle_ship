@@ -136,6 +136,8 @@ export interface Munition {
   phased?: boolean; ghost?: number;
   /** B-1: guidance multiplier from the launching officer; lost lock (decoy) */
   gm?: number; lost?: boolean; decoyed?: boolean;
+  /** P15: an unguided round (runs straight on its launch solution) */
+  straight?: boolean;
 }
 
 export interface GroupAI {

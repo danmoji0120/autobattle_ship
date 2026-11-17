@@ -102,6 +102,9 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     if (c.kind === 'shell' || c.kind === 'missile' || c.kind === 'torpedo') rng('speed', 50, 8000);
     if (c.kind === 'missile' || c.kind === 'torpedo') { rng('guidedTurn', 0.1, 5); rng('munitionHp', 1, 8); }
     if (c.kind === 'pd') rng('pdChance', 0.01, 0.3);
+    // P15: a guided torpedo carries a limited load; an unguided one may be unlimited
+    if (c.p15?.magazine !== undefined && !(c.p15.magazine >= 1 && c.p15.magazine <= 20)) err(at, `combat.p15.magazine ${c.p15.magazine} (1–20)`);
+    if (c.kind === 'torpedo' && !c.p15?.unguided && c.magazine === undefined && c.p15?.magazine === undefined) warn(at, '유도 어뢰에 탄약 제한(p15.magazine)이 없음 — 유도 어뢰는 탄약 제한, 무제한 어뢰는 비유도(p15.unguided)');
     if (c.vsShield !== undefined && !(c.vsShield >= 0.3 && c.vsShield <= 2)) err(at, `combat.vsShield ${c.vsShield} (0.3–2)`);
     if (a.vis && (!/^#[0-9a-f]{6}$/i.test(a.vis.color) || !(a.vis.len >= 0 && a.vis.len <= 200) || !(a.vis.wid > 0 && a.vis.wid <= 4))) err(at, 'vis: color #rrggbb, len 0–200, wid 0–4');
     if (!fac(a.recipe.fac)) err(at, `recipe.fac "${a.recipe.fac}" 시설 없음`);

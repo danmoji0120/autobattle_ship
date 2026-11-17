@@ -288,6 +288,8 @@ export interface WeaponStats {
   sound?: string;
   /** exotic behaviours of exclusive weapons (see sim/data/weapons.ts) */
   pierce?: number; seek?: number; phase?: boolean; special?: 'dcp';
+  /** P15 battle rules (BattleSetup.rules ≥ 1): unguided run / magazine for a weapon that had none */
+  p15?: { unguided?: boolean; magazine?: number };
 }
 /** visual of a weapon in combat (tracer / beam colour and size) */
 export interface WeaponVis { color: string; len: number; wid: number; beam?: boolean }

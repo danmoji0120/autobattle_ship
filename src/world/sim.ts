@@ -14,7 +14,7 @@ import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, typ
 import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
 import { Rng } from '../sim/rng';
-import { World } from '../sim/world';
+import { World, BATTLE_RULES } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
 import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
@@ -4217,7 +4217,7 @@ export class WorldSim {
     const sys = this.sysOf(pos);
     const setup = {
       seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720,
-      fleets: [this.sideFleet(others, ships, 0, extraB, titleB), this.sideFleet(pirates, ships, 1, extraA, '해적')] as [FleetSpec, FleetSpec],
+      fleets: [this.sideFleet(others, ships, 0, extraB, titleB), this.sideFleet(pirates, ships, 1, extraA, '해적')] as [FleetSpec, FleetSpec], rules: BATTLE_RULES,
     };
     const e: Engagement = {
       id: this.id('e'), pos: { ...pos }, start: st.time, setup, orders: [], tick: 0, sides: [sideB, sideA], groupRefs: all.map(g => g.id),
@@ -4437,7 +4437,7 @@ export class WorldSim {
     const sides: SideSpec[] = order.map(co => ({ key: co, name: this.sideName(co, lair) }));
     const sys = this.sysOf(pos);
     const relM: Relation[][] = order.map(a => order.map(b => engRel(st, { law, sys: sys?.id }, a, b)));
-    const setup = { seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720, fleets, sides, rel: relM };
+    const setup = { seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720, fleets, sides, rel: relM, rules: BATTLE_RULES };
     const live = order.some(c => st.companies[c]?.kind === 'player');
     const nStations = [...extra.values()].flat().filter(x => x.ref?.startsWith('station:')).reduce((a, x) => a + x.ships.length, 0);
     const e: Engagement = {

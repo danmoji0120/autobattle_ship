@@ -68,12 +68,12 @@ export const P5_ARMS: ArmContent[] = [
     vis: { color: '#ff9050', len: 0, wid: 0.8 }, recipe: { fac: 'ammo_plant', time: 1800, in: { weapon_parts: 4, electronics: 6, munitions: 14, rare_metal: 2 } }, supply: { chemicals: 0.8 } }),
   // ── torpedo: standard → (heavy plasma: existing) → advanced anti-ship
   W({ id: 'eq_torp_std', name: '표준 어뢰', family: 'torpedo', tier: 1, role: 'anti-capital', size: 'M', mass: 9, power: 1, mounts: ['fixed', 'turret', 'vls'], tech: 'torpedo_casting',
-    desc: '보급형 대함 어뢰. 중어뢰보다 약하지만 싸고 빨리 만든다.',
-    combat: { kind: 'torpedo', damage: 650, pen: 80, range: 760, speed: 190, reload: 18, salvo: 2, salvoGap: 0.4, spread: 0.05, turnSpeed: 360, caliber: 1.5, guidedTurn: 0.7, munitionHp: 2, vsShield: 0.9, sound: 'torpedo' },
+    desc: '보급형 유도 어뢰. 중(重) 플라즈마 어뢰보다 약하지만 표적을 쫓아간다. 탄약 제한 4회 일제사(8발).',
+    combat: { kind: 'torpedo', damage: 650, pen: 80, range: 760, speed: 190, reload: 18, salvo: 2, salvoGap: 0.4, spread: 0.05, turnSpeed: 360, caliber: 1.5, guidedTurn: 0.7, munitionHp: 2, vsShield: 0.9, sound: 'torpedo', p15: { magazine: 4 } },
     recipe: { fac: 'ammo_plant', time: 600, in: { weapon_parts: 2, munitions: 12, electronics: 1 } }, supply: { chemicals: 0.5 } }),
   W({ id: 'eq_torp_asm', name: '고급 대함 어뢰', family: 'torpedo', tier: 3, role: 'anti-capital', size: 'L', mass: 20, power: 4, mounts: ['fixed', 'vls'], tech: 'asm_torpedoes',
-    desc: '장갑 탄체 대함 어뢰. 요격에 강하고 한 발이 순양함을 반파한다. 근접해야 쏠 수 있다.',
-    combat: { kind: 'torpedo', damage: 1600, pen: 125, range: 1100, speed: 210, reload: 28, salvo: 2, salvoGap: 0.5, spread: 0.05, turnSpeed: 360, caliber: 2.1, guidedTurn: 0.9, munitionHp: 4, vsShield: 0.9, sound: 'torpedo' },
+    desc: '장갑 탄체 유도 대함 어뢰. 요격에 강하고 한 발이 순양함을 반파한다. 근접해야 쏠 수 있다. 탄약 제한 3회 일제사(6발).',
+    combat: { kind: 'torpedo', damage: 1600, pen: 125, range: 1100, speed: 210, reload: 28, salvo: 2, salvoGap: 0.5, spread: 0.05, turnSpeed: 360, caliber: 2.1, guidedTurn: 0.9, munitionHp: 4, vsShield: 0.9, sound: 'torpedo', p15: { magazine: 3 } },
     recipe: { fac: 'ammo_plant', time: 2400, in: { weapon_parts: 6, munitions: 24, electronics: 4, rare_metal: 4 } }, supply: { chemicals: 1.2 } }),
   // ── plasma: short range, slow bolts, enormous armour damage, poor vs shields
   W({ id: 'eq_plasma_s', name: '플라즈마 포', family: 'plasma', tier: 2, role: 'general', size: 'M', mass: 10, power: 16, mounts: ['turret', 'fixed'], tech: 'plasma_containment',

@@ -4,7 +4,7 @@ import { SHIP_CLASSES } from '../sim/data/ships';
 import { WEAPONS } from '../sim/data/weapons';
 import { ACTING_CAPTAIN, type CommanderDef, type Specialty } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, InitialOrder, ShipFx, ShipSpec } from '../sim/fleet';
-import { World, type BattleSetup } from '../sim/world';
+import { World, BATTLE_RULES, type BattleSetup } from '../sim/world';
 import { EQUIPMENT, TECHS, fitFx, growthFx } from '../world/industry';
 import { bayModules, checkFitting, loadoutLabel, shipLoadout, type ShipFitting } from '../world/fitting';
 import { CONTENT_VERSION } from '../world/migrate';
@@ -177,7 +177,7 @@ export function battleSetup(config: LabConfig, seed = config.seed, swapped = fal
     });
     return { name: side.name, root: toGroup(side.root) };
   }) as [FleetSpec, FleetSpec];
-  return { seed, scenarioId: 'kestrel', fleets, spawnZ: config.distance / 2, timeLimit: config.timeLimit };
+  return { seed, scenarioId: 'kestrel', fleets, spawnZ: config.distance / 2, timeLimit: config.timeLimit, rules: BATTLE_RULES };
 }
 
 const zero = (): SideResult => ({ survivors: 0, destroyed: 0, kills: 0, escaped: 0, dealt: 0, taken: 0, hull: 0, maxHull: 0, shots: 0, hits: 0, intercepts: 0 });
