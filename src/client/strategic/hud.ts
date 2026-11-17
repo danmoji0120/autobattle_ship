@@ -40,7 +40,7 @@ import { OP_NAME as P12_OP_NAME, PHASE_NAME } from '../../world/fleetops';
 import { FittingScreen } from './fittingUi';
 import { CONTENT } from '../../content/registry';
 import { checkFitting } from '../../world/fitting';
-import { growthOn, econOf, miningCargoCapacity, shipWorth } from '../../world/hullops';
+import { growthOn, econOf, canBuild, miningCargoCapacity, shipWorth } from '../../world/hullops';
 import { priceOf } from '../../world/market';
 import { blackMarketHtml, contrabandNote, customsHtml, knownBmAt } from './blackmarketUi';
 import { pubYardHtml, ownYardGrowthHtml, newGrowthYardUi, exchangeHtml, blueprintsHtml, upkeepTop, upkeepHtml, storageGrowthHtml, sitesHtml } from './growthUi';
@@ -326,7 +326,7 @@ export class PmcHud {
     }
     if (p?.kind === 'station') {
       const s = this.st.stations[p.id];
-      if (s.owner === this.me && s.modules.some(m => !m.built) && this.subtree(g).some(x => x.classId === 'constructor' || growthOn(this.st) && econOf(x).cargo > 0 && cargoSum(x.cargo) > 0)) return void this.setOp({ k: 'build', station: s.id });
+      if (s.owner === this.me && s.modules.some(m => !m.built) && this.subtree(g).some(x => canBuild(x) || growthOn(this.st) && econOf(x).cargo > 0 && cargoSum(x.cargo) > 0)) return void this.setOp({ k: 'build', station: s.id });
       return void this.setOp({ k: 'dock', station: p.id });
     }
     if (p?.kind === 'lair') return void this.setOp({ k: 'attack', lair: p.id });
@@ -1195,7 +1195,7 @@ export class PmcHud {
     const groups = this.myGroups();
     const descend = (x: WGroup): string[] => [x.id, ...x.childIds.flatMap(id => st.groups[id] ? descend(st.groups[id]) : [])];
     const banned = new Set(descend(g));
-    const hasMiner = sub.some(s => econOf(s).mine > 0), hasCargo = sub.some(s => econOf(s).cargo > 0), hasCon = sub.some(s => s.classId === 'constructor'), hasMil = sub.some(s => econOf(s).military);
+    const hasMiner = sub.some(s => econOf(s).mine > 0), hasCargo = sub.some(s => econOf(s).cargo > 0), hasCon = sub.some(s => canBuild(s)), hasMil = sub.some(s => econOf(s).military);
     const opb = (k: string, label: string, key: string, show = true, cls = '') => show ? `<button class="btn${this.mode === k || (g.op.k === k && g.override) ? ' on' : ''} ${cls}" data-op="${k}">${label}<span class="key">${key}</span></button>` : '';
     const selShip = this.sel?.kind === 'ship' ? st.ships[this.sel.id] : null;
     return `<div class="gpanel">
@@ -1215,10 +1215,10 @@ export class PmcHud {
         <div class="row">
           ${opb('move', '이동', 'M')}${opb('dock', '정박', 'D')}${opb('mine', '채굴', 'N', hasMiner)}${this.st.logisticsV ? '' : opb('haul', '운송', '', hasCargo)}
           ${opb('patrol', '순찰', 'P', hasMil)}${opb('escort', '호위', 'G')}${opb('attack', '공격', 'A', hasMil, 'danger')}
-          ${opb('build', growthOn(st) && !hasCon ? '현장 반입' : '건설', '', hasCon || growthOn(st) && hasCargo)}${opb('found', '정거장 설립', '', ships.some(s => s.classId === 'constructor'))}
+          ${opb('build', growthOn(st) && !hasCon ? '현장 반입' : '건설', '', hasCon || growthOn(st) && hasCargo)}${opb('found', '정거장 설립', '', ships.some(s => canBuild(s)))}
           ${opb('idle', '대기', 'I')}${g.parentId ? `<button class="btn${!g.override ? ' on' : ''}" data-op="release" title="상위 편대 지휘관에게 위임">위임<span class="key">T</span></button>` : ''}
         </div>
-        ${growthOn(st) && ships.some(s => s.classId === 'constructor') ? `<div class="station-found-choice"><label>정거장 규모 <select data-found-size data-keep>${Object.entries(STATION_SIZES).map(([id, d]) => `<option value="${id}" ${id === this.foundSize ? 'selected' : ''}>${id} · ${d.name}</option>`).join('')}</select></label><span>${fmt(STATION_SIZES[this.foundSize].credits)} cr · ${Object.entries(STATION_SIZES[this.foundSize].mats).map(([r, n]) => `${iname(r)} ${fmt(n)}`).join(' · ')}</span><small>시설 ${STATION_SIZES[this.foundSize].capacity} · 전력 ${STATION_SIZES[this.foundSize].power} · 정박 ${STATION_SIZES[this.foundSize].berths}척 · 운영 ${fmt(STATION_SIZES[this.foundSize].upkeep)} cr/h</small></div>` : ''}
+        ${growthOn(st) && ships.some(s => canBuild(s)) ? `<div class="station-found-choice"><label>정거장 규모 <select data-found-size data-keep>${Object.entries(STATION_SIZES).map(([id, d]) => `<option value="${id}" ${id === this.foundSize ? 'selected' : ''}>${id} · ${d.name}</option>`).join('')}</select></label><span>${fmt(STATION_SIZES[this.foundSize].credits)} cr · ${Object.entries(STATION_SIZES[this.foundSize].mats).map(([r, n]) => `${iname(r)} ${fmt(n)}`).join(' · ')}</span><small>시설 ${STATION_SIZES[this.foundSize].capacity} · 전력 ${STATION_SIZES[this.foundSize].power} · 정박 ${STATION_SIZES[this.foundSize].berths}척 · 운영 ${fmt(STATION_SIZES[this.foundSize].upkeep)} cr/h</small></div>` : ''}
         ${g.parentId ? `<div class="row small"><label class="chk" title="체크하면 이 편대는 본대 진형에서 빠져 자기 속도로 앞서 움직입니다 (정찰·선봉). 해제하면 본대와 함께 가장 느린 함선 속도로 이동합니다."><input type="checkbox" data-detach="${g.id}" ${g.detached ? 'checked' : ''}> 독립 기동 (정찰·선봉 — 본대보다 먼저 움직임)</label></div>` : ''}
         ${st.opsV ? this.fleetOpsHtml(g, opb, hasMil) : ''}
         ${g.op.k === 'escort' ? this.escortFormHtml(g) : ''}
@@ -1400,7 +1400,7 @@ export class PmcHud {
     if (!ships.some(x => x.classId === 'hauler') && co.credits > 5500) return '<b>수송선</b>을 사서 채굴반에 넣으면 채굴선이 쉬지 않고 캐냅니다 (자유항 → 조선소).';
     if (groups.some(g => g.fleeing)) return '해적이 채굴반을 위협합니다. <b>경비대</b>에 채굴반 <b>호위</b>나 소행성 지대 <b>순찰</b>을 맡기세요.';
     if (Object.values(st.commanders).filter(c => c.owner === me).length < 2 && co.credits > 4000) return '지휘관 없는 편대는 판단이 느립니다. 자유항 <b>인재</b> 탭에서 지휘관을 영입해 채굴반에 배치하세요.';
-    if (!ships.some(x => x.classId === 'constructor') && !Object.values(st.stations).some(x => x.owner === me) && co.credits > 20000) return '자금이 쌓였습니다. <b>공작선</b>을 구매하고 <b>정거장 설립</b>으로 자체 기지를 세울 수 있습니다.';
+    if (!ships.some(x => canBuild(x)) && !Object.values(st.stations).some(x => x.owner === me) && co.credits > 20000) return '자금이 쌓였습니다. <b>공작선</b>을 구매하고 <b>정거장 설립</b>으로 자체 기지를 세울 수 있습니다.';
     const own = Object.values(st.stations).find(x => x.owner === me);
     if (own && own.modules.some(m => m.kind === 'core' && !m.built) && !groups.some(g => g.op.k === 'build')) return `공작선 편대에 <b>건설</b> 명령을 내려 ${esc(own.name)}의 도킹 허브를 완성하세요. 합금이 부족하면 시장에서 사서 <b>운송</b>하세요.`;
     if (own && own.modules.some(m => !m.built && planMats(m).some(r => missing(m, r) > 1))) return `${esc(own.name)}의 건설 계획이 <b>자재 대기 중</b>입니다. 채굴선 하역지를 이 정거장으로 지정하거나 자재를 <b>운송</b>하면 자동으로 착공합니다.`;
@@ -1821,7 +1821,7 @@ export class PmcHud {
 
   private constructionGroups(station: string): WGroup[] {
     return Object.values(this.st.groups).filter(g => {
-      if (g.owner !== this.me || !this.shipsOf(g).some(ship => ship.classId === 'constructor')) return false;
+      if (g.owner !== this.me || !this.shipsOf(g).some(ship => canBuild(ship))) return false;
       let root = g;
       while (!root.override && root.parentId && this.st.groups[root.parentId]) root = this.st.groups[root.parentId];
       return root.op.k === 'build' && root.op.station === station;

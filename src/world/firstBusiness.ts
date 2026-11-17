@@ -523,7 +523,7 @@ export interface SalvageComeback {
   steps: string[];
 }
 
-const roleOfShip = (s: { classId: string; hull?: string; variant?: string }) => {
+const roleOfShip = (s: { classId: string; hull?: string; variant?: string; ind?: 1 }) => {
   const e = econOf(s);
   return e.military ? 'military' : s.classId === 'constructor' ? 'constructor' : s.classId === 'miner' ? 'miner' : s.classId === 'hauler' || e.cargo > 0 ? 'hauler' : 'other';
 };
@@ -541,15 +541,19 @@ const ROLE_NAME: Record<string, string> = { miner_mk1: '선체 해체', hauler_m
 export function salvageOperatingStatus(w: WorldState, me: string): SalvageOpStatus {
   const co = w.companies[me];
   const ships = Object.values(w.ships).filter(s => s.owner === me && s.state !== 'building');
-  const civ = ships.map(s => ({ s, role: roleOfShip(s) })).filter(x => x.role !== 'military' && x.role !== 'other');
-  const can = { hull: civ.some(x => x.role === 'miner' || x.role === 'constructor'), cargo: civ.length > 0, equip: civ.some(x => x.role === 'constructor'), frag: civ.some(x => x.role === 'constructor') };
-  const hs = civ.filter(x => x.role === 'hauler'), fit = hs.filter(x => x.s.hp >= HAULER_DISPATCH_HP);
+  const all = ships.map(s => ({ s, role: roleOfShip(s) })).filter(x => x.role !== 'military' && x.role !== 'other');
+  // industrial hardpoint rules: a civilian ship salvages (every kind of lot) only with salvage gear fitted
+  const gear = all.filter(x => x.s.ind && (econOf(x.s).salv ?? 0) > 0), old = all.filter(x => !x.s.ind);
+  const civ = [...old, ...gear], wk = (r: string) => gear.length > 0 || old.some(x => x.role === r);
+  const can = { hull: gear.length > 0 || old.some(x => x.role === 'miner' || x.role === 'constructor'), cargo: civ.length > 0, equip: wk('constructor'), frag: wk('constructor') };
+  const hs = all.filter(x => x.role === 'hauler'), fit = hs.filter(x => x.s.hp >= HAULER_DISPATCH_HP);
   const issues: string[] = [];
   let state: SalvageOpState = 'ok';
   if (!civ.length) { state = 'halted'; issues.push('회수할 수 있는 작업선이 모두 없습니다 — 새 인양은 할 수 없습니다'); }
   else {
-    if (!can.hull) issues.push('선체 해체 불가 — 채굴선·공작선이 없어 고철(합금·금속 등)을 떼어 내지 못합니다');
-    if (!can.equip) issues.push('장비·설계도 조각 회수 불가 — 공작선이 없습니다');
+    const ind = all.some(x => x.s.ind);
+    if (!can.hull) issues.push(ind ? '선체 해체 불가 — 인양 장비를 단 함선이 없어 고철(합금·금속 등)을 떼어 내지 못합니다' : '선체 해체 불가 — 채굴선·공작선이 없어 고철(합금·금속 등)을 떼어 내지 못합니다');
+    if (!can.equip) issues.push(ind ? '장비·설계도 조각 회수 불가 — 인양 장비를 단 함선이 없습니다' : '장비·설계도 조각 회수 불가 — 공작선이 없습니다');
     if (!can.hull || !can.equip) state = 'limited';
     if (!fit.length) {
       issues.push(hs.length ? `수송선 손상(내구 ${Math.round(Math.max(...hs.map(x => x.s.hp)) * 100)}%) — 수리 전에는 회수품을 다른 시장으로 운송하지 못합니다` : '수송선 없음 — 하역지 시장이 사지 않는 회수품을 다른 시장으로 옮길 수 없습니다');

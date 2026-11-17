@@ -37,8 +37,13 @@ export interface HardpointDef {
 }
 
 /** internal equipment bays (P2 fills these; listed here so the data model is final) */
-export type InternalKind = 'engine' | 'reactor' | 'sensor' | 'fcs' | 'ew' | 'armor' | 'special';
-export const INTERNAL_KINDS: InternalKind[] = ['engine', 'reactor', 'sensor', 'fcs', 'ew', 'armor', 'special'];
+export type InternalKind = 'engine' | 'reactor' | 'sensor' | 'fcs' | 'ew' | 'armor' | 'special' | 'industrial';
+export const INTERNAL_KINDS: InternalKind[] = ['engine', 'reactor', 'sensor', 'fcs', 'ew', 'armor', 'special', 'industrial'];
+/** industrial work an `industrial` module performs (mining laser, construction rig, salvage rig) */
+export type IndWork = 'mine' | 'build' | 'salvage';
+/** what an industrial module does: mine = units/s, build = construction work rate (1 = the old
+ *  standard constructor), salvage = multiplier on the salvage base rates (1 = the old constructor) */
+export interface IndSpec { work: IndWork; rate: number }
 export interface InternalSlotDef { id: string; kind: InternalKind; size: Size }
 
 /** fitting rules of one equipment item (EQUIPMENT id). `slot: 'hardpoint'` = weapon; otherwise the
@@ -111,6 +116,12 @@ export interface HullOps {
   berth?: Size;
   /** mining: fields smaller than this (max amount) cannot hold the hull efficiently (yield ×0.5) */
   minField?: number;
+  /** industrial hardpoints: efficiency multiplier the hull's design gives fitted industrial gear of each
+   *  work (miner → mine, constructor → build, salvager → salvage; absent = ×1). The hull itself does no
+   *  industrial work: without gear in an `industrial` bay it cannot mine, build or salvage. */
+  bonus?: Partial<Record<IndWork, number>>;
+  /** standard industrial fit (equipment ids) of a new hull bought from a yard or given at company start */
+  gear?: string[];
 }
 
 export interface HullBuild {
@@ -329,6 +340,8 @@ export interface ModuleContent {
   id: string; name: string; desc: string;
   slot: InternalKind; size: Size; mass: number; power: number;
   fx: CombatFx;
+  /** industrial work (only on `industrial` modules) */
+  ind?: IndSpec;
   tech?: string;
   recipe: { fac: string; time: number; in: Record<string, number> };
 }

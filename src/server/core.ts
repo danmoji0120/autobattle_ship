@@ -6,6 +6,7 @@ import { migrateTerritory } from '../world/sovereignty';
 import { backgroundOf } from '../world/backgrounds';
 import { migrateRep } from '../world/repMigrate';
 import { migrateOfficers } from '../world/officers';
+import { migrateIndustrial } from '../world/industrialGear';
 import { enableDerelicts } from '../world/derelicts';
 import { newWorldOptions, type WorldPreset } from '../world/worldPreset';
 import { Analytics, type AnalyticsOptions } from './analytics';
@@ -70,6 +71,8 @@ export interface ServerOptions {
   derelictMigrate?: boolean;
   /** B-1: convert an existing save's player commanders into growing officers (OFFICERS_B1_MIGRATE=1; idempotent) */
   officerMigrate?: boolean;
+  /** industrial hardpoints: convert a save's player ships (INDUSTRIAL_MIGRATE=1) */
+  indMigrate?: boolean;
   /** B-2: turn PMC military contracts on for an existing P11/P12 save (MILITARY_B2_MIGRATE=1; idempotent, existing contracts untouched) */
   milMigrate?: boolean;
   /** B-3: turn sovereignty & territory war on for an existing P10/P11/P12 save (TERRITORY_B3_MIGRATE=1; idempotent; no system changes hands) */
@@ -133,6 +136,7 @@ export class GameServer {
     if (save && opts.derelictMigrate) { const on = !!this.sim.st.derelictV, r = enableDerelicts(this.sim.st, this.sim.time); console.log(`[siderarium] A-3.2b 유기선: ${!this.sim.st.salvageV ? '거부 — 인양(P13.1) 월드가 아님' : on ? '이미 적용됨' : `적용 — 초기 유기선 ${r.made}척`}`); }
     if (save && opts.milMigrate) { const r = migrateMilitary(this.sim.st); console.log(`[siderarium] B-2 군사 계약: ${r.applied ? '적용' : `건너뜀 — ${r.reason}`}`); }
     if (save && opts.sovMigrate) { const r = migrateTerritory(this.sim.st); console.log(`[siderarium] B-3 영유권: ${r.applied ? '적용' : `건너뜀 — ${r.reason}`}`); }
+    if (save && opts.indMigrate) { const r = migrateIndustrial(this.sim.st); console.log(`[siderarium] 산업 하드포인트: ${r.applied ? `적용 — 함선 ${r.ships}척 · 장비 ${r.gear}개 지급 · 시장 ${r.markets}행` : `건너뜀 — ${r.reason}`}`); }
     if (save && opts.officerMigrate) { const r = migrateOfficers(this.sim.st); console.log(`[siderarium] B-1 장교 육성: 전환 ${r.converted}명 · 기존 ${r.already}명 · 제외 ${r.skipped}명`); }
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }

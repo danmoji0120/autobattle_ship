@@ -59,7 +59,7 @@ export const PROFILES: Record<string, Profile> = {
 /** target stock for a good at a market: cheap bulk goods are stocked in thousands, ship parts in single digits */
 export const targetFor = (id: string) => Math.max(2, Math.round(Math.min(5000, 40000 / Math.max(5, itemPrice(id)))));
 
-function addGood(m: Market, id: string, mult: number, fill: number, w?: WorldState) {
+export function addGood(m: Market, id: string, mult: number, fill: number, w?: WorldState) {
   if (m[id]) return;
   const target = targetFor(id);
   m[id] = { stock: Math.round(target * fill), target, base: marketBase(w, id, mult, () => Math.round(itemPrice(id) * mult * 10) / 10) };

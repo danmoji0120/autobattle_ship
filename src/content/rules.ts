@@ -17,7 +17,7 @@ export function weaponType(weapon: string): HardpointType {
 
 export const TYPE_NAME: Record<HardpointType, string> = { ballistic: '실탄', energy: '에너지', missile: '미사일', universal: '범용', pd: '방공' };
 export const MOUNT_NAME: Record<string, string> = { turret: '포탑', fixed: '고정', vls: '수직발사', spinal: '척추' };
-export const BAY_NAME: Record<string, string> = { engine: '엔진', reactor: '동력', sensor: '센서', fcs: '사격통제', ew: '전자전', armor: '장갑', special: '범용' };
+export const BAY_NAME: Record<string, string> = { engine: '엔진', reactor: '동력', sensor: '센서', fcs: '사격통제', ew: '전자전', armor: '장갑', special: '범용', industrial: '산업' };
 
 export const equipSpec = (id: string, reg: Registry = CONTENT): EquipSpec | undefined => reg.equipment[id];
 /** combat weapon id of a weapon equipment item */
@@ -41,6 +41,9 @@ export function bayAccepts(bay: InternalSlotDef, equipId: string, reg: Registry 
   const spec = reg.equipment[equipId];
   if (!spec || EQUIPMENT[equipId]?.kind !== 'module') return `${EQUIPMENT[equipId]?.name ?? equipId}: 내부 장비가 아님`;
   if (spec.slot === 'hardpoint') return `${EQUIPMENT[equipId].name}: 무장은 하드포인트에 장착`;
+  // industrial gear needs an industrial hardpoint (a universal bay does not take it), and an
+  // industrial hardpoint takes nothing else
+  if (spec.slot === 'industrial' && bay.kind !== 'industrial') return `${EQUIPMENT[equipId].name}: 산업 하드포인트에만 장착`;
   if (bay.kind !== 'special' && bay.kind !== spec.slot) return `${BAY_NAME[bay.kind]} 베이에 ${BAY_NAME[spec.slot]} 장비 불가`;
   if (sizeRank(spec.size) > sizeRank(bay.size)) return `크기 초과 — 장비 ${spec.size}, 베이 ${bay.size}`;
   return null;

@@ -39,7 +39,7 @@ describe('A-2.1 recovery sorties', () => {
     expect(ships(miners).every(s => s.state === 'docked')).toBe(true);
     expect(departureHeld(w, ships(miners)[0])).toBe('운영비 체납 — 신규 출항 보류');
     // name both miners: they leave for the belt; the guard stays held
-    for (const s of ships(miners)) expect(sim.command(me, { c: 'recovery', ship: s.id, on: true } as any)).toBeNull();
+    for (const s of ships(miners).filter(x => x.classId === 'miner')) expect(sim.command(me, { c: 'recovery', ship: s.id, on: true } as any)).toBeNull();
     expect(upkeepOf(co).recovery).toBeTruthy();
     expect(sim.command(me, { c: 'setOp', group: guard.id, op: { k: 'escort', group: miners.id } } as any)).toBeNull();
     run(sim, 120);

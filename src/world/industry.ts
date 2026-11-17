@@ -63,6 +63,8 @@ export interface EquipDef {
   fx?: Partial<FitFx>;
   /** growth combat effects (shields, …) — applied only in growth worlds */
   cfx?: import('../content/schema').CombatFx;
+  /** industrial work of an industrial-hardpoint module (mining laser, construction rig, salvage rig) */
+  ind?: import('../content/schema').IndSpec;
   /** goods consumed per hour of service (growth upkeep) */
   supply?: Record<string, number>;
   /** growth-only content (contentV ≥ 3) */

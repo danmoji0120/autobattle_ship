@@ -9,6 +9,7 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
+import { enableIndustrial, fitGear, fitStandardGear, markIndustrial } from './industrialGear';
 import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, type RepairSettings } from './autoRepair';
 import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
@@ -38,12 +39,12 @@ import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInflu
 import { canQueue, stepResearch, learnBlueprint, projectCredits, projectTime, wreckLoot, unlockSummary } from './research';
 const techName = (id: string) => TECHS[id]?.name ?? id;
 import { STATION_CREW_RATE } from './data';
-import { econOf, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth, yardShipPrice } from './hullops';
+import { econOf, canBuild, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth, yardShipPrice } from './hullops';
 import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
-import { BACKGROUND, backgroundOf, backgroundsOn, backgroundStanding, backgroundTerms } from './backgrounds';
+import { BACKGROUND, backgroundOf, backgroundShips, backgroundsOn, backgroundStanding, backgroundTerms } from './backgrounds';
 import { firstProfitReached, pnlSinceFounding } from './firstBusiness';
 import type { Background, BackgroundTerm } from './backgrounds';
-import { STARTER_BLUEPRINTS, grantBlueprint, rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
+import { rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
 import { sortieProblem, buybackProblem, buybackValue, earner, miner, tradeInOpen, recoveryShips, yardStock, RECOVERY_SHIPS, SWAP_HULLS } from './recovery';
@@ -291,7 +292,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -327,6 +328,8 @@ export class WorldSim {
     if (opts.military === 'b2') enableMilitary(sim.st);
     // B-3 sovereignty & territory war: opt-in for new worlds (saves: explicit migration, migrateTerritory)
     if (opts.territory === 'b3') enableTerritory(sim.st);
+    // industrial hardpoints: opt-in for new growth worlds (saves: explicit migration, migrateIndustrial)
+    if (opts.industrial === 'ind1' && growthOn(sim.st)) enableIndustrial(sim.st);
     return sim;
   }
 
@@ -661,6 +664,7 @@ export class WorldSim {
     const s: WShip = { id, owner, classId, loadoutId, name: nm, hp: 1, pos: { ...pos }, vel: { x: 0, y: 0, z: 0 }, heading: this.rng.range(0, 6.28), groupId, state: 'space', task: { k: 'none' }, cargo: emptyCargo(), kills: 0 };
     syncShipContent(this.st, s);
     if (this.fitsV2(s)) this.legacyFitting(s);
+    markIndustrial(this.st, s);
     this.st.ships[id] = s;
     this.st.groups[groupId].shipIds.push(id);
     return s;
@@ -705,7 +709,9 @@ export class WorldSim {
       id, name: name.slice(0, 20) || `PMC-${id}`, kind: 'player', color: PLAYER_COLORS[n % PLAYER_COLORS.length], credits: START_CREDITS_LEGACY, rep: 0,
       createdAt: this.time, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [], homeStation: home, tech: [], research: [],
     };
-    if (growthOn(this.st)) { const co = this.st.companies[id]; co.credits = START_CREDITS_GROWTH; for (const b of STARTER_BLUEPRINTS) grantBlueprint(this.st, co, b, 'starter', this.time); upkeepOf(co).last = this.time; }
+    // new companies start with no blueprints: they are needed only to build in an own yard (granted and bought
+    // ships need none); companies that already hold blueprints keep them (migrate.ts handles old build rights)
+    if (growthOn(this.st)) { const co = this.st.companies[id]; co.credits = START_CREDITS_GROWTH; co.blueprints = {}; upkeepOf(co).last = this.time; }
     for (const s of Object.values(this.st.stations)) s.storage[id] = emptyCargo();
     return id;
   }
@@ -723,8 +729,10 @@ export class WorldSim {
       return grp;
     });
     const used = new Set(Object.values(this.st.ships).filter(o => o.task.k === 'docked' && o.task.station === st.id).map(o => (o.task as any).berth));
-    for (const sh of bg.ships) for (let k = 0; k < sh.n; k++) {
+    for (const sh of backgroundShips(this.st, bg)) for (let k = 0; k < sh.n; k++) {
       const s = this.spawnHull(id, sh.hull, sh.variant, sh.preset, groups[sh.group].id, st.pos);
+      // industrial hardpoints: the founding fleet comes fitted for its work (stated gear, else the hull's standard)
+      if (s.ind) fitGear(s, sh.gear ?? CONTENT.hulls[sh.hull]?.ops?.gear ?? []);
       // docked at the home berth without a docking event (no inspection, no black-market contact — it was founded here)
       let b = hashId(s.id) % BERTH_MAX; let i = 0; while (used.has(b) && i++ < BERTH_MAX) b = (b + 1) % BERTH_MAX; used.add(b);
       s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
@@ -737,6 +745,7 @@ export class WorldSim {
   }
 
   private createPlayer(name: string): string {
+    if (this.st.indV) return this.createIndustrialPlayer(name);
     const n = Object.values(this.st.companies).filter(c => c.kind === 'player').length;
     const id = this.newPlayerCompany(name, 'astra');
     const astra = this.st.stations.astra;
@@ -754,6 +763,30 @@ export class WorldSim {
     dock(this.spawnShip(id, 'corvette', 'gun', guard.id, astra.pos), i++);
     this.ev('world', `신생 PMC "${this.st.companies[id].name}"가 아스트라 자유항에 등록했다.`);
     this.ev('info', '아스트라 자유항에 정박 중. 채굴반을 소행성 지대로 보내 첫 수익을 올려 보자.', { company: id });
+    return id;
+  }
+
+  /** the default start of an industrial hardpoint world: a working mining crew with its gear fitted (two
+   *  miners with small mining lasers and an ore hauler) and a light escort of two corvettes. Smaller and
+   *  cheaper to run than the original start (no destroyer): the money is in the work, not the hulls. */
+  private createIndustrialPlayer(name: string): string {
+    const n = Object.values(this.st.companies).filter(c => c.kind === 'player').length;
+    const id = this.newPlayerCompany(name, 'astra');
+    const astra = this.st.stations.astra;
+    const mining = this.newGroup(id, '제1 채굴반');
+    const guard = this.newGroup(id, '경비대');
+    const cm = this.newCommander(id, 1);
+    cm.skill = Math.max(cm.skill, 0.5);
+    guard.commanderId = cm.id;
+    const dock = (s: WShip, i: number) => { s.state = 'docked'; const b = (i + n * 5) % 28; s.task = { k: 'docked', station: 'astra', berth: b }; s.pos = berthPos(astra, b); };
+    let i = 0;
+    for (const [hull, preset, g, gear] of [['miner_mk1', 'miner_std', mining, ['ind_mine_s']], ['miner_mk1', 'miner_std', mining, ['ind_mine_s']], ['hauler_mk1', 'hauler_std', mining, []], ['corvette_mk1', 'corvette_gun', guard, []], ['corvette_mk1', 'corvette_gun', guard, []]] as const) {
+      const s = this.spawnHull(id, hull, `${hull}_std`, preset, g.id, astra.pos);
+      if (s.ind) fitGear(s, [...gear]);
+      dock(s, i++);
+    }
+    this.ev('world', `신생 PMC "${this.st.companies[id].name}"가 아스트라 자유항에 등록했다.`);
+    this.ev('info', '아스트라 자유항에 정박 중. 채굴선에는 소형 채굴 레이저가 달려 있다 — 채굴반을 소행성 지대로 보내 첫 수익을 올려 보자.', { company: id });
     return id;
   }
 
@@ -855,7 +888,7 @@ export class WorldSim {
             if (difference > 0 && co.credits < difference) return `${difference.toLocaleString()} cr 필요`;
             // Only the constructor's actual cargo and its current dock's free stock can travel
             // with it. A market elsewhere never moves resources into this hold.
-            const con = this.shipsOf(g).find(s => s.classId === 'constructor')!;
+            const con = this.shipsOf(g).find(s => canBuild(s))!;
             const at = con.state === 'docked' && con.task.k === 'docked' ? this.st.stations[con.task.station] : undefined;
             if (at && this.canDock(at, company)) {
               let room = Math.max(0, Math.floor(econOf(con).cargo * techFx(co.tech).cargoMul - cargoSum(con.cargo)));
@@ -969,6 +1002,7 @@ export class WorldSim {
         let g = cmd.group ? G(cmd.group) : null;
         if (!g) g = this.newGroup(company, ec.military ? '신규 편대' : `${cls.type}반`);
         const s = this.spawnShip(company, cmd.classId, getLoadout(cmd.classId, cmd.loadoutId).id, g.id, st.pos);
+        if (s.ind) fitStandardGear(s);
         this.dockShip(s, st);
         this.ev('money', `${cls.name} ${cls.type} "${s.name}" 인수 (-${price.toLocaleString()} cr)`, { company, pos: st.pos });
         return null;
@@ -1762,6 +1796,7 @@ export class WorldSim {
     fundsIn(st, take.price * 0.3);
     const ng = this.newGroup(co.id, '회생 작업반', null, { k: 'idle' });
     const ns = this.spawnHull(co.id, take.hull, take.variant, take.preset, ng.id, st.pos);
+    if (ns.ind) fitStandardGear(ns);
     this.dockShip(ns, st);
     ns.recovery = recoveryShips(this.st, co.id).length < RECOVERY_SHIPS ? true : undefined;
     if (!ns.recovery) delete ns.recovery;
@@ -1808,6 +1843,7 @@ export class WorldSim {
       s.fit = [];
       s.loadoutId = loadoutLabel(h.classId, variantId, s.fitting);
       s.fitting.sig = legacySig(s.loadoutId, s.fit);
+      markIndustrial(this.st, s);
     }
     return s;
   }
@@ -1862,6 +1898,7 @@ export class WorldSim {
     const cls = SHIP_CLASSES[h.classId];
     if (!g) g = this.newGroup(co.id, econOf({ classId: h.classId, hull: h.id }).military ? '신규 편대' : `${cls.type}반`);
     const s = this.spawnHull(co.id, ch.hull, ch.variant, ch.preset, g.id, st.pos);
+    if (s.ind) fitStandardGear(s);   // a public yard's standard build carries its standard industrial gear
     this.dockShip(s, st);
     this.ev('money', `${h.name} ${cls.type} "${s.name}" 인수 (-${price.toLocaleString()} cr · ${st.name} 재고 ${stock.n})`, { company: co.id, pos: st.pos });
     return null;
@@ -2029,12 +2066,12 @@ export class WorldSim {
         const st = this.st.stations[op.station]; if (!st || st.owner !== company) return '자사 정거장이 아님';
         // An overridden child does not execute this order, even if it owns the only cargo ship.
         const working = growthOn(this.st) ? this.subtreeShipsInOp(g, true) : sub;
-        return working.some(s => s.classId === 'constructor' || growthOn(this.st) && econOf(s).cargo > 0 && cargoSum(s.cargo) > 0) ? null : growthOn(this.st) ? '명령을 수행할 공작선 또는 자재를 실은 화물선이 필요' : '공작선이 필요';
+        return working.some(s => canBuild(s) || growthOn(this.st) && econOf(s).cargo > 0 && cargoSum(s.cargo) > 0) ? null : growthOn(this.st) ? '명령을 수행할 공작선 또는 자재를 실은 화물선이 필요' : '공작선이 필요';
       }
       case 'found': {
         if (growthOn(this.st) && (typeof op.name !== 'string' || !op.at || !Number.isFinite(op.at.x) || !Number.isFinite(op.at.y) || !Number.isFinite(op.at.z))) return '정거장 이름과 부지 좌표를 확인하세요';
         if (op.size !== undefined && (!growthOn(this.st) || !validStationSize(op.size))) return '정거장 규모를 확인하세요';
-        if (!ships.some(s => s.classId === 'constructor')) return '공작선이 이 부대에 직접 있어야 함';
+        if (!ships.some(s => canBuild(s))) return '건설 장비를 단 함선(공작선)이 이 부대에 직접 있어야 함';
         for (const s of Object.values(this.st.stations)) if (dist2(s.pos, op.at) < 2600) return '다른 정거장과 너무 가깝다 (2,600 이상)';
         for (const l of Object.values(this.st.lairs)) if (dist2(l.pos, op.at) < 3000) return '해적 은신처와 너무 가깝다';
         const sys = this.sysOf(op.at);
@@ -2069,7 +2106,7 @@ export class WorldSim {
 
   private prepareFound(company: string, g: WGroup): string | null {
     const co = this.st.companies[company];
-    const con = this.shipsOf(g).find(s => s.classId === 'constructor')!;
+    const con = this.shipsOf(g).find(s => canBuild(s))!;
     if (con.cargo.alloy >= FOUND_COST.alloy) return co.credits >= FOUND_COST.credits ? (co.credits -= FOUND_COST.credits, null) : `${FOUND_COST.credits} cr 필요`;
     const need = FOUND_COST.alloy - con.cargo.alloy;
     // use stored alloy at the docked station, otherwise buy at the nearest public market
@@ -2094,7 +2131,7 @@ export class WorldSim {
     const companies = company ? [this.st.companies[company]].filter(Boolean) : Object.values(this.st.companies);
     for (const co of companies) for (const [id, amount] of Object.entries(co.foundingEscrow ?? {})) {
       const g = this.st.groups[id];
-      const valid = g?.owner === co.id && g.override && g.op.k === 'found' && g.op.escrowed && this.shipsOf(g).some(s => s.owner === co.id && s.classId === 'constructor');
+      const valid = g?.owner === co.id && g.override && g.op.k === 'found' && g.op.escrowed && this.shipsOf(g).some(s => s.owner === co.id && canBuild(s));
       if (valid) continue;
       watchMoney(this.st, 'foundation_refund', { company: co.id, group: id }, () => {
         delete co.foundingEscrow![id]; if (!Object.keys(co.foundingEscrow!).length) delete co.foundingEscrow;
@@ -2328,7 +2365,8 @@ export class WorldSim {
     if (!site || !siteActive(site, this.st.time)) { g.status = '인양 지점 소실'; if (g.override) g.op = { k: 'idle' }; return; }
     const spot = this.formationSlot(s, g, site.pos, 90);
     if (!this.moveTo(s, spot, speed, dt, 40) && dist(s.pos, site.pos) > 320) { g.status = `${site.name}로 이동 (${Math.round(dist(s.pos, site.pos))}m)`; return; }
-    const w = s.classId === 'miner' || s.classId === 'constructor' ? 2 : 1;
+    // industrial-hardpoint ships work a site only with salvage gear (rig M = the old ×2 civilian rate)
+    const w = s.ind ? 2 * (econOf(s).salv ?? 0) : s.classId === 'miner' || s.classId === 'constructor' ? 2 : 1;
     site.work += dt * w * (s.hp > 0.5 ? 1 : 0.5) * (this.st.officerV ? 1 + (groupFx(this.st, g).siteWork ?? 0) : 1);
     g.status = `${site.name} 인양 ${Math.min(99, Math.floor(site.work / site.need * 100))}%`;
     if (site.work < site.need) return;
@@ -3382,7 +3420,7 @@ export class WorldSim {
       }
       case 'build': this.behaveBuild(s, g, op.station, dt, speed, c); break;
       case 'found': {
-        if (s.classId !== 'constructor') { this.moveTo(s, this.formationSlot(s, g, op.at, 120), speed, dt); break; }
+        if (!canBuild(s)) { this.moveTo(s, this.formationSlot(s, g, op.at, 120), speed, dt); break; }
         if (this.moveTo(s, op.at, speed, dt, 60)) {
           if (growthOn(this.st) && op.escrowed) {
             // Inherited/stale orders cannot create duplicate sites or charge a second time.
@@ -3672,7 +3710,7 @@ export class WorldSim {
   private behaveBuild(s: WShip, g: WGroup, stationId: string, dt: number, speed: number, c: CommanderDef) {
     const st = this.st.stations[stationId];
     if (!st || growthOn(this.st) && st.owner !== s.owner) { if (growthOn(this.st)) g.status = '건설 현장을 이용할 수 없음 — 화물 보존'; return; }
-    if (s.classId !== 'constructor') {
+    if (!canBuild(s)) {
       if (growthOn(this.st) && cargoSum(s.cargo) > 0) {
         if (!this.goConstruction(s, st, dt, speed)) { g.status = `${st.name} 건설 현장으로 자재 운송`; return; }
         const desired = cargoKeys(s.cargo).reduce((n, r) => n + Math.min(qty(s.cargo, r), constructionRoom(st, r, true), this.intakeRoom(st, s.owner, r, true)), 0);

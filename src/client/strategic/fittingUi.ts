@@ -6,7 +6,7 @@
 // Rendered with morph() so typing in the search box or an open dropdown survives live updates; all
 // clicks go through one delegated listener.
 import { fitServiceUnit } from '../../world/econChain';
-import { econOf, growthOn } from '../../world/hullops';
+import { econOf, gearEcon, growthOn } from '../../world/hullops';
 import * as THREE from 'three';
 import type { WorldView } from '../../server/protocol';
 import type { WShip, Station } from '../../world/types';
@@ -204,13 +204,20 @@ export class FittingScreen {
       const changed = (eq ?? '') !== (cur ?? '') ? ' chg' : '';
       return `<button class="fslot${selId === b.id ? ' on' : ''}${bad ? ' bad' : ''}${changed}" data-fsel="bay:${b.id}" title="${esc(bad ?? '')}">
         <span class="fsz bay">${b.size}</span>
-        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${b.id} · ${BAY_NAME[b.kind]} 베이</small></span>
+        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${b.id} · ${b.kind === 'industrial' ? '산업 하드포인트' : `${BAY_NAME[b.kind]} 베이`}${eq && EQUIPMENT[eq]?.ind ? ` · ${indText(EQUIPMENT[eq].ind!, hull.ops?.bonus)}` : ''}</small></span>
         ${eq ? `<span class="fx" data-fclr="bay:${b.id}" title="비우기">✕</span>` : ''}</button>`;
     };
     const hullPresets = presetsOfHull(hull.id).filter(x => contentAvail(x.id, this.st!.contentV));
     const myPresets = (co.fitPresets ?? []).filter(x => x.hull === hull.id);
     const variants = variantsOfHull(hull.id).filter(v => v.id === s.variant || contentAvail(v.id, this.st!.contentV));
     const items = (n: [string, number][]) => n.map(([k, c]) => `${esc(EQUIPMENT[k]?.name ?? k)}${c > 1 ? ` ×${c}` : ''}`).join(', ');
+    // industrial hardpoints: mining / construction / salvage come only from fitted gear (× hull bonus)
+    const ind = !!s.ind && lay.internals.some(b => b.kind === 'industrial');
+    const ie0 = ind ? gearEcon(hull.id, s.variant, s.fitting!.bay) : undefined, ie1 = ind ? gearEcon(hull.id, this.draft.variant, this.draft.bay) : undefined;
+    const bon = hull.ops?.bonus ?? {};
+    const indCell = (a: number, b: number, unit: string, d = 1) => b > 0 || a > 0 ? `${b > 0 ? `${Number(b.toFixed(d)).toLocaleString()}${unit}` : '<span class="dim">불가</span>'}${cmp(a, b, d)}` : '<span class="dim">불가</span>';
+    const indRows = ind && ie0 && ie1 ? `<tr><td>채굴</td><td>${indCell(ie0.mine, ie1.mine, '/s')}</td><td>건설</td><td>${indCell(ie0.build, ie1.build, '×', 2)}</td></tr>
+            <tr><td>인양</td><td>${indCell(ie0.salv ?? 0, ie1.salv ?? 0, '×', 2)}</td><td>선체 보너스</td><td>${Object.entries(bon).map(([k, v]) => `${({ mine: '채굴', build: '건설', salvage: '인양' } as Record<string, string>)[k]} ×${v}`).join(' · ') || '<span class="dim">없음</span>'}</td></tr>` : '';
 
     morph(this.el, `<div class="panel fbox">
       <div class="shdr"><div><div class="stitle">${esc(s.name)} <span class="dim" style="font-size:14px">${esc(hull.name)} ${esc(cls.type)} · ${esc(CONTENT.variants[this.draft.variant]?.name ?? '')}</span></div>
@@ -225,7 +232,9 @@ export class FittingScreen {
             <tr><td>무장</td><td>${nxt.guns}문${cmp(now.guns, nxt.guns)}</td><td>방공</td><td>${nxt.pd}문${cmp(now.pd, nxt.pd)}</td></tr>
             <tr><td>내구</td><td>${fmt(nxt.hp)}${cmp(now.hp, nxt.hp)}</td><td>전면 장갑</td><td>${fmt(nxt.armor)}${cmp(now.armor, nxt.armor, 1)}</td></tr>
             <tr><td>전투 속도</td><td>${fmt(nxt.speed)}${cmp(now.speed, nxt.speed, 1)}</td><td>명중·회피</td><td>${pct(nxt.acc)} · ${Math.round(nxt.evasion * 100)}%</td></tr>
+            ${indRows}
           </table>
+          ${ind && ie1 && !ie1.mine && !ie1.build && !ie1.salv ? '<div class="dim small">산업 장비가 없어 채굴·건설·인양을 할 수 없습니다 — 산업 하드포인트에 장비를 장착하세요.</div>' : ''}
           <div class="frow"><label class="dim">구조 변형</label><select data-fvar data-keep>${variants.map(v => `<option value="${v.id}"${v.id === this.draft.variant ? ' selected' : ''}${v.blueprint !== 'common' && v.id !== s.variant ? ' disabled' : ''}>${esc(v.name)}${v.mods ? ` (${[v.mods.hpMul && `내구 ${pct(v.mods.hpMul)}`, v.mods.armorMul && `장갑 ${pct(v.mods.armorMul)}`, v.mods.speedMul && `속도 ${pct(v.mods.speedMul)}`].filter(Boolean).join(' ')})` : ''}</option>`).join('')}</select></div>
         </section>
         <section class="fcol fmid">
@@ -286,13 +295,14 @@ export class FittingScreen {
       const cw = cur && EQUIPMENT[cur]?.weapon ? WEAPONS[EQUIPMENT[cur].weapon!] : undefined;
       const stats = w
         ? `${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w), cur ? dps(cur) : undefined, 1)} · 사거리 ${fmt(w.range)}${d(w.range, cur ? rng(cur) : undefined)} · 관통 ${w.pen}${d(w.pen, cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${g ? statBars(w) : ''}`
+        : e.ind ? `${indText(e.ind, CONTENT.hulls[lay.hull.id]?.ops?.bonus)}${cur && EQUIPMENT[cur]?.ind?.work === e.ind.work ? d(e.ind.rate, EQUIPMENT[cur].ind!.rate, 1) : ''}`
         : g && e.cfx ? `${esc(cfxText(e.cfx))}` : esc(e.desc);
       return `<div class="fitem${why ? ' no' : ''}${id === cur ? ' cur' : ''}" data-fpick="${id}" title="${esc(why ?? e.desc)}">
         <div class="fin"><b>${esc(e.name)}</b><span class="fsz sm">${s.size}</span>${id === cur ? '<span class="tag">장착 중</span>' : ''}${lock && !have ? '<span class="tag warn" title="보유하지 않은 이 장비를 구매·생산하려면 연구가 필요합니다">연구 필요</span>' : ''}<span class="fhave${have ? '' : ' none'}">보유 ${have}</span></div>
         <div class="fis">${stats}</div>
         <div class="fis dim">질량 ${s.mass}${d(s.mass, c?.mass, 0, true)} · 전력 ${s.power < 0 ? `공급 +${-s.power}` : s.power}${d(s.power, c?.power, 0, true)} · ${fmt(itemPrice(id))} cr${why ? ` · <span class="warn">${esc(why)}</span>` : ''}</div></div>`;
     };
-    const title = hp ? `${hp.id} — ${hp.size} ${TYPE_NAME[hp.type]} ${MOUNT_NAME[hp.mount]}` : bay ? `${bay.id} — ${bay.size} ${BAY_NAME[bay.kind]} 베이` : '슬롯을 선택하세요';
+    const title = hp ? `${hp.id} — ${hp.size} ${TYPE_NAME[hp.type]} ${MOUNT_NAME[hp.mount]}` : bay ? `${bay.id} — ${bay.size} ${bay.kind === 'industrial' ? '산업 하드포인트' : `${BAY_NAME[bay.kind]} 베이`}` : '슬롯을 선택하세요';
     return `<h3>장비 <span class="dim">${esc(title)}</span></h3>
       <div class="frow"><input data-fq placeholder="장비 검색 (이름·종류)" value="${esc(this.q)}"></div>
       <div class="chips">${([['fit', '이 슬롯 호환'], ['all', '전체'], ['weapon', '무장'], ['module', '모듈']] as const).map(([v, l]) => `<button class="chip${this.filter === v ? ' on' : ''}" data-ffilt="${v}">${l}</button>`).join('')}</div>
@@ -425,6 +435,13 @@ function famBadge(w: import('../../sim/data/weapons').WeaponDef): string {
 function statBars(w: import('../../sim/data/weapons').WeaponDef): string {
   const bar = (label: string, v: number, max: number, cls = '') => `<span class="sb${cls}"><i>${label}</i><b style="width:${Math.max(4, Math.min(100, v / max * 100)).toFixed(0)}%"></b></span>`;
   return `<div class="sbars">${bar('사거리', w.range, 2400)}${bar('관통', w.pen, 125)}${bar('연사', 1 / Math.max(0.1, w.reload), 6)}${bar('대실드', (w.vsShield ?? 1), 1.6, (w.vsShield ?? 1) >= 1 ? ' good' : ' weak')}${bar('선회', w.turnSpeed, 400)}</div>`;
+}
+/** what a piece of industrial gear does on this hull (gear rate × the hull's design bonus) */
+function indText(g: import('../../content/schema').IndSpec, bonus: Partial<Record<string, number>> | undefined): string {
+  const b = bonus?.[g.work] ?? 1, v = g.rate * b;
+  const r = (x: number) => Number(x.toFixed(2)).toLocaleString();
+  const what = g.work === 'mine' ? `채굴 ${r(v)}/s` : g.work === 'build' ? `건설 ×${r(v)}` : `인양 ×${r(v)}`;
+  return b !== 1 ? `${what} (기본 ${r(g.rate)} × 선체 ${b})` : what;
 }
 function cfxText(c: import('../../content/schema').CombatFx): string {
   const out: string[] = [];

@@ -24,7 +24,9 @@ import { sysAt } from './geom';
 import { PAY } from './officerData';
 
 export type BackgroundId = 'hauler' | 'miner' | 'salvager' | 'security' | 'veteran' | 'raider';
-export interface BackgroundShip { hull: string; variant: string; preset?: string; group: number; n: number; role: string }
+export interface BackgroundShip { hull: string; variant: string; preset?: string; group: number; n: number; role: string;
+  /** industrial hardpoint worlds: gear fitted at founding (absent = the hull's standard gear) */
+  gear?: string[] }
 export interface BackgroundGroup { name: string; commander?: { tier: number; minSkill: number } }
 export interface Background {
   id: BackgroundId;
@@ -41,6 +43,8 @@ export interface Background {
   notes: string[];
   /** first hint after founding */
   hint: string;
+  /** industrial hardpoint worlds (indV): the fleet and the texts that differ, because work comes from fitted gear */
+  ind?: { ships: BackgroundShip[]; desc?: string; notes?: string[] };
 }
 
 /** trust with the origin faction: the first friendly band (협력, P14) — below every faction blueprint that has no
@@ -51,6 +55,8 @@ export const RIVAL_REL = -50;
 export const RIVAL_TRUST = -5;
 
 const S = (hull: string, preset: string | undefined, group: number, n: number, role: string, variant = `${hull}_std`): BackgroundShip => ({ hull, variant, preset, group, n, role });
+/** a ship with the given industrial gear (indV worlds) */
+const SG = (hull: string, preset: string | undefined, group: number, n: number, role: string, gear: string[]): BackgroundShip => ({ ...S(hull, preset, group, n, role), gear });
 
 export const BACKGROUNDS: Background[] = [
   {
@@ -74,6 +80,7 @@ export const BACKGROUNDS: Background[] = [
     difficulty: '낮음',
     notes: ['같은 성계에 광구 3곳과 광석을 사는 시장이 있다', '앤빌 광부조합은 거래 예산이 작다 — 많이 캐면 세레스 등 다른 시장으로 운반', '전투함이 없다'],
     hint: '앤빌 광부조합에 정박 중. 채굴반을 앤빌 광구로 보내 첫 수익을 올려 보자.',
+    ind: { ships: [SG('miner_mk1', 'miner_std', 0, 3, '채굴 (소형 채굴 레이저)', ['ind_mine_s']), SG('hauler_mk1', 'hauler_std', 0, 1, '광석 운반', [])] },
   },
   {
     id: 'salvager', name: '우주 인양업자', faction: 'ceres', station: 'p9_ceres_works',
@@ -85,6 +92,10 @@ export const BACKGROUNDS: Background[] = [
     difficulty: '보통',
     notes: ['유기선은 지역마다 정해진 수만큼 불규칙하게 나타나고 모든 회사가 함께 쓴다 — 무료 자원은 지급되지 않는다', '전장 잔해는 실제 전투 뒤에 생긴다', '보호 화물(합법 회사 소유)을 가져가면 범죄가 된다', '전투함이 없다'],
     hint: '세레스 제련단지에 정박 중. 첫 사업 안내에서 가까운 유기선을 골라 인양을 시작하자 — 안전한 세레스·아스트라·리라 근처에 소형 유기선이 있다.',
+    ind: {
+      desc: '세레스 공업연맹 제련단지에 둥지를 튼 인양 회사. 소형 인양 장비를 단 수송선 두 척(화물·장비·선체·설계 조각 회수)과, 인양 대상이 없을 때 쓰는 채굴 레이저 채굴선 한 척.',
+      ships: [SG('hauler_mk1', 'hauler_std', 0, 2, '인양 (소형 인양 장비)', ['ind_salv_s']), SG('miner_mk1', 'miner_std', 0, 1, '채굴 (소형 채굴 레이저)', ['ind_mine_s'])],
+    },
   },
   {
     id: 'security', name: '민간 경비업체', faction: 'union', station: 'helios',
@@ -118,9 +129,13 @@ export const BACKGROUNDS: Background[] = [
     difficulty: '매우 높음',
     notes: ['해적 NPC는 출신과 무관하게 이 회사도 공격한다', '연합·철갑·광업동맹의 신뢰가 조금 낮게 시작한다(정박은 가능)', '합법 회사 화물 약탈은 범죄 — 수배·단속 대상', '자금이 가장 적다'],
     hint: '녹슨 정박지에 정박 중. 무법 공역은 위험하다 — 습격대와 수송반을 함께 움직이자.',
+    ind: { ships: [S('corvette_mk1', 'corvette_gun', 0, 2, '습격'), SG('hauler_mk1', 'hauler_std', 1, 1, '전리품 회수·운반 (소형 인양 장비)', ['ind_salv_s'])] },
   },
 ];
 export const BACKGROUND: Record<string, Background> = Object.fromEntries(BACKGROUNDS.map(b => [b.id, b]));
+
+/** the starting fleet of a background in this world (industrial hardpoint worlds may differ) */
+export const backgroundShips = (w: Pick<WorldState, 'indV'>, b: Background): BackgroundShip[] => w.indV && b.ind ? b.ind.ships : b.ships;
 
 /** the background system needs the six P10 factions and every start station */
 export function backgroundsOn(w: Pick<WorldState, 'factions' | 'stations'>): boolean {
@@ -150,7 +165,7 @@ function supplyMarket(w: WorldState, st: Station): Station | undefined {
 export function backgroundUpkeep(w: WorldState, b: Background): number {
   const st = w.stations[b.station];
   let credits = 0; const supplies: Record<string, number> = {};
-  for (const s of b.ships) {
+  for (const s of backgroundShips(w, b)) {
     const u = hullUpkeep(s.hull, s.variant);
     credits += u.credits * s.n;
     for (const [k, q] of Object.entries(u.supplies ?? {})) supplies[k] = (supplies[k] ?? 0) + q * s.n;
@@ -168,14 +183,14 @@ function backgroundSalary(w: WorldState, b: Background): number {
   let pay = 0;
   b.groups.forEach((g, i) => {
     if (!g.commander) return;
-    const ships = b.ships.filter(s => s.group === i).reduce((n, s) => n + s.n, 0);
+    const ships = backgroundShips(w, b).filter(s => s.group === i).reduce((n, s) => n + s.n, 0);
     pay += Math.round(PAY.command + Math.min(PAY.shipCap, ships * PAY.perShip));
   });
   return pay;
 }
 
-/** list value of the starting fleet (public-yard list price of each hull) */
-export const backgroundValue = (b: Background) => b.ships.reduce((n, s) => n + (hullSale(s.hull)?.price ?? 0) * s.n, 0);
+/** list value of the starting fleet (public-yard list price of each hull; fitted gear is equipment, not hull value) */
+export const backgroundValue = (b: Background, w?: Pick<WorldState, 'indV'>) => (w ? backgroundShips(w, b) : b.ships).reduce((n, s) => n + (hullSale(s.hull)?.price ?? 0) * s.n, 0);
 
 /** what the company-creation screen shows for one background (everything here is what the server grants) */
 export interface BackgroundTerm {
@@ -198,13 +213,13 @@ export function backgroundTerms(w: WorldState): BackgroundTerm[] {
     const cm = b.groups.find(g => g.commander)?.commander;
     const standing = Object.entries(backgroundStanding(w, b)).map(([f, v]) => ({ faction: f, name: FACTIONS[f]?.name ?? f, value: v, band: bandOf(v).name }));
     return {
-      id: b.id, name: b.name, desc: b.desc,
+      id: b.id, name: b.name, desc: (w.indV && b.ind?.desc) || b.desc,
       faction: b.faction, factionName: FACTIONS[b.faction]?.name ?? b.faction, factionColor: FACTIONS[b.faction]?.color ?? '#888',
       system: sys?.name ?? '', station: st.name,
-      ships: b.ships.map(s => ({ name: CONTENT.hulls[s.hull]?.name ?? s.hull, role: s.role, n: s.n, military: hullEcon(s.hull, s.variant).military })),
+      ships: backgroundShips(w, b).map(s => ({ name: CONTENT.hulls[s.hull]?.name ?? s.hull, role: s.role, n: s.n, military: hullEcon(s.hull, s.variant).military })),
       ...(cm ? { commander: cm.tier >= 2 ? '숙련 지휘관 1명' : '기본 지휘관 1명' } : {}),
-      credits: b.credits, standing, upkeep, value: backgroundValue(b), hours: upkeep > 0 ? Math.floor(b.credits / upkeep * 10) / 10 : 0,
-      activities: b.activities, difficulty: b.difficulty, notes: b.notes,
+      credits: b.credits, standing, upkeep, value: backgroundValue(b, w), hours: upkeep > 0 ? Math.floor(b.credits / upkeep * 10) / 10 : 0,
+      activities: b.activities, difficulty: b.difficulty, notes: (w.indV && b.ind?.notes) || b.notes,
     };
   });
 }

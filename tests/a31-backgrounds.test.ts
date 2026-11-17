@@ -4,7 +4,7 @@ import { WorldSim } from '../src/world/sim';
 import { STANDARD_WORLD } from '../src/world/worldPreset';
 import { GameServer, type Conn } from '../src/server/core';
 import type { ServerMsg, SaveFile } from '../src/server/protocol';
-import { BACKGROUNDS, BACKGROUND, ORIGIN_TRUST, backgroundUpkeep, backgroundValue } from '../src/world/backgrounds';
+import { BACKGROUNDS, BACKGROUND, ORIGIN_TRUST, backgroundUpkeep, backgroundValue, backgroundShips } from '../src/world/backgrounds';
 import { forecast } from '../src/world/upkeep';
 import { hullIdOf, hullEcon, shipWorth } from '../src/world/hullops';
 import { dockRefused } from '../src/world/territory';
@@ -45,7 +45,7 @@ describe('A-3.1 backgrounds in the standard world', () => {
         expect((s.task as any).station).toBe(b.station);
       }
       // the same hulls / presets the table lists, standard fits
-      const want = b.ships.flatMap(s => Array(s.n).fill(`${s.hull}/${s.preset}`)).sort();
+      const want = backgroundShips(sim.st, b).flatMap(s => Array(s.n).fill(`${s.hull}/${s.preset}`)).sort();
       expect(ships.map(s => `${hullIdOf(s)}/${s.fitting?.preset}`).sort()).toEqual(want);
       // shown running cost = the real forecast; shown value = the ships' worth
       expect(t.upkeep).toBe(Math.round(forecast(sim.st, co).perHour));

@@ -6,7 +6,7 @@ import { CONTENT } from '../content/registry';
 import type { HullBuild, HullDef, HullSale, HullUpkeep, Size } from '../content/schema';
 import { sizeRank } from '../content/schema';
 import { ECON, type ShipEcon } from './data';
-import { HULLS, FACILITIES, techFx } from './industry';
+import { HULLS, FACILITIES, EQUIPMENT, techFx } from './industry';
 import { regionalOn } from './regional';
 import { hullPrice } from './valuation';
 import { MK1_STOCK, MK1_RESTOCK, MK1_MIL_REP } from './econConfig';
@@ -17,7 +17,12 @@ import { stationSize } from './stations';
 export const GROWTH_V = 3;
 export const growthOn = (st: Pick<WorldState, 'contentV'> | undefined) => (st?.contentV ?? 0) >= GROWTH_V;
 
-export interface HullEcon extends ShipEcon { build: number; berth: Size; minField: number }
+export interface HullEcon extends ShipEcon {
+  build: number; berth: Size; minField: number;
+  /** industrial-hardpoint ships only: salvage multiplier of the fitted salvage gear × hull bonus (0 = cannot
+   *  salvage). Absent on ships without industrial hardpoint rules (legacy class table in salvage.ts). */
+  salv?: number;
+}
 
 /** hull id of a ship (legacy ships without content ids map to their class's mk1 hull) */
 export const hullIdOf = (s: { classId: string; hull?: string }) => s.hull && CONTENT.hulls[s.hull] ? s.hull : `${s.classId}_mk1`;
@@ -53,9 +58,38 @@ export function hullEcon(hullId: string, variantId?: string): HullEcon {
   return e;
 }
 
-/** strategic econ of a ship (its hull + variant). Wear is applied by the callers that move or mine. */
-export const econOf = (s: { classId: string; hull?: string; variant?: string }): HullEcon =>
-  s.hull ? hullEcon(hullIdOf(s), s.variant) : hullEcon(`${s.classId}_mk1`);
+/** industrial work rates of fitted gear (bay id → equipment id), before hull bonus and variant mods */
+export function gearRates(bay: Record<string, string> | undefined): { mine: number; build: number; salvage: number } {
+  const r = { mine: 0, build: 0, salvage: 0 };
+  for (const id of Object.values(bay ?? {})) { const g = EQUIPMENT[id]?.ind; if (g) r[g.work] += g.rate; }
+  return r;
+}
+
+// hull|variant|bay contents → econ of an industrial-hardpoint ship (a handful of distinct fits per world)
+const gearCache = new Map<string, HullEcon>();
+/** strategic econ of a hull + variant carrying this industrial gear: mining, construction and salvage come
+ *  only from the gear (× the hull's design bonus × variant mods); the hull alone does none of them */
+export function gearEcon(hullId: string, variantId: string | undefined, bay: Record<string, string> | undefined): HullEcon {
+  const key = `${hullId}|${variantId ?? ''}|${Object.values(bay ?? {}).join(',')}`;
+  const hit = gearCache.get(key); if (hit) return hit;
+  const base = hullEcon(hullId, variantId);
+  const h = CONTENT.hulls[hullId], m = (variantId ? CONTENT.variants[variantId]?.mods : undefined) ?? {}, b = h?.ops?.bonus ?? {};
+  const g = gearRates(bay);
+  const e: HullEcon = { ...base, mine: g.mine * (b.mine ?? 1) * (m.mineMul ?? 1), build: g.build * (b.build ?? 1) * (m.buildMul ?? 1), salv: g.salvage * (b.salvage ?? 1) };
+  if (gearCache.size > 4096) gearCache.clear();
+  gearCache.set(key, e);
+  return e;
+}
+
+/** strategic econ of a ship (its hull + variant). Wear is applied by the callers that move or mine.
+ *  Ships under industrial-hardpoint rules (`ind`, see world/industrialGear.ts) take mining, construction
+ *  and salvage from their fitted gear; other ships (NPCs, older worlds) keep the hull's own values. */
+export const econOf = (s: { classId: string; hull?: string; variant?: string; ind?: 1; fitting?: { bay: Record<string, string> } }): HullEcon =>
+  s.ind ? gearEcon(hullIdOf(s), s.variant, s.fitting?.bay) : s.hull ? hullEcon(hullIdOf(s), s.variant) : hullEcon(`${s.classId}_mk1`);
+
+/** can this ship do construction work (a fitted construction rig, or — without industrial hardpoint
+ *  rules — a constructor hull)? */
+export const canBuild = (s: Parameters<typeof econOf>[0]) => econOf(s).build > 0;
 
 /** Capacity used by a regional mining operation; pre-regional worlds keep the original limit. */
 export const miningCargoCapacity = (w: { regionalV?: number }, s: { classId: string; hull?: string; variant?: string }, tech?: string[]) =>

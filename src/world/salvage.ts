@@ -69,6 +69,9 @@ export const SALV = {
   },
   /** with salvage_ops, haulers and miners can also pull equipment, and anyone fragments */
   techEquip: 0.02, techFrag: 0.02, techMul: 1.5,
+  /** industrial-hardpoint ships (WShip.ind): units / s per 1.0 of fitted salvage gear × hull bonus — the
+   *  old constructor row, so a small salvage rig works like the old 석공급. No gear, no salvage. */
+  gear: { cargo: 5, equip: 0.1, hull: 3, frag: 0.05 },
   /** salvage hold of a warship (it has no cargo bay): shipValue × this */
   warHold: 0.1,
   /** automatic pickup: nearby wrecks only, limited time, nobody hostile around */
@@ -95,14 +98,18 @@ export const salvageRoom = (h: Pick<Host, 'st'>, s: WShip) => Math.max(0, salvag
 /** units / s this ship works a lot of this kind (0 = cannot) */
 export function salvageRate(h: Pick<Host, 'st'>, s: WShip, k: WreckLot['k']): number {
   const role = roleOf(s), tech = !!h.st.companies[s.owner]?.tech?.includes('salvage_ops');
+  // industrial hardpoint rules: a civilian hull salvages only with salvage gear fitted, at the gear's rate
+  // (× hull bonus); research and officers then make that work faster but never grant it. Warships keep
+  // their small battlefield pickup (they have no industrial hardpoint).
+  const gear = s.ind && role !== 'military';
   const t = SALV.rate[k] as Record<string, number>;
-  let r = t[role] ?? t.other ?? 0;
-  if (tech && !r && k === 'equip') r = SALV.techEquip;
-  if (tech && !r && k === 'frag') r = SALV.techFrag;
+  let r = gear ? SALV.gear[k] * (econOf(s).salv ?? 0) : t[role] ?? t.other ?? 0;
+  if (!gear && tech && !r && k === 'equip') r = SALV.techEquip;
+  if (!gear && tech && !r && k === 'frag') r = SALV.techFrag;
   // B-1 salvage officer: faster recovery; hull cutting extended to haulers and warships
   const fx = h.st.officerV ? shipFx(h.st, s) : undefined;
   if (fx) {
-    if (k === 'hull' && !r && fx.salvHull) r = role === 'military' ? 0.8 : role === 'hauler' ? 1.5 : 0;
+    if (!gear && k === 'hull' && !r && fx.salvHull) r = role === 'military' ? 0.8 : role === 'hauler' ? 1.5 : 0;
     r *= 1 + (fx.salv ?? 0) + (k === 'equip' ? fx.salvEquip ?? 0 : k === 'frag' ? fx.salvFrag ?? 0 : 0);
   }
   return r * (tech ? SALV.techMul : 1) * (s.hp > 0.5 ? 1 : 0.5);

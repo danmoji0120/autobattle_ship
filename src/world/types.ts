@@ -196,6 +196,8 @@ export interface WShip {
   variant?: string;
   /** fitted equipment (player ships, contentV ≥ 2) — see world/fitting.ts */
   fitting?: import('./fitting').ShipFitting;
+  /** industrial hardpoint rules (indV worlds): this ship mines / builds / salvages only with fitted gear */
+  ind?: 1;
   name: string;
   hp: number;                // 0..1 hull fraction (persists between battles)
   pos: V; vel: V; heading: number;
@@ -644,6 +646,8 @@ export interface WorldState {
   logisticsV?: 1;
   /** P13.1 battlefield wrecks and physical salvage (new worlds only): no random derelicts, no remote battle loot */
   salvageV?: 1;
+  /** industrial hardpoints (world/industrialGear.ts): player ships mine, build and salvage only with fitted gear */
+  indV?: 1;
   /** A-3.2b natural derelicts and salvage contracts (salvageV worlds; new standard worlds, saves by explicit migration) */
   derelictV?: 1;
   /** B-1 officer development (new standard worlds; saves by explicit migration OFFICERS_B1_MIGRATE) */

@@ -28,6 +28,7 @@ import type { Company, Station, WorldState, WShip } from './types';
 import { cargoKeys } from './types';
 import { hullEcon, hullIdOf, hullSale, shipWorth, yardHulls } from './hullops';
 import { CONTENT } from '../content/registry';
+import { EQUIPMENT } from './industry';
 
 export const RECOVERY_STAGE = 3;
 /** ships that may fly recovery sorties at the same time */
@@ -85,11 +86,13 @@ export function sortieProblem(w: WorldState, co: Company, s: WShip | undefined):
 }
 
 export function standardBuild(s: WShip): boolean {
-  if ((s.fit ?? []).length) return false;
+  if ((s.fit ?? []).some(k => !(s.ind && EQUIPMENT[k]?.ind))) return false;   // industrial gear is checked with the bays below
   const hull = hullIdOf(s), variant = s.variant ?? `${hull}_std`;
   if (CONTENT.variants[variant] && CONTENT.variants[variant].blueprint !== 'common') return false;
   if (!s.fitting) return true;
-  if (Object.keys(s.fitting.bay ?? {}).length) return false;
+  // industrial hardpoints: the hull's standard gear is part of its standard build (bought and traded-in ships come with it)
+  const std = [...(s.ind ? CONTENT.hulls[hull]?.ops?.gear ?? [] : [])];
+  for (const g of Object.values(s.fitting.bay ?? {})) { const i = std.indexOf(g); if (i < 0) return false; std.splice(i, 1); }
   const p = (s.fitting.preset ? CONTENT.presets[s.fitting.preset] : undefined) ?? Object.values(CONTENT.presets).find(x => x.variant === variant);
   const want = p?.weapons ?? {}, have = s.fitting.hp ?? {};
   const keys = new Set([...Object.keys(want), ...Object.keys(have)]);

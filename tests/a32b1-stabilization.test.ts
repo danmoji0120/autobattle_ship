@@ -12,8 +12,9 @@ import { CONTENT } from '../src/content/registry';
 
 const run = (sim: WorldSim, s: number, each?: (t: number) => void) => { for (let i = 1; i <= s; i++) { sim.update(1); each?.(i); } };
 const until = (sim: WorldSim, cond: () => boolean, s = 3600) => { for (let i = 0; i < s && !cond(); i++) sim.update(1); return cond(); };
-function start(seed = 21) {
-  const sim = WorldSim.create(seed, { ...STANDARD_WORLD });
+/** `legacy`: the original salvager fleet (miner + constructor + hauler, hull-borne salvage) — a world without industrial hardpoints */
+function start(seed = 21, legacy = false) {
+  const sim = WorldSim.create(seed, { ...STANDARD_WORLD, ...(legacy ? { industrial: undefined } : {}) });
   const me = sim.addPlayer('인양 안정화', 'salvager'), co = sim.st.companies[me];
   const g = Object.values(sim.st.groups).find(x => x.owner === me)!;
   const ships = () => Object.values(sim.st.ships).filter(s => s.owner === me);
@@ -75,7 +76,7 @@ describe('A-3.2b.1 risk guidance: bands, hostile ships at the site, the player d
 
 describe('A-3.2b.1 operating status and comeback', () => {
   it('ok → transport bottleneck → limited → halted as ships are lost; milestones stay; halted shows cash, rebuy prices and the way back', () => {
-    const { sim, me, co, hauler, miner, cons } = start();
+    const { sim, me, co, hauler, miner, cons } = start(21, true);
     co.milestones.push('first_salvage');
     let s = salvageOperatingStatus(sim.st, me);
     expect(s.state).toBe('ok'); expect(s.can).toEqual({ hull: true, cargo: true, equip: true, frag: true }); expect(s.comeback).toBeUndefined();
@@ -142,7 +143,7 @@ describe('A-3.2b.1 operating status and comeback', () => {
 
 describe('A-3.2b.1 salvage hauler sale round trip (AUTO-P1.1 rules)', () => {
   it('after unloading, the hauler sells stock the home market does not buy at a nearby market, the rest keep salvaging, then it returns to work', () => {
-    const { sim, me, co, g, home, hauler, miner, cons } = start();
+    const { sim, me, co, g, home, hauler, miner, cons } = start(21, true);
     sellAll(sim, me);
     expect(home.market?.electronics).toBeFalsy();
     addc(sim.storage(home, me), 'electronics', 420);

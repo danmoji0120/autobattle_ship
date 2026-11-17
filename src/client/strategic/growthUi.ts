@@ -34,13 +34,24 @@ const presetsOf = (hull: string, commonOnly = false) => Object.values(CONTENT.pr
 const GRADE: Record<string, string> = { common: '일반', advanced: '고급', faction: '세력', rare: '희귀', unique: '유일' };
 
 /** short stat line of a hull (with what makes it different) */
-function hullStats(id: string, variant?: string): string {
+function hullStats(id: string, variant?: string, ind = false): string {
   const h = CONTENT.hulls[id]; const c = SHIP_CLASSES[h.classId]; const e = hullEcon(id, variant);
   const st = h.stats ?? {};
   const bits = [`내구 ${fmt(c.hp * (st.hpMul ?? 1))}`, `순항 ${fmt(e.cruise)}`, `전력 ${h.power} · 적재 ${h.mass}`, `하드포인트 ${h.hardpoints.length} · 베이 ${h.internals.length}`];
   if (e.cargo) bits.push(`화물 ${fmt(e.cargo)}`);
-  if (e.mine) bits.push(`채굴 ${e.mine}/s${e.minField ? ` (광맥 ${fmt(e.minField)} 미만이면 절반)` : ''}`);
-  if (e.build && h.classId === 'constructor') bits.push(`건설 ×${e.build}`);
+  if (ind) {
+    // industrial hardpoint rules: the work comes from gear; the hull gives its slots and a design bonus
+    const bays = h.internals.filter(b => b.kind === 'industrial').map(b => b.size);
+    const WORK: Record<string, string> = { mine: '채굴', build: '건설', salvage: '인양' };
+    const bonus = Object.entries(h.ops?.bonus ?? {}).map(([k, v]) => `${WORK[k]} 효율 ×${v}`);
+    if (bays.length) bits.push(`산업 하드포인트 ${bays.join('·')}${bonus.length ? ` (${bonus.join(', ')})` : ''}`);
+    if (h.ops?.gear?.length) bits.push(`표준 장비 ${h.ops.gear.map(g => EQUIPMENT[g]?.name ?? g).join(', ')}`);
+    if (e.mine) bits.push(`표준 장비 채굴 ${fmt(e.mine)}/s${e.minField ? ` (광맥 ${fmt(e.minField)} 미만이면 절반)` : ''}`);
+    if (e.build) bits.push(`표준 장비 건설 ×${fmt(e.build)}`);
+  } else {
+    if (e.mine) bits.push(`채굴 ${e.mine}/s${e.minField ? ` (광맥 ${fmt(e.minField)} 미만이면 절반)` : ''}`);
+    if (e.build && h.classId === 'constructor') bits.push(`건설 ×${e.build}`);
+  }
   bits.push(`정박 ${e.berth}급`);
   const u = hullUpkeep(id, variant);
   bits.push(`운영비 ${fmt(u.credits)} cr/h${u.supplies && Object.keys(u.supplies).length ? ` + ${itemList(u.supplies)}/h` : ''}`);
@@ -66,7 +77,7 @@ export function pubYardHtml(w: WorldState, s: Station, me: string, groups: { id:
     const why = !ps.length ? '공영 판매 가능한 기본 무장 구성이 없습니다' : locked ? repWhy! : n < 1 ? `재고 없음 — 다음 함선 건조 ${Math.round(100 * (k?.t ?? 0) / sale.restock)}%${k?.why ? ` (${esc(k.why)})` : ''}` : co.credits < price ? `자금 부족 — ${fmt(price - co.credits)} cr 더 필요` : '';
     return `<div class="ycard${locked ? ' locked' : ''}" data-ycard="${id}"><div class="yn"><b>${esc(hullTitle(id))}</b> <span class="dim small">${h.size} · ${GRADE[h.blueprint]}</span><span class="money">${fmt(price)} cr</span></div>
       <div class="dim">${esc(h.desc)}</div>
-      <div class="ys small">${hullStats(id)}</div>
+      <div class="ys small">${hullStats(id, undefined, !!w.indV)}</div>
       ${priceWhy(id)}
       <div class="small">재고 <b>${n}</b>/${sale.stock} · 보충 주기 ${dur(sale.restock)}${berthOk ? '' : ` · <span class="warn">이 정거장 정박 ${berthOf(s)}급</span>`}</div>
       <div class="yrow"><select data-hpre="${id}" data-keep>${ps.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>
@@ -132,7 +143,7 @@ function ownHullDetail(w: WorldState, s: Station, me: string, ui: GrowthYardUi, 
   const mods = Object.values(EQUIPMENT).filter(x => x.kind === 'module' && qty(store, x.id) >= 1);
   return `<div class="bdh"><b>${esc(hullTitle(id))}</b> <span class="dim">· ${esc(h.maker ?? '')} · ${GRADE[h.blueprint]} 설계</span></div>
     <div class="dim small">${esc(h.desc)}</div>
-    <div class="bdr small">${hullStats(id, variant)}</div>
+    <div class="bdr small">${hullStats(id, variant, !!w.indV)}${w.indV && h.internals.some(x => x.kind === 'industrial') ? '<div class="dim">직접 건조한 함선에는 산업 장비가 포함되지 않습니다 — 아래 모듈 목록에서 보관 중인 채굴·건설·인양 장비를 골라 함께 장착하세요.</div>' : ''}</div>
     ${baseChecklist(w, s, me, id, variant)}
     <div class="bdr small">예상 재료 원가 <b>${fmt(materialReferenceCost(w, need))} cr</b> · 등록 시 공임 및 조선소 비용 <b>${fmt(pay)} cr</b> · 합계 약 <b>${fmt(materialReferenceCost(w, need) + pay)} cr</b></div>
     <div class="dim small">선택한 부품·무장·지역 소재의 참고 가치로 계산한 추정치입니다. 실제 거래 가격이나 판매 수익을 보장하지 않습니다.</div>

@@ -127,6 +127,10 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     if (!SIZES.includes(e.size)) err(at, `size "${e.size}"`);
     if (item.kind === 'weapon' && e.slot !== 'hardpoint') err(at, '무장은 slot: hardpoint');
     if (item.kind === 'module' && !INTERNAL_KINDS.includes(e.slot as any)) err(at, `모듈의 slot "${e.slot}" 은 내부 베이 종류여야 함`);
+    // industrial hardpoint gear: an industrial module does exactly one kind of work, nothing else does any
+    const mc = reg.modules[e.id];
+    if (mc && (mc.slot === 'industrial') !== !!mc.ind) err(at, '산업 장비(slot industrial)는 ind(작업 종류·효율)가 반드시 있어야 하고, 다른 모듈에는 없어야 함');
+    if (mc?.ind && (!['mine', 'build', 'salvage'].includes(mc.ind.work) || !(mc.ind.rate > 0 && mc.ind.rate <= 100))) err(at, `ind ${JSON.stringify(mc.ind)}`);
     if (reg.exclusive.has(e.id)) {
       // nothing may produce, unlock or consume exclusive equipment
       if (RECIPES[e.id] || Object.values(RECIPES).some(r => r.out[e.id] || r.in[e.id]) || Object.values(reg.recipes).some(r => r.out[e.id] || r.in[e.id])) err(at, '계정 전용 장비에는 생산·소모 레시피가 없어야 함');
@@ -154,6 +158,19 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       const o = h.ops;
       if (o.berth && !SIZES.includes(o.berth)) err(at, `ops.berth "${o.berth}"`);
       for (const k of ['cruise', 'cargo', 'mine', 'build', 'minField'] as const) if (o[k] !== undefined && !(o[k]! >= 0)) err(at, `ops.${k} ${o[k]}`);
+      for (const [k, v] of Object.entries(o.bonus ?? {})) if (!['mine', 'build', 'salvage'].includes(k) || !(v! >= 0.5 && v! <= 2)) err(at, `ops.bonus.${k} ${v} (mine/build/salvage, 0.5~2)`);
+      // the standard industrial fit must fit the hull's industrial hardpoints and its power / mass
+      if (o.gear?.length) {
+        const bays = h.internals.filter(b => b.kind === 'industrial'), used = new Set<string>();
+        for (const g of o.gear) {
+          const m = reg.modules[g];
+          // the gear may live in a pack not loaded here (core hulls name growth-pack gear): only a wrong module is an error
+          if (!m) { warn(at, `ops.gear "${g}" 모듈이 로드된 팩에 없음`); continue; }
+          if (!m.ind) { err(at, `ops.gear "${g}" 는 산업 장비가 아님`); continue; }
+          const b = bays.find(x => !used.has(x.id) && SIZES.indexOf(x.size) >= SIZES.indexOf(m.size));
+          if (b) used.add(b.id); else err(at, `ops.gear "${g}" 를 넣을 산업 하드포인트 없음`);
+        }
+      }
     }
     if (h.build) {
       const b = h.build;

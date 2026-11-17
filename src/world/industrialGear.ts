@@ -1,0 +1,102 @@
+// Industrial hardpoints (indV worlds). Mining, construction and salvage are equipment, not hull
+// properties: a player ship does that work only with a mining laser / construction rig / salvage rig in
+// an `industrial` bay, at the gear's rate × its hull's design bonus (hullops.ts gearEcon). Any hull with a
+// compatible industrial bay can carry any of the three. Gear is ordinary equipment: fitted, removed,
+// stored, bought and produced through the existing fitting (sim.applyFitting) and inventory paths.
+//
+// New standard worlds start with it (WorldSim.create, opts.industrial). An existing save converts only by
+// explicit migration (migrateIndustrial — server env INDUSTRIAL_MIGRATE=1): every player industrial ship
+// gets the gear equal to what its hull did before, so nothing a company could do is lost. NPC ships have
+// no fitting and keep their hull values.
+import { CONTENT } from '../content/registry';
+import { bayAccepts, fitTotals } from '../content/rules';
+import type { WorldState, WShip } from './types';
+import type { GrantRecord } from './migrate';
+import { EQUIPMENT } from './industry';
+import { addGood, PROFILES } from './economy';
+import { bayModules, legacySig } from './fitting';
+import { hullIdOf } from './hullops';
+import { variantLayout } from '../content/registry';
+
+export const indOn = (st: Pick<WorldState, 'indV'> | undefined) => !!st?.indV;
+
+/** public stations that trade industrial gear from the start (S/M everywhere listed, L where large hulls are sold) */
+export const IND_MARKETS: Record<string, string[]> = {
+  astra: ['ind_mine_s', 'ind_mine_m', 'ind_build_s', 'ind_build_m', 'ind_salv_s'],
+  barcaco: ['ind_mine_s', 'ind_mine_m', 'ind_mine_l'],
+  drakeout: ['ind_mine_s', 'ind_mine_m', 'ind_salv_s'],
+  exchange: ['ind_build_s', 'ind_build_m', 'ind_salv_s', 'ind_salv_m'],
+  helios: ['ind_mine_l', 'ind_build_m', 'ind_build_l', 'ind_salv_l'],
+  rustport: ['ind_salv_s', 'ind_salv_m'],
+  p9_anvil_port: ['ind_mine_s', 'ind_mine_m'],
+  p9_ceres_works: ['ind_salv_s', 'ind_salv_m', 'ind_build_s'],
+  p10_kiln_works: ['ind_mine_s', 'ind_mine_m'],
+  p10_crossroads_bazaar: ['ind_salv_s', 'ind_salv_m', 'ind_build_s'],
+};
+
+/** add the industrial gear market rows (idempotent: an existing row is never touched) */
+export function stockIndustrialGear(st: WorldState): number {
+  let n = 0;
+  for (const [sid, ids] of Object.entries(IND_MARKETS)) {
+    const x = st.stations[sid]; if (!x?.public || !x.market) continue;
+    for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.6, st); n++; }
+  }
+  return n;
+}
+
+/** put industrial gear into a ship's free industrial bays (only what fits: bay size, power, mass).
+ *  Returns the gear placed. The caller decides where the gear came from (a new hull: part of its standard
+ *  build or founding fleet; a migration: the capability the hull had). */
+export function fitGear(s: WShip, gear: readonly string[]): string[] {
+  if (!s.fitting || !s.variant || !gear.length) return [];
+  const lay = variantLayout(s.variant); if (!lay) return [];
+  const placed: string[] = [];
+  for (const g of gear) {
+    const bay = lay.internals.find(b => b.kind === 'industrial' && !s.fitting!.bay[b.id] && !bayAccepts(b, g));
+    if (!bay) continue;
+    const next: Record<string, string> = { ...s.fitting.bay, [bay.id]: g };
+    const t = fitTotals(CONTENT, lay.hull.id, s.fitting.hp, next);
+    if (t && (t.power > t.supply || t.mass > t.cap)) continue;
+    s.fitting = { ...s.fitting, bay: next };
+    placed.push(g);
+  }
+  if (placed.length) {
+    s.fit = bayModules(s.variant, s.fitting);
+    s.fitting.sig = legacySig(s.loadoutId, s.fit);
+  }
+  return placed;
+}
+/** the hull's standard industrial gear (HullOps.gear) */
+export const fitStandardGear = (s: WShip) => fitGear(s, CONTENT.hulls[hullIdOf(s)]?.ops?.gear ?? []);
+
+/** new worlds: industrial hardpoint rules from the start */
+export function enableIndustrial(st: WorldState) {
+  st.indV = 1;
+  stockIndustrialGear(st);
+}
+
+export interface IndMigration { applied: boolean; reason?: string; ships: number; gear: number; markets: number }
+/** explicit save migration (idempotent): player ships come under industrial hardpoint rules, each keeping
+ *  the work its hull did (its standard gear is fitted — recorded in st.grants for the asset census); markets get
+ *  gear rows. Blueprints, credits, items and other ships are untouched. */
+export function migrateIndustrial(st: WorldState): IndMigration {
+  if ((st.contentV ?? 0) < 3) return { applied: false, reason: '성장 콘텐츠(c3) 이전 월드', ships: 0, gear: 0, markets: 0 };
+  let ships = 0, gear = 0;
+  const grants: GrantRecord[] = [];
+  for (const s of Object.values(st.ships)) {
+    if (s.ind || st.companies[s.owner]?.kind !== 'player' || !s.fitting || !s.variant) continue;
+    let got = fitStandardGear(s);
+    // a hauler could recover wreck cargo by itself in a salvage world: it keeps that with a small salvage rig
+    if (!got.length && st.salvageV && s.classId === 'hauler') got = fitGear(s, ['ind_salv_s']);
+    s.ind = 1; ships++;
+    // the gear is new equipment standing in for what the hull did by itself: a recorded grant (census)
+    for (const g of got) { gear++; grants.push({ v: 5, at: st.time, company: s.owner, ref: s.id, item: g, n: 1, why: '선체 고유 산업 능력 → 산업 하드포인트 장비 (동일 능력)' }); }
+  }
+  const markets = stockIndustrialGear(st);
+  if (grants.length) (st.grants ??= []).push(...grants);
+  st.indV = 1;
+  return { applied: true, ships, gear, markets };
+}
+
+/** ships a world spawns for a player in an indV world come under the rules */
+export function markIndustrial(st: WorldState, s: WShip) { if (indOn(st) && s.fitting) s.ind = 1; }

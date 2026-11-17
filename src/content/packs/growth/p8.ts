@@ -63,14 +63,14 @@ export const P8_HULLS: HullDef[] = [{
   hardpoints: LANCET_HP,
 }, {
   id: 'miner_quarry', classId: 'miner', name: '석맥급', maker: '바르카 채광조합', tier: 1, size: 'M',
-  moduleSlots: 2, power: 16, mass: 23, blueprint: 'common',
+  moduleSlots: 2, power: 23, mass: 31, blueprint: 'common',
   mesh: { base: 'miner_m', scale: 1.3, model: 'model.miner_quarry' },
   desc: '쌍 굴착 붐과 선내 선광 호퍼를 갖춘 중형 채굴선. 소형선보다 채굴량이 크지만 운용비와 조선 기반이 더 필요하다.',
-  ops: { cruise: 60, cargo: 400, mine: 6.1, berth: 'M' },
+  ops: { bonus: { mine: 1.22 }, gear: ['ind_mine_m'], cruise: 60, cargo: 400, mine: 6.1, berth: 'M' },
   build: { yard: 2, time: 3900, credits: 3200, tech: ['mining_lasers'], facilities: ['machine_shop'], parts: { structure: 48, armor_plate: 8, engine: 2, reactor: 1, machinery: 22, precision: 2 } },
   upkeep: { credits: 850, supplies: { machinery: 0.14 }, wear: 0.05 },
   sale: { stations: ['astra', 'barcaco', 'drakeout'], stock: 3, restock: 3300 },
-  internals: [{ id: 'bay1', kind: 'special', size: 'M' }, { id: 'eng1', kind: 'engine', size: 'S' }],
+  internals: [{ id: 'bay1', kind: 'special', size: 'M' }, { id: 'eng1', kind: 'engine', size: 'S' }, { id: 'ind1', kind: 'industrial', size: 'M' }],
   hardpoints: QUARRY_HP,
 }, {
   id: 'hauler_meridian', classId: 'hauler', name: '자오선급', maker: '상인 길드 조선', tier: 2, size: 'L',
@@ -81,7 +81,7 @@ export const P8_HULLS: HullDef[] = [{
   build: { yard: 3, time: 6400, credits: 6400, tech: ['logistics_ai'], facilities: ['dock'], parts: { structure: 150, engine: 4, reactor: 2, machinery: 26, electronics: 6 } },
   upkeep: { credits: 2200, supplies: { chemicals: 1.3 }, wear: 0.04 },
   sale: { stations: ['exchange'], rep: 10, stock: 1, restock: 6600 },
-  internals: [{ id: 'bay1', kind: 'special', size: 'M' }, { id: 'bay2', kind: 'special', size: 'M' }, { id: 'eng1', kind: 'engine', size: 'S' }],
+  internals: [{ id: 'bay1', kind: 'special', size: 'M' }, { id: 'bay2', kind: 'special', size: 'M' }, { id: 'eng1', kind: 'engine', size: 'S' }, { id: 'ind1', kind: 'industrial', size: 'M' }],
   hardpoints: MERIDIAN_HP,
 }, {
   id: 'cruiser_vigil', classId: 'light_cruiser', name: '감시자급', maker: '연합 방위조선', tier: 3, size: 'M',

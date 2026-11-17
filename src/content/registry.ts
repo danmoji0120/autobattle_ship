@@ -116,7 +116,7 @@ export function installContent(r: Registry) {
   }
   for (const m of Object.values(r.modules)) {
     const g = r.growthOnly.has(m.id);
-    EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, cfx: m.fx, ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
+    EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, cfx: m.fx, ...(m.ind ? { ind: { ...m.ind } } : {}), ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
     RECIPES[m.id] ??= { id: m.id, name: `${m.name} 제작`, fac: m.recipe.fac, time: m.recipe.time, in: m.recipe.in, out: { [m.id]: 1 }, ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
   }
   for (const t of Object.values(r.techs)) {

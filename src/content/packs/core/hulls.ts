@@ -163,8 +163,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "miner_mk1", classId: "miner", name: "곡괭이급", tier: 1, size: "S", moduleSlots: 1, power: 10, mass: 9, blueprint: "common",
-    mesh: {"base":"miner","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}],
+    id: "miner_mk1", classId: "miner", name: "곡괭이급", tier: 1, size: "S", moduleSlots: 1, power: 14, mass: 13, blueprint: "common",
+    ops: { bonus: { mine: 1.28 }, gear: ['ind_mine_s'] }, mesh: {"base":"miner","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"},{"id":"ind1","kind":"industrial","size":"S"}],
     desc: "채굴 레이저와 대형 화물칸. 소행성에서 광석과 크리스탈을 캐낸다.",
     hardpoints: [
       {"id":"hp01","pos":[3,3,6],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
@@ -173,7 +173,7 @@ export const CORE_HULLS: HullDef[] = [
   },
   {
     id: "hauler_mk1", classId: "hauler", name: "짐꾼급", tier: 1, size: "S", moduleSlots: 1, power: 10, mass: 9, blueprint: "common",
-    mesh: {"base":"hauler","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}],
+    mesh: {"base":"hauler","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"},{"id":"ind1","kind":"industrial","size":"S"}],
     desc: "거대한 컨테이너 수송선. 채굴선에서 광석을 받아 정거장으로 나른다.",
     hardpoints: [
       {"id":"hp01","pos":[3.5,4,12],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
@@ -181,8 +181,8 @@ export const CORE_HULLS: HullDef[] = [
     ],
   },
   {
-    id: "constructor_mk1", classId: "constructor", name: "석공급", tier: 2, size: "M", moduleSlots: 1, power: 10, mass: 9, blueprint: "common",
-    mesh: {"base":"constructor","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"}],
+    id: "constructor_mk1", classId: "constructor", name: "석공급", tier: 2, size: "M", moduleSlots: 1, power: 16, mass: 18, blueprint: "common",
+    ops: { bonus: { build: 1.25 }, gear: ['ind_build_m'] }, mesh: {"base":"constructor","scale":1}, internals: [{"id":"bay1","kind":"special","size":"M"},{"id":"ind1","kind":"industrial","size":"M"}],
     desc: "조립 크레인과 드론 격납고를 갖춘 공작선. 정거장을 세우고 모듈을 건설한다.",
     hardpoints: [
       {"id":"hp01","pos":[3,4,8],"facing":90,"arc":175,"size":"S","type":"pd","mount":"turret"},
