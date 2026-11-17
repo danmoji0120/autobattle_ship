@@ -48,7 +48,7 @@ export const MIL = {
   strikeJumps: 5,
   loops: 2,                 // every waypoint of a patrol route must be reached this many times
   wpReach: 650,             // a patrol waypoint counts when a combat ship of the fleet comes this close
-  coverR: 3200,             // an escort covers its ward within this distance (same system)
+  coverR: 8000,             // an escort covers its ward within this distance in the same system (a warp hop behind still answers an attack)
   coverMin: 0.6,            // share of the ward's travel time that must be covered
   detect: 2600,             // patrol threat detection (raised by the officer's detect effect)
   recentBattles: 60,        // battles remembered per company for the one-battle-one-contract rule
@@ -535,7 +535,8 @@ function evalEscort(h: Host, k: Contract & { mil: MilTerms }, mil: WShip[], inSp
   const dest = w.stations[m.dest ?? '']; if (!dest) return settle(h, k, false, '목적지 소멸', 0, false, true);
   const wc = centroid(wards.map(s => s.pos));
   const wsys = sysOfPos(w, wc)?.id;
-  const escorted = (r: number) => mil.some(s => (s.state === 'space' || s.state === 'docked') && sysOfPos(w, s.pos)?.id === wsys && dist(s.pos, wc) < r);
+  // an escort warping to the ward's side counts as with it (it arrives within seconds)
+  const escorted = (r: number) => mil.some(s => (s.state === 'space' || s.state === 'docked') && sysOfPos(w, s.pos)?.id === wsys && (dist(s.pos, wc) < r || (s.warp?.phase === 'warp' && dist(s.warp.to, wc) < r)));
   if (!m.joined) {
     if (escorted(1800)) { m.joined = true; h.ev('info', `${k.title}: 호위 합류 — 출항`, { company: k.takenBy!, pos: wc }); }
     else if (h.time > (m.joinBy ?? 0)) { m.sailed = h.time; return settle(h, k, false, '호위 미합류 — 보호 대상이 단독 출항', 0); }
@@ -547,7 +548,8 @@ function evalEscort(h: Host, k: Contract & { mil: MilTerms }, mil: WShip[], inSp
   if (ward?.owner === 'guild' && ward.op.k === 'trade') arrived = ward.op.leg % ward.op.route.length !== m.wleg && wards.every(s => dist(s.pos, dest.pos) < 3500);
   else arrived = wards.every(s => s.state === 'docked' && s.task.k === 'docked' && s.task.station === dest.id);
   const moving = wards.some(s => s.state === 'space');
-  if (moving) { m.sailed ??= h.time; const c = (m.cover ??= [0, 0]); c[1]++; if (escorted(MIL.coverR)) c[0]++; }
+  // coverage is sampled while the ward can be caught: in space and not inside a warp jump
+  if (moving) { m.sailed ??= h.time; if (wards.some(s => s.state === 'space' && s.warp?.phase !== 'warp')) { const c = (m.cover ??= [0, 0]); c[1]++; if (escorted(MIL.coverR)) c[0]++; } }
   watch(h, k, inSpace, MIL.detect);
   if (arrived) {
     const c = m.cover ?? [0, 0];
