@@ -886,7 +886,7 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .ops-option.rec { border-color:#3e7a5a; }.ops-option p { margin:2px 0 0; font-size:11px; color:var(--dim); }.ops-option small { color:var(--good); font-weight:400; margin-left:6px; }
 @media(max-width:1100px) { .ops-kpi { grid-template-columns:repeat(3,1fr); } .ops-cols { grid-template-columns:1fr; } .ops-body { padding:14px 16px; } .ops-inv-detail { grid-template-columns:1fr; } }
 @media(max-width:760px) { .ops-kpi { grid-template-columns:1fr 1fr; } .ops-kpi>div:nth-child(n+3) { display:flex; } .ops-tabs { overflow-x:auto; white-space:nowrap; } .ops-tabs button { flex-shrink:0; } .ops-option { flex-direction:column; align-items:stretch; } .ops-work-top b { min-width:0; flex-basis:100%; order:3; } }
-@media(max-width:650px) { #ptop #opsBtn,#ptop #officerBtn { order:-2; font-size:11px; padding:6px; } }
+@media(max-width:650px) { #ptop #opsBtn,#ptop #officerBtn,#ptop #milBtn { order:-2; font-size:11px; padding:6px; } }
 /* P12.5 logistics status (logisticsV worlds) */
 .autolg-box { overflow-y:auto; }
 .autolg-box .pool-section { padding:14px 24px; border-bottom:1px solid var(--line); }
@@ -1066,3 +1066,57 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
   .of-grid, .of-mcols { grid-template-columns:1fr; }
   .of-treehead>span:last-child { margin-left:0; }
 }
+
+/* B-2 military contracts (군사 계약) */
+.mil-box .mil-empty { padding:40px 24px; color:var(--dim); line-height:1.7; }
+.mil-scroll { flex:1; min-height:0; overflow:auto; }
+.mil-guide { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:20px; padding:16px 24px; border-bottom:1px solid var(--line); background:rgba(100,170,220,.03); }
+.mil-guide h3 { margin:0 0 10px; font-size:15px; color:#c8eaff; }
+.mil-steps { list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--dim); }
+.mil-steps li.done { color:var(--good); }
+.mil-goal { font-size:12px; padding:7px 0; }
+.mil-pl { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:11px; color:var(--dim); border-top:1px solid var(--line); padding-top:8px; }
+.mil-pl b { font:13px var(--mono); color:var(--text); margin-left:4px; }
+.mil-fleets { display:flex; flex-direction:column; gap:6px; }
+.mil-fleet { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:2px 10px; padding:7px 10px; border:1px solid var(--line); border-left:3px solid var(--good); font-size:12px; }
+.mil-fleet.busy { border-left-color:var(--cyan,#5fd4ff); }
+.mil-fleet small { color:var(--dim); font-size:11px; }
+.mil-fleet > small { grid-column:1; }
+.mil-fleet .an-link { grid-column:2; grid-row:1 / span 2; align-self:center; font-size:11px; }
+.mil-busy { color:#9ad8f6; }
+.mil-next { margin:10px 0 0; padding-left:16px; font-size:12px; line-height:1.6; display:flex; flex-direction:column; gap:4px; }
+.mil-tabs { display:flex; gap:6px; padding:12px 24px 0; flex-wrap:wrap; }
+.mil-tabs .btn.on { border-color:var(--accent); color:#fff; background:rgba(95,212,255,.1); }
+.mil-n { font:10px var(--mono); color:var(--dim); margin-left:3px; }
+.mil-body { padding:14px 24px 20px; }
+.mil-chk { flex-direction:row !important; align-items:center; gap:6px !important; align-self:center; }
+.mil-chk input { width:auto !important; }
+.mil-card.ok { border-left-color:var(--good); } .mil-card.weak { border-left-color:var(--warn); } .mil-card.danger { border-left-color:#d4685a; }
+.mil-card.focus { outline:1px solid var(--accent); }
+.mil-card .lg-card-top b { overflow-wrap:anywhere; font-size:14px; }
+.mil-desc { font-size:12px; line-height:1.6; color:#c5d8e4; margin-bottom:8px; }
+.mil-where { font-size:11px; color:var(--dim); line-height:1.6; }
+.mil-where .an-link { font-size:11px; margin-left:4px; }
+.mil-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.mil-metrics b { font-size:13px !important; }
+.mil-fit { font-size:11px; margin-bottom:6px; }
+.mil-fit.good { color:var(--good); } .mil-fit.warn { color:var(--warn); } .mil-fit.bad, .mil-box .bad { color:#ff8a78; }
+.mil-hint { font-size:11px; color:var(--dim); line-height:1.6; margin:6px 0; }
+.mil-pick { display:flex; flex-direction:column; gap:4px; font-size:10px; color:var(--dim); flex:1; min-width:150px; }
+.mil-t-patrol { color:#9ad8f6; } .mil-t-defend { color:#b6c8ff; border-color:#3e4f7a; } .mil-t-escort { color:#9ff0c0; border-color:#2f6a4b; } .mil-t-hunt { color:#ffcf87; border-color:#6e5732; } .mil-t-strike { color:#ff9a88; border-color:#7a3a33; }
+.mil-bar { height:6px; background:#12222f; margin:4px 0 8px; } .mil-bar i { display:block; height:100%; background:var(--good); }
+.mil-detail { font-size:12px; margin-bottom:6px; }
+.mil-table-wrap { overflow-x:auto; }
+.mil-table { width:100%; border-collapse:collapse; font-size:12px; min-width:720px; }
+.mil-table th { text-align:right; font-weight:400; color:var(--dim); font-size:11px; padding:6px 8px; border-bottom:1px solid var(--line); }
+.mil-table th:first-child, .mil-table td:first-child { text-align:left; }
+.mil-table td { text-align:right; padding:7px 8px; border-bottom:1px solid var(--line); font-family:var(--mono); vertical-align:top; }
+.mil-table td:first-child { font-family:var(--font); max-width:320px; }
+.mil-table td small { display:block; color:var(--dim); font-size:10.5px; font-family:var(--font); }
+.mil-table tr.fail td:first-child b { color:var(--warn); }
+.mil-table tfoot td { font-weight:600; border-top:1px solid var(--line2); }
+.mil-h3 { font-size:14px; color:#c8eaff; margin:6px 0 12px; }
+.mil-post { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) auto; gap:10px; align-items:end; margin-bottom:8px; }
+.mil-post label { display:flex; flex-direction:column; gap:5px; font-size:11px; color:var(--dim); }
+@media(max-width:900px) { .mil-guide { grid-template-columns:1fr; padding:12px 16px; } .mil-tabs { padding:10px 16px 0; } .mil-body { padding:12px 16px 16px; } .mil-post { grid-template-columns:1fr; } }
+@media(max-width:760px) { .mil-tabs .btn { flex:1; font-size:11px; padding:7px 4px; } .mil-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .mil-card .lg-card-actions { display:flex; } .mil-card .lg-card-actions .btn.go { flex:1; } }

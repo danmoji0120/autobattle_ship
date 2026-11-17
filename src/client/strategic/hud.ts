@@ -6,6 +6,8 @@ import { OperationsPanel } from './operationsUi';
 import { OfficerPanel, recruitOfficerHtml } from './officerUi';
 import { levelProgress } from '../../world/officers';
 import { FirstBusinessPanel } from './firstBusinessUi';
+import { MilitaryPanel, militaryAvailable } from './militaryUi';
+import { milFirstOn } from '../../world/military';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
 import type { StrategicView, Pick } from './view';
@@ -109,6 +111,8 @@ export class PmcHud {
   private analyticsPanel: AnalyticsPanel | null = null;
   private opsPanel: OperationsPanel | null = null;
   private officerPanel: OfficerPanel | null = null;
+  private militaryPanel: MilitaryPanel | null = null;
+  private milAuto = false;
   private upkOpen = false;
   /** A-3.2a: first-business guide (hauler / miner starts) */
   private fb!: FirstBusinessPanel;
@@ -895,6 +899,7 @@ export class PmcHud {
     if (this.modal && this.modalStation) this.renderModal(force);
     this.renderUpkeep(force);
     if (!this.fbAuto && this.st.companies[this.me]) { this.fbAuto = true; this.fb.autoOpen(); }
+    if (!this.milAuto && this.st.companies[this.me]) { this.milAuto = true; this.milAutoOpen(); }
     this.fb.render(force);
     this.fitScreen?.update();
   }
@@ -920,6 +925,7 @@ export class PmcHud {
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
       ${this.fb.available() ? `<button class="btn${this.fb.done() ? '' : ' fbbtn'}" id="fbBtn" title="첫 사업 안내 — 거래·채굴 기회, 진행, 손익">첫 사업${this.fb.done() ? ' ✓' : ''}</button>` : ''}
       ${growthOn(this.st) ? `<button class="btn" id="opsBtn" title="회사 전체 업무 · 목표 · 재고 · 결재">회사 본부${(() => { const n = Object.values(this.st.approvals ?? {}).filter(a => a.owner === this.me && a.state === 'open').length; return n ? ` <span class="ops-dot">${n}</span>` : ''; })()}</button>` : ''}
+      ${militaryAvailable(this.st as never, this.me) ? (() => { const first = milFirstOn(co) && !co.milestones.includes('first_profit'); const n = Object.values(this.st.contracts).filter(k => k.kind === 'mil' && !k.done && k.takenBy === this.me).length; return `<button class="btn${first ? ' fbbtn' : ''}" id="milBtn" title="군사 계약 — 순찰·호위·방어·토벌 게시판, 진행, 작전 손익${first ? ' · 첫 사업 안내' : ''}">군사 계약${n ? ` <span class="ops-dot" title="진행 중인 계약">${n}</span>` : ''}</button>`; })() : ''}
       ${this.st.officerV ? `<button class="btn" id="officerBtn" title="장교 육성 · 스킬 트리 · 보직 · 비교">장교${(() => { const n = Object.values(this.st.commanders).filter(c => c.owner === this.me && (c.of?.sp ?? 0) > 0).length; return n ? ` <span class="ops-dot" title="스킬 포인트를 쓸 수 있는 장교">${n}</span>` : ''; })()}</button>` : ''}
       ${growthOn(this.st) ? (this.st.logisticsV ? '<button class="btn" id="logisticsBtn" title="수송선 · 진행 중 운송 · 부족 자재 · 문제">물류 현황</button>' : '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>') : ''}
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
@@ -930,6 +936,7 @@ export class PmcHud {
     const logistics = document.getElementById('logisticsBtn'); if (logistics) logistics.onclick = () => this.openLogistics();
     const ops = document.getElementById('opsBtn'); if (ops) ops.onclick = () => this.openOperations();
     const ofb = document.getElementById('officerBtn'); if (ofb) ofb.onclick = () => this.openOfficers();
+    const mlb = document.getElementById('milBtn'); if (mlb) mlb.onclick = () => this.militaryPanel ? this.militaryPanel.close() : this.openMilitary();
     const fbb = document.getElementById('fbBtn'); if (fbb) fbb.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); const was = this.fb.open; this.upkOpen = false; this.renderUpkeep(true); this.fb.open = !was; this.fb.render(true); };
     (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
@@ -1391,7 +1398,7 @@ export class PmcHud {
   openOperations(tab?: 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance' | 'rep') {
     if (!growthOn(this.st)) return;
     if (this.opsPanel) { if (tab) this.opsPanel.show(tab); return; }
-    this.officerPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.militaryPanel?.close(); this.officerPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
     this.opsPanel = new OperationsPanel(this.root, this.c, {
       station: (id, t) => { this.opsPanel?.close(); this.openStation(id, t ?? 'store'); },
       logistics: () => { this.opsPanel?.close(); this.openLogistics(); },
@@ -1404,17 +1411,37 @@ export class PmcHud {
   openOfficers(select?: string) {
     if (!this.st.officerV) return;
     if (this.officerPanel) return;
-    this.opsPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.militaryPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
     this.officerPanel = new OfficerPanel(this.root, this.c, {
       close: () => { this.officerPanel = null; },
       fleet: id => { this.officerPanel?.close(); this.select({ kind: 'group', id }); const pos = this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
     }, select);
   }
 
-  openAnalytics() { this.officerPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
+  /** B-2 military contract screen (standalone; the HUD only shows the entry button) */
+  openMilitary(focus?: string) {
+    if (this.st.milV !== 1) return;
+    if (this.militaryPanel) return;
+    this.officerPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.militaryPanel = new MilitaryPanel(this.root, this.c, {
+      close: () => { this.militaryPanel = null; },
+      fleet: id => { this.select({ kind: 'group', id }); const pos = this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
+      station: id => this.openStation(id, 'contracts'),
+    }, focus);
+  }
+  /** open the military guide once for a new security / veteran company on this browser */
+  private milAutoOpen() {
+    const co = this.st.companies[this.me];
+    if (this.st.milV !== 1 || !milFirstOn(co) || co.milestones.includes('first_profit')) return;
+    const k = `siderarium.mil.${this.me}`;
+    try { if (localStorage.getItem(k)) return; localStorage.setItem(k, '1'); } catch { /* storage blocked: open anyway */ }
+    this.openMilitary();
+  }
+
+  openAnalytics() { this.militaryPanel?.close(); this.officerPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
-    this.logisticsPanel?.close(); this.opsPanel?.close(); this.officerPanel?.close();
+    this.logisticsPanel?.close(); this.opsPanel?.close(); this.officerPanel?.close(); this.militaryPanel?.close();
     this.upkOpen = false; this.renderUpkeep(true); this.fb?.close();
     this.modalStation = id; this.yardFocus = null;
     const s = this.st.stations[id];
@@ -1621,6 +1648,7 @@ export class PmcHud {
     m.querySelectorAll<HTMLSelectElement>('[data-refit]').forEach(sel => sel.onchange = () => { if (sel.value) this.cmd({ c: 'refit', ship: sel.dataset.refit!, loadoutId: sel.value }); });
     m.querySelectorAll<HTMLButtonElement>('[data-hire]').forEach(b => b.onclick = () => this.cmd({ c: 'hire', commander: b.dataset.hire! }));
     m.querySelectorAll<HTMLButtonElement>('[data-accept]').forEach(b => b.onclick = () => this.cmd({ c: 'accept', contract: b.dataset.accept! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-milopen]').forEach(b => b.onclick = () => this.openMilitary(b.dataset.milopen!));
     m.querySelectorAll<HTMLButtonElement>('[data-module]').forEach(b => b.onclick = async () => {
       const kind = b.dataset.module!;
       const before = new Set(s.modules.map(x => x.id));
@@ -1736,7 +1764,8 @@ export class PmcHud {
     return `<div class="yard">${ks.map(k => `<div class="ycard${k.takenBy && k.takenBy !== this.me ? ' locked' : ''}"><div class="yn"><b>${esc(k.title)}</b><span class="money">${fmt(k.reward)} cr · ${this.st.repV ? `신용·${esc(FACTIONS[this.st.stations[k.stationId]?.faction ?? '']?.short ?? '')} 신뢰 상승` : `평판 +${k.rep}`}</span></div>
       <div class="dim">${esc(k.desc)}</div>
       <div class="ys">${(k.kind === 'delivery' || k.kind === 'salvage') ? `진행 ${Math.round(k.progress)}/${k.amount} · ` : ''}${Math.max(0, Math.round((k.expires - this.st.time) / 60))}분 남음</div>
-      ${k.takenBy === this.me ? '<div class="good">수주함 — 진행 중</div>' : k.takenBy ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn go" data-accept="${k.id}">수주</button>`}</div>`).join('')}</div>
+      ${k.kind === 'mil' ? (k.takenBy && k.takenBy !== this.me ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn${k.takenBy ? '' : ' go'}" data-milopen="${k.id}">${k.takenBy === this.me ? '진행 상황 · 군사 계약' : '군사 계약 화면에서 수주 (함대 선택)'}</button>`)
+        : k.takenBy === this.me ? '<div class="good">수주함 — 진행 중</div>' : k.takenBy ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn go" data-accept="${k.id}">수주</button>`}</div>`).join('')}</div>
       <div class="dim small">납품 계약: 해당 정거장에 자원을 하역하면 자동으로 납품됩니다. 현상금: 해당 해적 무리 격멸 전투에 참여하면 완수됩니다. 인양: 지정 잔해에서 회수한 물품을 이 정거장에 하역하면 납품됩니다(보상은 수주 때 정거장 예산에서 예약).</div>`;
   }
 
