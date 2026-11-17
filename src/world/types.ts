@@ -654,6 +654,8 @@ export interface WorldState {
   salvageV?: 1;
   /** industrial hardpoints (world/industrialGear.ts): player ships mine, build and salvage only with fitted gear */
   indV?: 1;
+  /** P15.1: combat computers stocked on public markets at creation (new growth worlds) */
+  cpuV?: number;
   /** A-3.2b natural derelicts and salvage contracts (salvageV worlds; new standard worlds, saves by explicit migration) */
   derelictV?: 1;
   /** B-1 officer development (new standard worlds; saves by explicit migration OFFICERS_B1_MIGRATE) */

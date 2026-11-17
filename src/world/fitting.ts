@@ -6,7 +6,8 @@
 // modules. `loadoutId` stays as a label (closest legacy preset) and `fit` mirrors the bay modules so
 // older code paths (cruise speed, combat fx, census) keep working unchanged.
 import { CONTENT, legacyOf, layoutMounts, variantLayout, type Registry } from '../content/registry';
-import { bayAccepts, fitTotals, hpAccepts } from '../content/rules';
+import { arcOf, bayAccepts, fitTotals, hpAccepts } from '../content/rules';
+import type { HardpointDef } from '../content/schema';
 import { EQUIPMENT } from './industry';
 import { getLoadout, type LoadoutDef, type MountDef } from '../sim/data/ships';
 
@@ -86,6 +87,17 @@ export function fittingFromLegacy(classId: string, loadoutId: string, fit: strin
   return { hull: m.hull, variant: m.variant, fitting: { hp: { ...p.weapons }, bay, preset: m.preset, sig: legacySig(getLoadout(classId, loadoutId).id, fit) }, unplaced };
 }
 
+/** P15.1: the combat computer fitted in a ship's bays, as the battle needs it (ShipSpec.cpu). The
+ *  hull has one computer bay; should a variant ever carry more, the first bay in id order counts. */
+export function cpuOfFitting(f: ShipFitting | undefined): import('../sim/ai/computer').CpuSpec | undefined {
+  if (!f) return undefined;
+  for (const id of Object.keys(f.bay).sort()) {
+    const c = EQUIPMENT[f.bay[id]]?.cpu;
+    if (c) return { id: f.bay[id], arch: c.arch, ...(c.react !== undefined ? { react: c.react } : {}) };
+  }
+  return undefined;
+}
+
 /** combat mounts of a fitting (same shape as LoadoutDef.mounts) */
 export const fittingMounts = (variantId: string, f: ShipFitting, reg: Registry = CONTENT): MountDef[] => layoutMounts(variantId, f.hp, reg);
 
@@ -137,3 +149,8 @@ export function shipLoadout(s: { classId: string; loadoutId: string; variant?: s
 /** cache key for a ship's model (changes when its weapons move) */
 export const shipLoadoutKey = (s: { classId: string; loadoutId: string; variant?: string; fitting?: ShipFitting }) =>
   s.fitting ? `${s.classId}:${s.variant}:${Object.entries(s.fitting.hp).sort().map(e => e.join('=')).join(',')}` : `${s.classId}:${s.loadoutId}`;
+
+/** the weapons a (draft) fitting carries, as the combat-computer band calculation reads them (UI summary) */
+export function cpuMountsOf(lay: { hardpoints: HardpointDef[] }, hp: Record<string, string | undefined>): { weapon: string; facing: number; arc: number }[] {
+  return lay.hardpoints.flatMap(h => { const eq = hp[h.id], w = eq ? EQUIPMENT[eq]?.weapon : undefined; return w ? [{ weapon: w, facing: h.facing, arc: arcOf(h, eq!) }] : []; });
+}

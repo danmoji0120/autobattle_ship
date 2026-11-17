@@ -65,6 +65,8 @@ export interface EquipDef {
   cfx?: import('../content/schema').CombatFx;
   /** industrial work of an industrial-hardpoint module (mining laser, construction rig, salvage rig) */
   ind?: import('../content/schema').IndSpec;
+  /** P15.1 combat computer behaviour of a `computer`-bay module */
+  cpu?: import('../content/schema').CpuModSpec;
   /** goods consumed per hour of service (growth upkeep) */
   supply?: Record<string, number>;
   /** growth-only content (contentV ≥ 3) */

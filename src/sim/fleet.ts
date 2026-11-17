@@ -11,6 +11,9 @@ export interface ShipSpec {
   /** actual fitted weapons (Fitting V2) — replaces the loadout's mounts; the hull variant's structural
    *  modifiers come with them. Absent = the class loadout as before. */
   fit?: { name: string; mounts: import('./data/ships').MountDef[]; hpMul?: number; armorMul?: number; speedMul?: number; /** render only — the battle sim never reads it */ mesh?: import('./data/ships').LoadoutDef['mesh'] };
+  /** P15.1: the fitted combat computer (product + behaviour). Used only by battles under rules ≥ 2;
+   *  absent = built-in basic control. */
+  cpu?: import('./ai/computer').CpuSpec;
   /** BB-EX only: arrival and system options (sim/bbex/system.ts ExSpec) */
   ex?: import('./bbex/system').ExSpec;
 }

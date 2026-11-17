@@ -17,6 +17,7 @@ import { addGood, PROFILES } from './economy';
 import { bayModules, legacySig } from './fitting';
 import { hullIdOf } from './hullops';
 import { variantLayout } from '../content/registry';
+import { CPU_MARKETS } from '../content/packs/growth/computers';
 
 export const indOn = (st: Pick<WorldState, 'indV'> | undefined) => !!st?.indV;
 
@@ -41,6 +42,18 @@ export function stockIndustrialGear(st: WorldState): number {
     const x = st.stations[sid]; if (!x?.public || !x.market) continue;
     for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.6, st); n++; }
   }
+  return n;
+}
+
+/** P15.1: standard combat computers on the public markets of a new growth world (idempotent; st.cpuV marks it).
+ *  Existing saves are not converted automatically: their companies can produce computers (electronics_fab). */
+export function stockComputers(st: WorldState): number {
+  let n = 0;
+  for (const [sid, ids] of Object.entries(CPU_MARKETS)) {
+    const x = st.stations[sid]; if (!x?.public || !x.market) continue;
+    for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.5, st); n++; }
+  }
+  st.cpuV = 1;
   return n;
 }
 

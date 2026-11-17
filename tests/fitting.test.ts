@@ -86,11 +86,11 @@ describe('fitting V2: rules enforced by the server', () => {
     try { expect(tryFit({}, { variant: 'cruiser_mk1_tmp' })).toMatch(/설계도 필요/); } finally { delete (CONTENT.variants as any).cruiser_mk1_tmp; }
     // mass: four armour plates on a 4-slot cruiser were never allowed (4 × size 2 > 4 slots)
     expect(tryFit({ bay: { bay1: 'mod_armor', bay2: 'mod_armor', bay3: 'mod_armor', bay4: 'mod_armor' } })).toMatch(/적재 초과/);
-    // power: rail cannons on a battleship's main hardpoints plus ECM in every bay — light enough, too hungry
+    // power: rail cannons on a battleship's main hardpoints plus ECM in every module bay — light enough, too hungry
     const blay = variantLayout(bs.variant!)!;
     const hot: Record<string, string> = { ...bs.fitting!.hp };
     for (const h of blay.hardpoints) if (!hpAccepts(h, 'eq_rail_cannon')) hot[h.id] = 'eq_rail_cannon';
-    const ecm = Object.fromEntries(blay.internals.map(b => [b.id, 'mod_ecm']));
+    const ecm = Object.fromEntries(blay.internals.filter(b => b.kind !== 'computer').map(b => [b.id, 'mod_ecm']));   // the P15.1 computer bay takes computers only
     const rep = checkFitting(bs.variant!, { hp: hot, bay: ecm });
     expect(rep.power).toBeGreaterThan(rep.supply); expect(rep.mass).toBeLessThanOrEqual(rep.cap);
     expect(sim.command(p, { c: 'fit', ship: bs.id, hp: hot, bay: ecm })).toMatch(/전력 초과/);

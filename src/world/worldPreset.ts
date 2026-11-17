@@ -14,7 +14,7 @@ export type WorldPreset = 'standard' | 'legacy';
 
 export const STANDARD_WORLD: Readonly<WorldCreateOpts> = Object.freeze({
   layout: 'p10', factionEcon: 'v2', combat: 'p11', ops: 'p12', logistics: 'p125', salvage: 'p131', piracy: 'p132',
-  blackMarket: 'p133', law: 'p134', rep: 'p14', derelicts: 'a32b', officers: 'b1', military: 'b2', territory: 'b3', industrial: 'ind1',
+  blackMarket: 'p133', law: 'p134', rep: 'p14', derelicts: 'a32b', officers: 'b1', military: 'b2', territory: 'b3', industrial: 'ind1', computers: 'p151',
 } as const);
 
 /** the per-system switches of the legacy preset (one opt-in flag per system, P9 layout) */

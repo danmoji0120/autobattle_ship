@@ -142,7 +142,8 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
   for (const m of Object.values(reg.modules)) {
     const at = `module ${m.id}`, g = packGrowth('module', m.id);
     // industrial hardpoint gear (slot industrial) is named ind_<work>_<size>; every other module mod_
-    if (m.slot === 'industrial' ? !/^ind_[a-z0-9_]{2,40}$/.test(m.id) : !/^mod_[a-z0-9_]{2,40}$/.test(m.id)) err(at, m.slot === 'industrial' ? 'id 는 `ind_` 로 시작' : 'id 는 `mod_` 로 시작');
+    const pre = m.slot === 'industrial' ? 'ind_' : m.slot === 'computer' ? 'cpu_' : 'mod_';
+    if (!new RegExp(`^${pre}[a-z0-9_]{2,40}$`).test(m.id)) err(at, `id 는 \`${pre}\` 로 시작`);
     if (!INTERNAL_KINDS.includes(m.slot)) err(at, `slot "${m.slot}"`);
     if (!SIZES.includes(m.size)) err(at, `size "${m.size}"`);
     if (!(m.mass > 0 && m.mass <= 60)) err(at, `mass ${m.mass}`);
@@ -151,7 +152,7 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     if (m.fx.family) err(at, '모듈은 계열 한정 효과(family)를 쓰지 않는다 (연구로)');
     if (m.fx.shield && m.power <= 0) err(at, '실드 발생기는 전력을 소모해야 함');
     cfxCheck(at, m.fx);
-    if (!Object.keys(m.fx).length && m.power >= 0 && !m.ind) err(at, '효과도 전력 공급도 없는 모듈');
+    if (!Object.keys(m.fx).length && m.power >= 0 && !m.ind && !m.cpu) err(at, '효과도 전력 공급도 없는 모듈');
     if (!fac(m.recipe.fac)) err(at, `recipe.fac "${m.recipe.fac}" 시설 없음`);
     goods(at, m.recipe.in, 'recipe.in', g);
   }

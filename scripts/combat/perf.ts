@@ -1,11 +1,22 @@
 // P11 combat performance: step time of 100- and 200-ship battles. The legacy 2-side cases run on any commit
 // (compare the base branch with HEAD); the P11 cases (three sides, a mid-battle reinforcement) need P11.
-//   [RULES=n] npx vite-node scripts/combat/perf.ts -- [ticks=1800] [repeats=3]   (RULES: BattleSetup.rules, default the setup's)
+//   [RULES=n] [CPU=1] npx vite-node scripts/combat/perf.ts -- [ticks=1800] [repeats=3]   (RULES: BattleSetup.rules, default the setup's;
+//   CPU=1: every ship carries a P15.1 combat computer — cruisers line/artillery, destroyers picket, corvettes siege/swarm)
 import { World, type BattleSetup } from '../../src/sim/world';
 import { lineFleet } from '../../src/sim/bbex/trials';
 
 const [ticks = 1800, repeats = 3] = process.argv.slice(2).filter(a => /^\d+$/.test(a)).map(Number);
-const fleet = (name: string, n: number, team: 0 | 1 = 1) => lineFleet(name, [['cruiser', 'multi', Math.round(n * .2)], ['destroyer', 'aa', Math.round(n * .4)], ['corvette', 'torp', n - Math.round(n * .2) - Math.round(n * .4)]], 6, team);
+const CPU_BY: Record<string, string[]> = { cruiser: ['line', 'artillery'], destroyer: ['picket'], corvette: ['siege', 'swarm'] };
+function withCpu(f: import('../../src/sim/fleet').FleetSpec) {
+  if (!process.env.CPU) return f;
+  let i = 0;
+  const walk = (g: import('../../src/sim/fleet').GroupSpec) => {
+    for (const s of g.ships) { const a = CPU_BY[s.classId]; if (a) { const arch = a[i++ % a.length] as import('../../src/sim/ai/computer').CpuArch; s.cpu = { id: `cpu_${arch}`, arch }; } }
+    g.children.forEach(walk);
+  };
+  walk(f.root); return f;
+}
+const fleet = (name: string, n: number, team: 0 | 1 = 1) => withCpu(lineFleet(name, [['cruiser', 'multi', Math.round(n * .2)], ['destroyer', 'aa', Math.round(n * .4)], ['corvette', 'torp', n - Math.round(n * .2) - Math.round(n * .4)]], 6, team));
 const p11 = typeof (World.prototype as any).scheduleEvent === 'function';
 type Case = { id: string; setup: () => BattleSetup; each?: (w: World) => void };
 const cases: Case[] = [

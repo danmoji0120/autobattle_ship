@@ -6,7 +6,7 @@ import { ACTING_CAPTAIN, type CommanderDef, type Specialty } from '../sim/data/c
 import type { FleetSpec, GroupSpec, InitialOrder, ShipFx, ShipSpec } from '../sim/fleet';
 import { World, BATTLE_RULES, type BattleSetup } from '../sim/world';
 import { EQUIPMENT, TECHS, fitFx, growthFx } from '../world/industry';
-import { bayModules, checkFitting, loadoutLabel, shipLoadout, type ShipFitting } from '../world/fitting';
+import { bayModules, checkFitting, loadoutLabel, shipLoadout, cpuOfFitting, type ShipFitting } from '../world/fitting';
 import { CONTENT_VERSION } from '../world/migrate';
 
 export interface LabShip { id: string; hull: string; variant: string; fitting: ShipFitting; count: number }
@@ -170,7 +170,9 @@ export function battleSetup(config: LabConfig, seed = config.seed, swapped = fal
       ships: group.ships.flatMap(row => {
         const hull = CONTENT.hulls[row.hull], label = loadoutLabel(hull.classId, row.variant, row.fitting);
         const fitted = shipLoadout({ classId: hull.classId, loadoutId: label, variant: row.variant, fitting: row.fitting });
-        const ship: ShipSpec = { classId: hull.classId, loadoutId: label, fx: shipFx(row, side.research), fit: fitted };
+        // P15.1: the computer in the lab fitting's computer bay drives the ship's behaviour (rules 2)
+        const cpu = cpuOfFitting(row.fitting);
+        const ship: ShipSpec = { classId: hull.classId, loadoutId: label, fx: shipFx(row, side.research), fit: fitted, ...(cpu ? { cpu } : {}) };
         return Array.from({ length: row.count }, (_, i) => ({ ...ship, ref: `${row.id}:${i}` }));
       }),
       children: group.children.map(toGroup),

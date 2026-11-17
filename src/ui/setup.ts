@@ -6,6 +6,12 @@ import { COMMANDERS, SPECIALTY_TEXT, getCommander } from '../sim/data/commanders
 import { SCENARIOS, getScenario } from '../sim/data/scenarios';
 import { fleetCost, defaultPlayerFleet, walk, PLAYER_BUDGET, INITIAL_ORDER_TEXT, validateFleet, type FleetSpec, type GroupSpec, type InitialOrder } from '../sim/fleet';
 import { buildShip } from '../render/shipMesh';
+import { CPU_MODULES } from '../content/packs/growth/computers';
+import { CPU_NAME, CPU_TACTIC, CPU_BAND } from '../sim/ai/computer';
+
+/** P15.1: computer choices of the skirmish editor (none = built-in basic control) */
+const cpuOptions = (cur?: string) => `<option value=""${cur ? '' : ' selected'}>기본 제어</option>` +
+  CPU_MODULES.map(m => `<option value="${m.id}"${m.id === cur ? ' selected' : ''} title="${esc(CPU_TACTIC[m.cpu!.arch])}">${esc(m.name)} · ${CPU_NAME[m.cpu!.arch]}/${CPU_BAND[m.cpu!.arch]}</option>`).join('');
 
 const KEY = 'fleetcmd.fleet.v1';
 const SKEY = 'fleetcmd.scenario.v1';
@@ -141,6 +147,7 @@ export class SetupScreen {
         const c = SHIP_CLASSES[s.classId];
         return `<div class="srow"><span>${c.name} ${c.type}<span class="cl">${esc(getLoadout(s.classId, s.loadoutId).name)}</span></span>
           <select data-slo="${id}:${i}">${c.loadouts.map(l => `<option value="${l.id}"${l.id === s.loadoutId ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select>
+          <select data-scpu="${id}:${i}" title="${esc(s.cpu ? CPU_TACTIC[s.cpu.arch] : CPU_TACTIC.basic)}">${cpuOptions(s.cpu?.id)}</select>
           <select data-smv="${id}:${i}"><option value="">이동…</option>${allGroups(this.fleet.root).filter(x => x !== g).map(x => `<option value="${pathOf(this.fleet.root, x)}">${esc(x.name)}</option>`).join('')}</select>
           <span class="x" data-sdel="${id}:${i}" title="제거">✕</span></div>`;
       }).join('')}
@@ -183,6 +190,12 @@ export class SetupScreen {
     });
     r.querySelectorAll<HTMLElement>('[data-gcmdx]').forEach(e => e.onclick = () => { find(e.dataset.gcmdx!).commanderId = null; this.commit(); });
     r.querySelectorAll<HTMLSelectElement>('[data-slo]').forEach(e => e.onchange = () => { const [p, i] = e.dataset.slo!.split(':'); find(p).ships[Number(i)].loadoutId = e.value; this.commit(); });
+    r.querySelectorAll<HTMLSelectElement>('[data-scpu]').forEach(e => e.onchange = () => {
+      const [p, i] = e.dataset.scpu!.split(':'); const ship = find(p).ships[Number(i)];
+      const m = CPU_MODULES.find(x => x.id === e.value);
+      if (m?.cpu) ship.cpu = { id: m.id, arch: m.cpu.arch, ...(m.cpu.react !== undefined ? { react: m.cpu.react } : {}) }; else delete ship.cpu;
+      this.commit();
+    });
     r.querySelectorAll<HTMLSelectElement>('[data-smv]').forEach(e => e.onchange = () => {
       if (!e.value) return;
       const [p, i] = e.dataset.smv!.split(':');

@@ -2,6 +2,8 @@
 // presets and assets only through here. Pure data — safe on server and client.
 import type { AssetDef, BlueprintDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef, ArmContent, ModuleContent, ItemContent, TechContent, FacilityContent, RecipeContent, WeaponFamily, ExclusiveArm, ExclusiveModule } from './schema';
 import { PACKS } from './packs';
+import { COMPUTER_BAY } from './schema';
+import { SHIP_CLASSES } from '../sim/data/ships';
 import { EQUIPMENT, ITEMS, RECIPES, TECHS, FACILITIES } from '../world/industry';
 import { WEAPONS } from '../sim/data/weapons';
 import { CORE_TECH_AREA, CORE_WEAPON_META } from './packs/growth/arsenal';
@@ -36,6 +38,12 @@ export interface Registry {
   exModules: Record<string, ExclusiveModule>;
 }
 
+/** P15.1: a combat hull's dedicated combat-computer bay (schema COMPUTER_BAY). A copy — pack data is not mutated. */
+function withComputerBay(h: HullDef): HullDef {
+  const cls = SHIP_CLASSES[h.classId];
+  if (!cls || cls.role === 'civilian' || h.classId === 'platform' || h.exclusive || h.internals.some(b => b.kind === 'computer')) return h;
+  return { ...h, internals: [...h.internals, { ...COMPUTER_BAY }] };
+}
 export function buildRegistry(packs: ContentPack[]): Registry {
   const r: Registry = { packs, hulls: {}, variants: {}, presets: {}, equipment: {}, assets: {}, blueprints: {}, legacy: {}, origin: {}, dupes: [], arms: {}, modules: {}, items: {}, techs: {}, facilities: {}, recipes: {}, growthOnly: new Set(), exclusive: new Set(), exArms: {}, exModules: {} };
   const put = <T extends { id: string }>(tab: Record<string, T>, kind: string, x: T, pack: string) => {
@@ -43,7 +51,7 @@ export function buildRegistry(packs: ContentPack[]): Registry {
     if (r.origin[k]) r.dupes.push(`${kind} "${x.id}" (${r.origin[k]} · ${pack})`); else { tab[x.id] = x; r.origin[k] = pack; }
   };
   for (const p of packs) {
-    for (const h of p.hulls ?? []) { put(r.hulls, 'hull', h, p.id); if (h.exclusive) r.exclusive.add(h.id); }
+    for (const h of p.hulls ?? []) { put(r.hulls, 'hull', withComputerBay(h), p.id); if (h.exclusive) r.exclusive.add(h.id); }
     for (const v of p.variants ?? []) { put(r.variants, 'variant', v, p.id); if ((p.minContentV ?? 0) >= 3) r.growthOnly.add(v.id); }
     for (const x of p.presets ?? []) { put(r.presets, 'preset', x, p.id); if ((p.minContentV ?? 0) >= 3) r.growthOnly.add(x.id); }
     for (const e of p.equipment ?? []) put(r.equipment, 'equipment', e, p.id);
@@ -116,7 +124,7 @@ export function installContent(r: Registry) {
   }
   for (const m of Object.values(r.modules)) {
     const g = r.growthOnly.has(m.id);
-    EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, cfx: m.fx, ...(m.ind ? { ind: { ...m.ind } } : {}), ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
+    EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, cfx: m.fx, ...(m.ind ? { ind: { ...m.ind } } : {}), ...(m.cpu ? { cpu: { ...m.cpu } } : {}), ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
     RECIPES[m.id] ??= { id: m.id, name: `${m.name} 제작`, fac: m.recipe.fac, time: m.recipe.time, in: m.recipe.in, out: { [m.id]: 1 }, ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
   }
   for (const t of Object.values(r.techs)) {

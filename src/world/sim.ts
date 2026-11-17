@@ -9,7 +9,7 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
-import { enableIndustrial, fitGear, fitStandardGear, markIndustrial } from './industrialGear';
+import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers } from './industrialGear';
 import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, type RepairSettings } from './autoRepair';
 import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
@@ -28,7 +28,7 @@ import { expandFreshWorld } from './worldgen-p9';
 import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from './migrate';
 import { migrateEconChain, enableEconChainNew, type EconMigrationReport } from './econMigrate';
 import { fitServiceUnit, type EqPolicy } from './econChain';
-import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, type ShipFitting } from './fitting';
+import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, cpuOfFitting, type ShipFitting } from './fitting';
 import { CONTENT, legacyOf, contentAvail } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
 import { stepProduction, storageCap, stationPower, stationSupportOnline, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
@@ -292,7 +292,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1'; computers?: 'p151' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -330,6 +330,8 @@ export class WorldSim {
     if (opts.territory === 'b3') enableTerritory(sim.st);
     // industrial hardpoints: opt-in for new growth worlds (saves: explicit migration, migrateIndustrial)
     if (opts.industrial === 'ind1' && growthOn(sim.st)) enableIndustrial(sim.st);
+    // P15.1 combat computers on public markets: opt-in for new growth worlds (anyone can still produce them)
+    if (opts.computers === 'p151' && growthOn(sim.st)) stockComputers(sim.st);
     return sim;
   }
 
@@ -4170,7 +4172,8 @@ export class WorldSim {
     const cmd: CommanderDef = { ...c, team: (team % 2) as 0 | 1 };
     const mil = ships.filter(s => s.groupId === g.id && econOf(s).military);
     const civ = ships.filter(s => s.groupId === g.id && !econOf(s).military);
-    const spec = (s: WShip): ShipSpec => { const fit = this.fittingSpec(s); return { classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp, ...(this.st.companies[s.owner]?.kind === 'player' ? { fx: this.shipFxOf(s) } : {}), ...(fit ? { fit } : {}) }; };
+    // P15.1: a fitted combat computer goes with the ship (battles before rules 2 ignore it)
+    const spec = (s: WShip): ShipSpec => { const fit = this.fittingSpec(s), cpu = cpuOfFitting(s.fitting); return { classId: s.classId, loadoutId: s.loadoutId, name: s.name, ref: s.id, hp: s.hp, ...(this.st.companies[s.owner]?.kind === 'player' ? { fx: this.shipFxOf(s) } : {}), ...(fit ? { fit } : {}), ...(cpu ? { cpu } : {}) }; };
     const kids: GroupSpec[] = [];
     for (const cid of g.childIds) if (included.has(cid)) kids.push(...this.toGroupSpec(this.st.groups[cid], ships, included, team));
     const out: GroupSpec[] = [];

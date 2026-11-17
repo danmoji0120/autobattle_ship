@@ -11,6 +11,7 @@ import { FACTION_IDS, ASSET_KINDS, BLUEPRINT_GRADES, HARDPOINT_TYPES, INTERNAL_K
 import { presetMounts, variantLayout, INSTALLED_EQUIPMENT, type Registry } from './registry';
 import { hpAccepts, fitTotals } from './rules';
 import { validateArsenal } from './validateArsenal';
+import { CPU_ARCHS } from '../sim/ai/computer';
 import { validateModels } from './validateModels';
 
 export interface Issue { level: 'error' | 'warn'; where: string; msg: string }
@@ -131,6 +132,10 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     const mc = reg.modules[e.id];
     if (mc && (mc.slot === 'industrial') !== !!mc.ind) err(at, '산업 장비(slot industrial)는 ind(작업 종류·효율)가 반드시 있어야 하고, 다른 모듈에는 없어야 함');
     if (mc?.ind && (!['mine', 'build', 'salvage'].includes(mc.ind.work) || !(mc.ind.rate > 0 && mc.ind.rate <= 100))) err(at, `ind ${JSON.stringify(mc.ind)}`);
+    // P15.1 combat computers: a computer module runs exactly one behaviour, nothing else has one
+    if (mc && (mc.slot === 'computer') !== !!mc.cpu) err(at, '전투 컴퓨터(slot computer)는 cpu(행동 원형)가 반드시 있어야 하고, 다른 모듈에는 없어야 함');
+    if (mc?.cpu && (!CPU_ARCHS.includes(mc.cpu.arch) || mc.cpu.arch === 'basic' || (mc.cpu.react !== undefined && !(mc.cpu.react >= 0.3 && mc.cpu.react <= 4)))) err(at, `cpu ${JSON.stringify(mc.cpu)} (행동 원형 swarm/picket/line/artillery/siege/carrier, react 0.3~4초)`);
+    if (mc?.cpu && Object.keys(mc.fx).length) err(at, '전투 컴퓨터는 수치 효과(fx)를 갖지 않는다 — 행동만 바꾼다');
     if (reg.exclusive.has(e.id)) {
       // nothing may produce, unlock or consume exclusive equipment
       if (RECIPES[e.id] || Object.values(RECIPES).some(r => r.out[e.id] || r.in[e.id]) || Object.values(reg.recipes).some(r => r.out[e.id] || r.in[e.id])) err(at, '계정 전용 장비에는 생산·소모 레시피가 없어야 함');

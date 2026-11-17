@@ -15,7 +15,7 @@ import { qty } from '../../world/types';
 import { CONTENT, variantLayout, presetsOfHull, variantsOfHull, weaponRole, contentAvail } from '../../content/registry';
 import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arcOf } from '../../content/rules';
 import type { HardpointDef, InternalSlotDef } from '../../content/schema';
-import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bayModules, type ShipFitting } from '../../world/fitting';
+import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bayModules, cpuMountsOf, type ShipFitting } from '../../world/fitting';
 import { EQUIPMENT, fitFx, itemPrice, TECHS } from '../../world/industry';
 import { regionalMarketRequired, regionalOn } from '../../world/regional';
 import { priceOf } from '../../world/market';
@@ -24,6 +24,7 @@ import { SHIP_CLASSES } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
 import { buildShip } from '../../render/shipMesh';
 import { morph } from '../../ui/morph';
+import { cpuSummary } from '../../sim/ai/computer';
 
 const esc = (s: string) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const fmt = (n: number) => (Math.abs(n) >= 100 || Number.isInteger(n) ? Math.round(n) : Math.round(n * 10) / 10).toLocaleString();
@@ -204,7 +205,7 @@ export class FittingScreen {
       const changed = (eq ?? '') !== (cur ?? '') ? ' chg' : '';
       return `<button class="fslot${selId === b.id ? ' on' : ''}${bad ? ' bad' : ''}${changed}" data-fsel="bay:${b.id}" title="${esc(bad ?? '')}">
         <span class="fsz bay">${b.size}</span>
-        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${b.id} · ${b.kind === 'industrial' ? '산업 하드포인트' : `${BAY_NAME[b.kind]} 베이`}${eq && EQUIPMENT[eq]?.ind ? ` · ${indText(EQUIPMENT[eq].ind!, hull.ops?.bonus)}` : ''}</small></span>
+        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${b.id} · ${b.kind === 'industrial' ? '산업 하드포인트' : `${BAY_NAME[b.kind]} 베이`}${eq && EQUIPMENT[eq]?.ind ? ` · ${indText(EQUIPMENT[eq].ind!, hull.ops?.bonus)}` : ''}${eq && EQUIPMENT[eq]?.cpu ? ` · ${esc(cpuSummary(EQUIPMENT[eq].cpu!.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS).split(' — ')[0])}` : ''}</small></span>
         ${eq ? `<span class="fx" data-fclr="bay:${b.id}" title="비우기">✕</span>` : ''}</button>`;
     };
     const hullPresets = presetsOfHull(hull.id).filter(x => contentAvail(x.id, this.st!.contentV));
@@ -296,6 +297,7 @@ export class FittingScreen {
       const stats = w
         ? `${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w), cur ? dps(cur) : undefined, 1)} · 사거리 ${fmt(w.range)}${d(w.range, cur ? rng(cur) : undefined)} · 관통 ${w.pen}${d(w.pen, cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${g ? statBars(w) : ''}`
         : e.ind ? `${indText(e.ind, CONTENT.hulls[lay.hull.id]?.ops?.bonus)}${cur && EQUIPMENT[cur]?.ind?.work === e.ind.work ? d(e.ind.rate, EQUIPMENT[cur].ind!.rate, 1) : ''}`
+        : e.cpu ? esc(cpuSummary(e.cpu.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS, e.cpu.react))
         : g && e.cfx ? `${esc(cfxText(e.cfx))}` : esc(e.desc);
       return `<div class="fitem${why ? ' no' : ''}${id === cur ? ' cur' : ''}" data-fpick="${id}" title="${esc(why ?? e.desc)}">
         <div class="fin"><b>${esc(e.name)}</b><span class="fsz sm">${s.size}</span>${id === cur ? '<span class="tag">장착 중</span>' : ''}${lock && !have ? '<span class="tag warn" title="보유하지 않은 이 장비를 구매·생산하려면 연구가 필요합니다">연구 필요</span>' : ''}<span class="fhave${have ? '' : ' none'}">보유 ${have}</span></div>

@@ -23,7 +23,7 @@ function sideHit(w: World, cls: string, weapon: string) {
 
 describe('P15.0 hull structure', () => {
   it('a large hull limits what one heavy hit does; small hulls, small rounds and old battles are unchanged', () => {
-    expect(BATTLE_RULES).toBe(1);
+    expect(BATTLE_RULES).toBeGreaterThanOrEqual(1);
     const bb1 = sideHit(world(S('corvette', 'torp', 1), S('battleship', 'std', 1), 1), 'battleship', 'torpedo');
     const bb0 = sideHit(world(S('corvette', 'torp', 1), S('battleship', 'std', 1)), 'battleship', 'torpedo');
     expect(bb0).toBeCloseTo(1100, 0);

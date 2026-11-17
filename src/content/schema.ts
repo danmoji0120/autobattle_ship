@@ -37,8 +37,14 @@ export interface HardpointDef {
 }
 
 /** internal equipment bays (P2 fills these; listed here so the data model is final) */
-export type InternalKind = 'engine' | 'reactor' | 'sensor' | 'fcs' | 'ew' | 'armor' | 'special' | 'industrial';
-export const INTERNAL_KINDS: InternalKind[] = ['engine', 'reactor', 'sensor', 'fcs', 'ew', 'armor', 'special', 'industrial'];
+export type InternalKind = 'engine' | 'reactor' | 'sensor' | 'fcs' | 'ew' | 'armor' | 'special' | 'industrial' | 'computer';
+export const INTERNAL_KINDS: InternalKind[] = ['engine', 'reactor', 'sensor', 'fcs', 'ew', 'armor', 'special', 'industrial', 'computer'];
+/** P15.1: every combat hull (role ≠ civilian, not a fixed platform, not account-exclusive) gets this
+ *  dedicated combat-computer bay from the registry unless its data already declares a `computer` bay.
+ *  Its id is saved on fittings: never rename it. */
+export const COMPUTER_BAY: InternalSlotDef = { id: 'cpu1', kind: 'computer', size: 'S' };
+/** P15.1 combat computer: the behaviour archetype it runs (sim/ai/computer.ts) and how fast it re-decides */
+export interface CpuModSpec { arch: import('../sim/ai/computer').CpuArch; /** re-decision interval s (default 1) */ react?: number }
 /** industrial work an `industrial` module performs (mining laser, construction rig, salvage rig) */
 export type IndWork = 'mine' | 'build' | 'salvage';
 /** what an industrial module does: mine = units/s, build = construction work rate (1 = the old
@@ -344,6 +350,8 @@ export interface ModuleContent {
   fx: CombatFx;
   /** industrial work (only on `industrial` modules) */
   ind?: IndSpec;
+  /** combat computer behaviour (only on `computer` modules) */
+  cpu?: CpuModSpec;
   tech?: string;
   recipe: { fac: string; time: number; in: Record<string, number> };
 }

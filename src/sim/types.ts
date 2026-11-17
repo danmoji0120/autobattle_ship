@@ -111,6 +111,8 @@ export interface Ship {
   throttle: number;     // 0..1 for visuals
   killedBy: number;
   ref?: string;
+  /** P15.1 combat computer (rules ≥ 2 only; absent = legacy steering) */
+  cpu?: import('./ai/computer').ShipCpu;
   /** B-1 officer effects of the commanding officer (absent without one: every rule below is skipped) */
   ofx?: Record<string, number>;
   /** B-1: last hull hit and emergency repair done (regen) */

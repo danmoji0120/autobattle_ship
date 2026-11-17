@@ -8,6 +8,7 @@ import { Vec3, UP, clamp, lerp } from '../math';
 import type { World } from '../world';
 import type { Group, Ship, Order, Team } from '../types';
 import type { Role } from '../data/ships';
+import { steerComputers } from './computer';
 
 const tmp = new Vec3(), tmp2 = new Vec3(), tmp3 = new Vec3();
 
@@ -59,7 +60,11 @@ export function updateAI(w: World) {
     const interval = lerp(3.4, 0.9, c.skill) * (c.specialty === 'tactics' ? 0.75 : 1) * (c.ofx?.think ? 1 - c.ofx.think : 1);
     g.ai.nextThink = w.time + interval + w.rng.range(0, 0.5);
   }
-  if (w.tick % 3 === 0) for (const g of w.groups) if (g.shipIds.length) steer(w, g);
+  if (w.tick % 3 === 0) for (const g of w.groups) if (g.shipIds.length) {
+    steer(w, g);
+    // P15.1: fitted combat computers refine their own ship's steering within the group's order
+    if (w.rules >= 2) { const ships = w.directShips(g); if (ships.length) steerComputers(w, g, ships, g.childIds.length ? effectiveSelfOrder(w, g) : g.order); }
+  }
 }
 
 // ------------------------------------------------------------------------- think

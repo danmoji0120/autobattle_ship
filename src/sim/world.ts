@@ -7,6 +7,7 @@ import type { FleetSpec, GroupSpec, ShipFx, ShipSpec } from './fleet';
 import type { Group, Ship, Munition, Mount, Order, SimEvent, RadioMsg, Highlight, Outcome, OrderRecord, Team, Relation, BattleEvent, SideSpec, SideStatus, SideResult } from './types';
 import { line } from './ai/lines';
 import { updateAI, orderKey, groupRoleOf } from './ai/commander';
+import { initCpu, CPU_ARCHS, cpuLaunchFactor, cpuOwnGuns, cpuPdCover } from './ai/computer';
 import { BBEX, BBEX_CLASS } from './bbex/data';
 import { initEx, placeEx, updateEx, exSteer, exWeaponsFree, exIncoming, exGraze, exVeto, exRewrite, exNoteHit, exNoteKill, exNoteShot, exSeek, exPhase } from './bbex/system';
 
@@ -34,12 +35,13 @@ export interface BattleSetup {
    *  battles restored after a restart re-run their setup, so they keep them); new battles stamp
    *  BATTLE_RULES. 1 = P15.0 capital-ship rules: hull structure (World.applyHit), unguided plasma
    *  torpedoes and limited guided torpedoes (WeaponDef.p15), threat-aware secondary batteries and
-   *  point-defence allocation (World.chooseMountTarget). */
+   *  point-defence allocation (World.chooseMountTarget). 2 = P15.1 combat computers (ShipSpec.cpu →
+   *  Ship.cpu, ai/computer.ts): per-ship engagement behaviour; without a computer nothing changes. */
   rules?: number;
 }
 
 /** the rules new battles are fought under (BattleSetup.rules) */
-export const BATTLE_RULES = 1;
+export const BATTLE_RULES = 2;
 
 export const DT = 1 / 30;
 export const FIELD_RADIUS = 3600;
@@ -259,6 +261,8 @@ export class World {
       if (parent) parent.childIds.push(g.id);
       for (const ss of spec.ships) {
         const s = this.createShip(team, ss.classId, ss.loadoutId, ss.name || takeName(), g, ss.fx, ss.fit, ss.ex);
+        // P15.1: a fitted combat computer drives the ship's own behaviour only under rules 2
+        if (this.rules >= 2 && ss.cpu && ss.cpu.arch !== 'basic' && CPU_ARCHS.includes(ss.cpu.arch)) s.cpu = initCpu(ss.cpu, s.id);
         if (ss.ref !== undefined) s.ref = ss.ref;
         if (ss.hp !== undefined) s.hp = Math.max(1, s.maxHp * Math.min(1, ss.hp));
         g.shipIds.push(s.id);
@@ -700,7 +704,8 @@ export class World {
     // facing
     let faceDir: Vec3;
     const dlen = desired.length();
-    if (s.role === 'raider' || !ai.faceTo) {
+    // P15.1: a ship whose computer is steering keeps the facing the computer chose, whatever its role
+    if ((s.role === 'raider' && !(s.cpu && s.cpu.acting !== 'basic')) || !ai.faceTo) {
       faceDir = dlen > 2 ? tmpC.copy(desired) : (ai.faceTo ? tmpC.subVectors(ai.faceTo, s.pos) : tmpC.copy(s.fwd));
     } else {
       faceDir = tmpC.subVectors(ai.faceTo, s.pos);
@@ -832,6 +837,8 @@ export class World {
   }
 
   private torpRangeFactor(s: Ship): number {
+    // P15.1: a siege computer launches from its own firing solution
+    if (s.cpu) { const f = cpuLaunchFactor(s); if (f !== undefined) return f; }
     const g = this.groupById.get(s.groupId)!;
     // aggressive commanders close in before launching, which is deadlier but riskier
     return lerp(0.85, 0.55, g.commander.aggression);
@@ -880,7 +887,9 @@ export class World {
     const range = w.range * (w.kind === 'torpedo' ? this.torpRangeFactor(s) : 1);
     // P15: a capital ship's secondary battery chooses for itself (threats first) instead of following the
     // commander's target with every gun; main guns and other ships keep the commander's target
-    const own = this.rules >= 1 && s.role === 'line' && w.kind === 'shell' && w.damage < 250;
+    let own = this.rules >= 1 && s.role === 'line' && w.kind === 'shell' && w.damage < 250;
+    // P15.1: the computer decides whether guns cover threats (picket) or all follow the target (swarm)
+    if (s.cpu && w.kind !== 'torpedo') own = cpuOwnGuns(s, own);
     // prefer commander-assigned target
     const pri = own ? undefined : this.shipById.get(s.ai.targetId);
     if (pri && pri.state === 'alive' && this.hostile(s.team, pri.team) && muzzle.distTo(pri.pos) <= range && inArc(pri.pos) && this.suitability(w, pri) > (w.kind === 'torpedo' ? 0 : s.ofx?.focus ? 0.05 : 0.2)) {
@@ -927,10 +936,14 @@ export class World {
     if (mu.straight) {
       // closest approach of the straight run to this ship, or to the friend it was fired at (within 600 m)
       const at = this.shipById.get(mu.targetId);
-      const friend = at && at !== s && at.team === s.team && at.state === 'alive' && at.pos.distTo(s.pos) < 600 ? at : undefined;
-      score += this.onCourse(mu, s) ? 160 : friend && this.onCourse(mu, friend) ? 120 : -400;
+      const cover = s.cpu ? cpuPdCover(s) : null;
+      const friend = at && at !== s && at.team === s.team && at.state === 'alive' && at.pos.distTo(s.pos) < (cover?.radius ?? 600) ? at : undefined;
+      score += this.onCourse(mu, s) ? 160 : friend && this.onCourse(mu, friend) ? (cover ? cover.bonus : 120) : -400;
     } else if (mu.targetId === s.id) score += 120;
-    else { const at = this.shipById.get(mu.targetId); if (at && at.team === s.team && at.pos.distTo(s.pos) < 600) score += s.ofx?.pdNet ? 160 : 60; }
+    else {
+      const at = this.shipById.get(mu.targetId), cover = s.cpu ? cpuPdCover(s) : null;
+      if (at && at.team === s.team && at.pos.distTo(s.pos) < (cover?.radius ?? 600)) score += Math.max(s.ofx?.pdNet ? 160 : 60, cover?.bonus ?? 0);
+    }
     const load = (this.pdLoad.get(mu.id) ?? 0) - (m.targetIsMunition && m.targetId === mu.id ? 1 : 0);
     const need = mu.hp + 1;
     if (load >= need) score -= 140 * (load - need + 1);
