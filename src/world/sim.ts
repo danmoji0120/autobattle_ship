@@ -368,12 +368,12 @@ export class WorldSim {
     this.cmdrMemo.m.set(g.id, d);
     return d;
   }
-  /** B-1: pay experience to an officer for real work, and tell the owner about level-ups and milestones */
   /** reserve reactivation time; B-1 readiness drills of the ship's commanding officer shorten it */
   reactivateS(s: WShip): number {
     return REACTIVATE_S * (this.st.officerV ? 1 - (shipFx(this.st, s).readiness ?? 0) : 1);
   }
 
+  /** B-1: pay experience to an officer for real work, and tell the owner about level-ups and milestones */
   officerXp(c: WCommander | null | undefined, src: XpSource, amount: number, split: Partial<Record<Tree, number>>, key?: string): number {
     if (!c || !this.st.officerV) return 0;
     const r = grantXp(this.st, c, src, amount, split, key);
@@ -4843,9 +4843,13 @@ export class WorldSim {
       const sec = this.secAt(s.pos);
       if (pool.length < 3 && this.rng.chance(0.05)) {
         // B-1: now and then one of the world's named officers turns up instead (each at most once per world)
-        const nm = this.st.officerV && this.rng.chance(0.06) ? nextNamed(this.st, this.rng.next()) : null;
-        if (nm) { const c = makeNamed(this.st, nm, this.id('c'), s.id); this.st.commanders[c.id] = c; this.ev('world', `${s.name}에 ${c.rank} ${c.name}이(가) 일자리를 찾고 있다는 소문이 돈다.`); }
-        else this.newCommander(null, s.id === 'helios' ? 2 : sec < 40 ? 1.8 : 1, s.id);
+        //   The roll is a hash of the station and the hour, not a world-rng draw, and a named arrival spends the same
+        //   draws an ordinary recruit would — so turning B-1 on never shifts the rest of the world's random stream.
+        const tier = s.id === 'helios' ? 2 : sec < 40 ? 1.8 : 1;
+        const roll = this.st.officerV ? hashId(`named:${s.id}:${Math.floor(this.time / 60)}`) : 0;
+        const nm = this.st.officerV && roll % 1000 < 60 ? nextNamed(this.st, ((roll >>> 10) % 1000) / 1000) : null;
+        if (nm) { generateCommander(this.rng, tier); const c = makeNamed(this.st, nm, this.id('c'), s.id); this.st.commanders[c.id] = c; this.ev('world', `${s.name}에 ${c.rank} ${c.name}이(가) 일자리를 찾고 있다는 소문이 돈다.`); }
+        else this.newCommander(null, tier, s.id);
       }
     }
     if (st.officerV) ensureOfficers(st);

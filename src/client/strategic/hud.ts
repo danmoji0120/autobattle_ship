@@ -3,6 +3,8 @@ import { AutoLogisticsPanel } from './autoLogisticsUi';
 import { procurementSourceHtml } from './procurementUi';
 import { AnalyticsPanel } from './analyticsUi';
 import { OperationsPanel } from './operationsUi';
+import { OfficerPanel, recruitOfficerHtml } from './officerUi';
+import { levelProgress } from '../../world/officers';
 import { FirstBusinessPanel } from './firstBusinessUi';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
@@ -106,6 +108,7 @@ export class PmcHud {
   private logisticsPanel: LogisticsPanel | AutoLogisticsPanel | null = null;
   private analyticsPanel: AnalyticsPanel | null = null;
   private opsPanel: OperationsPanel | null = null;
+  private officerPanel: OfficerPanel | null = null;
   private upkOpen = false;
   /** A-3.2a: first-business guide (hauler / miner starts) */
   private fb!: FirstBusinessPanel;
@@ -917,6 +920,7 @@ export class PmcHud {
       ${this.opts.onAccount ? '<button class="btn" id="acctBtn" title="계정 정보 · 비밀번호 변경 · 로그아웃">계정</button>' : ''}
       ${this.fb.available() ? `<button class="btn${this.fb.done() ? '' : ' fbbtn'}" id="fbBtn" title="첫 사업 안내 — 거래·채굴 기회, 진행, 손익">첫 사업${this.fb.done() ? ' ✓' : ''}</button>` : ''}
       ${growthOn(this.st) ? `<button class="btn" id="opsBtn" title="회사 전체 업무 · 목표 · 재고 · 결재">회사 본부${(() => { const n = Object.values(this.st.approvals ?? {}).filter(a => a.owner === this.me && a.state === 'open').length; return n ? ` <span class="ops-dot">${n}</span>` : ''; })()}</button>` : ''}
+      ${this.st.officerV ? `<button class="btn" id="officerBtn" title="장교 육성 · 스킬 트리 · 보직 · 비교">장교${(() => { const n = Object.values(this.st.commanders).filter(c => c.owner === this.me && (c.of?.sp ?? 0) > 0).length; return n ? ` <span class="ops-dot" title="스킬 포인트를 쓸 수 있는 장교">${n}</span>` : ''; })()}</button>` : ''}
       ${growthOn(this.st) ? (this.st.logisticsV ? '<button class="btn" id="logisticsBtn" title="수송선 · 진행 중 운송 · 부족 자재 · 문제">물류 현황</button>' : '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>') : ''}
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
       <button class="btn" id="menuBtn" title="메인 메뉴 (자동 저장됨)">☰</button>`;
@@ -925,6 +929,7 @@ export class PmcHud {
     const ab = document.getElementById('acctBtn') as HTMLButtonElement | null; if (ab) ab.onclick = () => this.opts.onAccount?.();
     const logistics = document.getElementById('logisticsBtn'); if (logistics) logistics.onclick = () => this.openLogistics();
     const ops = document.getElementById('opsBtn'); if (ops) ops.onclick = () => this.openOperations();
+    const ofb = document.getElementById('officerBtn'); if (ofb) ofb.onclick = () => this.openOfficers();
     const fbb = document.getElementById('fbBtn'); if (fbb) fbb.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); const was = this.fb.open; this.upkOpen = false; this.renderUpkeep(true); this.fb.open = !was; this.fb.render(true); };
     (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
     (document.getElementById('menuBtn') as HTMLButtonElement).onclick = () => this.opts.onExit();
@@ -1008,7 +1013,7 @@ export class PmcHud {
     if (this.mineForm?.live && g && (g.id !== this.mineForm.group || performance.now() - this.mineForm.t > 4000 || (g.op.k === 'mine' && this.sameMine(g.op, this.mineForm)))) this.mineForm = null;
     if (this.mineForm && !this.mineForm.live && this.mineForm.group !== this.group) this.mineForm = null;
     const selectedField = s?.kind === 'field' ? this.st.fields[s.id] : undefined;
-    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.parentId, g?.override, this.st.companies[this.me]?.tech, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, selectedField && [Math.round(selectedField.amount), selectedField.danger, selectedField.regen], Math.round(this.st.companies[this.me]?.credits / 100)]);
+    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.commanderId && [this.st.commanders[g.commanderId]?.level, this.st.commanders[g.commanderId]?.of?.sp], g?.parentId, g?.override, this.st.companies[this.me]?.tech, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, selectedField && [Math.round(selectedField.amount), selectedField.danger, selectedField.regen], Math.round(this.st.companies[this.me]?.credits / 100)]);
     if (!force && selKey === this.lastSelKey) return;
     this.lastSelKey = selKey;
     if (!s && !g) { el.classList.add('hidden'); return; }
@@ -1052,6 +1057,7 @@ export class PmcHud {
     el.querySelectorAll<HTMLInputElement>('[data-salv-auto]').forEach(b => b.onchange = () => this.cmd({ c: 'autoSalvage', group: b.dataset.salvAuto!, on: b.checked }));
     el.querySelectorAll<HTMLButtonElement>('[data-minehere]').forEach(b => b.onclick = () => { if (!this.group) return; this.mineForm = { group: this.group, field: b.dataset.minehere!, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.refresh(true); });
     const nm = el.querySelector<HTMLInputElement>('[data-rename]'); if (nm) nm.onchange = () => this.cmd({ c: 'renameGroup', group: nm.dataset.rename!, name: nm.value });
+    const ofl = el.querySelector<HTMLButtonElement>('[data-officer]'); if (ofl) ofl.onclick = () => this.openOfficers(ofl.dataset.officer);
     const cs = el.querySelector<HTMLSelectElement>('[data-cmdsel]'); if (cs) cs.onchange = () => this.cmd({ c: 'assignCmd', group: cs.dataset.cmdsel!, commander: cs.value || null });
     const ps = el.querySelector<HTMLSelectElement>('[data-parent]'); if (ps) ps.onchange = () => this.cmd({ c: 'setParent', group: ps.dataset.parent!, parent: ps.value || null });
     el.querySelectorAll<HTMLSelectElement>('[data-mvship]').forEach(sel => sel.onchange = () => { if (sel.value === '__new') this.cmd({ c: 'newGroup', name: '새 편대', parent: null, ships: [sel.dataset.mvship!] }); else if (sel.value) this.cmd({ c: 'moveShip', ship: sel.dataset.mvship!, group: sel.value }); });
@@ -1152,8 +1158,8 @@ export class PmcHud {
     return `<div class="gpanel">
       <div class="cmdcol">
         ${cm ? `<div class="portrait" style="background:${cm.color}">${esc(cm.name.replace(/\s/g, '').slice(0, 2))}</div><div class="cmdname">${esc(cm.name)} <small>Lv.${cm.level}</small></div><div class="cmdrank">${esc(cm.rank)}${cm.injuredUntil > st.time ? ' · 부상' : ''}</div>
-          <div class="traits"><span>판단력</span><div class="bar"><i style="width:${cm.skill * 100}%"></i></div><span>공격성</span><div class="bar"><i style="width:${cm.aggression * 100}%;background:var(--warn)"></i></div><span>경험</span><div class="bar"><i style="width:${cm.xp / (cm.level * 100) * 100}%;background:var(--good)"></i></div></div>
-          <div class="cmdspec">${SPECIALTY_TEXT[cm.specialty]}</div>`
+          <div class="traits"><span>판단력</span><div class="bar"><i style="width:${cm.skill * 100}%"></i></div><span>공격성</span><div class="bar"><i style="width:${cm.aggression * 100}%;background:var(--warn)"></i></div><span>경험</span><div class="bar"><i style="width:${cm.of ? levelProgress(cm) * 100 : cm.xp / (cm.level * 100) * 100}%;background:var(--good)"></i></div></div>
+          <div class="cmdspec">${SPECIALTY_TEXT[cm.specialty]}</div>${cm.of && cm.owner === this.me ? `<button class="btn mini" data-officer="${cm.id}" title="스킬 트리 · 숙련도 · 기록">장교 정보${cm.of.sp ? ` <span class="ops-dot">${cm.of.sp}P</span>` : ''}</button>` : ''}`
           : `<div class="portrait" style="background:#3a4a58">—</div><div class="cmdname">선임 함장</div><div class="cmdrank">지휘관 미배치 (판단력 낮음)</div>`}
         <select data-cmdsel="${g.id}"><option value="">${cm ? '지휘관 해임' : '지휘관 배치…'}</option>${mine.map(c => `<option value="${c.id}"${c.id === g.commanderId ? ' selected' : ''}>${esc(c.rank)} ${esc(c.name)} (판단 ${Math.round(c.skill * 100)})${groups.find(x => x.commanderId === c.id && x.id !== g.id) ? ' — 재배치' : ''}</option>`).join('')}</select>
       </div>
@@ -1385,7 +1391,7 @@ export class PmcHud {
   openOperations(tab?: 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance' | 'rep') {
     if (!growthOn(this.st)) return;
     if (this.opsPanel) { if (tab) this.opsPanel.show(tab); return; }
-    this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.officerPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
     this.opsPanel = new OperationsPanel(this.root, this.c, {
       station: (id, t) => { this.opsPanel?.close(); this.openStation(id, t ?? 'store'); },
       logistics: () => { this.opsPanel?.close(); this.openLogistics(); },
@@ -1394,10 +1400,21 @@ export class PmcHud {
     }, tab);
   }
 
-  openAnalytics() { this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
+  /** B-1 officer management (standalone screen; the HUD itself only shows the entry button) */
+  openOfficers(select?: string) {
+    if (!this.st.officerV) return;
+    if (this.officerPanel) return;
+    this.opsPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.officerPanel = new OfficerPanel(this.root, this.c, {
+      close: () => { this.officerPanel = null; },
+      fleet: id => { this.officerPanel?.close(); this.select({ kind: 'group', id }); const pos = this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
+    }, select);
+  }
+
+  openAnalytics() { this.officerPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
-    this.logisticsPanel?.close(); this.opsPanel?.close();
+    this.logisticsPanel?.close(); this.opsPanel?.close(); this.officerPanel?.close();
     this.upkOpen = false; this.renderUpkeep(true); this.fb?.close();
     this.modalStation = id; this.yardFocus = null;
     const s = this.st.stations[id];
@@ -1709,7 +1726,7 @@ export class PmcHud {
     if (!pool.length) return '<div class="dim">지금은 영입 가능한 지휘관이 없습니다. 잠시 후 다시 확인하세요.</div>';
     return `<div class="yard">${pool.map(c => `<div class="ycard"><div class="yn"><span><span class="portrait" style="background:${c.color};width:34px;height:34px;font-size:13px;margin-right:8px">${esc(c.name.replace(/\s/g, '').slice(0, 2))}</span><b>${esc(c.rank)} ${esc(c.name)}</b></span><span class="money">${fmt(c.hireCost)} cr</span></div>
       <div class="traits"><span>판단력</span><div class="bar"><i style="width:${c.skill * 100}%"></i></div><span>공격성</span><div class="bar"><i style="width:${c.aggression * 100}%;background:var(--warn)"></i></div><span>규율</span><div class="bar"><i style="width:${c.discipline * 100}%;background:var(--good)"></i></div></div>
-      <div class="dim">${esc(c.bio)}</div><div class="cmdspec">${SPECIALTY_TEXT[c.specialty]}</div>
+      <div class="dim">${esc(c.bio)}</div><div class="cmdspec">${SPECIALTY_TEXT[c.specialty]}</div>${recruitOfficerHtml(c)}
       <button class="btn go" data-hire="${c.id}">영입</button></div>`).join('')}</div>`;
   }
 
