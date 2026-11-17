@@ -340,6 +340,8 @@ export function presence(h: Host): Presence {
     for (const id of g.shipIds) {
       const s = w.ships[id]; if (!s || !econOf(s).military || (s.state !== 'space' && s.state !== 'docked' && s.state !== 'battle')) continue;
       if (s.warp?.phase === 'warp') continue;
+      // laid-up (reserve) ships and ships still reactivating are not combat-ready: they hold nothing
+      if (s.reserve) continue;
       const sys = sysOfPos(w, s.pos); if (!sys) continue;
       // the Union authority's garrisons stand for the faction that holds the system; merchants hold nothing
       const kind = w.companies[s.owner]?.kind;

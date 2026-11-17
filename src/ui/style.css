@@ -1142,3 +1142,11 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 @media(max-width:760px) { .sov-split { grid-template-columns:1fr; } .sov-list { flex-direction:row; overflow-x:auto; } .sov-item { min-width:150px; } .sov-alerts { padding:8px 16px 0; } }
 @media(max-width:900px) { .mil-guide { grid-template-columns:1fr; padding:12px 16px; } .mil-tabs { padding:10px 16px 0; } .mil-body { padding:12px 16px 16px; } .mil-post { grid-template-columns:1fr; } }
 @media(max-width:760px) { .mil-tabs .btn { flex:1; font-size:11px; padding:7px 4px; } .mil-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .mil-card .lg-card-actions { display:flex; } .mil-card .lg-card-actions .btn.go { flex:1; } }
+/* B-3: on a phone the top bar wrapped into 3–4 rows and the left org / right goals panels (top: 64px) covered the lower
+   rows (account, menu, territory …). Keep it to one row that scrolls sideways; the priority buttons stay in view first. */
+@media(max-width:650px) {
+  #ptop { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; max-height: 52px; }
+  #ptop::-webkit-scrollbar { display: none; }
+  #ptop > * { flex: 0 0 auto; }
+  #ptop #sovBtn { order:-2; font-size:11px; padding:6px; }
+}

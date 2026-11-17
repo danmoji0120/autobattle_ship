@@ -267,7 +267,7 @@ export class TerritoryPanel {
       <li><b>실효 지배</b> — 관문·정거장·세력 행정 거점 등 거점을 실제 함대로 장악해 지배력 ${SOV.ctlNeed} 이상, 경쟁자 ${SOV.ctlRival} 미만.</li>
       <li><b>정치적 정당성</b> — 무주지 개척, 해적 지대 평정, NPC 세력 할양(신뢰도·대금), 회사 간 합의 또는 전쟁 조약. 세력 수도는 특별 전쟁 조건으로만.</li>
       <li><b>안정화</b> — 위 조건을 유지한 시간이 등급별 시간(12~36시간)에 도달. 부족하면 멈추거나 일부 감소할 뿐 초기화되지 않습니다.</li></ul>
-      <h3>성계 등급</h3><table class="mil-table"><thead><tr><th>등급</th><th>배율</th><th>정거장</th><th>방어</th><th>안정화</th><th>정당성</th></tr></thead><tbody>${Object.entries(CLASS).map(([k, c]) => `<tr><td>${CLASS_NAME[k as keyof typeof CLASS]}</td><td>×${c.mult}</td><td>${c.station}</td><td>${c.defense}</td><td>${c.stabH}h</td><td>${LEGIT_NAME[c.legit]}</td></tr>`).join('')}</tbody></table>
+      <h3>성계 등급</h3><div class="mil-table-wrap"><table class="mil-table"><thead><tr><th>등급</th><th>배율</th><th>정거장</th><th>방어</th><th>안정화</th><th>정당성</th></tr></thead><tbody>${Object.entries(CLASS).map(([k, c]) => `<tr><td>${CLASS_NAME[k as keyof typeof CLASS]}</td><td>×${c.mult}</td><td>${c.station}</td><td>${c.defense}</td><td>${c.stabH}h</td><td>${LEGIT_NAME[c.legit]}</td></tr>`).join('')}</tbody></table></div>
       <div class="mil-hint">확립 후에도 유지비(거리·보안·보유 영토 수에 따라 증가)와 물자·전력·지배력을 유지해야 하며, 소홀하면 안정도가 떨어지고 분쟁을 거쳐 영유권이 소멸할 수 있습니다.</div></section>`;
   }
 }

@@ -1,0 +1,303 @@
+{
+ "label": "est",
+ "save": "artifacts/b3/realloop-gloam.save.json",
+ "company": "p1",
+ "checks": [
+  {
+   "ok": true,
+   "label": "real server: the engine-played company is controlled by this account; server state is not sent",
+   "extra": {
+    "id": "p1",
+    "name": "개척 광업"
+   }
+  },
+  {
+   "ok": true,
+   "label": "the server report has gloam",
+   "extra": {
+    "stage": 8,
+    "status": "established",
+    "ctl": 100,
+    "stab": 100,
+    "power": 1353,
+    "need": 1200,
+    "supply": {
+     "in": 16920,
+     "need": 24642,
+     "stock": {
+      "alloy": 271,
+      "chemicals": 156.33333333330634,
+      "machinery": 32.26666666666025,
+      "electronics": 19.29999999999684
+     },
+     "demand": {
+      "alloy": 30,
+      "chemicals": 20,
+      "machinery": 4,
+      "electronics": 2
+     },
+     "reserved": {
+      "chemicals": 20,
+      "alloy": 30,
+      "machinery": 4,
+      "electronics": 2
+     },
+     "lack": {},
+     "stalled": 0
+    },
+    "fails": [
+     "econ:최근 12시간 영업 수입 40,750 / 150,000 cr",
+     "logi:최근 12시간 보급 반입 69% / 80% (한 번에 쌓아 둔 재고는 시간이 지나면 인정되지 않음)"
+    ]
+   }
+  },
+  {
+   "ok": true,
+   "label": "report: governance reservation per item (server computed)",
+   "extra": {
+    "in": 16920,
+    "need": 24642,
+    "stock": {
+     "alloy": 271,
+     "chemicals": 156.33333333330634,
+     "machinery": 32.26666666666025,
+     "electronics": 19.29999999999684
+    },
+    "demand": {
+     "alloy": 30,
+     "chemicals": 20,
+     "machinery": 4,
+     "electronics": 2
+    },
+    "reserved": {
+     "chemicals": 20,
+     "alloy": 30,
+     "machinery": 4,
+     "electronics": 2
+    },
+    "lack": {},
+    "stalled": 0
+   }
+  },
+  {
+   "ok": true,
+   "label": "gloam is established for this company (from the real loop)",
+   "extra": {
+    "stage": 8,
+    "status": "established",
+    "ctl": 100,
+    "stab": 100,
+    "power": 1353,
+    "need": 1200,
+    "supply": {
+     "in": 16920,
+     "need": 24642,
+     "stock": {
+      "alloy": 271,
+      "chemicals": 156.33333333330634,
+      "machinery": 32.26666666666025,
+      "electronics": 19.29999999999684
+     },
+     "demand": {
+      "alloy": 30,
+      "chemicals": 20,
+      "machinery": 4,
+      "electronics": 2
+     },
+     "reserved": {
+      "chemicals": 20,
+      "alloy": 30,
+      "machinery": 4,
+      "electronics": 2
+     },
+     "lack": {},
+     "stalled": 0
+    },
+    "fails": [
+     "econ:최근 12시간 영업 수입 40,750 / 150,000 cr",
+     "logi:최근 12시간 보급 반입 69% / 80% (한 번에 쌓아 둔 재고는 시간이 지나면 인정되지 않음)"
+    ]
+   }
+  },
+  {
+   "ok": true,
+   "label": "top bar has the 영토 button"
+  },
+  {
+   "ok": true,
+   "label": "detail: the seven conditions table",
+   "extra": {
+    "text": "SIDERARIUM / TERRITORY\n영토 영유 1 · 주장 0 · 전쟁 0\n✕\n자사 영토·주장 1\n성계 정보\n전쟁·조약\n영유권 안내\n어스름 공역\n영유 · 안정도 100 · 확립\n어스름 공역 확립 · 영유 ()\n0. 미진출\n1. 진출\n2. 거점\n3. 영향력\n4. 선언\n5. 통치기반\n6. 실효지배\n7. 안정화\n8. 확립\n등급\n외곽 미개척\n지배력\n100\n안정도\n100\n성계 내 전력\n1,353 / 1,200\n유지비(시간당)\n2,611\n통치 거점: 개척 기지 (M · 통치청 ✓ · 방어 시설 2/2 · 전력 정상) · 필요 M급 이상 · 지도에서 보기\n조건\t상태\t부족한 점 · 해결 방법\n경제력\t미달\t\n최근 12시간 영업 수입 40,750 / 150,000 cr\n판매·계약 수입을 늘리고 현금을 일정 시간 유지하세요. 체납은 먼저 청산해야 합니다 (빌리거나 잠깐 옮겨 온 자금은 인정되지 않음).\n\n기반시설\t충족\t\n물류\t미달\t\n최근 12시간 보급 반입 69% / 80% (한 번에 쌓아 둔 재고는 시간이 지나면 인정되지 않음)\n통치청 정거장 창고에 alloy 30/시간, chemicals 20/시간, machinery 4/시간, electronics 2/시간을 꾸준히 반입하세요 (자체 생산·구매·물류 계약 모두 인정). 통치청은 다음 1시간분을 예약해 두므로 함대 보급·판매·물류가 그 몫을 가져가지 못하지만, 예약 외 재고는 함대 보급에도 쓰이"
+   }
+  },
+  {
+   "ok": true,
+   "label": "detail: supply shows stock and the reservation with its explanation",
+   "extra": {}
+  },
+  {
+   "ok": true,
+   "label": "detail: control and stability",
+   "extra": {}
+  },
+  {
+   "ok": true,
+   "label": "desktop: no horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "real server refuses a declaration without footing, with a reason",
+   "extra": {
+    "err": "선언하려면 이 성계에 자사 운영 정거장이 있고 지배력이 20 이상이어야 합니다 (현재 미진출 단계)"
+   }
+  },
+  {
+   "ok": true,
+   "label": "galaxy: gloam carries the public territory record from the server",
+   "extra": {
+    "owner": "p1",
+    "ownerName": "개척 광업",
+    "how": "pioneer",
+    "stab": 100,
+    "pol": {
+     "mine": "free",
+     "royalty": 0,
+     "build": "free",
+     "buildFee": 0,
+     "pass": "free",
+     "toll": 0,
+     "security": "standard",
+     "price": {
+      "mine": 0,
+      "build": 0,
+      "pass": 0
+     }
+    },
+    "status": "established",
+    "cls": "outer",
+    "claims": [],
+    "top": [
+     {
+      "p": "p1",
+      "ctl": 100
+     }
+    ]
+   }
+  },
+  {
+   "ok": true,
+   "label": "galaxy info: 영유권 section (자사 영토) and the territory button",
+   "extra": {
+    "own": true,
+    "btn": true
+   }
+  },
+  {
+   "ok": true,
+   "label": "phone: top-bar 영토 button reachable",
+   "extra": {
+    "w": 34.25,
+    "h": 30,
+    "covered": false
+   }
+  },
+  {
+   "ok": true,
+   "label": "phone: detail with conditions and reservation",
+   "extra": {}
+  },
+  {
+   "ok": true,
+   "label": "phone: detail without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: tab sys without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: tab war without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: tab help without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "no page errors",
+   "extra": []
+  },
+  {
+   "ok": true,
+   "label": "no console errors",
+   "extra": []
+  }
+ ],
+ "errors": [],
+ "console": [],
+ "topbar390": [
+  {
+   "id": "acctBtn",
+   "top": 16,
+   "left": 935,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "fbBtn",
+   "top": 16,
+   "left": 989,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "opsBtn",
+   "top": 17,
+   "left": 112,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "milBtn",
+   "top": 17,
+   "left": 178,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "sovBtn",
+   "top": 17,
+   "left": 244,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "officerBtn",
+   "top": 17,
+   "left": 286,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "logisticsBtn",
+   "top": 17,
+   "left": 351,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "analyticsBtn",
+   "top": 17,
+   "left": 417,
+   "covered": false,
+   "by": ""
+  },
+  {
+   "id": "menuBtn",
+   "top": 15,
+   "left": 1075,
+   "covered": false,
+   "by": ""
+  }
+ ]
+}

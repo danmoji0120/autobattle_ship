@@ -45,7 +45,11 @@ describe('P9.6.3 facility costs and installation rules', () => {
       st.storage[p] = { alloy: 17, machinery: 4 }; co.credits = 100_000_000;
       const before = structuredClone(st.storage[p]), credits = co.credits, n = st.modules.length;
       const error = sim.command(p, { c: 'queueModule', station: st.id, kind });
-      if (rank[size] < rank[expected.minStation as Size]) {
+      if (kind === 'governance' && !sim.st.sovV) {
+        // B-3: the governance seat exists only in territory worlds (claim and M minimum: tests/b3-territory.test.ts)
+        expect(error, `${size}/${kind}`).toMatch(/영유권 체계가 없습니다/);
+        expect(co.credits, kind).toBe(credits); expect(st.storage[p], kind).toEqual(before); expect(st.modules).toHaveLength(n);
+      } else if (rank[size] < rank[expected.minStation as Size]) {
         expect(error, `${size}/${kind}`).toMatch(/정거장 규모 부족/);
         expect(co.credits, kind).toBe(credits); expect(st.storage[p], kind).toEqual(before); expect(st.modules).toHaveLength(n);
       } else {

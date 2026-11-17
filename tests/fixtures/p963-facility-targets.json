@@ -377,5 +377,15 @@
       "machinery": 70,
       "electronics": 30
     }
+  },
+  "governance": {
+    "credits": 250000,
+    "minStation": "M",
+    "mats": {
+      "alloy": 3500,
+      "structure": 250,
+      "machinery": 120,
+      "electronics": 80
+    }
   }
 }
