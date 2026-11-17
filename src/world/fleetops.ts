@@ -8,6 +8,7 @@
 // order stays as it was and resumes when they come back. See docs/P12_FLEET_OPERATIONS.md.
 import type { WorldSim } from './sim';
 import type { Op, Station, StarSystem, V, WGroup, WShip } from './types';
+import { relIn } from './sovereignty';
 import { coRelation } from './battleAuth';
 import { dist } from './geom';
 import { econOf, berthFits, shipWorth } from './hullops';
@@ -136,7 +137,7 @@ export function threats(h: Host, owner: WGroup, from: V, detect: number, anchor:
   const here = h.sysOf(from)?.id;
   for (const p of Object.values(h.st.groups)) {
     if (p.owner === owner.owner || !p.shipIds.length || p.cooldown > 0) continue;
-    if (coRelation(h.st, owner.owner, p.owner) !== -1) continue;
+    if (relIn(h.st, owner.owner, p.owner, here) !== -1) continue;   // B-3: formal war enemies in this system count too
     if (opx?.ignore?.[p.id] !== undefined && opx.ignore[p.id] > h.time) continue;
     const ss = h.shipsOf(p).filter(s => s.state === 'space');
     if (!ss.length) continue;
@@ -165,7 +166,7 @@ export function evalStations(h: Host, owner: WGroup, ships: WShip[], c: Commande
   const hostileNear = (p: V) => {
     let v = 0;
     for (const g of Object.values(st.groups)) {
-      if (g.owner === owner.owner || !g.shipIds.length || coRelation(st, owner.owner, g.owner) !== -1) continue;
+      if (g.owner === owner.owner || !g.shipIds.length || relIn(st, owner.owner, g.owner, h.sysOf(p)?.id) !== -1) continue;
       const ss = h.shipsOf(g).filter(s => s.state === 'space'); if (!ss.length) continue;
       if (dist(h.centroid(ss), p) < OPS.hostileR) v += milValue(h, ss);
     }
@@ -444,7 +445,7 @@ export function planOp(h: Host, owner: WGroup, op: Op, c: CommanderDef): Plan | 
       const v = sp.reduce((a, s) => ({ x: a.x + s.vel.x / sp.length, y: 0, z: a.z + s.vel.z / sp.length }), { x: 0, y: 0, z: 0 });
       const warpTo = sp.find(s => s.warp)?.warp?.to;
       const speed = Math.min(...ships.map(s => h.cruiseOf(s) * (0.6 + 0.4 * s.hp)));
-      const hostile = coRelation(st, owner.owner, t.owner) === -1;
+      const hostile = relIn(st, owner.owner, t.owner, h.sysOf(tc)?.id) === -1;
       let p = warpTo ?? interceptPoint(cen, speed, tc, v);
       if (h.sysOf(p)?.id !== h.sysOf(tc)?.id) p = tc;
       const close = dist(cen, tc) < 900;

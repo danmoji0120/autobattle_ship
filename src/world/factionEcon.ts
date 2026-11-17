@@ -86,7 +86,7 @@ function expand(host: EconHost, w: WorldState, f: FactionState) {
   const d = doctrineOf(f.id);
   if (FACTIONS[f.id]?.hostile || (f.claimed?.length ?? 0) >= 1 || f.infra < d.infra || f.strength < d.strength * .8) return;
   const own = Object.values(w.systems).filter(s => s.faction === f.id);
-  const target = own.flatMap(s => s.gates.map(g => w.systems[g.to])).find(s => s && !s.faction && s.charted !== false && s.region !== 'uncharted');
+  const target = own.flatMap(s => s.gates.map(g => w.systems[g.to])).find(s => s && !s.faction && s.charted !== false && s.region !== 'uncharted' && !w.sov?.sys[s.id]?.owner && !Object.keys(w.sov?.sys[s.id]?.claims ?? {}).length);   // B-3: never over a company's territory or claim
   if (!target) return;
   const built = program(w, f, OUTPOST_RECIPE, 1, 'faction_outpost');
   if (built >= 1) {

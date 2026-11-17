@@ -340,6 +340,13 @@ export function acceptMil(h: Host, company: string, k: Contract & { mil: MilTerm
   if (m.type === 'hunt' || m.type === 'strike') {
     const t = m.target ?? '';
     if (t.startsWith('lair:')) { if (!w.lairs[t.slice(5)]?.alive) return '대상 소굴이 이미 파괴되었습니다'; }
+    else if (t.startsWith('war:')) {
+      // B-3 war service: only a formal, running war; never for the enemy side itself
+      const war = w.sov?.wars[t.split(':')[1]];
+      if (!war || war.status === 'ended') return '영토 전쟁이 이미 끝났습니다';
+      const enemy = war.att === m.poster ? war.def : war.att;
+      if (company === enemy || enemy === `fac:${company}`) return '교전 상대 측은 수주할 수 없습니다';
+    }
     else if (!t.startsWith('lane:')) { const tg = w.groups[t]; if (!tg || !tg.shipIds.length) return '대상 해적이 이미 사라졌습니다'; if (!isPirate(w, tg.owner)) return '합법 대상이 아닙니다'; }
   }
   const st = w.stations[k.stationId];
@@ -373,6 +380,7 @@ export function milOrder(h: Host, k: Contract & { mil: MilTerms }): Op | null {
     case 'hunt': case 'strike': {
       const t = m.target ?? '';
       if (t.startsWith('lair:')) return { k: 'attack', lair: t.slice(5) };
+      if (t.startsWith('war:')) { const s = w.systems[m.sys]; if (!s) return null; const pts = s.gates.slice(0, 4).map(g => inward(g.pos, s.origin, 1800)); return { k: 'patrol', at: s.origin, radius: 6000, route: pts.length ? pts : [s.origin] }; }
       if (t.startsWith('lane:')) { const s = w.systems[t.slice(5)]; if (!s) return null; const pts = s.gates.slice(0, 4).map(g => inward(g.pos, s.origin, 1800)); return { k: 'patrol', at: s.origin, radius: m.radius ?? 6000, route: pts.length ? pts : [s.origin] }; }
       return w.groups[t]?.shipIds.length ? { k: 'attack', group: t } : null;
     }
@@ -474,6 +482,7 @@ export function milTick(h: Host) {
 function targetAlive(h: Host, t: string): boolean {
   if (t.startsWith('lair:')) return !!h.st.lairs[t.slice(5)]?.alive;
   if (t.startsWith('lane:')) return true;
+  if (t.startsWith('war:')) return h.st.sov?.wars[t.split(':')[1]]?.status !== 'ended';
   return !!h.st.groups[t]?.shipIds.length;
 }
 
@@ -510,6 +519,14 @@ function evaluate(h: Host, k: Contract & { mil: MilTerms }) {
     case 'escort': return evalEscort(h, k, mil, inSpace);
     case 'hunt': case 'strike': {
       const t = m.target ?? '';
+      if (t.startsWith('war:')) {
+        // on duty while its warships are in the war system; the war ending early pays for the time served
+        if (inSpace.some(s => sysOfPos(w, s.pos)?.id === m.sys)) m.duty = (m.duty ?? 0) + 1;
+        const war = w.sov?.wars[t.split(':')[1]];
+        if ((m.duty ?? 0) >= (m.dur ?? 0)) return settle(h, k, true, '전쟁 계약 기간 완수', bonusFrac(m));
+        if (!war || war.status === 'ended') return (m.duty ?? 0) >= (m.dur ?? 1) * 0.3 ? settle(h, k, true, '종전 — 복무 시간만큼 정산', Math.min(1, (m.duty ?? 0) / (m.dur ?? 1)) * bonusFrac(m)) : settle(h, k, false, '종전 — 계약 무효', 0, false, true);
+        return;
+      }
       if (t.startsWith('lane:')) { if ((m.killV ?? 0) >= (m.quota ?? 0)) return settle(h, k, true, '항로 확보 완수', Math.min(1, (m.share ?? 1))); return; }
       if (!targetAlive(h, t)) return settle(h, k, false, '다른 세력이 먼저 대상을 격파 — 계약 무효', 0, false, true);
       return;

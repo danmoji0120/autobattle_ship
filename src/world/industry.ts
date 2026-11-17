@@ -187,6 +187,8 @@ export const FACILITIES: Record<string, FacilityDef> = Object.fromEntries([
   F({ kind: 'logistics', name: '물류센터', cat: '물류', desc: '자동 보급: 수송선이 이 정거장의 생산에 부족한 원료를 다른 자사 정거장에서 실어 온다.', credits: 24000, mats: { alloy: 450, machinery: 25, electronics: 8 }, minStation: 'S', legacyBuild: { credits: 8000, mats: { alloy: 220, machinery: 10, electronics: 2 } }, work: 140, power: -8, requires: 'core', max: 1, unlocks: '"자동 보급" 수송 명령 · 정거장 간 물류 현황' }),
   F({ kind: 'trade_hub', name: '거래시설', cat: '물류', desc: '이 정거장에 거래소를 연다: 다른 PMC가 매물을 사고팔 수 있다.', credits: 30000, mats: { alloy: 600, electronics: 30 }, minStation: 'S', legacyBuild: { credits: 12000, mats: { alloy: 260, electronics: 6 } }, work: 160, power: -8, requires: 'core', max: 1, unlocks: '정거장 거래소 (플레이어 간 매매)' }),
   F({ kind: 'comms', name: '센서·통신시설', cat: '물류', desc: '일부 지휘형 함선 구조를 건조하기 위한 통신 기반 시설이다.', credits: 35000, mats: { alloy: 500, electronics: 35, sensor: 2 }, minStation: 'M', legacyBuild: { credits: 9000, mats: { alloy: 200, electronics: 8, sensor: 1 } }, work: 160, power: -10, requires: 'core', max: 1, unlocks: '일부 지휘형 함선 구조의 건조 선행 조건' }),
+  // B-3 (sovV worlds only): the seat of a claimed system's administration — a sovereignty condition, never sovereignty by itself
+  F({ kind: 'governance', name: '성계 통치청', cat: '기반', desc: '영유권을 주장한 성계의 행정 거점. 영유권 조건 중 하나일 뿐이며, 짓는다고 영유권이 생기지 않는다. 가동 중에는 행정 물자(합금·화학소재·기계·전자부품)를 매시간 소비한다.', credits: 250000, mats: { alloy: 3500, structure: 250, machinery: 120, electronics: 80 }, minStation: 'M', work: 600, power: -40, requires: 'core', max: 1, unlocks: '영유권 통치 기반 · 성계 정책(채굴·건설·통행) 집행 거점' }),
 ].map(f => [f.kind, f]));
 
 export const FAC_CATS: FacCat[] = ['기반', '정제', '부품', '조선', '군사', '연구', '물류'];

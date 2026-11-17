@@ -7,6 +7,8 @@ import { OfficerPanel, recruitOfficerHtml } from './officerUi';
 import { levelProgress } from '../../world/officers';
 import { FirstBusinessPanel } from './firstBusinessUi';
 import { MilitaryPanel, militaryAvailable } from './militaryUi';
+import { TerritoryPanel, partyLabel } from './sovereigntyUi';
+import { STATUS_NAME as SOV_STATUS, STAGE_NAME as SOV_STAGE } from '../../world/sovereignty';
 import { milFirstOn } from '../../world/military';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
@@ -112,6 +114,7 @@ export class PmcHud {
   private opsPanel: OperationsPanel | null = null;
   private officerPanel: OfficerPanel | null = null;
   private militaryPanel: MilitaryPanel | null = null;
+  private territoryPanel: TerritoryPanel | null = null;
   private milAuto = false;
   private upkOpen = false;
   /** A-3.2a: first-business guide (hauler / miner starts) */
@@ -507,6 +510,34 @@ export class PmcHud {
     return out + '</g>';
   }
 
+  /** B-3: territory rings from the public StarSystem.terr (fog hides it with the system) — owner color solid, claims dashed, war / occupation red */
+  private sovLayer(P: (s: WorldView['systems'][string]) => { x: number; y: number }): string {
+    if (this.st.sovV !== 1) return '';
+    let out = '<g class="gal-sov" aria-hidden="true">';
+    for (const s of Object.values(this.st.systems)) {
+      const t = s.terr; if (!t || (!t.owner && !t.claims.length && !t.war && !t.occ)) continue;
+      const p = P(s), col = t.owner ? (this.st.companies[t.owner]?.color ?? '#e8d27a') : '#e8d27a';
+      const hot = !!t.war?.length || !!t.occ || t.status === 'disputed';
+      if (t.owner) out += `<circle cx="${p.x}" cy="${p.y}" r="34" fill="none" stroke="${col}" stroke-width="5" opacity=".9"/>`;
+      if (t.claims.length) out += `<circle cx="${p.x}" cy="${p.y}" r="${t.owner ? 42 : 34}" fill="none" stroke="#e8d27a" stroke-width="3" stroke-dasharray="7 6" opacity=".85"/>`;
+      if (hot) out += `<circle cx="${p.x}" cy="${p.y}" r="50" fill="none" stroke="#ff5a4a" stroke-width="3" stroke-dasharray="4 5"/>`;
+      if (t.owner === this.me) out += `<text x="${p.x}" y="${p.y - 40}" text-anchor="middle" fill="${col}" font-size="15">◆ 자사 영토</text>`;
+    }
+    return out + '</g>';
+  }
+
+  private sovInfo(sel: WorldView['systems'][string]): string {
+    if (this.st.sovV !== 1) return '';
+    const t = sel.terr, w = this.st as never;
+    const body = !t ? '<p class="gal-empty">영유 회사·주장 없음</p>'
+      : `<p>${t.owner ? `영유 <b>${esc(t.ownerName ?? '')}</b>${t.stab !== undefined ? ` · 안정도 ${t.stab}` : ''}` : '플레이어 영유 없음'} · ${SOV_STATUS[t.status]}</p>
+        ${t.claims.length ? `<p class="small">주장: ${t.claims.map(c => `${esc(c.name)} (${SOV_STAGE[c.stage]})`).join(', ')}</p>` : ''}
+        ${t.top?.length ? `<p class="small">실효 지배: ${t.top.map(x => `${esc(partyLabel(w, x.p))} ${x.ctl}`).join(' · ')}</p>` : ''}
+        ${t.war?.length ? `<p class="gal-threat">영토 전쟁 ${t.war.map(x => x.status === 'notice' ? '예고' : '진행').join(', ')}</p>` : ''}
+        ${t.occ ? `<p class="gal-threat">점령: ${esc(partyLabel(w, t.occ.by))}</p>` : ''}`;
+    return `<section class="gal-section"><div class="gal-section-head"><h3>영유권</h3><button class="an-link" data-sov-open="${esc(sel.id)}">영토 화면</button></div>${body}</section>`;
+  }
+
   private renderGalaxy(force = false) {
     const el = this.galaxy; if (!el) return;
     const st = this.st, { w: W, h: H } = chartSize(st.worldLayout);
@@ -527,7 +558,7 @@ export class PmcHud {
     const lairs = sel ? Object.values(st.lairs).filter(x => sysAt(st.systems, x.pos)?.id === sel.id) : [];
     const key = JSON.stringify({ zoom, layout: st.worldLayout, selected: sel?.id, here: this.v.sys?.id, group: g && [g.id, g.name, g.owner, gSys], ownedShips, ownedStations,
       systems: Object.values(st.systems).map(s => [s.id, s.name, s.map.x, s.map.y, s.star.color, Math.round(effSec(s)), secBand(effSec(s)).min, s.gates.map(gt => gt.to), s.faction, s.region, (s as any).unknown]),
-      wars: Object.values(st.conflicts ?? {}).filter(c => !c.ended).map(c => c.id), fac: st.factions && Object.values(st.factions).map(f => [Math.round(f.strength), Math.round(f.infra)]),
+      wars: Object.values(st.conflicts ?? {}).filter(c => !c.ended).map(c => c.id), terr: st.sovV === 1 && Object.values(st.systems).map(s => s.terr && [s.id, s.terr.owner, s.terr.status, s.terr.claims.map(c => c.co + c.stage), s.terr.top?.map(x => x.p + x.ctl), !!s.terr.war, s.terr.occ?.held]), fac: st.factions && Object.values(st.factions).map(f => [Math.round(f.strength), Math.round(f.infra)]),
       fi: (st as any).intel?.[this.me]?.fields && Object.entries((st as any).intel[this.me].fields).map(([k, v]: [string, any]) => [k, v.n]),
       detail: sel && [sel.desc, sel.security, Math.round(sel.heat), sel.heat > 1, sel.stats, sel.inf && [Math.round(sel.inf.union), Math.round(sel.inf.pirates), Math.round(sel.inf.guild), sel.inf.pirates < LAIR_FOOTHOLD], (sel.recoverUntil ?? 0) > st.time,
         stations.map(s => [s.id, s.name, s.tax, s.owner, !!s.market, s.services.shipyard.length]), fields.map(f => [f.id, f.name, f.res, f.mix, f.rich, Math.round(f.amount), f.regen, f.danger]), lairs.map(l => [l.id, l.name, l.alive])] });
@@ -543,6 +574,7 @@ export class PmcHud {
       <ellipse cx="230" cy="720" rx="290" ry="170" fill="url(#gal-core)" opacity=".32"/><ellipse cx="1430" cy="670" rx="310" ry="210" fill="url(#gal-deep)" opacity=".45"/>
       <g class="gal-stars">${CHART_STARS}</g>
       ${st.worldLayout === 'p10' ? this.territoryLayer(P) : ''}
+      ${this.sovLayer(P)}
       ${st.worldLayout === 'p9' ? `<g class="gal-regions" aria-hidden="true" style="font-size:${zoom < .45 ? Math.round(11 / zoom) : 14}px"><text x="210" y="135">수도권 · 산업 회랑</text><text x="1170" y="55">북방 외곽</text><text x="255" y="945">남부 변경</text><text x="1260" y="550">무법 외곽</text></g>` : ''}`;
     const done = new Set<string>();
     for (const s of Object.values(st.systems)) for (const gt of s.gates) {
@@ -589,6 +621,7 @@ export class PmcHud {
         <p class="gal-description">${esc(sel.desc)}</p>
         <div class="gal-metrics"><div><b>${stations.length}</b><span>정거장</span></div><div><b>${fields.length}</b><span>자원 지대</span></div><div><b>${ownedShips[sel.id] ?? 0}</b><span>자사 함선</span></div></div>
         ${territoryHtml(st, sel)}
+        ${this.sovInfo(sel)}
         <section class="gal-section"><div class="gal-section-head"><h3>항로</h3><span>${hops === null ? '편대 미선택' : hops >= 99 ? '연결 없음' : `${hops}회 점프`}</span></div>
           <p class="gal-route-copy">${g && gSys ? `${esc(g.name)} · ${esc(st.systems[gSys]?.name ?? gSys)}에서 출발` : '편대를 선택하면 이 성계까지의 항로가 표시됩니다.'}</p></section>
         <section class="gal-section"><div class="gal-section-head"><h3>주요 정거장</h3><span>${stations.length}</span></div><div class="gal-objects">${stationRows}</div></section>
@@ -622,6 +655,7 @@ export class PmcHud {
       viewport.onpointercancel = viewport.onpointerup;
     };
     el.querySelector<HTMLButtonElement>('[data-close]')!.onclick = () => this.toggleGalaxy();
+    el.querySelectorAll<HTMLButtonElement>('[data-sov-open]').forEach(b => b.onclick = () => { const id = b.dataset.sovOpen!; this.toggleGalaxy(); this.openTerritory(id); });
     el.querySelectorAll<SVGGElement>('[data-sys]').forEach(n => {
       n.onclick = () => { this.galSel = n.dataset.sys!; this.renderGalaxy(); };
       n.ondblclick = () => { this.v.setSystem(n.dataset.sys!); this.toggleGalaxy(); };
@@ -926,6 +960,7 @@ export class PmcHud {
       ${this.fb.available() ? `<button class="btn${this.fb.done() ? '' : ' fbbtn'}" id="fbBtn" title="첫 사업 안내 — 거래·채굴 기회, 진행, 손익">첫 사업${this.fb.done() ? ' ✓' : ''}</button>` : ''}
       ${growthOn(this.st) ? `<button class="btn" id="opsBtn" title="회사 전체 업무 · 목표 · 재고 · 결재">회사 본부${(() => { const n = Object.values(this.st.approvals ?? {}).filter(a => a.owner === this.me && a.state === 'open').length; return n ? ` <span class="ops-dot">${n}</span>` : ''; })()}</button>` : ''}
       ${militaryAvailable(this.st as never, this.me) ? (() => { const first = milFirstOn(co) && !co.milestones.includes('first_profit'); const n = Object.values(this.st.contracts).filter(k => k.kind === 'mil' && !k.done && k.takenBy === this.me).length; return `<button class="btn${first ? ' fbbtn' : ''}" id="milBtn" title="군사 계약 — 순찰·호위·방어·토벌 게시판, 진행, 작전 손익${first ? ' · 첫 사업 안내' : ''}">군사 계약${n ? ` <span class="ops-dot" title="진행 중인 계약">${n}</span>` : ''}</button>`; })() : ''}
+      ${this.st.sovV === 1 ? (() => { const x = co?.sovx; const n = x?.alerts.length ?? 0; return `<button class="btn" id="sovBtn" title="영토 — 영유권 진행 조건, 통치 정책, 영토 전쟁·조약${n ? ` · ${esc(x!.alerts[0])}` : ''}">영토${n ? ` <span class="ops-dot" title="${esc(x!.alerts.join(' / '))}">${n}</span>` : ''}</button>`; })() : ''}
       ${this.st.officerV ? `<button class="btn" id="officerBtn" title="장교 육성 · 스킬 트리 · 보직 · 비교">장교${(() => { const n = Object.values(this.st.commanders).filter(c => c.owner === this.me && (c.of?.sp ?? 0) > 0).length; return n ? ` <span class="ops-dot" title="스킬 포인트를 쓸 수 있는 장교">${n}</span>` : ''; })()}</button>` : ''}
       ${growthOn(this.st) ? (this.st.logisticsV ? '<button class="btn" id="logisticsBtn" title="수송선 · 진행 중 운송 · 부족 자재 · 문제">물류 현황</button>' : '<button class="btn" id="logisticsBtn" title="운송 노선 · 채굴 연계 · 장애 해결">물류 관리</button>') : ''}
       <button class="btn" id="analyticsBtn" title="자사 손익과 공개 경제·월드 정보">경제 · 월드</button>
@@ -936,6 +971,7 @@ export class PmcHud {
     const logistics = document.getElementById('logisticsBtn'); if (logistics) logistics.onclick = () => this.openLogistics();
     const ops = document.getElementById('opsBtn'); if (ops) ops.onclick = () => this.openOperations();
     const ofb = document.getElementById('officerBtn'); if (ofb) ofb.onclick = () => this.openOfficers();
+    const svb = document.getElementById('sovBtn'); if (svb) svb.onclick = () => this.territoryPanel ? this.territoryPanel.close() : this.openTerritory();
     const mlb = document.getElementById('milBtn'); if (mlb) mlb.onclick = () => this.militaryPanel ? this.militaryPanel.close() : this.openMilitary();
     const fbb = document.getElementById('fbBtn'); if (fbb) fbb.onclick = () => { this.logisticsPanel?.close(); this.closeModal(); this.analyticsPanel?.close(); const was = this.fb.open; this.upkOpen = false; this.renderUpkeep(true); this.fb.open = !was; this.fb.render(true); };
     (document.getElementById('analyticsBtn') as HTMLButtonElement).onclick = () => this.openAnalytics();
@@ -1398,7 +1434,7 @@ export class PmcHud {
   openOperations(tab?: 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance' | 'rep') {
     if (!growthOn(this.st)) return;
     if (this.opsPanel) { if (tab) this.opsPanel.show(tab); return; }
-    this.militaryPanel?.close(); this.officerPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.militaryPanel?.close(); this.territoryPanel?.close(); this.officerPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
     this.opsPanel = new OperationsPanel(this.root, this.c, {
       station: (id, t) => { this.opsPanel?.close(); this.openStation(id, t ?? 'store'); },
       logistics: () => { this.opsPanel?.close(); this.openLogistics(); },
@@ -1411,7 +1447,7 @@ export class PmcHud {
   openOfficers(select?: string) {
     if (!this.st.officerV) return;
     if (this.officerPanel) return;
-    this.militaryPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.militaryPanel?.close(); this.territoryPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
     this.officerPanel = new OfficerPanel(this.root, this.c, {
       close: () => { this.officerPanel = null; },
       fleet: id => { this.officerPanel?.close(); this.select({ kind: 'group', id }); const pos = this.center(this.st.groups[id]); if (pos) this.v.focusOn(pos, 1800); },
@@ -1429,6 +1465,17 @@ export class PmcHud {
       station: id => this.openStation(id, 'contracts'),
     }, focus);
   }
+  /** B-3 territory screen (standalone; the HUD only shows the entry button and the alert count) */
+  openTerritory(sys?: string) {
+    if (this.st.sovV !== 1) return;
+    if (this.territoryPanel) return;
+    this.militaryPanel?.close(); this.officerPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.analyticsPanel?.close(); this.closeModal(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.setMode(null);
+    this.territoryPanel = new TerritoryPanel(this.root, this.c, {
+      close: () => { this.territoryPanel = null; },
+      system: id => { this.galSel = id; this.galCentered = false; if (!this.galaxy) this.toggleGalaxy(); else this.renderGalaxy(true); },
+      station: id => this.openStation(id),
+    }, sys);
+  }
   /** open the military guide once for a new security / veteran company on this browser */
   private milAutoOpen() {
     const co = this.st.companies[this.me];
@@ -1438,10 +1485,10 @@ export class PmcHud {
     this.openMilitary();
   }
 
-  openAnalytics() { this.militaryPanel?.close(); this.officerPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
+  openAnalytics() { this.militaryPanel?.close(); this.territoryPanel?.close(); this.officerPanel?.close(); this.opsPanel?.close(); this.logisticsPanel?.close(); this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); this.closeModal(); this.analyticsPanel?.close(); this.analyticsPanel = new AnalyticsPanel(this.root, this.c, () => { this.analyticsPanel = null; }, id => this.openStation(id)); }
 
   openStation(id: string, tab?: string) {
-    this.logisticsPanel?.close(); this.opsPanel?.close(); this.officerPanel?.close(); this.militaryPanel?.close();
+    this.logisticsPanel?.close(); this.opsPanel?.close(); this.officerPanel?.close(); this.militaryPanel?.close(); this.territoryPanel?.close();
     this.upkOpen = false; this.renderUpkeep(true); this.fb?.close();
     this.modalStation = id; this.yardFocus = null;
     const s = this.st.stations[id];

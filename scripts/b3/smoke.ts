@@ -1,0 +1,11 @@
+import { WorldSim } from '../../src/world/sim';
+import { STANDARD_WORLD } from '../../src/world/worldPreset';
+const t0 = Date.now();
+const sim = WorldSim.create(41, { ...STANDARD_WORLD });
+console.log('sovV', sim.st.sovV, 'create ms', Date.now() - t0);
+const t1 = Date.now();
+for (let i = 0; i < 3600 * 2; i++) sim.tick(1);
+console.log('2h ms', Date.now() - t1);
+const terr = Object.values(sim.st.systems).filter(s => s.terr).map(s => `${s.id}:${s.terr!.status}:${s.terr!.top?.map(x => x.p + '=' + x.ctl).join('/')}`);
+console.log(terr.join('\n'));
+const json = sim.serialize(); console.log('save KB', Math.round(json.length / 1024), 'sov KB', Math.round(JSON.stringify(sim.st.sov).length / 1024));

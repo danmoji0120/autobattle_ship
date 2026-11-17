@@ -1118,5 +1118,27 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .mil-h3 { font-size:14px; color:#c8eaff; margin:6px 0 12px; }
 .mil-post { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) auto; gap:10px; align-items:end; margin-bottom:8px; }
 .mil-post label { display:flex; flex-direction:column; gap:5px; font-size:11px; color:var(--dim); }
+.sov-alerts { list-style:none; margin:0; padding:8px 22px 0; font-size:12px; display:flex; flex-direction:column; gap:3px; }
+.sov-split { display:grid; grid-template-columns:220px minmax(0,1fr); gap:16px; }
+.sov-list { display:flex; flex-direction:column; gap:6px; }
+.sov-item { position:relative; text-align:left; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:6px; padding:8px 10px 10px; color:inherit; cursor:pointer; display:flex; flex-direction:column; gap:3px; font:inherit; }
+.sov-item.on { border-color:var(--line2); background:rgba(120,190,255,.09); }
+.sov-item small { color:var(--dim); font-size:11px; }
+.sov-stage { position:absolute; left:0; bottom:0; height:3px; width:var(--p); background:var(--good); border-radius:0 0 0 6px; }
+.sov-detail { min-width:0; }
+.sov-stages { list-style:none; display:flex; flex-wrap:wrap; gap:4px; padding:0; margin:0 0 8px; font-size:11px; color:var(--dim); }
+.sov-stages li { padding:2px 7px; border:1px solid var(--line); border-radius:10px; }
+.sov-stages li.done { color:var(--good); border-color:rgba(120,220,160,.35); }
+.sov-stages li.cur { color:#fff; border-color:var(--line2); background:rgba(120,190,255,.14); }
+.sov-conds { min-width:0; margin:8px 0; }
+.sov-conds td { text-align:left !important; font-family:var(--font) !important; }
+.sov-supply, .sov-rivals, .sov-permits { display:flex; flex-wrap:wrap; gap:6px 12px; font-size:12px; margin:8px 0; align-items:baseline; }
+.sov-supply small { color:var(--dim); }
+.sov-permit { border:1px solid var(--line); border-radius:4px; padding:2px 6px; }
+.sov-sub { margin:10px 0; border-top:1px solid var(--line); padding-top:8px; }
+.sov-sub summary { cursor:pointer; font-size:13px; color:#c8eaff; margin-bottom:8px; }
+.sov-pick { display:flex; flex-direction:column; gap:5px; font-size:11px; color:var(--dim); max-width:360px; margin-bottom:8px; }
+.sov-help h3 { font-size:13px; color:#c8eaff; margin:12px 0 6px; }
+@media(max-width:760px) { .sov-split { grid-template-columns:1fr; } .sov-list { flex-direction:row; overflow-x:auto; } .sov-item { min-width:150px; } .sov-alerts { padding:8px 16px 0; } }
 @media(max-width:900px) { .mil-guide { grid-template-columns:1fr; padding:12px 16px; } .mil-tabs { padding:10px 16px 0; } .mil-body { padding:12px 16px 16px; } .mil-post { grid-template-columns:1fr; } }
 @media(max-width:760px) { .mil-tabs .btn { flex:1; font-size:11px; padding:7px 4px; } .mil-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .mil-card .lg-card-actions { display:flex; } .mil-card .lg-card-actions .btn.go { flex:1; } }

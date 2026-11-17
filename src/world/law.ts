@@ -14,6 +14,7 @@ import type { Engagement, StarSystem, Station, V, WGroup, WShip, WorldState } fr
 import type { Relation } from '../sim/types';
 import { dist } from './geom';
 import { effSec } from './security';
+import { relIn } from './sovereignty';
 import { coRelation } from './battleAuth';
 import { emit, watchMoney } from './observe';
 import { book } from './operations';
@@ -748,9 +749,10 @@ export function lawPay(h: Host, company: string, caseId: unknown, amount: unknow
 // ------------------------------------------------------------------ battles
 
 /** relation inside one engagement: a law battle makes only the Union and the stopped company enemies, there */
-export function engRel(st: WorldState, e: Pick<Engagement, 'law'> | undefined, a: string, b: string): Relation {
+export function engRel(st: WorldState, e: Partial<Pick<Engagement, 'law' | 'sys'>> | undefined, a: string, b: string): Relation {
   if (e?.law && ((a === 'union' && b === e.law.co) || (b === 'union' && a === e.law.co))) return -1;
-  return coRelation(st, a, b);
+  // B-3: enemies of a formal territory war in this battle's system
+  return st.sovV ? relIn(st, a, b, e?.sys) : coRelation(st, a, b);
 }
 /** may group g be pulled into engagement e as a reinforcement? In a law battle only the dispatched guards and the
  *  stopped group itself (and third parties already hostile by their own stance) — never the company's other fleets */

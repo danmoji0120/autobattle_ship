@@ -124,6 +124,8 @@ export type Cmd =
   | { c: 'milDispatch'; contract: string }
   | { c: 'milCancel'; contract: string }
   | { c: 'milPostEscort'; group: string; to: string; reward: number }
+  /** B-3 territory: declare / withdraw a claim, policies, permits, cession, war, treaties, guard & war contracts */
+  | SovCmd
   | { c: 'queueModule'; station: string; kind: string }
   | { c: 'removeModule'; station: string; slot: number }
   | { c: 'planOp'; station: string; plan: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
@@ -214,6 +216,7 @@ import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContra
 import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBattle, noteLawShips } from './law';
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
+import { enableTerritory, sovTick, sovCommand, sovGateTransit, sovMineBlock, sovMined, sovFoundRule, sovFoundPay, sovGovernanceRule, sovSieged, sovSiegeTargets, relIn, type SovCmd } from './sovereignty';
 import { enableMilitary, milOn, isMil, acceptMil, milDispatch, milCancel, milPostEscort, milTick, milOnBattle, milEscortAllowed, milWardHold, milIsWard, milTraderDocked } from './military';
 import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, groupFx, mineBonus, shipFx, stationFx, stationDirector, type XpSource, type Officer } from './officers';
 import { XP_RATE, type Tree } from './officerData';
@@ -288,7 +291,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -322,6 +325,8 @@ export class WorldSim {
     // B-1 officer development: opt-in for new worlds (saves: explicit migration, migrateOfficers)
     if (opts.officers === 'b1') { sim.st.officerV = 1; ensureOfficers(sim.st); }
     if (opts.military === 'b2') enableMilitary(sim.st);
+    // B-3 sovereignty & territory war: opt-in for new worlds (saves: explicit migration, migrateTerritory)
+    if (opts.territory === 'b3') enableTerritory(sim.st);
     return sim;
   }
 
@@ -1139,11 +1144,13 @@ export class WorldSim {
       case 'milDispatch': return milOn(this.st) ? milDispatch(this, company, cmd.contract) : '군사 계약 월드가 아님';
       case 'milCancel': return milOn(this.st) ? milCancel(this, company, cmd.contract) : '군사 계약 월드가 아님';
       case 'milPostEscort': return milPostEscort(this, company, cmd.group, cmd.to, cmd.reward);
+      case 'sov': return sovCommand(this, company, cmd);
       case 'queueModule': {
         const st = S(cmd.station); const md = typeof cmd.kind === 'string' && Object.hasOwn(MODULES, cmd.kind) ? MODULES[cmd.kind] : undefined;
         if (!st || st.owner !== company || !md || (md.growth && !growthOn(this.st))) return '건설 불가';
         const growth = growthOn(this.st), cost = facilityBuild(md, growth);
         if (md.kind === 'core') return '도킹 허브는 정거장 설립 시 함께 건설됨';
+        if (md.kind === 'governance') { const why = sovGovernanceRule(this, company, st); if (why) return why; }
         if (st.modules.length >= MAX_MODULES) return `시설 슬롯 부족 (${st.modules.length}/${MAX_MODULES})`;
         if (md.requires && !st.modules.some(m => m.kind === md.requires)) return `${MODULES[md.requires].name} 필요`;
         const tech = facilityTech(md, growth);
@@ -2035,6 +2042,7 @@ export class WorldSim {
         if (sys.security >= 90) return `${sys.name}은(는) 연합 핵심 성계 — 민간 정거장 건설 허가가 나지 않는다`;
         const rule = foundingRule(this.st, sys, company);
         if (!rule.ok) return rule.why;
+        if (this.st.sovV) { const sr = sovFoundRule(this.st, sys.id, company, this.time); if (!sr.ok) return sr.why; }
         if (Math.hypot(op.at.x - sys.origin.x, op.at.z - sys.origin.z) < sys.star.size * 2.5) return '항성에 너무 가깝다';
         for (const pl of sys.planets) if (dist2(pl.pos, op.at) < pl.size * 1.8) return `${pl.name}에 너무 가깝다`;
         return null;
@@ -2234,6 +2242,7 @@ export class WorldSim {
       this.runGroup(g, dt);
     }
     if (this.slow >= 1) {
+      const sdt = this.slow;
       this.slow = 0;
       if (growthOn(st)) for (const co of Object.values(st.companies)) if (co.pendingLoot) this.recoverLoot(co);
       if (st.piracyV && st.drops) for (const d of expireDrops(st, this.time)) for (const c of d.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${d.name} ${d.lots.length ? '소멸 — 남은 화물은 흩어졌습니다' : '회수 완료'}`, { company: c, pos: d.pos, ref: d.id, tag: 'piracy' });
@@ -2243,6 +2252,7 @@ export class WorldSim {
       if (this.st.combatV === 2) this.detectEngagementsP11(); else this.detectEngagements();
       this.resolveAuto();
       this.contracts();
+      if (st.sovV) sovTick(this, sdt);
       this.milestones();
       this.cleanup();
     }
@@ -2404,7 +2414,7 @@ export class WorldSim {
         if (growthOn(st) && s.public) { const before = s.funds ?? 0; fundsStep(s, dt, feMarket(st, s) ? FE_FUNDS_REGEN : 1); const delta = (s.funds ?? 0) - before; if (delta && observed) metricBatch(st, () => emitMetric(st, observed!.budget[delta > 0 ? 0 : 1], Math.abs(delta))); this.restockYards(s, dt); }
       }
       if (!s.public) {
-        if (this.hasModule(s, 'defense') && stationSupportOnline(s) && s.defenseHp < 1) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
+        if (this.hasModule(s, 'defense') && stationSupportOnline(s) && s.defenseHp < 1 && !(st.sovV && sovSieged(this, s))) s.defenseHp = Math.min(1, s.defenseHp + dt * 0.004);
         this.stationWorks(s, dt);
         for (const b of stepBuilds(s, st.companies[s.owner], dt, st)) this.launchBuild(s, b);
         for (const e of stepProduction(s, st.companies[s.owner], dt, st)) {
@@ -3156,6 +3166,8 @@ export class WorldSim {
     const exit = dest?.gates.find(g => g.id === gate.exit);
     if (!dest || !exit) return;
     if (!gateOpen(this.st, gate)) return;   // a blockaded gate refuses transit
+    // B-3: a sovereign's gate policy, only where its warships really guard the exit gate
+    if (this.st.sovV && !sovGateTransit(this, s, exit, dest)) { const g = this.st.groups[s.groupId]; if (g && g.op.k !== 'idle') { g.op = { k: 'idle' }; g.status = `${dest.name} 관문 통과 거부`; } s.task = { k: 'none' }; return; }
     // emerge a little inward of the exit gate, toward the star
     const ix = dest.origin.x - exit.pos.x, iz = dest.origin.z - exit.pos.z, l = Math.hypot(ix, iz) || 1;
     const a = this.rng.range(-0.6, 0.6);
@@ -3444,7 +3456,7 @@ export class WorldSim {
     for (const g of Object.values(this.st.groups)) {
       const k = this.st.companies[g.owner]?.kind;
       // P12 worlds: NPC guard/garrison/respond/raid recognise threats by the same relation rule as every fleet
-      if (this.st.opsV ? g.owner === owner || coRelation(this.st, owner, g.owner) !== -1 : enemyKind ? k !== enemyKind : k === 'pirate') continue;
+      if (this.st.opsV ? g.owner === owner || relIn(this.st, owner, g.owner, this.sysOf(p)?.id) !== -1 : enemyKind ? k !== enemyKind : k === 'pirate') continue;
       if (g.cooldown > 0) continue;
       const c = this.groupCenter(g); if (!c) continue;
       const d = dist(c, p);
@@ -3501,6 +3513,9 @@ export class WorldSim {
         // B-1: the officer of the ship's own group (or a mining chief above it) — mining domain only
         const og = st.groups[s.groupId] ?? g, ocm = st.officerV ? groupOfficer(st, og) : null, ofx = st.officerV ? groupFx(st, og) : undefined;
         const smallPen = ec.minField && f.max < ec.minField && !ofx?.smallField ? 0.5 : 1;
+        // B-3: a sovereign that guards its system may refuse unlicensed miners (royalties are charged below)
+        const sovSys = st.sovV ? this.sysOf(f.pos)?.id : undefined;
+        if (sovSys) { const why = sovMineBlock(this, s.owner, sovSys); if (why) { g.status = why; return; } }
         const rate = ec.mine * (0.8 + c.skill * 0.4) * (0.5 + 0.5 * s.hp) * (f.rich ?? 1) * (g3 ? wearMul(s) * smallPen : 1) * (st.officerV ? 1 + mineBonus(st, og) : 1);
         const a = Math.min(rate * dt * techFx(this.st.companies[g.owner]?.tech).mineMul, f.amount, cap - cargoSum(s.cargo));
         f.amount -= a;
@@ -3522,6 +3537,7 @@ export class WorldSim {
           for (const [k, w] of Object.entries(mix)) { addc(s.cargo, k, a * w); got[k] = a * w; if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
           if (this.st.intel && a > 0 && !f.salvage) recordSample(this.st, s.owner, f, Object.fromEntries(Object.entries(f.mix ?? { [f.res]: 1 }).map(([k, w]) => [k, a * w * (1 + (ofx?.assay ?? 0))])));
         }
+        if (sovSys && a > 0) { let v = 0; for (const [k, n] of Object.entries(got)) v += n * itemPriceOf(k); sovMined(this, s.owner, sovSys, v); }
         // B-1 experience: the value of what was really extracted
         if (ocm && a > 0) { let v = 0; for (const [k, n] of Object.entries(got)) v += n * itemPriceOf(k); this.officerXp(ocm, 'mine', v * XP_RATE.mine, { mining: 1 }); }
         s.task = { k: 'mine', field: f.id, rock };
@@ -3722,6 +3738,8 @@ export class WorldSim {
 
   private foundStation(g: WGroup, s: WShip, op: Extract<Op, { k: 'found' }>, paid = 0) {
     const co = this.st.companies[g.owner];
+    // B-3: the sovereign's construction permit / fee (a refusal keeps the order and the prepayment)
+    if (this.st.sovV) { const why = sovFoundPay(this, this.sysOf(op.at)?.id, g.owner); if (why) { if (paid) (co.foundingEscrow ??= {})[g.id] = paid; g.status = why; return; } }
     if (this.st.factions) {
       const rule = foundingRule(this.st, this.sysOf(op.at), g.owner);
       const fee = rule.ok ? Math.round(rule.feeShare * STATION_SIZES[op.size ?? 'S'].credits) : 0;
@@ -4206,7 +4224,7 @@ export class WorldSim {
    */
   private detectEngagementsP11() {
     const st = this.st;
-    const rel = (a: string, b: string) => coRelation(st, a, b);
+    const rel = (a: string, b: string, at?: V) => st.sovV ? relIn(st, a, b, at && this.sysOf(at)?.id) : coRelation(st, a, b);
     const cand = new Map<string, WShip[]>();
     for (const g of Object.values(st.groups)) {
       if (!g.shipIds.length || g.cooldown > 0) continue;
@@ -4243,7 +4261,7 @@ export class WorldSim {
       const a = st.groups[ids[i]]; if (used.has(a.id)) continue;
       const as = cand.get(a.id)!;
       for (let j = i + 1; j < ids.length; j++) {
-        const b = st.groups[ids[j]]; if (used.has(b.id) || rel(a.owner, b.owner) !== -1) continue;
+        const b = st.groups[ids[j]]; if (used.has(b.id) || rel(a.owner, b.owner, as[0].pos) !== -1) continue;
         const bs = cand.get(b.id)!;
         let hit: V | null = null;
         for (const x of as) { for (const y of bs) if (dist(x.pos, y.pos) < ENGAGE_R) { hit = vlerp(x.pos, y.pos, 0.5); break; } if (hit) break; }
@@ -4254,6 +4272,8 @@ export class WorldSim {
         break;
       }
     }
+    // 4. (B-3) sieges of enemy stations in a formal territory war
+    if (st.sovV) this.detectSieges(cand, used);
     // 3. lairs defend themselves
     for (const l of Object.values(st.lairs)) {
       if (!l.alive || Object.values(st.engagements).some(e => !e.done && e.lairId === l.id)) continue;
@@ -4261,6 +4281,18 @@ export class WorldSim {
         const g = st.groups[id]; if (used.has(id) || rel(g.owner, 'pirates') !== -1) continue;
         if (cand.get(id)!.some(s => dist(s.pos, l.pos) < 800)) { this.p11Contact(l.pos, [g], cand, used, active, l); break; }
       }
+    }
+  }
+
+  /** B-3: war attackers that close on an enemy station's batteries start a siege battle (the batteries fight by themselves) */
+  private detectSieges(cand: Map<string, WShip[]>, used: Set<string>) {
+    const st = this.st;
+    for (const { st: x, groups } of sovSiegeTargets(this)) {
+      if (Object.values(st.engagements).some(e => !e.done && (e.stationId === x.id || dist(e.pos, x.pos) < JOIN_R))) continue;
+      const list = groups.filter(g => !used.has(g.id) && cand.has(g.id)).map(g => ({ g, ss: cand.get(g.id)!.filter(s => dist(s.pos, x.pos) < JOIN_R) })).filter(o => o.ss.length);
+      if (!list.length) continue;
+      for (const o of list) used.add(o.g.id);
+      this.createEngagementP11(x.pos, list, undefined, undefined, x);
     }
   }
 
@@ -4289,7 +4321,7 @@ export class WorldSim {
         if (used.has(gid) || inBattle.some(g => g.id === gid)) continue;
         const g = st.groups[gid];
         if (!ss.some(s => dist(s.pos, pos) < JOIN_R)) continue;
-        if (![...present].some(c => coRelation(st, g.owner, c) === -1)) continue;
+        if (![...present].some(c => (st.sovV ? relIn(st, g.owner, c, this.sysOf(pos)?.id) : coRelation(st, g.owner, c)) === -1)) continue;
         // P13.2.1: not pulled in when everyone hostile to it here is its truce partner
         if (st.piracyV && st.piracy?.truces?.length && !(lair && coRelation(st, g.owner, 'pirates') === -1) && !inBattle.some(o => coRelation(st, g.owner, o.owner) === -1 && !truceBlocks(st, g, o, pos, this.time))) continue;
         inBattle.push(g); added = true;
@@ -4315,11 +4347,12 @@ export class WorldSim {
 
   private sideName(co: string, lair?: Lair) { return co === 'pirates' && lair ? `해적 · ${lair.name}` : this.st.companies[co]?.name ?? co; }
 
-  createEngagementP11(pos: V, list: { g: WGroup; ss: WShip[] }[], lair?: Lair, law?: Engagement['law']): Engagement {
+  createEngagementP11(pos: V, list: { g: WGroup; ss: WShip[] }[], lair?: Lair, law?: Engagement['law'], siege?: Station): Engagement {
     const st = this.st;
     const order: string[] = [];
     for (const x of list) if (!order.includes(x.g.owner)) order.push(x.g.owner);
     if (lair && !order.includes('pirates')) order.push('pirates');
+    if (siege && !order.includes(siege.owner)) order.push(siege.owner);
     const extra = new Map<string, GroupSpec[]>();
     if (lair) extra.set('pirates', [{ name: lair.name, commander: { ...ACTING_CAPTAIN, name: '은신처 수비대장', team: 1, aggression: 0.8 }, ref: 'lair:' + lair.id, order: 'hold', retreatAt: 0, ships: [{ classId: 'platform', loadoutId: 'std', name: lair.name, ref: 'lair:' + lair.id, hp: lair.hp }], children: [] }]);
     // a company's own stations with defense batteries fight on its side (only if the company is here)
@@ -4337,8 +4370,8 @@ export class WorldSim {
     const ships = list.flatMap(x => x.ss);
     const fleets = order.map((co, k) => this.companyFleet(co, list.filter(x => x.g.owner === co), k, extra.get(co) ?? [], this.sideName(co, lair)));
     const sides: SideSpec[] = order.map(co => ({ key: co, name: this.sideName(co, lair) }));
-    const relM: Relation[][] = order.map(a => order.map(b => engRel(st, law ? { law } : undefined, a, b)));
     const sys = this.sysOf(pos);
+    const relM: Relation[][] = order.map(a => order.map(b => engRel(st, { law, sys: sys?.id }, a, b)));
     const setup = { seed: this.rng.int(2 ** 31), scenarioId: lair ? 'bastion' : (sys?.security ?? 50) < 40 ? 'wolfpack' : 'kestrel', spawnZ: 720, fleets, sides, rel: relM };
     const live = order.some(c => st.companies[c]?.kind === 'player');
     const nStations = [...extra.values()].flat().filter(x => x.ref?.startsWith('station:')).reduce((a, x) => a + x.ships.length, 0);

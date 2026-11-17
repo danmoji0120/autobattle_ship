@@ -73,6 +73,8 @@ export interface Company {
   law?: import('./law').CoLaw;
   /** P14.0 (repV): reputation bookkeeping — record per scope, recent changes, applied event keys — private */
   repx?: import('./reputation').CoRep;
+  /** B-3 (sovV): this company's territory screen data — its territories, claims, wars, treaties (private) */
+  sovx?: import('./sovereignty').SovX;
 }
 
 export interface BlueprintHolding { src: string; t: number; /** builds left (limited-run licence); absent = perpetual */ runs?: number }
@@ -514,6 +516,9 @@ export interface StarSystem {
   region?: import('./territory').RegionKind;
   /** P10: false = uncharted (not on public charts; per-company exploration intel only) */
   charted?: boolean;
+  /** B-3 (sovV): public territory summary (legal sovereign, claims, control leaders, war, occupation) — replicated
+   *  with the system, so fog hides it together with the system */
+  terr?: import('./sovereignty').TerrPub;
 }
 
 export interface Contract {
@@ -647,6 +652,10 @@ export interface WorldState {
   milV?: 1;
   /** B-2: posting cooldowns, battles counted per company, settled results (server-side) */
   mil?: import('./military').MilState;
+  /** B-3 system sovereignty, effective control and territory war (new standard worlds; saves by TERRITORY_B3_MIGRATE) */
+  sovV?: 1;
+  /** B-3: claims, control, policies, wars, treaties (sovereignty.ts) — internal samples hidden from clients */
+  sov?: import('./sovereignty').SovState;
   /** B-1: which named officers this world has already produced (each appears at most once per world) */
   officerNamed?: Record<string, string>;
   derelicts?: import('./derelicts').DerelictState;
