@@ -173,6 +173,19 @@ export function postMilContracts(h: Host) {
   }
 }
 
+/** pirate strength actually present in these systems at posting time: a patrol / defence / escort there may meet the
+ *  strongest band head-on, or several at once (B-2 profit runs: three bands together wiped a 0.88× escort, and an
+ *  Ember lane patrol rated on security alone lost 8 ships). Hunt scale for the strongest band, 1.2× for the sum. */
+function presence(h: Host, sysIds: Set<string>): number {
+  const w = h.st; let sum = 0, top = 0;
+  for (const g of Object.values(w.groups)) {
+    if (!isPirate(w, g.owner) || !g.shipIds.length) continue;
+    const p = h.groupCenter(g); const sy = p && sysOfPos(w, p); if (!sy || !sysIds.has(sy.id)) continue;
+    const v = milValue(h.shipsOf(g)); sum += v; top = Math.max(top, v);
+  }
+  return Math.round(Math.max(top * 2.2, sum * 1.2));
+}
+
 function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | null {
   const w = h.st, sec = effSec(sys), seed = `${st.id}:${type}:${Math.floor(h.time / 60)}`;
   switch (type) {
@@ -182,7 +195,7 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
       if (!gates.length) return null;
       const route = [inward(st.pos, sys.origin, -900), ...gates.map(g => inward(g.pos, sys.origin, 900))];
       const dur = 900 + Math.round(r01(seed) * 6) * 100;            // 15–20 min on the route
-      const risk = 1 + (100 - sec) / 70, power = Math.max(135, Math.round(110 + (100 - sec) * 3));
+      const risk = 1 + (100 - sec) / 70, power = Math.max(135, Math.round(110 + (100 - sec) * 3), presence(h, new Set([sys.id])));
       const est = dur + 240;
       const base = round(price(power, est, risk)), bonus = round(base * 0.35);
       return post(h, st, 'patrol', `순찰: ${sys.name} 항로`, `${sys.name}의 정거장 접근로와 관문 ${gates.length}곳을 도는 순찰. 성계 안에서 항로를 실제로 돌며 ${Math.round(dur / 60)}분 근무해야 한다 — 정박 중인 시간은 근무로 치지 않는다. 적대 함대를 탐지·격퇴하면 성과 보너스.`,
@@ -194,7 +207,7 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
       const gate = danger && effSec(danger.s) < sec - 10 ? danger.g : null;
       const at = gate ? inward(gate.pos, sys.origin, 1100) : inward(st.pos, sys.origin, -700);
       const dur = 1200 + Math.round(r01(seed) * 6) * 100;
-      const risk = 1 + (100 - sec) / 60 + (gate ? (sec - effSec(danger!.s)) / 200 : 0), power = Math.max(140, Math.round(120 + (100 - sec) * 4));
+      const risk = 1 + (100 - sec) / 60 + (gate ? (sec - effSec(danger!.s)) / 200 : 0), power = Math.max(140, Math.round(120 + (100 - sec) * 4), presence(h, new Set([sys.id, ...(gate ? [danger!.s.id] : [])])));
       const est = dur + 200;
       const base = round(price(power, est, risk) * 0.85), bonus = round(base * 0.5);
       const where = gate ? `${gate.name} 관문` : `${st.name} 정거장`;
@@ -247,12 +260,14 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
       const worst = Math.min(tsec, ...routeSystems(w, sys.id, c.sys.id).map(x => effSec(w.systems[x])));
       const risk = 1 + c.value / (type === 'hunt' ? 420 : 360) + (100 - worst) / 150;
       // pirate bands fight well above their nominal value against small PMC fleets (scripts/b2/duel.ts: a 150 fleet
-      // trades evenly with a 90 band, 210 with 215) — the recommended strength is what usually wins, not parity
-      const power = Math.round(c.value * (c.lair ? 2.8 : 2.2) * (1 + (100 - worst) / 300));
+      // trades evenly with a 90 band, 210 with 215) — the recommended strength is what usually wins, not parity.
+      // 8 h profit runs at 2.2×: fleets at 1.0–1.4× still lost a hull in most won hunts and were wiped twice, so 3.0×
+      const power = Math.round(c.value * (c.lair ? 3.6 : 3.0) * (1 + (100 - worst) / 300));
       const est = 360 + c.j * 120 + (c.lair ? 300 : 0) + (c.key.startsWith('lane:') ? 1200 : 0);
-      // a fixed part for the target's danger: combat jobs expect damage and the occasional lost hull
-      const base = round(price(power, est, risk, c.value * (type === 'hunt' ? 24 : 30)));
-      const bonus = round(c.value * (type === 'hunt' ? 12 : 16));
+      // a fixed part for the target's danger: combat jobs expect damage and the occasional lost hull — sized so a won
+      // hunt that costs one escort-class hull (≈ 9–13k cr) roughly breaks even with the bounty
+      const base = round(price(power, est, risk, c.value * (type === 'hunt' ? 40 : 50)));
+      const bonus = round(c.value * (type === 'hunt' ? 16 : 20));
       const lane = c.key.startsWith('lane:');
       const what = c.lair ? `해적 소굴 ${c.name} (등급 ${c.lair})` : lane ? `${c.sys.name}의 해적 전력` : `해적 무리 ${c.name} (${w.groups[c.key]?.shipIds.length ?? 0}척)`;
       return post(h, st, type, `${type === 'hunt' ? '토벌' : lane ? '항로 확보' : '강습'}: ${c.name}`,
@@ -275,8 +290,8 @@ function escortOffer(h: Host, st: Station, g: WGroup): string | null {
   const b = sysOfPos(w, dest.pos); if (!b) return null;
   const nj = sys.id === b.id ? 0 : jumps(w.systems, sys.id, b.id);
   if (!Number.isFinite(nj) || nj > 5) return null;
-  const worst = Math.min(...routeSystems(w, sys.id, b.id).map(x => effSec(w.systems[x])));
-  const risk = 1 + (100 - worst) / 60, power = Math.max(110, Math.round(90 + (100 - worst) * 3));
+  const path = routeSystems(w, sys.id, b.id), worst = Math.min(...path.map(x => effSec(w.systems[x])));
+  const risk = 1 + (100 - worst) / 60, power = Math.max(110, Math.round(90 + (100 - worst) * 3), presence(h, new Set(path)));
   // real travel: the escort's approach, a warp per system and the jumps (warp drives make in-system legs short)
   const est = 150 + nj * 60 + Math.min(60, dist(st.pos, dest.pos) / 1500);
   const base = round(price(power, est, risk) + 250), bonus = round(base * 0.4);
@@ -784,10 +799,15 @@ export function milGuide(w: WorldState, me: string): MilGuide | null {
     const j = from && m.sys ? (from === m.sys ? 0 : jumps(w.systems, from, m.sys)) : 0;
     const o = milOutlook(m, rate(best?.ships ?? 3));
     const p = best?.power ?? 0;
-    let fit: MilOffer['fit'] = p >= m.power * 0.85 ? 'ok' : p >= m.power * 0.55 ? 'weak' : 'danger', warn: string | undefined;
+    // a hunt / strike is a straight fight against a fixed band: below the recommended strength it is a coin flip
+    // (profit runs: 0.87× lost 2 ships, 0.92× lost the whole fleet), so only full strength counts as a fit there.
+    // The same holds on a high-risk lane (risk ≥ 2.5): an escort there met three pirate bands at once at 0.88×.
+    const okAt = m.type === 'hunt' || m.type === 'strike' || m.risk >= 2.5 ? 1 : 0.85;
+    let fit: MilOffer['fit'] = p >= m.power * okAt ? 'ok' : p >= m.power * 0.55 ? 'weak' : 'danger', warn: string | undefined;
     // an escort must reach the docked trader before it gives up waiting (joinMax): ~90 s per jump plus the approach
     const sj = from && st ? (() => { const ss = sysOfPos(w, st.pos)?.id; return ss ? (ss === from ? 0 : jumps(w.systems, from, ss)) : 0; })() : 0;
     if (m.type === 'escort' && !m.poster && Number.isFinite(sj) && sj * 90 + 120 > MIL.joinMax * 0.8) { warn = `합류 기한 ${Math.round(MIL.joinMax / 60)}분 — 함대가 ${sj}도약 떨어져 있어 늦으면 상선이 단독 출항합니다`; if (fit === 'ok') fit = 'weak'; }
+    if ((m.type === 'hunt' || m.type === 'strike') && fit !== 'danger') warn = '해적 무리와의 정면 전투는 결과 편차가 큽니다 — 권장 전력을 넘겨도 함대를 잃을 수 있습니다';
     return { id: k.id, type: m.type, title: k.title, desc: k.desc, station: st?.name ?? k.stationId, sys: w.systems[m.sys]?.name ?? m.sys, jumps: Number.isFinite(j) ? j : 99,
       base: m.base, bonus: m.bonus, power: m.power, est: m.est, risk: m.risk, riskLabel: o.risk, netMin: o.min, netMax: o.max, cost: o.cost,
       fit, ...(warn ? { warn } : {}), ...(m.poster ? { poster: w.companies[m.poster]?.name ?? m.poster } : {}), expires: k.expires } as MilOffer;

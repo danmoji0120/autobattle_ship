@@ -166,7 +166,7 @@ export class MilitaryPanel {
           <span>기본 보수<b>${n0(o.base)}</b></span><span>성과 보너스<b>최대 ${n0(o.bonus)}</b></span><span>예상 시간<b>${mins(o.est)}</b></span>
           <span>위험<b class="${o.risk >= 1.8 ? 'bad' : o.risk >= 1.3 ? 'warn' : ''}">${esc(o.riskLabel)}</b></span><span>권장 전력<b>${o.power}</b></span><span>예상 순익<b class="${o.netMin >= 0 ? 'good' : 'warn'}">${sgn(o.netMin)} ~ ${sgn(o.netMax)}</b></span>
         </div>
-        <div class="mil-fit ${fc}">${fl}${o.warn ? ` — ${esc(o.warn)}` : o.fit !== 'ok' ? ` — 가장 강한 대기 함대 전력이 권장의 ${o.fit === 'weak' ? '55~85%' : '55% 미만'}입니다` : ''} · 예상 운영비 ${n0(o.cost)} cr (손상·손실 미포함)</div>
+        <div class="mil-fit ${fc}">${fl}${o.warn ? ` — ${esc(o.warn)}` : o.fit !== 'ok' ? ` — 가장 강한 대기 함대 전력이 권장 전력에 못 미칩니다(${o.fit === 'weak' ? '55% 이상' : '55% 미만'})` : ''} · 예상 운영비 ${n0(o.cost)} cr (손상·손실 미포함)</div>
         <div class="mil-hint">${TYPE_HINT[o.type]}</div>
         ${this.confirm === `acc:${o.id}` ? '<div class="warn mil-hint">권장 전력에 못 미칩니다. 실패하면 보수 없이 신용도가 떨어지고, 전투에서 함선을 잃으면 그 손실은 회사가 집니다. 한 번 더 누르면 수주합니다.</div>' : ''}
         <div class="lg-card-actions">${idle.length ? `<label class="mil-pick">투입 함대<select data-pick="${o.id}" aria-label="투입 함대">${opts}</select></label><button class="btn ${o.fit === 'ok' ? 'go' : 'warnb'}" data-a="accept" data-id="${o.id}">${o.fit === 'ok' ? '수주 · 출격' : this.confirm === `acc:${o.id}` ? '위험 감수 — 수주 확정' : '권장 전력 미달 — 수주'}</button>` : '<span class="warn">대기 중인 전투 함대 없음</span>'}</div>

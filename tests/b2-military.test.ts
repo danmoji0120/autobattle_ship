@@ -7,13 +7,23 @@ import { STANDARD_WORLD } from '../src/world/worldPreset';
 import type { Contract, WGroup } from '../src/world/types';
 import { MIL, isMil, milGuide, milOnBattle, milProgress, migrateMilitary, settle, type MilTerms } from '../src/world/military';
 import { moneySupply } from '../src/world/observe';
-import { econOf } from '../src/world/hullops';
+import { econOf, yardHulls, yardShipPrice } from '../src/world/hullops';
+import { CONTENT } from '../src/content/registry';
 import { sysAt } from '../src/world/geom';
 
 type MK = Contract & { mil: MilTerms };
 const run = (sim: WorldSim, s: number) => { for (let i = 0; i < s; i++) sim.update(1); };
 const until = (sim: WorldSim, cond: () => boolean, s = 3600) => { for (let i = 0; i < s && !cond(); i++) sim.update(1); return cond(); };
 const fleet = (sim: WorldSim, me: string) => Object.values(sim.st.groups).find(g => g.owner === me && !g.parentId)!;
+/** a company grows its fleet the ordinary way: the cheapest military hull a public yard sells, bought into the main
+ *  fleet with the real buyShip command (the test only supplies the money a few contracts would have earned) */
+function reinforce(sim: WorldSim, me: string, n: number) {
+  for (let i = 0; i < n; i++) {
+    const o = Object.values(sim.st.stations).flatMap(st => yardHulls(st).filter(h => econOf({ classId: CONTENT.hulls[h].classId }).military).map(h => ({ st, h, price: yardShipPrice(st, h) }))).filter(x => x.price > 0).sort((a, b) => a.price - b.price)[0];
+    sim.st.companies[me].credits += o.price;
+    expect(sim.command(me, { c: 'buyShip', station: o.st.id, classId: CONTENT.hulls[o.h].classId, loadoutId: '', hull: o.h, group: fleet(sim, me).id })).toBeNull();
+  }
+}
 const offers = (sim: WorldSim, f: (k: MK) => boolean = () => true) => (Object.values(sim.st.contracts).filter(k => isMil(k) && !k.done && !k.takenBy) as MK[]).filter(f);
 const sysOf = (sim: WorldSim, g: WGroup) => sysAt(sim.st.systems, sim.groupCenter(g)!)?.id;
 const restore = (save: string) => new WorldSim(JSON.parse(save));
@@ -173,17 +183,28 @@ describe('B-2 scenarios in the real world', () => {
   it('4 · a veteran start completes a pirate hunt on a real band; another company killing it first voids the contract', () => {
     const sim = restore(warm);
     const g = fleet(sim, VET);
+    // the starting four hulls (power 210) are rated for patrols / escorts; a hunt needs a grown fleet (§4)
+    reinforce(sim, VET, 3);
     // the guide's board: wait for a hunt the fleet can carry (rogue bands wander into lawful space)
     const fitHunt = () => milGuide(sim.st, VET)!.board.find(o => o.type === 'hunt' && o.fit === 'ok' && !(sim.st.contracts[o.id] as MK).mil.target!.startsWith('lair:'));
-    expect(until(sim, () => !!fitHunt(), 7200)).toBe(true);
-    const k = sim.st.contracts[fitHunt()!.id] as MK;
-    const target = sim.st.groups[k.mil.target!];
-    const c0 = sim.st.companies[VET].credits;
-    expect(sim.command(VET, { c: 'accept', contract: k.id, group: g.id })).toBeNull();
-    expect(g.op).toMatchObject({ k: 'attack', group: target.id });
-    expect(until(sim, () => k.done, 3600)).toBe(true);
-    const r = k.mil.result!;
-    console.log('[B-2 S4 hunt]', k.title, k.ended, JSON.stringify(r));
+    // rogue bands are hunted by everyone (faction patrols, NPC companies): a contract whose band someone else kills
+    // first is void — that path is checked here too, then the next fitting hunt is taken (up to three tries)
+    let k!: MK, target!: WGroup, c0 = 0, r!: NonNullable<MilTerms['result']>;
+    for (let tries = 0; tries < 3; tries++) {
+      expect(until(sim, () => !!fitHunt() && Object.values(sim.st.contracts).every(x => !(isMil(x) && x.takenBy === VET && !x.done)), 7200)).toBe(true);
+      k = sim.st.contracts[fitHunt()!.id] as MK;
+      target = sim.st.groups[k.mil.target!];
+      c0 = sim.st.companies[VET].credits;
+      const funds0 = sim.st.stations[k.stationId].funds!;
+      expect(sim.command(VET, { c: 'accept', contract: k.id, group: g.id })).toBeNull();
+      expect(g.op).toMatchObject({ k: 'attack', group: target.id });
+      expect(until(sim, () => k.done, 3600)).toBe(true);
+      r = k.mil.result!;
+      console.log('[B-2 S4 hunt]', k.title, k.ended, JSON.stringify(r));
+      if (r.ok || !k.ended?.includes('무효')) break;
+      expect(r.refund).toBe(k.mil.base + k.mil.bonus);                       // void: the reservation goes back whole
+      expect(sim.st.stations[k.stationId].funds).toBeGreaterThanOrEqual(funds0 - 1e-6);
+    }
     expect(r.ok).toBe(true);
     expect(sim.st.groups[target.id]?.shipIds.length ?? 0).toBe(0);
     expect(r.bounty).toBeGreaterThan(0);
@@ -247,7 +268,7 @@ describe('B-2 scenarios in the real world', () => {
 
   it('7 · two companies on one target: one contract per target; the other company\'s kill voids it without penalty', () => {
     const sim = restore(warm);
-    const fitHunt = () => milGuide(sim.st, VET)!.board.find(o => o.type === 'hunt' && o.fit === 'ok' && !(sim.st.contracts[o.id] as MK).mil.target!.startsWith('lair:'));
+    const fitHunt = () => milGuide(sim.st, VET)!.board.find(o => o.type === 'hunt' && o.fit !== 'danger' && !(sim.st.contracts[o.id] as MK).mil.target!.startsWith('lair:'));
     expect(until(sim, () => !!fitHunt(), 7200)).toBe(true);
     const k = sim.st.contracts[fitHunt()!.id] as MK;
     expect(sim.command(SEC, { c: 'accept', contract: k.id, group: fleet(sim, SEC).id })).toBeNull();

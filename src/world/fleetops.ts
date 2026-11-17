@@ -276,9 +276,12 @@ function chase(h: Host, owner: WGroup, x: OpState, anchor: V, leash: number, own
   else if (h.sysOf(pc!)?.id !== h.sysOf(anchor)?.id) why = '목표가 성계를 벗어남';
   // B-1 tracking: an interception officer chases longer and further
   const ch = 1 + (groupFx(h.st, owner).chase ?? 0);
-  if (!why && dist(pc!, anchor) > leash * ch) why = '추격 한계 도달';
-  else if (!why && h.time - (x.chaseT ?? h.time) > OPS.chaseMax * ch) why = '추격 시간 초과';
-  else if (!why && milValue(h, ss) / Math.max(1, own) > lim * 1.25) why = '적 전력 우세';
+  // (a target fighting someone else has no position in space: skip these checks and wait, as before B-1)
+  if (!why && pc) {
+    if (dist(pc, anchor) > leash * ch) why = '추격 한계 도달';
+    else if (h.time - (x.chaseT ?? h.time) > OPS.chaseMax * ch) why = '추격 시간 초과';
+    else if (milValue(h, ss) / Math.max(1, own) > lim * 1.25) why = '적 전력 우세';
+  }
   if (why) {
     (x.ignore ??= {})[x.target] = h.time + OPS.ignoreFor;
     x.target = undefined; x.chaseFrom = undefined; x.chaseT = undefined; x.phase = 'hold'; x.since = h.time;

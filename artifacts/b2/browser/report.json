@@ -1,0 +1,149 @@
+{
+ "checks": [
+  {
+   "ok": true,
+   "label": "standard world runs B-2; security start",
+   "extra": {
+    "milV": 1,
+    "bg": "security"
+   }
+  },
+  {
+   "ok": true,
+   "label": "the military screen opens by itself once for a new security company"
+  },
+  {
+   "ok": true,
+   "label": "guide: steps, fleet power, advice",
+   "extra": {
+    "guide": "첫 군사 사업 안내\n· 계약 게시판에서 계약 고르기 · 투입 함대 지정(수주)\n· 출격 · 현장 도착\n· 임무 수행 (순찰·호위·방어·토벌)\n· 정산 — 보수·현상금·수리비·운영비\n· 운영비를 뺀 첫 순이익 (창업 자금 초과)\n첫 사업 목표: 자금 15,000 / 창업 자금 15,000 cr 초과\n경비대 3척 · 전력 150 · 선체 100%\n헬리오스 조선소 정박 · 대기 · 지휘 코왈스키 아이리스 Lv1\n함대 보기\n경비대 대기 중 — 전력 150 이하 권장 계약을 고르면 안정적입니다.\n지금 함대로 맡을 수 있는 계약 8건 — 위험이 낮은 순찰·방어는 수입이 안정적이고, 토벌·강습은 보수와 현상금이 크지만 손실 위험도 큽니다."
+   }
+  },
+  {
+   "ok": true,
+   "label": "closes; the top bar keeps a 군사 계약 button",
+   "extra": {
+    "text": "군사 계약"
+   }
+  },
+  {
+   "ok": true,
+   "label": "the world posts military contracts",
+   "extra": {
+    "offers": 26
+   }
+  },
+  {
+   "ok": true,
+   "label": "board cards: pay, bonus, time, risk, recommended power, net range",
+   "extra": [
+    "순찰: 헬리오스 항로 순찰 헬리오스의 정거장 접근로와 관문 3곳을 도는 순찰. 성계 안에서 항로를 실제로 돌며 18분 근무해야 한다 — 정박 중인 시간은 근무로 치지 않는다. 적대 함대를 탐지·격퇴하면 성과 보너스. 헬리오스 조선소 게시 · 헬리오스 · 현 위치 성계 · 게시 15분 남음 정거장 기본 보수 1,200 성과 보너스 최대 400 예상 시간 22분 위험 낮음 권장 전력 135 예상 순익 +697 ~ +1,097 적합 · 예상 운영비 503 cr (손상·손실 미포함) 지정 항로를 돌며 성계에 머문 시간으로 평가. 정박 시간은 근무로 치지 않음. 저위험·안정 수입 투입 함대 경비대 · 전력 150 수주 · 출격",
+    "방어: 아스트라 점프게이트 관문 방어 아스트라 점프게이트 관문 주변 1.5km에 전투함을 23분간 배치해 경계한다. 공격이 없어도 경계 기본 보수를 지급하고, 공격을 격퇴하면 별도 전투 보너스. 헬리오스 조선소 게시 · 헬리오스 · 현 위치 성계 · 게시 15분 남음 정거장 기본 보수 1,350 성과 보너스 최대 700 예상 시간 27분 위험 낮음 권장 전력 140 예상 순익 +750 ~ +1,450 적합 · 예상 운영비 600 cr (손상·손실 미포함) 지정 지점 반경 안에 머문 시간으로 평가, 격퇴 시 추가 보너스. 저~중위험 투입 함대 경비대 · 전력 150 수주 · 출격",
+    "순찰: 리라 교역권 항로 순찰 리라 교역권의 정거장 접근로와 관문 2곳을 도는 순찰. 성계 안에서 항로를 실제로 돌며 22분 근무해야 한다 — 정박 중인 시간은 근무로 치지 않는다. 적대 함대를 탐지·격퇴하면 성과 보너스. 리라 상업항 게시 · 리라 교역권 · 1회 도약 · 게시 15분 남음 정거장 기본 보수 1,700 성과 보너스 최대 600 예상 시간 26분 위험 낮음 권장 전력 144 예상 순익 +1,122 ~ +1,722 적합 · 예상 운영비 578 cr (손상·손실 미포함) 지정 항로를 돌며 성계에 머문 시간으로 평가. 정박 시간은 근무로 치지 않음. 저위험·안정 수입 투입 함대 경비대 · 전력 150 수주 · 출격"
+   ]
+  },
+  {
+   "ok": true,
+   "label": "accept on the page: taken by us with the chosen fleet, which sorties",
+   "extra": {
+    "taken": true,
+    "group": "g165",
+    "op": "patrol",
+    "type": "patrol"
+   }
+  },
+  {
+   "ok": true,
+   "label": "progress tab shows the contract with a progress bar",
+   "extra": {
+    "act": "순찰: 헬리오스 항로\n순찰\n근무 0/18분 · 경유 1/8회 (2바퀴) · 탐지 0 · 교전 0\n기본 보수\n1,200\n성과 보너스\n최대 400\n현상금(별도)\n0\n투입 경비대 · 순찰 중 (1/4) · 기한 59분 남음\n함대 보기\n재출격\n계약 포기"
+   }
+  },
+  {
+   "ok": true,
+   "label": "station contract tab shows a 군사 계약 button for military contracts",
+   "extra": {
+    "hud": true
+   }
+  },
+  {
+   "ok": true,
+   "label": "the button opens the military screen on that contract"
+  },
+  {
+   "ok": true,
+   "label": "abandon asks for confirmation and states the penalty"
+  },
+  {
+   "ok": true,
+   "label": "abandon settles on the server as a failure with a P&L row",
+   "extra": {
+    "done": true,
+    "log": [
+     {
+      "id": "k124",
+      "ok": false,
+      "why": "계약 포기",
+      "net": -6,
+      "refund": 1600
+     }
+    ]
+   }
+  },
+  {
+   "ok": true,
+   "label": "results tab shows the settled row",
+   "extra": [
+    "순찰: 헬리오스 항로 실패 — 계약 포기 · 1분 0 0 0 0 0 −6 −6"
+   ]
+  },
+  {
+   "ok": true,
+   "label": "escort-request tab renders"
+  },
+  {
+   "ok": true,
+   "label": "desktop: no horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: the screen opens by itself for a veteran start"
+  },
+  {
+   "ok": true,
+   "label": "phone: guide without horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: board without horizontal scroll",
+   "extra": {
+    "cards": 24
+   }
+  },
+  {
+   "ok": true,
+   "label": "phone: results tab without page-level horizontal scroll"
+  },
+  {
+   "ok": true,
+   "label": "phone: top-bar button reachable",
+   "extra": {
+    "w": 57.5625,
+    "h": 30,
+    "covered": false
+   }
+  },
+  {
+   "ok": true,
+   "label": "no page errors",
+   "extra": []
+  },
+  {
+   "ok": true,
+   "label": "no console errors",
+   "extra": []
+  }
+ ],
+ "errors": [],
+ "console": []
+}
