@@ -79,6 +79,9 @@ try {
   for (const t of TECH_ORDER) { const r = await A.command({ c: "research", station: base, tech: t }); check(r === null, `1: research queued — ${t}`, r ?? undefined); }
   { const r = await A.command({ c: 'buildShip', station: base, classId: 'carrier', loadoutId: '', hull: CARRIER_HULL, variant: 'carrier_dawn_std', outfit: 'hull' });
     check(r !== null, '1: building a 여명급 is refused before the blueprint and the research', r); }
+  // C (salvager) moves its salvage group to helios now, so it is in reach of the coming battle's wrecks
+  { const cg0 = Object.values<any>(C.snap().groups).find(g => g.owner === C.id && g.shipIds.length);
+    check(await C.command({ c: 'setOp', group: cg0.id, op: { k: 'dock', station: 'helios' } }) === null, '1: C sends its salvage group to helios'); }
   await srv.stop();
   check(offline(40, sim => TECH_ORDER.every(t => sim.st.companies[A.id].tech?.includes(t)), 'research'), '1: all 15 research projects finished');
 
