@@ -1,0 +1,33 @@
+name: P16 development validation
+
+on:
+  push:
+    branches:
+      - ccr-f3f46604-1jievd
+    paths:
+      - 'src/render/**'
+      - 'src/sim/**'
+      - 'src/ui/**'
+      - 'src/main.ts'
+      - 'tests/p16-*.test.ts'
+      - '.github/workflows/p16-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run content:check
+      - run: npx vitest run tests/p16-client.test.ts tests/p16-craft.test.ts tests/p16-content.test.ts tests/p16-carrier-ops.test.ts --no-file-parallelism
+      - run: npm run build
