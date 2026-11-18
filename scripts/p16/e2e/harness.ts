@@ -66,5 +66,7 @@ export class Pilot {
   lastErr: string | null = null;
   async command(cmd: any): Promise<string | null> { const id = this.seq++; this.ws.send(JSON.stringify({ t: 'cmd', id, cmd })); return this.lastErr = (await this.wait(m => m.t === 'ack' && m.id === id)).err ?? null; }
   snap() { return this.messages.filter(m => m.t === 'snap').at(-1).state; }
+  /** the first snapshot sent after this call (state after the commands already acknowledged) */
+  async fresh() { const at = this.messages.filter(m => m.t === 'snap').at(-1)?.at ?? -1; await until(() => this.messages.some(m => m.t === 'snap' && m.at > at), `no new snapshot for ${this.name}`); return this.snap(); }
   async join(eng: string) { this.binits.delete(eng); this.ws.send(JSON.stringify({ t: 'bjoin', eng })); return until(() => this.binits.get(eng), `no binit for ${eng}`); }
 }

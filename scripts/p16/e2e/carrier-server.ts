@@ -86,7 +86,7 @@ try {
   await srv.start(); await connectAll();
   const cr0 = A.snap().companies[A.id].credits;
   check(await A.command({ c: 'buyBlueprint', station: 'helios', blueprint: 'bp_carrier_dawn' }) === null, '2: A buys the 여명급 blueprint at helios');
-  const cr1 = A.snap().companies[A.id].credits;
+  const cr1 = (await A.fresh()).companies[A.id].credits;
   facts.blueprintPaid = cr0 - cr1;
   check(await A.command({ c: 'buildShip', station: base, classId: 'carrier', loadoutId: '', hull: CARRIER_HULL, variant: 'carrier_dawn_std', outfit: 'hull' }) === null, '2: A lays down a 여명급 hull at its own L yard');
   const gear: [string, number][] = [['eq_wing_fighter', 2], ['eq_wing_torpedo', 1], ['air_hangar_ext', 1], ['air_maint', 1], ['cpu_carrier', 1]];
@@ -102,7 +102,7 @@ try {
   facts.carrier = cv.id;
   const own = { hp: { h1: 'eq_wing_fighter', h2: 'eq_wing_fighter', h3: 'eq_wing_torpedo' }, bay: { fl1: 'air_hangar_ext', fl2: 'air_maint', cpu1: 'cpu_carrier' } };
   check(await A.command({ c: 'fit', ship: cv.id, ...own }) === null, '3: own yard — 2 fighter wings, torpedo wing, hangar extension, maintenance, carrier computer fitted from produced stock');
-  s = A.snap();
+  s = await A.fresh();
   check(Object.values(store(s, base, A.id)).length >= 0 && gear.every(([id]) => (store(s, base, A.id)[id] ?? 0) === 0), '3: the fitted gear left A\'s storage (nothing duplicated)');
   check(await A.command({ c: 'setOp', group: cv.groupId, op: { k: 'dock', station: 'helios' } }) === null, '3: the carrier sails to helios');
   await srv.stop();
@@ -112,7 +112,7 @@ try {
   const mk0 = A.snap().stations.helios.market;
   const before = { interceptor: mk0.eq_wing_interceptor?.stock, control: mk0.air_control?.stock };
   check(await A.command({ c: 'fit', ship: cv.id, ...full, buy: true }) === null, '3: helios — interceptor wing, air control, 2 medium guns, 6 point defence bought and fitted (fit buy)');
-  s = A.snap();
+  s = await A.fresh();
   const mk1 = s.stations.helios.market;
   facts.marketBuy = { interceptor: [before.interceptor, mk1.eq_wing_interceptor?.stock], control: [before.control, mk1.air_control?.stock] };
   const took = (a: number, b: number) => a - b > 0.9 && a - b < 1.1;   // stock also regrows slowly between the two reads
@@ -126,7 +126,7 @@ try {
   const officer = oldG?.commanderId ?? Object.values<any>(s.commanders).find(c => c.owner === A.id)?.id;
   check(await A.command({ c: 'assignCmd', group: cv.groupId, commander: officer }) === null, '4: the security officer takes command of the carrier group');
   check(await A.command({ c: 'renameGroup', group: cv.groupId, name: '여명 항모단' }) === null, '4: group named');
-  s = A.snap();
+  s = await A.fresh();
   facts.groupShips = s.groups[cv.groupId].shipIds.map((id: string) => s.ships[id].hull ?? s.ships[id].classId);
   check(s.groups[cv.groupId].shipIds.length === 1 + esc.length && s.groups[cv.groupId].commanderId === officer, '4: 여명 항모단 = carrier + escorts + officer', facts.groupShips);
 
