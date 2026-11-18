@@ -1,6 +1,7 @@
 // Authoritative persistent-world simulation. Runs identically on the Node server (multiplayer)
 // and inside the browser (single player). All state lives in `st` (plain JSON).
 
+import { DEV_CARRIER_RELEASE } from '../content/carrierRelease';
 import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
 import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
 import { createPoolJob, controlPoolJob, setPoolShips, interruptPoolShips, dispatchPool, maintainPool, stepPoolShip, type PoolRequest } from './autonomousLogistics';
@@ -333,6 +334,9 @@ export class WorldSim {
     if (opts.industrial === 'ind1' && growthOn(sim.st)) enableIndustrial(sim.st);
     // P15.1 combat computers on public markets: opt-in for new growth worlds (anyone can still produce them)
     if (opts.computers === 'p151' && growthOn(sim.st)) stockComputers(sim.st);
+    // P16.6: only the explicitly opted-in development build stocks carrier gear in new worlds.
+    // Published builds remain unchanged. Existing worlds require the separate migration flag.
+    if (DEV_CARRIER_RELEASE && growthOn(sim.st)) migrateCarriers(sim.st);
     return sim;
   }
 
