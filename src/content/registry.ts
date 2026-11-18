@@ -1,5 +1,6 @@
 // Content registry: merges every pack into id-indexed tables. Game code reads hulls, variants,
 // presets and assets only through here. Pure data — safe on server and client.
+import { DEV_CARRIER_RELEASE, DEV_CARRIER_HULL_ID } from './carrierRelease';
 import type { AssetDef, BlueprintDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef, ArmContent, ModuleContent, ItemContent, TechContent, FacilityContent, RecipeContent, WeaponFamily, ExclusiveArm, ExclusiveModule } from './schema';
 import { PACKS } from './packs';
 import { COMPUTER_BAY } from './schema';
@@ -188,7 +189,7 @@ export function legacyOf(classId: string, loadoutId: string, reg: Registry = CON
 
 /** P16: a hull the world has released (not a dev, account-exclusive or preview hull) — catalogues, purchase,
  *  construction and blueprint offers use only these */
-export const hullReleased = (hullId: string | undefined, reg: Registry = CONTENT): boolean => { const h = hullId ? reg.hulls[hullId] : undefined; return !!h && !h.dev && !h.exclusive && !h.preview; };
+export const hullReleased = (hullId: string | undefined, reg: Registry = CONTENT): boolean => { const h = hullId ? reg.hulls[hullId] : undefined; return !!h && !h.dev && !h.exclusive && (!h.preview || (DEV_CARRIER_RELEASE && hullId === DEV_CARRIER_HULL_ID)); };
 /** P16.3: equipment a released hull can use. Strike-craft weapons fit only an H (hangar) hardpoint and
  *  aviation modules only a flight bay — while no released hull has one, that gear is useless to a player,
  *  so production, purchase and reverse-engineering refuse it (docs/P16_3_CARRIER_OPERATIONS.md §2). Every
