@@ -56,12 +56,12 @@
     {
       "ok": true,
       "label": "HUD: control in use / limit and airborne · deck · lost",
-      "extra": "관제 3/3 비행 30 · 갑판 0 · 손실 0 전투기 공격 8/8 전투기 CAP 대기 8/8 뇌격기 공격 6/6 요격기 요격 8/8"
+      "extra": "관제 3/3 비행 29 · 갑판 1 · 손실 1 전투기 공격 7/8 전투기 CAP 대기 8/8 뇌격기 공격 6/6 요격기 요격 8/8"
     },
     {
       "ok": true,
       "label": "HUD: a squadron kept on CAP by the control limit is marked",
-      "extra": "관제 3/3 비행 30 · 갑판 0 · 손실 0 전투기 공격 8/8 전투기 CAP 대기 8/8 뇌격기 공격 6/6 요격기 요격 8/8"
+      "extra": "관제 3/3 비행 29 · 갑판 1 · 손실 1 전투기 공격 7/8 전투기 CAP 대기 8/8 뇌격기 공격 6/6 요격기 요격 8/8"
     },
     {
       "ok": true,
@@ -76,12 +76,8 @@
       "label": "every frame draws exactly the airborne craft of the sim",
       "extra": [
         [
-          20,
-          20
-        ],
-        [
-          18,
-          18
+          19,
+          19
         ],
         [
           18,
@@ -92,20 +88,24 @@
           17
         ],
         [
-          15,
-          15
+          16,
+          16
         ],
         [
-          15,
-          15
+          16,
+          16
         ],
         [
-          15,
-          15
+          14,
+          14
         ],
         [
-          15,
-          15
+          14,
+          14
+        ],
+        [
+          14,
+          14
         ]
       ]
     },
@@ -121,11 +121,11 @@
       "ok": true,
       "label": "craft launched (stats)",
       "extra": {
-        "launched": 37,
+        "launched": 38,
         "recovered": 0,
-        "lost": 22,
-        "ord": 3,
-        "held": 22
+        "lost": 24,
+        "ord": 2,
+        "held": 13
       }
     },
     {
@@ -136,57 +136,23 @@
         "live": [
           [
             2550,
-            "1e6c3270"
+            "6cac58ea"
           ],
           [
             2700,
-            "87de2347"
+            "35b89b9a"
           ]
         ],
         "replay": [
           [
             2550,
-            "1e6c3270"
+            "6cac58ea"
           ],
           [
             2700,
-            "87de2347"
+            "35b89b9a"
           ]
         ]
-      }
-    },
-    {
-      "ok": true,
-      "label": "lab: admin login"
-    },
-    {
-      "ok": true,
-      "label": "lab: carrier hidden under the default rules"
-    },
-    {
-      "ok": true,
-      "label": "lab: rules 3 selected — carrier in the catalog"
-    },
-    {
-      "ok": false,
-      "label": "lab fitting: four H slots show complement · spares · radius",
-      "extra": []
-    },
-    {
-      "ok": false,
-      "label": "lab fitting: three aviation bays",
-      "extra": []
-    },
-    {
-      "ok": false,
-      "label": "lab fitting: wing rows replace gun firepower",
-      "extra": "지속 화력 327/s 최대 사거리 560 무장 4문 방공 1문 내구 1,030 전면 장갑 10 전투 속도 112 명중·회피 ±0% · 0%"
-    },
-    {
-      "ok": false,
-      "label": "browser run",
-      "extra": {
-        "error": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.lab-fitmodal [data-fsel=\"bay:fl1\"]')\u001b[22m\n\n    at /home/user/autobattle_ship/scripts/p16/p164-browser.cjs:168:16"
       }
     },
     {

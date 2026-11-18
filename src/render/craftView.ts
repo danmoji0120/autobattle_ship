@@ -82,6 +82,8 @@ export class CraftView {
   private camPos = new THREE.Vector3();
   /** visible airframes in the last frame (perf HUD / tests) */
   drawn = 0;
+  /** gun shots seen so far (cooldown resets of airborne slots; tests / perf probes) */
+  shots = 0;
 
   constructor(private host: CraftFxHost) {
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.35, roughness: 0.45, emissive: 0x202830, emissiveIntensity: 0.6 });
@@ -157,7 +159,7 @@ export class CraftView {
       if (!sq) continue;
       const x = c.px[i] - c.vx[i] * back, y = c.py[i] - c.vy[i] * back, z = c.pz[i] - c.vz[i] * back;
       if (pst === CRAFT_ST.OUT && st === CRAFT_ST.OUT) {
-        if (c.cool[i] > this.pCool[i] + 1e-9) this.shot(w, c, i, x, y, z);
+        if (c.cool[i] > this.pCool[i] + 1e-9) { this.shots++; this.shot(w, c, i, x, y, z); }
         if (this.pOrd[i] && !c.ordL[i]) {
           // torpedo released (the munition itself is drawn by the guided-round trails)
           this.host.glow.emit({ x, y: y - 0.6, z }, { life: 0.25, size: 3.5, size1: 7, color: this.host.friendly(sq.team) ? 0x80b0ff : 0xff70c0, alpha: 1.2 });

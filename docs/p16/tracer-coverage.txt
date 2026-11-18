@@ -1,0 +1,5 @@
+# npx vite-node scripts/p16/tracer-coverage.ts   (2 carriers + cruiser vs carrier + battleship + destroyer, seed 21, 180 s)
+{"ticksPerFrame":1,"simTime":180,"realShots":889,"cooldownTracers":889,"coverage":1,"craftHitsOnShips":145}
+{"ticksPerFrame":2,"simTime":180,"realShots":889,"cooldownTracers":886,"coverage":0.997,"craftHitsOnShips":145}
+{"ticksPerFrame":4,"simTime":180,"realShots":889,"cooldownTracers":885,"coverage":0.996,"craftHitsOnShips":145}
+{"ticksPerFrame":8,"simTime":180,"realShots":889,"cooldownTracers":879,"coverage":0.989,"craftHitsOnShips":145}

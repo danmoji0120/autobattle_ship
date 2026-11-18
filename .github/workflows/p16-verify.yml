@@ -1,0 +1,64 @@
+# P16 development validation (restored in P16.4.1 from backup/p164-parallel-2ff8916, adapted to the current client:
+# skirmish rules-3 trial toggle, render/craftView.ts, mobile layout, actual-airborne render probe)
+name: P16 development validation
+
+on:
+  push:
+    branches:
+      - ccr-f3f46604-1jievd
+    paths:
+      - 'src/render/**'
+      - 'src/sim/**'
+      - 'src/ui/**'
+      - 'src/main.ts'
+      - 'tests/p16-*.test.ts'
+      - 'tests/p164-*.test.ts'
+      - 'src/content/packs/growth/**'
+      - 'src/devlab/**'
+      - 'src/client/strategic/fittingUi.ts'
+      - 'scripts/p16/**'
+      - '.github/workflows/p16-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run content:check
+      - run: npx vitest run tests/p16-client.test.ts tests/p16-craft.test.ts tests/p16-content.test.ts tests/p16-carrier-ops.test.ts tests/p164-carrier-wreck.test.ts tests/p15-computers.test.ts --no-file-parallelism
+      - run: npm run build
+      - name: Install browser automation
+        run: |
+          mkdir -p "$RUNNER_TEMP/p16-browser"
+          printf '%s\n' '{"name":"p16-browser","version":"1.0.0","private":true}' > "$RUNNER_TEMP/p16-browser/package.json"
+          npm install --prefix "$RUNNER_TEMP/p16-browser" --no-audit --no-fund playwright
+          "$RUNNER_TEMP/p16-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Chromium skirmish, mobile layout and carrier render probes
+        timeout-minutes: 15
+        run: |
+          mkdir -p playtest-out/p16
+          npm run dev -- --host 127.0.0.1 > "$RUNNER_TEMP/p16-vite.log" 2>&1 &
+          vite_pid=$!
+          trap 'kill $vite_pid || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          NODE_PATH="$RUNNER_TEMP/p16-browser/node_modules" node scripts/p16/browser-check.mjs playtest-out/p16
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p16-browser
+          path: playtest-out/p16
+          if-no-files-found: ignore

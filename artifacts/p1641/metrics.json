@@ -1,0 +1,488 @@
+{
+  "environment": "headless Chromium, SwiftShader software WebGL (not a user GPU)",
+  "results": [
+    {
+      "ok": true,
+      "label": "skirmish: carrier hidden until the rules-3 trial"
+    },
+    {
+      "ok": true,
+      "label": "skirmish: carrier row in the fleet"
+    },
+    {
+      "ok": true,
+      "label": "skirmish: carrier battle runs under rules 3",
+      "extra": {
+        "rules": 3,
+        "pool": true,
+        "airborne": 14,
+        "drawn": 14,
+        "instanced": 4,
+        "digestStable": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "renderer: instanced role batches draw exactly the airborne craft",
+      "extra": {
+        "rules": 3,
+        "pool": true,
+        "airborne": 14,
+        "drawn": 14,
+        "instanced": 4,
+        "digestStable": true
+      }
+    },
+    {
+      "ok": true,
+      "label": "renderer: drawing does not change the battle digest"
+    },
+    {
+      "ok": true,
+      "label": "mobile: carrier fitting row and footer fit 390 px",
+      "extra": {
+        "vw": 390,
+        "page": 0,
+        "els": [
+          {
+            "sel": "setup",
+            "left": 0,
+            "right": 390,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "srow cv",
+            "left": 23,
+            "right": 367,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 213,
+            "right": 359,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 37,
+            "right": 207,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 213,
+            "right": 359,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 37,
+            "right": 207,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "sfoot",
+            "left": 0,
+            "right": 390,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "r3",
+            "left": 202,
+            "right": 319,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "go",
+            "left": 272,
+            "right": 380,
+            "over": 0,
+            "clipped": false
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "mobile: HUD wing line shown",
+      "extra": "관제 0/3 비행 0 · 갑판 30 · 손실 0 전투기 직위 엄호 0/8 전투기 직위 엄호 0/8 뇌격기 직위 엄호 0/6 요격기 직위 엄호 0/8"
+    },
+    {
+      "ok": true,
+      "label": "mobile: HUD wing line fits the screen",
+      "extra": {
+        "vw": 390,
+        "page": 0,
+        "els": [
+          {
+            "sel": "gstat",
+            "left": 233,
+            "right": 367,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "gwing",
+            "left": 233,
+            "right": 367,
+            "over": 0,
+            "clipped": false
+          }
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 200: renderer draws the actual airborne craft every frame",
+      "extra": {
+        "target": 200,
+        "airborneMin": 210,
+        "airborneMax": 210
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 200: at least 90 % of the target actually airborne (not pool capacity)",
+      "extra": {
+        "target": 200,
+        "carriers": 7,
+        "complement": 210,
+        "slotBuffer": 256,
+        "airborneMin": 210,
+        "airborneMax": 210,
+        "drawnEqualsAirborne": true,
+        "launched": 210,
+        "lost": 0,
+        "frameMs": {
+          "mean": 8.97,
+          "p95": 15.3,
+          "max": 21.4
+        },
+        "craftCpuMs": 0.37,
+        "drawCalls": {
+          "mean": 973,
+          "p95": 973,
+          "max": 973
+        },
+        "hiddenFrameMs": {
+          "mean": 35.67,
+          "p95": 126,
+          "max": 206.3
+        },
+        "hiddenDrawCalls": {
+          "mean": 968,
+          "p95": 968,
+          "max": 968
+        },
+        "rules": 3,
+        "simTime": 12
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 400: renderer draws the actual airborne craft every frame",
+      "extra": {
+        "target": 400,
+        "airborneMin": 420,
+        "airborneMax": 420
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 400: at least 90 % of the target actually airborne (not pool capacity)",
+      "extra": {
+        "target": 400,
+        "carriers": 14,
+        "complement": 420,
+        "slotBuffer": 512,
+        "airborneMin": 420,
+        "airborneMax": 420,
+        "drawnEqualsAirborne": true,
+        "launched": 420,
+        "lost": 0,
+        "frameMs": {
+          "mean": 12.11,
+          "p95": 19.1,
+          "max": 21.3
+        },
+        "craftCpuMs": 0.323,
+        "drawCalls": {
+          "mean": 1295,
+          "p95": 1295,
+          "max": 1295
+        },
+        "hiddenFrameMs": {
+          "mean": 5.32,
+          "p95": 6.1,
+          "max": 6.2
+        },
+        "hiddenDrawCalls": {
+          "mean": 1290,
+          "p95": 1290,
+          "max": 1290
+        },
+        "rules": 3,
+        "simTime": 12
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 800: renderer draws the actual airborne craft every frame",
+      "extra": {
+        "target": 800,
+        "airborneMin": 807,
+        "airborneMax": 807
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 800: at least 90 % of the target actually airborne (not pool capacity)",
+      "extra": {
+        "target": 800,
+        "carriers": 27,
+        "complement": 810,
+        "slotBuffer": 1024,
+        "airborneMin": 807,
+        "airborneMax": 807,
+        "drawnEqualsAirborne": true,
+        "launched": 807,
+        "lost": 0,
+        "frameMs": {
+          "mean": 95,
+          "p95": 215.6,
+          "max": 364.1
+        },
+        "craftCpuMs": 0.37,
+        "drawCalls": {
+          "mean": 1893,
+          "p95": 1893,
+          "max": 1893
+        },
+        "hiddenFrameMs": {
+          "mean": 102.47,
+          "p95": 207.5,
+          "max": 225.1
+        },
+        "hiddenDrawCalls": {
+          "mean": 1888,
+          "p95": 1888,
+          "max": 1888
+        },
+        "rules": 3,
+        "simTime": 12
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page / console errors",
+      "extra": []
+    }
+  ],
+  "metrics": [
+    {
+      "mobileSetup": {
+        "vw": 390,
+        "page": 0,
+        "els": [
+          {
+            "sel": "setup",
+            "left": 0,
+            "right": 390,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "srow cv",
+            "left": 23,
+            "right": 367,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 213,
+            "right": 359,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 37,
+            "right": 207,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 213,
+            "right": 359,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "",
+            "left": 37,
+            "right": 207,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "sfoot",
+            "left": 0,
+            "right": 390,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "r3",
+            "left": 202,
+            "right": 319,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "go",
+            "left": 272,
+            "right": 380,
+            "over": 0,
+            "clipped": false
+          }
+        ]
+      }
+    },
+    {
+      "mobileHud": {
+        "vw": 390,
+        "page": 0,
+        "els": [
+          {
+            "sel": "gstat",
+            "left": 233,
+            "right": 367,
+            "over": 0,
+            "clipped": false
+          },
+          {
+            "sel": "gwing",
+            "left": 233,
+            "right": 367,
+            "over": 0,
+            "clipped": false
+          }
+        ]
+      },
+      "wing": "관제 0/3 비행 0 · 갑판 30 · 손실 0 전투기 직위 엄호 0/8 전투기 직위 엄호 0/8 뇌격기 직위 엄호 0/6 요격기 직위 엄호 0/8"
+    },
+    {
+      "target": 200,
+      "carriers": 7,
+      "complement": 210,
+      "slotBuffer": 256,
+      "airborneMin": 210,
+      "airborneMax": 210,
+      "drawnEqualsAirborne": true,
+      "launched": 210,
+      "lost": 0,
+      "frameMs": {
+        "mean": 8.97,
+        "p95": 15.3,
+        "max": 21.4
+      },
+      "craftCpuMs": 0.37,
+      "drawCalls": {
+        "mean": 973,
+        "p95": 973,
+        "max": 973
+      },
+      "hiddenFrameMs": {
+        "mean": 35.67,
+        "p95": 126,
+        "max": 206.3
+      },
+      "hiddenDrawCalls": {
+        "mean": 968,
+        "p95": 968,
+        "max": 968
+      },
+      "rules": 3,
+      "simTime": 12
+    },
+    {
+      "target": 400,
+      "carriers": 14,
+      "complement": 420,
+      "slotBuffer": 512,
+      "airborneMin": 420,
+      "airborneMax": 420,
+      "drawnEqualsAirborne": true,
+      "launched": 420,
+      "lost": 0,
+      "frameMs": {
+        "mean": 12.11,
+        "p95": 19.1,
+        "max": 21.3
+      },
+      "craftCpuMs": 0.323,
+      "drawCalls": {
+        "mean": 1295,
+        "p95": 1295,
+        "max": 1295
+      },
+      "hiddenFrameMs": {
+        "mean": 5.32,
+        "p95": 6.1,
+        "max": 6.2
+      },
+      "hiddenDrawCalls": {
+        "mean": 1290,
+        "p95": 1290,
+        "max": 1290
+      },
+      "rules": 3,
+      "simTime": 12
+    },
+    {
+      "target": 800,
+      "carriers": 27,
+      "complement": 810,
+      "slotBuffer": 1024,
+      "airborneMin": 807,
+      "airborneMax": 807,
+      "drawnEqualsAirborne": true,
+      "launched": 807,
+      "lost": 0,
+      "frameMs": {
+        "mean": 95,
+        "p95": 215.6,
+        "max": 364.1
+      },
+      "craftCpuMs": 0.37,
+      "drawCalls": {
+        "mean": 1893,
+        "p95": 1893,
+        "max": 1893
+      },
+      "hiddenFrameMs": {
+        "mean": 102.47,
+        "p95": 207.5,
+        "max": 225.1
+      },
+      "hiddenDrawCalls": {
+        "mean": 1888,
+        "p95": 1888,
+        "max": 1888
+      },
+      "rules": 3,
+      "simTime": 12
+    }
+  ],
+  "errors": []
+}

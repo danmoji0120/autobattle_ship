@@ -44,6 +44,12 @@ function airOf(mods: string[]): AirFx | undefined {
 }
 const airFitId = (a?: AirFx) => AIR_FITS.find(f => JSON.stringify(airOf(f.mods) ?? null) === JSON.stringify(a ?? null))?.id ?? '';
 const isCarrierClass = (id: string) => getLoadout(id, SHIP_CLASSES[id].loadouts[0].id).mounts.some(m => isCraft(WEAPONS[m.weapon]));
+/** P16.4 skirmish gate: carriers fly only in the rules-3 trial (BATTLE_RULES is unchanged, the world gate stays
+ *  closed); with the trial on, the battle runs under rules ≥ 3, otherwise under BATTLE_RULES */
+export function skirmishGate(fleet: FleetSpec, trial: boolean): { rules: number; carriers: number; blocked: boolean } {
+  let carriers = 0; walk(fleet.root, g => { for (const s of g.ships) if (isCarrierClass(s.classId)) carriers++; });
+  return { rules: trial ? Math.max(3, BATTLE_RULES) : BATTLE_RULES, carriers, blocked: carriers > 0 && !trial };
+}
 /** squadrons / air-control limit for a carrier row: "비행대 4 · 관제 3" (the rest wait on CAP) */
 function wingLine(classId: string, loadoutId: string, air?: AirFx): string {
   const sq = getLoadout(classId, loadoutId).mounts.filter(m => isCraft(WEAPONS[m.weapon])).length;
@@ -100,8 +106,7 @@ export class SetupScreen {
     const used = new Map<string, string>();
     walk(f.root, g => { if (g.commanderId) used.set(g.commanderId, g.name); });
     const scroll = this.root.querySelector('#treeScroll')?.scrollTop ?? 0;
-    let carriers = 0; walk(f.root, g => { for (const s of g.ships) if (isCarrierClass(s.classId)) carriers++; });
-    const blocked = carriers > 0 && !this.rules3;
+    const { blocked } = skirmishGate(f, this.rules3);
     // the carrier class is non-enumerable (hidden from every class list); the rules-3 trial shows it here only
     const classes = [...Object.values(SHIP_CLASSES).map(c => c.id), ...(this.rules3 ? ['carrier'] : [])];
     this.root.innerHTML = `
@@ -270,7 +275,7 @@ export class SetupScreen {
     });
     const back = r.querySelector('#back') as HTMLButtonElement | null; if (back) back.onclick = () => this.onBack?.();
     (r.querySelector('#reset') as HTMLButtonElement).onclick = () => { this.fleet = defaultPlayerFleet(); this.sel = this.fleet.root; this.commit(); };
-    (r.querySelector('#go') as HTMLButtonElement).onclick = () => { saveFleet(this.fleet); this.onStart({ fleet: JSON.parse(JSON.stringify(this.fleet)), scenarioId: this.scenarioId, rules: this.rules3 ? Math.max(3, BATTLE_RULES) : BATTLE_RULES }); };
+    (r.querySelector('#go') as HTMLButtonElement).onclick = () => { saveFleet(this.fleet); this.onStart({ fleet: JSON.parse(JSON.stringify(this.fleet)), scenarioId: this.scenarioId, rules: skirmishGate(this.fleet, this.rules3).rules }); };
   }
 
   private setupPreview(): void {
