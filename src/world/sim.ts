@@ -4575,13 +4575,17 @@ export class WorldSim {
     for (const e of Object.values(this.st.engagements)) if (!e.done && e.autoEnd !== undefined && this.time >= e.autoEnd) this.finishEngagement(e, this.quickResolve(e), false);
   }
 
-  /** P16.3: a carrier's strength-model weight from its air group as fitted (combatRating.airValueMul); exactly 1 for
-   *  every class without strike craft in its standard loadout, so their values (and the rng draws) are unchanged */
+  /** P16.3/P16.5: a ship's strength-model weight from its air group as actually fitted (combatRating.airValueMul):
+   *  any hull whose fitting carries strike craft (a carrier, or a cruiser / battleship with an H slot), and a
+   *  carrier whose craft were taken off. Exactly 1 for every ship with no craft in its fitting nor its class's
+   *  standard loadout, so their values (and the rng draws) are unchanged. */
   private airValue(s: WShip, g?: WGroup): number {
     const cls = SHIP_CLASSES[s.classId];
-    if (!cls?.loadouts.length || !hasCraft(cls.loadouts[0])) return 1;
+    if (!cls?.loadouts.length) return 1;
+    const lo = s.fitting ? shipLoadout(s) : getLoadout(s.classId, s.loadoutId);
+    if (!hasCraft(lo) && !hasCraft(cls.loadouts[0])) return 1;
     const co = this.st.companies[s.owner];
-    return airValueMul(cls, s.fitting ? shipLoadout(s) : getLoadout(s.classId, s.loadoutId), co?.kind === 'player' ? this.shipFxOf(s) : undefined, g ? this.cmdr(g).ofx : undefined);
+    return airValueMul(cls, lo, co?.kind === 'player' ? this.shipFxOf(s) : undefined, g ? this.cmdr(g).ofx : undefined);
   }
 
   /** strength-model resolution for NPC-only fights (Lanchester square law with noise) */

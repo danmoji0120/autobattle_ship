@@ -45,7 +45,7 @@ const RALLY_D = 900, RALLY_WAIT = 15;
 /** bombers release their ordnance at this fraction of its range */
 const RELEASE = 0.65;
 /** P16.5 fighters (guns only) do not strafe a ship covered by this much point defence (PD mounts × skill, nearby ships fading) */
-const FIGHTER_AA_MAX = 3;
+const FIGHTER_AA_MAX = 8;
 export const SLOT_BITS = 65536;
 /** uniform grid (x/z plane) used for craft-vs-craft and point-defence queries */
 const CELL = 250, GN = 64, GHALF = CELL * GN / 2;
@@ -281,7 +281,7 @@ export class CraftPool {
     }
     if (cs.role === 'interceptor') { sq.task = CAP; sq.tgtShip = -1; return; }
     // fighters go with the wing's torpedo bombers while those carry ordnance toward a target
-    if (!sq.orphan && this.coverFor(sq)) { sq.task = COVER; sq.tgtShip = -1; sq.prio = 2.6; return; }
+    if (!sq.orphan && this.enemyAir(sq.team) && this.coverFor(sq)) { sq.task = COVER; sq.tgtShip = -1; sq.prio = 2.6; return; }
     sq.tgtShip = this.pickShip(sq, R);
     if (sq.tgtShip < 0) { sq.task = CAP; return; }
     sq.task = STRIKE;
@@ -353,6 +353,13 @@ export class CraftPool {
     }
   }
 
+  /** P16.5: the enemy can contest the air (enemy craft flying, or an enemy ship that carries craft afloat) */
+  private enemyAir(team: number): boolean {
+    for (const id of this.carrierIds) { const s = this.w.shipById.get(id); if (s && s.state === 'alive' && this.w.hostile(team, s.team)) return true; }
+    for (let i = 0; i < this.n; i++) if (this.st[i] === OUT && this.w.hostile(team, this.squads[this.sq[i]].team)) return true;
+    return false;
+  }
+
   /** P16.5: a bomber squadron of this wing on a strike with loaded bombers in the air: cover it (centre into cv*) */
   private coverFor(sq: Squad): boolean {
     for (const b of sq.wing.squads) {
@@ -402,8 +409,9 @@ export class CraftPool {
       const aa = this.aaAround(t, sq.team);
       let k: number;
       if (bomber) k = (big === 'cv' ? 3.6 : big === 'line' ? 3 : big === 'escort' ? 1.2 : 0.3) / (1 + aa * 0.12);
-      else { if (aa >= FIGHTER_AA_MAX) continue; k = (big === 'raider' ? 1.5 : big === 'escort' ? 1.3 : big === 'cv' ? 0.7 : 0.6) / (1 + aa * 0.35); }
-      let sc = k * (1 + t.value / 600) / (Math.sqrt(d2) + 400);
+      else { if (aa >= FIGHTER_AA_MAX) continue; k = (big === 'raider' ? 1.5 : big === 'escort' ? 1.3 : big === 'cv' ? 0.7 : 0.6) / (1 + aa * 0.25); }
+      // a damaged ship is worth finishing (focus with the guns already on it)
+      let sc = k * (1 + t.value / 600) * (2 - t.hp / t.maxHp) / (Math.sqrt(d2) + 400);
       if (t.id === hint) sc *= 1.3;
       if (t.id === sq.tgtShip) sc *= 1.25;
       if (sc > bs) { bs = sc; best = t.id; }

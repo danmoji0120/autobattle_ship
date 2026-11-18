@@ -66,3 +66,39 @@ export function carrierSpec(craft: number): ShipSpec {
   }
   return { classId: P16_CARRIER, loadoutId: 'mixed', fit: { name: `시험 항모 ${craft}`, mounts: [...mounts, ...PD] } };
 }
+
+// ─────────────────────────────────────────────────────────── P16.5 mixed-armament hulls with an H slot
+/** P16.5 test hulls (not game content): a heavy cruiser and a battleship whose standard loadout is the real
+ *  class's, with an 'air' loadout that trades guns for strike-craft wings on an H (deck) mount — what a
+ *  future H-slot cruiser / battleship could carry. Their standard loadout has no craft, so before P16.5 the
+ *  light judgement (world/sim.ts airValue) never looked at the wings they carry. */
+export const P165_CRUISER_H = 'p165t_cruiser_h', P165_BATTLESHIP_H = 'p165t_battleship_h';
+let mixedDone = false;
+export function registerP165MixedHulls() {
+  if (mixedDone) return;
+  mixedDone = true;
+  const deck = (weapon: string, pos: [number, number, number], facing: number): MountDef => ({ weapon, pos, facing, arc: 180 });
+  const ca = SHIP_CLASSES.cruiser, bb = SHIP_CLASSES.battleship;
+  const caStd = ca.loadouts.find(l => l.id === 'multi')!, bbStd = bb.loadouts.find(l => l.id === 'std')!;
+  SHIP_CLASSES[P165_CRUISER_H] = { ...ca, id: P165_CRUISER_H, name: '시험 항공 순양함', loadouts: [
+    { ...caStd, id: 'std' },
+    // one missile rack → a torpedo-bomber wing
+    { id: 'air', name: '뇌격 비행대 탑재', desc: '', mounts: caStd.mounts.map(m => m.weapon === 'missile_rack' && m.pos[0] > 0 ? deck('wing_torpedo', m.pos, 90) : m) },
+  ] };
+  let k = 0;
+  SHIP_CLASSES[P165_BATTLESHIP_H] = { ...bb, id: P165_BATTLESHIP_H, name: '시험 항공 전함', loadouts: [
+    { ...bbStd, id: 'std' },
+    // the aft main turret → a torpedo-bomber wing, two aft secondaries → a fighter wing (one deck)
+    { id: 'air', name: '혼성 비행대 탑재', desc: '', mounts: bbStd.mounts.flatMap(m => {
+      if (m.weapon === 'heavy_cannon' && m.facing === 180) return [deck('wing_torpedo', m.pos, 180)];
+      if (m.weapon === 'medium_gun' && m.pos[2] < 0) return k++ === 0 ? [deck('wing_fighter', m.pos, 90)] : [];
+      return [m];
+    }) },
+    // the same trade made with the forward superfiring turret (it bears ahead, the aft one does not)
+    { id: 'air_fwd', name: '혼성 비행대 탑재 (전방 포탑 교체)', desc: '', mounts: bbStd.mounts.flatMap((m, i) => {
+      if (m.weapon === 'heavy_cannon' && m.pos[2] === 7) return [deck('wing_torpedo', m.pos, 90)];
+      if (m.weapon === 'medium_gun' && m.pos[2] < 0) return i === bbStd.mounts.findIndex(x => x.weapon === 'medium_gun' && x.pos[2] < 0) ? [deck('wing_fighter', m.pos, 90)] : [];
+      return [m];
+    }) },
+  ] };
+}

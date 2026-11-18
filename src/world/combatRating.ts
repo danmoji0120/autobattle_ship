@@ -58,16 +58,20 @@ function refSet(): Ref[] {
 }
 
 /** P16.3 carrier rating: share of a squadron's airframes still flying over a fight (point defence and enemy
- *  fighters), and the share of the time a craft gun is on a target (the rest is transit / turning). Estimates,
- *  not calibrated in battles yet (CALIB has no carrier entry): docs/P16_3_CARRIER_OPERATIONS.md. */
-const CRAFT_SURV = 0.7, CRAFT_GUN_TIME = 0.5, CRAFT_GUN_HIT = 0.7;
+ *  fighters), and the share of the time a craft gun is on a target (the rest is transit / turning).
+ *  P16.5 calibration against the equal-cost battles (scripts/p16/equal-cost.ts, docs/P16_5_AIR_BALANCE.md §5):
+ *  craft guns landed ≈ 9 dps for two fighter squadrons (gun time 0.5 had them at ≈ 110), so the gun time is
+ *  0.05; air-dropped torpedoes are stopped by point defence ≈ 40 % of the time (coordinated runs, two hits to
+ *  kill), not by the ship-munition pdStop; interceptors never strike ships (CAP / intercept only). */
+const CRAFT_SURV = 0.7, CRAFT_GUN_TIME = 0.05, CRAFT_GUN_HIT = 0.7, AIR_ORD_STOP = 0.4;
 /** expected damage per second a squadron lands on the reference ships: guns (penetration vs side armour) and
- *  ordnance (one round per sortie cycle, meets the target's point defence like any guided round) */
+ *  ordnance (one round per sortie cycle) */
 function craftOff(cs: CraftStats, R: Ref[]): number {
+  if (cs.role === 'interceptor') return 0;
   let per = 0;
   if (cs.gun) { const g = cs.gun; per += g.damage / Math.max(0.05, g.reload) * CRAFT_GUN_TIME * CRAFT_GUN_HIT * R.reduce((a, t) => a + penMul(g.pen, t.side), 0) / R.length; }
   const o = cs.ordnance ? WEAPONS[cs.ordnance] : undefined;
-  if (o) per += o.damage * o.salvo / (cs.sortie * 0.5 + cs.turnaround) * R.reduce((a, t) => a + penMul(o.pen, t.side) * (1 - pdStop(t.pd)), 0) / R.length;
+  if (o) per += o.damage * o.salvo / (cs.sortie * 0.5 + cs.turnaround) * (1 - AIR_ORD_STOP) * R.reduce((a, t) => a + penMul(o.pen, t.side), 0) / R.length;
   return per * cs.n * CRAFT_SURV;
 }
 /** does this loadout launch strike craft */
@@ -126,12 +130,17 @@ export function rateClass(classId: string, loadoutId?: string, skill = 0.5): num
   return rate({ cls, lo, skill }).cr * calibOf(classId, lo.id);
 }
 
-/** P16.3 light battle resolution (world/sim.ts quickResolve): a carrier's strength-model value relative to its
- *  class as built — its air group as fitted (fewer / other squadrons, aviation modules) against the standard air
- *  group, clamped to 0.3..1.6. 1 for every ship without strike craft (their values are unchanged). */
+/** P16.3/P16.5 light battle resolution (world/sim.ts quickResolve): a ship's strength-model value relative to its
+ *  class as built, when the ship or its class carries strike craft — its loadout as fitted (other / fewer / extra
+ *  squadrons, a gun swapped for a wing) with its aviation modules, against the class's standard loadout, clamped
+ *  to 0.3..1.6. Only the air part of the fitting effects counts (ShipFx.air, officer airTurn): hull, armour and
+ *  gunnery effects are not in any other ship's strength-model value either. 1 for every ship without strike
+ *  craft (their values are unchanged). */
 export function airValueMul(cls: ShipClassDef, lo: LoadoutDef, fx?: ShipFx, ofx?: Record<string, number>): number {
   const std = cls.loadouts[0];
   if (!std || (!hasCraft(lo) && !hasCraft(std))) return 1;
   const ref = rate({ cls, lo: std }).cr;
-  return ref > 0 ? Math.max(0.3, Math.min(1.6, rate({ cls, lo, fx, ofx }).cr / ref)) : 1;
+  const airFx: ShipFx | undefined = fx?.air ? { air: fx.air } : undefined;
+  const airOfx = ofx?.airTurn ? { airTurn: ofx.airTurn } : undefined;
+  return ref > 0 ? Math.max(0.3, Math.min(1.6, rate({ cls, lo, fx: airFx, ofx: airOfx }).cr / ref)) : 1;
 }

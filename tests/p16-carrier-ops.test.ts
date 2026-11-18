@@ -165,7 +165,7 @@ describe('P16.3 combat rating and light battle resolution', () => {
   const noCraft = { ...std, mounts: std.mounts.filter(m => WEAPONS[m.weapon].kind !== 'craft') };
 
   it('the carrier rating counts its air group and aviation modules; other ships are unchanged', () => {
-    expect(rate({ cls, lo: std }).off).toBeGreaterThan(rate({ cls, lo: noCraft }).off * 1.5);
+    expect(rate({ cls, lo: std }).off).toBeGreaterThan(rate({ cls, lo: noCraft }).off * 1.3);   // P16.5 calibration (craft gun time 0.05): ≈ ×1.44
     expect(rate({ cls, lo: std, fx: air('air_hangar_ext') }).cr).toBeGreaterThan(rate({ cls, lo: std }).cr);
     expect(rate({ cls, lo: std, fx: air('air_maint') }).cr).toBeGreaterThan(rate({ cls, lo: std }).cr);
     expect(rateClass('cruiser')).toBeCloseTo(139.16, 1);   // the reference scale (K) is unchanged
@@ -177,7 +177,7 @@ describe('P16.3 combat rating and light battle resolution', () => {
   it('airValueMul: 1 for the standard air group and every non-carrier; lower without craft, higher with modules', () => {
     expect(airValueMul(cls, std)).toBe(1);
     for (const id of ['frigate', 'destroyer', 'cruiser', 'battleship']) { const c = SHIP_CLASSES[id]; for (const lo of c.loadouts) expect(airValueMul(c, lo, { air: { complement: 9 } })).toBe(1); }
-    expect(airValueMul(cls, noCraft)).toBeLessThan(0.8);
+    expect(airValueMul(cls, noCraft)).toBeLessThan(0.9);   // P16.5 calibration: the hull, guns and PD remain (≈ 0.83)
     expect(airValueMul(cls, noCraft)).toBeGreaterThanOrEqual(0.3);
     expect(airValueMul(cls, std, air('air_hangar_ext', 'air_maint'))).toBeGreaterThan(1.05);
     expect(airValueMul(cls, std, { air: { complement: 50 } })).toBe(1.6);   // clamp

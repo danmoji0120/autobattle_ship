@@ -40,6 +40,8 @@ export function airStrike(name: string, setup: BattleSetup, seed: number, secs =
   const orig = w.craftMunition.bind(w);
   w.craftMunition = (carrier, m, wd, pos, dir, targetId) => { if (carrier.team === team) add(drops, cls(targetId)); orig(carrier, m, wd, pos, dir, targetId); };
   const mine = new Set(w.ships.filter(s => s.team === team).map(s => s.id));
+  // my air torpedoes in flight: one that dies without a hit and before its fuel runs out was shot down
+  const flying = new Map<number, { life: number }>();
   while (!w.outcome && w.time < secs) {
     w.step();
     const c = w.craft;
@@ -48,8 +50,10 @@ export function airStrike(name: string, setup: BattleSetup, seed: number, secs =
       if (e.t === 'hit' && mine.has(e.attacker)) {
         if (e.weapon === 'air_torpedo') { tHit++; add(torpHits, cls(e.target)); add(torpDmg, cls(e.target), e.dmg ?? 0); }
         else if (/wing_/.test(e.weapon)) { add(gunHits, cls(e.target)); add(gunDmg, cls(e.target), e.dmg ?? 0); }
-      } else if (e.t === 'intercept' && e.kind === 'torpedo' && !mine.has(e.by)) tInt++;
+      }
     }
+    for (const [id, m] of flying) { const mu = w.munitionById.get(id); if (!mu || mu.dead) { if (mu && mu.hp <= 0) tInt++; flying.delete(id); } else m.life = mu.life; }
+    for (const mu of w.munitions) if (mu.air && mu.team === team && !mu.dead && !flying.has(mu.id)) flying.set(mu.id, { life: mu.life });
   }
   const c = w.craft;
   if (c) for (const q of c.squads) if (q.team === team) add(craftLost.byRole, q.cs.role, q.stats.lost);

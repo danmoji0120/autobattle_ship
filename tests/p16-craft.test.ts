@@ -91,7 +91,9 @@ describe('P16.1 determinism with craft (T3)', () => {
 
 describe('P16.1 behaviour', () => {
   it('launch, recovery and re-sortie; losses replaced from per-battle spares only', () => {
-    const w = new World(setup(G([...S(P16_CARRIER, 'mixed', 1), ...S('destroyer', 'aa', 2)]), G([...S('battleship', 'std', 1), ...S('destroyer', 'aa', 3)])));
+    // P16.5: a strike now forms up before its run, so the first recovery comes later; against a battleship the
+    // carrier was sunk (~55 s) before its bombers could go out again, so the enemy line is a cruiser here
+    const w = new World(setup(G([...S(P16_CARRIER, 'mixed', 1), ...S('destroyer', 'aa', 2)]), G([...S('cruiser', 'multi', 1), ...S('destroyer', 'aa', 3)])));
     run(w, 200);
     const c = w.craft!;
     const bombers = c.squads.filter(q => q.cs.role === 'bomber');
@@ -126,8 +128,8 @@ describe('P16.1 behaviour', () => {
     expect(g.ai.preferredRange).toBeLessThan(FIGHTERS.radius);
     expect(car.stats.dmgDealt).toBeGreaterThan(0);
     expect(ordFire).toBeGreaterThan(0);
-    // P16.5: fighters do not strafe ships under heavy point defence (three AA destroyers): no gun runs here
-    expect(gunHits).toBe(0);
+    // the fighters strafe the destroyers (P16.5: only ships under very heavy point defence are left to the bombers)
+    expect(gunHits).toBeGreaterThan(0);
     // guns are instant: no shell munition ever leaves the carrier
     expect(shellsFromCarrier).toBe(0);
     // against lightly defended corvettes the fighters do strafe, and their guns hit (instantly, no shells)
