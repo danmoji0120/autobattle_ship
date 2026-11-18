@@ -71,6 +71,9 @@ try {
     const at = { x: h.x + (st.pos.x - h.x) * -0.9, y: 0, z: h.z + (st.pos.z - h.z) * -0.9 + 2500 };
     const g = seedWarGroup(sim, B.id, 'B 포격 전단', at, [['battleship', 'std'], ['cruiser', 'std'], ['cruiser', 'std'], ['destroyer', 'std'], ['destroyer', 'std']]);
     sim.st.companies[B.id].credits = 400_000;
+    // C (salvager) runs ~15 world hours without income in this scenario: an operating fund keeps it out of arrears
+    // (arrears hold new departures — A-2.1), so its salvage group can sail when the wreck appears
+    sim.st.companies[C.id].credits = Math.max(sim.st.companies[C.id].credits, 200_000);
     file.world = JSON.parse(sim.serialize()); writeFileSync(save, JSON.stringify(file));
     facts.base = st.id; facts.bGroup = g.id; facts.bAt = at; }
   const base = facts.base as string, bGroup = facts.bGroup as string;
