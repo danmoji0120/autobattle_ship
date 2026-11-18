@@ -104,7 +104,7 @@ try {
   check(await A.command({ c: 'fit', ship: cv.id, ...own }) === null, '3: own yard — 2 fighter wings, torpedo wing, hangar extension, maintenance, carrier computer fitted from produced stock');
   s = A.snap();
   check(Object.values(store(s, base, A.id)).length >= 0 && gear.every(([id]) => (store(s, base, A.id)[id] ?? 0) === 0), '3: the fitted gear left A\'s storage (nothing duplicated)');
-  check(await A.command({ c: 'setOp', group: cv.group, op: { k: 'dock', station: 'helios' } }) === null, '3: the carrier sails to helios');
+  check(await A.command({ c: 'setOp', group: cv.groupId, op: { k: 'dock', station: 'helios' } }) === null, '3: the carrier sails to helios');
   await srv.stop();
   check(offline(3, sim => { const x = sim.st.ships[cv.id]; return x.task.k === 'docked' && (x.task as any).station === 'helios'; }, 'sail to helios'), '3: docked at helios');
   await srv.start(); await connectAll();
@@ -115,24 +115,25 @@ try {
   s = A.snap();
   const mk1 = s.stations.helios.market;
   facts.marketBuy = { interceptor: [before.interceptor, mk1.eq_wing_interceptor?.stock], control: [before.control, mk1.air_control?.stock] };
-  check(mk1.eq_wing_interceptor.stock === before.interceptor - 1 && mk1.air_control.stock === before.control - 1, '3: the interceptor wing and the air control unit came out of the helios market stock', facts.marketBuy);
+  const took = (a: number, b: number) => a - b > 0.9 && a - b < 1.1;   // stock also regrows slowly between the two reads
+  check(took(before.interceptor, mk1.eq_wing_interceptor.stock) && took(before.control, mk1.air_control.stock), '3: the interceptor wing and the air control unit came out of the helios market stock', facts.marketBuy);
   check(JSON.stringify(s.ships[cv.id].fitting.hp) === JSON.stringify(full.hp), '3: carrier fitting = the standard air group (H slots h1–h4) + flight bays fl1–fl3 + carrier computer', s.ships[cv.id].fitting);
 
   // ── 4. the carrier group: A's security ships + officer join the carrier
   const esc = Object.values<any>(s.ships).filter(x => x.owner === A.id && x.id !== cv.id).map(x => x.id);
-  const oldG = Object.values<any>(s.groups).find(g => g.owner === A.id && g.id !== cv.group && g.shipIds.length);
-  for (const id of esc) check(await A.command({ c: 'moveShip', ship: id, group: cv.group }) === null, `4: escort ${s.ships[id].name} joins the carrier group`);
+  const oldG = Object.values<any>(s.groups).find(g => g.owner === A.id && g.id !== cv.groupId && g.shipIds.length);
+  for (const id of esc) check(await A.command({ c: 'moveShip', ship: id, group: cv.groupId }) === null, `4: escort ${s.ships[id].name} joins the carrier group`);
   const officer = oldG?.commanderId ?? Object.values<any>(s.commanders).find(c => c.owner === A.id)?.id;
-  check(await A.command({ c: 'assignCmd', group: cv.group, commander: officer }) === null, '4: the security officer takes command of the carrier group');
-  check(await A.command({ c: 'renameGroup', group: cv.group, name: '여명 항모단' }) === null, '4: group named');
+  check(await A.command({ c: 'assignCmd', group: cv.groupId, commander: officer }) === null, '4: the security officer takes command of the carrier group');
+  check(await A.command({ c: 'renameGroup', group: cv.groupId, name: '여명 항모단' }) === null, '4: group named');
   s = A.snap();
-  facts.groupShips = s.groups[cv.group].shipIds.map((id: string) => s.ships[id].hull ?? s.ships[id].classId);
-  check(s.groups[cv.group].shipIds.length === 1 + esc.length && s.groups[cv.group].commanderId === officer, '4: 여명 항모단 = carrier + escorts + officer', facts.groupShips);
+  facts.groupShips = s.groups[cv.groupId].shipIds.map((id: string) => s.ships[id].hull ?? s.ships[id].classId);
+  check(s.groups[cv.groupId].shipIds.length === 1 + esc.length && s.groups[cv.groupId].commanderId === officer, '4: 여명 항모단 = carrier + escorts + officer', facts.groupShips);
 
   // ── 5. battle: B declares hostility (mutual hostility = a war, not a crime), A attacks B's battle group
   check(await B.command({ c: 'stance', target: A.id, v: -1 }) === null, '5: B declares A hostile');
-  check(await A.command({ c: 'setOp', group: cv.group, op: { k: 'attack', group: bGroup } }) === null, '5: A orders the carrier group to attack B\'s gun battle group');
-  const eng = await until(() => Object.values<any>(A.snap().engagements ?? {}).find(e => !e.done && e.groupRefs?.includes(cv.group))?.id, 'no engagement', 600000);
+  check(await A.command({ c: 'setOp', group: cv.groupId, op: { k: 'attack', group: bGroup } }) === null, '5: A orders the carrier group to attack B\'s gun battle group');
+  const eng = await until(() => Object.values<any>(A.snap().engagements ?? {}).find(e => !e.done && e.groupRefs?.includes(cv.groupId))?.id, 'no engagement', 600000);
   check(!!eng, '5: P11 engagement between A\'s carrier group and B\'s battle group', { eng });
   const bi = await A.join(eng);
   check(bi.setup.rules === 3, '5: the live battle is stamped rules 3', { rules: bi.setup.rules });
@@ -164,10 +165,14 @@ try {
   const rec = end;
   facts.battle = { summary: rec.summary, losses: rec.losses, winner: rec.winner, sec: Math.round(rec.end - rec.start) };
   check(!s.ships[cv.id], '9: the carrier was sunk', facts.battle);
+  // 12. the finished battle re-opens as a replay (bjoin) — the client snapshot's battle log carries no setup / orders,
+  //     so the replay below uses what the server streams to a replay viewer
+  const rb = await B.join(eng);
+  check(rb.replay === true && rb.setup.rules === 3, '12: B re-opens the finished battle as a replay (rules 3)', { orders: rb.orders.length });
   // replay (record) vs server; and the air statistics of the whole battle
-  { const rw = new World(structuredClone(rec.setup)); rw.scheduleReplay(structuredClone(rec.orders)); while (!rw.outcome && rw.tick < 30 * 1500) rw.step();
-    const lost = rw.ships.filter(x => x.state !== 'alive' && x.ref && !x.ref.includes(':')).map(x => x.ref!).sort();
-    const goneOnServer = rec.setup.fleets.flatMap((f: any) => f.groups ?? []).flatMap((g: any) => g.ships ?? []).map((x: any) => x.ref).filter((r: string) => r && !r.includes(':') && !s.ships[r]).sort();
+  { const rw = new World(structuredClone(rb.setup)); rw.scheduleReplay(structuredClone(rb.orders)); while (!rw.outcome && rw.tick < 30 * 1500) rw.step();
+    const lost = rw.ships.filter(x => (x.state === 'dead' || x.state === 'dying') && x.ref && !x.ref.includes(':')).map(x => x.ref!).sort();
+    const goneOnServer = rw.ships.map(x => x.ref).filter((r): r is string => !!r && !r.includes(':') && !s.ships[r]).sort();
     const air = (rw.craft?.squads ?? []).map(q => ({ role: q.cs.role, n: q.cs.n, ...q.stats }));
     facts.air = air;
     check(JSON.stringify(lost) === JSON.stringify(goneOnServer), '10: the battle record replays to exactly the ships the server lost', { lost: lost.length });
@@ -181,7 +186,7 @@ try {
   facts.carrierWreck = { id: cw?.id, lots };
   check(cw && lots.some(([k]: any) => String(k).startsWith('eq_wing_') || ['cpu_carrier', 'air_maint', 'air_hangar_ext', 'air_control'].includes(k)), '11: the carrier\'s wreck holds its strike-craft / aviation gear', facts.carrierWreck);
   const cg = Object.values<any>(s.groups).find(g => g.owner === C.id && g.shipIds.length);
-  check(await A.command({ c: 'setOp', group: Object.values<any>(s.groups).find(g => g.owner === A.id && g.shipIds.length)?.id ?? cv.group, op: { k: 'idle' } }) !== undefined, '11: A stands down');
+  check(await A.command({ c: 'setOp', group: Object.values<any>(s.groups).find(g => g.owner === A.id && g.shipIds.length)?.id ?? cv.groupId, op: { k: 'idle' } }) !== undefined, '11: A stands down');
   check(await C.command({ c: 'setOp', group: cg.id, op: { k: 'salvzone', at: cw.pos, radius: 3000 } }) === null, '11: C sends its salvage group on a zone salvage over the carrier wreck');
   await srv.stop();
   const isCarrierGear = (k: string) => k.startsWith('eq_wing_') || ['cpu_carrier', 'air_maint', 'air_hangar_ext', 'air_control'].includes(k);
@@ -192,9 +197,6 @@ try {
   facts.cTaken = taken;
   const cHas = Object.values<any>(s.ships).filter(x => x.owner === C.id).map(x => x.salvaged ?? {}).concat(Object.values<any>(s.stations).map(st => st.storage?.[C.id] ?? {}));
   check(Object.keys(taken).some(isCarrierGear) || cHas.some(m => Object.keys(m).some(isCarrierGear)), '11: after a restart C\'s salvage of carrier gear is in its holds / storage', taken);
-  // ── 12. the record is still in the battle log and replays from a fresh join (bjoin of a finished battle)
-  const rb = await B.join(eng);
-  check(rb.replay === true && rb.setup.rules === 3, '12: B re-opens the finished battle as a replay (rules 3)');
   await srv.stop();
   writeFileSync(path.join(dir, 'result.json'), JSON.stringify({ checks, facts }, null, 1));
   console.log(`\nALL ${checks.length} CHECKS PASSED — ${dir}`);
