@@ -10,6 +10,7 @@ on:
       - 'src/ui/**'
       - 'src/main.ts'
       - 'tests/p16-*.test.ts'
+      - 'scripts/p16/**'
       - '.github/workflows/p16-verify.yml'
   workflow_dispatch:
 
