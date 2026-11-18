@@ -15,6 +15,7 @@
 //   SESSION_TTL_HOURS  idle lifetime of a sign-in session (default 336 = 14 days, renewed while used)
 // Accounts (login ID + password, see accounts.ts) live in siderarium_accounts / siderarium_sessions
 // (or data/accounts.json without a database). The WebSocket only opens for a valid session cookie.
+import { DEV_CARRIER_RELEASE } from '../content/carrierRelease';
 import http from 'node:http';
 import { monitorEventLoopDelay } from 'node:perf_hooks';
 import fs from 'node:fs';
@@ -32,6 +33,16 @@ import { AuthService, AuthError, memoryStore, pgAccountStore, type AccountStore 
 import { DevCombatAuth } from './devCombatAuth';
 import { ConnGuard, limitsFromEnv, parseClientMsg } from './wsguard';
 import { Saver, pickAnalytics, type AnalyticsRecord } from './saver';
+
+// P16.6: development-only carrier rollout must never attach to an existing remote/production database.
+// Use a disposable local PostgreSQL instance or file storage for release rehearsal.
+if (DEV_CARRIER_RELEASE && process.env.DATABASE_URL) {
+  let local = false;
+  try { local = ['localhost', '127.0.0.1', '::1'].includes(new URL(process.env.DATABASE_URL).hostname); } catch { /* invalid URL is unsafe */ }
+  if (!local || process.env.P16_DEV_TEMP_DB !== '1') throw new Error('P16 개발 항모 공개는 임시 로컬 DB에서만 허용합니다 (P16_DEV_TEMP_DB=1)');
+}
+if (process.env.CARRIERS_P16_MIGRATE === '1' && !DEV_CARRIER_RELEASE)
+  throw new Error('P16 항모 시장 이전은 개발 공개 모드에서만 허용합니다 — 운영 마이그레이션 미승인');
 
 const PORT = Number(process.env.PORT ?? 8080);
 const ROOT = path.resolve(process.env.STATIC_DIR ?? 'dist');
