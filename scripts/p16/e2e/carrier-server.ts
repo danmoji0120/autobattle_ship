@@ -200,13 +200,20 @@ try {
   check(await C.command({ c: 'setOp', group: cg.id, op: { k: 'salvzone', at: cw.pos, radius: 3000 } }) === null, '11: C sends its salvage group on a zone salvage over the carrier wreck');
   await srv.stop();
   const isCarrierGear = (k: string) => k.startsWith('eq_wing_') || ['cpu_carrier', 'air_maint', 'air_hangar_ext', 'air_control'].includes(k);
-  check(offline(10, sim => Object.keys(sim.st.wrecks?.[cw.id]?.taken?.[C.id] ?? {}).some(isCarrierGear) || !sim.st.wrecks?.[cw.id], 'salvage'), '11: C recovered carrier gear from the wreck');
+  /** carrier gear C holds: ship holds + station storage (its own view of the world) */
+  const cGear = (w: any) => { const out: Record<string, number> = {};
+    for (const m of [...Object.values<any>(w.ships).filter(x => x.owner === C.id).map(x => x.cargo ?? {}), ...Object.values<any>(w.stations).map(st => st.storage?.[C.id] ?? {})])
+      for (const [k, n] of Object.entries<number>(m)) if (isCarrierGear(k) && n > 0) out[k] = (out[k] ?? 0) + n;
+    return out; };
+  const gear0 = cGear(JSON.parse(readFileSync(save, 'utf8')).world);
+  check(offline(10, sim => Object.keys(sim.st.wrecks?.[cw.id]?.taken?.[C.id] ?? {}).some(isCarrierGear), 'salvage'), '11: C recovered carrier gear from the wreck (wreck ledger)');
+  const gear1 = cGear(JSON.parse(readFileSync(save, 'utf8')).world);
+  facts.cGear = { before: gear0, after: gear1 };
+  check(Object.entries(gear1).some(([k, n]) => n > (gear0[k] ?? 0)), '11: the recovered carrier gear is in C\'s holds / storage', facts.cGear);
   await srv.start(); await connectAll();
   s = C.snap();
-  const taken = s.wrecks?.[cw.id]?.taken?.[C.id] ?? {};
-  facts.cTaken = taken;
-  const cHas = Object.values<any>(s.ships).filter(x => x.owner === C.id).map(x => x.salvaged ?? {}).concat(Object.values<any>(s.stations).map(st => st.storage?.[C.id] ?? {}));
-  check(Object.keys(taken).some(isCarrierGear) || cHas.some(m => Object.keys(m).some(isCarrierGear)), '11: after a restart C\'s salvage of carrier gear is in its holds / storage', taken);
+  facts.cGearAfterRestart = cGear(s);
+  check(JSON.stringify(facts.cGearAfterRestart) === JSON.stringify(gear1), '11: after a restart C\'s view shows the same salvaged carrier gear', facts.cGearAfterRestart);
   await srv.stop();
   writeFileSync(path.join(dir, 'result.json'), JSON.stringify({ checks, facts }, null, 1));
   console.log(`\nALL ${checks.length} CHECKS PASSED — ${dir}`);
