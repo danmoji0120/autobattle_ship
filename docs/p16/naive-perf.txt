@@ -1,0 +1,7 @@
+# P16.0 측정: 소형함(초계함 강습형, 기관포 4 + PD 1)을 '전투기 = 일반 함선'의 대역으로 넣은 전투
+# 양측 전함 4 + 구축함 8 + 소형함 n/2, rules 2, 시드 5, 1200틱(40초), 이 컨테이너 1회 실행
+{"smallCraft":0,"ships":24,"steps":1200,"meanMs":0.29,"p95Ms":0.74,"maxMs":4.2,"budget30Hz":"1%","peakMunitions":105}
+{"smallCraft":100,"ships":124,"steps":1200,"meanMs":1.37,"p95Ms":2.71,"maxMs":5.7,"budget30Hz":"4%","peakMunitions":2010}
+{"smallCraft":200,"ships":224,"steps":1200,"meanMs":3.14,"p95Ms":7.22,"maxMs":12,"budget30Hz":"9%","peakMunitions":4121}
+{"smallCraft":400,"ships":424,"steps":1200,"meanMs":10.38,"p95Ms":21.57,"maxMs":41.1,"budget30Hz":"31%","peakMunitions":5609}
+# 전략층: 표준 월드(시드 7, 플레이어 1, 60초 진행) WShip 91척, 평균 458 B/척(최대 579 B), 월드 JSON 238,598 B 중 함선 17.5%
