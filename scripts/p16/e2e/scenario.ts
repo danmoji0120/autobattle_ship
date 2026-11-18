@@ -26,7 +26,7 @@ export const GOODS: Record<string, number> = {
   machinery: 300, armor_plate: 200, engine: 30, reactor: 20, weapon_parts: 120, crystal: 40, alloy: 400,
 };
 export const MODULES = ['power', 'power', 'power', 'power', 'power', 'power', 'power', 'power', 'warehouse', 'warehouse', 'warehouse', 'dock',
-  'yard_l', 'electronics_fab', 'weapons_factory', 'machine_shop',
+  'yard_l', 'hull_works', 'armor_plant', 'hangar', 'electronics_fab', 'weapons_factory', 'machine_shop',
   'lab_basic', 'lab_materials', 'design_bureau', 'lab_tactics', 'lab_ballistics', 'lab_electronics', 'lab_power'];
 
 function freeSpot(sim: WorldSim, near: V, r0: number): V {
