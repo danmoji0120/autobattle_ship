@@ -159,11 +159,16 @@ try {
   check(bi2.setup.rules === 3 && bi2.orders.length >= saved.orders.length, '7: after the restart the battle continues (same setup, orders kept)', { tick: bi2.tick });
   // 8. spectating: C (not a party) joins and its lockstep copy matches the server's ships
   const ci = await C.join(eng);
-  { const wc = new World(structuredClone(ci.setup)); wc.scheduleReplay(structuredClone(ci.orders)); while (wc.tick < ci.tick && !wc.outcome) wc.step();
-    const snap = C.snap(); const diffs: number[] = [];
-    for (const ts of wc.ships) { if (!ts.ref || ts.ref.includes(':')) continue; const ws = snap.ships[ts.ref]; if (!ws) continue; diffs.push(Math.abs((ts.state === 'alive' ? ts.hp / ts.maxHp : 0) - ws.hp)); }
-    facts.spectateMaxHpDiff = Math.max(...diffs);
-    check(diffs.length > 3 && Math.max(...diffs) < 0.08, '8: spectator C\'s lockstep re-simulation at the join tick matches the server\'s ship hp (snapshot)', { ships: diffs.length, maxDiff: facts.spectateMaxHpDiff }); }
+  { const sim = (b: any, T: number) => { const x = new World(structuredClone(b.setup)); x.scheduleReplay(structuredClone(b.orders)); while (x.tick < T && !x.outcome) x.step(); return x; };
+    // C is not a party: its strategic snapshot does not show the battle's ships (fog), so compare its lockstep copy
+    // (a) with party A's lockstep copy at the same tick (same digest) and (b) with A's snapshot ship hp
+    const sa = await A.fresh();
+    const wc = sim(ci, ci.tick), wa = sim(A.binits.get(eng)!, ci.tick);
+    check(wc.digest() === wa.digest(), '8: spectator C and party A re-simulate the live battle to the same state at the same tick', { tick: ci.tick });
+    const diffs: number[] = [];
+    for (const ts of wc.ships) { if (!ts.ref || ts.ref.includes(':')) continue; const ws = sa.ships[ts.ref]; if (!ws) continue; diffs.push(Math.abs((ts.state === 'alive' ? ts.hp / ts.maxHp : 0) - ws.hp)); }
+    facts.spectate = { ships: diffs.length, maxHpDiff: Math.max(...diffs) };
+    check(diffs.length > 3 && Math.max(...diffs) < 0.08, '8: C\'s lockstep copy matches the server\'s ship hp at the join (A\'s snapshot)', facts.spectate); }
   // 9. run the battle out: carrier sunk
   const end = await until(() => { const r = (A.snap().battleLog ?? []).find((x: any) => x.id === eng); return r; }, 'battle did not end', 1500000);
   s = A.snap();
