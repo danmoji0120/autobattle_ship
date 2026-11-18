@@ -31,7 +31,7 @@ import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from
 import { migrateEconChain, enableEconChainNew, type EconMigrationReport } from './econMigrate';
 import { fitServiceUnit, type EqPolicy } from './econChain';
 import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, cpuOfFitting, type ShipFitting } from './fitting';
-import { CONTENT, legacyOf, contentAvail, gearReleased } from '../content/registry';
+import { CONTENT, legacyOf, contentAvail, gearReleased, hullReleased } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
 import { stepProduction, storageCap, stationPower, stationSupportOnline, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, facilityTech, techUnlocks, techFx, fitFx, growthFx, airFx, loadoutEquipment, recipeFor, itemPrice as itemPriceOf } from './industry';
@@ -1865,7 +1865,7 @@ export class WorldSim {
   private hullChoice(cmd: { classId: string; loadoutId: string; hull?: string; variant?: string; preset?: string }): { hull: string; variant: string; preset?: string } | string {
     if (cmd.hull !== undefined && (typeof cmd.hull !== 'string' || !Object.hasOwn(CONTENT.hulls, cmd.hull))) return '알 수 없는 선체';
     if (cmd.hull && CONTENT.hulls[cmd.hull].dev) return '개발용 선체 — 구매·건조할 수 없음';
-    if (cmd.hull && CONTENT.hulls[cmd.hull].preview) return `${CONTENT.hulls[cmd.hull].name}: 아직 공개되지 않은 선체 — 구매·건조할 수 없음`;
+    if (cmd.hull && CONTENT.hulls[cmd.hull].preview && !hullReleased(cmd.hull)) return `${CONTENT.hulls[cmd.hull].name}: 아직 공개되지 않은 선체 — 구매·건조할 수 없음`;
     if (cmd.classId === BBEX_CLASS || (cmd.hull && CONTENT.hulls[cmd.hull].exclusive)) return 'BB-EX는 건조하거나 구매할 수 없습니다 (세계 유일 · 설계도 없음)';
     if (cmd.preset !== undefined && (typeof cmd.preset !== 'string' || !Object.hasOwn(CONTENT.presets, cmd.preset))) return '알 수 없는 무장 프리셋';
     if (cmd.variant !== undefined && (typeof cmd.variant !== 'string' || !Object.hasOwn(CONTENT.variants, cmd.variant))) return '알 수 없는 선체 변형';
