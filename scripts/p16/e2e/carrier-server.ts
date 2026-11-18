@@ -19,6 +19,7 @@ import { WorldSim } from '../../../src/world/sim';
 import { World } from '../../../src/sim/world';
 import { RECIPES } from '../../../src/world/industry';
 import { CARRIER_HULL, DAWN_STD_WEAPONS } from '../../../src/content/packs/growth/carrier';
+import { browserSpectate } from './browser-spectate';
 import { Server, Pilot, freePort, until, delay } from './harness';
 import { DEV_CARRIER_RELEASE } from '../../../src/content/carrierRelease';
 import { BATTLE_RULES } from '../../../src/sim/world';
@@ -149,10 +150,19 @@ try {
   // craft: launch, recover, re-sortie (local lockstep re-simulation of what the server streams)
   const airAt = async (sec: number) => { await delay(sec * 1000); const b = A.binits.get(eng)!; const w = local(); const T = b.tick + Math.floor((Date.now() - b.t0) / 1000 * 30); while (w.tick < T && !w.outcome) w.step(); return w; };
   A.binits.get(eng)!.t0 = Date.now();
+  // a real browser opens the same battle while the craft fly (the battle is short: do it now, in parallel)
+  const browserP = browserSpectate(srv, C, A, eng, path.join(dir, 'browser-spectate.png'));
   let w = await airAt(40);
   const sq = () => (w.craft?.squads ?? []).map(q => ({ role: q.cs.role, n: q.cs.n, ...q.stats }));
   facts.air40 = sq();
   check(w.craft && sq().reduce((a, q) => a + q.launched, 0) > 0, '6: strike craft launched in the live battle', facts.air40);
+  // 8b. a real browser (shipped client, signed in as C) spectated the live battle during step 6
+  { const r = await browserP;
+    facts.browser = { lag: r.lag, tick: r.browser.tick, rules: r.browser.rules, same: r.same, errors: r.errors.slice(0, 5) };
+    check(r.browser.rules === 3 && r.browser.craft, '8: browser spectator (C) opened the live world battle under rules 3 with the craft pool', facts.browser);
+    check(r.same, '8: browser battle state = lockstep re-simulation of the server stream at the same tick (digest)', { tick: r.browser.tick });
+    check(r.lag.length >= 4 && r.lag.every(x => Math.abs(x) <= 90), '8: browser battle tick stays within 3 s of the server engagement tick (snapshot cadence included)', r.lag);
+    check(r.errors.length === 0, '8: no page errors in the browser', r.errors); }
   // 7. restart during the battle
   await srv.stop();
   const saved = JSON.parse(readFileSync(save, 'utf8')).world.engagements?.[eng];
