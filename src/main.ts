@@ -6,7 +6,7 @@ import '@fontsource/rajdhani/700.css';
 import './ui/style.css';
 import { BattleSession } from './game/session';
 import { BattleHUD } from './ui/battleHud';
-import { SetupScreen, loadFleet, loadScenarioId } from './ui/setup';
+import { SetupScreen, loadFleet, loadScenarioId, skirmishRules } from './ui/setup';
 import { getScenario } from './sim/data/scenarios';
 import { BATTLE_RULES, type BattleSetup } from './sim/world';
 import type { OrderRecord } from './sim/types';
@@ -46,7 +46,7 @@ function showSetup() {
   getCanvas().style.visibility = 'hidden';
   setup = new SetupScreen(app, r => {
     setup?.dispose(); setup = null;
-    startBattle({ seed: (Date.now() & 0x7fffffff) >>> 0, scenarioId: r.scenarioId, fleets: [r.fleet, getScenario(r.scenarioId).enemy], rules: BATTLE_RULES });
+    startBattle({ seed: (Date.now() & 0x7fffffff) >>> 0, scenarioId: r.scenarioId, fleets: [r.fleet, getScenario(r.scenarioId).enemy], rules: r.rules });
   }, () => showMainMenu());
 }
 
@@ -101,8 +101,8 @@ else if (params.has('bbex') && import.meta.env.DEV) {
     startBattle(t ? m.trialSetup(t, seed) : m.angelDescentSetup(seed, { n: Number(params.get('n') ?? 200), ...(params.has('arrive') ? { arrive: Number(params.get('arrive')) } : {}) }));
   });
 } else if (params.has('auto')) {
-  const scen = params.get('scenario') ?? loadScenarioId();
-  startBattle({ seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [loadFleet(), getScenario(scen).enemy], rules: Number(params.get('rules') ?? BATTLE_RULES) });
+  const scen = params.get('scenario') ?? loadScenarioId(), fleet = loadFleet();
+  startBattle({ seed: Number(params.get('seed') ?? 1), scenarioId: scen, fleets: [fleet, getScenario(scen).enemy], rules: Number(params.get('rules') ?? skirmishRules(fleet)) });
 } else if (params.has('skirmish')) showSetup();
 else if (params.has('sp')) campaign = startCampaign(params.get('sp') === 'new' ? 'sp-new' : 'sp-continue', params.get('name') ?? '테스트 PMC', app, () => showMainMenu());
 else showMainMenu();

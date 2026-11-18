@@ -1,17 +1,20 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { SHIP_CLASSES, shipCost, getLoadout } from '../sim/data/ships';
+import { SHIP_CLASSES, CARRIER_CLASS, shipCost, getLoadout } from '../sim/data/ships';
+import { BATTLE_RULES } from '../sim/world';
 import { WEAPONS, isShipGun } from '../sim/data/weapons';
 import { COMMANDERS, SPECIALTY_TEXT, getCommander } from '../sim/data/commanders';
 import { SCENARIOS, getScenario } from '../sim/data/scenarios';
 import { fleetCost, defaultPlayerFleet, walk, PLAYER_BUDGET, INITIAL_ORDER_TEXT, validateFleet, type FleetSpec, type GroupSpec, type InitialOrder } from '../sim/fleet';
 import { buildShip } from '../render/shipMesh';
 import { CPU_MODULES } from '../content/packs/growth/computers';
+import { CARRIER_MODULES } from '../content/packs/growth/carrier';
 import { CPU_NAME, CPU_TACTIC, CPU_BAND } from '../sim/ai/computer';
 
-/** P15.1: computer choices of the skirmish editor (none = built-in basic control) */
+/** Computer choices for skirmish, including the P16 carrier doctrine in rules-3 trials. */
+const cpuProducts = [...CPU_MODULES, ...CARRIER_MODULES.filter(m => !!m.cpu)];
 const cpuOptions = (cur?: string) => `<option value=""${cur ? '' : ' selected'}>기본 제어</option>` +
-  CPU_MODULES.map(m => `<option value="${m.id}"${m.id === cur ? ' selected' : ''} title="${esc(CPU_TACTIC[m.cpu!.arch])}">${esc(m.name)} · ${CPU_NAME[m.cpu!.arch]}/${CPU_BAND[m.cpu!.arch]}</option>`).join('');
+  cpuProducts.map(m => `<option value="${m.id}"${m.id === cur ? ' selected' : ''} title="${esc(CPU_TACTIC[m.cpu!.arch])}">${esc(m.name)} · ${CPU_NAME[m.cpu!.arch]}/${CPU_BAND[m.cpu!.arch]}</option>`).join('');
 
 const KEY = 'fleetcmd.fleet.v1';
 const SKEY = 'fleetcmd.scenario.v1';
@@ -27,7 +30,13 @@ export function loadFleet(): FleetSpec {
 export function saveFleet(f: FleetSpec) { try { localStorage.setItem(KEY, JSON.stringify(f)); } catch { /* ignore */ } }
 export function loadScenarioId(): string { try { return localStorage.getItem(SKEY) ?? 'kestrel'; } catch { return 'kestrel'; } }
 
-export interface SetupResult { fleet: FleetSpec; scenarioId: string }
+/** Skirmishes involving an H weapon are explicitly rules 3; other skirmishes retain the default. */
+export function skirmishRules(f: FleetSpec): number {
+  let hasWing = false;
+  walk(f.root, g => { for (const s of g.ships) if (SHIP_CLASSES[s.classId] && getLoadout(s.classId, s.loadoutId).mounts.some(m => WEAPONS[m.weapon]?.kind === 'craft')) hasWing = true; });
+  return hasWing ? 3 : BATTLE_RULES;
+}
+export interface SetupResult { fleet: FleetSpec; scenarioId: string; rules: number }
 
 export class SetupScreen {
   private root: HTMLElement;
@@ -71,7 +80,7 @@ export class SetupScreen {
         <div class="panel">
           <div class="ptitle"><span>함선 카탈로그</span><span>선택 부대에 추가</span></div>
           <canvas id="preview"></canvas>
-          <div class="scroll">${Object.values(SHIP_CLASSES).map(c => this.catalogEntry(c.id)).join('')}</div>
+          <div class="scroll">${[...Object.values(SHIP_CLASSES), CARRIER_CLASS].map(c => this.catalogEntry(c.id)).join('')}</div>
         </div>
         <div class="panel">
           <div class="ptitle"><span>지휘 계통 — ${esc(f.name)}</span><span>부대를 선택하고 함선·지휘관을 배치</span></div>
@@ -110,7 +119,7 @@ export class SetupScreen {
     const fire = lo.mounts.reduce((a, m) => { const w = WEAPONS[m.weapon]; return a + (isShipGun(w) ? w.damage * w.salvo / w.reload : 0); }, 0);   // P16: craft are not gun firepower
     const pd = lo.mounts.filter(m => WEAPONS[m.weapon].kind === 'pd').length;
     return `<div class="cat${on ? ' on' : ''}" data-cat="${id}">
-      <div class="nm">${c.name} ${c.type}<span>${shipCost(id, lo.id)}</span></div>
+      <div class="nm">${c.name} ${c.type}${id === 'carrier' ? ' <small title="시험용 함급·규칙 3">실험</small>' : ''}<span>${shipCost(id, lo.id)}</span></div>
       <div class="ty">${roleText(c.role)} · 길이 ${c.length}m급</div>
       ${on ? `<div class="stats">
         <span>내구</span><div class="bar"><i style="width:${c.hp / 14000 * 100}%"></i></div>
@@ -192,7 +201,7 @@ export class SetupScreen {
     r.querySelectorAll<HTMLSelectElement>('[data-slo]').forEach(e => e.onchange = () => { const [p, i] = e.dataset.slo!.split(':'); find(p).ships[Number(i)].loadoutId = e.value; this.commit(); });
     r.querySelectorAll<HTMLSelectElement>('[data-scpu]').forEach(e => e.onchange = () => {
       const [p, i] = e.dataset.scpu!.split(':'); const ship = find(p).ships[Number(i)];
-      const m = CPU_MODULES.find(x => x.id === e.value);
+      const m = cpuProducts.find(x => x.id === e.value);
       if (m?.cpu) ship.cpu = { id: m.id, arch: m.cpu.arch, ...(m.cpu.react !== undefined ? { react: m.cpu.react } : {}) }; else delete ship.cpu;
       this.commit();
     });
@@ -210,7 +219,7 @@ export class SetupScreen {
     });
     const back = r.querySelector('#back') as HTMLButtonElement | null; if (back) back.onclick = () => this.onBack?.();
     (r.querySelector('#reset') as HTMLButtonElement).onclick = () => { this.fleet = defaultPlayerFleet(); this.sel = this.fleet.root; this.commit(); };
-    (r.querySelector('#go') as HTMLButtonElement).onclick = () => { saveFleet(this.fleet); this.onStart({ fleet: JSON.parse(JSON.stringify(this.fleet)), scenarioId: this.scenarioId }); };
+    (r.querySelector('#go') as HTMLButtonElement).onclick = () => { saveFleet(this.fleet); this.onStart({ fleet: JSON.parse(JSON.stringify(this.fleet)), scenarioId: this.scenarioId, rules: skirmishRules(this.fleet) }); };
   }
 
   private setupPreview(): void {

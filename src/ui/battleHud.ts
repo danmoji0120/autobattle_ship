@@ -653,7 +653,22 @@ export class BattleHUD {
     if (o.type === 'flank') doing += ` ${o.side > 0 ? '좌측' : '우측'} — ${{ transit: '우회 기동 중', staging: '돌입 신호 대기', strike: '측면 돌입!', none: '준비' }[g.ai.phase]}`;
     if (o.type === 'escort') doing += ` — ${w.groupById.get(o.guardGroup)?.name ?? ''}`;
     if (g.ai.kiting) doing += ' (거리 유지 후퇴 사격)';
-    st.innerHTML = `<span>함선 <b>${ships.length}</b> · 전력 <b>${Math.round(w.groupHpFrac(g) * 100)}%</b> · 격침 <b>${g.stats.kills}</b></span><span>${esc(doing)}${T && o.type !== 'retreat' ? ` → <b style="color:#ff9a8a">${esc(T.name)}</b>` : ''}</span>`;
+    const pool = w.craft;
+    const carriers = pool?.wings.filter(wing => ships.includes(wing.ship)) ?? [];
+    let airLine = '';
+    if (pool && carriers.length) {
+      let launched = 0, capacity = 0, spares = 0, controlled = 0, squads = 0, cap = 0;
+      for (const wing of carriers) {
+        controlled += Math.min(wing.control, wing.squads.length);
+        for (const sq of wing.squads) {
+          squads++; capacity += sq.cs.n; spares += sq.spares;
+          if (sq.task === 0) cap++;
+          for (let i = sq.first; i < sq.first + sq.cs.n; i++) if (pool.st[i] === 2) launched++;
+        }
+      }
+      airLine = ` · 항공 <b>${launched}/${capacity}</b> · 예비 <b>${spares}</b> · 관제 <b>${controlled}/${squads}</b> · CAP <b>${cap}</b>`;
+    }
+    st.innerHTML = `<span>함선 <b>${ships.length}</b> · 전력 <b>${Math.round(w.groupHpFrac(g) * 100)}%</b> · 격침 <b>${g.stats.kills}</b>${airLine}</span><span>${esc(doing)}${T && o.type !== 'retreat' ? ` → <b style="color:#ff9a8a">${esc(T.name)}</b>` : ''}</span>`;
     hint.textContent = g.playerOverride && g.parentId !== null && this.P.mine(g.team) && !g.ai.routed ? '⚑ 직접 지휘 중 — 상위 지휘관의 명령을 받지 않습니다' : g.childIds.length ? '하위 부대들은 이 지휘관의 판단에 따라 역할을 나눠 맡습니다' : '';
   }
 

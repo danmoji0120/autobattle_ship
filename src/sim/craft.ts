@@ -503,6 +503,12 @@ export class CraftPool {
   }
 
   // ------------------------------------------------------------ weapons
+  /** Sparse tracer event for visuals only: no RNG, no damage, deterministic sampling of actual hits. */
+  private tracer(i: number, sq: Squad, x: number, y: number, z: number) {
+    if ((this.w.tick + i) % 6 !== 0) return;
+    this.w.events.push({ t: 'craftShot', role: sq.cs.role, team: sq.team,
+      from: new Vec3(this.px[i], this.py[i], this.pz[i]), to: new Vec3(x, y, z) });
+  }
   /** instant gun hit on a ship: through the ordinary hit rules (armour facing, penetration, structure, crits) */
   private gunShip(i: number, sq: Squad, t: Ship, d: number, ex: number, ey: number, ez: number) {
     const w = this.w, g = sq.gun!;
@@ -510,6 +516,7 @@ export class CraftPool {
     const size = t.role === 'raider' ? 0.6 : t.role === 'escort' ? 0.85 : 1;
     const p = Math.max(0.15, 0.9 - 0.45 * d / g.range) * size * (1 - Math.min(0.5, t.evasion ?? 0));
     if (!w.rng.chance(p)) return;
+    this.tracer(i, sq, t.pos.x, t.pos.y, t.pos.z);
     const dir = tv2.set(ex / d, ey / d, ez / d);
     w.applyHit(t, g, sq.ship.id, tv3.set(t.pos.x - dir.x * t.radius, t.pos.y - dir.y * t.radius, t.pos.z - dir.z * t.radius), dir, 'craft');
   }
@@ -519,6 +526,7 @@ export class CraftPool {
     this.cool[i] = g.reload;
     const p = 0.55 * (1 - 0.5 * d / g.range) / (1 + o.cs.agility * 0.3);
     if (!w.rng.chance(p)) return;
+    this.tracer(i, sq, this.px[j], this.py[j], this.pz[j]);
     this.hp[j] -= g.damage;
     if (this.hp[j] <= 0) this.down(j, sq.ship.id);
   }
@@ -528,6 +536,7 @@ export class CraftPool {
     this.cool[i] = g.reload;
     const mu = w.munitionById.get(id)!;
     if (!w.rng.chance(0.5 * (1 - 0.5 * d / g.range))) return;
+    this.tracer(i, sq, mu.pos.x, mu.pos.y, mu.pos.z);
     mu.hp--;
     if (mu.hp <= 0 && !mu.dead) {
       mu.dead = true;

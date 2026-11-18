@@ -13,6 +13,7 @@ import { buildShip, wreckMaterial, engineColor, type ShipModel } from './shipMes
 import { Environment, type Backdrop } from './environment';
 import { CameraRig, type FollowTarget, type ShotRequest, type ShakeKind } from './camera';
 import { BbexFx, type FxHost } from './bbex/fx';
+import { CraftMeshes } from './craftMeshes';
 
 export interface AudioSink { play(name: string, pos: THREE.Vector3 | null, vol?: number, rate?: number): void }
 
@@ -53,6 +54,9 @@ export class BattleView implements FxHost {
   readonly flashes = new FlashLights(10);
   readonly debris = new Debris(700);
   views = new Map<number, ShipView>();
+  readonly craftMeshes = new CraftMeshes(this.scene);
+  /** CPU time to submit craft instance matrices, measured on the current browser. */
+  craftUpdateMs = 0;
   private wrecks: Wreck[] = [];
   private trailRecs = new Map<number, TrailRec>();
   private beams: { a: THREE.Vector3; b: THREE.Vector3; life: number; max: number; w: number; c: THREE.Color }[] = [];
@@ -108,6 +112,13 @@ export class BattleView implements FxHost {
   }
   private addShipView(s: Ship) {
     const model = buildShip(s.cls, s.loadout, this.friendly(s.team) ? 0 : 1);
+    if (s.cls.id === 'carrier') {
+      // A broad landing deck keeps the temporary carrier silhouette distinct from battlecruisers.
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(s.radius * 1.65, 1.4, s.cls.length * 0.75),
+        new THREE.MeshStandardMaterial({ color: 0x35475b, metalness: 0.68, roughness: 0.42 }));
+      deck.position.y = s.radius * 0.45;
+      model.bank.add(deck);
+    }
     this.scene.add(model.root);
     const dp: THREE.Vector3[] = [];
     for (let i = 0; i < 4; i++) dp.push(new THREE.Vector3((Math.random() - 0.5) * s.radius * 1.4, Math.random() * s.radius * 0.6, (Math.random() - 0.5) * s.cls.length * 0.8));
@@ -138,6 +149,7 @@ export class BattleView implements FxHost {
   shake(p: THREE.Vector3, amount: number, range = 1200) { this.shakeNear(p, amount, range, 'special'); }
 
   dispose() {
+    this.craftMeshes.dispose();
     this.ex?.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
@@ -172,6 +184,18 @@ export class BattleView implements FxHost {
           if (Math.random() < 0.08) this.audio?.play('pd', from, 0.35);
           break;
         }
+        case 'craftLaunch': {
+          const p = V(e.pos);
+          this.glow.emit(p, { life: 0.22, size: 4, size1: 2, color: 0x8ecfff, alpha: 0.7 });
+          break;
+        }
+        case 'craftShot': {
+          const col = e.role === 'interceptor' ? 0x9cffd5 : e.role === 'bomber' ? 0xffd68e : 0x99dfff;
+          this.beams.push({ a: V(e.from), b: V(e.to), life: 0.055, max: 0.055, w: 0.24, c: C(this.friendly(e.team) ? col : 0xff896b) });
+          break;
+        }
+        case 'craftDown': this.burst(V(e.pos), 4, 0xffbb77, 0x653010, 3, 10); break;
+        case 'craftLeave': break;
         case 'hit': if (!(this.ex && this.ex.onHit(e))) this.onHit(e); break;
         case 'intercept': {
           const p = V(e.pos);
@@ -532,6 +556,10 @@ export class BattleView implements FxHost {
       }
       if (wk.life <= 0) { this.scene.remove(wk.obj); this.wrecks.splice(i, 1); }
     }
+    // Render the real in-flight positions; three instanced draws even at 800+ craft.
+    const craftStart = performance.now();
+    this.craftMeshes.sync(w.craft, team => this.friendly(team));
+    this.craftUpdateMs = performance.now() - craftStart;
     // munitions → trails
     this.trails.begin(cam);
     for (const m of w.munitions) {

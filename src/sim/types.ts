@@ -213,6 +213,7 @@ export type SimEvent =
   | { t: 'rel'; a: number; b: number; v: Relation }
   | { t: 'sideOut'; side: number; status: SideStatus }
   // P16 strike craft (rules ≥ 3, sim/craft.ts)
+  | { t: 'craftShot'; role: 'fighter' | 'bomber' | 'interceptor'; team: number; from: Vec3; to: Vec3 }
   | { t: 'craftLaunch'; ship: number; mount: number; pos: Vec3 }
   | { t: 'craftDown'; team: number; pos: Vec3; by: number }
   | { t: 'craftLeave'; ship: number; pos: Vec3 }
