@@ -7,11 +7,49 @@ import { SCENARIOS, getScenario } from '../sim/data/scenarios';
 import { fleetCost, defaultPlayerFleet, walk, PLAYER_BUDGET, INITIAL_ORDER_TEXT, validateFleet, type FleetSpec, type GroupSpec, type InitialOrder } from '../sim/fleet';
 import { buildShip } from '../render/shipMesh';
 import { CPU_MODULES } from '../content/packs/growth/computers';
+import { CARRIER_MODULES } from '../content/packs/growth/carrier';
+import { BATTLE_RULES } from '../sim/world';
+import { isCraft, craftSummary } from '../sim/data/weapons';
+import { BASE_CONTROL } from '../sim/craft';
+import type { AirFx } from '../sim/fleet';
 import { CPU_NAME, CPU_TACTIC, CPU_BAND } from '../sim/ai/computer';
 
-/** P15.1: computer choices of the skirmish editor (none = built-in basic control) */
-const cpuOptions = (cur?: string) => `<option value=""${cur ? '' : ' selected'}>기본 제어</option>` +
-  CPU_MODULES.map(m => `<option value="${m.id}"${m.id === cur ? ' selected' : ''} title="${esc(CPU_TACTIC[m.cpu!.arch])}">${esc(m.name)} · ${CPU_NAME[m.cpu!.arch]}/${CPU_BAND[m.cpu!.arch]}</option>`).join('');
+/** P15.1: computer choices of the skirmish editor (none = built-in basic control); P16.4: + the carrier computer on carriers */
+const cpuOptions = (cur?: string, carrier = false) => `<option value=""${cur ? '' : ' selected'}>기본 제어</option>` +
+  [...CPU_MODULES, ...(carrier ? CARRIER_MODULES.filter(m => m.cpu) : [])].map(m => `<option value="${m.id}"${m.id === cur ? ' selected' : ''} title="${esc(CPU_TACTIC[m.cpu!.arch])}">${esc(m.name)} · ${CPU_NAME[m.cpu!.arch]}/${CPU_BAND[m.cpu!.arch]}</option>`).join('');
+
+/** P16.4: rules-3 trial (carriers and strike craft) — skirmish only, separate from world content release */
+const R3KEY = 'fleetcmd.rules3.v1';
+export function loadRules3(): boolean { try { return localStorage.getItem(R3KEY) === '1'; } catch { return false; } }
+const AIR_MODS = CARRIER_MODULES.filter(m => m.air);
+/** aviation fits offered for a carrier's three flight bays (a few useful combinations, not a full fitting screen) */
+const AIR_FITS: { id: string; name: string; mods: string[] }[] = [
+  { id: '', name: '항공 장비 없음', mods: [] },
+  { id: 'ctl', name: '관제 장치', mods: ['air_control'] },
+  { id: 'ctl2', name: '관제 장치 ×2', mods: ['air_control', 'air_control'] },
+  { id: 'mix', name: '관제·격납고 확장·정비', mods: ['air_control', 'air_hangar_ext', 'air_maint'] },
+  { id: 'ext', name: '격납고 확장 ×3', mods: ['air_hangar_ext', 'air_hangar_ext', 'air_hangar_ext'] },
+];
+function airOf(mods: string[]): AirFx | undefined {
+  let out: AirFx | undefined;
+  for (const id of mods) {
+    const a = AIR_MODS.find(m => m.id === id)?.air; if (!a) continue;
+    out ??= {};
+    if (a.complement) out.complement = (out.complement ?? 0) + a.complement;
+    if (a.control) out.control = (out.control ?? 0) + a.control;
+    if (a.spares) out.spares = (out.spares ?? 1) * a.spares;
+    if (a.turnaround) out.turnaround = (out.turnaround ?? 1) * a.turnaround;
+  }
+  return out;
+}
+const airFitId = (a?: AirFx) => AIR_FITS.find(f => JSON.stringify(airOf(f.mods) ?? null) === JSON.stringify(a ?? null))?.id ?? '';
+const isCarrierClass = (id: string) => getLoadout(id, SHIP_CLASSES[id].loadouts[0].id).mounts.some(m => isCraft(WEAPONS[m.weapon]));
+/** squadrons / air-control limit for a carrier row: "비행대 4 · 관제 3" (the rest wait on CAP) */
+function wingLine(classId: string, loadoutId: string, air?: AirFx): string {
+  const sq = getLoadout(classId, loadoutId).mounts.filter(m => isCraft(WEAPONS[m.weapon])).length;
+  const ctl = BASE_CONTROL + Math.max(0, Math.round(air?.control ?? 0));
+  return `비행대 ${sq} · 관제 ${ctl}${sq > ctl ? ` (${sq - ctl}개 CAP 대기)` : ''}`;
+}
 
 const KEY = 'fleetcmd.fleet.v1';
 const SKEY = 'fleetcmd.scenario.v1';
@@ -27,12 +65,13 @@ export function loadFleet(): FleetSpec {
 export function saveFleet(f: FleetSpec) { try { localStorage.setItem(KEY, JSON.stringify(f)); } catch { /* ignore */ } }
 export function loadScenarioId(): string { try { return localStorage.getItem(SKEY) ?? 'kestrel'; } catch { return 'kestrel'; } }
 
-export interface SetupResult { fleet: FleetSpec; scenarioId: string }
+export interface SetupResult { fleet: FleetSpec; scenarioId: string; rules: number }
 
 export class SetupScreen {
   private root: HTMLElement;
   private fleet: FleetSpec;
   private scenarioId: string;
+  private rules3 = loadRules3();
   private sel: GroupSpec;
   private catSel = { classId: 'battleship', loadoutId: 'std' };
   private preview: { renderer: THREE.WebGLRenderer; scene: THREE.Scene; cam: THREE.PerspectiveCamera; model: THREE.Object3D | null; raf: number } | null = null;
@@ -61,6 +100,10 @@ export class SetupScreen {
     const used = new Map<string, string>();
     walk(f.root, g => { if (g.commanderId) used.set(g.commanderId, g.name); });
     const scroll = this.root.querySelector('#treeScroll')?.scrollTop ?? 0;
+    let carriers = 0; walk(f.root, g => { for (const s of g.ships) if (isCarrierClass(s.classId)) carriers++; });
+    const blocked = carriers > 0 && !this.rules3;
+    // the carrier class is non-enumerable (hidden from every class list); the rules-3 trial shows it here only
+    const classes = [...Object.values(SHIP_CLASSES).map(c => c.id), ...(this.rules3 ? ['carrier'] : [])];
     this.root.innerHTML = `
     <div id="setup">
       <div class="shead">
@@ -71,7 +114,7 @@ export class SetupScreen {
         <div class="panel">
           <div class="ptitle"><span>함선 카탈로그</span><span>선택 부대에 추가</span></div>
           <canvas id="preview"></canvas>
-          <div class="scroll">${Object.values(SHIP_CLASSES).map(c => this.catalogEntry(c.id)).join('')}</div>
+          <div class="scroll">${classes.map(id => this.catalogEntry(id)).join('')}</div>
         </div>
         <div class="panel">
           <div class="ptitle"><span>지휘 계통 — ${esc(f.name)}</span><span>부대를 선택하고 함선·지휘관을 배치</span></div>
@@ -93,8 +136,9 @@ export class SetupScreen {
         <div class="budget${cost > PLAYER_BUDGET ? ' over' : ''}">${cost} / ${PLAYER_BUDGET}<div style="font-size:10px;color:var(--dim);letter-spacing:.2em">함대 예산</div></div>
         <div class="brief"><b>${esc(sc.name)}</b> — ${esc(sc.brief)}<br><span style="color:var(--cyan)">전술 조언:</span> ${esc(sc.tip)}</div>
         ${this.onBack ? '<button class="btn" id="back">◂ 메인 메뉴</button>' : ''}
+        <label class="r3" title="전투 규칙 3(함재기)으로 시험한다. 일반 월드 콘텐츠와는 별개다."><input type="checkbox" id="r3"${this.rules3 ? ' checked' : ''}> 규칙 3 시험 · 항모</label>
         <button class="btn" id="reset">기본 편성 복원</button>
-        <button class="btn go" id="go" ${cost > PLAYER_BUDGET || countShips(f) === 0 ? 'disabled' : ''}>출격</button>
+        <button class="btn go" id="go" ${cost > PLAYER_BUDGET || countShips(f) === 0 || blocked ? 'disabled' : ''}${blocked ? ' title="항모는 규칙 3 시험에서만 출격할 수 있다"' : ''}>출격</button>
       </div>
     </div>`;
     const ts = this.root.querySelector('#treeScroll'); if (ts) ts.scrollTop = scroll;
@@ -109,6 +153,7 @@ export class SetupScreen {
     const arm = (c.armor.front + c.armor.side + c.armor.rear) / 3;
     const fire = lo.mounts.reduce((a, m) => { const w = WEAPONS[m.weapon]; return a + (isShipGun(w) ? w.damage * w.salvo / w.reload : 0); }, 0);   // P16: craft are not gun firepower
     const pd = lo.mounts.filter(m => WEAPONS[m.weapon].kind === 'pd').length;
+    const wings = lo.mounts.filter(m => isCraft(WEAPONS[m.weapon]));
     return `<div class="cat${on ? ' on' : ''}" data-cat="${id}">
       <div class="nm">${c.name} ${c.type}<span>${shipCost(id, lo.id)}</span></div>
       <div class="ty">${roleText(c.role)} · 길이 ${c.length}m급</div>
@@ -121,7 +166,8 @@ export class SetupScreen {
       </div>
       <div class="desc">${esc(c.desc)}</div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">${c.loadouts.map(l => `<button class="btn mini${l.id === lo.id ? ' on' : ''}" data-lo="${l.id}" title="${esc(l.desc)}" style="padding:3px 8px;font-size:11.5px">${esc(l.name)}</button>`).join('')}</div>
-      <div class="desc" style="color:var(--dim)">${esc(lo.desc)}<br>무장: ${weaponSummary(lo.mounts.map(m => m.weapon))}</div>
+      <div class="desc" style="color:var(--dim)">${esc(lo.desc)}<br>무장: ${weaponSummary(lo.mounts.filter(m => !isCraft(WEAPONS[m.weapon])).map(m => m.weapon))}</div>
+      ${wings.length ? `<div class="desc wingsum">${[...new Set(wings.map(m => m.weapon))].map(w => `${esc(WEAPONS[w].name)} ×${wings.filter(m => m.weapon === w).length} — ${esc(craftSummary(WEAPONS[w]))}`).join('<br>')}<br>${wingLine(id, lo.id)}</div>` : ''}
       <button class="btn" data-add="1" style="margin-top:8px;width:100%">+ ${esc(this.sel.name)}에 추가</button>` : ''}
     </div>`;
   }
@@ -145,9 +191,11 @@ export class SetupScreen {
       </div>
       ${g.ships.map((s, i) => {
         const c = SHIP_CLASSES[s.classId];
-        return `<div class="srow"><span>${c.name} ${c.type}<span class="cl">${esc(getLoadout(s.classId, s.loadoutId).name)}</span></span>
+        const cv = isCarrierClass(s.classId);
+        return `<div class="srow${cv ? ' cv' : ''}"><span>${c.name} ${c.type}<span class="cl">${esc(getLoadout(s.classId, s.loadoutId).name)}${cv ? ` · ${wingLine(s.classId, s.loadoutId, s.fx?.air)}` : ''}</span></span>
           <select data-slo="${id}:${i}">${c.loadouts.map(l => `<option value="${l.id}"${l.id === s.loadoutId ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select>
-          <select data-scpu="${id}:${i}" title="${esc(s.cpu ? CPU_TACTIC[s.cpu.arch] : CPU_TACTIC.basic)}">${cpuOptions(s.cpu?.id)}</select>
+          <select data-scpu="${id}:${i}" title="${esc(s.cpu ? CPU_TACTIC[s.cpu.arch] : CPU_TACTIC.basic)}">${cpuOptions(s.cpu?.id, cv)}</select>
+          ${cv ? `<select data-sair="${id}:${i}" title="항공 장비 베이 3">${AIR_FITS.map(a => `<option value="${a.id}"${a.id === airFitId(s.fx?.air) ? ' selected' : ''}>${esc(a.name)}</option>`).join('')}</select>` : ''}
           <select data-smv="${id}:${i}"><option value="">이동…</option>${allGroups(this.fleet.root).filter(x => x !== g).map(x => `<option value="${pathOf(this.fleet.root, x)}">${esc(x.name)}</option>`).join('')}</select>
           <span class="x" data-sdel="${id}:${i}" title="제거">✕</span></div>`;
       }).join('')}
@@ -192,10 +240,22 @@ export class SetupScreen {
     r.querySelectorAll<HTMLSelectElement>('[data-slo]').forEach(e => e.onchange = () => { const [p, i] = e.dataset.slo!.split(':'); find(p).ships[Number(i)].loadoutId = e.value; this.commit(); });
     r.querySelectorAll<HTMLSelectElement>('[data-scpu]').forEach(e => e.onchange = () => {
       const [p, i] = e.dataset.scpu!.split(':'); const ship = find(p).ships[Number(i)];
-      const m = CPU_MODULES.find(x => x.id === e.value);
+      const m = [...CPU_MODULES, ...CARRIER_MODULES].find(x => x.id === e.value);
       if (m?.cpu) ship.cpu = { id: m.id, arch: m.cpu.arch, ...(m.cpu.react !== undefined ? { react: m.cpu.react } : {}) }; else delete ship.cpu;
       this.commit();
     });
+    r.querySelectorAll<HTMLSelectElement>('[data-sair]').forEach(e => e.onchange = () => {
+      const [p, i] = e.dataset.sair!.split(':'); const ship = find(p).ships[Number(i)];
+      const air = airOf(AIR_FITS.find(a => a.id === e.value)?.mods ?? []);
+      if (air) ship.fx = { ...(ship.fx ?? {}), air }; else if (ship.fx) { delete ship.fx.air; if (!Object.keys(ship.fx).length) delete ship.fx; }
+      this.commit();
+    });
+    const r3 = r.querySelector('#r3') as HTMLInputElement | null;
+    if (r3) r3.onchange = () => {
+      this.rules3 = r3.checked; try { localStorage.setItem(R3KEY, r3.checked ? '1' : '0'); } catch { /* */ }
+      if (!this.rules3 && this.catSel.classId === 'carrier') this.catSel = { classId: 'battleship', loadoutId: 'std' };
+      this.render();
+    };
     r.querySelectorAll<HTMLSelectElement>('[data-smv]').forEach(e => e.onchange = () => {
       if (!e.value) return;
       const [p, i] = e.dataset.smv!.split(':');
@@ -210,7 +270,7 @@ export class SetupScreen {
     });
     const back = r.querySelector('#back') as HTMLButtonElement | null; if (back) back.onclick = () => this.onBack?.();
     (r.querySelector('#reset') as HTMLButtonElement).onclick = () => { this.fleet = defaultPlayerFleet(); this.sel = this.fleet.root; this.commit(); };
-    (r.querySelector('#go') as HTMLButtonElement).onclick = () => { saveFleet(this.fleet); this.onStart({ fleet: JSON.parse(JSON.stringify(this.fleet)), scenarioId: this.scenarioId }); };
+    (r.querySelector('#go') as HTMLButtonElement).onclick = () => { saveFleet(this.fleet); this.onStart({ fleet: JSON.parse(JSON.stringify(this.fleet)), scenarioId: this.scenarioId, rules: this.rules3 ? Math.max(3, BATTLE_RULES) : BATTLE_RULES }); };
   }
 
   private setupPreview(): void {

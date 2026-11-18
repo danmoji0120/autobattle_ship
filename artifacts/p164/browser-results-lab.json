@@ -1,0 +1,74 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "lab: admin login"
+    },
+    {
+      "ok": true,
+      "label": "lab: carrier hidden under the default rules"
+    },
+    {
+      "ok": true,
+      "label": "lab: rules 3 selected — carrier in the catalog"
+    },
+    {
+      "ok": true,
+      "label": "lab: the carrier row is in the BLUE fleet",
+      "extra": ":0"
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: four H slots show complement · spares · radius",
+      "extra": [
+        "L 전투기 비행대 h1 · 격납(H) · 비행갑판 · 전투기 8기 · 예비 4 · 반경 1800 ✕",
+        "L 전투기 비행대 h2 · 격납(H) · 비행갑판 · 전투기 8기 · 예비 4 · 반경 1800 ✕",
+        "L 뇌격기 비행대 h3 · 격납(H) · 비행갑판 · 뇌격기 6기 · 예비 3 · 반경 1800 ✕",
+        "L 요격기 비행대 h4 · 격납(H) · 비행갑판 · 요격기 8기 · 예비 4 · 반경 1200 ✕"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: three aviation bays",
+      "extra": [
+        "M 비어 있음 fl1 · 항공 장비 베이",
+        "M 비어 있음 fl2 · 항공 장비 베이",
+        "M 비어 있음 fl3 · 항공 장비 베이"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: wing rows replace gun firepower",
+      "extra": "비행대 4 · 관제 3 1 CAP 대기 함재기 30기 · 예비 15 작전 반경 1200–1800 함포 화력 113/s 무장 12문 방공 6문 내구 8,200 전면 장갑 46 전투 속도 34 명중·회피 ±0% · 0%"
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: an air control module lifts the limit (preview)",
+      "extra": "비행대 4 · 관제 4 +1 함재기 30기 · 예비 15 작전 반경 1200–1800 함포 화력 113/s 무장 12문 방공 6문 내구 8,200 전면 장갑 46 전투 속도 34 명중·회피 ±0% · 0%"
+    },
+    {
+      "ok": true,
+      "label": "lab: watch starts a rules-3 battle with the fitted air wing",
+      "extra": {
+        "rules": 3,
+        "craft": true,
+        "control": [
+          4
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": []
+    },
+    {
+      "ok": true,
+      "label": "no console errors",
+      "extra": []
+    }
+  ],
+  "errors": [],
+  "console": [],
+  "perf": []
+}

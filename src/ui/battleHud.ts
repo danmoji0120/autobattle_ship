@@ -3,6 +3,7 @@ import type { BattleSession } from '../game/session';
 import type { Group, Ship, Order, SimEvent, RadioMsg, Team } from '../sim/types';
 import { SPECIALTY_TEXT } from '../sim/data/commanders';
 import { orderKey } from '../sim/ai/commander';
+import { TASK_NAME } from '../sim/craft';
 import { Perspective, REL_TEXT } from './perspective';
 import { SHAKE_LEVELS, saveShakeLevel, type ShakeLevel } from '../render/camera';
 
@@ -41,6 +42,8 @@ export interface HudOptions {
   onRestart: () => void;
   onReplay: () => void;
 }
+
+const ROLE_SHORT: Record<string, string> = { fighter: '전투기', bomber: '뇌격기', interceptor: '요격기' };
 
 export class BattleHUD {
   private s: BattleSession;
@@ -618,6 +621,7 @@ export class BattleHUD {
       </div>
       <div class="orders">
         <div class="gstatus" id="gstat"></div>
+        <div class="wingst" id="gwing"></div>
         <div class="row">
           ${btn('engage', '자유 교전', 'E', o.type === 'engage')}
           ${btn('attack', '공격', 'A', this.mode === 'attack' || o.type === 'attack')}
@@ -654,7 +658,32 @@ export class BattleHUD {
     if (o.type === 'escort') doing += ` — ${w.groupById.get(o.guardGroup)?.name ?? ''}`;
     if (g.ai.kiting) doing += ' (거리 유지 후퇴 사격)';
     st.innerHTML = `<span>함선 <b>${ships.length}</b> · 전력 <b>${Math.round(w.groupHpFrac(g) * 100)}%</b> · 격침 <b>${g.stats.kills}</b></span><span>${esc(doing)}${T && o.type !== 'retreat' ? ` → <b style="color:#ff9a8a">${esc(T.name)}</b>` : ''}</span>`;
+    this.updateWingLine(ships);
     hint.textContent = g.playerOverride && g.parentId !== null && this.P.mine(g.team) && !g.ai.routed ? '⚑ 직접 지휘 중 — 상위 지휘관의 명령을 받지 않습니다' : g.childIds.length ? '하위 부대들은 이 지휘관의 판단에 따라 역할을 나눠 맡습니다' : '';
+  }
+
+  /** P16.4: air wings of the selected group's carriers — control in use / limit, airframes airborne · on deck ·
+   *  lost, and each squadron's task (a squadron the control limit keeps on CAP is marked) */
+  private updateWingLine(ships: Ship[]) {
+    const el = document.getElementById('gwing');
+    const c = this.s.world.craft;
+    if (!el) return;
+    const ids = new Set(ships.map(s => s.id));
+    const wings = c ? c.wings.filter(wg => ids.has(wg.ship.id)) : [];
+    if (!c || !wings.length) { if (el.innerHTML) el.innerHTML = ''; return; }
+    let ctl = 0, busy = 0, out = 0, deck = 0, lost = 0;
+    const chips: string[] = [];
+    for (const wg of wings) {
+      ctl += wg.control;
+      for (const sq of wg.squads) {
+        if (sq.done) continue;
+        const n = c.squadCounts(sq);
+        out += n.out; deck += n.deck; lost += n.lost;
+        if (sq.task !== 0) busy++;
+        chips.push(`<span class="wsq${sq.heldNow ? ' held' : ''}" title="${sq.heldNow ? '관제 한도 초과로 직위 엄호 대기' : ''}">${ROLE_SHORT[sq.cs.role]} ${sq.heldNow ? 'CAP 대기' : TASK_NAME[sq.task]} ${n.out}/${sq.cs.n}</span>`);
+      }
+    }
+    el.innerHTML = `<div><span>관제 <b>${busy}/${ctl}</b></span><span>비행 <b>${out}</b> · 갑판 <b>${deck}</b> · 손실 <b>${lost}</b></span></div><div class="wsqs">${chips.join('')}</div>`;
   }
 
   // ------------------------------------------------------------------ overlay

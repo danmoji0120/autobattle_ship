@@ -42,7 +42,7 @@ class CombatLab {
   }
   private closeViews() { this.fitting?.close(); this.fitting = null; this.setup?.dispose(); this.setup = null; this.app.querySelector('[data-lab-control]')?.remove(); }
   private dispose() { if (this.disposed) return; this.disposed = true; clearInterval(this.timer); this.worker?.terminate(); this.worker = null; this.closeViews(); this.teardownBattle(); this.app.innerHTML = ''; }
-  private teardownBattle() { this.hud?.dispose(); this.hud = null; this.battle?.dispose(); this.battle = null; sfx.stopMusic(); document.body.classList.remove('devlab-battle'); this.getCanvas().style.visibility = 'hidden'; }
+  private teardownBattle() { this.hud?.dispose(); this.hud = null; this.battle?.dispose(); this.battle = null; if ((window as any).session) (window as any).session = null; sfx.stopMusic(); document.body.classList.remove('devlab-battle'); this.getCanvas().style.visibility = 'hidden'; }
   private openFitting(ship: LabShip, team: 0 | 1) {
     this.fitting?.close();
     this.fitting = new LabFittingScreen(this.app, ship, this.config.sides[team].research, this.config.presets, {
@@ -135,6 +135,7 @@ class CombatLab {
     document.body.classList.add('devlab-battle');
     const old = this.getCanvas(), canvas = old.cloneNode() as HTMLCanvasElement; canvas.style.visibility = 'visible'; old.replaceWith(canvas);
     const session = new BattleSession(canvas, battleSetup(config, seed, swapped), sfx); this.battle = session; session.timeScale = config.speed;
+    (window as any).session = session; // automated browser checks read the live battle, as in main.ts
     if (orders) session.world.scheduleReplay(orders.map(o => ({ ...o })));
     this.hud = new BattleHUD(this.app, session, { replay: !!orders, inspectAll: true, onExit: () => { this.teardownBattle(); this.render(); },
       onRestart: () => this.startBattle(config, seed, swapped), onReplay: () => this.startBattle(config, seed, swapped, orders ?? session.world.orderLog.slice()) });

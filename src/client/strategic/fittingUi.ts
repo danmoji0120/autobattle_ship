@@ -16,10 +16,11 @@ import { CONTENT, variantLayout, presetsOfHull, variantsOfHull, weaponRole, cont
 import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arcOf, airText } from '../../content/rules';
 import type { HardpointDef, InternalSlotDef } from '../../content/schema';
 import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bayModules, cpuMountsOf, type ShipFitting } from '../../world/fitting';
-import { EQUIPMENT, fitFx, itemPrice, TECHS } from '../../world/industry';
+import { EQUIPMENT, fitFx, airFx, itemPrice, TECHS } from '../../world/industry';
 import { regionalMarketRequired, regionalOn } from '../../world/regional';
 import { priceOf } from '../../world/market';
 import { WEAPONS, isCraft, craftSummary, type WeaponDef } from '../../sim/data/weapons';
+import { wingInfo, wingRows, craftSlotText } from '../../ui/airWing';
 import { SHIP_CLASSES } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
 import { buildShip } from '../../render/shipMesh';
@@ -147,7 +148,9 @@ export class FittingScreen {
   private stats(d: Draft) {
     const s = this.ship!;
     const lo = shipLoadout({ classId: s.classId, loadoutId: s.loadoutId, variant: d.variant, fitting: { hp: d.hp, bay: d.bay } });
-    const fx = fitFx(bayModules(d.variant, { hp: d.hp, bay: d.bay }), this.st!.companies[this.me]?.tech);
+    const mods = bayModules(d.variant, { hp: d.hp, bay: d.bay });
+    const fx = fitFx(mods, this.st!.companies[this.me]?.tech);
+    const air = airFx(mods);
     const cls = SHIP_CLASSES[s.classId];
     let dps = 0, pd = 0, range = 0, missile = 0;
     // P16: strike craft (H slot) are neither gun firepower nor gun range (their range is an operating radius)
@@ -155,7 +158,7 @@ export class FittingScreen {
     return {
       dps, pd, range: range * fx.rangeMul, missile, guns: lo.mounts.length,
       hp: cls.hp * (lo.hpMul ?? 1) * fx.hpMul, armor: cls.armor.front * (lo.armorMul ?? 1) * fx.armorMul, speed: cls.maxSpeed * (lo.speedMul ?? 1) * fx.speedMul,
-      acc: fx.accMul, evasion: fx.evasion, reload: fx.reloadMul,
+      acc: fx.accMul, evasion: fx.evasion, reload: fx.reloadMul, air, wing: wingInfo(lo.mounts, air),
     };
   }
 
@@ -198,7 +201,7 @@ export class FittingScreen {
       const changed = (eq ?? '') !== (cur ?? '') ? ' chg' : '';
       return `<button class="fslot${selId === h.id ? ' on' : ''}${bad ? ' bad' : ''}${changed}" data-fsel="hp:${h.id}" title="${esc(bad ?? '')}">
         <span class="fsz" style="border-color:${TYPE_COL[h.type]}">${h.size}</span>
-        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${h.id} · ${TYPE_NAME[h.type]} · ${MOUNT_NAME[h.mount]} · 사각 ${eq ? arcOf(h, eq) : h.arc}°</small></span>
+        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${h.id} · ${TYPE_NAME[h.type]} · ${MOUNT_NAME[h.mount]} · ${eq && WEAPONS[EQUIPMENT[eq]?.weapon ?? '']?.craft ? esc(craftSlotText(WEAPONS[EQUIPMENT[eq].weapon!], nxt.air)) : `사각 ${eq ? arcOf(h, eq) : h.arc}°`}</small></span>
         ${eq ? `<span class="fx" data-fclr="hp:${h.id}" title="비우기">✕</span>` : ''}</button>`;
     };
     const bayRow = (b: InternalSlotDef) => {
@@ -206,7 +209,7 @@ export class FittingScreen {
       const changed = (eq ?? '') !== (cur ?? '') ? ' chg' : '';
       return `<button class="fslot${selId === b.id ? ' on' : ''}${bad ? ' bad' : ''}${changed}" data-fsel="bay:${b.id}" title="${esc(bad ?? '')}">
         <span class="fsz bay">${b.size}</span>
-        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${b.id} · ${b.kind === 'industrial' ? '산업 하드포인트' : `${BAY_NAME[b.kind]} 베이`}${eq && EQUIPMENT[eq]?.ind ? ` · ${indText(EQUIPMENT[eq].ind!, hull.ops?.bonus)}` : ''}${eq && EQUIPMENT[eq]?.cpu ? ` · ${esc(cpuSummary(EQUIPMENT[eq].cpu!.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS).split(' — ')[0])}` : ''}</small></span>
+        <span class="fsm"><b>${eq ? esc(EQUIPMENT[eq]?.name ?? eq) : '<i class="dim">비어 있음</i>'}</b><small>${b.id} · ${b.kind === 'industrial' ? '산업 하드포인트' : `${BAY_NAME[b.kind]} 베이`}${eq && EQUIPMENT[eq]?.ind ? ` · ${indText(EQUIPMENT[eq].ind!, hull.ops?.bonus)}` : ''}${eq && EQUIPMENT[eq]?.air ? ` · ${esc(airText(EQUIPMENT[eq].air!))}` : ''}${eq && EQUIPMENT[eq]?.cpu ? ` · ${esc(cpuSummary(EQUIPMENT[eq].cpu!.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS).split(' — ')[0])}` : ''}</small></span>
         ${eq ? `<span class="fx" data-fclr="bay:${b.id}" title="비우기">✕</span>` : ''}</button>`;
     };
     const hullPresets = presetsOfHull(hull.id).filter(x => contentAvail(x.id, this.st!.contentV));
@@ -230,7 +233,7 @@ export class FittingScreen {
           <div class="fprev" data-fprev><canvas data-fcanvas></canvas><div class="fhint">드래그: 회전 · 점: 하드포인트 (클릭해 선택)</div></div>
           ${bar(p.rep.power, p.rep.supply, '전력')}${bar(p.rep.mass, p.rep.cap, '적재 질량')}
           <table class="fstat">
-            <tr><td>지속 화력</td><td>${fmt(nxt.dps)}/s${cmp(now.dps, nxt.dps, 1)}</td><td>최대 사거리</td><td>${fmt(nxt.range)}${cmp(now.range, nxt.range)}</td></tr>
+            ${nxt.wing ? wingRows(now.wing, nxt.wing, `${fmt(nxt.dps)}/s${cmp(now.dps, nxt.dps, 1)}`, (a, b) => cmp(a, b)) : `<tr><td>지속 화력</td><td>${fmt(nxt.dps)}/s${cmp(now.dps, nxt.dps, 1)}</td><td>최대 사거리</td><td>${fmt(nxt.range)}${cmp(now.range, nxt.range)}</td></tr>`}
             <tr><td>무장</td><td>${nxt.guns}문${cmp(now.guns, nxt.guns)}</td><td>방공</td><td>${nxt.pd}문${cmp(now.pd, nxt.pd)}</td></tr>
             <tr><td>내구</td><td>${fmt(nxt.hp)}${cmp(now.hp, nxt.hp)}</td><td>전면 장갑</td><td>${fmt(nxt.armor)}${cmp(now.armor, nxt.armor, 1)}</td></tr>
             <tr><td>전투 속도</td><td>${fmt(nxt.speed)}${cmp(now.speed, nxt.speed, 1)}</td><td>명중·회피</td><td>${pct(nxt.acc)} · ${Math.round(nxt.evasion * 100)}%</td></tr>

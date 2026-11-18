@@ -1,0 +1,210 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "skirmish: carrier hidden while the rules-3 trial is off"
+    },
+    {
+      "ok": true,
+      "label": "skirmish: rules-3 trial shows the carrier in the catalog"
+    },
+    {
+      "ok": true,
+      "label": "catalog: craft summary and wing/control line instead of gun firepower",
+      "extra": "여명급 항모 250 전열함 · 길이 64m급 내구 장갑 화력 방공 속도 격납 갑판(H 슬롯) 네 곳에서 함재기 비행대를 띄우는 항모. 함포는 자위용뿐이다. 표준 비행단 전투기 2, 뇌격기 1, 요격기 1 비행대 + 부포 2 + 방공 6. 무장: 155mm 속사 부포 ×2, 근접 방어 기관포 ×6 전투기 비행대 ×2 — 전투기 8기 (예비 4) · 작전 반경 1800 · 출격 70초 · 재출격 준비 14초 뇌격기 비행대 ×1 — 뇌격기 6기 (예비 3) · 작전 반경 1800 · 출격 80초 · 재출격 준비 20초 · 대함: 항공 경어뢰 요격기 비행대 ×1 — 요격기 8기 (예비 4) · 작전 반경 1200 · 출격 60초 · 재출격 준비 12초 비행대 4 · 관제 3 (1개 CAP 대기) + 제7 기동함대에"
+    },
+    {
+      "ok": true,
+      "label": "carrier row: wing line with the CAP-held squadron, aviation fits, carrier computer",
+      "extra": {
+        "text": "여명급 항모표준 비행단 · 비행대 4 · 관제 3 (1개 CAP 대기) 표준 비행단 기본 제어 범용 전투 컴퓨터 · 전열/중앙값 군집 돌격 컴퓨터 · 군집·돌격/최소 초계 컴퓨터 · 초계/중앙값 전열 컴퓨터 · 전열/중앙값 포격 컴퓨터 · 포격/최대 공성 뇌격 컴퓨터 · 공성·뇌격/어뢰 항모 관제 컴퓨터 · 항모/작전 반경 항공 장비 없음 관제 장치 관제 장치 ×2 관제·격납고 확장·정비 격납고 확장 ×3 이동… 주력 전대 호위 전대 지원 전대 강습 전대 뇌격 1편대 뇌격 2편대 ✕",
+        "air": [
+          "",
+          "ctl",
+          "ctl2",
+          "mix",
+          "ext"
+        ],
+        "cpu": [
+          "",
+          "cpu_generic",
+          "cpu_swarm",
+          "cpu_picket",
+          "cpu_line",
+          "cpu_artillery",
+          "cpu_siege",
+          "cpu_carrier"
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "carrier computer offered on carriers only"
+    },
+    {
+      "ok": true,
+      "label": "air control module raises the limit (no squadron held)"
+    },
+    {
+      "ok": true,
+      "label": "carrier fleet cannot start with the trial off"
+    },
+    {
+      "ok": true,
+      "label": "trial on: the carrier fleet can start"
+    },
+    {
+      "ok": true,
+      "label": "HUD: control in use / limit and airborne · deck · lost",
+      "extra": "관제 3/3 비행 30 · 갑판 0 · 손실 0 전투기 공격 8/8 전투기 CAP 대기 8/8 뇌격기 공격 6/6 요격기 요격 8/8"
+    },
+    {
+      "ok": true,
+      "label": "HUD: a squadron kept on CAP by the control limit is marked",
+      "extra": "관제 3/3 비행 30 · 갑판 0 · 손실 0 전투기 공격 8/8 전투기 CAP 대기 8/8 뇌격기 공격 6/6 요격기 요격 8/8"
+    },
+    {
+      "ok": true,
+      "label": "battle runs under rules 3 with the four squadrons",
+      "extra": {
+        "rules": 3,
+        "squads": 4
+      }
+    },
+    {
+      "ok": true,
+      "label": "every frame draws exactly the airborne craft of the sim",
+      "extra": [
+        [
+          20,
+          20
+        ],
+        [
+          18,
+          18
+        ],
+        [
+          18,
+          18
+        ],
+        [
+          17,
+          17
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          15,
+          15
+        ]
+      ]
+    },
+    {
+      "ok": true,
+      "label": "close-up captured during the strike",
+      "extra": {
+        "n": 9,
+        "time": 10
+      }
+    },
+    {
+      "ok": true,
+      "label": "craft launched (stats)",
+      "extra": {
+        "launched": 37,
+        "recovered": 0,
+        "lost": 22,
+        "ord": 3,
+        "held": 22
+      }
+    },
+    {
+      "ok": true,
+      "label": "replay reproduces the live battle digest for digest",
+      "extra": {
+        "compared": 18,
+        "live": [
+          [
+            2550,
+            "1e6c3270"
+          ],
+          [
+            2700,
+            "87de2347"
+          ]
+        ],
+        "replay": [
+          [
+            2550,
+            "1e6c3270"
+          ],
+          [
+            2700,
+            "87de2347"
+          ]
+        ]
+      }
+    },
+    {
+      "ok": true,
+      "label": "lab: admin login"
+    },
+    {
+      "ok": true,
+      "label": "lab: carrier hidden under the default rules"
+    },
+    {
+      "ok": true,
+      "label": "lab: rules 3 selected — carrier in the catalog"
+    },
+    {
+      "ok": false,
+      "label": "lab fitting: four H slots show complement · spares · radius",
+      "extra": []
+    },
+    {
+      "ok": false,
+      "label": "lab fitting: three aviation bays",
+      "extra": []
+    },
+    {
+      "ok": false,
+      "label": "lab fitting: wing rows replace gun firepower",
+      "extra": "지속 화력 327/s 최대 사거리 560 무장 4문 방공 1문 내구 1,030 전면 장갑 10 전투 속도 112 명중·회피 ±0% · 0%"
+    },
+    {
+      "ok": false,
+      "label": "browser run",
+      "extra": {
+        "error": "page.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.lab-fitmodal [data-fsel=\"bay:fl1\"]')\u001b[22m\n\n    at /home/user/autobattle_ship/scripts/p16/p164-browser.cjs:168:16"
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": []
+    },
+    {
+      "ok": true,
+      "label": "no console errors",
+      "extra": []
+    }
+  ],
+  "errors": [],
+  "console": [],
+  "perf": [],
+  "closeup": {
+    "n": 9,
+    "time": 10
+  }
+}

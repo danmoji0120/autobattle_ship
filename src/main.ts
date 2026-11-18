@@ -46,7 +46,7 @@ function showSetup() {
   getCanvas().style.visibility = 'hidden';
   setup = new SetupScreen(app, r => {
     setup?.dispose(); setup = null;
-    startBattle({ seed: (Date.now() & 0x7fffffff) >>> 0, scenarioId: r.scenarioId, fleets: [r.fleet, getScenario(r.scenarioId).enemy], rules: BATTLE_RULES });
+    startBattle({ seed: (Date.now() & 0x7fffffff) >>> 0, scenarioId: r.scenarioId, fleets: [r.fleet, getScenario(r.scenarioId).enemy], rules: r.rules });
   }, () => showMainMenu());
 }
 

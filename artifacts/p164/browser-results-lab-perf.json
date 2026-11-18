@@ -1,0 +1,179 @@
+{
+  "checks": [
+    {
+      "ok": true,
+      "label": "lab: admin login"
+    },
+    {
+      "ok": true,
+      "label": "lab: carrier hidden under the default rules"
+    },
+    {
+      "ok": true,
+      "label": "lab: rules 3 selected — carrier in the catalog"
+    },
+    {
+      "ok": true,
+      "label": "lab: the carrier row is in the BLUE fleet",
+      "extra": ":0"
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: four H slots show complement · spares · radius",
+      "extra": [
+        "L 전투기 비행대 h1 · 격납(H) · 비행갑판 · 전투기 8기 · 예비 4 · 반경 1800 ✕",
+        "L 전투기 비행대 h2 · 격납(H) · 비행갑판 · 전투기 8기 · 예비 4 · 반경 1800 ✕",
+        "L 뇌격기 비행대 h3 · 격납(H) · 비행갑판 · 뇌격기 6기 · 예비 3 · 반경 1800 ✕",
+        "L 요격기 비행대 h4 · 격납(H) · 비행갑판 · 요격기 8기 · 예비 4 · 반경 1200 ✕"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: three aviation bays",
+      "extra": [
+        "M 비어 있음 fl1 · 항공 장비 베이",
+        "M 비어 있음 fl2 · 항공 장비 베이",
+        "M 비어 있음 fl3 · 항공 장비 베이"
+      ]
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: wing rows replace gun firepower",
+      "extra": "비행대 4 · 관제 3 1 CAP 대기 함재기 30기 · 예비 15 작전 반경 1200–1800 함포 화력 113/s 무장 12문 방공 6문 내구 8,200 전면 장갑 46 전투 속도 34 명중·회피 ±0% · 0%"
+    },
+    {
+      "ok": true,
+      "label": "lab fitting: an air control module lifts the limit (preview)",
+      "extra": "비행대 4 · 관제 4 +1 함재기 30기 · 예비 15 작전 반경 1200–1800 함포 화력 113/s 무장 12문 방공 6문 내구 8,200 전면 장갑 46 전투 속도 34 명중·회피 ±0% · 0%"
+    },
+    {
+      "ok": false,
+      "label": "lab: watch starts a rules-3 battle with the fitted air wing"
+    },
+    {
+      "ok": true,
+      "label": "perf 200: craft airborne and drawn",
+      "extra": {
+        "slots": 216,
+        "drawnAvg": 119,
+        "drawnMax": 122,
+        "frameAvg": "282.8",
+        "p95": "520.1",
+        "craftCpu": "0.26",
+        "hiddenAvg": "292.7",
+        "calls": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 400: craft airborne and drawn",
+      "extra": {
+        "slots": 432,
+        "drawnAvg": 281,
+        "drawnMax": 287,
+        "frameAvg": "291.8",
+        "p95": "368.2",
+        "craftCpu": "0.33",
+        "hiddenAvg": "327.4",
+        "calls": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "perf 800: craft airborne and drawn",
+      "extra": {
+        "slots": 864,
+        "drawnAvg": 520,
+        "drawnMax": 538,
+        "frameAvg": "324.5",
+        "p95": "608.0",
+        "craftCpu": "0.22",
+        "hiddenAvg": "316.6",
+        "calls": 1
+      }
+    },
+    {
+      "ok": true,
+      "label": "no page errors",
+      "extra": []
+    },
+    {
+      "ok": true,
+      "label": "no console errors",
+      "extra": []
+    }
+  ],
+  "errors": [],
+  "console": [],
+  "perf": [
+    {
+      "target": 200,
+      "slots": 216,
+      "carriersPerSide": 2,
+      "on": {
+        "frames": 22,
+        "avg": 282.77272727272725,
+        "p95": 520.1000000000931,
+        "craftCpuPerFrame": 0.25909090906762605,
+        "drawnAvg": 119.22727272727273,
+        "drawnMax": 122,
+        "calls": 1
+      },
+      "off": {
+        "frames": 21,
+        "avg": 292.6666666666667,
+        "p95": 528.3000000000466,
+        "craftCpuPerFrame": 0.04285714285270799,
+        "drawnAvg": 112.66666666666667,
+        "drawnMax": 117,
+        "calls": 1
+      }
+    },
+    {
+      "target": 400,
+      "slots": 432,
+      "carriersPerSide": 4,
+      "on": {
+        "frames": 21,
+        "avg": 291.7952380952359,
+        "p95": 368.19999999995343,
+        "craftCpuPerFrame": 0.32857142857808086,
+        "drawnAvg": 281.42857142857144,
+        "drawnMax": 287,
+        "calls": 1
+      },
+      "off": {
+        "frames": 19,
+        "avg": 327.4105263157919,
+        "p95": 574.4000000001397,
+        "craftCpuPerFrame": 0.17368421054102087,
+        "drawnAvg": 261.1578947368421,
+        "drawnMax": 275,
+        "calls": 1
+      }
+    },
+    {
+      "target": 800,
+      "slots": 864,
+      "carriersPerSide": 8,
+      "on": {
+        "frames": 19,
+        "avg": 324.4684210526389,
+        "p95": 608,
+        "craftCpuPerFrame": 0.22105263157649652,
+        "drawnAvg": 520.421052631579,
+        "drawnMax": 538,
+        "calls": 1
+      },
+      "off": {
+        "frames": 20,
+        "avg": 316.570000000007,
+        "p95": 603.3999999999069,
+        "craftCpuPerFrame": 0.23500000002095475,
+        "drawnAvg": 479.4,
+        "drawnMax": 499,
+        "calls": 1
+      }
+    }
+  ]
+}

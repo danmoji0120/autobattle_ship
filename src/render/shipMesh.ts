@@ -335,6 +335,35 @@ function design(cls: ShipClassDef, team: 0 | 1): { profile: Profile; W: number; 
         },
       };
     }
+    case 'carrier': {
+      // P16.4 provisional carrier: long flat flight deck overhanging a narrow hull, island offset to one side,
+      // deck stripes; the H mounts sit on the deck as elevator plates (buildTurret)
+      const profile: Profile = enemy
+        ? [[-0.5, 0.85], [-0.3, 1], [0.2, 0.9], [0.42, 0.55], [0.5, 0.25]]
+        : [[-0.5, 0.8], [-0.35, 1], [0.25, 0.95], [0.45, 0.5], [0.5, 0.2]];
+      const W = 5.2;
+      return {
+        profile, W, build: (p) => {
+          p.hull.push(slab(profile, L, W, -0.5, 0, -2.4, 4.4), slab(profile, L, W, 0, 0.5, -2.4, 4.4));
+          p.dark.push(slab(profile.map(([t, w]) => [t, w * 0.78]) as Profile, L, W, -0.47, 0.42, -3.8, 1.6));
+          // flight deck (wider than the hull, slight bow overhang)
+          const deck: Profile = enemy
+            ? [[-0.5, 1.0], [0.3, 1.0], [0.44, 0.7], [0.5, 0.45]]
+            : [[-0.5, 0.95], [0.38, 1.0], [0.5, 0.6]];
+          p.hull.push(slab(deck, L * 1.04, 7.6, -0.5, 0.5, 2.0, 3.0, 0.2));
+          p.dark.push(slab(deck.map(([t, w]) => [t, w * 0.9]) as Profile, L * 1.0, 7.6, -0.48, 0.48, 4.95, 0.12, 0.05));
+          // centreline and edge stripes
+          p.accent.push(box(0.35, 0.06, L * 0.86, 0, 5.1, 0), box(0.18, 0.06, L * 0.8, 6.2, 5.1, -L * 0.02), box(0.18, 0.06, L * 0.8, -6.2, 5.1, -L * 0.02));
+          for (let k = 0; k < 6; k++) p.trim.push(box(1.6, 0.05, 0.3, 0, 5.12, L * 0.38 - k * 1.4));
+          // island
+          if (enemy) { p.hull.push(box(2.4, 4.4, 9, -6.6, 7.1, -6)); p.dark.push(box(2.8, 0.8, 3.5, -6.6, 9.7, -4), cyl(0.14, 0.14, 5, -6.6, 12.5, -8)); }
+          else { p.hull.push(box(2.2, 3.6, 11, 6.6, 6.8, -4), box(1.8, 2.2, 5, 6.6, 9.7, -5)); p.dark.push(box(2.6, 0.9, 2, 6.6, 10.4, -2.2), cyl(0.14, 0.14, 5, 6.6, 13.2, -6)); }
+          p.light.push(new THREE.Vector3(enemy ? -6.6 : 6.6, enemy ? 15 : 15.7, enemy ? -8 : -6), new THREE.Vector3(0, 5.3, L * 0.5), new THREE.Vector3(7.4, 5.2, -L * 0.48), new THREE.Vector3(-7.4, 5.2, -L * 0.48));
+          p.dark.push(box(W * 1.4, 3.6, 4, 0, -0.4, -L * 0.5 - 1.2));
+          p.engines.push({ x: 2.6, y: -0.4, z: -L * 0.5 - 3.4, r: 1.5 }, { x: -2.6, y: -0.4, z: -L * 0.5 - 3.4, r: 1.5 });
+        },
+      };
+    }
     default: {
       // corvette
       const profile: Profile = enemy ? [[-0.5, 0.7], [-0.25, 1], [0.1, 0.45], [0.5, 0.1]] : [[-0.5, 1], [-0.3, 0.85], [0.5, 0.1]];
@@ -657,7 +686,12 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
     default: {
       // P5 arsenal weapons: a model per family, scaled by calibre, so families read apart at a glance
       const k = Math.max(0.5, w?.caliber ?? 1), fam = w?.family;
-      if (fam === 'missile' || fam === 'torpedo') {
+      if (w?.kind === 'craft') {
+        // P16.4 hangar (H) mount: a deck elevator plate with a launch-lane marking — it launches craft, never aims
+        rotates = false; barrels = null;
+        add(box(3.2, 0.14, 4.2, 0, -0.9, 0), m.dark);
+        add(box(0.2, 0.08, 3.6, 1.45, -0.8, 0), m.accent); add(box(0.2, 0.08, 3.6, -1.45, -0.8, 0), m.accent);
+      } else if (fam === 'missile' || fam === 'torpedo') {
         rotates = false; barrels = null;
         if (fam === 'torpedo') { add(cyl(0.5 * k, 0.5 * k, 2.2 * k, 0, 0, 0, 'z', 10), m.dark); add(cyl(0.38 * k, 0.38 * k, 0.2, 0, 0, 1.15 * k, 'z', 10), m.accent); }
         else { add(box(1.6 * k, 0.8, 2.6 * k, 0, 0, 0), m.dark); for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) add(box(0.55 * k, 0.12, 0.55 * k, (-0.4 + i * 0.8) * k, 0.45, (-0.6 + j * 1.2) * k), m.accent); }

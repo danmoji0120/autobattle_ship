@@ -13,6 +13,7 @@ import { buildShip, wreckMaterial, engineColor, type ShipModel } from './shipMes
 import { Environment, type Backdrop } from './environment';
 import { CameraRig, type FollowTarget, type ShotRequest, type ShakeKind } from './camera';
 import { BbexFx, type FxHost } from './bbex/fx';
+import { CraftView } from './craftView';
 
 export interface AudioSink { play(name: string, pos: THREE.Vector3 | null, vol?: number, rate?: number): void }
 
@@ -87,7 +88,11 @@ export class BattleView implements FxHost {
       if (Math.random() < 0.15) this.smoke.emit(p, { life: 2.5, size: 3, size1: 9, color: 0x2a2624, alpha: 0.35 * hot });
     };
     this.rig.directorPick = () => this.pickShot();
+    this.craftView = new CraftView(this);
+    this.scene.add(this.craftView.group);
   }
+  /** P16.4 strike craft (reads World.craft; display only) */
+  readonly craftView: CraftView;
 
   resize(w: number, h: number) {
     this.renderer.setSize(w, h, false);
@@ -139,6 +144,7 @@ export class BattleView implements FxHost {
 
   dispose() {
     this.ex?.dispose();
+    this.craftView.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     this.scene.traverse(o => { if ((o as THREE.Mesh).geometry) (o as THREE.Mesh).geometry.dispose?.(); });
@@ -206,6 +212,9 @@ export class BattleView implements FxHost {
           break;
         }
         case 'highlight': break;
+        case 'craftLaunch': this.craftView.launch(V(e.pos), w.shipById.get(e.ship)?.team ?? 0); break;
+        case 'craftDown': this.craftView.down(V(e.pos), e.team); break;
+        case 'craftLeave': this.glow.emit(V(e.pos), { life: 0.3, size: 2.5, size1: 0.5, color: 0xa0c0ff, alpha: 0.6 }); break;
         default: if (this.ex && e.t.startsWith('ex')) this.ex.handle(e as never);
       }
     }
@@ -301,13 +310,21 @@ export class BattleView implements FxHost {
       if (heavy || Math.random() < 0.15) this.audio?.play('ricochet', p, heavy ? 0.9 : 0.25, 0.8 + Math.random() * 0.4);
       return;
     }
+    const wd = WEAPONS[e.weapon];
+    if (wd?.kind === 'craft') {
+      // P16.4 strike-craft cannon: small, fast sparks (the tracer itself is drawn by CraftView)
+      this.glow.emit(p, { life: 0.1, size: 2.2, size1: 3.5, color: 0xffd090, alpha: 0.9 });
+      if (Math.random() < 0.25) this.burst(p, 2, 0xffe0a0, 0x803000, 1.5, 35);
+      if (v) v.hitFlash = Math.max(v.hitFlash, 0.3);
+      return;
+    }
     if (e.weapon === 'pd_gun' || e.weapon === 'autocannon') {
       this.glow.emit(p, { life: 0.12, size: 3, size1: 5, color: 0xffc070, alpha: 0.9 });
       if (Math.random() < 0.3) this.burst(p, 2, 0xffd090, 0x803000, 2, 40);
       if (Math.random() < 0.08) this.audio?.play('hitsmall', p, 0.25);
       return;
     }
-    const scale = e.weapon === 'torpedo' ? 2.6 : e.weapon === 'blast' ? 1.6 : heavy ? 1.6 : e.weapon === 'missile_rack' ? 0.9 : 0.6;
+    const scale = e.weapon === 'torpedo' ? 2.6 : e.weapon === 'air_torpedo' ? 1.8 : e.weapon === 'blast' ? 1.6 : heavy ? 1.6 : e.weapon === 'missile_rack' ? 0.9 : 0.6;
     this.glow.emit(p, { life: 0.18, size: 14 * scale, size1: 22 * scale, color: 0xfff2d0, alpha: 1.4 });
     this.burst(p, Math.round(10 * scale), 0xffd080, 0xff3000, 3 * scale, 90 * scale, dir.clone().multiplyScalar(-1));
     for (let i = 0; i < 3 * scale; i++) this.glow.emit(p, { life: 0.6 + Math.random() * 0.6, size: 5 * scale, size1: 12 * scale, color: 0xff9030, color1: 0x401000, alpha: 0.9, vel: new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20).multiplyScalar(scale), drag: 1.5 });
@@ -551,6 +568,7 @@ export class BattleView implements FxHost {
     }
     this.ex?.frame(alpha, simDt, realDt);
     this.trails.end();
+    this.craftView.frame(w, alpha, realDt, cam, render);
 
     this.glow.update(simDt > 0 ? Math.max(simDt, realDt * 0.25) : realDt * 0.25);
     this.smoke.update(simDt > 0 ? Math.max(simDt, realDt * 0.25) : realDt * 0.1);

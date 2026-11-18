@@ -80,8 +80,8 @@ export const DAWN_STD_WEAPONS: Record<string, string> = {
 export const CARRIER_HULLS: HullDef[] = [{
   id: CARRIER_HULL, classId: 'carrier', name: '여명급', maker: '바스티온 공창', tier: 3, size: 'L',
   moduleSlots: 3, power: 52, mass: 170, blueprint: 'rare', preview: true,
-  // render-only silhouette until the carrier model (P16.4)
-  mesh: { base: 'battlecruiser', scale: 1.15 },
+  // P16.4: its own provisional carrier silhouette (render/shipMesh.ts design 'carrier')
+  mesh: { base: 'carrier', scale: 1 },
   desc: '격납 갑판 네 곳(H 슬롯)과 항공 장비 베이 세 곳을 갖춘 항모. 함포는 부포와 방공포뿐이고, 화력은 함재기 비행대에서 나온다.',
   ops: { cruise: 88, berth: 'L' },
   build: { yard: 3, time: 16000, credits: 14000, tech: ['capital_hulls', 'combined_arms'], facilities: ['electronics_fab'], parts: { structure: 160, armor_plate: 40, engine: 4, reactor: 3, sensor: 4, electronics: 30, machinery: 20 } },

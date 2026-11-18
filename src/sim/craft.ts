@@ -17,6 +17,8 @@ import type { World } from './world';
 
 /** slot states */
 const HANGAR = 0, PREP = 1, OUT = 2, LOST = 3, GONE = 4;
+/** read-only views for the renderer / HUD (P16.4): slot states, target kinds, uid → slot */
+export const CRAFT_ST = { HANGAR, PREP, OUT, LOST, GONE } as const;
 /** flight modes */
 const APPROACH = 0, EXTEND = 1, RETURN = 2;
 /** squadron tasks: CAP (cover the carrier), STRIKE (enemy ships), AIR (intercept craft / guided rounds near the
@@ -29,8 +31,9 @@ export const BASE_CONTROL = 3;
 const CAP_R = 650;
 /** craft target kinds */
 const T_NONE = 0, T_CRAFT = 1, T_MUN = 2;
+export const CRAFT_TK = { NONE: T_NONE, CRAFT: T_CRAFT, MUN: T_MUN } as const;
 const THINK = 0.3;
-const SLOT_BITS = 65536;
+export const SLOT_BITS = 65536;
 /** uniform grid (x/z plane) used for craft-vs-craft and point-defence queries */
 const CELL = 250, GN = 64, GHALF = CELL * GN / 2;
 
@@ -70,6 +73,8 @@ export interface Squad {
   prio: number;
   /** CAP: enemy craft are inside the carrier's CAP radius */
   capThreat: boolean;
+  /** P16.4 (display only): the last decision wanted a mission but the air-control limit kept it on CAP */
+  heldNow: boolean;
   /** guided rounds an interceptor squadron may go after (AIR) */
   muns: number[];
   /** an enemy is within reach: launch */
@@ -158,7 +163,7 @@ export class CraftPool {
       const idx = this.squads.length;
       this.squads.push({
         idx, ship: s, mount: m, team: s.team, cs, base, wing, gun, ord, first, spares: cs.spares, launchT: 0,
-        think: 0, task: CAP, tgtShip: -1, guard: -1, prio: 0, capThreat: false, muns: [], engaged: false, orphan: false, done: false,
+        think: 0, task: CAP, tgtShip: -1, guard: -1, prio: 0, capThreat: false, heldNow: false, muns: [], engaged: false, orphan: false, done: false,
         ax: s.pos.x, ay: s.pos.y, az: s.pos.z, stats: { launched: 0, lost: 0, recovered: 0, left: 0, ordFired: 0, tasks: [0, 0, 0, 0], held: 0 },
       });
       wing.squads.push(this.squads[idx]);
@@ -262,7 +267,8 @@ export class CraftPool {
     const ctl = wg.ship.state === 'alive';
     if (ctl) {
       const missions = wg.squads.filter(sq => !sq.done && !sq.orphan && sq.task !== CAP).sort((a, b) => b.prio - a.prio || a.idx - b.idx);
-      for (let k = wg.control; k < missions.length; k++) { const sq = missions[k]; sq.task = CAP; sq.tgtShip = -1; sq.guard = -1; sq.stats.held++; }
+      for (const sq of wg.squads) sq.heldNow = false;
+      for (let k = wg.control; k < missions.length; k++) { const sq = missions[k]; sq.task = CAP; sq.tgtShip = -1; sq.guard = -1; sq.stats.held++; sq.heldNow = true; }
     }
     for (const sq of wg.squads) {
       if (sq.done) continue;
@@ -606,6 +612,13 @@ export class CraftPool {
   private dropAll(sq: Squad) {
     for (let i = sq.first; i < sq.first + sq.cs.n; i++) { if (this.st[i] === OUT) this.leave(i, sq); else this.st[i] = GONE; }
     sq.done = true;
+  }
+
+  /** P16.4 (display only): a squadron's airframes by state — airborne, on deck (ready or re-arming), lost, spares left */
+  squadCounts(sq: Squad): { out: number; deck: number; lost: number; spares: number } {
+    let out = 0, deck = 0;
+    for (let i = sq.first; i < sq.first + sq.cs.n; i++) { const s = this.st[i]; if (s === OUT) out++; else if (s === HANGAR || s === PREP) deck++; }
+    return { out, deck, lost: sq.stats.lost, spares: sq.spares };
   }
 
   // ------------------------------------------------------------ grid
