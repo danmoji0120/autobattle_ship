@@ -25,7 +25,7 @@ import { CARRIER_HULL, CARRIER_ARMS, CARRIER_MODULES, DAWN_STD_WEAPONS } from '.
 import type { WShip } from '../src/world/types';
 
 const CRAFT_EQ = CARRIER_ARMS.map(a => a.id);
-const AIR_EQ = CARRIER_MODULES.map(m => m.id);
+const AIR_EQ = CARRIER_MODULES.filter(m => m.slot === 'flight').map(m => m.id);   // P16.3 adds the carrier computer (computer bay) to the pack
 const weaponsEq = Object.values(EQUIPMENT).filter(e => e.kind === 'weapon').map(e => e.id);
 const modulesEq = Object.values(EQUIPMENT).filter(e => e.kind === 'module').map(e => e.id);
 const allHardpoints = (): { v: string; hp: HardpointDef }[] => Object.keys(CONTENT.variants).flatMap(v => (variantLayout(v)?.hardpoints ?? []).map(hp => ({ v, hp })));
@@ -136,11 +136,13 @@ describe('P16.2 fitting rules (T6): hull structure and equipment decide, not the
 describe('P16.2 kind audit (T5): strike craft are not gun range or gun firepower', () => {
   const lo = getLoadout('carrier', 'air_group');
   const gunsOnly = { ...lo, mounts: lo.mounts.filter(m => !isCraft(WEAPONS[m.weapon])) };
-  it('combat computer bands and the combat rating are the same with and without the craft', () => {
+  it('combat computer bands are the same with and without the craft; the rating counts craft only through the P16.3 air term', () => {
     const rows = (ms: typeof lo.mounts) => ms.map(m => ({ w: WEAPONS[m.weapon], f: m.facing, arc: m.arc }));
     expect(bandsOf(rows(lo.mounts), () => false)).toEqual(bandsOf(rows(gunsOnly.mounts), () => false));
     const cls = SHIP_CLASSES.carrier;
-    expect(rate({ cls, lo }).off).toBe(rate({ cls, lo: gunsOnly }).off);
+    // P16.2 asserted equality (craft ignored); P16.3 adds the carrier air-group rating (tests/p16-carrier-ops.test.ts)
+    expect(rate({ cls, lo }).off).toBeGreaterThan(rate({ cls, lo: gunsOnly }).off);
+    expect(rate({ cls, lo }).def).toBe(rate({ cls, lo: gunsOnly }).def);
   });
   it('generic gun sums see no craft firepower or craft range', () => {
     for (const id of CRAFT_EQ) { const w = WEAPONS[EQUIPMENT[id].weapon!]; expect(isShipGun(w)).toBe(false); expect(w.damage * w.salvo / w.reload).toBe(0); }

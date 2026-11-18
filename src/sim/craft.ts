@@ -12,14 +12,21 @@
 import { Vec3, localToWorld } from './math';
 import { WEAPONS, type WeaponDef, type CraftStats } from './data/weapons';
 import type { Ship, Mount } from './types';
+import type { AirFx } from './fleet';
 import type { World } from './world';
 
 /** slot states */
 const HANGAR = 0, PREP = 1, OUT = 2, LOST = 3, GONE = 4;
 /** flight modes */
 const APPROACH = 0, EXTEND = 1, RETURN = 2;
-/** squadron tasks */
-const CAP = 0, STRIKE = 1, AIR = 2;
+/** squadron tasks: CAP (cover the carrier), STRIKE (enemy ships), AIR (intercept craft / guided rounds near the
+ *  carrier), ESCORT (cover a friendly ship that enemy craft are going for) */
+const CAP = 0, STRIKE = 1, AIR = 2, ESCORT = 3;
+export const TASK_NAME = ['직위 엄호', '공격', '요격', '호위'] as const;
+/** P16.3 air control: squadrons one carrier can direct on missions at once without control modules (the rest fly CAP) */
+export const BASE_CONTROL = 3;
+/** CAP squadrons engage enemy craft that come this close to their carrier */
+const CAP_R = 650;
 /** craft target kinds */
 const T_NONE = 0, T_CRAFT = 1, T_MUN = 2;
 const THINK = 0.3;
@@ -27,12 +34,25 @@ const SLOT_BITS = 65536;
 /** uniform grid (x/z plane) used for craft-vs-craft and point-defence queries */
 const CELL = 250, GN = 64, GHALF = CELL * GN / 2;
 
+/** P16.3: one carrier's air control — its squadrons decide together and at most `control` of them take a mission */
+export interface Wing {
+  ship: Ship;
+  squads: Squad[];
+  think: number;
+  /** squadrons that may hold a mission (STRIKE / AIR / ESCORT) at once */
+  control: number;
+}
+
 export interface Squad {
   idx: number;
   ship: Ship;
   mount: Mount;
   team: number;
+  /** effective craft numbers: the weapon's CraftStats with the carrier's aviation modules applied (ShipFx.air) */
   cs: CraftStats;
+  /** the weapon's own numbers */
+  base: CraftStats;
+  wing: Wing;
   /** the gun as World.applyHit sees it (null: no gun) */
   gun: WeaponDef | null;
   /** anti-ship ordnance (null: none) */
@@ -44,6 +64,12 @@ export interface Squad {
   task: number;
   /** ship the squadron strikes (STRIKE), -1 none */
   tgtShip: number;
+  /** friendly ship the squadron covers (ESCORT), -1 none */
+  guard: number;
+  /** mission priority of the last decision (air control keeps the highest `control` missions) */
+  prio: number;
+  /** CAP: enemy craft are inside the carrier's CAP radius */
+  capThreat: boolean;
   /** guided rounds an interceptor squadron may go after (AIR) */
   muns: number[];
   /** an enemy is within reach: launch */
@@ -53,8 +79,20 @@ export interface Squad {
   /** the carrier escaped or its side left: everything is gone */
   done: boolean;
   ax: number; ay: number; az: number;
-  stats: { launched: number; lost: number; recovered: number; left: number; ordFired: number };
+  stats: { launched: number; lost: number; recovered: number; left: number; ordFired: number; /** decisions per task (TASK_NAME order) */ tasks: number[]; /** missions demoted to CAP by the control limit */ held: number };
 }
+
+/** P16.3: a squadron's effective numbers on a carrier with aviation modules (ShipFx.air) and officer air effects:
+ *  hangar extension adds airframes, maintenance multiplies spares and the turnaround. Shared by the battle pool
+ *  and the combat rating (world/combatRating.ts). */
+export function effectiveCraft(base: CraftStats, air?: AirFx, ofx?: Record<string, number>): CraftStats {
+  const airTurn = ofx?.airTurn ?? 0;
+  if (!air && !airTurn) return base;
+  const turn = (air?.turnaround ?? 1) * (airTurn ? 1 - airTurn : 1);
+  return { ...base, n: base.n + Math.max(0, Math.round(air?.complement ?? 0)), spares: Math.round(base.spares * (air?.spares ?? 1)), turnaround: base.turnaround * turn };
+}
+/** squadrons a carrier directs on missions at once */
+export const wingControl = (air?: AirFx, ofx?: Record<string, number>) => BASE_CONTROL + Math.max(0, Math.round(air?.control ?? 0)) + Math.round(ofx?.airCtl ?? 0);
 
 /** rough sustained damage per second of one squadron (commander stand-off weighting only) */
 export function craftFirepower(cs: CraftStats): number {
@@ -68,6 +106,7 @@ const tv = new Vec3(), tv2 = new Vec3(), tv3 = new Vec3();
 
 export class CraftPool {
   readonly squads: Squad[] = [];
+  readonly wings: Wing[] = [];
   n = 0;
   px = new Float64Array(0); py = new Float64Array(0); pz = new Float64Array(0);
   vx = new Float64Array(0); vy = new Float64Array(0); vz = new Float64Array(0);
@@ -102,19 +141,27 @@ export class CraftPool {
   // ------------------------------------------------------------ setup
   /** give every craft mount of this ship a squadron */
   addShip(s: Ship) {
+    // P16.3 aviation modules (ShipFx.air): hangar extension adds airframes per H slot, maintenance shortens the
+    // turnaround and adds spares, air control raises how many squadrons take missions. Officer air effects
+    // (ofx.airCtl / airTurn) are an extension point: no officer skill grants them yet.
+    const air = s.air, ox = s.ofx;
+    let wing: Wing | null = null;
     for (const m of s.mounts) {
-      const cs = m.weapon.kind === 'craft' ? m.weapon.craft : undefined;
-      if (!cs || cs.n <= 0) continue;
+      const base = m.weapon.kind === 'craft' ? m.weapon.craft : undefined;
+      if (!base || base.n <= 0) continue;
+      const cs = effectiveCraft(base, air, ox);
+      if (!wing) { wing = { ship: s, squads: [], think: 0.05 + (this.wings.length % 10) * 0.025, control: wingControl(air, ox) }; this.wings.push(wing); }
       const first = this.n;
       this.grow(first + cs.n);
       const gun: WeaponDef | null = cs.gun ? { ...m.weapon, kind: 'shell', damage: cs.gun.damage, pen: cs.gun.pen, range: cs.gun.range, reload: cs.gun.reload, salvo: 1 } : null;
       const ord = cs.ordnance ? WEAPONS[cs.ordnance] ?? null : null;
       const idx = this.squads.length;
       this.squads.push({
-        idx, ship: s, mount: m, team: s.team, cs, gun, ord, first, spares: cs.spares, launchT: 0,
-        think: 0.05 + (idx % 10) * 0.025, task: CAP, tgtShip: -1, muns: [], engaged: false, orphan: false, done: false,
-        ax: s.pos.x, ay: s.pos.y, az: s.pos.z, stats: { launched: 0, lost: 0, recovered: 0, left: 0, ordFired: 0 },
+        idx, ship: s, mount: m, team: s.team, cs, base, wing, gun, ord, first, spares: cs.spares, launchT: 0,
+        think: 0, task: CAP, tgtShip: -1, guard: -1, prio: 0, capThreat: false, muns: [], engaged: false, orphan: false, done: false,
+        ax: s.pos.x, ay: s.pos.y, az: s.pos.z, stats: { launched: 0, lost: 0, recovered: 0, left: 0, ordFired: 0, tasks: [0, 0, 0, 0], held: 0 },
       });
+      wing.squads.push(this.squads[idx]);
       for (let i = first; i < first + cs.n; i++) { this.st[i] = HANGAR; this.sq[i] = idx; this.ordL[i] = 1; this.uid[i] = -1; }
       this.n = first + cs.n;
     }
@@ -154,10 +201,14 @@ export class CraftPool {
   // ------------------------------------------------------------ tick
   update() {
     const w = this.w, dt = w.dt;
-    for (const sq of this.squads) {
-      if (sq.done) continue;
-      sq.think -= dt;
-      if (sq.think <= 0) { sq.think += THINK; this.think(sq); }
+    // air control: a carrier's squadrons decide together (≈3 Hz), then the control limit picks the missions
+    for (const wg of this.wings) {
+      wg.think -= dt;
+      if (wg.think > 0) continue;
+      wg.think += THINK;
+      let live = false;
+      for (const sq of wg.squads) if (!sq.done) { this.think(sq); live = true; }
+      if (live) this.assign(wg);
     }
     for (const sq of this.squads) if (!sq.done) this.hangar(sq, dt);
     for (let i = 0; i < this.n; i++) if (this.st[i] === OUT) this.fly(i, dt);
@@ -188,12 +239,49 @@ export class CraftPool {
         }
       }
     }
-    if (cs.role === 'interceptor') { sq.task = air > 0 || sq.muns.length ? AIR : CAP; sq.tgtShip = -1; }
-    else {
-      sq.tgtShip = this.pickShip(sq, R);
-      sq.task = cs.role === 'fighter' && air > 0 ? AIR : sq.tgtShip >= 0 ? STRIKE : CAP;
+    sq.guard = -1; sq.prio = 0;
+    sq.capThreat = cs.role !== 'bomber' && this.enemyCraftNear(sq.team, sq.ax, sq.az, CAP_R) > 0;
+    const threat = air + sq.muns.length;
+    if (cs.role !== 'bomber' && threat > 0) { sq.task = AIR; sq.tgtShip = -1; sq.prio = 4 + Math.min(3, threat / 4); return; }
+    // fighters and interceptors cover a friendly ship that enemy craft are going for
+    if (cs.role !== 'bomber' && !sq.orphan) {
+      const g = this.threatenedFriend(sq, R);
+      if (g >= 0) { sq.task = ESCORT; sq.guard = g; sq.tgtShip = -1; sq.prio = 3; return; }
     }
-    sq.engaged = sq.task !== CAP || this.enemyShipWithin(sq, R * 1.1);
+    if (cs.role === 'interceptor') { sq.task = CAP; sq.tgtShip = -1; return; }
+    sq.tgtShip = this.pickShip(sq, R);
+    if (sq.tgtShip < 0) { sq.task = CAP; return; }
+    sq.task = STRIKE;
+    const t = w.shipById.get(sq.tgtShip)!;
+    sq.prio = cs.role === 'bomber' ? (t.role === 'line' ? 2.5 : 2) : 1;
+  }
+
+  /** P16.3 air control: the `control` highest-priority missions stand, the rest fly CAP. A lost carrier
+   *  directs nothing: its orphaned squadrons keep their own decisions. Then launch permission. */
+  private assign(wg: Wing) {
+    const ctl = wg.ship.state === 'alive';
+    if (ctl) {
+      const missions = wg.squads.filter(sq => !sq.done && !sq.orphan && sq.task !== CAP).sort((a, b) => b.prio - a.prio || a.idx - b.idx);
+      for (let k = wg.control; k < missions.length; k++) { const sq = missions[k]; sq.task = CAP; sq.tgtShip = -1; sq.guard = -1; sq.stats.held++; }
+    }
+    for (const sq of wg.squads) {
+      if (sq.done) continue;
+      sq.stats.tasks[sq.task]++;
+      sq.engaged = sq.task !== CAP || sq.capThreat || this.enemyShipWithin(sq, sq.cs.radius * 1.1);
+    }
+  }
+
+  /** a friendly ship (not the carrier) inside the operating radius that enemy craft are attacking: the most valuable */
+  private threatenedFriend(sq: Squad, R: number): number {
+    const w = this.w, R2 = R * R;
+    let best = -1, bv = 0;
+    for (const f of w.ships) {
+      if (f === sq.ship || f.team !== sq.team || f.state !== 'alive') continue;
+      const dx = f.pos.x - sq.ax, dz = f.pos.z - sq.az;
+      if (dx * dx + dz * dz > R2 || f.value <= bv) continue;
+      if (this.enemyCraftNear(sq.team, f.pos.x, f.pos.z, 700) > 0) { bv = f.value; best = f.id; }
+    }
+    return best;
   }
 
   private pickShip(sq: Squad, R: number): number {
@@ -286,7 +374,7 @@ export class CraftPool {
         gx += Math.cos(a) * (c.halfLen + 60); gz += Math.sin(a) * (c.halfLen + 60); gy += 30;
       }
       if (d < 300) speed = Math.max(cs.speed * 0.5, Math.min(cs.speed, d));
-    } else if (sq.task === AIR || (this.tk[i] !== T_NONE)) {
+    } else if (sq.task === AIR || sq.task === ESCORT || (sq.task === CAP && sq.capThreat) || this.tk[i] !== T_NONE) {
       // air combat: each craft follows its own target (craft, or for interceptors a guided round)
       this.rt[i] -= dt;
       if (this.rt[i] <= 0 || !this.validAir(i)) { this.pickAir(i, sq); this.rt[i] = 0.6; }
@@ -336,10 +424,14 @@ export class CraftPool {
   }
 
   private orbit(i: number, sq: Squad) {
-    const k = i - sq.first, c = sq.ship;
+    const k = i - sq.first;
+    // CAP circles the carrier; an escort circles the ship it covers
+    const g = sq.task === ESCORT ? this.w.shipById.get(sq.guard) : undefined;
+    const c = g && g.state === 'alive' ? g : sq.ship;
+    const cx = c === sq.ship ? sq.ax : c.pos.x, cy = c === sq.ship ? sq.ay : c.pos.y, cz = c === sq.ship ? sq.az : c.pos.z;
     const r = c.radius * 4 + 140 + (k % 3) * 30;
     const a = this.w.time * 0.35 + k * 2.39996;
-    tv.set(sq.ax + Math.cos(a) * r, sq.ay + 40 + (k % 3) * 15, sq.az + Math.sin(a) * r);
+    tv.set(cx + Math.cos(a) * r, cy + 40 + (k % 3) * 15, cz + Math.sin(a) * r);
   }
 
   /** turn toward (dx,dy,dz) by at most maxTurn radians and move */
@@ -382,11 +474,15 @@ export class CraftPool {
   private pickAir(i: number, sq: Squad) {
     const w = this.w, x = this.px[i], z = this.pz[i];
     this.tk[i] = T_NONE; this.tgt[i] = -1;
-    if (sq.task !== AIR) return;
+    if (sq.task === STRIKE || (sq.task === CAP && !sq.capThreat)) return;
+    // CAP fights only over its carrier, an escort only near the ship it covers
+    const g = sq.task === ESCORT ? w.shipById.get(sq.guard) : undefined;
+    const zone = sq.task === CAP ? { x: sq.ax, z: sq.az, r2: (CAP_R * 1.3) ** 2 } : g && g.state === 'alive' ? { x: g.pos.x, z: g.pos.z, r2: 1000 * 1000 } : null;
     let best = -1, bd = 900 * 900;
     this.eachNear(x, z, 900, j => {
       const o = this.squads[this.sq[j]];
       if (!w.hostile(sq.team, o.team)) return;
+      if (zone && (this.px[j] - zone.x) ** 2 + (this.pz[j] - zone.z) ** 2 > zone.r2) return;
       const dx = this.px[j] - x, dy = this.py[j] - this.py[i], dz = this.pz[j] - z;
       let d2 = dx * dx + dy * dy + dz * dz;
       // interceptors go for bombers carrying ordnance first
@@ -394,7 +490,7 @@ export class CraftPool {
       if (d2 < bd) { bd = d2; best = j; }
     });
     if (best >= 0) { this.tk[i] = T_CRAFT; this.tgt[i] = this.uid[best]; return; }
-    if (sq.cs.role === 'interceptor') {
+    if (sq.cs.role === 'interceptor' && sq.task === AIR) {
       let bm = -1, bdm = Infinity;
       for (const id of sq.muns) {
         const mu = w.munitionById.get(id);

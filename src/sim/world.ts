@@ -325,6 +325,7 @@ export class World {
       value: shipCost(classId, loadoutId), recentDamage: 0, lastAttacker: -1, throttle: 0, killedBy: -1,
     };
     if (ox) s.ofx = ox;
+    if (fx.air) s.air = fx.air;
     if (fx.shield) { s.maxShield = s.shield = hp * fx.shield; s.shieldRegen = fx.shieldRegen ?? 0.02; s.shieldHitAt = -99; }
     lo.mounts.forEach((md, i) => {
       const f = md.facing * Math.PI / 180;
@@ -365,6 +366,7 @@ export class World {
       targetId, hp: w.munitionHp ?? 1, age: 0, dead: false,
     };
     if (this.unguided(w)) mu.straight = true;
+    mu.air = true;
     this.munitions.push(mu); this.munitionById.set(mu.id, mu);
     carrier.stats.shots++;
     this.events.push({ t: 'fire', ship: carrier.id, mount: m.index, kind, weapon: w.id, pos: pos.clone(), dir: dir.clone() });
@@ -1171,7 +1173,7 @@ export class World {
           }
           mu.dead = true;
           const dir = mu.vel.clone().normalize();
-          if (t.state === 'alive') this.applyHit(t, mu.weapon, mu.ownerId, segEnd.clone(), dir, mu.kind);
+          if (t.state === 'alive') this.applyHit(t, mu.weapon, mu.ownerId, segEnd.clone(), dir, mu.kind, mu.air);
           else this.events.push({ t: 'hit', target: t.id, attacker: mu.ownerId, pos: segEnd.clone(), dir, dmg: 0, result: 'pen', weapon: mu.weapon.id, facing: 'side' });
           // ABYSS-LANCE: the lance leaves the far side of the hull and keeps going
           if (mu.weapon.pierce && (mu.through?.length ?? 0) < mu.weapon.pierce) {
@@ -1226,7 +1228,11 @@ export class World {
   }
 
   // ---------------------------------------------------------------- damage
-  applyHit(t: Ship, w: WeaponDef, attackerId: number, pos: Vec3, dir: Vec3, kind: string) {
+  /** `air`: a strike craft's hit (its gun, or ordnance it dropped). Since P16.3 the carrier commander's gunnery
+   *  effects (penetration, damage vs. large / small, rear damage, crits) do not apply to it — those belong to the
+   *  ship's own guns; an air hit takes the air-wing effects instead (ofx.airDmg, an extension point no officer
+   *  skill grants yet). Ship guns and every rules 0–2 battle never pass it. */
+  applyHit(t: Ship, w: WeaponDef, attackerId: number, pos: Vec3, dir: Vec3, kind: string, air = kind === 'craft') {
     const fromDir = tmpD.copy(dir).scale(-1);
     const c = fromDir.dot(t.fwd);
     const facing: 'front' | 'side' | 'rear' = c > 0.72 ? 'front' : c < -0.6 ? 'rear' : 'side';
@@ -1248,7 +1254,8 @@ export class World {
         return;
       }
     }
-    const ax = this.shipById.get(attackerId)?.ofx;
+    const ao = this.shipById.get(attackerId)?.ofx;
+    const ax = air ? undefined : ao;
     let armor = t.armor[facing];
     if (t.ofx?.formArmor && this.formation(t) >= 2) armor *= 1 + t.ofx.formArmor;
     const ratio = w.pen * (ax?.pen ? 1 + ax.pen : 1) / armor;
@@ -1260,6 +1267,7 @@ export class World {
     if (mul < 1 && this.exShips.length) { const ax = this.shipById.get(attackerId); if (ax?.ex && exRewrite(this, ax, pos)) { mul = 1; result = 'pen'; } }
     let dmg = w.damage * mul * this.rng.range(0.85, 1.15) * through;
     if (ax) { const big = t.role === 'line'; dmg *= 1 + (big ? ax.dmgCap ?? 0 : ax.dmgSmall ?? 0) + (facing === 'rear' ? ax.rearDmg ?? 0 : 0); }
+    else if (air && ao?.airDmg) dmg *= 1 + ao.airDmg;
     if (t.ofx) { if (t.ofx.brace && t.hp < t.maxHp * 0.3) dmg *= 1 - t.ofx.brace; t.ofHit = this.time; }
     // P15: a large hull's subdivision limits what one hit can wreck (the stern is less protected)
     const struct = this.rules >= 1 ? t.cls.structure : undefined;

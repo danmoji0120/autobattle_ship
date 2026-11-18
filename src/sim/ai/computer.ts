@@ -13,11 +13,11 @@ import type { World } from '../world';
 import type { Group, Ship, Order, Mount } from '../types';
 import type { WeaponDef } from '../data/weapons';
 
-/** behaviour archetypes. 'carrier' is a data/extension point only (no fighter system yet): it fights as basic. */
+/** behaviour archetypes. 'carrier' (P16.3) needs strike craft in the battle (rules ≥ 3); without them it fights as basic. */
 export type CpuArch = 'basic' | 'swarm' | 'picket' | 'line' | 'artillery' | 'siege' | 'carrier';
 export const CPU_ARCHS: CpuArch[] = ['basic', 'swarm', 'picket', 'line', 'artillery', 'siege', 'carrier'];
 /** archetypes with a working behaviour in this build */
-export const CPU_ACTIVE: CpuArch[] = ['swarm', 'picket', 'line', 'artillery', 'siege'];
+export const CPU_ACTIVE: CpuArch[] = ['swarm', 'picket', 'line', 'artillery', 'siege', 'carrier'];
 
 /** what a battle needs to know about a fitted computer (ShipSpec.cpu): serialised with the setup, so a
  *  replay never depends on the content tables. Product id and archetype are separate on purpose. */
@@ -38,10 +38,10 @@ export const CPU_TACTIC: Record<CpuArch, string> = {
   line: '유효 사거리 중앙값 · 전열 정렬과 화력각 유지, 같은 표적에 지속 사격',
   artillery: '주무장 최장 사거리 · 접근당하면 거리를 벌리고 측방 이동',
   siege: '대형함에 어뢰 사거리까지 돌입, 측후방 발사각 확보 후 이탈·재진입',
-  carrier: '함재기 체계 이후 구현 — 현재는 기본 제어로 동작',
+  carrier: '적 함포 사거리 밖·비행대 작전 반경 안을 유지, 접근·유도탄에 회피, 호위 함대와 이격 제한 (함재기 없으면 기본 제어)',
 };
 /** which band of the usable weapons sets the range (UI) */
-export const CPU_BAND: Record<CpuArch, string> = { basic: '함대 기준', swarm: '최소', picket: '중앙값', line: '중앙값', artillery: '최대', siege: '어뢰', carrier: '—' };
+export const CPU_BAND: Record<CpuArch, string> = { basic: '함대 기준', swarm: '최소', picket: '중앙값', line: '중앙값', artillery: '최대', siege: '어뢰', carrier: '작전 반경' };
 
 /** usable weapon ranges of a ship right now. min / median / max are taken over the attack weapons
  *  (shell, missile, torpedo) that can still fire and bear forward, weighted by damage per second;
@@ -75,6 +75,8 @@ interface CpuState {
   acting: CpuArch;
   /** siege statistics */
   launches: number; breaks: number; reentries: number;
+  /** P16.3 carrier: evasive turns (pressed by guns or a guided round inbound) and the stand-off distance chosen */
+  evades: number; standoff: number;
 }
 export type ShipCpu = CpuState;
 
@@ -82,7 +84,7 @@ export function initCpu(spec: CpuSpec, id: number): ShipCpu {
   return {
     spec, arch: spec.arch, react: clamp(spec.react ?? 1, 0.3, 4), next: 0, bands: null, sig: -1,
     side: id % 2 ? 1 : -1, mode: 'approach', point: new Vec3(), timer: 0, armed: false, face: new Vec3(), guard: -1, threat: -1, pick: -1, acting: 'basic',
-    launches: 0, breaks: 0, reentries: 0,
+    launches: 0, breaks: 0, reentries: 0, evades: 0, standoff: 0,
   };
 }
 
@@ -212,7 +214,9 @@ export function steerComputers(w: World, g: Group, ships: Ship[], o: Order) {
     if (!orderAllows(g, o, c.arch)) continue;
     const b = c.bands!;
     // fallbacks: no weapons for this behaviour → the legacy steering already set this tick stays
-    if (c.arch === 'carrier' || c.arch === 'basic') continue;
+    if (c.arch === 'basic') continue;
+    // P16.3: a carrier computer runs only when the battle flies this ship's strike craft (rules ≥ 3)
+    if (c.arch === 'carrier') { if (carrier(w, g, s, decide)) c.acting = 'carrier'; continue; }
     if (c.arch === 'siege' && b.torp <= 0) continue;
     if (c.arch !== 'picket' && b.dps <= 0) continue;
     if (c.arch === 'picket' && b.dps <= 0 && b.pd <= 0) continue;
@@ -424,6 +428,83 @@ function threatNear(w: World, s: Ship, at: Ship, reach: number): Ship | null {
     if (d < bd) { bd = d; best = e; }
   }
   return best;
+}
+
+// ---------------------------------------------------------------- carrier
+// P16.3. Keep out of every enemy's gun reach (+ a margin) while the enemy stays inside the air wing's operating
+// radius, close to the friendly fleet (limited separation from the escorts). Pressed — an enemy has the carrier
+// inside its reach, or a guided round is homing on it — the carrier turns away at full speed (evasion) and
+// sidesteps a round's line of approach; back clear of reach it returns to its station.
+const CARRIER_MARGIN = 220, CARRIER_SEP = 1100;
+/** furthest a ship can hit with its usable guns, missiles and torpedoes (not point defence or craft) */
+function gunReach(e: Ship): number {
+  let r = 0;
+  for (const m of e.mounts) if (usable(m) && m.weapon.kind !== 'pd' && m.weapon.kind !== 'craft' && m.weapon.range > r) r = m.weapon.range;
+  return r;
+}
+function carrier(w: World, g: Group, s: Ship, decide: boolean): boolean {
+  const c = s.cpu!;
+  const wing = w.craft?.wings.find(x => x.ship === s);
+  if (!wing) return false;
+  // the radius the strike squadrons work in (interceptors stay close anyway)
+  const strike = wing.squads.filter(q => q.cs.role !== 'interceptor');
+  const R = Math.min(...(strike.length ? strike : wing.squads).map(q => q.cs.radius));
+  const foes = w.aliveEnemyShips(s.team);
+  if (!foes.length) return false;
+  // pressed: inside some enemy's reach, or a guided round homing on this carrier close by
+  let push = tmp.set(0, 0, 0), pressed = false, maxReach = 0, near: Ship | null = null, nd = Infinity;
+  for (const e of foes) {
+    const reach = gunReach(e), d = e.pos.distTo(s.pos);
+    if (reach > maxReach) maxReach = reach;
+    if (d < nd) { nd = d; near = e; }
+    if (d < reach + (c.mode === 'break' ? CARRIER_MARGIN : 40)) { pressed = true; push.addScaled(tmp2.subVectors(s.pos, e.pos).normalize(), 1 + (reach - d) / Math.max(1, reach)); }
+  }
+  let inbound: { x: number; z: number } | null = null;
+  for (const mu of w.munitions) {
+    if (mu.dead || mu.kind === 'shell' || mu.targetId !== s.id || !w.hostile(s.team, mu.team)) continue;
+    if (mu.pos.distTo(s.pos) < 900) { inbound = { x: mu.vel.x, z: mu.vel.z }; break; }
+  }
+  if (pressed || inbound) {
+    if (c.mode !== 'break') { c.mode = 'break'; c.evades++; c.side = -c.side; }
+    const away = push.lengthSq() > 1e-6 ? push.normalize() : tmp.subVectors(s.pos, near!.pos).normalize();
+    away.y = 0;
+    const side = tmp3.crossVectors(UP, away).normalize().scale(c.side);
+    s.ai.moveTo.copy(s.pos).addScaled(away, 600).addScaled(side, inbound ? 450 : 200);
+    if (inbound) {
+      // beam the round: run across its line of approach
+      const l = Math.hypot(inbound.x, inbound.z) || 1;
+      s.ai.moveTo.x += -inbound.z / l * 350 * c.side; s.ai.moveTo.z += inbound.x / l * 350 * c.side;
+    }
+    s.ai.moveTo.y = s.pos.y;
+    s.ai.faceTo = null;
+    s.ai.speedCap = s.maxSpeed;
+    s.ai.run = null;
+    return true;
+  }
+  c.mode = 'approach';
+  // station: the commander's target group (or the nearest enemy), at stand-off D, toward home
+  const T = g.ai.mainTarget >= 0 ? w.groupById.get(g.ai.mainTarget) : undefined;
+  const ts = T ? w.subtreeShips(T) : [];
+  const ref = ts.length ? w.centroid(ts, new Vec3()) : near!.pos.clone();
+  if (decide || !c.standoff) c.standoff = Math.max(500, Math.min(maxReach + CARRIER_MARGIN, R * 0.85));
+  const away = tmp.subVectors(s.pos, ref); away.y = 0;
+  if (away.lengthSq() < 1) away.copy(w.sides[s.team].home); away.y = 0; away.normalize();
+  const P = s.ai.moveTo.copy(ref).addScaled(away, c.standoff);
+  // keep within reach of the escorts: the friendly ships of the side, without the carrier itself
+  const friends = w.ships.filter(f => f !== s && f.team === s.team && f.state === 'alive' && f.cpu?.arch !== 'carrier');
+  if (friends.length) {
+    const F = w.centroid(friends, new Vec3());
+    const dx = P.x - F.x, dz = P.z - F.z, d = Math.hypot(dx, dz);
+    if (d > CARRIER_SEP) { P.x = F.x + dx / d * CARRIER_SEP; P.z = F.z + dz / d * CARRIER_SEP; }
+    // never pulled back inside the nearest enemy's reach by the escort limit
+    const ne = near!, dn = Math.hypot(P.x - ne.pos.x, P.z - ne.pos.z), rn = gunReach(ne) + CARRIER_MARGIN * 0.5;
+    if (dn < rn) { const k = rn / Math.max(1, dn); P.x = ne.pos.x + (P.x - ne.pos.x) * k; P.z = ne.pos.z + (P.z - ne.pos.z) * k; }
+  }
+  P.y = s.pos.y * 0.6 + ref.y * 0.4;
+  s.ai.faceTo = s.pos.distTo(P) < 250 ? (near ? near.pos : null) : null;
+  s.ai.speedCap = s.maxSpeed;
+  s.ai.run = null;
+  return true;
 }
 
 // ------------------------------------------------------------------ siege

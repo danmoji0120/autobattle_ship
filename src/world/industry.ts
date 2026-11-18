@@ -406,6 +406,21 @@ export function fitFx(fit: string[] | undefined, tech: string[] | undefined, arm
   return fx;
 }
 
+/** P16.3: a carrier's aviation-module effects (EquipDef.air): complement and control add up, spares and
+ *  turnaround multiply. undefined when no aviation module is fitted, so other ships' ShipFx are unchanged. */
+export function airFx(fit: string[] | undefined): import('../sim/fleet').AirFx | undefined {
+  let out: import('../sim/fleet').AirFx | undefined;
+  for (const id of fit ?? []) {
+    const a = EQUIPMENT[id]?.air; if (!a) continue;
+    out ??= {};
+    if (a.complement) out.complement = (out.complement ?? 0) + a.complement;
+    if (a.control) out.control = (out.control ?? 0) + a.control;
+    if (a.spares) out.spares = (out.spares ?? 1) * a.spares;
+    if (a.turnaround) out.turnaround = (out.turnaround ?? 1) * a.turnaround;
+  }
+  return out;
+}
+
 /** growth (P5) combat effects on top of fitFx: shield modules, research combat effects (global and
  *  per weapon family). Only keys that change anything are returned, so a ship without P5 content
  *  fights with exactly the fitFx object. Never called below contentV 3. */

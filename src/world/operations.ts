@@ -23,7 +23,7 @@ import { OVERHEAD } from './econConfig';
 import { yardFee } from './valuation';
 import { effSec } from './security';
 import { usableRouteGate } from './logistics';
-import { CONTENT } from '../content/registry';
+import { CONTENT, gearReleased } from '../content/registry';
 import { dist } from './geom';
 import { industryHold } from './procurement';
 import { buyCost } from './market';
@@ -965,7 +965,7 @@ const remainingOut = (g: GoalOrder) => g.o.mode === 'count' ? Math.max(0, g.o.n 
 const batchesToFeed = (g: GoalOrder) => g.o.mode === 'count' ? Math.max(0, g.o.n - g.o.done - g.inflight) : 0;
 function producible(h: WorldSim, owner: string, item: string) {
   const co = h.st.companies[owner];
-  return Object.values(RECIPES).map(r => recipeFor(h.st, r.id)!).filter(r => r && (r.out[item] ?? 0) > 0 && recipeOk(r, co) && (!r.growth || growthOn(h.st)));
+  return Object.values(RECIPES).map(r => recipeFor(h.st, r.id)!).filter(r => r && (r.out[item] ?? 0) > 0 && recipeOk(r, co) && (!r.growth || growthOn(h.st)) && Object.keys(r.out).every(k => gearReleased(k)));
 }
 /**
  * Plan `need` more units of `item` from the company's own production lines, at any own station that has them.

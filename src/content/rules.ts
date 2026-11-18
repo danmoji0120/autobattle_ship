@@ -61,6 +61,16 @@ export function bayAccepts(bay: InternalSlotDef, equipId: string, reg: Registry 
   return null;
 }
 
+/** P16.3: one-line effect of an aviation module (EquipDef.air) */
+export function airText(a: { complement?: number; control?: number; spares?: number; turnaround?: number }): string {
+  const p: string[] = [];
+  if (a.complement) p.push(`H 슬롯당 동시 운용 +${a.complement}기`);
+  if (a.control) p.push(`관제 비행대 +${a.control}`);
+  if (a.turnaround) p.push(`재출격 준비 ${Math.round((a.turnaround - 1) * 100)}%`);
+  if (a.spares) p.push(`예비 기체 +${Math.round((a.spares - 1) * 100)}%`);
+  return p.join(' · ');
+}
+
 /** traverse of a weapon item on a hardpoint */
 export const arcOf = (hp: HardpointDef, equipId: string) => Math.min(hp.arc, hp.arcBy?.[equipId] ?? hp.arc);
 

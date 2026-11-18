@@ -1,6 +1,7 @@
 // P15.1 combat computers (BattleSetup.rules 2): computer bay and equipment, fitting → ShipSpec wiring, the
 // per-computer movement behaviours, order priority, off-role fits and rules 0/1 compatibility.
 // docs/P15_1_COMBAT_COMPUTERS.md
+import { CARRIER_MODULES } from '../src/content/packs/growth/carrier';
 import { describe, expect, it } from 'vitest';
 import { World, BATTLE_RULES } from '../src/sim/world';
 import { orderAllows, cpuSummary, cpuRange, bandsOf, CPU_ACTIVE, type CpuArch } from '../src/sim/ai/computer';
@@ -75,7 +76,8 @@ describe('P15.1 content: computer bay and equipment', () => {
 
   it('content validates and the product id is separate from the behaviour', () => {
     expect(validateContent(CONTENT).filter(i => i.level === 'error')).toEqual([]);
-    const archs = new Set(CPU_MODULES.map(m => m.cpu!.arch));
+    // P16.3: the carrier computer is a product of the carrier pack (preview-gated with the carrier gear)
+    const archs = new Set([...CPU_MODULES, ...CARRIER_MODULES.filter(m => m.cpu)].map(m => m.cpu!.arch));
     for (const a of CPU_ACTIVE) expect(archs.has(a), a).toBe(true);
     expect(CPU_MODULES.filter(m => m.cpu!.arch === 'line').map(m => m.id).sort()).toEqual(['cpu_generic', 'cpu_line']);
     for (const ids of Object.values(CPU_MARKETS)) for (const id of ids) expect(EQUIPMENT[id], id).toBeTruthy();

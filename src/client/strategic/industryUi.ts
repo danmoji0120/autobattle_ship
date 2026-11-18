@@ -14,7 +14,7 @@ import { ECON } from '../../world/data';
 import { FIELD_NAME, techFx, type Field } from '../../world/industry';
 import { growthOn } from '../../world/hullops';
 import { WEAPONS, isCraft, craftSummary } from '../../sim/data/weapons';
-import { weaponRole } from '../../content/registry';
+import { weaponRole, gearReleased } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 import { storeUsed, reservedSpace, listedSpace, logisticsReservedSpace } from '../../world/storage';
 import { procurementSourceHtml } from './procurementUi';
@@ -112,7 +112,8 @@ export function prodHtml(w: WorldState, s: Station, me: string, ui: IndUi): stri
       ${o.paused ? `<button class="btn mini" data-oop="resume:${o.id}">▶</button>` : `<button class="btn mini" data-oop="pause:${o.id}">⏸</button>`}<button class="btn mini warnb" data-oop="cancel:${o.id}">✕</button></div></div>`;
   }).join('')}</div>` : '<div class="dim small">주문이 없습니다. 아래 레시피에서 생산 주문을 등록하세요.</div>'}`;
   // recipe catalog
-  const allRec = Object.keys(RECIPES).map(id => recipeFor(w, id)).filter((r): r is RecipeDef => !!r && (!r.growth || growthOn(w as any)));
+  // P16.3: gear for unreleased hulls (strike craft, aviation modules) is not offered
+  const allRec = Object.keys(RECIPES).map(id => recipeFor(w, id)).filter((r): r is RecipeDef => !!r && (!r.growth || growthOn(w as any)) && Object.keys(r.out).every(k => gearReleased(k)));
   const facKinds = [...new Set(allRec.map(r => r.fac))];
   const recs = allRec.filter(r => (ui.recFac === 'all' || ui.recFac === r.fac) && (!ui.recQ || r.name.includes(ui.recQ) || Object.keys(r.out).some(k => match(k, ui.recQ)) || Object.keys(r.in).some(k => match(k, ui.recQ))));
   html += `<h3>레시피</h3><div class="frow">${chips('rfac', ui.recFac, [['all', '전체'], ...facKinds.map(k => [k, FACILITIES[k].name] as [string, string])])}<input class="search" data-rq placeholder="레시피·품목 검색" value="${esc(ui.recQ)}"></div>

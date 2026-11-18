@@ -24,7 +24,12 @@ export interface ShipFx {
   shield?: number; shieldRegen?: number;
   /** P5 (growth): per weapon-family research multipliers */
   fam?: Record<string, { dmg?: number; reload?: number; range?: number }>;
+  /** P16.3: aviation modules of a carrier (sum of complement / control, product of spares / turnaround) — read only
+   *  by the strike-craft pool (rules ≥ 3) */
+  air?: AirFx;
 }
+/** P16.3 carrier air-wing effects (content AirSpec, combined over a ship's aviation modules) */
+export interface AirFx { complement?: number; spares?: number; control?: number; turnaround?: number }
 
 export interface GroupSpec {
   name: string;

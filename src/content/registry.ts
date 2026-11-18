@@ -189,6 +189,22 @@ export function legacyOf(classId: string, loadoutId: string, reg: Registry = CON
 /** P16: a hull the world has released (not a dev, account-exclusive or preview hull) — catalogues, purchase,
  *  construction and blueprint offers use only these */
 export const hullReleased = (hullId: string | undefined, reg: Registry = CONTENT): boolean => { const h = hullId ? reg.hulls[hullId] : undefined; return !!h && !h.dev && !h.exclusive && !h.preview; };
+/** P16.3: equipment a released hull can use. Strike-craft weapons fit only an H (hangar) hardpoint and
+ *  aviation modules only a flight bay — while no released hull has one, that gear is useless to a player,
+ *  so production, purchase and reverse-engineering refuse it (docs/P16_3_CARRIER_OPERATIONS.md §2). Every
+ *  other item is released. */
+export function gearReleased(equipId: string, reg: Registry = CONTENT): boolean {
+  const spec = reg.equipment[equipId]; if (!spec) return true;
+  // the carrier computer only does something on a ship with strike craft
+  const craft = (spec.slot === 'hardpoint' && reg.arms[equipId]?.combat.kind === 'craft') || reg.modules[equipId]?.cpu?.arch === 'carrier';
+  const flight = spec.slot === 'flight';
+  if (!craft && !flight) return true;
+  return Object.values(reg.variants).some(v => {
+    if (!hullReleased(v.hull, reg)) return false;
+    const lay = variantLayout(v.id, reg); if (!lay) return false;
+    return craft ? lay.hardpoints.some(h => h.type === 'hangar') : lay.internals.some(b => b.kind === 'flight');
+  });
+}
 /** the hull a blueprint lets its holder build (hull or variant targets), if any */
 export const blueprintHull = (bp: BlueprintDef, reg: Registry = CONTENT): string | undefined => bp.target.kind === 'hull' ? bp.target.id : bp.target.kind === 'variant' ? reg.variants[bp.target.id]?.hull : undefined;
 export const hullsOfClass = (classId: string, reg: Registry = CONTENT) => Object.values(reg.hulls).filter(h => h.classId === classId);

@@ -16,6 +16,7 @@ import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, s
 import { Rng } from '../sim/rng';
 import { World, BATTLE_RULES } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
+import { airValueMul, hasCraft } from './combatRating';
 import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
 import type { Order, OrderRecord, BattleEvent, SideSpec, Relation, SideResult } from '../sim/types';
@@ -29,10 +30,10 @@ import { migrateContent, syncShipContent, FITTING_V, type MigrationReport } from
 import { migrateEconChain, enableEconChainNew, type EconMigrationReport } from './econMigrate';
 import { fitServiceUnit, type EqPolicy } from './econChain';
 import { checkFitting, fittingFromLegacy, fittingItems, shipLoadout, bayModules, placeModules, legacySig, loadoutLabel, matchingPreset, itemDelta, normFitting, cpuOfFitting, type ShipFitting } from './fitting';
-import { CONTENT, legacyOf, contentAvail } from '../content/registry';
+import { CONTENT, legacyOf, contentAvail, gearReleased } from '../content/registry';
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
 import { stepProduction, storageCap, stationPower, stationSupportOnline, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
-import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, facilityTech, techUnlocks, techFx, fitFx, growthFx, loadoutEquipment, recipeFor, itemPrice as itemPriceOf } from './industry';
+import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, facilityTech, techUnlocks, techFx, fitFx, growthFx, airFx, loadoutEquipment, recipeFor, itemPrice as itemPriceOf } from './industry';
 import { normalizeRegionalOrders, regionalHullMaterials, regionalMarketRequired } from './regional';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
 import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInfluence } from './factions';
@@ -509,6 +510,8 @@ export class WorldSim {
     if (g.evasion) o.evasion += g.evasion;
     if (g.shield) { o.shield = g.shield; o.shieldRegen = g.shieldRegen; }
     if (g.fam) o.fam = g.fam;
+    // P16.3: aviation modules (carrier) → the strike-craft pool
+    const air = airFx(s.fit); if (air) o.air = air;
     return o;
   }
 
@@ -1031,6 +1034,8 @@ export class WorldSim {
           receipt = { seq: request.seq, id: request.id, signature };
         }
         const st = S(cmd.station); if (!st?.market || typeof cmd.res !== 'string' || !Object.hasOwn(st.market, cmd.res)) return '거래 불가';
+        // P16.3: no market stocks gear for unreleased hulls; refuse a purchase even if a row appears
+        if (cmd.c === 'buy' && !gearReleased(cmd.res)) return `${EQUIPMENT[cmd.res]?.name ?? cmd.res}: 장착할 수 있는 공개 선체가 없어 구매할 수 없음`;
         const store = this.storage(st, company);
         const amt = Math.floor(Math.max(0, cmd.amount));
         if (cmd.c === 'sell') {
@@ -1272,6 +1277,8 @@ export class WorldSim {
         const st = S(cmd.station); const r = recipeFor(this.st, cmd.recipe);
         if (!st || st.owner !== company) return '자사 정거장이 아님';
         if (!r || (r.growth && !growthOn(this.st))) return '알 수 없는 레시피';
+        // P16.3: strike craft and aviation modules fit only hulls the world has not released yet
+        { const g = Object.keys(r.out).find(k => !gearReleased(k)); if (g) return `${EQUIPMENT[g]?.name ?? g}: 장착할 수 있는 공개 선체가 없어 생산할 수 없음`; }
         if (r.tech && !co.tech?.includes(r.tech)) return `연구 필요: ${techName(r.tech)}`;
         if (!st.modules.some(m => m.kind === r.fac)) return `${MODULES[r.fac].name}이(가) 없습니다 — 먼저 건설하세요`;
         const n = Math.floor(cmd.n);
@@ -4568,6 +4575,15 @@ export class WorldSim {
     for (const e of Object.values(this.st.engagements)) if (!e.done && e.autoEnd !== undefined && this.time >= e.autoEnd) this.finishEngagement(e, this.quickResolve(e), false);
   }
 
+  /** P16.3: a carrier's strength-model weight from its air group as fitted (combatRating.airValueMul); exactly 1 for
+   *  every class without strike craft in its standard loadout, so their values (and the rng draws) are unchanged */
+  private airValue(s: WShip, g?: WGroup): number {
+    const cls = SHIP_CLASSES[s.classId];
+    if (!cls?.loadouts.length || !hasCraft(cls.loadouts[0])) return 1;
+    const co = this.st.companies[s.owner];
+    return airValueMul(cls, s.fitting ? shipLoadout(s) : getLoadout(s.classId, s.loadoutId), co?.kind === 'player' ? this.shipFxOf(s) : undefined, g ? this.cmdr(g).ofx : undefined);
+  }
+
   /** strength-model resolution for NPC-only fights (Lanchester square law with noise) */
   private quickResolve(e: Engagement): BattleResult {
     if (e.v === 2) return this.quickResolveP11(e);
@@ -4579,7 +4595,7 @@ export class WorldSim {
       const g = st.groups[s.groupId];
       const skill = g ? this.cmdr(g).skill : 0.3;
       const mil = econOf(s).military;
-      units.push({ ref: s.id, side: e.sides[0].includes(s.owner) ? 0 : 1, val: shipValue(s.classId) * (mil ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
+      units.push({ ref: s.id, side: e.sides[0].includes(s.owner) ? 0 : 1, val: shipValue(s.classId) * this.airValue(s, g) * (mil ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
     }
     if (e.lairId) { const l = st.lairs[e.lairId]; if (l) units.push({ ref: 'lair:' + l.id, side: 1, val: 300 * (0.4 + 0.6 * l.hp), hp: l.hp }); }
     if (e.stationId) { const x = st.stations[e.stationId]; const n = x && stationSupportOnline(x) ? x.modules.filter(m => m.kind === 'defense' && m.built).length : 0; for (let i = 0; i < n; i++) units.push({ ref: 'station:' + x!.id, side: 0, val: 300 * x!.defenseHp, hp: x!.defenseHp }); }
@@ -4617,7 +4633,7 @@ export class WorldSim {
       const k = sideOfCo(s.owner); if (k < 0) continue;
       const g = st.groups[s.groupId];
       const skill = g ? this.cmdr(g).skill : 0.3;
-      units.push({ ref: s.id, side: k, val: shipValue(s.classId) * (econOf(s).military ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
+      units.push({ ref: s.id, side: k, val: shipValue(s.classId) * this.airValue(s, g) * (econOf(s).military ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
     }
     if (e.lairId) { const l = st.lairs[e.lairId], k = sideOfCo('pirates'); if (l && k >= 0) units.push({ ref: 'lair:' + l.id, side: k, val: 300 * (0.4 + 0.6 * l.hp), hp: l.hp }); }
     const S = Array.from({ length: n }, (_, k) => units.filter(u => u.side === k).reduce((a, u) => a + u.val, 0) * r.range(0.82, 1.18));

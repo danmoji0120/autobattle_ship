@@ -24,7 +24,6 @@ const wing = (id: string, name: string, role: ArmContent['role'], tech: string, 
   id, name, desc, family: 'craft', tier: 1, role, size: 'L', mass, power, mounts: ['deck'], tech,
   combat: { kind: 'craft', damage: cs.gun?.damage ?? 0, pen: cs.gun?.pen ?? 0, range: cs.radius, speed: cs.speed, reload: cs.turnaround, salvo: 0, salvoGap: 0, spread: 0, turnSpeed: 360, caliber: 1, sound: 'auto', craft: cs },
   recipe: { fac: 'weapons_factory', time, in: inp },
-  supply: { chemicals: 0.8 },
 });
 
 export const CARRIER_ARMS: ArmContent[] = [
@@ -42,6 +41,11 @@ const air = (id: string, name: string, a: AirSpec, mass: number, power: number, 
 });
 
 export const CARRIER_MODULES: ModuleContent[] = [
+  // P16.3: the carrier computer (computer bay, any hull): stand-off from enemy guns inside the air wing's radius,
+  // evasion when pressed, limited separation from its escorts (sim/ai/computer.ts 'carrier')
+  { id: 'cpu_carrier', name: '항모 관제 컴퓨터', slot: 'computer', size: 'S', mass: 2, power: 4, fx: {}, cpu: { arch: 'carrier' }, tech: 'combined_arms',
+    recipe: { fac: 'electronics_fab', time: 600, in: { electronics: 6, precision: 3, crystal: 1 } },
+    desc: '적 함포 사거리 밖, 비행대 작전 반경 안에 항모를 두고, 적이 다가오거나 유도탄이 오면 회피한다. 호위 함대에서 너무 멀어지지 않는다. 함재기가 없으면 기본 제어.' },
   air('air_hangar_ext', '격납고 확장 모듈', { complement: 2 }, 10, 1, 'machine_shop', 1200, { structure: 8, machinery: 6 }, 'modular_assembly',
     '격납 갑판을 넓혀 H 슬롯마다 동시에 띄우는 기체를 2기 늘린다.'),
   air('air_control', '항공 관제 장치', { control: 1 }, 4, 4, 'electronics_fab', 1200, { electronics: 8, precision: 2 }, 'long_sensors',
@@ -100,3 +104,11 @@ export const CARRIER_BLUEPRINTS: BlueprintDef[] = [
   { id: 'bp_carrier_dawn', name: '여명급 항모 설계도', desc: '여명급 항모 선체의 건조 권리. 대형 선체와 제병 협동 연구가 필요하다.', grade: 'rare', target: { kind: 'hull', id: CARRIER_HULL },
     sources: [{ kind: 'commercial', stations: ['helios', 'bastion'], price: 160000, rep: 35, contracts: 6 }], requires: ['capital_hulls', 'combined_arms'] },
 ];
+
+/** P16.3 migration preparation: carrier gear market rows for public stations once carriers are released
+ *  (world/industrialGear.ts migrateCarriers — refused while the hull is a preview; NOT run on any world yet).
+ *  The stations are the blueprint's commercial sources. */
+export const CARRIER_MARKETS: Record<string, string[]> = {
+  helios: ['eq_wing_fighter', 'eq_wing_interceptor', 'air_control', 'air_maint', 'cpu_carrier'],
+  bastion: ['eq_wing_fighter', 'eq_wing_torpedo', 'air_hangar_ext', 'air_maint', 'cpu_carrier'],
+};

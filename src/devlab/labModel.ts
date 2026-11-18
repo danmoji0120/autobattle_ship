@@ -5,7 +5,7 @@ import { WEAPONS } from '../sim/data/weapons';
 import { ACTING_CAPTAIN, type CommanderDef, type Specialty } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, InitialOrder, ShipFx, ShipSpec } from '../sim/fleet';
 import { World, BATTLE_RULES, type BattleSetup } from '../sim/world';
-import { EQUIPMENT, TECHS, fitFx, growthFx } from '../world/industry';
+import { EQUIPMENT, TECHS, fitFx, growthFx, airFx } from '../world/industry';
 import { bayModules, checkFitting, loadoutLabel, shipLoadout, cpuOfFitting, type ShipFitting } from '../world/fitting';
 import { CONTENT_VERSION } from '../world/migrate';
 
@@ -14,7 +14,10 @@ export interface LabShip { id: string; hull: string; variant: string; fitting: S
 export interface LabGroup { name: string; commander: CommanderDef | null; order: InitialOrder; retreatAt: number; ships: LabShip[]; children: LabGroup[] }
 export interface LabSide { name: string; root: LabGroup; research: string[] }
 export interface LabPreset { id: string; name: string; hull: string; variant: string; hp: Record<string, string>; bay: Record<string, string> }
-export interface LabConfig { schema: 'siderarium-combat-lab-2'; content: { version: number; fingerprint: string; packs: string[] }; seed: number; distance: number; timeLimit: number; speed: number; sides: [LabSide, LabSide]; presets: LabPreset[] }
+export interface LabConfig { schema: 'siderarium-combat-lab-2'; content: { version: number; fingerprint: string; packs: string[] }; seed: number; distance: number; timeLimit: number; speed: number; sides: [LabSide, LabSide]; presets: LabPreset[];
+  /** P16.3: battle rules of the experiment. Absent = the build's BATTLE_RULES (stored experiments are unchanged);
+   *  3 = strike craft, the only way to test the unreleased carrier (preview hulls are refused otherwise) */
+  rules?: 3 }
 export interface SideResult { survivors: number; destroyed: number; kills: number; escaped: number; dealt: number; taken: number; hull: number; maxHull: number; shots: number; hits: number; intercepts: number }
 export interface BattleResult { seed: number; swapped: boolean; winner: 0 | 1 | -1; reason: string; time: number; digest: string; sides: [SideResult, SideResult] }
 export interface Experiment { schema: 'siderarium-combat-results-1'; config: LabConfig; battles: BattleResult[]; summary: Summary }
@@ -36,11 +39,14 @@ export function contentIdentity(): LabConfig['content'] {
   return { version: CONTENT_VERSION, fingerprint: `fnv1a32-${(h >>> 0).toString(16).padStart(8, '0')}`, packs: CONTENT.packs.map(p => p.id) };
 }
 
-/** lab hulls: everything but dev hulls and P16 preview hulls (the carrier opens in the lab with P16.4) */
-export const availableHulls = () => Object.values(CONTENT.hulls).filter(h => !h.dev && !h.preview && !!SHIP_CLASSES[h.classId]);
-export function defaultShip(hull: string, id: string, variant?: string): LabShip {
+/** P16.3: the lab tests preview hulls (the carrier) only under explicit battle rules 3 */
+export const labPreviewOk = (rules: number | undefined) => rules === 3;
+const PREVIEW_RULES = '미공개 선체(항모)는 전투 규칙 3을 선택한 실험에서만 쓸 수 있습니다';
+/** lab hulls: everything but dev hulls; P16 preview hulls (the carrier) only for a rules-3 experiment */
+export const availableHulls = (rules?: number) => Object.values(CONTENT.hulls).filter(h => !h.dev && (!h.preview || labPreviewOk(rules)) && !!SHIP_CLASSES[h.classId]);
+export function defaultShip(hull: string, id: string, variant?: string, rules?: number): LabShip {
   const h = CONTENT.hulls[hull];
-  if (!h || h.dev || h.preview) throw new Error('사용할 수 없는 선체입니다');
+  if (!h || h.dev || (h.preview && !labPreviewOk(rules))) throw new Error('사용할 수 없는 선체입니다');
   const v = variantsOfHull(hull).find(x => x.id === variant) ?? variantsOfHull(hull).find(x => x.id === `${hull}_std`) ?? variantsOfHull(hull)[0];
   if (!v) throw new Error('선체의 파생형이 없습니다');
   const presets = presetsOfHull(hull).filter(p => p.variant === v.id);
@@ -116,6 +122,7 @@ export function configProblems(input: unknown): string[] {
   if (!finite(input.distance, 400, 6000)) errors.push('초기 기준 거리는 400~6,000이어야 합니다');
   if (!finite(input.timeLimit, 10, 3600)) errors.push('제한 시간은 10~3,600초여야 합니다');
   if (![.5, 1, 2, 4].includes(input.speed)) errors.push('배속이 올바르지 않습니다');
+  if (input.rules !== undefined && input.rules !== 3) errors.push('전투 규칙은 기본값 또는 3이어야 합니다');
   if (!Array.isArray(input.sides) || input.sides.length !== 2) return [...errors, '두 진영이 필요합니다'];
   let total = 0;
   for (let team = 0; team < 2; team++) {
@@ -132,7 +139,8 @@ export function configProblems(input: unknown): string[] {
         if (!record(ship) || typeof ship.id !== 'string' || !/^[A-Za-z0-9_-]{1,60}$/.test(ship.id) || ids.has(ship.id) || !Number.isInteger(ship.count) || ship.count < 1 || ship.count > 200) { errors.push(`${label}: 편대 정보가 올바르지 않습니다`); continue; }
         ids.add(ship.id); count += ship.count; total += ship.count;
         const hull = typeof ship.hull === 'string' ? CONTENT.hulls[ship.hull] : undefined;
-        if (!hull || hull.dev || hull.preview || !SHIP_CLASSES[hull.classId] || typeof ship.variant !== 'string' || CONTENT.variants[ship.variant]?.hull !== ship.hull) { errors.push(`${label}: 알 수 없거나 사용할 수 없는 선체·파생형`); continue; }
+        if (!hull || hull.dev || !SHIP_CLASSES[hull.classId] || typeof ship.variant !== 'string' || CONTENT.variants[ship.variant]?.hull !== ship.hull) { errors.push(`${label}: 알 수 없거나 사용할 수 없는 선체·파생형`); continue; }
+        if (hull.preview && !labPreviewOk(input.rules)) { errors.push(`${label} ${hull.name}: ${PREVIEW_RULES}`); continue; }
         if (!record(ship.fitting) || !record(ship.fitting.hp) || !record(ship.fitting.bay) || [...Object.entries(ship.fitting.hp), ...Object.entries(ship.fitting.bay)].some(([k,v]) => k.length > 60 || typeof v !== 'string' || v.length > 80)) { errors.push(`${label}: 피팅 형식 오류`); continue; }
         for (const problem of checkFitting(ship.variant, ship.fitting as ShipFitting).errors) errors.push(`${label} ${group.name}: ${problem}`);
       }
@@ -157,6 +165,7 @@ function shipFx(ship: LabShip, tech: string[]): ShipFx {
   if (g.evasion) out.evasion += g.evasion;
   if (g.shield) { out.shield = g.shield; out.shieldRegen = g.shieldRegen; }
   if (g.fam) out.fam = g.fam;
+  const air = airFx(mods); if (air) out.air = air;
   return out;
 }
 
@@ -180,7 +189,7 @@ export function battleSetup(config: LabConfig, seed = config.seed, swapped = fal
     });
     return { name: side.name, root: toGroup(side.root) };
   }) as [FleetSpec, FleetSpec];
-  return { seed, scenarioId: 'kestrel', fleets, spawnZ: config.distance / 2, timeLimit: config.timeLimit, rules: BATTLE_RULES };
+  return { seed, scenarioId: 'kestrel', fleets, spawnZ: config.distance / 2, timeLimit: config.timeLimit, rules: config.rules ?? BATTLE_RULES };
 }
 
 const zero = (): SideResult => ({ survivors: 0, destroyed: 0, kills: 0, escaped: 0, dealt: 0, taken: 0, hull: 0, maxHull: 0, shots: 0, hits: 0, intercepts: 0 });

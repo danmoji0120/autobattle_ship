@@ -342,7 +342,7 @@ async function main() {
   }
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, ...worldFlags, repMigrate: process.env.REPUTATION_P14_MIGRATE === '1', derelictMigrate: process.env.DERELICTS_A32B_MIGRATE === '1', officerMigrate: process.env.OFFICERS_B1_MIGRATE === '1', milMigrate: process.env.MILITARY_B2_MIGRATE === '1', sovMigrate: process.env.TERRITORY_B3_MIGRATE === '1', indMigrate: process.env.INDUSTRIAL_MIGRATE === '1', cpuMigrate: process.env.COMPUTERS_P151_MIGRATE === '1',
+    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, ...worldFlags, repMigrate: process.env.REPUTATION_P14_MIGRATE === '1', derelictMigrate: process.env.DERELICTS_A32B_MIGRATE === '1', officerMigrate: process.env.OFFICERS_B1_MIGRATE === '1', milMigrate: process.env.MILITARY_B2_MIGRATE === '1', sovMigrate: process.env.TERRITORY_B3_MIGRATE === '1', indMigrate: process.env.INDUSTRIAL_MIGRATE === '1', cpuMigrate: process.env.COMPUTERS_P151_MIGRATE === '1', carrierMigrate: process.env.CARRIERS_P16_MIGRATE === '1',
     // Verify migration conservation before the intentionally granted BB-EX changes the census.
     deferExclusiveGrant: true,
     adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),

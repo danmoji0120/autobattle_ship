@@ -1,6 +1,7 @@
 import './devCombatLab.css';
 import { api } from '../client/account';
 import { TECHS } from '../world/industry';
+import { BATTLE_RULES } from '../sim/world';
 import type { OrderRecord } from '../sim/types';
 import { BattleSession } from '../game/session';
 import { BattleHUD } from '../ui/battleHud';
@@ -82,7 +83,7 @@ class CombatLab {
     const panel=document.createElement('main');panel.className='dl';panel.dataset.labControl='';
     panel.innerHTML=`<header class="dl-header"><div><span class="dl-kicker">SIDERARIUM / DEVELOPMENT</span><h1>Combat Lab</h1><p>실제 전투 엔진으로 두 함대를 비교합니다. 실험은 브라우저 안에서만 실행됩니다.</p></div><div class="dl-actions"><button class="btn" data-close-controls>← 함대 편성</button><button class="btn" data-default>기본 비교</button><button class="btn" data-export>설정 내보내기</button><label class="btn dl-file">설정 가져오기<input type="file" accept="application/json,.json" data-import></label><button class="btn" data-logout>실험실 잠금</button></div></header>
       ${this.notice&&!this.worker?`<div class="dl-notice" role="status">${esc(this.notice)}</div>`:''}
-      <section class="dl-conditions"><div><span class="dl-kicker">EXPERIMENT CONDITIONS</span><h2>전투 조건</h2></div><label>시드<input type="number" min="0" max="2147483647" data-condition="seed" value="${c.seed}"></label><label>기준 거리<input type="number" min="400" max="6000" step="100" data-condition="distance" value="${c.distance}"></label><label>제한 시간 (초)<input type="number" min="10" max="3600" step="10" data-condition="timeLimit" value="${c.timeLimit}"></label><label>관전 배속<select data-condition="speed">${[.5,1,2,4].map(n=>`<option value="${n}"${n===c.speed?' selected':''}>${n}×</option>`).join('')}</select></label></section>
+      <section class="dl-conditions"><div><span class="dl-kicker">EXPERIMENT CONDITIONS</span><h2>전투 조건</h2></div><label>시드<input type="number" min="0" max="2147483647" data-condition="seed" value="${c.seed}"></label><label>기준 거리<input type="number" min="400" max="6000" step="100" data-condition="distance" value="${c.distance}"></label><label>제한 시간 (초)<input type="number" min="10" max="3600" step="10" data-condition="timeLimit" value="${c.timeLimit}"></label><label>관전 배속<select data-condition="speed">${[.5,1,2,4].map(n=>`<option value="${n}"${n===c.speed?' selected':''}>${n}×</option>`).join('')}</select></label><label title="규칙 3에서만 함재기가 출격하고 미공개 항모를 편성할 수 있습니다">전투 규칙<select data-rules><option value="">기본 (규칙 ${BATTLE_RULES})</option><option value="3"${c.rules===3?' selected':''}>규칙 3 — 함재기 시험</option></select></label></section>
       <section class="dl-run">${researchHtml}</section>
       <section class="dl-run"><div><span class="dl-kicker">RUN EXPERIMENT</span><h2>전투 실행</h2><p class="dim small">반복 횟수는 시드 수입니다. 배치 교환을 선택하면 각 시드를 두 번 실행합니다.</p></div><div class="dl-errors" data-config-errors role="alert" ${errors.length?'':'hidden'}>${errors.map(e=>`<div>${esc(e)}</div>`).join('')}</div><div class="dl-runbar"><button class="btn go" data-watch ${errors.length||this.worker?'disabled':''}>전투 관전</button><button class="btn" data-run="10" ${errors.length||this.worker?'disabled':''}>10 시드</button><button class="btn" data-run="100" ${errors.length||this.worker?'disabled':''}>100 시드</button><button class="btn" data-run="1000" ${errors.length||this.worker?'disabled':''}>1,000 시드</button><label>직접 지정 <input type="number" data-custom min="1" max="10000" value="100"></label><button class="btn" data-run-custom ${errors.length||this.worker?'disabled':''}>실행</button><label class="dl-check"><input type="checkbox" data-swap-runs checked> 동일 시드 배치 교환</label></div><div id="dlProgress" role="status">${esc(this.notice)}</div><button class="btn" data-cancel ${this.worker?'':'hidden'}>반복 실험 취소</button></section>
       <section class="dl-results"><div class="dl-sidehead"><div><span class="dl-kicker">BATTLE REPORT</span><h2>실험 결과</h2></div><span class="dim small">${esc(c.content.fingerprint)}</span></div>${this.resultHtml()}</section>`;
@@ -107,6 +108,8 @@ class CombatLab {
     if(el.dataset.import!==undefined&&el instanceof HTMLInputElement){const file=el.files?.[0];if(!file)return;if(file.size>2_000_000){this.notice='설정 파일은 2 MB를 넘을 수 없습니다.';this.render();return;}
       void file.text().then(raw=>{try{const next=migrateConfig(JSON.parse(raw));this.closeViews();this.config=next;this.result=null;this.notice='설정을 가져왔습니다.';}catch(e){this.notice=`가져오기 실패: ${(e as Error).message}`;}this.render();});return;}
     if(el.dataset.condition){(this.config as any)[el.dataset.condition]=Number(el.value);this.refreshValidation();return;}
+    // P16.3: rules 3 (strike craft) is explicit per experiment; the setup catalogue shows the carrier only then
+    if(el.dataset.rules!==undefined){if(el.value==='3')this.config.rules=3;else delete this.config.rules;this.setup?.refresh();this.refreshValidation();return;}
     if(el.dataset.research){const[team,id]=el.dataset.research.split(':'),side=this.config.sides[Number(team) as 0|1];side.research=(el as HTMLInputElement).checked?[...new Set([...side.research,id])]:side.research.filter(x=>x!==id);this.refreshValidation();}
   }
   private startBatch(count: number, swap: boolean) {

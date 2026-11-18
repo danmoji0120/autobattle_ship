@@ -18,6 +18,8 @@ import { bayModules, legacySig } from './fitting';
 import { hullIdOf } from './hullops';
 import { variantLayout } from '../content/registry';
 import { CPU_MARKETS } from '../content/packs/growth/computers';
+import { CARRIER_HULL, CARRIER_MARKETS } from '../content/packs/growth/carrier';
+import { hullReleased } from '../content/registry';
 
 export const indOn = (st: Pick<WorldState, 'indV'> | undefined) => !!st?.indV;
 
@@ -124,3 +126,23 @@ export function migrateComputers(st: WorldState): CpuMigration {
 
 /** ships a world spawns for a player in an indV world come under the rules */
 export function markIndustrial(st: WorldState, s: WShip) { if (indOn(st) && s.fitting) s.ind = 1; }
+
+export interface CarrierMigration { applied: boolean; reason?: string; markets: number }
+/** P16.3 migration PREPARATION (CARRIERS_P16_MIGRATE=1; not run on any world): once the carrier hull is released
+ *  (HullDef.preview removed after the integration and balance review), public stations of an existing growth world
+ *  get the carrier gear market rows (CARRIER_MARKETS: air wings, aviation modules, the carrier computer). Refused
+ *  while the hull is still a preview, before growth content, and when already applied (st.carrierV). Ships,
+ *  fittings, credits, items, blueprints and existing rows are untouched; carrier battles need rules >= 3, so no
+ *  running or recorded battle changes. `released` overrides the content check (tests / the check script). */
+export function migrateCarriers(st: WorldState, opt: { released?: boolean } = {}): CarrierMigration {
+  if ((st.contentV ?? 0) < 3) return { applied: false, reason: '성장 콘텐츠(c3) 이전 월드', markets: 0 };
+  if (st.carrierV) return { applied: false, reason: '이미 적용됨', markets: 0 };
+  if (!(opt.released ?? hullReleased(CARRIER_HULL))) return { applied: false, reason: '항모 미공개(preview) — 공개 결정 전에는 적용하지 않음', markets: 0 };
+  let n = 0;
+  for (const [sid, ids] of Object.entries(CARRIER_MARKETS)) {
+    const x = st.stations[sid]; if (!x?.public || !x.market) continue;
+    for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.3, st); n++; }
+  }
+  st.carrierV = 1;
+  return { applied: true, markets: n };
+}

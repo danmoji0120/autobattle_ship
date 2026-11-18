@@ -16,6 +16,7 @@ import type { Station, Company, ResearchProject, WorldState } from './types';
 import { qty, addc, hasAll } from './types';
 import { FACILITIES, TECHS, EQUIPMENT, ITEMS, itemName, techFx, type Field } from './industry';
 import { stationPower } from './production';
+import { gearReleased } from '../content/registry';
 import { stationSize } from './stations';
 
 export const SALVAGE_TIME = 0.4;
@@ -57,12 +58,13 @@ export function projectTime(tech: string, source?: ResearchProject['source']) {
 }
 /** captured equipment that can be reverse-engineered into this tech */
 export function salvageItem(tech: string): string | undefined {
-  return Object.values(EQUIPMENT).find(e => e.tech === tech)?.id;
+  // P16.3: gear for unreleased hulls (strike craft, aviation modules) cannot be obtained, so it is never the sample
+  return Object.values(EQUIPMENT).find(e => e.tech === tech && gearReleased(e.id))?.id;
 }
 /** techs a company could analyse from items in a station's storage */
 export function salvageable(co: Company, st: Station): string[] {
   const S = st.storage[co.id];
-  return Object.values(EQUIPMENT).filter(e => e.tech && !co.tech?.includes(e.tech) && qty(S, e.id) > 0).map(e => e.tech!);
+  return Object.values(EQUIPMENT).filter(e => e.tech && !co.tech?.includes(e.tech) && qty(S, e.id) > 0 && gearReleased(e.id)).map(e => e.tech!);
 }
 
 export const known = (co: Company | undefined, tech: string) => !!co?.tech?.includes(tech);

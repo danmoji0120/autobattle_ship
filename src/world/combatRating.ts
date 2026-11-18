@@ -19,6 +19,8 @@
 import { SHIP_CLASSES, type LoadoutDef, type ShipClassDef } from '../sim/data/ships';
 import { WEAPONS, isCraft, isShipGun, type WeaponDef } from '../sim/data/weapons';
 import type { ShipFx } from '../sim/fleet';
+import { effectiveCraft } from '../sim/craft';
+import type { CraftStats } from '../sim/data/weapons';
 
 const REF = ['frigate', 'destroyer', 'cruiser', 'battleship'] as const;
 /** the battle engine's penetration rule (world.ts applyHit), as an expectation */
@@ -55,6 +57,22 @@ function refSet(): Ref[] {
   return refs;
 }
 
+/** P16.3 carrier rating: share of a squadron's airframes still flying over a fight (point defence and enemy
+ *  fighters), and the share of the time a craft gun is on a target (the rest is transit / turning). Estimates,
+ *  not calibrated in battles yet (CALIB has no carrier entry): docs/P16_3_CARRIER_OPERATIONS.md. */
+const CRAFT_SURV = 0.7, CRAFT_GUN_TIME = 0.5, CRAFT_GUN_HIT = 0.7;
+/** expected damage per second a squadron lands on the reference ships: guns (penetration vs side armour) and
+ *  ordnance (one round per sortie cycle, meets the target's point defence like any guided round) */
+function craftOff(cs: CraftStats, R: Ref[]): number {
+  let per = 0;
+  if (cs.gun) { const g = cs.gun; per += g.damage / Math.max(0.05, g.reload) * CRAFT_GUN_TIME * CRAFT_GUN_HIT * R.reduce((a, t) => a + penMul(g.pen, t.side), 0) / R.length; }
+  const o = cs.ordnance ? WEAPONS[cs.ordnance] : undefined;
+  if (o) per += o.damage * o.salvo / (cs.sortie * 0.5 + cs.turnaround) * R.reduce((a, t) => a + penMul(o.pen, t.side) * (1 - pdStop(t.pd)), 0) / R.length;
+  return per * cs.n * CRAFT_SURV;
+}
+/** does this loadout launch strike craft */
+export const hasCraft = (lo: LoadoutDef) => lo.mounts.some(m => isCraft(WEAPONS[m.weapon]));
+
 export interface RatingIn {
   cls: ShipClassDef; lo: LoadoutDef; fx?: ShipFx;
   /** commander judgement 0..1 (the engine's gunnery = 0.75 + 0.4 × skill) and officer battle effects */
@@ -69,7 +87,7 @@ function raw(i: RatingIn): { off: number; def: number } {
   let off = 0;
   for (const m of lo.mounts) {
     const w = WEAPONS[m.weapon]; if (!w) continue;
-    if (isCraft(w)) continue;   // P16: strike craft are not gun firepower; their rating is P16.3 (carrier rating)
+    if (isCraft(w)) { if (w.craft) off += craftOff(effectiveCraft(w.craft, fx.air, i.ofx), R); continue; }   // P16.3 carrier rating
     const fm = w.family ? fx.fam?.[w.family] : undefined;
     const rate = dps(w) * (fm?.dmg ?? 1) / ((fx.reloadMul ?? 1) * (fm?.reload ?? 1) * (w.kind === 'pd' ? 1 : 1 - o('rof')));
     if (w.kind === 'pd') { off += rate * 0.15 * (fx.pdMul ?? 1); continue; }   // point defence mostly shoots munitions
@@ -106,4 +124,14 @@ export function rateClass(classId: string, loadoutId?: string, skill = 0.5): num
   const cls = SHIP_CLASSES[classId]; if (!cls?.loadouts.length) return 0;
   const lo = cls.loadouts.find(l => l.id === loadoutId) ?? cls.loadouts[0];
   return rate({ cls, lo, skill }).cr * calibOf(classId, lo.id);
+}
+
+/** P16.3 light battle resolution (world/sim.ts quickResolve): a carrier's strength-model value relative to its
+ *  class as built — its air group as fitted (fewer / other squadrons, aviation modules) against the standard air
+ *  group, clamped to 0.3..1.6. 1 for every ship without strike craft (their values are unchanged). */
+export function airValueMul(cls: ShipClassDef, lo: LoadoutDef, fx?: ShipFx, ofx?: Record<string, number>): number {
+  const std = cls.loadouts[0];
+  if (!std || (!hasCraft(lo) && !hasCraft(std))) return 1;
+  const ref = rate({ cls, lo: std }).cr;
+  return ref > 0 ? Math.max(0.3, Math.min(1.6, rate({ cls, lo, fx, ofx }).cr / ref)) : 1;
 }

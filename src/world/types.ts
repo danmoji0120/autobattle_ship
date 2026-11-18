@@ -656,6 +656,8 @@ export interface WorldState {
   indV?: 1;
   /** P15.1: combat computers stocked on public markets at creation (new growth worlds) */
   cpuV?: number;
+  /** P16.3: carrier gear market rows added (migrateCarriers; only after carriers are released) */
+  carrierV?: 1;
   /** A-3.2b natural derelicts and salvage contracts (salvageV worlds; new standard worlds, saves by explicit migration) */
   derelictV?: 1;
   /** B-1 officer development (new standard worlds; saves by explicit migration OFFICERS_B1_MIGRATE) */

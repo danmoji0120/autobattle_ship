@@ -117,6 +117,8 @@ export interface Ship {
   cpu?: import('./ai/computer').ShipCpu;
   /** B-1 officer effects of the commanding officer (absent without one: every rule below is skipped) */
   ofx?: Record<string, number>;
+  /** P16.3: the carrier's aviation-module effects (ShipFx.air), read by the strike-craft pool */
+  air?: import('./fleet').AirFx;
   /** B-1: last hull hit and emergency repair done (regen) */
   ofHit?: number; ofHeal?: number;
 }
@@ -142,6 +144,8 @@ export interface Munition {
   gm?: number; lost?: boolean; decoyed?: boolean;
   /** P15: an unguided round (runs straight on its launch solution) */
   straight?: boolean;
+  /** P16.3: dropped by a strike craft (its hit takes air-wing officer effects, not the carrier's gunnery) */
+  air?: boolean;
 }
 
 export interface GroupAI {

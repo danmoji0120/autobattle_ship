@@ -39,6 +39,8 @@ export class LabSetupScreen {
   private commit() { this.actions.changed(); this.render(); }
   refresh() { this.render(); }
   private render() {
+    // P16.3: a preview hull (carrier) leaves the catalogue when the experiment goes back to the default rules
+    if (!availableHulls(this.config.rules).some(h => h.id === this.catSel.hull)) this.catSel = { hull: 'battleship_mk1', variant: defaultShip('battleship_mk1', 'preview').variant };
     if (this.rendering) return;
     this.rendering = true;
     try {
@@ -76,12 +78,12 @@ export class LabSetupScreen {
   }
   private catalogHtml() {
     const q = this.search.trim().toLocaleLowerCase();
-    return availableHulls().filter(h => `${h.id} ${h.name} ${h.maker ?? ''} ${h.size} ${h.classId} ${SHIP_CLASSES[h.classId].type}`.toLocaleLowerCase().includes(q)).map(h => this.catalogEntry(h.id)).join('') || '<div class="dim" style="padding:12px">검색 결과가 없습니다.</div>';
+    return availableHulls(this.config.rules).filter(h => `${h.id} ${h.name} ${h.maker ?? ''} ${h.size} ${h.classId} ${SHIP_CLASSES[h.classId].type}`.toLocaleLowerCase().includes(q)).map(h => this.catalogEntry(h.id)).join('') || '<div class="dim" style="padding:12px">검색 결과가 없습니다.</div>';
   }
   private catalogEntry(id: string): string {
     const hull = CONTENT.hulls[id], c = SHIP_CLASSES[hull.classId], on = this.catSel.hull === id;
-    const variant = on ? this.catSel.variant : defaultShip(id, 'preview').variant;
-    const draft = defaultShip(id, 'preview', variant), lo = shipLoadout({ classId: hull.classId, loadoutId: '', variant, fitting: draft.fitting });
+    const variant = on ? this.catSel.variant : defaultShip(id, 'preview', undefined, this.config.rules).variant;
+    const draft = defaultShip(id, 'preview', variant, this.config.rules), lo = shipLoadout({ classId: hull.classId, loadoutId: '', variant, fitting: draft.fitting });
     const arm = (c.armor.front + c.armor.side + c.armor.rear) / 3;
     const fire = lo.mounts.reduce((a, m) => { const w = WEAPONS[m.weapon]; return a + (isShipGun(w) ? w.damage * w.salvo / w.reload : 0); }, 0);   // P16: craft are not gun firepower
     const pd = lo.mounts.filter(m => WEAPONS[m.weapon].kind === 'pd').length;
@@ -154,8 +156,8 @@ export class LabSetupScreen {
   private bindCatalog() {
     this.root.querySelectorAll<HTMLElement>('[data-cat]').forEach(e=>e.onclick=ev=>{const t=ev.target as HTMLElement,hull=e.dataset.cat!;
       if(t.dataset.lo){this.catSel={hull,variant:t.dataset.lo};this.render();return;}
-      if(t.dataset.add){const value=t.dataset.add==='custom'?Number(this.root.querySelector<HTMLInputElement>('[data-add-count]')?.value):Number(t.dataset.add);if(!Number.isInteger(value)||value<1||this.total+value>200){this.notice='전투당 함선은 최대 200척입니다.';this.render();return;}this.quantity=value;const ship=defaultShip(hull,id(),this.catSel.variant);ship.count=value;this.sel.ships.push(ship);this.notice='';this.commit();return;}
-      if(t.matches('input'))return;if(this.catSel.hull!==hull){this.catSel={hull,variant:defaultShip(hull,'preview').variant};this.render();}
+      if(t.dataset.add){const value=t.dataset.add==='custom'?Number(this.root.querySelector<HTMLInputElement>('[data-add-count]')?.value):Number(t.dataset.add);if(!Number.isInteger(value)||value<1||this.total+value>200){this.notice='전투당 함선은 최대 200척입니다.';this.render();return;}this.quantity=value;const ship=defaultShip(hull,id(),this.catSel.variant,this.config.rules);ship.count=value;this.sel.ships.push(ship);this.notice='';this.commit();return;}
+      if(t.matches('input'))return;if(this.catSel.hull!==hull){this.catSel={hull,variant:defaultShip(hull,'preview',undefined,this.config.rules).variant};this.render();}
     });
   }
   private setupPreview(): void {
@@ -170,7 +172,7 @@ export class LabSetupScreen {
     const p=this.preview, key=`${this.catSel.hull}:${this.catSel.variant}:${this.team}`;
     if (p.modelKey===key) return;
     p.modelKey=key; if(p.model)p.scene.remove(p.model);
-    const h=CONTENT.hulls[this.catSel.hull],cls=SHIP_CLASSES[h.classId],draft=defaultShip(h.id,'preview',this.catSel.variant),lo=shipLoadout({classId:h.classId,loadoutId:'',variant:draft.variant,fitting:draft.fitting});
+    const h=CONTENT.hulls[this.catSel.hull],cls=SHIP_CLASSES[h.classId],draft=defaultShip(h.id,'preview',this.catSel.variant,this.config.rules),lo=shipLoadout({classId:h.classId,loadoutId:'',variant:draft.variant,fitting:draft.fitting});
     const m=buildShip(cls,lo,this.team);for(const e of m.engines)e.plume.scale.z=e.base*6;p.model=m.root;p.scene.add(m.root);const d=Math.max(cls.length,26);p.cam.position.set(d*1.15,d*.5,d*1.15);p.cam.lookAt(0,0,0);
   }
 }

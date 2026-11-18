@@ -13,7 +13,7 @@ import type { WShip, Station } from '../../world/types';
 import type { Cmd } from '../../world/sim';
 import { qty } from '../../world/types';
 import { CONTENT, variantLayout, presetsOfHull, variantsOfHull, weaponRole, contentAvail } from '../../content/registry';
-import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arcOf } from '../../content/rules';
+import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arcOf, airText } from '../../content/rules';
 import type { HardpointDef, InternalSlotDef } from '../../content/schema';
 import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bayModules, cpuMountsOf, type ShipFitting } from '../../world/fitting';
 import { EQUIPMENT, fitFx, itemPrice, TECHS } from '../../world/industry';
@@ -300,6 +300,7 @@ export class FittingScreen {
         ? `${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w), cur ? dps(cur) : undefined, 1)} · 사거리 ${fmt(w.range)}${d(w.range, cur ? rng(cur) : undefined)} · 관통 ${w.pen}${d(w.pen, cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${g ? statBars(w) : ''}`
         : e.ind ? `${indText(e.ind, CONTENT.hulls[lay.hull.id]?.ops?.bonus)}${cur && EQUIPMENT[cur]?.ind?.work === e.ind.work ? d(e.ind.rate, EQUIPMENT[cur].ind!.rate, 1) : ''}`
         : e.cpu ? esc(cpuSummary(e.cpu.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS, e.cpu.react))
+        : e.air ? esc(airText(e.air))
         : g && e.cfx ? `${esc(cfxText(e.cfx))}` : esc(e.desc);
       return `<div class="fitem${why ? ' no' : ''}${id === cur ? ' cur' : ''}" data-fpick="${id}" title="${esc(why ?? e.desc)}">
         <div class="fin"><b>${esc(e.name)}</b><span class="fsz sm">${s.size}</span>${id === cur ? '<span class="tag">장착 중</span>' : ''}${lock && !have ? '<span class="tag warn" title="보유하지 않은 이 장비를 구매·생산하려면 연구가 필요합니다">연구 필요</span>' : ''}<span class="fhave${have ? '' : ' none'}">보유 ${have}</span></div>
