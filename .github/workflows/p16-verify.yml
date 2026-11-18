@@ -31,3 +31,25 @@ jobs:
       - run: npm run content:check
       - run: npx vitest run tests/p16-client.test.ts tests/p16-craft.test.ts tests/p16-content.test.ts tests/p16-carrier-ops.test.ts --no-file-parallelism
       - run: npm run build
+      - name: Install browser automation
+        run: |
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - name: Chromium skirmish and carrier render tests
+        timeout-minutes: 10
+        run: |
+          mkdir -p playtest-out/p16
+          npm run dev -- --host 127.0.0.1 > "$RUNNER_TEMP/p16-vite.log" 2>&1 &
+          vite_pid=$!
+          trap 'kill $vite_pid || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/p16/browser-check.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p16-browser
+          path: playtest-out/p16
+          if-no-files-found: ignore
