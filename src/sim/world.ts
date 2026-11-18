@@ -1,3 +1,4 @@
+import { DEV_CARRIER_RELEASE } from '../content/carrierRelease';
 import { Vec3, UP, clamp, lerp, wrapAngle, dirFromYawPitch, yawOf, pitchOf, localToWorld, worldDirToLocal, segSegDistSq, angleBetween, rotateToward } from './math';
 import { Rng, hashString } from './rng';
 import { SHIP_CLASSES, getLoadout, shipCost, SHIP_NAMES, type LoadoutDef } from './data/ships';
@@ -44,7 +45,7 @@ export interface BattleSetup {
 }
 
 /** the rules new battles are fought under (BattleSetup.rules) */
-export const BATTLE_RULES = 2;
+export const BATTLE_RULES = DEV_CARRIER_RELEASE ? 3 : 2;
 
 export const DT = 1 / 30;
 export const FIELD_RADIUS = 3600;
