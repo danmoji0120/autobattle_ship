@@ -33,8 +33,10 @@ jobs:
       - run: npm run build
       - name: Install browser automation
         run: |
-          npm install --no-save --no-package-lock playwright
-          npx playwright install --with-deps chromium
+          mkdir -p "$RUNNER_TEMP/p16-browser"
+          printf '%s\n' '{"name":"p16-browser","version":"1.0.0","private":true}' > "$RUNNER_TEMP/p16-browser/package.json"
+          npm install --prefix "$RUNNER_TEMP/p16-browser" --no-audit --no-fund playwright
+          "$RUNNER_TEMP/p16-browser/node_modules/.bin/playwright" install --with-deps chromium
       - name: Chromium skirmish and carrier render tests
         timeout-minutes: 10
         run: |
@@ -46,7 +48,7 @@ jobs:
             if curl -fsS http://127.0.0.1:5173/ > /dev/null; then break; fi
             sleep 1
           done
-          node scripts/p16/browser-check.mjs
+          NODE_PATH="$RUNNER_TEMP/p16-browser/node_modules" node scripts/p16/browser-check.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
