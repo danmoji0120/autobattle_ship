@@ -10,7 +10,7 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
-import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers } from './industrialGear';
+import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers, migrateCarriers } from './industrialGear';
 import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, type RepairSettings } from './autoRepair';
 import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
