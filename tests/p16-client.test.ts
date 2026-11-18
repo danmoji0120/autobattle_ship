@@ -18,8 +18,9 @@ const host = (): CraftFxHost & { glows: number } => {
 };
 const cam = () => { const c = new THREE.PerspectiveCamera(50, 1.6, 1, 1e5); c.position.set(0, 900, 1400); c.lookAt(0, 0, 0); c.updateMatrixWorld(); return c; };
 const flying = (w: World) => { const c = w.craft!; let n = 0; for (let i = 0; i < c.st.length; i++) if (c.st[i] === CRAFT_ST.OUT) n++; return n; };
+// the enemy has a carrier too, so the fighters fight craft (P16.5 fighters keep out of ship point defence)
 const carrierBattle = (seed = 7) => new World({ seed, scenarioId: 'kestrel', rules: 3, spawnZ: 900,
-  fleets: [f([{ classId: 'carrier', loadoutId: 'air_group' }]), f([{ classId: 'cruiser', loadoutId: 'multi' }, { classId: 'destroyer', loadoutId: 'std' }])] });
+  fleets: [f([{ classId: 'carrier', loadoutId: 'air_group' }]), f([{ classId: 'carrier', loadoutId: 'air_group' }, { classId: 'cruiser', loadoutId: 'multi' }, { classId: 'destroyer', loadoutId: 'std' }])] });
 
 describe('P16.4 skirmish rules gate', () => {
   it('BATTLE_RULES stays 2; carriers fly only in the rules-3 trial', () => {

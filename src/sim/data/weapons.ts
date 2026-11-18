@@ -142,7 +142,7 @@ export const WEAPONS: Record<string, WeaponDef> = {
   air_torpedo: {
     id: 'air_torpedo', name: '항공 경어뢰', kind: 'torpedo',
     damage: 520, pen: 80, range: 700, speed: 200, reload: 1, salvo: 1, salvoGap: 0,
-    spread: 0.03, turnSpeed: 360, caliber: 1, guidedTurn: 0.9, munitionHp: 1, sound: 'torpedo',
+    spread: 0.03, turnSpeed: 360, caliber: 1, guidedTurn: 0.9, munitionHp: 2, sound: 'torpedo',
     desc: '뇌격기가 출격마다 한 발 투하하는 경어뢰. 함재기 전용 탄체.',
   },
 };

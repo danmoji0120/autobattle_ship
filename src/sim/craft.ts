@@ -22,9 +22,10 @@ export const CRAFT_ST = { HANGAR, PREP, OUT, LOST, GONE } as const;
 /** flight modes */
 const APPROACH = 0, EXTEND = 1, RETURN = 2;
 /** squadron tasks: CAP (cover the carrier), STRIKE (enemy ships), AIR (intercept craft / guided rounds near the
- *  carrier), ESCORT (cover a friendly ship that enemy craft are going for) */
-const CAP = 0, STRIKE = 1, AIR = 2, ESCORT = 3;
-export const TASK_NAME = ['직위 엄호', '공격', '요격', '호위'] as const;
+ *  carrier), ESCORT (cover a friendly ship that enemy craft are going for), COVER (P16.5: fly with the wing's
+ *  loaded torpedo bombers on their strike and take on the craft that come for them) */
+const CAP = 0, STRIKE = 1, AIR = 2, ESCORT = 3, COVER = 4;
+export const TASK_NAME = ['직위 엄호', '공격', '요격', '호위', '공격대 엄호'] as const;
 /** P16.3 air control: squadrons one carrier can direct on missions at once without control modules (the rest fly CAP) */
 export const BASE_CONTROL = 3;
 /** CAP squadrons engage enemy craft that come this close to their carrier */
@@ -33,6 +34,18 @@ const CAP_R = 650;
 const T_NONE = 0, T_CRAFT = 1, T_MUN = 2;
 export const CRAFT_TK = { NONE: T_NONE, CRAFT: T_CRAFT, MUN: T_MUN } as const;
 const THINK = 0.3;
+/** P16.5 coordinated strike: rally distance from the target and the longest wait for stragglers (s) */
+/** how far point defence reaches a passing craft, for route planning (PD gun range plus a margin) */
+const PD_REACH = 380;
+/** a craft below this fraction of its hit points breaks off and returns */
+const BREAK_HP = 0.4;
+/** craft gun vs craft: base hit chance per shot (falls with range and the target's agility) */
+const AIR_HIT = 0.55;
+const RALLY_D = 900, RALLY_WAIT = 15;
+/** bombers release their ordnance at this fraction of its range */
+const RELEASE = 0.65;
+/** P16.5 fighters (guns only) do not strafe a ship covered by this much point defence (PD mounts × skill, nearby ships fading) */
+const FIGHTER_AA_MAX = 3;
 export const SLOT_BITS = 65536;
 /** uniform grid (x/z plane) used for craft-vs-craft and point-defence queries */
 const CELL = 250, GN = 64, GHALF = CELL * GN / 2;
@@ -75,6 +88,11 @@ export interface Squad {
   capThreat: boolean;
   /** P16.4 (display only): the last decision wanted a mission but the air-control limit kept it on CAP */
   heldNow: boolean;
+  /** P16.5 coordinated strike: loaded bombers gather at a rally point outside the target's point defence (rx/ry/rz),
+   *  then run in together (go) so the defence meets one wave, not a single file. rTgt: the target the rally is for */
+  go: boolean; wait: number; rTgt: number; /** run-in bearing (rad, x/z plane) from the target */ rb: number; rx: number; ry: number; rz: number;
+  /** COVER: the bomber squadron covered and the centre of its loaded bombers in the air */
+  cover: number; cvx: number; cvy: number; cvz: number;
   /** guided rounds an interceptor squadron may go after (AIR) */
   muns: number[];
   /** an enemy is within reach: launch */
@@ -108,6 +126,13 @@ export function craftFirepower(cs: CraftStats): number {
 }
 
 const tv = new Vec3(), tv2 = new Vec3(), tv3 = new Vec3();
+/** P16.5: point-defence exposure of a leg (ax,az)→(bx,bz) to a ship at (px,pz): 1 on top of it, 0 beyond PD reach */
+function expo(px: number, pz: number, ax: number, az: number, bx: number, bz: number): number {
+  const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz;
+  const u = l2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / l2)) : 0;
+  const d = Math.hypot(ax + dx * u - px, az + dz * u - pz);
+  return d >= PD_REACH ? 0 : 1 - d / PD_REACH;
+}
 
 export class CraftPool {
   readonly squads: Squad[] = [];
@@ -155,6 +180,7 @@ export class CraftPool {
       const base = m.weapon.kind === 'craft' ? m.weapon.craft : undefined;
       if (!base || base.n <= 0) continue;
       const cs = effectiveCraft(base, air, ox);
+      this.carrierIds.add(s.id);
       if (!wing) { wing = { ship: s, squads: [], think: 0.05 + (this.wings.length % 10) * 0.025, control: wingControl(air, ox) }; this.wings.push(wing); }
       const first = this.n;
       this.grow(first + cs.n);
@@ -163,8 +189,8 @@ export class CraftPool {
       const idx = this.squads.length;
       this.squads.push({
         idx, ship: s, mount: m, team: s.team, cs, base, wing, gun, ord, first, spares: cs.spares, launchT: 0,
-        think: 0, task: CAP, tgtShip: -1, guard: -1, prio: 0, capThreat: false, heldNow: false, muns: [], engaged: false, orphan: false, done: false,
-        ax: s.pos.x, ay: s.pos.y, az: s.pos.z, stats: { launched: 0, lost: 0, recovered: 0, left: 0, ordFired: 0, tasks: [0, 0, 0, 0], held: 0 },
+        think: 0, task: CAP, tgtShip: -1, guard: -1, prio: 0, capThreat: false, heldNow: false, go: false, wait: 0, rTgt: -1, rb: 0, rx: 0, ry: 0, rz: 0, cover: -1, cvx: 0, cvy: 0, cvz: 0, muns: [], engaged: false, orphan: false, done: false,
+        ax: s.pos.x, ay: s.pos.y, az: s.pos.z, stats: { launched: 0, lost: 0, recovered: 0, left: 0, ordFired: 0, tasks: [0, 0, 0, 0, 0], held: 0 },
       });
       wing.squads.push(this.squads[idx]);
       for (let i = first; i < first + cs.n; i++) { this.st[i] = HANGAR; this.sq[i] = idx; this.ordL[i] = 1; this.uid[i] = -1; }
@@ -244,7 +270,7 @@ export class CraftPool {
         }
       }
     }
-    sq.guard = -1; sq.prio = 0;
+    sq.guard = -1; sq.prio = 0; sq.cover = -1;
     sq.capThreat = cs.role !== 'bomber' && this.enemyCraftNear(sq.team, sq.ax, sq.az, CAP_R) > 0;
     const threat = air + sq.muns.length;
     if (cs.role !== 'bomber' && threat > 0) { sq.task = AIR; sq.tgtShip = -1; sq.prio = 4 + Math.min(3, threat / 4); return; }
@@ -254,11 +280,61 @@ export class CraftPool {
       if (g >= 0) { sq.task = ESCORT; sq.guard = g; sq.tgtShip = -1; sq.prio = 3; return; }
     }
     if (cs.role === 'interceptor') { sq.task = CAP; sq.tgtShip = -1; return; }
+    // fighters go with the wing's torpedo bombers while those carry ordnance toward a target
+    if (!sq.orphan && this.coverFor(sq)) { sq.task = COVER; sq.tgtShip = -1; sq.prio = 2.6; return; }
     sq.tgtShip = this.pickShip(sq, R);
     if (sq.tgtShip < 0) { sq.task = CAP; return; }
     sq.task = STRIKE;
     const t = w.shipById.get(sq.tgtShip)!;
+    if (sq.ord) this.rally(sq, t);
     sq.prio = cs.role === 'bomber' ? (t.role === 'line' ? 2.5 : 2) : 1;
+  }
+
+  /** P16.5: rally point (toward the carrier, outside the target's point defence) and release of the wave: when
+   *  three quarters of the loaded bombers in the air are at the point, or after RALLY_WAIT seconds */
+  private rally(sq: Squad, t: Ship) {
+    if (sq.rTgt !== t.id) { sq.rTgt = t.id; sq.go = false; sq.wait = 0; sq.rb = this.entryBearing(sq, t); }
+    // the bearing is chosen once per target (no weaving); the point follows the target
+    const rd = Math.min(RALLY_D, Math.hypot(sq.ax - t.pos.x, sq.az - t.pos.z) * 0.8 + 200);
+    sq.rx = t.pos.x + Math.cos(sq.rb) * rd; sq.ry = t.pos.y + 60; sq.rz = t.pos.z + Math.sin(sq.rb) * rd;
+    if (sq.orphan) { sq.go = true; return; }
+    let loaded = 0, at = 0;
+    for (let i = sq.first; i < sq.first + sq.cs.n; i++) {
+      if (this.st[i] !== OUT || !this.ordL[i] || this.mode[i] === RETURN) continue;
+      loaded++;
+      if ((this.px[i] - sq.rx) ** 2 + (this.pz[i] - sq.rz) ** 2 < 250 * 250) at++;
+    }
+    if (!loaded) { sq.go = false; sq.wait = 0; return; }
+    if (sq.go) return;
+    sq.wait += THINK;
+    if (at >= Math.ceil(loaded * 0.75) || sq.wait >= RALLY_WAIT) sq.go = true;
+  }
+
+  /** P16.5 attack entry: of 12 bearings around the target, the run-in (rally point → release point, then the
+   *  turn away) that passes least enemy point defence (the target's own counts on every bearing), with the
+   *  transit from the carrier to the rally point at half weight and a small cost for a long detour */
+  private entryBearing(sq: Squad, t: Ship): number {
+    const w = this.w, rel = (sq.ord?.range ?? 700) * RELEASE;
+    const pds: { x: number; z: number; n: number }[] = [];
+    for (const s of w.ships) {
+      if (s === t || s.state !== 'alive' || !w.hostile(sq.team, s.team)) continue;
+      let n = 0;
+      for (const m of s.mounts) if (m.weapon.kind === 'pd' && m.disabled <= 0) n++;
+      if (n && s.pos.distTo(t.pos) < RALLY_D + 600) pds.push({ x: s.pos.x, z: s.pos.z, n: n * s.pdBonus });
+    }
+    const home = Math.atan2(sq.az - t.pos.z, sq.ax - t.pos.x);
+    let best = home, bc = Infinity;
+    for (let k = 0; k < 12; k++) {
+      const a = home + k * Math.PI / 6;
+      const c = Math.cos(a), sn = Math.sin(a);
+      const r0x = t.pos.x + c * RALLY_D, r0z = t.pos.z + sn * RALLY_D, r1x = t.pos.x + c * (rel - 150), r1z = t.pos.z + sn * (rel - 150);
+      let cost = 0;
+      for (const p of pds) cost += p.n * (expo(p.x, p.z, r0x, r0z, r1x, r1z) + 0.5 * expo(p.x, p.z, sq.ax, sq.az, r0x, r0z));
+      const detour = Math.abs(Math.atan2(Math.sin(a - home), Math.cos(a - home)));
+      cost += detour * 0.6;
+      if (cost < bc - 1e-9) { bc = cost; best = a; }
+    }
+    return best;
   }
 
   /** P16.3 air control: the `control` highest-priority missions stand, the rest fly CAP. A lost carrier
@@ -277,6 +353,19 @@ export class CraftPool {
     }
   }
 
+  /** P16.5: a bomber squadron of this wing on a strike with loaded bombers in the air: cover it (centre into cv*) */
+  private coverFor(sq: Squad): boolean {
+    for (const b of sq.wing.squads) {
+      if (b === sq || !b.ord || b.task !== STRIKE || b.done) continue;
+      let n = 0, x = 0, y = 0, z = 0;
+      for (let i = b.first; i < b.first + b.cs.n; i++) if (this.st[i] === OUT && this.ordL[i] && this.mode[i] !== RETURN) { n++; x += this.px[i]; y += this.py[i]; z += this.pz[i]; }
+      if (!n) continue;
+      sq.cover = b.idx; sq.cvx = x / n; sq.cvy = y / n; sq.cvz = z / n;
+      return true;
+    }
+    return false;
+  }
+
   /** a friendly ship (not the carrier) inside the operating radius that enemy craft are attacking: the most valuable */
   private threatenedFriend(sq: Squad, R: number): number {
     const w = this.w, R2 = R * R;
@@ -290,29 +379,62 @@ export class CraftPool {
     return best;
   }
 
+  /** P16.5 strike target. The carrier's own gun target is a hint (a bonus), not an order: torpedo bombers
+   *  weigh hull size (carriers and line ships first), value, how far the run is from the carrier, and the
+   *  point defence around the target (its own and its neighbours'); fighters, whose guns only scratch large
+   *  hulls, prefer small ships and keep out of heavy point defence. The current target keeps a margin so a
+   *  squadron does not switch every decision. -1: nothing worth a run (the squadron flies CAP). */
   private pickShip(sq: Squad, R: number): number {
     const w = this.w, bomber = sq.cs.role === 'bomber';
     const R2 = R * R;
     const near = (t: Ship) => { const dx = t.pos.x - sq.ax, dy = t.pos.y - sq.ay, dz = t.pos.z - sq.az; return dx * dx + dy * dy + dz * dz; };
-    // the commander's target first (the carrier's own target), when in reach and worth this squadron's weapons
-    if (!sq.orphan) {
-      const pri = w.shipById.get(sq.ship.ai.targetId);
-      if (pri && pri.state === 'alive' && w.hostile(sq.team, pri.team) && near(pri) <= R2 && !(bomber && pri.role === 'raider')) return pri.id;
-    } else {
+    if (sq.orphan) {
       const cur = w.shipById.get(sq.tgtShip);
       if (cur && cur.state === 'alive' && near(cur) <= R2 * 1.4) return cur.id;
     }
+    const hint = sq.orphan ? -1 : sq.ship.ai.targetId;
     let best = -1, bs = 0;
     for (const t of w.ships) {
       if (t.state !== 'alive' || !w.hostile(sq.team, t.team)) continue;
       const d2 = near(t);
       if (d2 > R2) continue;
-      const k = bomber ? (t.role === 'line' ? 3 : t.role === 'escort' ? 1.2 : 0.3) : (t.role === 'raider' ? 1.5 : t.role === 'escort' ? 1.3 : 1);
-      const sc = k * (1 + t.value / 600) / (Math.sqrt(d2) + 400);
+      const big = this.carrierIds.has(t.id) ? 'cv' : t.role;
+      const aa = this.aaAround(t, sq.team);
+      let k: number;
+      if (bomber) k = (big === 'cv' ? 3.6 : big === 'line' ? 3 : big === 'escort' ? 1.2 : 0.3) / (1 + aa * 0.12);
+      else { if (aa >= FIGHTER_AA_MAX) continue; k = (big === 'raider' ? 1.5 : big === 'escort' ? 1.3 : big === 'cv' ? 0.7 : 0.6) / (1 + aa * 0.35); }
+      let sc = k * (1 + t.value / 600) / (Math.sqrt(d2) + 400);
+      if (t.id === hint) sc *= 1.3;
+      if (t.id === sq.tgtShip) sc *= 1.25;
       if (sc > bs) { bs = sc; best = t.id; }
     }
     return best;
   }
+
+  /** ships that carry strike craft (carriers, or any hull with an H mount) */
+  private carrierIds = new Set<number>();
+  /** point defence that can reach craft attacking ship t: PD mounts in working order on t and on its friends
+   *  within 500 m (fading with distance), scaled by their crews' PD skill. Cached per tick and side. */
+  private aaAround(t: Ship, team: number): number {
+    const w = this.w;
+    if (this.aaTick !== w.tick) { this.aaTick = w.tick; this.aaCache.clear(); }
+    const key = t.id * 64 + team;
+    const c = this.aaCache.get(key);
+    if (c !== undefined) return c;
+    let aa = 0;
+    for (const s of w.ships) {
+      if (s.state !== 'alive' || !w.hostile(team, s.team)) continue;
+      const d = s === t ? 0 : s.pos.distTo(t.pos);
+      if (d > 500) continue;
+      let n = 0;
+      for (const m of s.mounts) if (m.weapon.kind === 'pd' && m.disabled <= 0) n++;
+      aa += n * s.pdBonus * (1 - d / 600);
+    }
+    this.aaCache.set(key, aa);
+    return aa;
+  }
+  private aaTick = -1;
+  private aaCache = new Map<number, number>();
 
   private enemyShipWithin(sq: Squad, R: number): boolean {
     const w = this.w, R2 = R * R;
@@ -365,6 +487,8 @@ export class CraftPool {
     this.timer[i] -= dt;
     this.cool[i] -= dt;
     if (this.timer[i] <= 0 && this.mode[i] !== RETURN) this.mode[i] = RETURN;
+    // P16.5: a badly damaged craft breaks off and goes home (repaired with the turnaround)
+    if (this.mode[i] !== RETURN && this.hp[i] < cs.hp * BREAK_HP) this.mode[i] = RETURN;
     // bombers go back to re-arm once their ordnance is away
     if (sq.ord && !this.ordL[i] && this.mode[i] !== RETURN) this.mode[i] = RETURN;
     if (this.mode[i] === RETURN && sq.orphan) { this.leave(i, sq); return; }
@@ -380,7 +504,7 @@ export class CraftPool {
         gx += Math.cos(a) * (c.halfLen + 60); gz += Math.sin(a) * (c.halfLen + 60); gy += 30;
       }
       if (d < 300) speed = Math.max(cs.speed * 0.5, Math.min(cs.speed, d));
-    } else if (sq.task === AIR || sq.task === ESCORT || (sq.task === CAP && sq.capThreat) || this.tk[i] !== T_NONE) {
+    } else if (sq.task === AIR || sq.task === ESCORT || sq.task === COVER || (sq.task === CAP && sq.capThreat) || this.tk[i] !== T_NONE) {
       // air combat: each craft follows its own target (craft, or for interceptors a guided round)
       this.rt[i] -= dt;
       if (this.rt[i] <= 0 || !this.validAir(i)) { this.pickAir(i, sq); this.rt[i] = 0.6; }
@@ -407,6 +531,10 @@ export class CraftPool {
         const l = Math.hypot(this.vx[i], this.vy[i], this.vz[i]) || 1;
         gx = x + this.vx[i] / l * 200 - ex / (d || 1) * 80; gy = y + 20; gz = z + this.vz[i] / l * 200 - ez / (d || 1) * 80;
         if (this.rt[i] <= 0) this.mode[i] = APPROACH;
+      } else if (sq.ord && this.ordL[i] && !sq.go) {
+        // loaded bombers gather at the rally point before the run
+        const k = i - sq.first, a = k * 2.39996;
+        gx = sq.rx + Math.cos(a) * 80; gy = sq.ry + ((k % 3) - 1) * 15; gz = sq.rz + Math.sin(a) * 80;
       } else {
         // approach from a spread of bearings so a squadron does not fly in single file
         const k = i - sq.first, a = k * 2.39996, off = d > 350 ? 60 + (k % 4) * 25 : 0;
@@ -414,7 +542,7 @@ export class CraftPool {
         gy = t.pos.y + ((k % 3) - 1) * off * 0.4;
         gz = t.pos.z + t.vel.z * (d / cs.speed) * 0.5 + Math.sin(a) * off;
         if (sq.gun && d < sq.gun.range && this.cool[i] <= 0 && this.aligned(i, ex, ey, ez, d, 0.35)) this.gunShip(i, sq, t, d, ex, ey, ez);
-        if (sq.ord && this.ordL[i] && d < sq.ord.range * 0.55 && this.aligned(i, ex, ey, ez, d, 0.5)) this.dropOrdnance(i, sq, t, ex, ey, ez, d);
+        if (sq.ord && this.ordL[i] && d < sq.ord.range * RELEASE && this.aligned(i, ex, ey, ez, d, 0.5)) this.dropOrdnance(i, sq, t, ex, ey, ez, d);
         if (this.st[i] !== OUT) return;
         if (d < t.radius + t.halfLen * 0.5 + 40) { this.mode[i] = EXTEND; this.rt[i] = 2.2; }
       }
@@ -431,6 +559,12 @@ export class CraftPool {
 
   private orbit(i: number, sq: Squad) {
     const k = i - sq.first;
+    if (sq.task === COVER) {
+      // a loose screen around the bombers, a little above and ahead of them
+      const a = this.w.time * 0.9 + k * 2.39996, r = 120 + (k % 3) * 40;
+      tv.set(sq.cvx + Math.cos(a) * r, sq.cvy + 40 + (k % 3) * 15, sq.cvz + Math.sin(a) * r);
+      return;
+    }
     // CAP circles the carrier; an escort circles the ship it covers
     const g = sq.task === ESCORT ? this.w.shipById.get(sq.guard) : undefined;
     const c = g && g.state === 'alive' ? g : sq.ship;
@@ -483,7 +617,7 @@ export class CraftPool {
     if (sq.task === STRIKE || (sq.task === CAP && !sq.capThreat)) return;
     // CAP fights only over its carrier, an escort only near the ship it covers
     const g = sq.task === ESCORT ? w.shipById.get(sq.guard) : undefined;
-    const zone = sq.task === CAP ? { x: sq.ax, z: sq.az, r2: (CAP_R * 1.3) ** 2 } : g && g.state === 'alive' ? { x: g.pos.x, z: g.pos.z, r2: 1000 * 1000 } : null;
+    const zone = sq.task === CAP ? { x: sq.ax, z: sq.az, r2: (CAP_R * 1.3) ** 2 } : sq.task === COVER ? { x: sq.cvx, z: sq.cvz, r2: 700 * 700 } : g && g.state === 'alive' ? { x: g.pos.x, z: g.pos.z, r2: 1000 * 1000 } : null;
     let best = -1, bd = 900 * 900;
     this.eachNear(x, z, 900, j => {
       const o = this.squads[this.sq[j]];
@@ -523,7 +657,7 @@ export class CraftPool {
   private gunCraft(i: number, sq: Squad, j: number, d: number) {
     const w = this.w, g = sq.gun!, o = this.squads[this.sq[j]];
     this.cool[i] = g.reload;
-    const p = 0.55 * (1 - 0.5 * d / g.range) / (1 + o.cs.agility * 0.3);
+    const p = AIR_HIT * (1 - 0.5 * d / g.range) / (1 + o.cs.agility * 0.3);
     if (!w.rng.chance(p)) return;
     this.hp[j] -= g.damage;
     if (this.hp[j] <= 0) this.down(j, sq.ship.id);

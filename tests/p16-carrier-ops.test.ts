@@ -74,7 +74,9 @@ describe('P16.3 aviation modules: AirSpec → ShipFx.air → craft pool, each mo
   });
 
   it('effects reach the fight: hangar extension launches more craft, maintenance re-sorties sooner', () => {
-    const launches = (fx?: ShipFx) => { const w = new World(setup(G(S('carrier', 'air_group', 1, fx ? { fx } : {})), G(S('cruiser', 'multi', 2)))); let n = 0; while (!w.outcome && w.time < 150) { w.step(); for (const e of w.events) if (e.t === 'craftLaunch' && e.ship === carrierOf(w).id) n++; } return n; };
+    // a fixed 80 s window: both modules must show before either battle can end (since P16.5 the carrier wins
+    // this fight, and a module that wins it sooner launches fewer craft over the whole battle)
+    const launches = (fx?: ShipFx) => { const w = new World(setup(G(S('carrier', 'air_group', 1, fx ? { fx } : {})), G(S('cruiser', 'multi', 2)))); let n = 0; while (!w.outcome && w.time < 80) { w.step(); for (const e of w.events) if (e.t === 'craftLaunch' && e.ship === carrierOf(w).id) n++; } return n; };
     const p = launches();
     expect(launches(air('air_hangar_ext'))).toBeGreaterThan(p);
     expect(launches(air('air_maint'))).toBeGreaterThan(p);

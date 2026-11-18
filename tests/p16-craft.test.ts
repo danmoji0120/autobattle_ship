@@ -126,9 +126,20 @@ describe('P16.1 behaviour', () => {
     expect(g.ai.preferredRange).toBeLessThan(FIGHTERS.radius);
     expect(car.stats.dmgDealt).toBeGreaterThan(0);
     expect(ordFire).toBeGreaterThan(0);
-    expect(gunHits).toBeGreaterThan(0);
+    // P16.5: fighters do not strafe ships under heavy point defence (three AA destroyers): no gun runs here
+    expect(gunHits).toBe(0);
     // guns are instant: no shell munition ever leaves the carrier
     expect(shellsFromCarrier).toBe(0);
+    // against lightly defended corvettes the fighters do strafe, and their guns hit (instantly, no shells)
+    const w2 = new World(setup(G(S(P16_CARRIER, 'mixed', 1)), G(S('corvette', 'gun', 3))));
+    const car2 = carrierOf(w2);
+    let gun2 = 0, shells2 = 0;
+    run(w2, 150, e => {
+      if (e.t === 'hit' && e.attacker === car2.id && e.weapon !== P16_W.airTorp) gun2++;
+      if (e.t === 'fire' && e.ship === car2.id && e.kind === 'shell') shells2++;
+    });
+    expect(gun2).toBeGreaterThan(0);
+    expect(shells2).toBe(0);
     // craft stay inside their operating radius (a small overshoot while turning back)
     expect(farthest).toBeLessThan(1.25);
   });
