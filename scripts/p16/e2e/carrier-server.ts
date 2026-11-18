@@ -109,15 +109,20 @@ try {
   check(offline(3, sim => { const x = sim.st.ships[cv.id]; return x.task.k === 'docked' && (x.task as any).station === 'helios'; }, 'sail to helios'), '3: docked at helios');
   await srv.start(); await connectAll();
   const full = { hp: { ...DAWN_STD_WEAPONS }, bay: { ...own.bay, fl3: 'air_control' } };
-  const mk0 = A.snap().stations.helios.market;
-  const before = { interceptor: mk0.eq_wing_interceptor?.stock, control: mk0.air_control?.stock };
+  const cr2 = A.snap().companies[A.id].credits;
   check(await A.command({ c: 'fit', ship: cv.id, ...full, buy: true }) === null, '3: helios — interceptor wing, air control, 2 medium guns, 6 point defence bought and fitted (fit buy)');
   s = await A.fresh();
-  const mk1 = s.stations.helios.market;
-  facts.marketBuy = { interceptor: [before.interceptor, mk1.eq_wing_interceptor?.stock], control: [before.control, mk1.air_control?.stock] };
-  const took = (a: number, b: number) => a - b > 0.9 && a - b < 1.1;   // stock also regrows slowly between the two reads
-  check(took(before.interceptor, mk1.eq_wing_interceptor.stock) && took(before.control, mk1.air_control.stock), '3: the interceptor wing and the air control unit came out of the helios market stock', facts.marketBuy);
-  check(JSON.stringify(s.ships[cv.id].fitting.hp) === JSON.stringify(full.hp), '3: carrier fitting = the standard air group (H slots h1–h4) + flight bays fl1–fl3 + carrier computer', s.ships[cv.id].fitting);
+  // fit-buy of ordinary gear is the station's refit service (service price, no market stock — only regional advanced
+  // gear needs real stock); the market itself is checked with a plain purchase of a spare interceptor wing
+  facts.fitBuyPaid = cr2 - s.companies[A.id].credits;
+  check(facts.fitBuyPaid as number > 0, '3: the refit service charged A for the bought gear', { paid: facts.fitBuyPaid });
+  const st0 = s.stations.helios.market.eq_wing_interceptor.stock;
+  check(await A.command({ c: 'buy', station: 'helios', res: 'eq_wing_interceptor', amount: 1 }) === null, '3: A buys a spare interceptor wing on the helios market');
+  s = await A.fresh();
+  facts.marketBuy = [st0, s.stations.helios.market.eq_wing_interceptor.stock];
+  check(st0 - s.stations.helios.market.eq_wing_interceptor.stock > 0.9 && (s.stations.helios.storage?.[A.id]?.eq_wing_interceptor ?? 0) >= 1, '3: the market stock went down by one and the wing is in A\'s helios storage', facts.marketBuy);
+  const sorted = (o: Record<string, string>) => JSON.stringify(Object.entries(o).sort());
+  check(sorted(s.ships[cv.id].fitting.hp) === sorted(full.hp) && sorted(s.ships[cv.id].fitting.bay) === sorted(full.bay), '3: carrier fitting = the standard air group (H slots h1–h4) + flight bays fl1–fl3 + carrier computer', s.ships[cv.id].fitting);
 
   // ── 4. the carrier group: A's security ships + officer join the carrier
   const esc = Object.values<any>(s.ships).filter(x => x.owner === A.id && x.id !== cv.id).map(x => x.id);
