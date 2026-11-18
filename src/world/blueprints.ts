@@ -3,7 +3,7 @@
 // non-common variant's), the research it requires, a yard, the facilities, parts and yard time.
 // Acquisition sources are data (content BlueprintDef.sources): shop / commercial / faction /
 // contract / salvage fragments / unique. Pure helpers + the few state changes they imply.
-import { CONTENT, blueprintsFor, blueprintHull } from '../content/registry';
+import { CONTENT, blueprintsFor, blueprintHull, hullReleased } from '../content/registry';
 import type { BlueprintDef, BlueprintSource } from '../content/schema';
 import { STARTER_BLUEPRINTS } from '../content/packs/growth/blueprints';
 import type { Company, Station, WorldState } from './types';
@@ -74,7 +74,7 @@ export function grantBlueprint(w: WorldState, co: Company, bp: string, src: stri
 }
 
 /** P16: a blueprint for a hull the world has not released (preview) */
-const unreleased = (def: BlueprintDef) => { const h = blueprintHull(def); return !!h && !!CONTENT.hulls[h]?.preview; };
+const unreleased = (def: BlueprintDef) => { const h = blueprintHull(def); return !!h && !!CONTENT.hulls[h]?.preview && !hullReleased(h); };
 const uniqueSource = (def: BlueprintDef) => def.sources.find(s => s.kind === 'unique') as Extract<BlueprintSource, { kind: 'unique' }> | undefined;
 /** companies holding a unique blueprint: the award list ∪ every current holder (holdings granted before the fix included) */
 export function uniqueHolders(w: Pick<WorldState, 'uniques' | 'companies'>, bp: string): number {
