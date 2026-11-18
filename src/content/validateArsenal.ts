@@ -28,7 +28,18 @@ export const AREA_EFFECTS: Record<ResearchArea, { fx?: string[]; cfx?: string[];
   station: { fx: ['researchMul', 'constructMul'] },
   tactics: { fx: ['skillGain'], cfx: ['evasion'] },
 };
-const FAMILY_KIND: Record<string, WeaponStats['kind']> = { missile: 'missile', torpedo: 'torpedo', pd: 'pd' };
+const FAMILY_KIND: Record<string, WeaponStats['kind']> = { missile: 'missile', torpedo: 'torpedo', pd: 'pd', craft: 'craft' };
+
+/** P16 strike-craft budget (armScore does not fit craft: they fire nothing from the hull). Damage one squadron
+ *  delivers per second of its sortie cycle: guns over half the sortie plus one ordnance drop, × complement,
+ *  ÷ (sortie + turnaround), × √(airframe hp / 24) for survival. The three P16.2 squadrons score 73–95. */
+export function craftScore(c: import('../sim/data/weapons').CraftStats): number {
+  const gun = c.gun ? c.gun.damage / Math.max(0.05, c.gun.reload) * c.sortie * 0.5 : 0;
+  const ord = c.ordnance ? WEAPONS[c.ordnance]?.damage ?? 0 : 0;
+  return Math.round(c.n * (gun + ord) / (c.sortie + c.turnaround) * Math.sqrt(c.hp / 24));
+}
+/** craft budget per H-slot size (D3: one size, L) */
+export const CRAFT_BUDGET: Partial<Record<Size, number>> = { L: 100 };
 
 /** comparable strength of a weapon: sustained damage × armour reach × range reach. Used to compare a
  *  new weapon with the existing ones of its size (docs/CODEX_CONTENT_GUIDE.md §7). */
@@ -96,6 +107,7 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     if (!a.tech && a.tier >= 2) warn(at, '2티어 이상 무장에 해금 연구(tech)가 없음');
     const want = FAMILY_KIND[a.family] ?? 'shell';
     if (c.kind !== want) err(at, `${a.family} 계열의 combat.kind 는 "${want}"`);
+    if (c.kind === 'craft' || c.craft) { craftArm(a, at); (byFamily.get(a.family) ?? byFamily.set(a.family, []).get(a.family)!).push(a); continue; }
     const rng = (k: keyof WeaponStats, lo: number, hi: number) => { const v = c[k] as number | undefined; if (v === undefined || !(v >= lo && v <= hi)) err(at, `combat.${String(k)} ${v} (${lo}–${hi})`); };
     rng('damage', 1, 3000); rng('pen', 1, 200); rng('range', 150, 3000); rng('reload', 0.05, 60); rng('salvo', 1, 12); rng('salvoGap', 0, 2);
     rng('spread', 0, 0.3); rng('turnSpeed', 1, 600); rng('caliber', 0.2, 4);
@@ -119,14 +131,40 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     }
     (byFamily.get(a.family) ?? byFamily.set(a.family, []).get(a.family)!).push(a);
   }
-  // a higher tier must not beat a lower tier of the same family on every axis
+  // a higher tier must not beat a lower tier of the same family on every axis (strike craft: craftScore budget instead)
   for (const [fam, list] of byFamily) {
+    if (fam === 'craft') continue;
     for (const hi of list) for (const lo of list) {
       if (hi.tier <= lo.tier) continue;
       const better = armScore(hi.combat) >= armScore(lo.combat) && hi.combat.pen >= lo.combat.pen && hi.combat.range >= lo.combat.range && hi.combat.turnSpeed >= lo.combat.turnSpeed;
       const cheaper = hi.power <= lo.power && hi.mass <= lo.mass && sizeRank(hi.size) <= sizeRank(lo.size);
       if (better && cheaper) err(`arm ${hi.id}`, `${fam} ${hi.tier}티어가 ${lo.id}(${lo.tier}티어)를 모든 면에서 압도 — 전력·크기·선회·연사 중 하나는 불리해야 함`);
     }
+  }
+
+  /** P16 strike-craft weapon: H-slot equipment that launches a squadron */
+  function craftArm(a: ArmContent, at: string) {
+    const c = a.combat, cs = c.craft;
+    if (c.kind !== 'craft' || !cs) { err(at, '함재기 무장은 combat.kind "craft" 와 combat.craft 를 함께 가져야 함'); return; }
+    if (a.family !== 'craft') err(at, '함재기 무장은 family "craft"');
+    if (!a.mounts || a.mounts.length !== 1 || a.mounts[0] !== 'deck') err(at, '함재기 무장의 mounts 는 ["deck"] (격납 갑판)만');
+    if (a.size !== 'L') err(at, `함재기 무장 size "${a.size}" — H 슬롯은 L 단일 크기 (P16.0 D3)`);
+    if (c.salvo !== 0) err(at, '함재기 무장은 직접 쏘지 않는다: combat.salvo 0 (포 화력 합계에 들어가지 않게)');
+    if (c.range !== cs.radius || c.reload !== cs.turnaround || c.speed !== cs.speed) err(at, 'combat.range/reload/speed 는 craft.radius/turnaround/speed 와 같아야 함 (표시용 사본)');
+    const r = (k: string, v: number | undefined, lo: number, hi: number, int = false) => { if (v === undefined || !(v >= lo && v <= hi) || (int && !Number.isInteger(v))) err(at, `craft.${k} ${v} (${lo}–${hi}${int ? ' 정수' : ''})`); };
+    if (!['fighter', 'bomber', 'interceptor'].includes(cs.role)) err(at, `craft.role "${cs.role}"`);
+    r('n', cs.n, 1, 20, true); r('spares', cs.spares, 0, 20, true); r('hp', cs.hp, 1, 500); r('speed', cs.speed, 30, 400); r('agility', cs.agility, 0.2, 6);
+    r('radius', cs.radius, 300, 4000); r('sortie', cs.sortie, 10, 300); r('turnaround', cs.turnaround, 2, 120); r('launch', cs.launch, 0.1, 5);
+    if (cs.gun) { r('gun.damage', cs.gun.damage, 1, 200); r('gun.pen', cs.gun.pen, 1, 200); r('gun.range', cs.gun.range, 50, 1000); r('gun.reload', cs.gun.reload, 0.05, 10); }
+    if (cs.ordnance !== undefined) { const o = WEAPONS[cs.ordnance]; if (!o || (o.kind !== 'missile' && o.kind !== 'torpedo')) err(at, `craft.ordnance "${cs.ordnance}" 는 미사일·어뢰 WEAPONS id 여야 함`); }
+    if (!cs.gun && !cs.ordnance) err(at, '기관포도 대함 무장도 없는 함재기');
+    if (!fac(a.recipe.fac)) err(at, `recipe.fac "${a.recipe.fac}" 시설 없음`);
+    if (!(a.recipe.time >= 30 && a.recipe.time <= 86400)) err(at, `recipe.time ${a.recipe.time} (30–86400 s)`);
+    goods(at, a.recipe.in, 'recipe.in', packGrowth('arm', a.id));
+    goods(at, a.supply, 'supply', packGrowth('arm', a.id));
+    const s = craftScore(cs), cap = CRAFT_BUDGET[a.size] ?? 1;
+    if (s > cap * 1.6) err(at, `함재기 지수 ${s} 가 ${a.size} 기준 ${cap} 의 1.6배 초과 — 수치 과다`);
+    else if (s > cap * 1.25) warn(at, `함재기 지수 ${s} > ${a.size} 기준 ${cap} ×1.25 — 비용·전력·티어로 정당화되는지 검토`);
   }
 
   // ── modules
@@ -142,7 +180,7 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
   for (const m of Object.values(reg.modules)) {
     const at = `module ${m.id}`, g = packGrowth('module', m.id);
     // industrial hardpoint gear (slot industrial) is named ind_<work>_<size>; every other module mod_
-    const pre = m.slot === 'industrial' ? 'ind_' : m.slot === 'computer' ? 'cpu_' : 'mod_';
+    const pre = m.slot === 'industrial' ? 'ind_' : m.slot === 'computer' ? 'cpu_' : m.slot === 'flight' ? 'air_' : 'mod_';
     if (!new RegExp(`^${pre}[a-z0-9_]{2,40}$`).test(m.id)) err(at, `id 는 \`${pre}\` 로 시작`);
     if (!INTERNAL_KINDS.includes(m.slot)) err(at, `slot "${m.slot}"`);
     if (!SIZES.includes(m.size)) err(at, `size "${m.size}"`);
@@ -152,7 +190,7 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     if (m.fx.family) err(at, '모듈은 계열 한정 효과(family)를 쓰지 않는다 (연구로)');
     if (m.fx.shield && m.power <= 0) err(at, '실드 발생기는 전력을 소모해야 함');
     cfxCheck(at, m.fx);
-    if (!Object.keys(m.fx).length && m.power >= 0 && !m.ind && !m.cpu) err(at, '효과도 전력 공급도 없는 모듈');
+    if (!Object.keys(m.fx).length && m.power >= 0 && !m.ind && !m.cpu && !m.air) err(at, '효과도 전력 공급도 없는 모듈');
     if (!fac(m.recipe.fac)) err(at, `recipe.fac "${m.recipe.fac}" 시설 없음`);
     goods(at, m.recipe.in, 'recipe.in', g);
   }

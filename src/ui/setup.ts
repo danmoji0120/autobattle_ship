@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { SHIP_CLASSES, shipCost, getLoadout } from '../sim/data/ships';
-import { WEAPONS } from '../sim/data/weapons';
+import { WEAPONS, isShipGun } from '../sim/data/weapons';
 import { COMMANDERS, SPECIALTY_TEXT, getCommander } from '../sim/data/commanders';
 import { SCENARIOS, getScenario } from '../sim/data/scenarios';
 import { fleetCost, defaultPlayerFleet, walk, PLAYER_BUDGET, INITIAL_ORDER_TEXT, validateFleet, type FleetSpec, type GroupSpec, type InitialOrder } from '../sim/fleet';
@@ -107,7 +107,7 @@ export class SetupScreen {
     const on = this.catSel.classId === id;
     const lo = getLoadout(id, on ? this.catSel.loadoutId : c.loadouts[0].id);
     const arm = (c.armor.front + c.armor.side + c.armor.rear) / 3;
-    const fire = lo.mounts.reduce((a, m) => { const w = WEAPONS[m.weapon]; return a + (w.kind === 'pd' ? 0 : w.damage * w.salvo / w.reload); }, 0);
+    const fire = lo.mounts.reduce((a, m) => { const w = WEAPONS[m.weapon]; return a + (isShipGun(w) ? w.damage * w.salvo / w.reload : 0); }, 0);   // P16: craft are not gun firepower
     const pd = lo.mounts.filter(m => WEAPONS[m.weapon].kind === 'pd').length;
     return `<div class="cat${on ? ' on' : ''}" data-cat="${id}">
       <div class="nm">${c.name} ${c.type}<span>${shipCost(id, lo.id)}</span></div>

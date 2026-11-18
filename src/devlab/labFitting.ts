@@ -6,7 +6,7 @@ import { hpAccepts, bayAccepts, weaponType, TYPE_NAME, MOUNT_NAME, BAY_NAME, arc
 import type { HardpointDef, InternalSlotDef } from '../content/schema';
 import { checkFitting, shipLoadout, shipLoadoutKey, bayModules, cpuMountsOf, type ShipFitting } from '../world/fitting';
 import { EQUIPMENT, fitFx, growthFx } from '../world/industry';
-import { WEAPONS, type WeaponDef } from '../sim/data/weapons';
+import { WEAPONS, isCraft, craftSummary, type WeaponDef } from '../sim/data/weapons';
 import { SHIP_CLASSES } from '../sim/data/ships';
 import { buildShip } from '../render/shipMesh';
 import { morph } from '../ui/morph';
@@ -66,7 +66,7 @@ export class LabFittingScreen {
     const lo = shipLoadout({ classId, loadoutId: '', variant: d.variant, fitting: { hp: d.hp, bay: d.bay } });
     const mods = bayModules(d.variant, d), fx = fitFx(mods, this.tech), g = growthFx(mods, this.tech), cls = SHIP_CLASSES[classId];
     let dps = 0, pd = 0, range = 0;
-    for (const m of lo.mounts) { const w = WEAPONS[m.weapon]; if (w.kind === 'pd') { pd++; continue; } dps += weaponDps(w); range = Math.max(range, w.range); }
+    for (const m of lo.mounts) { const w = WEAPONS[m.weapon]; if (w.kind === 'pd') { pd++; continue; } if (isCraft(w)) continue; dps += weaponDps(w); range = Math.max(range, w.range); }   // P16: craft are not gun firepower/range
     return { dps, pd, range: range * fx.rangeMul, guns: lo.mounts.length,
       hp: cls.hp * (lo.hpMul ?? 1) * fx.hpMul * (g.hpMul ?? 1), armor: cls.armor.front * (lo.armorMul ?? 1) * fx.armorMul * (g.armorMul ?? 1),
       speed: cls.maxSpeed * (lo.speedMul ?? 1) * fx.speedMul * (g.speedMul ?? 1), acc: fx.accMul * (g.accMul ?? 1), evasion: fx.evasion + (g.evasion ?? 0) };
@@ -106,7 +106,7 @@ export class LabFittingScreen {
     list.sort((a,b)=>this.sort==='name'?a.name.localeCompare(b.name,'ko'):key[this.sort](a.id)-key[this.sort](b.id)||a.name.localeCompare(b.name,'ko'));
     const d=(x:number,y:number|undefined,dd=0,inv=false)=>{if(y===undefined)return '';const v=x-y;if(Math.abs(v)<1e-6)return '';return ` <span class="${(inv?v<0:v>0)?'up':'dn'}">${sgn(v,dd)}</span>`;}, c=cur?sp(cur):undefined;
     const row=(id:string)=>{const e=EQUIPMENT[id],s=sp(id),w=e.weapon?WEAPONS[e.weapon]:undefined,why=hp?hpAccepts(hp,id):bay?bayAccepts(bay,id):null,cw=cur&&EQUIPMENT[cur]?.weapon?WEAPONS[EQUIPMENT[cur].weapon!]:undefined;
-      const stats=w?`${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w),cur?dps(cur):undefined,1)} · 사거리 ${fmt(w.range)}${d(w.range,cur?rng(cur):undefined)} · 관통 ${w.pen}${d(w.pen,cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${statBars(w)}`:e.cpu?esc(cpuSummary(e.cpu.arch,cpuMountsOf(lay,this.draft.hp),WEAPONS,e.cpu.react)):e.cfx?esc(cfxText(e.cfx)):esc(e.desc);
+      const stats=w&&isCraft(w)?`${esc(craftSummary(w))} · ${TYPE_NAME[weaponType(w.id)]}`:w?`${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w),cur?dps(cur):undefined,1)} · 사거리 ${fmt(w.range)}${d(w.range,cur?rng(cur):undefined)} · 관통 ${w.pen}${d(w.pen,cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${statBars(w)}`:e.cpu?esc(cpuSummary(e.cpu.arch,cpuMountsOf(lay,this.draft.hp),WEAPONS,e.cpu.react)):e.cfx?esc(cfxText(e.cfx)):esc(e.desc);
       return `<div class="fitem${why?' no':''}${id===cur?' cur':''}" data-fpick="${esc(id)}" title="${esc(why??e.desc)}"><div class="fin"><b>${esc(e.name)}</b><span class="fsz sm">${s.size}</span>${id===cur?'<span class="tag">장착 중</span>':''}</div><div class="fis">${stats}</div><div class="fis dim">질량 ${s.mass}${d(s.mass,c?.mass,0,true)} · 전력 ${s.power<0?`공급 +${-s.power}`:s.power}${d(s.power,c?.power,0,true)}${why?` · <span class="warn">${esc(why)}</span>`:''}</div></div>`;};
     const title=hp?`${hp.id} — ${hp.size} ${TYPE_NAME[hp.type]} ${MOUNT_NAME[hp.mount]}`:bay?`${bay.id} — ${bay.size} ${BAY_NAME[bay.kind]} 베이`:'슬롯을 선택하세요';
     return `<h3>장비 <span class="dim">${esc(title)}</span></h3><div class="frow"><input data-fq placeholder="장비 검색 (이름·종류)" value="${esc(this.q)}"></div><div class="chips">${([['fit','이 슬롯 호환'],['all','전체'],['weapon','무장'],['module','모듈']] as const).map(([v,l])=>`<button class="chip${this.filter===v?' on':''}" data-ffilt="${v}">${l}</button>`).join('')}</div><div class="chips">${([['name','이름'],['dps','화력'],['range','사거리'],['mass','질량'],['power','전력']] as const).map(([v,l])=>`<button class="chip${this.sort===v?' on':''}" data-fsort="${v}">${l}순</button>`).join('')}</div>${cur?`<div class="dim small">현재 장착: <b>${esc(EQUIPMENT[cur]?.name??cur)}</b> — 아래 수치의 <span class="up">+</span>/<span class="dn">−</span>는 이 장비와의 차이</div>`:''}<div class="flist">${list.length?list.map(e=>row(e.id)).join(''):'<div class="dim">조건에 맞는 장비가 없습니다</div>'}</div>`;

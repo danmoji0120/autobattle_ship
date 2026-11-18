@@ -110,7 +110,7 @@ export function installContent(r: Registry) {
   for (const id of [...Object.keys(r.arms), ...Object.keys(r.modules), ...Object.keys(r.exArms), ...Object.keys(r.exModules)]) INSTALLED_EQUIPMENT.add(id);
   for (const a of Object.values(r.exArms)) {
     const wid = armWeaponId(a.id), c = a.combat;
-    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
+    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind === 'craft' ? 'auto' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: c.kind === 'craft' ? 'hangar' : familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
     EQUIPMENT[a.id] ??= { id: a.id, name: a.name, kind: 'weapon', weapon: wid, size: sizeNum(a.size), desc: a.desc, growth: true, exclusive: true };
   }
   for (const m of Object.values(r.exModules)) EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, growth: true, exclusive: true };
@@ -118,13 +118,13 @@ export function installContent(r: Registry) {
   for (const a of Object.values(r.arms)) {
     const wid = armWeaponId(a.id), g = r.growthOnly.has(a.id);
     const c = a.combat;
-    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
+    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind === 'craft' ? 'auto' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: c.kind === 'craft' ? 'hangar' : familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
     EQUIPMENT[a.id] ??= { id: a.id, name: a.name, kind: 'weapon', weapon: wid, size: sizeNum(a.size), desc: a.desc, ...(a.tech ? { tech: a.tech } : {}), ...(a.supply ? { supply: a.supply } : {}), ...(g ? { growth: true } : {}) };
     RECIPES[a.id] ??= { id: a.id, name: `${a.name} 생산`, fac: a.recipe.fac, time: a.recipe.time, in: a.recipe.in, out: { [a.id]: 1 }, ...(a.tech ? { tech: a.tech } : {}), ...(g ? { growth: true } : {}) };
   }
   for (const m of Object.values(r.modules)) {
     const g = r.growthOnly.has(m.id);
-    EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, cfx: m.fx, ...(m.ind ? { ind: { ...m.ind } } : {}), ...(m.cpu ? { cpu: { ...m.cpu } } : {}), ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
+    EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, cfx: m.fx, ...(m.ind ? { ind: { ...m.ind } } : {}), ...(m.cpu ? { cpu: { ...m.cpu } } : {}), ...(m.air ? { air: { ...m.air } } : {}), ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
     RECIPES[m.id] ??= { id: m.id, name: `${m.name} 제작`, fac: m.recipe.fac, time: m.recipe.time, in: m.recipe.in, out: { [m.id]: 1 }, ...(m.tech ? { tech: m.tech } : {}), ...(g ? { growth: true } : {}) };
   }
   for (const t of Object.values(r.techs)) {
@@ -186,6 +186,11 @@ export function legacyOf(classId: string, loadoutId: string, reg: Registry = CON
   return reg.legacy[`${classId}/${loadoutId}`] ?? Object.values(reg.legacy).find(l => l.classId === classId) ?? null;
 }
 
+/** P16: a hull the world has released (not a dev, account-exclusive or preview hull) — catalogues, purchase,
+ *  construction and blueprint offers use only these */
+export const hullReleased = (hullId: string | undefined, reg: Registry = CONTENT): boolean => { const h = hullId ? reg.hulls[hullId] : undefined; return !!h && !h.dev && !h.exclusive && !h.preview; };
+/** the hull a blueprint lets its holder build (hull or variant targets), if any */
+export const blueprintHull = (bp: BlueprintDef, reg: Registry = CONTENT): string | undefined => bp.target.kind === 'hull' ? bp.target.id : bp.target.kind === 'variant' ? reg.variants[bp.target.id]?.hull : undefined;
 export const hullsOfClass = (classId: string, reg: Registry = CONTENT) => Object.values(reg.hulls).filter(h => h.classId === classId);
 export const presetsOfHull = (hullId: string, reg: Registry = CONTENT) => Object.values(reg.presets).filter(p => p.hull === hullId);
 export const variantsOfHull = (hullId: string, reg: Registry = CONTENT) => Object.values(reg.variants).filter(v => v.hull === hullId);

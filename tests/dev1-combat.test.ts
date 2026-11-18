@@ -10,7 +10,7 @@ import { availableHulls, battleSetup, configProblems, defaultConfig, defaultShip
 describe('DEV-1 local combat experiments', () => {
   it('exposes all usable hulls and variants and excludes developer fixtures', () => {
     const hulls = availableHulls();
-    expect(hulls.map(h => h.id).sort()).toEqual(Object.values(CONTENT.hulls).filter(h => !h.dev).map(h => h.id).sort());
+    expect(hulls.map(h => h.id).sort()).toEqual(Object.values(CONTENT.hulls).filter(h => !h.dev && !h.preview).map(h => h.id).sort());
     for (const hull of hulls) {
       const variants = Object.values(CONTENT.variants).filter(v => v.hull === hull.id);
       expect(variants.length, hull.id).toBeGreaterThan(0);

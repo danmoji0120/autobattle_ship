@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { SHIP_CLASSES } from '../sim/data/ships';
-import { WEAPONS } from '../sim/data/weapons';
+import { WEAPONS, isShipGun } from '../sim/data/weapons';
 import { ACTING_CAPTAIN, COMMANDERS, SPECIALTY_TEXT, type CommanderDef, type Specialty } from '../sim/data/commanders';
 import { INITIAL_ORDER_TEXT, type InitialOrder } from '../sim/fleet';
 import { CONTENT, variantsOfHull } from '../content/registry';
@@ -83,7 +83,7 @@ export class LabSetupScreen {
     const variant = on ? this.catSel.variant : defaultShip(id, 'preview').variant;
     const draft = defaultShip(id, 'preview', variant), lo = shipLoadout({ classId: hull.classId, loadoutId: '', variant, fitting: draft.fitting });
     const arm = (c.armor.front + c.armor.side + c.armor.rear) / 3;
-    const fire = lo.mounts.reduce((a, m) => { const w = WEAPONS[m.weapon]; return a + (w.kind === 'pd' ? 0 : w.damage * w.salvo / w.reload); }, 0);
+    const fire = lo.mounts.reduce((a, m) => { const w = WEAPONS[m.weapon]; return a + (isShipGun(w) ? w.damage * w.salvo / w.reload : 0); }, 0);   // P16: craft are not gun firepower
     const pd = lo.mounts.filter(m => WEAPONS[m.weapon].kind === 'pd').length;
     return `<div class="cat${on ? ' on' : ''}" data-cat="${esc(id)}"><div class="nm">${esc(hull.name)} <span>${esc(hull.size)}</span></div>
       <div class="ty">${esc(c.type)} · ${esc(hull.maker ?? '')} · 길이 ${c.length}m급 · ${esc(id)}</div>

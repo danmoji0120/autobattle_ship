@@ -1854,6 +1854,7 @@ export class WorldSim {
   private hullChoice(cmd: { classId: string; loadoutId: string; hull?: string; variant?: string; preset?: string }): { hull: string; variant: string; preset?: string } | string {
     if (cmd.hull !== undefined && (typeof cmd.hull !== 'string' || !Object.hasOwn(CONTENT.hulls, cmd.hull))) return '알 수 없는 선체';
     if (cmd.hull && CONTENT.hulls[cmd.hull].dev) return '개발용 선체 — 구매·건조할 수 없음';
+    if (cmd.hull && CONTENT.hulls[cmd.hull].preview) return `${CONTENT.hulls[cmd.hull].name}: 아직 공개되지 않은 선체 — 구매·건조할 수 없음`;
     if (cmd.classId === BBEX_CLASS || (cmd.hull && CONTENT.hulls[cmd.hull].exclusive)) return 'BB-EX는 건조하거나 구매할 수 없습니다 (세계 유일 · 설계도 없음)';
     if (cmd.preset !== undefined && (typeof cmd.preset !== 'string' || !Object.hasOwn(CONTENT.presets, cmd.preset))) return '알 수 없는 무장 프리셋';
     if (cmd.variant !== undefined && (typeof cmd.variant !== 'string' || !Object.hasOwn(CONTENT.variants, cmd.variant))) return '알 수 없는 선체 변형';

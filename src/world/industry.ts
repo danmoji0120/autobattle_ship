@@ -67,6 +67,8 @@ export interface EquipDef {
   ind?: import('../content/schema').IndSpec;
   /** P15.1 combat computer behaviour of a `computer`-bay module */
   cpu?: import('../content/schema').CpuModSpec;
+  /** P16 aviation module (only on `flight` modules): carried to the battle from P16.3 */
+  air?: import('../content/schema').AirSpec;
   /** goods consumed per hour of service (growth upkeep) */
   supply?: Record<string, number>;
   /** growth-only content (contentV ≥ 3) */

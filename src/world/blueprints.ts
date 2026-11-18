@@ -3,7 +3,7 @@
 // non-common variant's), the research it requires, a yard, the facilities, parts and yard time.
 // Acquisition sources are data (content BlueprintDef.sources): shop / commercial / faction /
 // contract / salvage fragments / unique. Pure helpers + the few state changes they imply.
-import { CONTENT, blueprintsFor } from '../content/registry';
+import { CONTENT, blueprintsFor, blueprintHull } from '../content/registry';
 import type { BlueprintDef, BlueprintSource } from '../content/schema';
 import { STARTER_BLUEPRINTS } from '../content/packs/growth/blueprints';
 import type { Company, Station, WorldState } from './types';
@@ -55,6 +55,7 @@ export function rightsProblem(co: Company, hullId: string, variantId: string): s
 /** add a holding; respects unique limits. Returns false if it could not be granted. */
 export function grantBlueprint(w: WorldState, co: Company, bp: string, src: string, t: number): boolean {
   const def = CONTENT.blueprints[bp]; if (!def) return false;
+  if (src !== 'migration' && unreleased(def)) return false;   // P16: nothing grants a preview hull's blueprint
   if (holds(co, bp)) {
     // a limited-run licence bought again tops up its runs
     if (def.runs && co.blueprints![bp].runs !== undefined) co.blueprints![bp].runs! += def.runs;
@@ -72,6 +73,8 @@ export function grantBlueprint(w: WorldState, co: Company, bp: string, src: stri
   return true;
 }
 
+/** P16: a blueprint for a hull the world has not released (preview) */
+const unreleased = (def: BlueprintDef) => { const h = blueprintHull(def); return !!h && !!CONTENT.hulls[h]?.preview; };
 const uniqueSource = (def: BlueprintDef) => def.sources.find(s => s.kind === 'unique') as Extract<BlueprintSource, { kind: 'unique' }> | undefined;
 /** companies holding a unique blueprint: the award list ∪ every current holder (holdings granted before the fix included) */
 export function uniqueHolders(w: Pick<WorldState, 'uniques' | 'companies'>, bp: string): number {
@@ -95,6 +98,7 @@ export function offersAt(w: WorldState, st: Station, co: Company): Offer[] {
   const rv = repOn(w);
   const out: Offer[] = [];
   for (const bp of Object.values(CONTENT.blueprints)) {
+    if (unreleased(bp)) continue;   // P16: a preview hull's blueprint is not on sale yet
     for (const src of bp.sources) {
       if (!('stations' in src) || !src.stations.includes(st.id)) continue;
       if (src.kind === 'faction' && src.repOnly && !rv) continue;

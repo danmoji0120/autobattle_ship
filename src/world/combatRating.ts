@@ -17,7 +17,7 @@
 // frigate — and the opponent count that makes the fight even gives its battle rating; geometric mean over the four).
 // Custom (Fitting V2) mounts use the class average correction. Validation: scripts/b3/rating-duels.ts.
 import { SHIP_CLASSES, type LoadoutDef, type ShipClassDef } from '../sim/data/ships';
-import { WEAPONS, type WeaponDef } from '../sim/data/weapons';
+import { WEAPONS, isCraft, isShipGun, type WeaponDef } from '../sim/data/weapons';
 import type { ShipFx } from '../sim/fleet';
 
 const REF = ['frigate', 'destroyer', 'cruiser', 'battleship'] as const;
@@ -48,7 +48,7 @@ function refSet(): Ref[] {
   if (refs) return refs;
   refs = REF.filter(id => SHIP_CLASSES[id]?.loadouts.length).map(id => {
     const cls = SHIP_CLASSES[id], lo = cls.loadouts[0];
-    const ws = lo.mounts.map(m => WEAPONS[m.weapon]).filter(w => w && w.kind !== 'pd');
+    const ws = lo.mounts.map(m => WEAPONS[m.weapon]).filter(w => isShipGun(w));
     const tot = ws.reduce((a, w) => a + dps(w), 0) || 1;
     return { cls, side: cls.armor.side, pd: pdOf(lo), weapons: ws.map(w => ({ w, share: dps(w) / tot })) };
   });
@@ -69,6 +69,7 @@ function raw(i: RatingIn): { off: number; def: number } {
   let off = 0;
   for (const m of lo.mounts) {
     const w = WEAPONS[m.weapon]; if (!w) continue;
+    if (isCraft(w)) continue;   // P16: strike craft are not gun firepower; their rating is P16.3 (carrier rating)
     const fm = w.family ? fx.fam?.[w.family] : undefined;
     const rate = dps(w) * (fm?.dmg ?? 1) / ((fx.reloadMul ?? 1) * (fm?.reload ?? 1) * (w.kind === 'pd' ? 1 : 1 - o('rof')));
     if (w.kind === 'pd') { off += rate * 0.15 * (fx.pdMul ?? 1); continue; }   // point defence mostly shoots munitions

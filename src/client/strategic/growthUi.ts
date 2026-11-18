@@ -8,7 +8,7 @@ import type { WorldState as FullState } from '../../world/types';
 type WorldState = WorldView;
 const full = (w: WorldView) => w as unknown as FullState;
 import { cargoKeys, qty } from '../../world/types';
-import { CONTENT } from '../../content/registry';
+import { CONTENT, hullReleased } from '../../content/registry';
 import { SHIP_CLASSES } from '../../sim/data/ships';
 import { EQUIPMENT, TECHS, FACILITIES, itemName } from '../../world/industry';
 import { MODULES } from '../../world/data';
@@ -115,7 +115,7 @@ function buildWhy(w: WorldState, s: Station, me: string, hull: string, variant: 
 
 export function ownYardGrowthHtml(w: WorldState, s: Station, me: string, ui: GrowthYardUi, groups: { id: string; name: string }[]): string {
   const co = w.companies[me];
-  const hulls = Object.values(CONTENT.hulls).filter(h => h.classId !== 'platform' && !h.dev && !h.exclusive);
+  const hulls = Object.values(CONTENT.hulls).filter(h => h.classId !== 'platform' && hullReleased(h.id));
   const byClass = new Map<string, typeof hulls>();
   for (const h of hulls) (byClass.get(h.classId) ?? byClass.set(h.classId, []).get(h.classId)!).push(h);
   let html = `<h3>선체 설계 (${hulls.length})</h3><div class="dim small">건조하려면 <b>설계도</b>(생산 권리)와 <b>연구</b>, 맞는 크기의 <b>조선소</b>·<b>시설</b>, 부품과 시간이 필요합니다. 완성된 함선을 사고팔 때는 설계도나 연구가 필요 없습니다.</div>

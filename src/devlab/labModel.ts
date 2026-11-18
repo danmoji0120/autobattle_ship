@@ -36,10 +36,11 @@ export function contentIdentity(): LabConfig['content'] {
   return { version: CONTENT_VERSION, fingerprint: `fnv1a32-${(h >>> 0).toString(16).padStart(8, '0')}`, packs: CONTENT.packs.map(p => p.id) };
 }
 
-export const availableHulls = () => Object.values(CONTENT.hulls).filter(h => !h.dev && !!SHIP_CLASSES[h.classId]);
+/** lab hulls: everything but dev hulls and P16 preview hulls (the carrier opens in the lab with P16.4) */
+export const availableHulls = () => Object.values(CONTENT.hulls).filter(h => !h.dev && !h.preview && !!SHIP_CLASSES[h.classId]);
 export function defaultShip(hull: string, id: string, variant?: string): LabShip {
   const h = CONTENT.hulls[hull];
-  if (!h || h.dev) throw new Error('사용할 수 없는 선체입니다');
+  if (!h || h.dev || h.preview) throw new Error('사용할 수 없는 선체입니다');
   const v = variantsOfHull(hull).find(x => x.id === variant) ?? variantsOfHull(hull).find(x => x.id === `${hull}_std`) ?? variantsOfHull(hull)[0];
   if (!v) throw new Error('선체의 파생형이 없습니다');
   const presets = presetsOfHull(hull).filter(p => p.variant === v.id);
@@ -77,7 +78,7 @@ function legacyProblems(input: unknown): string[] {
       if (!record(ship) || typeof ship.id !== 'string' || !/^[A-Za-z0-9_-]{1,60}$/.test(ship.id) || ids.has(ship.id) || typeof ship.group !== 'string' || !ship.group.trim() || ship.group.length > 40 || !Number.isInteger(ship.count) || ship.count < 1 || ship.count > 200 || !ORDERS.includes(ship.order)) { errors.push(`${name}: 편대 정보가 올바르지 않습니다`); continue; }
       ids.add(ship.id); count += ship.count;
       const hull = typeof ship.hull === 'string' ? CONTENT.hulls[ship.hull] : undefined;
-      if (!hull || hull.dev || !SHIP_CLASSES[hull.classId] || typeof ship.variant !== 'string' || CONTENT.variants[ship.variant]?.hull !== ship.hull) { errors.push(`${name}: 알 수 없거나 사용할 수 없는 선체·파생형`); continue; }
+      if (!hull || hull.dev || hull.preview || !SHIP_CLASSES[hull.classId] || typeof ship.variant !== 'string' || CONTENT.variants[ship.variant]?.hull !== ship.hull) { errors.push(`${name}: 알 수 없거나 사용할 수 없는 선체·파생형`); continue; }
       if (!record(ship.fitting) || !record(ship.fitting.hp) || !record(ship.fitting.bay) || [...Object.entries(ship.fitting.hp), ...Object.entries(ship.fitting.bay)].some(([k, v]) => k.length > 60 || typeof v !== 'string' || v.length > 80)) { errors.push(`${name}: 피팅 형식 오류`); continue; }
       for (const problem of checkFitting(ship.variant, ship.fitting as ShipFitting).errors) errors.push(`${name} ${ship.group}: ${problem}`);
     }
@@ -131,7 +132,7 @@ export function configProblems(input: unknown): string[] {
         if (!record(ship) || typeof ship.id !== 'string' || !/^[A-Za-z0-9_-]{1,60}$/.test(ship.id) || ids.has(ship.id) || !Number.isInteger(ship.count) || ship.count < 1 || ship.count > 200) { errors.push(`${label}: 편대 정보가 올바르지 않습니다`); continue; }
         ids.add(ship.id); count += ship.count; total += ship.count;
         const hull = typeof ship.hull === 'string' ? CONTENT.hulls[ship.hull] : undefined;
-        if (!hull || hull.dev || !SHIP_CLASSES[hull.classId] || typeof ship.variant !== 'string' || CONTENT.variants[ship.variant]?.hull !== ship.hull) { errors.push(`${label}: 알 수 없거나 사용할 수 없는 선체·파생형`); continue; }
+        if (!hull || hull.dev || hull.preview || !SHIP_CLASSES[hull.classId] || typeof ship.variant !== 'string' || CONTENT.variants[ship.variant]?.hull !== ship.hull) { errors.push(`${label}: 알 수 없거나 사용할 수 없는 선체·파생형`); continue; }
         if (!record(ship.fitting) || !record(ship.fitting.hp) || !record(ship.fitting.bay) || [...Object.entries(ship.fitting.hp), ...Object.entries(ship.fitting.bay)].some(([k,v]) => k.length > 60 || typeof v !== 'string' || v.length > 80)) { errors.push(`${label}: 피팅 형식 오류`); continue; }
         for (const problem of checkFitting(ship.variant, ship.fitting as ShipFitting).errors) errors.push(`${label} ${group.name}: ${problem}`);
       }

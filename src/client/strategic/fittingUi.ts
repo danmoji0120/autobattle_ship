@@ -19,7 +19,7 @@ import { checkFitting, fittingItems, itemDelta, shipLoadout, shipLoadoutKey, bay
 import { EQUIPMENT, fitFx, itemPrice, TECHS } from '../../world/industry';
 import { regionalMarketRequired, regionalOn } from '../../world/regional';
 import { priceOf } from '../../world/market';
-import { WEAPONS, type WeaponDef } from '../../sim/data/weapons';
+import { WEAPONS, isCraft, craftSummary, type WeaponDef } from '../../sim/data/weapons';
 import { SHIP_CLASSES } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
 import { buildShip } from '../../render/shipMesh';
@@ -150,7 +150,8 @@ export class FittingScreen {
     const fx = fitFx(bayModules(d.variant, { hp: d.hp, bay: d.bay }), this.st!.companies[this.me]?.tech);
     const cls = SHIP_CLASSES[s.classId];
     let dps = 0, pd = 0, range = 0, missile = 0;
-    for (const m of lo.mounts) { const w = WEAPONS[m.weapon]; if (w.kind === 'pd') { pd++; continue; } dps += weaponDps(w); range = Math.max(range, w.range); if (w.kind !== 'shell') missile++; }
+    // P16: strike craft (H slot) are neither gun firepower nor gun range (their range is an operating radius)
+    for (const m of lo.mounts) { const w = WEAPONS[m.weapon]; if (w.kind === 'pd') { pd++; continue; } if (isCraft(w)) continue; dps += weaponDps(w); range = Math.max(range, w.range); if (w.kind !== 'shell') missile++; }
     return {
       dps, pd, range: range * fx.rangeMul, missile, guns: lo.mounts.length,
       hp: cls.hp * (lo.hpMul ?? 1) * fx.hpMul, armor: cls.armor.front * (lo.armorMul ?? 1) * fx.armorMul, speed: cls.maxSpeed * (lo.speedMul ?? 1) * fx.speedMul,
@@ -294,7 +295,8 @@ export class FittingScreen {
       const have = Math.floor(qty(store, id));
       const lock = e.tech && !co.tech?.includes(e.tech);
       const cw = cur && EQUIPMENT[cur]?.weapon ? WEAPONS[EQUIPMENT[cur].weapon!] : undefined;
-      const stats = w
+      const stats = w && isCraft(w) ? `${esc(craftSummary(w))} · ${TYPE_NAME[weaponType(w.id)]}`
+        : w
         ? `${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w), cur ? dps(cur) : undefined, 1)} · 사거리 ${fmt(w.range)}${d(w.range, cur ? rng(cur) : undefined)} · 관통 ${w.pen}${d(w.pen, cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${g ? statBars(w) : ''}`
         : e.ind ? `${indText(e.ind, CONTENT.hulls[lay.hull.id]?.ops?.bonus)}${cur && EQUIPMENT[cur]?.ind?.work === e.ind.work ? d(e.ind.rate, EQUIPMENT[cur].ind!.rate, 1) : ''}`
         : e.cpu ? esc(cpuSummary(e.cpu.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS, e.cpu.react))

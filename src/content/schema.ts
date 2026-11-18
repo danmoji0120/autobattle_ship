@@ -13,14 +13,16 @@ export type Size = 'S' | 'M' | 'L' | 'XL';
 export const SIZES: Size[] = ['S', 'M', 'L', 'XL'];
 export const sizeRank = (s: Size) => SIZES.indexOf(s);
 
-/** what a hardpoint accepts (universal takes any non-PD weapon) */
-export type HardpointType = 'ballistic' | 'energy' | 'missile' | 'universal' | 'pd';
-export const HARDPOINT_TYPES: HardpointType[] = ['ballistic', 'energy', 'missile', 'universal', 'pd'];
+/** what a hardpoint accepts (universal takes any non-PD gun or launcher; `hangar` = the P16 H slot, which
+ *  takes strike-craft weapons only, and strike craft go nowhere else — rules.ts hpAccepts) */
+export type HardpointType = 'ballistic' | 'energy' | 'missile' | 'universal' | 'pd' | 'hangar';
+export const HARDPOINT_TYPES: HardpointType[] = ['ballistic', 'energy', 'missile', 'universal', 'pd', 'hangar'];
 
 /** how the weapon is mounted: turret (traverses within arc), fixed (aimed by turning the ship),
- *  vls (vertical launch: missiles, any bearing), spinal (keel-long, very narrow arc) */
-export type MountStyle = 'turret' | 'fixed' | 'vls' | 'spinal';
-export const MOUNT_STYLES: MountStyle[] = ['turret', 'fixed', 'vls', 'spinal'];
+ *  vls (vertical launch: missiles, any bearing), spinal (keel-long, very narrow arc), deck (P16: a flight
+ *  deck / hangar launch point — the mount style of every `hangar` hardpoint and of strike craft only) */
+export type MountStyle = 'turret' | 'fixed' | 'vls' | 'spinal' | 'deck';
+export const MOUNT_STYLES: MountStyle[] = ['turret', 'fixed', 'vls', 'spinal', 'deck'];
 
 export interface HardpointDef {
   /** unique within the hull; saved on ships (fitting keys), so never rename a published one */
@@ -37,8 +39,20 @@ export interface HardpointDef {
 }
 
 /** internal equipment bays (P2 fills these; listed here so the data model is final) */
-export type InternalKind = 'engine' | 'reactor' | 'sensor' | 'fcs' | 'ew' | 'armor' | 'special' | 'industrial' | 'computer';
-export const INTERNAL_KINDS: InternalKind[] = ['engine', 'reactor', 'sensor', 'fcs', 'ew', 'armor', 'special', 'industrial', 'computer'];
+export type InternalKind = 'engine' | 'reactor' | 'sensor' | 'fcs' | 'ew' | 'armor' | 'special' | 'industrial' | 'computer' | 'flight';
+export const INTERNAL_KINDS: InternalKind[] = ['engine', 'reactor', 'sensor', 'fcs', 'ew', 'armor', 'special', 'industrial', 'computer', 'flight'];
+/** P16 aviation equipment (only on `flight` modules, which go only into `flight` bays). Per H slot of the
+ *  ship; several modules add up. Read by the battle from P16.3 (ShipFx.air) — P16.2 only carries the data. */
+export interface AirSpec {
+  /** hangar extension: complement +n per H slot */
+  complement?: number;
+  /** spare airframes per battle, multiplier (1 = unchanged) */
+  spares?: number;
+  /** flight control: squadrons that can take tasks at once (+n over the hull's base) */
+  control?: number;
+  /** maintenance: re-arm / ready time multiplier (< 1 = faster) */
+  turnaround?: number;
+}
 /** P15.1: every combat hull (role ≠ civilian, not a fixed platform, not account-exclusive) gets this
  *  dedicated combat-computer bay from the registry unless its data already declares a `computer` bay.
  *  Its id is saved on fittings: never rename it. */
@@ -95,6 +109,11 @@ export interface HullDef {
    *  (world/exclusive.ts). Never sold, built, listed, dropped or blueprinted — the validator rejects
    *  `sale`, `build` and any blueprint that targets it, and every catalogue skips it. */
   exclusive?: boolean;
+  /** P16 PREVIEW hull: its content (structure, production, blueprint) is complete, but the world does not
+   *  release it yet — never stocked, bought, built or offered (its blueprint is not sold or awarded). Set while
+   *  the battle rule it needs is not the default (carriers: strike craft need BattleSetup.rules ≥ 3).
+   *  Removing the flag releases it; the validator keeps its blueprint to station sources (no RNG draws). */
+  preview?: boolean;
   // ── growth P3/P4/P6 (contentV ≥ 3). All optional: absent = the class defaults (ECON / HULLS), so the
   //    12 mk1 hulls behave exactly as before. Data-only links for P5 (tech, facilities, parts).
   /** combat structure relative to the class (multiplies hp / armour / tactical speed; variant mods stack) */
@@ -275,8 +294,8 @@ export interface AssetDef {
 // ─────────────────────────────────────────────── P5: weapons, research, facilities (growth content)
 
 /** weapon family: tiers of one family share a technology line and a look in combat */
-export type WeaponFamily = 'cannon' | 'coil' | 'laser' | 'plasma' | 'particle' | 'missile' | 'torpedo' | 'pd';
-export const WEAPON_FAMILIES: WeaponFamily[] = ['cannon', 'coil', 'laser', 'plasma', 'particle', 'missile', 'torpedo', 'pd'];
+export type WeaponFamily = 'cannon' | 'coil' | 'laser' | 'plasma' | 'particle' | 'missile' | 'torpedo' | 'pd' | 'craft';
+export const WEAPON_FAMILIES: WeaponFamily[] = ['cannon', 'coil', 'laser', 'plasma', 'particle', 'missile', 'torpedo', 'pd', 'craft'];
 /** what a weapon is for: target selection prefers matching targets, the UI explains the trade-off */
 export type WeaponRole = 'anti-small' | 'general' | 'anti-capital' | 'pd';
 /** the 13 research areas (each owns its own kinds of effect — see validate.ts AREA_EFFECTS) */
@@ -285,7 +304,8 @@ export const RESEARCH_AREAS: ResearchArea[] = ['hull', 'propulsion', 'power', 'k
 
 /** combat statistics of a weapon (the combat engine's WeaponDef without id/name/desc) */
 export interface WeaponStats {
-  kind: 'shell' | 'missile' | 'torpedo' | 'pd';
+  /** 'craft' (P16): a strike-craft squadron on a `hangar` (H) hardpoint — family 'craft', salvo 0, `craft` required */
+  kind: 'shell' | 'missile' | 'torpedo' | 'pd' | 'craft';
   damage: number; pen: number; range: number; speed: number; reload: number;
   salvo: number; salvoGap: number; spread: number; turnSpeed: number; caliber: number;
   guidedTurn?: number; munitionHp?: number; pdChance?: number; magazine?: number;
@@ -296,6 +316,8 @@ export interface WeaponStats {
   pierce?: number; seek?: number; phase?: boolean; special?: 'dcp';
   /** P15 battle rules (BattleSetup.rules ≥ 1): unguided run / magazine for a weapon that had none */
   p15?: { unguided?: boolean; magazine?: number };
+  /** P16 strike craft (kind 'craft' only): what the squadron is and does (sim/data/weapons.ts CraftStats) */
+  craft?: import('../sim/data/weapons').CraftStats;
 }
 /** visual of a weapon in combat (tracer / beam colour and size) */
 export interface WeaponVis { color: string; len: number; wid: number; beam?: boolean }
@@ -350,6 +372,8 @@ export interface ModuleContent {
   fx: CombatFx;
   /** industrial work (only on `industrial` modules) */
   ind?: IndSpec;
+  /** P16 aviation effect (only on `flight` modules) */
+  air?: AirSpec;
   /** combat computer behaviour (only on `computer` modules) */
   cpu?: CpuModSpec;
   tech?: string;

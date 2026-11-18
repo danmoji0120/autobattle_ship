@@ -13,7 +13,7 @@ import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
 import { ECON } from '../../world/data';
 import { FIELD_NAME, techFx, type Field } from '../../world/industry';
 import { growthOn } from '../../world/hullops';
-import { WEAPONS } from '../../sim/data/weapons';
+import { WEAPONS, isCraft, craftSummary } from '../../sim/data/weapons';
 import { weaponRole } from '../../content/registry';
 import { labSlots, projectCost, projectCredits, projectTime, salvageItem, missingPre, COPY_COST } from '../../world/research';
 import { storeUsed, reservedSpace, listedSpace, logisticsReservedSpace } from '../../world/storage';
@@ -346,7 +346,7 @@ function unlockedList(id: string, w: WorldState): string {
   if (!eq.length && !fac.length && !rec.length) return '';
   const row = (icon: string, name: string, note: string) => `<div class="uline"><span class="uico">${icon}</span><b>${esc(name)}</b> <span class="dim small">${note}</span></div>`;
   return `<div class="bdr ulist">${[
-    ...eq.map(e => { const w = e.weapon ? WEAPONS[e.weapon] : undefined; return row(e.kind === 'weapon' ? '⚔' : '⚙', e.name, w ? `${ROLE_NAME[weaponRole(w.id)] ?? ''} · ${['', 'S', 'M', 'L'][e.size]} · 사거리 ${w.range} · 관통 ${w.pen}${w.vsShield !== undefined ? ` · 대실드 ×${w.vsShield}` : ''}` : esc(e.desc)); }),
+    ...eq.map(e => { const w = e.weapon ? WEAPONS[e.weapon] : undefined; return row(e.kind === 'weapon' ? '⚔' : '⚙', e.name, w && isCraft(w) ? `${['', 'S', 'M', 'L'][e.size]} · ${esc(craftSummary(w))}` : w ? `${ROLE_NAME[weaponRole(w.id)] ?? ''} · ${['', 'S', 'M', 'L'][e.size]} · 사거리 ${w.range} · 관통 ${w.pen}${w.vsShield !== undefined ? ` · 대실드 ×${w.vsShield}` : ''}` : esc(e.desc)); }),
     ...fac.map(f => row('🏭', f.name, esc(f.unlocks))),
     ...rec.map(r => row('⚗', r.name, `${itemList(r.in)} → ${itemList(r.out)}`)),
   ].join('')}</div>`;

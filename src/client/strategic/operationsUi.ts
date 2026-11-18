@@ -6,7 +6,7 @@ import { companyInventory, terminal, GOAL_KINDS, KIND_NAME, STATE_NAME, LEDGER_N
 import { ITEMS, RECIPES, TECHS, recipeFor } from '../../world/industry';
 import { MODULES } from '../../world/data';
 import { facLines } from '../../world/production';
-import { CONTENT } from '../../content/registry';
+import { CONTENT, hullReleased } from '../../content/registry';
 import { morph, trackSelects } from '../../ui/morph';
 import { qty } from '../../world/types';
 import { priceOf } from '../../world/market';
@@ -248,7 +248,7 @@ export class OperationsPanel {
     let f = '';
     if (k === 'stockpile') f = field('범위', '<select data-keep name="g-scope"><option value="station">특정 정거장에 비축</option><option value="company">회사 전체 합계로 비축</option></select>') + field('정거장 (회사 전체: 구매품 입고지)', opt(usable, 'g-station')) + field('품목', opt(items, 'g-item')) + field('목표 수량', num('g-n', '3000')) + `<label class="ops-check"><input type="checkbox" name="g-maintain" checked> 계속 유지</label><label class="ops-check"><input type="checkbox" name="g-produce" checked> 자체 생산 우선</label><label class="ops-check"><input type="checkbox" name="g-buy" checked> 부족분 구매 허용</label>`;
     else if (k === 'trade') f = field('품목', opt(items, 'g-item')) + field('매입 시장', opt(markets, 'g-from')) + field('판매 시장', opt(markets, 'g-station')) + field('회당 수량', num('g-n', '400')) + field('최대 매입가', num('g-maxbuy')) + field('최소 판매가', num('g-minsell')) + field('회당 최소 이익', num('g-minprofit', '0')) + field('반복 횟수 (0=계속)', num('g-cycles', '0'));
-    else if (k === 'fleet') f = field('조선소', opt(own, 'g-station')) + field('선체', opt(Object.entries(CONTENT.hulls).filter(([, h]) => !h.dev && !h.exclusive && h.classId !== 'platform').map(([id, h]) => ({ id, name: h.name })), 'g-hull')) + field('척수', num('g-n', '2'));
+    else if (k === 'fleet') f = field('조선소', opt(own, 'g-station')) + field('선체', opt(Object.entries(CONTENT.hulls).filter(([id, h]) => hullReleased(id) && h.classId !== 'platform').map(([id, h]) => ({ id, name: h.name })), 'g-hull')) + field('척수', num('g-n', '2'));
     else if (k === 'facilities') f = field('정거장', opt(own, 'g-station')) + field('시설', opt(Object.values(MODULES).filter(m => m.kind !== 'core').map(m => ({ id: m.kind, name: m.name })), 'g-fac')) + field('개수', num('g-n', '2'));
     else if (k === 'survey_field') f = field('광구', opt(fields, 'g-field')) + field('채굴 편대', opt(groups, 'g-group')) + field('목표 표본 수', num('g-n', '300')) + field('하역 정거장', optE(usable, 'g-station', '자동 선택 (창고 보관)'));
     else if (k === 'develop_field') f = field('광구', opt(fields, 'g-field')) + field('채굴 편대', opt(groups, 'g-group')) + field('목표 채굴선 수', num('g-n', '3')) + field('하역 정거장', optE(usable, 'g-station', '자동 선택')) + field('증원 조선소 (선택)', optE(own, 'g-yard', '증원 안 함')) + '<label class="ops-check"><input type="checkbox" name="g-sell"> 하역 시 판매 (끄면 창고 보관·내부 공급)</label>';

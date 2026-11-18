@@ -2,6 +2,16 @@
  *  the mount launches a squadron of light craft (sim/craft.ts) described by WeaponDef.craft. Its
  *  `salvo` is 0, so generic firepower sums (damage × salvo / reload) count it as no gun firepower. */
 export type WeaponKind = 'shell' | 'missile' | 'torpedo' | 'pd' | 'craft';
+/** P16: a strike-craft (H slot) weapon — no gun: never part of gun range, gun firepower or gun bands */
+export const isCraft = (w: { kind: WeaponKind } | undefined): boolean => w?.kind === 'craft';
+/** a weapon that fires at ships itself (shell / missile / torpedo): what gun range and firepower sums count */
+export const isShipGun = (w: { kind: WeaponKind } | undefined): boolean => !!w && w.kind !== 'pd' && w.kind !== 'craft';
+const ROLE_KO = { fighter: '전투기', bomber: '뇌격기', interceptor: '요격기' } as const;
+/** one-line summary of a strike-craft weapon (UI: fitting, lab, catalogue) */
+export function craftSummary(w: { craft?: CraftStats }): string {
+  const c = w.craft; if (!c) return '';
+  return `${ROLE_KO[c.role]} ${c.n}기 (예비 ${c.spares}) · 작전 반경 ${c.radius} · 출격 ${c.sortie}초 · 재출격 준비 ${c.turnaround}초${c.ordnance ? ` · 대함: ${WEAPONS[c.ordnance]?.name ?? c.ordnance}` : ''}`;
+}
 
 /** P16 strike craft carried by a 'craft' weapon (docs/P16_0_FIGHTERS_CARRIERS.md §5.1). Everything is per
  *  battle: losses are replaced from `spares`, nothing carries over to the next battle. */
@@ -56,7 +66,7 @@ export interface WeaponDef {
   /** what it is for (target preference) */
   role?: 'anti-small' | 'general' | 'anti-capital' | 'pd';
   /** hardpoint category (default: derived from kind / built-in ids) */
-  hp?: 'ballistic' | 'energy' | 'missile' | 'pd';
+  hp?: 'ballistic' | 'energy' | 'missile' | 'pd' | 'hangar';
   /** effectiveness against shields (default 1) */
   vsShield?: number;
   /** combat visual: tracer/beam colour (0xRRGGBB) and size */
@@ -126,5 +136,13 @@ export const WEAPONS: Record<string, WeaponDef> = {
     id: 'particle_lance', name: '입자 창', kind: 'shell',
     damage: 520, pen: 110, range: 1800, speed: 2600, reload: 12, salvo: 1, salvoGap: 0,
     spread: 0.003, turnSpeed: 16, caliber: 2.8, sound: 'rail', desc: '고출력 입자빔. 먼 거리에서 대형함의 장갑을 꿰뚫는다.',
+  },
+  // P16: ordnance of strike craft (CraftStats.ordnance). Not equipment and on no hardpoint: a torpedo bomber
+  // drops one per sortie as an ordinary munition (ship point defence, guidance and hull rules apply).
+  air_torpedo: {
+    id: 'air_torpedo', name: '항공 경어뢰', kind: 'torpedo',
+    damage: 520, pen: 80, range: 700, speed: 200, reload: 1, salvo: 1, salvoGap: 0,
+    spread: 0.03, turnSpeed: 360, caliber: 1, guidedTurn: 0.9, munitionHp: 1, sound: 'torpedo',
+    desc: '뇌격기가 출격마다 한 발 투하하는 경어뢰. 함재기 전용 탄체.',
   },
 };

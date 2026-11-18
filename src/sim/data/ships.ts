@@ -266,6 +266,26 @@ Object.assign(SHIP_CLASSES, {
   },
 } as Record<string, ShipClassDef>);
 
+// P16.2 carrier (H-slot strike craft; content: src/content/packs/growth/carrier.ts). Registered NON-ENUMERABLE
+// like BB-EX: the battle finds it by id, but catalogues (skirmish, fleet editor), the legacy-loadout validator
+// and every other "for each class" loop do not see it until carriers are released (strike craft need battle
+// rules ≥ 3, the default is 2; rendering is P16.4). The loadout mirrors the hull's hardpoint order.
+const H = (weapon: string, pos: [number, number, number], facing: number) => m(weapon, pos, facing, 180);
+export const CARRIER_CLASS: ShipClassDef = {
+  id: 'carrier', name: '여명급', enemyName: '심연급', type: '항모', role: 'line',
+  length: 64, radius: 8.5, hp: 8200, armor: { front: 46, side: 36, rear: 22 },
+  maxSpeed: 34, accel: 7, turnRate: 9, lateral: 0.32, cost: 250,
+  structure: { bulk: 340, absorb: 0.35, critRes: 0.25, dc: 0.8 },
+  desc: '격납 갑판(H 슬롯) 네 곳에서 함재기 비행대를 띄우는 항모. 함포는 자위용뿐이다.',
+  loadouts: [{
+    id: 'air_group', name: '표준 비행단', desc: '전투기 2, 뇌격기 1, 요격기 1 비행대 + 부포 2 + 방공 6.',
+    mounts: [H('wing_fighter', [4, 6, 18], 90), H('wing_fighter', [-4, 6, 18], -90), H('wing_torpedo', [4, 6, -4], 90), H('wing_interceptor', [-4, 6, -4], -90),
+      m('medium_gun', [0, 5, 27], 0, 140), m('medium_gun', [0, 5, -26], 180, 140),
+      m('pd_gun', [5, 4, 26], 90, 175), m('pd_gun', [-5, 4, 26], -90, 175), m('pd_gun', [5, 4, 0], 90, 175), m('pd_gun', [-5, 4, 0], -90, 175), m('pd_gun', [5, 4, -26], 90, 175), m('pd_gun', [-5, 4, -26], -90, 175)],
+  }],
+};
+if (!Object.getOwnPropertyDescriptor(SHIP_CLASSES, CARRIER_CLASS.id)) Object.defineProperty(SHIP_CLASSES, CARRIER_CLASS.id, { value: CARRIER_CLASS, enumerable: false, writable: false, configurable: false });
+
 export function getLoadout(classId: string, loadoutId: string): LoadoutDef {
   const c = SHIP_CLASSES[classId];
   return c.loadouts.find(l => l.id === loadoutId) ?? c.loadouts[0];

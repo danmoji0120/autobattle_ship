@@ -114,6 +114,8 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       if (!EQUIPMENT[eq]?.weapon) err(at, `arcBy 의 "${eq}" 는 무장 장비가 아님`);
       if (!(a > 0 && a <= p.arc)) err(at, `arcBy.${eq} = ${a} (0 초과, arc ${p.arc} 이하)`);
     }
+    // P16: an H (hangar) hardpoint is a flight-deck launch point, and only an H hardpoint is
+    if ((p.type === 'hangar') !== (p.mount === 'deck')) err(at, '격납(H) 하드포인트는 mount "deck", deck 마운트는 격납(H) 하드포인트만');
     if (p.mount === 'spinal' && p.arc > 15) warn(at, `spinal 마운트의 arc ${p.arc}° 는 넓음 (≤15 권장)`);
     if (p.mount === 'fixed' && p.arc > 45) warn(at, `fixed 마운트의 arc ${p.arc}° 는 넓음 (≤45 권장)`);
   }
@@ -136,6 +138,18 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     if (mc && (mc.slot === 'computer') !== !!mc.cpu) err(at, '전투 컴퓨터(slot computer)는 cpu(행동 원형)가 반드시 있어야 하고, 다른 모듈에는 없어야 함');
     if (mc?.cpu && (!CPU_ARCHS.includes(mc.cpu.arch) || mc.cpu.arch === 'basic' || (mc.cpu.react !== undefined && !(mc.cpu.react >= 0.3 && mc.cpu.react <= 4)))) err(at, `cpu ${JSON.stringify(mc.cpu)} (행동 원형 swarm/picket/line/artillery/siege/carrier, react 0.3~4초)`);
     if (mc?.cpu && Object.keys(mc.fx).length) err(at, '전투 컴퓨터는 수치 효과(fx)를 갖지 않는다 — 행동만 바꾼다');
+    // P16 aviation modules: a flight-bay module carries exactly an air spec, nothing else has one
+    if (mc && (mc.slot === 'flight') !== !!mc.air) err(at, '항공 장비(slot flight)는 air(항공 효과)가 반드시 있어야 하고, 다른 모듈에는 없어야 함');
+    if (mc?.air) {
+      const a = mc.air, keys = Object.keys(a);
+      if (!keys.length) err(at, 'air 효과가 비어 있음');
+      for (const k of keys) if (!['complement', 'spares', 'control', 'turnaround'].includes(k)) err(at, `알 수 없는 항공 효과 "${k}"`);
+      if (a.complement !== undefined && !(Number.isInteger(a.complement) && a.complement >= 1 && a.complement <= 6)) err(at, `air.complement ${a.complement} (정수 1~6)`);
+      if (a.control !== undefined && !(Number.isInteger(a.control) && a.control >= 1 && a.control <= 4)) err(at, `air.control ${a.control} (정수 1~4)`);
+      if (a.spares !== undefined && !(a.spares >= 1 && a.spares <= 2)) err(at, `air.spares ${a.spares} (배율 1~2)`);
+      if (a.turnaround !== undefined && !(a.turnaround >= 0.5 && a.turnaround < 1)) err(at, `air.turnaround ${a.turnaround} (배율 0.5 이상 1 미만)`);
+      if (Object.keys(mc.fx).length) err(at, '항공 장비는 함선 수치 효과(fx)를 갖지 않는다 — 함재기 운용만 바꾼다');
+    }
     if (reg.exclusive.has(e.id)) {
       // nothing may produce, unlock or consume exclusive equipment
       if (RECIPES[e.id] || Object.values(RECIPES).some(r => r.out[e.id] || r.in[e.id]) || Object.values(reg.recipes).some(r => r.out[e.id] || r.in[e.id])) err(at, '계정 전용 장비에는 생산·소모 레시피가 없어야 함');
@@ -200,6 +214,16 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
       if (Object.values(reg.blueprints).some(b => b.target.id === h.id || reg.variants[b.target.id]?.hull === h.id)) err(at, '계정 전용 선체·변형에는 설계도를 두지 않음');
       if (Object.values(reg.legacy).some(l => l.hull === h.id)) err(at, '계정 전용 선체는 legacy 매핑에 넣지 않음');
       for (const v of Object.values(reg.variants)) if (v.hull === h.id && (v.parts || v.needs)) err(`variant ${v.id}`, '계정 전용 선체의 변형에는 건조 부품·조건을 두지 않음');
+    } else if (h.preview) {
+      // P16 preview hull: complete content the world does not release yet (HullDef.preview)
+      if (h.sale) err(at, '미공개(preview) 선체는 판매(sale)할 수 없음');
+      if (h.dev) err(at, '미공개(preview) 선체는 dev 선체가 아님');
+      if ((reg.packs.find(p => p.id === packOf('hull', h.id))?.minContentV ?? 0) < 3) err(at, '미공개(preview) 선체는 minContentV 3 팩에만');
+      const bps = Object.values(reg.blueprints).filter(b => b.target.id === h.id || reg.variants[b.target.id]?.hull === h.id);
+      if (!bps.some(b => b.target.kind === 'hull')) err(at, '이 선체의 설계도(BlueprintDef target hull)가 없음 — 공개 후 건조 불가');
+      // a random award (contract / salvage / exploration / unique) would draw from the world RNG for a hull nobody
+      // may hold yet: station sources only, so the world's random sequence is the same with or without it
+      for (const b of bps) for (const src of b.sources) if (!('stations' in src)) err(`blueprint ${b.id}`, `미공개(preview) 선체의 설계도는 정거장 판매 출처만 (${src.kind} 불가)`);
     } else if (h.dev) {
       if (h.sale) err(at, 'dev 선체는 판매(sale)할 수 없음');
       if (Object.values(reg.blueprints).some(b => b.target.kind === 'hull' && b.target.id === h.id)) err(at, 'dev 선체에는 설계도를 두지 않음 (획득 불가여야 함)');
