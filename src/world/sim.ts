@@ -16,7 +16,7 @@ import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, s
 import { Rng } from '../sim/rng';
 import { World, BATTLE_RULES } from '../sim/world';
 import { SHIP_CLASSES, getLoadout, SHIP_NAMES } from '../sim/data/ships';
-import { airValueMul, hasCraft } from './combatRating';
+import { hasCraft, lightStrength } from './combatRating';
 import { ACTING_CAPTAIN, type CommanderDef } from '../sim/data/commanders';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../sim/fleet';
 import type { Order, OrderRecord, BattleEvent, SideSpec, Relation, SideResult } from '../sim/types';
@@ -4575,17 +4575,18 @@ export class WorldSim {
     for (const e of Object.values(this.st.engagements)) if (!e.done && e.autoEnd !== undefined && this.time >= e.autoEnd) this.finishEngagement(e, this.quickResolve(e), false);
   }
 
-  /** P16.3/P16.5: a ship's strength-model weight from its air group as actually fitted (combatRating.airValueMul):
-   *  any hull whose fitting carries strike craft (a carrier, or a cruiser / battleship with an H slot), and a
-   *  carrier whose craft were taken off. Exactly 1 for every ship with no craft in its fitting nor its class's
-   *  standard loadout, so their values (and the rng draws) are unchanged. */
-  private airValue(s: WShip, g?: WGroup): number {
+  /** P16.3/P16.5/P16.5.1: a ship's strength-model value (combatRating.lightStrength). A ship with no strike craft
+   *  in its fitting nor in its class's standard loadout: its class value, exactly as before (values and rng draws
+   *  unchanged). Otherwise the hull and guns as fitted (arcs weighted) plus the air power of the wings it carries,
+   *  with its aviation modules (players) and the commander's air effects. */
+  private lightValue(s: WShip, g?: WGroup): number {
+    const v = shipValue(s.classId);
     const cls = SHIP_CLASSES[s.classId];
-    if (!cls?.loadouts.length) return 1;
+    if (!cls?.loadouts.length) return v;
     const lo = s.fitting ? shipLoadout(s) : getLoadout(s.classId, s.loadoutId);
-    if (!hasCraft(lo) && !hasCraft(cls.loadouts[0])) return 1;
+    if (!hasCraft(lo) && !hasCraft(cls.loadouts[0])) return v;
     const co = this.st.companies[s.owner];
-    return airValueMul(cls, lo, co?.kind === 'player' ? this.shipFxOf(s) : undefined, g ? this.cmdr(g).ofx : undefined);
+    return lightStrength(cls, lo, v, co?.kind === 'player' ? this.shipFxOf(s) : undefined, g ? this.cmdr(g).ofx : undefined);
   }
 
   /** strength-model resolution for NPC-only fights (Lanchester square law with noise) */
@@ -4599,7 +4600,7 @@ export class WorldSim {
       const g = st.groups[s.groupId];
       const skill = g ? this.cmdr(g).skill : 0.3;
       const mil = econOf(s).military;
-      units.push({ ref: s.id, side: e.sides[0].includes(s.owner) ? 0 : 1, val: shipValue(s.classId) * this.airValue(s, g) * (mil ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
+      units.push({ ref: s.id, side: e.sides[0].includes(s.owner) ? 0 : 1, val: this.lightValue(s, g) * (mil ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
     }
     if (e.lairId) { const l = st.lairs[e.lairId]; if (l) units.push({ ref: 'lair:' + l.id, side: 1, val: 300 * (0.4 + 0.6 * l.hp), hp: l.hp }); }
     if (e.stationId) { const x = st.stations[e.stationId]; const n = x && stationSupportOnline(x) ? x.modules.filter(m => m.kind === 'defense' && m.built).length : 0; for (let i = 0; i < n; i++) units.push({ ref: 'station:' + x!.id, side: 0, val: 300 * x!.defenseHp, hp: x!.defenseHp }); }
@@ -4637,7 +4638,7 @@ export class WorldSim {
       const k = sideOfCo(s.owner); if (k < 0) continue;
       const g = st.groups[s.groupId];
       const skill = g ? this.cmdr(g).skill : 0.3;
-      units.push({ ref: s.id, side: k, val: shipValue(s.classId) * this.airValue(s, g) * (econOf(s).military ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
+      units.push({ ref: s.id, side: k, val: this.lightValue(s, g) * (econOf(s).military ? 1 : 0.12) * (0.35 + 0.65 * s.hp) * (0.85 + skill * 0.3), hp: s.hp, group: s.groupId });
     }
     if (e.lairId) { const l = st.lairs[e.lairId], k = sideOfCo('pirates'); if (l && k >= 0) units.push({ ref: 'lair:' + l.id, side: k, val: 300 * (0.4 + 0.6 * l.hp), hp: l.hp }); }
     const S = Array.from({ length: n }, (_, k) => units.filter(u => u.side === k).reduce((a, u) => a + u.val, 0) * r.range(0.82, 1.18));

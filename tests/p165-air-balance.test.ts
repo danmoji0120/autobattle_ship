@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { World, type BattleSetup } from '../src/sim/world';
 import { CARRIER_CLASS, SHIP_CLASSES } from '../src/sim/data/ships';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../src/sim/fleet';
-import { airValueMul, rateClass } from '../src/world/combatRating';
+import { airValueMul, arcWeight, rateClass, strengthParts } from '../src/world/combatRating';
+import { shipValue } from '../src/world/data';
 import { WorldSim } from '../src/world/sim';
 import { STANDARD_WORLD } from '../src/world/worldPreset';
 import { registerP165MixedHulls, P165_CRUISER_H, P165_BATTLESHIP_H } from './helpers/p16Craft';
@@ -76,6 +77,26 @@ describe('P16.5 point defence against strike craft', () => {
   });
 });
 
+describe('P16.5.1 air-to-air attrition in a carrier duel', () => {
+  it('defensive air combat stays over the own fleet: fighters keep spares longer, point defence still takes its share', () => {
+    // before P16.5.1 both wings chased each other into the other fleet's point defence: fighter spares averaged
+    // 0.28 per squadron at 60 s (24 seeds) — almost every squadron had spent all four
+    let spares60 = 0, pd = 0, lost = 0, sq = 0;
+    for (const seed of [1, 2, 3, 4]) {
+      const w = new World(battle([CV, ...S('cruiser', 'multi'), ...S('destroyer', 'strike', 2)], [CV, ...S('cruiser', 'multi'), ...S('destroyer', 'strike', 2)], seed));
+      while (w.time < 120) {
+        w.step();
+        if (w.tick === 60 * 30) for (const q of w.craft!.squads) if (q.cs.role === 'fighter') { spares60 += q.spares; sq++; }
+      }
+      pd += w.craft!.pdKills.reduce((a, v) => a + (v ?? 0), 0);
+      lost += w.craft!.squads.reduce((a, q) => a + q.stats.lost, 0);
+    }
+    expect(spares60 / sq).toBeGreaterThan(0.8);
+    expect(pd).toBeGreaterThan(0);          // point defence keeps its role
+    expect(lost).toBeGreaterThan(20);       // and craft are far from invulnerable
+  });
+});
+
 describe('P16.5 air value from the actual fitting', () => {
   it('rating: torpedo-heavy wings rate above the mixed group, interceptor-heavy below (interceptors never strike ships)', () => {
     const std = CARRIER_CLASS.loadouts[0];
@@ -89,7 +110,7 @@ describe('P16.5 air value from the actual fitting', () => {
     expect(c).toBeLessThan(rateClass('battleship'));
   });
 
-  it('H-slot cruisers / battleships: the wings they carry count, their standard loadouts and every craft-free ship stay at 1', () => {
+  it('H-slot cruisers / battleships: the wings they carry count, their standard loadouts and every craft-free ship keep their class value', () => {
     const ca = SHIP_CLASSES[P165_CRUISER_H], bb = SHIP_CLASSES[P165_BATTLESHIP_H];
     expect(airValueMul(ca, ca.loadouts[0])).toBe(1);
     expect(airValueMul(ca, ca.loadouts[1])).not.toBe(1);
@@ -99,13 +120,36 @@ describe('P16.5 air value from the actual fitting', () => {
     sim.addPlayer('경량 판정');
     const s = Object.values(sim.st.ships).find(x => SHIP_CLASSES[x.classId]?.loadouts.length)!;
     const grp = sim.st.groups[s.groupId];
-    const av = (x: typeof s) => (sim as any).airValue(x, grp) as number;
-    for (const x of Object.values(sim.st.ships)) expect(av(x)).toBe(1);                    // no craft anywhere: unchanged
+    const lv = (x: typeof s) => (sim as any).lightValue(x, grp) as number;
+    for (const x of Object.values(sim.st.ships)) expect(lv(x)).toBe(shipValue(x.classId));      // no craft anywhere: unchanged
     const as = (classId: string, loadoutId: string) => { const c = structuredClone(s); Object.assign(c, { classId, loadoutId, hull: undefined, variant: undefined, fitting: undefined, fit: [] }); return c; };
-    expect(av(as(P165_CRUISER_H, 'std'))).toBe(1);
-    expect(av(as(P165_CRUISER_H, 'air'))).toBeCloseTo(airValueMul(ca, ca.loadouts[1]), 9);
-    expect(av(as(P165_BATTLESHIP_H, 'air'))).toBeCloseTo(airValueMul(bb, bb.loadouts[1]), 9);
-    expect(av(as('carrier', 'air_group'))).toBeCloseTo(1, 9);
+    expect(lv(as(P165_CRUISER_H, 'std'))).toBe(shipValue(P165_CRUISER_H));
+    expect(lv(as(P165_CRUISER_H, 'air'))).toBeCloseTo(strengthParts(ca, ca.loadouts[1], shipValue(P165_CRUISER_H)).total, 9);
+    expect(lv(as(P165_BATTLESHIP_H, 'air'))).toBeCloseTo(strengthParts(bb, bb.loadouts[1], shipValue(P165_BATTLESHIP_H)).total, 9);
+    expect(lv(as('carrier', 'air_group'))).toBeCloseTo(strengthParts(SHIP_CLASSES.carrier, CARRIER_CLASS.loadouts[0], shipValue('carrier')).total, 9);
+  });
+
+  it('P16.5.1 light strength: class base and fitted air power separated; carriers no longer at their cost', () => {
+    const v = (classId: string, lo = SHIP_CLASSES[classId].loadouts[0]) => strengthParts(SHIP_CLASSES[classId], lo, shipValue(classId));
+    // craft-free classes: exactly the class value, no air part
+    for (const id of ['frigate', 'destroyer', 'cruiser', 'battleship']) expect(v(id)).toEqual({ base: shipValue(id), air: 0, total: shipValue(id) });
+    // the carrier's value comes from its wings, not from its cost (250): mixed group well under the cost, wing-dependent
+    const std = CARRIER_CLASS.loadouts[0];
+    let k = 0, j = 0;
+    const torp = { ...std, mounts: std.mounts.map(m => m.weapon.startsWith('wing_') ? { ...m, weapon: ['wing_fighter', 'wing_torpedo', 'wing_torpedo', 'wing_torpedo'][k++] } : m) };
+    const icpt = { ...std, mounts: std.mounts.map(m => m.weapon.startsWith('wing_') ? { ...m, weapon: ['wing_fighter', 'wing_interceptor', 'wing_interceptor', 'wing_interceptor'][j++] } : m) };
+    const mixed = v('carrier'), t = v('carrier', torp), i = v('carrier', icpt);
+    expect(mixed.total).toBeLessThan(shipValue('carrier'));
+    expect(t.total).toBeGreaterThan(mixed.total);
+    expect(i.total).toBeLessThan(mixed.total);
+    expect(mixed.base).toBe(t.base);                      // same hull and guns
+    expect(mixed.air).toBeGreaterThan(mixed.base);         // a carrier's strength is mostly its wings
+    // H-slot battleship: trading the aft turret (blind ahead) costs less than trading a forward one
+    const bb = SHIP_CLASSES[P165_BATTLESHIP_H];
+    const aft = strengthParts(bb, bb.loadouts[1], 300), fwd = strengthParts(bb, bb.loadouts[2], 300);
+    expect(aft.base).toBeGreaterThan(fwd.base);
+    expect(arcWeight({ facing: 0, arc: 150 })).toBe(1);
+    expect(arcWeight({ facing: 180, arc: 150 })).toBeCloseTo(0.35, 9);
   });
 
   it('an H-slot cruiser launches the wing it carries in battle', () => {

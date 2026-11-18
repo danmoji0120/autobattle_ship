@@ -39,8 +39,12 @@ const THINK = 0.3;
 const PD_REACH = 380;
 /** a craft below this fraction of its hit points breaks off and returns */
 const BREAK_HP = 0.4;
+/** P16.5.1 air combat against a threat to the fleet (task AIR) stays over the own fleet: enemy craft within this
+ *  share of the operating radius of the carrier. Unbounded, two carrier groups' fighters chased each other into the
+ *  other fleet's point defence and both wings were spent within a minute (docs/P16_5_1_RATING.md §4) */
+const AIR_ZONE = 0.5;
 /** craft gun vs craft: base hit chance per shot (falls with range and the target's agility) */
-const AIR_HIT = 0.55;
+const AIR_HIT = 0.4;
 const RALLY_D = 900, RALLY_WAIT = 15;
 /** bombers release their ordnance at this fraction of its range */
 const RELEASE = 0.65;
@@ -613,7 +617,13 @@ export class CraftPool {
   }
 
   private validAir(i: number): boolean {
-    if (this.tk[i] === T_CRAFT) return this.alive(this.tgt[i]);
+    if (this.tk[i] === T_CRAFT) {
+      if (!this.alive(this.tgt[i])) return false;
+      const j = this.tgt[i] % SLOT_BITS;
+      // P16.5.1: an air-defence fighter lets a craft go that has left the fleet's air
+      const q = this.squads[this.sq[i]];
+      return q.task !== AIR || (this.px[j] - q.ax) ** 2 + (this.pz[j] - q.az) ** 2 <= (q.cs.radius * AIR_ZONE * 1.15) ** 2;
+    }
     if (this.tk[i] === T_MUN) { const mu = this.w.munitionById.get(this.tgt[i]); return !!mu && !mu.dead; }
     return false;
   }
@@ -625,7 +635,8 @@ export class CraftPool {
     if (sq.task === STRIKE || (sq.task === CAP && !sq.capThreat)) return;
     // CAP fights only over its carrier, an escort only near the ship it covers
     const g = sq.task === ESCORT ? w.shipById.get(sq.guard) : undefined;
-    const zone = sq.task === CAP ? { x: sq.ax, z: sq.az, r2: (CAP_R * 1.3) ** 2 } : sq.task === COVER ? { x: sq.cvx, z: sq.cvz, r2: 700 * 700 } : g && g.state === 'alive' ? { x: g.pos.x, z: g.pos.z, r2: 1000 * 1000 } : null;
+    const zone = sq.task === CAP ? { x: sq.ax, z: sq.az, r2: (CAP_R * 1.3) ** 2 } : sq.task === COVER ? { x: sq.cvx, z: sq.cvz, r2: 700 * 700 } : g && g.state === 'alive' ? { x: g.pos.x, z: g.pos.z, r2: 1000 * 1000 }
+      : sq.task === AIR ? { x: sq.ax, z: sq.az, r2: (sq.cs.radius * AIR_ZONE) ** 2 } : null;
     let best = -1, bd = 900 * 900;
     this.eachNear(x, z, 900, j => {
       const o = this.squads[this.sq[j]];

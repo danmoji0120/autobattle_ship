@@ -11,7 +11,7 @@ import type { FleetSpec, GroupSpec, ShipSpec } from '../../src/sim/fleet';
 import { CARRIER_CLASS, SHIP_CLASSES, type LoadoutDef } from '../../src/sim/data/ships';
 import { hullCost } from '../../src/world/valuation';
 import { shipValue } from '../../src/world/data';
-import { airValueMul } from '../../src/world/combatRating';
+import { airValueMul, strengthParts } from '../../src/world/combatRating';
 import { registerP165MixedHulls, P165_CRUISER_H, P165_BATTLESHIP_H } from '../../tests/helpers/p16Craft';
 registerP165MixedHulls();
 
@@ -82,21 +82,28 @@ const g = (ships: ShipSpec[]): GroupSpec => ({ name: 't', commanderId: null, ord
 const f = (ships: ShipSpec[]): FleetSpec => ({ name: 't', root: g(ships) });
 
 /** light judgement: P(side A's strength × U(0.82,1.18) ≥ side B's) for full-health ships, average captains */
-function lightP(a: ShipSpec[], b: ShipSpec[]): number {
-  const val = (s: ShipSpec) => { const cls = SHIP_CLASSES[s.classId]; const lo = s.fit ? { id: 'fit', name: '', desc: '', mounts: s.fit.mounts } as LoadoutDef : cls.loadouts.find(l => l.id === s.loadoutId) ?? cls.loadouts[0]; return shipValue(s.classId) * airValueMul(cls, lo); };
-  const A = a.reduce((x, s) => x + val(s), 0), B = b.reduce((x, s) => x + val(s), 0);
+const loOf = (s: ShipSpec) => { const cls = SHIP_CLASSES[s.classId]; return s.fit ? { id: 'fit', name: '', desc: '', mounts: s.fit.mounts } as LoadoutDef : cls.loadouts.find(l => l.id === s.loadoutId) ?? cls.loadouts[0]; };
+/** P16.5 model: class value × airValueMul */
+const valOld = (s: ShipSpec) => shipValue(s.classId) * airValueMul(SHIP_CLASSES[s.classId], loOf(s));
+/** P16.5.1 model: base (hull and guns) + air (fitted wings) */
+const partsNew = (s: ShipSpec) => strengthParts(SHIP_CLASSES[s.classId], loOf(s), shipValue(s.classId));
+export function lightPOf(A: number, B: number): number {
   let win = 0; const N = 400;
   for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (A * (0.82 + 0.36 * (i + 0.5) / N) >= B * (0.82 + 0.36 * (j + 0.5) / N)) win++;
   return win / (N * N);
 }
+const sum = (l: ShipSpec[], f: (s: ShipSpec) => number) => l.reduce((x, s) => x + f(s), 0);
+/** Wilson 95 % interval of a rate */
+const wilson = (k: number, n: number) => { const z = 1.96, p = k / n, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d, h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d; return [+(c - h).toFixed(2), +(c + h).toFixed(2)]; };
+const sd = (l: number[]) => { const m = l.reduce((a, b) => a + b, 0) / l.length; return Math.sqrt(l.reduce((a, b) => a + (b - m) ** 2, 0) / l.length); };
 
-interface Side { won: number; lostValue: number; cvHull: number[]; launched: number; recovered: number; lost: number; torpHits: number; gunHits: number; dmgToShips: number }
+interface Side { won: number; lostValue: number; lostPer: number[]; cvHull: number[]; launched: number; recovered: number; lost: number; torpHits: number; gunHits: number; dmgToShips: number }
 const rows: unknown[] = [];
 for (const [name, a, b] of MATCH) {
   if (ONLY.length && !ONLY.some(o => name.includes(o))) continue;
   const A = FLEETS[a](), B = FLEETS[b]();
   const cost = [A, B].map(x => x.reduce((s, sp) => s + costOf(sp), 0));
-  const tot = [0, 1].map((): Side => ({ won: 0, lostValue: 0, cvHull: [], launched: 0, recovered: 0, lost: 0, torpHits: 0, gunHits: 0, dmgToShips: 0 }));
+  const tot = [0, 1].map((): Side => ({ won: 0, lostValue: 0, lostPer: [], cvHull: [], launched: 0, recovered: 0, lost: 0, torpHits: 0, gunHits: 0, dmgToShips: 0 }));
   let draws = 0, ttk = 0, decided = 0;
   for (let seed = 1; seed <= SEEDS; seed++) {
     // alternate the sides so neither fleet always spawns on the same side
@@ -116,18 +123,25 @@ for (const [name, a, b] of MATCH) {
     }
     const win = w.outcome?.winner;
     if (win === undefined || win < 0) draws++; else { tot[sideOf(win)].won++; ttk += w.time; decided++; }
+    const before = tot.map(t => t.lostValue);
     for (const s of w.ships) {
       const k = sideOf(s.team);
       if (s.state === 'dead' || s.state === 'dying') tot[k].lostValue += costOf(specOf.get(s.id)!);
       if (s.cls.id === 'carrier') tot[k].cvHull.push(+Math.max(0, s.hp / s.maxHp).toFixed(2));
     }
+    tot.forEach((t, k) => t.lostPer.push(t.lostValue - before[k]));
     for (const q of w.craft?.squads ?? []) { const k = sideOf(q.team); tot[k].launched += q.stats.launched; tot[k].recovered += q.stats.recovered; tot[k].lost += q.stats.lost; }
   }
   const per = (x: number) => Math.round(x / SEEDS);
   const r = {
     match: name, A: a, B: b, costA: cost[0], costB: cost[1], seeds: SEEDS,
     winA: +(tot[0].won / SEEDS).toFixed(2), winB: +(tot[1].won / SEEDS).toFixed(2), draws, ttk: decided ? Math.round(ttk / decided) : null,
-    lightA: +lightP(A, B).toFixed(2),
+    // actual score (win 1, draw ½) against the light judgement before (P16.5) and after (P16.5.1)
+    scoreA: +((tot[0].won + draws / 2) / SEEDS).toFixed(2), winCI: wilson(tot[0].won, SEEDS),
+    lightOld: +lightPOf(sum(A, valOld), sum(B, valOld)).toFixed(2),
+    lightA: +lightPOf(sum(A, s => partsNew(s).total), sum(B, s => partsNew(s).total)).toFixed(2),
+    strength: [A, B].map(l => ({ old: Math.round(sum(l, valOld)), base: Math.round(sum(l, s => partsNew(s).base)), air: Math.round(sum(l, s => partsNew(s).air)) })),
+    lostValueSD: [Math.round(sd(tot[0].lostPer)), Math.round(sd(tot[1].lostPer))],
     lostValueA: per(tot[0].lostValue), lostValueB: per(tot[1].lostValue),
     cvHullA: tot[0].cvHull.length ? +(tot[0].cvHull.reduce((x, y) => x + y, 0) / tot[0].cvHull.length).toFixed(2) : null,
     cvHullB: tot[1].cvHull.length ? +(tot[1].cvHull.reduce((x, y) => x + y, 0) / tot[1].cvHull.length).toFixed(2) : null,

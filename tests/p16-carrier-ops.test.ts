@@ -13,7 +13,8 @@ import type { FleetSpec, GroupSpec, ShipFx, ShipSpec } from '../src/sim/fleet';
 import { CONTENT, gearReleased, type Registry } from '../src/content/registry';
 import { CARRIER_ARMS, CARRIER_MODULES, CARRIER_HULL, CARRIER_MARKETS } from '../src/content/packs/growth/carrier';
 import { EQUIPMENT, RECIPES, airFx } from '../src/world/industry';
-import { rate, rateClass, airValueMul } from '../src/world/combatRating';
+import { rate, rateClass, airValueMul, strengthParts } from '../src/world/combatRating';
+import { shipValue } from '../src/world/data';
 import { WorldSim } from '../src/world/sim';
 import { STANDARD_WORLD } from '../src/world/worldPreset';
 import { salvageItem } from '../src/world/research';
@@ -183,15 +184,19 @@ describe('P16.3 combat rating and light battle resolution', () => {
     expect(airValueMul(cls, std, { air: { complement: 50 } })).toBe(1.6);   // clamp
   });
 
-  it('world quick resolution: a carrier is weighted by its air group, other ships by their value as before', () => {
+  it('world quick resolution: a carrier is valued by its hull and its air group, other ships by their class value as before', () => {
     const sim = WorldSim.create(71, { ...STANDARD_WORLD });
     sim.addPlayer('경량 판정');
     const s = Object.values(sim.st.ships).find(x => SHIP_CLASSES[x.classId]?.loadouts.length)!;
     const g = sim.st.groups[s.groupId];
-    const av = (x: typeof s) => (sim as any).airValue(x, g) as number;
-    expect(av(s)).toBe(1);
+    const lv = (x: typeof s) => (sim as any).lightValue(x, g) as number;
+    expect(lv(s)).toBe(shipValue(s.classId));
     const c = structuredClone(s); Object.assign(c, { classId: 'carrier', loadoutId: 'air_group', hull: undefined, variant: undefined, fitting: undefined, fit: [] });
-    expect(av(c)).toBeCloseTo(1, 9);   // standard air group (NPC: no fitting effects)
+    // P16.5.1: base (hull, guns) + air (wings) rather than the class cost 250 (NPC: no fitting effects)
+    const p = strengthParts(SHIP_CLASSES.carrier, SHIP_CLASSES.carrier.loadouts[0], shipValue('carrier'));
+    expect(lv(c)).toBeCloseTo(p.total, 9);
+    expect(p.air).toBeGreaterThan(0);
+    expect(p.total).toBeLessThan(shipValue('carrier'));
   });
 });
 

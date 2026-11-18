@@ -16,7 +16,7 @@
 // a squadron of each loadout fights four reference opponents — heavy cruiser, AA destroyer, battleship, patrol
 // frigate — and the opponent count that makes the fight even gives its battle rating; geometric mean over the four).
 // Custom (Fitting V2) mounts use the class average correction. Validation: scripts/b3/rating-duels.ts.
-import { SHIP_CLASSES, type LoadoutDef, type ShipClassDef } from '../sim/data/ships';
+import { SHIP_CLASSES, type LoadoutDef, type MountDef, type ShipClassDef } from '../sim/data/ships';
 import { WEAPONS, isCraft, isShipGun, type WeaponDef } from '../sim/data/weapons';
 import type { ShipFx } from '../sim/fleet';
 import { effectiveCraft } from '../sim/craft';
@@ -81,6 +81,8 @@ export interface RatingIn {
   cls: ShipClassDef; lo: LoadoutDef; fx?: ShipFx;
   /** commander judgement 0..1 (the engine's gunnery = 0.75 + 0.4 × skill) and officer battle effects */
   skill?: number; spec?: string; ofx?: Record<string, number>;
+  /** P16.5.1: weight each gun by how often its arc bears (lightStrength only; every other rating ignores arcs) */
+  arcs?: boolean;
 }
 export interface Rating { off: number; def: number; cr: number }
 
@@ -97,7 +99,7 @@ function raw(i: RatingIn): { off: number; def: number } {
     if (w.kind === 'pd') { off += rate * 0.15 * (fx.pdMul ?? 1); continue; }   // point defence mostly shoots munitions
     const guided = w.kind === 'missile' || w.kind === 'torpedo';
     const vs = R.reduce((a, t) => a + penMul(w.pen * (1 + o('pen')), t.side) * hitP(w, t.cls) * (guided ? 1 - pdStop(t.pd) : 1), 0) / R.length;
-    off += rate * vs * (w.kind === 'shell' ? gunnery : 1);
+    off += rate * vs * (w.kind === 'shell' ? gunnery : 1) * (i.arcs ? arcWeight(m) : 1);
   }
   const hp = cls.hp * (lo.hpMul ?? 1) * (fx.hpMul ?? 1) * (1 + o('hp'));
   const armor = cls.armor.side * (lo.armorMul ?? 1) * (fx.armorMul ?? 1) * (1 + o('armor'));
@@ -129,6 +131,62 @@ export function rateClass(classId: string, loadoutId?: string, skill = 0.5): num
   const lo = cls.loadouts.find(l => l.id === loadoutId) ?? cls.loadouts[0];
   return rate({ cls, lo, skill }).cr * calibOf(classId, lo.id);
 }
+
+/** P16.5.1 arc weight of a gun mount: ships close and fight bow-on (the line computer keeps its bow on the
+ *  enemy), so a mount counts by the share of the forward cone (±ARC_CONE°) its arc covers, with a floor for the
+ *  turns and broadsides of a long fight. A forward turret with a 150° half-arc counts 1; the aft turret of the
+ *  same battleship (facing 180°, 150°: blind within ±30° of the bow) counts ARC_FLOOR. Calibrated on the H-slot
+ *  battleship pair (aft turret / forward turret swapped for a wing, scripts/p16/equal-cost.ts). */
+export const ARC_CONE = 30, ARC_FLOOR = 0.35;
+export function arcWeight(m: Pick<MountDef, 'facing' | 'arc'>): number {
+  if (m.arc >= 180) return 1;
+  let cov = 0; const N = 24;
+  for (let k = 0; k < N; k++) {
+    const th = -ARC_CONE + (2 * ARC_CONE) * (k + 0.5) / N;
+    const d = Math.abs(((th - m.facing) % 360 + 540) % 360 - 180);
+    if (d <= m.arc) cov++;
+  }
+  return ARC_FLOOR + (1 - ARC_FLOOR) * cov / N;
+}
+
+/** P16.5.1 strength of a ship in the NPC light judgement (world/sim.ts quickResolve), in the class-value scale
+ *  (shipValue = class cost). The class value is a hull's cost, not its power: for a gun ship the two are close
+ *  (heavy cruiser 140 / rating 139), for a carrier they are not (cost 250 pays for the hangars). So:
+ *  - a ship with no strike craft in its fitting nor in its class's standard loadout: its class value, exactly
+ *    (every existing ship: values and rng draws unchanged);
+ *  - otherwise base + air:
+ *    base = the ship's guns, PD, hull and armour (its loadout without the craft, arcs weighted) — for a gun hull
+ *           with an H slot scaled so that its own standard loadout is exactly its class value; for a carrier
+ *           (craft in its standard loadout) at the gun ships' value-per-rating RHO × CARRIER_BASE_K (the rating's
+ *           √(offence · defence) gives a big, nearly unarmed hull a large value; in battle a carrier without its
+ *           wings decides little: an interceptor-only carrier fleet lost every equal-cost battle);
+ *    air  = what the wings add to the rating (the fitted wings, the ship's aviation modules and the officer's
+ *           air effects) × RHO × AIR_K, independent of the hull's cost.
+ *  AIR_K is fitted to the equal-cost battles (docs/P16_5_1_RATING.md). */
+export const AIR_K = 3.5, CARRIER_BASE_K = 0.4;
+let RHO = 0;
+const gunOnly = (lo: LoadoutDef): LoadoutDef => ({ ...lo, mounts: lo.mounts.filter(m => !isCraft(WEAPONS[m.weapon])) });
+/** gun ships' class value per rating point (frigate … battleship standard loadouts, geometric mean) */
+export function valuePerRating(): number {
+  if (RHO) return RHO;
+  const l = REF.filter(id => SHIP_CLASSES[id]?.loadouts.length).map(id => SHIP_CLASSES[id].cost / rateClass(id));
+  RHO = Math.exp(l.reduce((a, v) => a + Math.log(v), 0) / l.length);
+  return RHO;
+}
+export interface Strength { base: number; air: number; total: number }
+export function strengthParts(cls: ShipClassDef, lo: LoadoutDef, value: number, fx?: ShipFx, ofx?: Record<string, number>): Strength {
+  const std = cls.loadouts[0];
+  if (!std || (!hasCraft(lo) && !hasCraft(std))) return { base: value, air: 0, total: value };
+  const airFx: ShipFx | undefined = fx?.air ? { air: fx.air } : undefined;
+  const airOfx = ofx?.airTurn ? { airTurn: ofx.airTurn } : undefined;
+  const R = (l: LoadoutDef, f?: ShipFx, o?: Record<string, number>) => rate({ cls, lo: l, fx: f, ofx: o, arcs: true }).cr;
+  const rho = valuePerRating();
+  const g = R(gunOnly(lo));
+  const base = hasCraft(std) ? rho * g * CARRIER_BASE_K : value * g / Math.max(1e-6, R(std));
+  const air = hasCraft(lo) ? Math.max(0, R(lo, airFx, airOfx) - g) * rho * AIR_K : 0;
+  return { base, air, total: base + air };
+}
+export const lightStrength = (cls: ShipClassDef, lo: LoadoutDef, value: number, fx?: ShipFx, ofx?: Record<string, number>) => strengthParts(cls, lo, value, fx, ofx).total;
 
 /** P16.3/P16.5 light battle resolution (world/sim.ts quickResolve): a ship's strength-model value relative to its
  *  class as built, when the ship or its class carries strike craft — its loadout as fitted (other / fewer / extra
