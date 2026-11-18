@@ -9,6 +9,7 @@ import { line } from './ai/lines';
 import { updateAI, orderKey, groupRoleOf } from './ai/commander';
 import { initCpu, CPU_ARCHS, cpuLaunchFactor, cpuOwnGuns, cpuPdCover } from './ai/computer';
 import { BBEX, BBEX_CLASS } from './bbex/data';
+import { CraftPool } from './craft';
 import { initEx, placeEx, updateEx, exSteer, exWeaponsFree, exIncoming, exGraze, exVeto, exRewrite, exNoteHit, exNoteKill, exNoteShot, exSeek, exPhase } from './bbex/system';
 
 export interface BattleSetup {
@@ -36,7 +37,9 @@ export interface BattleSetup {
    *  BATTLE_RULES. 1 = P15.0 capital-ship rules: hull structure (World.applyHit), unguided plasma
    *  torpedoes and limited guided torpedoes (WeaponDef.p15), threat-aware secondary batteries and
    *  point-defence allocation (World.chooseMountTarget). 2 = P15.1 combat computers (ShipSpec.cpu →
-   *  Ship.cpu, ai/computer.ts): per-ship engagement behaviour; without a computer nothing changes. */
+   *  Ship.cpu, ai/computer.ts): per-ship engagement behaviour; without a computer nothing changes.
+   *  3 = P16 strike craft: 'craft' weapons launch light craft (sim/craft.ts, World.craft); without a craft
+   *  weapon in the battle nothing changes. */
   rules?: number;
 }
 
@@ -112,6 +115,8 @@ export class World {
   readonly rules: number;
   /** P15: point-defence mounts following each munition (kept current as mounts retarget) */
   private pdLoad = new Map<number, number>();
+  /** P16 strike craft (rules ≥ 3 with a craft weapon present); null otherwise and none of it runs */
+  craft: CraftPool | null = null;
 
   constructor(setup: BattleSetup) {
     this.setup = setup;
@@ -125,6 +130,7 @@ export class World {
     this.dynamic = n !== 2 || this.rel[0][1] !== -1 || this.rel[1][0] !== -1;
     for (let k = 0; k < n; k++) this.spawnTeam(k, setup.fleets[k], n === 2 ? undefined : { origin: this.sides[k].home.clone().scale(this.spawnZ), fwd: this.sides[k].face });
     if (this.exShips.length) placeEx(this);
+    this.addCraft(this.ships);
     for (const g of this.groups) g.role = groupRoleOf(this, g);
     this.resolveInitialOrders(this.groups);
     for (const g of this.groups) {
@@ -223,6 +229,7 @@ export class World {
     this.spawnTeam(k, ev.fleet, { origin: at, fwd });
     const groups = this.groups.slice(g0), ships = this.ships.slice(s0);
     if (this.exShips.length > x0) placeEx(this, this.exShips.slice(x0));
+    this.addCraft(ships);
     for (const g of groups) g.role = groupRoleOf(this, g);
     this.resolveInitialOrders(groups);
     for (const g of groups) {
@@ -341,6 +348,29 @@ export class World {
   }
   /** P15: an unguided weapon in this battle (it leaves on a lead solution like a shell) */
   unguided(w: WeaponDef): boolean { return this.rules >= 1 && !!w.p15?.unguided; }
+
+  /** P16: squadrons for the craft mounts of these ships (rules ≥ 3 only; the pool is created on the first one) */
+  private addCraft(ships: Ship[]) {
+    if (this.rules < 3) return;
+    for (const s of ships) if (s.mounts.some(m => m.weapon.kind === 'craft' && m.weapon.craft)) (this.craft ??= new CraftPool(this)).addShip(s);
+  }
+
+  /** P16: a strike craft's ordnance leaves as an ordinary munition owned by its carrier (point defence,
+   *  guidance and the hit rules apply to it unchanged) */
+  craftMunition(carrier: Ship, m: Mount, w: WeaponDef, pos: Vec3, dir: Vec3, targetId: number) {
+    const kind = w.kind === 'missile' ? 'missile' : 'torpedo';
+    const mu: Munition = {
+      id: this.nextId++, kind, team: carrier.team, ownerId: carrier.id, weapon: w,
+      pos: pos.clone(), prevPos: pos.clone(), vel: dir.clone().scale(w.speed * 0.7), life: w.range / w.speed * 1.7,
+      targetId, hp: w.munitionHp ?? 1, age: 0, dead: false,
+    };
+    if (this.unguided(w)) mu.straight = true;
+    this.munitions.push(mu); this.munitionById.set(mu.id, mu);
+    carrier.stats.shots++;
+    this.events.push({ t: 'fire', ship: carrier.id, mount: m.index, kind, weapon: w.id, pos: pos.clone(), dir: dir.clone() });
+    this.intensity += 0.2;
+    if (this.firstContact < 0) this.firstContact = this.time;
+  }
 
   /** formation of a fleet's leaf groups. Without a frame: the classic layout (side 0 at -z facing +z,
    *  side 1 mirrored at +z). With a frame (more than two sides, reinforcements): the side-0 layout
@@ -652,6 +682,7 @@ export class World {
       if (this.munitions.length) for (const s of this.ships) if (s.state === 'alive') for (const m of s.mounts) if (m.targetIsMunition && m.targetId >= 0) this.pdLoad.set(m.targetId, (this.pdLoad.get(m.targetId) ?? 0) + 1);
     }
     for (const s of this.ships) if (s.state === 'alive') { this.updateWeapons(s); this.updateStatus(s); }
+    if (this.craft) this.craft.update();
     this.updateMunitions();
     this.intensity *= Math.exp(-this.dt / 3);
     this.tick++;
@@ -764,16 +795,19 @@ export class World {
     for (const m of s.mounts) {
       if (m.weapon.special) continue;   // driven by its own system (DCP-Ω)
       if (m.disabled > 0) { m.disabled -= dt; continue; }
+      if (m.weapon.kind === 'craft') continue;   // P16: launches craft (sim/craft.ts); fires nothing itself
       m.cooldown -= dt;
       m.retarget -= dt;
       // re-acquire immediately when the current target is gone (critical for point defense)
-      if (m.targetId >= 0 && (m.targetIsMunition ? !this.munitionById.get(m.targetId) || this.munitionById.get(m.targetId)!.dead : this.shipById.get(m.targetId)?.state !== 'alive')) m.retarget = 0;
+      if (m.targetId >= 0 && (m.targetIsCraft ? !this.craft!.alive(m.targetId) : m.targetIsMunition ? !this.munitionById.get(m.targetId) || this.munitionById.get(m.targetId)!.dead : this.shipById.get(m.targetId)?.state !== 'alive')) m.retarget = 0;
       if (m.retarget <= 0) { this.chooseMountTarget(s, m); m.retarget = (m.weapon.kind === 'pd' ? 0.15 : 0.3) + this.rng.range(0, 0.25); }
       // validate target
       let tPos: Vec3 | null = null;
       let tVel: Vec3 | null = null;
       if (m.targetId >= 0) {
-        if (m.targetIsMunition) {
+        if (m.targetIsCraft) {
+          if (this.craft!.load(m.targetId)) { tPos = this.craft!.pos; tVel = this.craft!.vel; } else m.targetId = -1;
+        } else if (m.targetIsMunition) {
           const mu = this.munitionById.get(m.targetId);
           if (mu && !mu.dead) { tPos = mu.pos; tVel = mu.vel; } else m.targetId = -1;
         } else {
@@ -869,6 +903,13 @@ export class World {
         // a 16-emitter array spreads over the salvo instead of all tracking the nearest round
         if (s.ex) score -= ((mu.id * 31 + m.index * 17) % 13) * 22;
         if (score > bestScore) { bestScore = score; best = mu.id; }
+      }
+      if (m.targetIsCraft) m.targetIsCraft = false;
+      // P16: a strike craft is engaged when no round is more urgent (bombers carrying ordnance and craft
+      // attacking this ship score higher), so interception and anti-craft fire share the mounts
+      if (this.craft) {
+        const uid = this.craft.pdPick(s, muzzle, w.range, inArc);
+        if (uid >= 0 && (best < 0 || this.craft.pickScore > bestScore)) { this.pdAssign(m, -1); m.targetIsMunition = false; m.targetIsCraft = true; m.targetId = uid; return; }
       }
       if (best >= 0) { this.pdAssign(m, best); m.targetId = best; m.targetIsMunition = true; return; }
       this.pdAssign(m, -1);
@@ -1035,6 +1076,7 @@ export class World {
   private firePD(s: Ship, m: Mount, muzzle: Vec3) {
     const w = m.weapon;
     m.lastFire = this.time;
+    if (m.targetIsCraft) { this.craft!.pdShoot(s, m, muzzle, m.targetId); return; }
     if (m.targetIsMunition) {
       const mu = this.munitionById.get(m.targetId)!;
       let chance = (w.pdChance ?? 0.08) * s.pdBonus * (mu.kind === 'torpedo' ? 0.6 * (s.ofx?.torpPd ? 1 + s.ofx.torpPd : 1) : 1);
@@ -1521,6 +1563,7 @@ export class World {
       if (s.ex) { mix(s.ex.paradox.energy); for (const f of s.ex.funnels) { mix(f.pos.x); mix(f.pos.y); mix(f.pos.z); mix(f.hp); } }
     }
     mix(this.munitions.length);
+    if (this.craft) this.craft.digest(mix);
     return (h >>> 0).toString(16);
   }
 

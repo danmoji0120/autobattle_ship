@@ -42,8 +42,8 @@ export function referenceScores(): Record<Size, number> {
   const best: Record<string, number> = { S: 0, M: 0, L: 0, XL: 0 };
   for (const e of Object.values(EQUIPMENT)) {
     if (e.kind !== 'weapon' || e.growth || !e.weapon) continue;
-    const w = WEAPONS[e.weapon]; const sz = sizeOfEquip(e.id); if (!w || !sz || w.kind === 'pd') continue;
-    best[sz] = Math.max(best[sz], armScore(w));
+    const w = WEAPONS[e.weapon]; const sz = sizeOfEquip(e.id); if (!w || !sz || w.kind === 'pd' || w.kind === 'craft') continue;
+    best[sz] = Math.max(best[sz], armScore(w as Parameters<typeof armScore>[0]));
   }
   return best as Record<Size, number>;
 }

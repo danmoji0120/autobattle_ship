@@ -4,6 +4,7 @@
 // Commander traits change the *quality* of decisions: skill → reaction speed, target choice,
 // coordination; aggression → range, retreat timing; discipline → sticking to player orders.
 
+import { craftFirepower } from '../craft';
 import { Vec3, UP, clamp, lerp } from '../math';
 import type { World } from '../world';
 import type { Group, Ship, Order, Team } from '../types';
@@ -256,13 +257,26 @@ function preferredRange(w: World, g: Group, ships: Ship[]): number {
   const c = g.commander;
   // stand off at the range of whichever weapon type carries most of the group's firepower
   const dpsByRange = new Map<number, number>();
+  // P16 (rules ≥ 3): strike craft are not guns — they count separately, by their operating radius
+  // (stand-off by the strike squadrons' radius, weighted by firepower; interceptors only defend)
+  let craftDps = 0, strike = 0, strikeR = 0, guardR = 0;
   for (const s of ships) for (const m of s.mounts) {
+    if (m.weapon.kind === 'craft') {
+      const cs = m.weapon.craft;
+      if (w.rules >= 3 && cs && m.disabled <= 0) {
+        const f = craftFirepower(cs); craftDps += f;
+        if (cs.role === 'interceptor') guardR = Math.max(guardR, cs.radius); else { strike += f; strikeR += f * cs.radius; }
+      }
+      continue;
+    }
     if (m.weapon.kind === 'pd' || m.weapon.kind === 'torpedo' || m.ammo <= 0) continue;
     const dps = m.weapon.damage * m.weapon.salvo / m.weapon.reload;
     dpsByRange.set(m.weapon.range, (dpsByRange.get(m.weapon.range) ?? 0) + dps);
   }
   let maxR = 700, bestDps = 0;
   for (const [r, d] of dpsByRange) if (d > bestDps) { bestDps = d; maxR = r; }
+  // a group whose firepower is mostly its craft stands off inside its craft's operating radius
+  if (craftDps > bestDps) return (strike > 0 ? strikeR / strike : guardR) * (g.ai.kiting ? 0.85 : lerp(0.8, 0.55, c.aggression));
   let r = maxR * lerp(0.92, 0.5, c.aggression);
   // unskilled aggressive commanders overshoot and close way too much
   if (c.skill < 0.5 && c.aggression > 0.6) r *= 0.8;
@@ -462,7 +476,7 @@ function assignTargets(w: World, g: Group, ships: Ship[], tShips: Ship[], enemie
   }
   const score = (s: Ship, t: Ship) => {
     let eff = 0;
-    for (const m of s.mounts) if (m.weapon.kind !== 'pd') eff += m.weapon.damage / m.weapon.reload * m.weapon.salvo * w.suitability(m.weapon, t);
+    for (const m of s.mounts) if (m.weapon.kind !== 'pd' && m.weapon.kind !== 'craft') eff += m.weapon.damage / m.weapon.reload * m.weapon.salvo * w.suitability(m.weapon, t);
     const d = s.pos.distTo(t.pos);
     return eff * (1.3 - 0.7 * t.hp / t.maxHp) * (1 + t.value / 400) / (d + 400);
   };

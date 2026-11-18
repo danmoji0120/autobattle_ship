@@ -30,7 +30,7 @@ const ARMS: ExclusiveArm[] = Object.keys(ARM_FIT).map(id => {
   const { id: _id, name, desc, family, tier, role, hp: _hp, vis, sound, ...combat } = w;
   return {
     id: eqOf(id), name, desc, family: family as WeaponFamily, tier: tier ?? 5, role: role as WeaponRole, size: f.size, mass: f.mass, power: f.power, mounts: f.mounts,
-    combat: { ...combat, sound }, ...(vis ? { vis: { color: hexOf(vis.color), len: vis.len, wid: vis.wid, beam: vis.beam } } : {}),
+    combat: { ...combat, sound } as ExclusiveArm['combat'], ...(vis ? { vis: { color: hexOf(vis.color), len: vis.len, wid: vis.wid, beam: vis.beam } } : {}),
   };
 });
 

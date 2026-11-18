@@ -1,4 +1,33 @@
-export type WeaponKind = 'shell' | 'missile' | 'torpedo' | 'pd';
+/** 'craft' (P16, battle rules ≥ 3): a strike-craft weapon on an H (hangar) mount. It fires nothing itself:
+ *  the mount launches a squadron of light craft (sim/craft.ts) described by WeaponDef.craft. Its
+ *  `salvo` is 0, so generic firepower sums (damage × salvo / reload) count it as no gun firepower. */
+export type WeaponKind = 'shell' | 'missile' | 'torpedo' | 'pd' | 'craft';
+
+/** P16 strike craft carried by a 'craft' weapon (docs/P16_0_FIGHTERS_CARRIERS.md §5.1). Everything is per
+ *  battle: losses are replaced from `spares`, nothing carries over to the next battle. */
+export interface CraftStats {
+  /** target preference: fighter = ships and craft, bomber = large ships (ordnance), interceptor = craft and guided rounds */
+  role: 'fighter' | 'bomber' | 'interceptor';
+  /** complement: craft this mount keeps in the air at once */
+  n: number;
+  /** spare airframes for this battle (replace losses) */
+  spares: number;
+  hp: number;
+  /** m/s, rad/s turn rate */
+  speed: number; agility: number;
+  /** operating radius from the carrier: targets beyond it are not attacked */
+  radius: number;
+  /** seconds per sortie; then the craft returns (or, without a carrier, leaves) */
+  sortie: number;
+  /** seconds to re-arm a recovered craft or ready a spare */
+  turnaround: number;
+  /** seconds between launches from this mount */
+  launch: number;
+  /** hitscan gun (no munition objects) */
+  gun?: { damage: number; pen: number; range: number; reload: number };
+  /** anti-ship ordnance: a WEAPONS id fired as an ordinary munition, once per sortie */
+  ordnance?: string;
+}
 
 export interface WeaponDef {
   id: string;
@@ -45,6 +74,8 @@ export interface WeaponDef {
    *  `unguided` — leaves the tube on a lead solution and runs straight (no homing, no retargeting);
    *  `magazine` — salvos carried, for a weapon that had no magazine before */
   p15?: { unguided?: boolean; magazine?: number };
+  /** P16: strike craft launched by a kind 'craft' weapon */
+  craft?: CraftStats;
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {

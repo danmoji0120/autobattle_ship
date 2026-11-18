@@ -104,7 +104,7 @@ interface BandRow { w: WeaponDef; f: number; arc: number }
 export function bandsOf(rows: BandRow[], unguided: (w: WeaponDef) => boolean): Bands {
   // best facing: the bow offset (0, ±60°, ±90°) that brings the most attack firepower to bear
   let offset = 0, bestDps = -1, beam = 0, all = 0;
-  const atk = rows.filter(r => r.w.kind !== 'pd');
+  const atk = rows.filter(r => r.w.kind !== 'pd' && r.w.kind !== 'craft');
   for (const off of [0, 60 * DEG, -60 * DEG, 90 * DEG, -90 * DEG]) {
     let d = 0; for (const r of atk) if (bearsAt(r.f, r.arc, off)) d += dpsOf(r.w);
     if (d > bestDps * 1.15) { bestDps = d; offset = off; }
@@ -115,6 +115,7 @@ export function bandsOf(rows: BandRow[], unguided: (w: WeaponDef) => boolean): B
   let pd = 0, torp = 0, total = 0, ung = false;
   for (const r of rows) {
     if (r.w.kind === 'pd') { pd = Math.max(pd, r.w.range); continue; }
+    if (r.w.kind === 'craft') continue;   // P16: strike craft are not a gun band
     if (!bearsAt(r.f, r.arc, offset) && r.arc < 170) continue;
     const d = dpsOf(r.w);
     if (r.w.kind === 'torpedo') { torp = Math.max(torp, r.w.range); if (unguided(r.w)) ung = true; }

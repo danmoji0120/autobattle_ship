@@ -47,6 +47,8 @@ export interface Mount {
   disabled: number;
   lastFire: number;     // sim time
   ammo: number;         // salvos left
+  /** P16 (rules ≥ 3): point defence is following a strike craft (targetId = its CraftPool uid) */
+  targetIsCraft?: boolean;
 }
 
 export interface ShipStats {
@@ -206,6 +208,10 @@ export type SimEvent =
   | { t: 'join'; side: number; groups: number[]; ships: number[] }
   | { t: 'rel'; a: number; b: number; v: Relation }
   | { t: 'sideOut'; side: number; status: SideStatus }
+  // P16 strike craft (rules ≥ 3, sim/craft.ts)
+  | { t: 'craftLaunch'; ship: number; mount: number; pos: Vec3 }
+  | { t: 'craftDown'; team: number; pos: Vec3; by: number }
+  | { t: 'craftLeave'; ship: number; pos: Vec3 }
   | import('./bbex/state').ExEvent;
 
 export interface RadioMsg {

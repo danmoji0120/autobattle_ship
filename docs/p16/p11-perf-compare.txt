@@ -1,0 +1,19 @@
+# P11 perf.ts (1800 ticks x3): before = base commit db0b3e1 RULES=2; after RULES=2; after RULES=3
+## before (RULES=2)
+{"id":"legacy 2-side 100 (50v50)","ships":100,"steps":1800,"meanMs":0.535,"p95Ms":0.815,"maxMs":1.89,"budgetPct30Hz":1.6,"deterministic":true,"digest":"4bad50e8"}
+{"id":"legacy 2-side 200 (100v100)","ships":200,"steps":1800,"meanMs":1.566,"p95Ms":2.667,"maxMs":5.68,"budgetPct30Hz":4.7,"deterministic":true,"digest":"a3c922c7"}
+{"id":"P11 3-side 100 (34/33/33)","ships":100,"steps":1800,"meanMs":0.518,"p95Ms":0.942,"maxMs":2.61,"budgetPct30Hz":1.6,"deterministic":true,"digest":"91ebbf23"}
+{"id":"P11 3-side 200 (70/70/60)","ships":200,"steps":1800,"meanMs":1.707,"p95Ms":2.473,"maxMs":7.04,"budgetPct30Hz":5.1,"deterministic":true,"digest":"5d71fa67"}
+{"id":"P11 2-side 140 + join 60 @10s","ships":200,"steps":1800,"meanMs":1.625,"p95Ms":3.08,"maxMs":6.48,"budgetPct30Hz":4.9,"deterministic":true,"digest":"d7ee1c17"}
+## after (RULES=2)
+{"id":"legacy 2-side 100 (50v50)","ships":100,"steps":1800,"meanMs":0.587,"p95Ms":1.033,"maxMs":3.45,"budgetPct30Hz":1.8,"deterministic":true,"digest":"4bad50e8"}
+{"id":"legacy 2-side 200 (100v100)","ships":200,"steps":1800,"meanMs":1.57,"p95Ms":2.716,"maxMs":5.57,"budgetPct30Hz":4.7,"deterministic":true,"digest":"a3c922c7"}
+{"id":"P11 3-side 100 (34/33/33)","ships":100,"steps":1800,"meanMs":0.527,"p95Ms":0.908,"maxMs":1.97,"budgetPct30Hz":1.6,"deterministic":true,"digest":"91ebbf23"}
+{"id":"P11 3-side 200 (70/70/60)","ships":200,"steps":1800,"meanMs":1.751,"p95Ms":2.71,"maxMs":7.05,"budgetPct30Hz":5.3,"deterministic":true,"digest":"5d71fa67"}
+{"id":"P11 2-side 140 + join 60 @10s","ships":200,"steps":1800,"meanMs":1.53,"p95Ms":2.74,"maxMs":5.59,"budgetPct30Hz":4.6,"deterministic":true,"digest":"d7ee1c17"}
+## after (RULES=3, no craft)
+{"id":"legacy 2-side 100 (50v50)","ships":100,"steps":1800,"meanMs":0.545,"p95Ms":0.876,"maxMs":2.32,"budgetPct30Hz":1.6,"deterministic":true,"digest":"4bad50e8"}
+{"id":"legacy 2-side 200 (100v100)","ships":200,"steps":1800,"meanMs":1.595,"p95Ms":2.581,"maxMs":6.48,"budgetPct30Hz":4.8,"deterministic":true,"digest":"a3c922c7"}
+{"id":"P11 3-side 100 (34/33/33)","ships":100,"steps":1800,"meanMs":0.542,"p95Ms":0.951,"maxMs":3.82,"budgetPct30Hz":1.6,"deterministic":true,"digest":"91ebbf23"}
+{"id":"P11 3-side 200 (70/70/60)","ships":200,"steps":1800,"meanMs":1.601,"p95Ms":2.299,"maxMs":4.36,"budgetPct30Hz":4.8,"deterministic":true,"digest":"5d71fa67"}
+{"id":"P11 2-side 140 + join 60 @10s","ships":200,"steps":1800,"meanMs":1.484,"p95Ms":2.66,"maxMs":5.17,"budgetPct30Hz":4.5,"deterministic":true,"digest":"d7ee1c17"}
