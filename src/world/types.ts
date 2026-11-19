@@ -143,7 +143,8 @@ export type Op =
    *  `illegal`: also take cargo that belongs to a non-hostile company (a crime where the law reaches) */
   | { k: 'recover'; wreck: string; illegal?: boolean }
   /** P13.1: salvage zone — the commander picks wrecks around `at`, unloads at a station and comes back, until told otherwise */
-  | { k: 'salvzone'; at: V; radius: number; illegal?: boolean }
+  | { k: 'salvzone'; at: V; radius: number; illegal?: boolean; /** P17.0 salvage business: no fixed zone — wrecks within
+   *  SALV.bizJumps jumps of `at`'s system, worth the trip; nothing to do → wait docked at the nearest station */ biz?: boolean }
   /** P16.7: field repair — fly to one own ship and repair its hull to full (repair ships with field repair gear) */
   | { k: 'fieldrepair'; ship: string }
   /** P16.7: field repair zone — the commander picks damaged own ships around `at`, repairs them, comes back; continuing */

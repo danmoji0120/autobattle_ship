@@ -18,7 +18,7 @@ import { lotValue, itemLabel, siteOf, allSites } from './wrecks';
 import { coRelation } from './battleAuth';
 import { econOf, berthFits } from './hullops';
 import { shipValue } from './data';
-import { dist, sysAt } from './geom';
+import { dist, jumps, sysAt } from './geom';
 import { techFx } from './industry';
 import { effSec } from './security';
 import { bumpStanding } from './territory';
@@ -80,6 +80,9 @@ export const SALV = {
   lawSec: 25, repPerCr: 1 / 2000, standingPerCr: 1 / 1000,
   /** zone: wrecks scored by value / (travel + work time) × safety */
   ignoreFor: 600,
+  /** P17.0 salvage business (salvzone biz): search range in jumps from the home system, the least value a trip
+   *  must promise, and how long a risky site is left alone */
+  bizJumps: 1, bizMin: 400, bizRiskIgnore: 900,
 } as const;
 
 const roleOf = (s: WShip): 'hauler' | 'constructor' | 'miner' | 'military' | 'other' => {
@@ -392,12 +395,22 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
   } else {
     const ign = S.ignore ?? {};
     let best = -Infinity;
+    const home = op.biz ? h.sysOf(op.at)?.id : undefined, hops = new Map<string, number>();
+    const inRange = (w: SalvSite) => {
+      if (!op.biz) return dist(w.pos, op.at) <= op.radius + 400;
+      const sid = h.sysOf(w.pos)?.id; if (!home || !sid) return false;
+      let n = hops.get(sid); if (n === undefined) hops.set(sid, n = jumps(st.systems, home, sid));
+      return n <= SALV.bizJumps;
+    };
     for (const w of allSites(st)) {
-      if ((ign[w.id] ?? 0) > h.time || dist(w.pos, op.at) > op.radius + 400) continue;
+      if ((ign[w.id] ?? 0) > h.time || !inRange(w)) continue;
       if (!workable(h, ships, w, illegal)) continue;
-      const p = prospect(h, ships, w, illegal); if (p.value <= 0) continue;
+      const p = prospect(h, ships, w, illegal); if (p.value <= 0 || (op.biz && p.value < SALV.bizMin)) continue;
       const travel = h.routeDistance(center, w.pos) / Math.max(50, h.groupSpeedOf(g));
-      const risk = hostileNear(h, g.owner, w.pos, SALV.hostileR * (h.st.officerV ? 1 + (groupFx(h.st, g).salvRisk ?? 0) : 1)) ? 0.2 : 1;
+      const danger = hostileNear(h, g.owner, w.pos, SALV.hostileR * (h.st.officerV ? 1 + (groupFx(h.st, g).salvRisk ?? 0) : 1));
+      // a business run does not fly into a fight: a site with hostiles near is left alone for a while
+      if (danger && op.biz) { (S.ignore ??= {})[w.id] = h.time + SALV.bizRiskIgnore; continue; }
+      const risk = danger ? 0.2 : 1;
       const left = w.expires - h.time; if (left < travel + 30) continue;
       const score = p.value / (travel + p.time + 30) * risk;
       if (score > best) { best = score; target = w; }
@@ -413,7 +426,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
   }
   if (loaded && S.nounload) { finish(h, g, S, '화물칸이 가득 찼습니다'); return; }
   if (loaded) { const skip = { risky: 0 }; const sta = pickStation(h, g, ships, center, S.ignore, skip); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); } else blockUnload(h, g, S, skip); return; }
-  if (op.k === 'salvzone') { S.wreck = undefined; setPhase(h, S, 'hold', '구역에 회수 가능한 잔해가 없습니다 — 새 잔해를 기다립니다'); return; }
+  if (op.k === 'salvzone') { S.wreck = undefined; setPhase(h, S, 'hold', op.biz ? `주변 ${SALV.bizJumps}점프 안에 수익성 있는 잔해가 없습니다 — 정거장에서 대기` : '구역에 회수 가능한 잔해가 없습니다 — 새 잔해를 기다립니다'); return; }
   setPhase(h, S, 'blocked', '화물칸이 가득 찼고 하역할 화물이 없습니다');
 }
 
@@ -457,7 +470,9 @@ function move(h: Host, g: WGroup, ships: WShip[], S: SalvState, illegal: boolean
   }
   if (S.phase === 'hold') {
     const op = h.opOf(g); const at = op.k === 'salvzone' ? op.at : null;
-    for (const s of ships) { if (at) h.moveTo(s, h.formationSlot(s, g, at, 120), speed, dt, 60); else if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; } }
+    // P17.0 business: wait docked at the station nearest the home point (not hovering in space)
+    const park = op.k === 'salvzone' && op.biz ? h.nearestDock(op.at, g.owner) : null;
+    for (const s of ships) { if (park) h.goDock(s, park, dt, speed); else if (at) h.moveTo(s, h.formationSlot(s, g, at, 120), speed, dt, 60); else if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; } }
   }
 }
 
@@ -466,7 +481,7 @@ function status(h: Host, g: WGroup, S: SalvState, op: Op): string {
   const sta = S.station ? h.st.stations[S.station] : undefined;
   const ships = h.shipsOf(g), room = ships.reduce((a, s) => a + salvageRoom(h, s), 0), hold = ships.reduce((a, s) => a + salvageHold(h, s), 0);
   const fill = hold > 0 ? ` · 화물칸 ${Math.round((1 - room / hold) * 100)}%` : '';
-  const L = salvLabel(h.st, S), head = L.head, plunder = salvTarget(h.st, S) === 'plunder';
+  const L = salvLabel(h.st, S), head = op.k === 'salvzone' && op.biz ? '자동 인양 사업' : L.head, plunder = salvTarget(h.st, S) === 'plunder';
   void MODE_NAME;
   switch (S.phase) {
     case 'transit': case 'return': return `${head}: ${L.phase} — ${w?.name ?? ''}${fill}`;
@@ -551,7 +566,7 @@ export function validateSalvage(h: Host, company: string, ships: WShip[], op: Op
     return null;
   }
   if (op.k === 'salvzone') {
-    if (!(op.radius >= 500 && op.radius <= 30000)) return '작업 반경은 500~30000m';
+    if (!op.biz && !(op.radius >= 500 && op.radius <= 30000)) return '작업 반경은 500~30000m';
     if (h.st.indV && !can.some(s => salvageRate(h, s, 'cargo') > 0)) return NO_SALV_GEAR;
     if (!h.sysOf(op.at)) return '성계 안의 좌표를 지정하세요';
     return null;

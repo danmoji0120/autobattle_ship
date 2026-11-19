@@ -333,7 +333,7 @@ function opTarget(h: WorldSim, op: Op): string {
     case 'survey': return h.st.systems[op.system]?.name ?? '';
     case 'salvage': return '인양 지점';
     case 'recover': return h.st.wrecks?.[op.wreck]?.name ?? '전장 잔해';
-    case 'salvzone': return `${h.sysOf(op.at)?.name ?? ''} 반경 ${Math.round(op.radius)}`;
+    case 'salvzone': return op.biz ? `${h.sysOf(op.at)?.name ?? ''} 주변 인양 사업` : `${h.sysOf(op.at)?.name ?? ''} 반경 ${Math.round(op.radius)}`;
     case 'repairzone': return `${h.sysOf(op.at)?.name ?? ''} 반경 ${Math.round(op.radius)}`;
     case 'fieldrepair': return h.st.ships[op.ship]?.name ?? '함선';
     case 'lootTender': return h.st.groups[op.group]?.name ?? '약탈 편대';

@@ -61,9 +61,11 @@ export function groupSalvageHtml(st: WorldView, g: WGroup): string {
   const L = S ? salvLabel(st as any, S) : null;
   const phase = S && L ? `<span class="tag ov">${L.head}</span> ${L.phase}${S.why ? ` — ${esc(S.why)}` : ''}` : '';
   const active = g.op.k === 'recover' || g.op.k === 'salvzone' || !!S;
+  const lead = g.shipIds.map(id => st.ships[id]).find(Boolean), at = lead ? { x: lead.pos.x, y: lead.pos.y, z: lead.pos.z } : null;
   return `<div class="bdr small salv-panel">
     <label class="chk" title="전투가 끝난 뒤 대기·방어·순찰 중인 편대가 근처(3km) 잔해에서 합법적인 물품만 최대 10분간 회수합니다. 적대 함대가 가까우면 하지 않습니다."><input type="checkbox" data-salv-auto="${g.id}" ${auto ? 'checked' : ''}> 현장 자동 인양</label>
     ${phase ? `<div class="salv-state">${phase}</div>` : ''}
+    ${!active && at ? `<div class="row"><button class="btn mini" data-quick='${esc(JSON.stringify({ k: 'salvzone', at, radius: 0, biz: true }))}' title="현재 성계와 인접 성계의 잔해를 스스로 찾아 가치·거리·위험을 따져 인양하고, 회수품은 기존 하역·판매 경로로 넘깁니다. 일이 없으면 가까운 정거장에서 대기합니다. 한 번 지정하면 계속 운영됩니다.">자동 인양 사업 시작</button></div>` : ''}
     ${active ? `<div class="row"><button class="btn mini" data-quick='{"k":"idle"}'>인양 중지</button>${st.opsV ? `<button class="btn mini" data-quick='{"k":"return"}'>귀환</button>` : ''}</div>` : ''}
   </div>`;
 }

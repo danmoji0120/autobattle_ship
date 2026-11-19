@@ -17,7 +17,6 @@ import { FIELD, stepFieldRepair, repairGearRate, fieldRate, sizeWeight, fieldUni
 import { migrateRepair } from '../src/world/industrialGear';
 import { MENDER_STD_WEAPONS, REPAIR_HULL } from '../src/content/packs/growth/support';
 import type { WShip } from '../src/world/types';
-import { BACKGROUNDS } from '../src/world/backgrounds';
 
 // ─────────────────────────────────────────────────────────── combat
 const menderFit = (): ShipSpec['fit'] => {
@@ -195,7 +194,7 @@ describe('P16.7a field repair', () => {
 
   it('stops when a hostile fleet is near, and when the balance floor is reached', () => {
     const a = fieldWorld();
-    const q = a.sim.addPlayer('적대', BACKGROUNDS.find(x => x.id === 'security'));
+    const q = a.sim.addPlayer('적대', 'security');
     expect(a.sim.command(a.p, { c: 'stance', target: q, v: -1 } as any)).toBeNull();
     const mil = Object.values(a.sim.st.ships).filter(s => s.owner === q && econOf(s).military);
     expect(mil.length).toBeGreaterThan(0);
