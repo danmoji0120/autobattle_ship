@@ -4,7 +4,7 @@ import type { ShipClassDef, LoadoutDef, MountDef } from '../sim/data/ships';
 import { WEAPONS } from '../sim/data/weapons';
 import { loadModel, modelReady, modelsEnabled, type ModelTemplate } from './modelLoader';
 import { bbexDesign, bbexTurret, BBEX_COLORS } from './bbex/hull';
-import { design17 } from './hulls17';
+import { design17, TINT } from './hulls17';
 import { BBEX_CLASS } from '../sim/bbex/data';
 
 // Ship-local frame: +x port, +y up, +z bow (matches the simulation).
@@ -16,7 +16,9 @@ export interface ShipModel {
   front: THREE.Group;         // front half (separates on death)
   rear: THREE.Group;
   turrets: TurretView[];
-  engines: { glow: THREE.Mesh; plume: THREE.Mesh; base: number }[];
+  /** plume: energy exhaust (per-engine ShaderMaterial, uniform uI = brightness); len: maker length factor;
+   *  cur: eased throttle the renderer keeps between frames */
+  engines: { glow: THREE.Mesh; plume: THREE.Mesh; base: number; len: number; cur: number }[];
   lights: THREE.Mesh[];
   hullMats: THREE.MeshStandardMaterial[];
   length: number;
@@ -151,6 +153,11 @@ function mats(team: 0 | 1): Mats {
   return m;
 }
 
+const FINISH: Record<number, { r: number; m: number; tr: number; tm: number; win: number }> = {
+  [TINT.helios]: { r: 0.32, m: 0.7, tr: 0.22, tm: 0.95, win: 1.1 }, [TINT.ceres]: { r: 0.4, m: 0.45, tr: 0.3, tm: 0.7, win: 1.0 },
+  [TINT.bastion]: { r: 0.78, m: 0.5, tr: 0.65, tm: 0.7, win: 0.7 }, [TINT.rust]: { r: 0.85, m: 0.4, tr: 0.75, tm: 0.55, win: 0.6 },
+  [TINT.old]: { r: 0.7, m: 0.45, tr: 0.6, tm: 0.6, win: 0.8 }, [TINT.cobalt]: { r: 0.62, m: 0.5, tr: 0.5, tm: 0.7, win: 0.75 },
+};
 /** maker-tinted hull materials (P17.3): same textures, hull/dark colours multiplied by the maker tint */
 const tintCache = new Map<string, Mats>();
 function matsTint(team: 0 | 1, tint: number | undefined): Mats {
@@ -161,7 +168,16 @@ function matsTint(team: 0 | 1, tint: number | undefined): Mats {
   if (!m) {
     const hull = base.hull.clone(); hull.color.multiply(new THREE.Color(tint));
     const dark = base.dark.clone(); dark.color.multiply(new THREE.Color(tint));
-    m = { ...base, hull, dark };
+    // P17.3.1 maker finish: same textures, different surface — Helios polished, Ceres pearl, Bastion heavy matte
+    // armour, Rustport/pirate weathered, old empire dull, Cobalt plain (window light also differs a little)
+    const F = FINISH[tint];
+    let trim = base.trim;
+    if (F) {
+      hull.roughness = F.r; hull.metalness = F.m; hull.emissiveIntensity = base.hull.emissiveIntensity * F.win;
+      dark.roughness = Math.min(1, F.r + 0.15);
+      trim = base.trim.clone(); trim.roughness = F.tr; trim.metalness = F.tm;
+    }
+    m = { ...base, hull, dark, trim };
     tintCache.set(k, m);
   }
   return m;
@@ -759,8 +775,50 @@ function mergeAll(geos: THREE.BufferGeometry[]): THREE.BufferGeometry {
 const turretCache = new Map<string, TurretView>();
 // shared by every ship (they used to be created per ship and never freed)
 const glowGeo = new THREE.CircleGeometry(1, 20);
-const plumeGeo = new THREE.ConeGeometry(1, 1, 16, 1, true);
-plumeGeo.rotateX(-Math.PI / 2); plumeGeo.translate(0, 0, -0.5);
+// P17.3.1 energy exhaust: a narrow white-hot core inside a wider sheath, both open cones running from the nozzle
+// (z 0) to the tip (z -1). The shader fades along the length and towards the silhouette edge, so it reads as a
+// glowing jet rather than a solid cone. One geometry for every engine; brightness is a per-engine uniform.
+const plumeGeo = (() => {
+  const cone = (r: number, len: number, layer: number) => {
+    const g = new THREE.ConeGeometry(r, len, 16, 4, true);
+    g.rotateX(-Math.PI / 2); g.translate(0, 0, -len / 2);
+    g.setAttribute('layer', new THREE.Float32BufferAttribute(new Array(g.getAttribute('position').count).fill(layer), 1));
+    return g;
+  };
+  return mergeGeometries([cone(0.42, 0.62, 0), cone(1, 1, 1)])!;
+})();
+/** shared clock for the exhaust shimmer (battleView advances it) */
+export const plumeClock = { value: 0 };
+const PLUME_VS = `attribute float layer; varying float vT; varying float vL; varying float vE; varying float vSeed;
+void main() { vT = 1.0 - uv.y; vL = layer; vSeed = modelMatrix[3][0] * 0.13 + modelMatrix[3][2] * 0.07;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0); vec3 n = normalize(normalMatrix * normal);
+  vE = abs(dot(n, normalize(-mv.xyz))); gl_Position = projectionMatrix * mv; }`;
+const PLUME_FS = `uniform vec3 uColor; uniform vec3 uCore; uniform float uI; uniform float uTime; uniform float uWob;
+varying float vT; varying float vL; varying float vE; varying float vSeed;
+void main() {
+  float core = 1.0 - step(0.5, vL);
+  float fall = mix(pow(max(0.0, 1.0 - vT), 1.5), pow(max(0.0, 1.0 - vT), 2.4), core);
+  float edge = mix(pow(vE, 1.2), pow(vE, 0.45), core);
+  float shim = 1.0 - uWob + uWob * (0.5 + 0.5 * sin(uTime * 37.0 + vT * 21.0 + vSeed));
+  vec3 col = mix(uColor, mix(uCore, uColor, clamp(vT * 1.3, 0.0, 1.0)), core);
+  float a = fall * edge * shim * uI * mix(0.75, 1.6, core) * smoothstep(0.0, 0.06, vT + 0.02);
+  gl_FragColor = vec4(col, min(a, 1.0));
+}`;
+/** maker exhaust character (limited: same team hue, different core and length) */
+const EXHAUST: Record<number, { core: number; len: number; wob: number }> = {
+  [TINT.helios]: { core: 0xf0f8ff, len: 1.15, wob: 0.06 }, [TINT.ceres]: { core: 0xf4eaff, len: 1.0, wob: 0.04 },
+  [TINT.bastion]: { core: 0xfff2dc, len: 0.85, wob: 0.08 }, [TINT.rust]: { core: 0xffd0a0, len: 0.9, wob: 0.22 },
+  [TINT.cobalt]: { core: 0xe8f0ff, len: 0.9, wob: 0.12 }, [TINT.old]: { core: 0xfff0c0, len: 0.8, wob: 0.16 },
+};
+function plumeMat(color: THREE.Color, tint: number | undefined): THREE.ShaderMaterial {
+  const ex = (tint !== undefined && EXHAUST[tint]) || { core: 0xf4fbff, len: 1, wob: 0.08 };
+  const mt = new THREE.ShaderMaterial({
+    uniforms: { uColor: { value: color.clone() }, uCore: { value: new THREE.Color(ex.core) }, uI: { value: 1 }, uTime: plumeClock, uWob: { value: ex.wob } },
+    vertexShader: PLUME_VS, fragmentShader: PLUME_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  });
+  mt.userData.len = ex.len;
+  return mt;
+}
 const lightGeo = new THREE.SphereGeometry(0.3, 6, 4);
 
 const geoCache = new Map<string, { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; parts: Parts }>();
@@ -848,7 +906,7 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
 
   const engines: ShipModel['engines'] = [];
   if (parts.engines.length) { const n = new THREE.Mesh(mergeAll(parts.engines.map(e => cyl(e.r * 1.1, e.r * 1.35, e.r * 1.6, e.x, e.y, e.z + e.r * 0.6, 'z', 14))), m.trim); n.userData.proc = 'engine'; n.userData.own = true; rear.add(n); }
-  addEngines(rear, parts.engines, m, engines);
+  addEngines(rear, parts.engines, m, engines, xd?.tint);
   const lights: THREE.Mesh[] = [];
   addLights(front, rear, parts.light, m, lights);
   const sm: ShipModel = { root, bank, front, rear, turrets, engines, lights, hullMats, length: cls.length * (xd ? mb!.scale : 1), model: null };
@@ -876,19 +934,20 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
  *  shared between ships and stays cached */
 export function disposeShip(sm: ShipModel) {
   sm.root.removeFromParent();
-  for (const half of [sm.front, sm.rear]) half.traverse(o => { if (o.userData.own) (o as THREE.Mesh).geometry.dispose(); });
+  for (const half of [sm.front, sm.rear]) half.traverse(o => { if (o.userData.own) (o as THREE.Mesh).geometry.dispose(); if (o.userData.ownMat) ((o as THREE.Mesh).material as THREE.Material).dispose(); });
 }
 
-function addEngines(rear: THREE.Group, list: { x: number; y: number; z: number; r: number }[], m: Mats, out: ShipModel['engines']) {
+function addEngines(rear: THREE.Group, list: { x: number; y: number; z: number; r: number }[], m: Mats, out: ShipModel['engines'], tint?: number) {
   for (const e of list) {
     const glow = new THREE.Mesh(glowGeo, m.engine);
     glow.position.set(e.x, e.y, e.z - 0.25); glow.rotation.y = Math.PI; glow.scale.setScalar(e.r); glow.userData.proc = 'engine';
     rear.add(glow);
-    const plume = new THREE.Mesh(plumeGeo, m.plume);
+    const pm = plumeMat(m.plume.color, tint);
+    const plume = new THREE.Mesh(plumeGeo, pm);
     plume.position.set(e.x, e.y, e.z - 0.3);
-    plume.scale.set(e.r * 0.9, e.r * 0.9, e.r * 6); plume.userData.proc = 'engine';
+    plume.scale.set(e.r * 0.95, e.r * 0.95, e.r * 6); plume.userData.proc = 'engine'; plume.userData.ownMat = true;
     rear.add(plume);
-    out.push({ glow, plume, base: e.r });
+    out.push({ glow, plume, base: e.r, len: pm.userData.len as number, cur: 0.5 });
   }
 }
 function addLights(front: THREE.Group, rear: THREE.Group, list: THREE.Vector3[], m: Mats, out: THREE.Mesh[]) {

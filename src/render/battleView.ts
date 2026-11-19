@@ -9,7 +9,7 @@ import type { World } from '../sim/world';
 import type { Ship, SimEvent, Munition } from '../sim/types';
 import { worldDirToLocal, Vec3 } from '../sim/math';
 import { ParticleSystem, TrailBatch, Shockwaves, FlashLights, Debris } from './effects';
-import { buildShip, wreckMaterial, engineColor, type ShipModel } from './shipMesh';
+import { buildShip, wreckMaterial, engineColor, plumeClock, type ShipModel } from './shipMesh';
 import { Environment, type Backdrop } from './environment';
 import { CameraRig, type FollowTarget, type ShotRequest, type ShakeKind } from './camera';
 import { BbexFx, type FxHost } from './bbex/fx';
@@ -486,7 +486,7 @@ export class BattleView implements FxHost {
   frame(alpha: number, simDt: number, realDt: number, render = true) {
     const w = this.world!;
     this.syncShipViews();
-    this.time += realDt;
+    this.time += realDt; plumeClock.value = this.time;
     const cam = this.rig.camera;
     // ships
     for (const v of this.views.values()) {
@@ -528,10 +528,18 @@ export class BattleView implements FxHost {
       // and coughs back, sparks and black smoke leak from the nozzles
       const sick = s.state === 'alive' && (s.crit.engine > 0 || s.hp < s.maxHp * 0.3);
       for (const e of v.model.engines) {
+        // P17.3.1: length and brightness ease toward the throttle (no per-frame jitter; the shader shimmers);
+        // a sick drive still coughs — cut-outs snap, recoveries ease
         const cough = sick ? (Math.random() < 0.25 ? 0.05 : 0.35 + Math.random() * 0.4) : 1;
-        e.plume.scale.z = e.base * (3 + thr * 9) * (0.92 + Math.random() * 0.16) * cough;
-        (e.plume.material as THREE.MeshBasicMaterial).opacity = sick ? 0.25 + cough * 0.3 : 0.5;
-        e.glow.scale.setScalar(e.base * (0.8 + thr * 0.4) * (sick ? 0.4 + cough * 0.6 : 1));
+        const want = thr * cough;
+        e.cur += (want - e.cur) * Math.min(1, realDt * (want < e.cur && sick ? 30 : 5));
+        // width grows a little with throttle; length scales with the engine size and the maker's exhaust
+        const w = e.base * (0.85 + e.cur * 0.2);
+        e.plume.scale.set(w, w, e.base * (2.5 + e.cur * 8) * e.len);
+        const pu = (e.plume.material as THREE.ShaderMaterial).uniforms;
+        if (pu) pu.uI.value = (sick ? 0.6 : 0.8) * (0.45 + e.cur * 0.75);
+        e.plume.visible = e.cur > 0.03;
+        e.glow.scale.setScalar(e.base * (0.75 + e.cur * 0.45) * (sick ? 0.4 + cough * 0.6 : 1));
         if (sick && Math.random() < realDt * (s.crit.engine > 0 ? 9 : 3)) {
           const ep = e.glow.getWorldPosition(tmp2);
           this.glow.emit(ep, { life: 0.3 + Math.random() * 0.3, size: e.base * 1.4, size1: 0.3, color: 0xffc070, color1: 0x601000, vel: v.wfwd.clone().multiplyScalar(-20).add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(30)), drag: 2 });

@@ -97,4 +97,11 @@ if (want.includes('normal')) {
           if (w.time < 25 || m.n < 30) return null; let x = 0, z = 0, k = 0; for (const s of w.ships) if (s.state === 'alive') { x += s.pos.x; z += s.pos.z; k++; } return { x: x / k, y: 0, z: z / k }; }` },
     ]);
 }
+if (want.includes('thrust')) {
+  // P17.3.1 exhaust: a ship under way (eased throttle) and a crippled drive (engine crit or < 30 % hull)
+  await battle([['cruiser', 'aa', null, null], ['destroyer', 'aa', null, null]], [['battleship', 'std', null, null], ['cruiser', 'aa', null, null]], 4, [
+    { name: 'thrust_underway', dist: 70, pitch: 0.35, yaw: 2.6, pred: P`(w) => { if (w.time < 6) return null; const s = w.ships.find(x => x.team === 0 && x.state === 'alive'); return s ? { x: s.pos.x, y: s.pos.y, z: s.pos.z } : null; }` },
+    { name: 'thrust_crippled', dist: 80, pitch: 0.35, yaw: 2.6, pred: P`(w) => { const s = w.ships.find(x => x.state === 'alive' && (x.crit.engine > 0 || x.hp < x.maxHp * 0.3)); return s ? { x: s.pos.x, y: s.pos.y, z: s.pos.z } : null; }` },
+  ]);
+}
 await b.close();
