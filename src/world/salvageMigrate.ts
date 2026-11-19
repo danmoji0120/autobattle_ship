@@ -41,3 +41,12 @@ export function enableSalvageP131(h: Host): SalvageConversion {
   st.wrecks ??= {};
   return out;
 }
+
+/** P17.1 explicit save migration (idempotent): salvage quality rules for an industrial world. Nothing already
+ *  recovered changes; only future recovery uses gear precision, officers and wreck condition. */
+export function migrateSalvageQuality(st: import('./types').WorldState): { applied: boolean; reason?: string } {
+  if (st.salvQV) return { applied: false, reason: '이미 적용됨' };
+  if (!st.indV) return { applied: false, reason: '산업 하드포인트 규칙(indV) 이전 월드' };
+  st.salvQV = 1;
+  return { applied: true };
+}

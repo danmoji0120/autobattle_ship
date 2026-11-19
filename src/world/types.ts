@@ -244,6 +244,8 @@ export interface WShip {
   salvaged?: Cargo;
   /** P13.1: salvage work done but not yet a whole unit (per ship, the lot it was working on) */
   salvAcc?: { lot: string; a: number };
+  /** P17.1 (salvQV): fractional recovery carried between work ticks, by item ('_intact' = intact-equipment chance) */
+  salvQ?: Record<string, number>;
   /** A-3.2b: where the salvaged goods aboard came from (item key → site id → units), so a salvage contract
    *  counts only goods really recovered from its target (never goods the company already had) */
   salvSrc?: Record<string, Record<string, number>>;
@@ -660,6 +662,9 @@ export interface WorldState {
   logisticsV?: 1;
   /** P13.1 battlefield wrecks and physical salvage (new worlds only): no random derelicts, no remote battle loot */
   salvageV?: 1;
+  /** P17.1 salvage quality: gear precision, officer and wreck condition decide how much of a wreck comes back intact
+   *  (new industrial worlds; saves by explicit migration). Without it every unit taken is recovered whole. */
+  salvQV?: 1;
   /** industrial hardpoints (world/industrialGear.ts): player ships mine, build and salvage only with fitted gear */
   indV?: 1;
   /** P15.1: combat computers stocked on public markets at creation (new growth worlds) */

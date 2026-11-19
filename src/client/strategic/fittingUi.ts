@@ -449,7 +449,7 @@ function statBars(w: import('../../sim/data/weapons').WeaponDef): string {
 function indText(g: import('../../content/schema').IndSpec, bonus: Partial<Record<string, number>> | undefined): string {
   const b = bonus?.[g.work] ?? 1, v = g.rate * b;
   const r = (x: number) => Number(x.toFixed(2)).toLocaleString();
-  const what = g.work === 'mine' ? `채굴 ${r(v)}/s` : g.work === 'build' ? `건설 ×${r(v)}` : g.work === 'repair' ? `현장 수리 ${r(v)} (소형 선체 기준 시간당 ${Math.round(v * 100)}%)` : `인양 ×${r(v)}`;
+  const what = g.work === 'mine' ? `채굴 ${r(v)}/s` : g.work === 'build' ? `건설 ×${r(v)}` : g.work === 'repair' ? `현장 수리 ${r(v)} (소형 선체 기준 시간당 ${Math.round(v * 100)}%)` : `인양 ×${r(v)}${g.prec ? ` · 정밀도 ${Math.round(g.prec * 100)}%` : ''}`;
   return b !== 1 ? `${what} (기본 ${r(g.rate)} × 선체 ${b})` : what;
 }
 function cfxText(c: import('../../content/schema').CombatFx): string {

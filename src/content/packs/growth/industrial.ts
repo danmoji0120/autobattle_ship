@@ -9,6 +9,8 @@ const NAME: Record<IndWork, string> = { mine: '채굴 레이저', build: '건설
 const SIZE_NAME: Record<Size, string> = { S: '소형', M: '중형', L: '대형', XL: '초대형' };
 const KEY: Record<IndWork, string> = { mine: 'mine', build: 'build', salvage: 'salv', repair: 'rep' };
 
+/** P17.1: salvage precision — a bigger rig is faster AND a little more careful, but precision rises far slower than speed */
+const P = (m: ModuleContent, prec: number): ModuleContent => ({ ...m, ind: { ...m.ind!, prec } });
 const G = (work: IndWork, size: Size, rate: number, power: number, mass: number, time: number, inp: Record<string, number>, desc: string, tech?: string): ModuleContent => ({
   id: `ind_${KEY[work]}_${size.toLowerCase()}`, name: `${SIZE_NAME[size]} ${NAME[work]}`, desc,
   slot: 'industrial', size, mass, power, fx: {}, ind: { work, rate }, ...(tech ? { tech } : {}),
@@ -27,10 +29,10 @@ export const IND_MODULES: ModuleContent[] = [
   G('build', 'L', 1.6, 10, 15, 1200, { machinery: 20, precision: 6, electronics: 6 }, '갠트리 크레인 세트. 건설 속도 1.6. 정거장 공학 연구로 생산.', 'station_engineering'),
   G('build', 'XL', 3.2, 16, 24, 2400, { machinery: 40, precision: 14, electronics: 14, composite: 10 }, '건설 드론 편대 격납고. 건설 속도 3.2. 초대형 산업 하드포인트 전용.', 'station_engineering'),
   // salvage rigs — multiplier on the salvage base rates (1 = the old 석공급 constructor) before the hull bonus
-  G('salvage', 'S', 1, 3, 4, 300, { machinery: 4, precision: 1, composite: 2 }, '견인 빔과 절단 토치. 잔해의 화물·장비·선체·설계도 조각을 회수한다 (인양 효율 1.0).'),
-  G('salvage', 'M', 1.6, 6, 8, 600, { machinery: 8, precision: 2, electronics: 1, composite: 4 }, '회수 크레인과 절단 드론. 인양 효율 1.6.'),
-  G('salvage', 'L', 2.6, 10, 13, 1200, { machinery: 16, precision: 5, electronics: 3, composite: 8 }, '대형 인양 갠트리. 인양 효율 2.6. 전장 회수 연구로 생산.', 'salvage_ops'),
-  G('salvage', 'XL', 4.2, 15, 20, 2400, { machinery: 30, precision: 12, electronics: 8, composite: 16 }, '해체 독 수준의 인양 설비. 인양 효율 4.2. 초대형 산업 하드포인트 전용.', 'salvage_ops'),
+  P(G('salvage', 'S', 1, 3, 4, 300, { machinery: 4, precision: 1, composite: 2 }, '견인 빔과 절단 토치. 잔해의 화물·장비·선체·설계도 조각을 회수한다 (인양 효율 1.0).'), 0.35),
+  P(G('salvage', 'M', 1.6, 6, 8, 600, { machinery: 8, precision: 2, electronics: 1, composite: 4 }, '회수 크레인과 절단 드론. 인양 효율 1.6.'), 0.45),
+  P(G('salvage', 'L', 2.6, 10, 13, 1200, { machinery: 16, precision: 5, electronics: 3, composite: 8 }, '대형 인양 갠트리. 인양 효율 2.6. 전장 회수 연구로 생산.', 'salvage_ops'), 0.5),
+  P(G('salvage', 'XL', 4.2, 15, 20, 2400, { machinery: 30, precision: 12, electronics: 8, composite: 16 }, '해체 독 수준의 인양 설비. 인양 효율 4.2. 초대형 산업 하드포인트 전용.', 'salvage_ops'), 0.55),
 ];
 
 /** P16.7 field repair rigs — rate = hull share restored per hour on a size-S hull (an M hull takes twice as long,

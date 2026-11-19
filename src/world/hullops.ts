@@ -68,6 +68,15 @@ export function gearRates(bay: Record<string, string> | undefined): { mine: numb
   return r;
 }
 
+/** P17.1: recovery precision of fitted salvage gear — rate-weighted mean of the rigs' `prec` (0 = no salvage gear) */
+export function salvagePrecision(bay: Record<string, string> | undefined): number {
+  let r = 0, p = 0;
+  for (const id of Object.values(bay ?? {})) { const g = EQUIPMENT[id]?.ind; if (g?.work === 'salvage') { r += g.rate; p += g.rate * (g.prec ?? SALVAGE_PREC_BASE); } }
+  return r > 0 ? p / r : 0;
+}
+/** precision of work done without salvage gear (pickup by hand, legacy hulls) and of gear without a `prec` */
+export const SALVAGE_PREC_BASE = 0.3;
+
 // hull|variant|bay contents → econ of an industrial-hardpoint ship (a handful of distinct fits per world)
 const gearCache = new Map<string, HullEcon>();
 /** strategic econ of a hull + variant carrying this industrial gear: mining, construction and salvage come

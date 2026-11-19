@@ -89,6 +89,7 @@ export const fitStandardGear = (s: WShip) => fitGear(s, CONTENT.hulls[hullIdOf(s
 /** new worlds: industrial hardpoint rules from the start */
 export function enableIndustrial(st: WorldState) {
   st.indV = 1;
+  st.salvQV = 1;   // P17.1: salvage quality (gear precision · officer · wreck condition) from the start
   stockIndustrialGear(st);
 }
 

@@ -16,7 +16,9 @@ import { addc, cargoSum, qty, takec } from './types';
 import type { WreckLot, SalvSite } from './wrecks';
 import { lotValue, itemLabel, siteOf, allSites } from './wrecks';
 import { coRelation } from './battleAuth';
-import { econOf, berthFits } from './hullops';
+import { econOf, berthFits, salvagePrecision, SALVAGE_PREC_BASE } from './hullops';
+import { masteryLevel } from './officerData';
+import { assetReferenceValue } from './valuation';
 import { shipValue } from './data';
 import { dist, jumps, sysAt } from './geom';
 import { techFx } from './industry';
@@ -34,7 +36,7 @@ import { stepPoolShip } from './autonomousLogistics';
 import { planMinerSaleTrip } from './procurement';
 
 type Host = WorldSim;
-import { shipFx, groupFx } from './officers';
+import { shipFx, groupFx, groupOfficer } from './officers';
 import { XP_RATE } from './officerData';
 
 export interface SalvState {
@@ -173,21 +175,100 @@ function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number):
   const take = Math.min(Math.floor(a + 1e-9), lot.n, weightless(lot) ? Infinity : Math.floor(salvageRoom(h, s) + 1e-9));
   if (take > 0) {
     lot.n -= take; a -= take;
-    // P13.3: another company's cargo becomes stolen goods (its own key), the owner's own goods come back plain
-    const k = recoveredKey(h.st, s.owner, lot);
-    addc(s.cargo, k, take);
-    addc((s.salvaged ??= {}), k, take);
-    if (h.st.derelictV) noteSalvageSource(h.st, s, k, w.id, take, take * lotValue(h.st, lot));
+    // P17.1: what actually comes back of the units taken (salvage quality); never more than was in the lot
+    const got = recoveredGoods(h, s, w, lot, take);
+    // what left the wreck but did not come back whole is gone (consume/salvage_loss): the wreck ledger stays
+    // spawned = taken + remaining + decayed, and the goods ledger sees every unit recovered or lost
+    const lost = take - got.reduce((a, [item, n]) => a + (item === lot.item ? n : 0), 0);
+    if (lost > 0) emit(h.st, { kind: 'consume', reason: 'salvage_loss', item: lot.item, amount: lost, company: s.owner, ship: s.id, system: w.system, ref: w.id });
+    // units taken out of this wreck by company (wreck-side bookkeeping, before quality)
     const t = (w.taken[s.owner] ??= {}); t[lot.item] = (t[lot.item] ?? 0) + take;
+    let value = 0;
+    for (const [item, n] of got) {
+      if (n <= 0) continue;
+      const src = item === lot.item ? lot : { ...lot, item };
+      // P13.3: another company's cargo becomes stolen goods (its own key), the owner's own goods come back plain
+      const k = recoveredKey(h.st, s.owner, src);
+      addc(s.cargo, k, n);
+      addc((s.salvaged ??= {}), k, n);
+      const v = n * lotValue(h.st, src); value += v;
+      if (h.st.derelictV) noteSalvageSource(h.st, s, k, w.id, n, v);
+      emit(h.st, { kind: 'salvage', reason: 'recover', item: k, amount: n, company: s.owner, group: s.groupId, ship: s.id, system: w.system, ref: w.id, from: lot.owner });
+    }
     if (!w.seen.includes(s.owner)) w.seen.push(s.owner);
     recovered(h, s, w, lot, take);
-    emit(h.st, { kind: 'salvage', reason: 'recover', item: k, amount: take, company: s.owner, group: s.groupId, ship: s.id, system: w.system, ref: w.id, from: lot.owner });
     if (protectedLot(h, s.owner, lot)) crime(h, s, w, lot, take);
     // B-1 experience: real recovered value — never for taking back one's own goods or for protected (stolen) cargo
-    else if (h.st.officerV && lot.owner !== s.owner) { const g = h.st.groups[s.groupId]; const c = h.groupOfficer(g); if (c) h.officerXp(c, 'salvage', take * lotValue(h.st, lot) * XP_RATE.salvage, { salvage: 1 }); }
+    else if (h.st.officerV && lot.owner !== s.owner && value > 0) { const g = h.st.groups[s.groupId]; const c = h.groupOfficer(g); if (c) h.officerXp(c, 'salvage', value * XP_RATE.salvage, { salvage: 1 }); }
   }
   s.salvAcc = { lot: key, a: Math.min(a, 1) };
   return take;
+}
+
+/** P17.1 salvage quality knobs (salvQV worlds) */
+export const SALVQ = {
+  /** share of taken units recovered: base + span × quality */
+  yield: { cargo: [0.9, 0.1], hull: [0.7, 0.3] } as Record<'cargo' | 'hull', [number, number]>,
+  /** chance a taken module comes out intact: base + span × quality (+ officer equipment specialisation) */
+  intact: [0.4, 0.6] as [number, number], intactEquipFx: 0.2,
+  /** a broken module is stripped for weapon parts worth this share of its value */
+  brokenShare: 0.3, brokenItem: 'weapon_parts',
+  /** officer: salvage speed fx (cap 0.5) and mastery level (0..5) */
+  officerSalv: 0.25, officerMastery: 0.04,
+  /** salvage_ops research */
+  tech: 0.08,
+  /** wreck condition: natural derelicts by grade, battlefield wrecks, and decay over the wreck's life */
+  difficulty: { small: 0, medium: 0.08, large: 0.15, battle: 0.1, age: 0.08 },
+};
+
+/** wreck condition (0 = easy): how hard it is to get things out of this site whole */
+export function siteDifficulty(h: Pick<Host, 'st' | 'time'>, w: SalvSite): number {
+  if (looseSite(h, w)) return 0;
+  const g = (w as { grade?: 'small' | 'medium' | 'large'; origin?: string });
+  const d = SALVQ.difficulty, base = g.origin === 'derelict' ? d[g.grade ?? 'small'] : d.battle;
+  const life = Math.max(1, w.expires - w.created), age = Math.min(1, Math.max(0, (h.time - w.created) / life));
+  return base + d.age * age;
+}
+/** this ship's salvage quality 0..1 on this site: gear precision + officer + research − wreck condition */
+export function salvageQuality(h: Pick<Host, 'st' | 'time'>, s: WShip, w: SalvSite): number {
+  const prec = s.ind ? salvagePrecision(s.fitting?.bay) || SALVAGE_PREC_BASE : SALVAGE_PREC_BASE;
+  let q = prec - siteDifficulty(h, w);
+  if (h.st.companies[s.owner]?.tech?.includes('salvage_ops')) q += SALVQ.tech;
+  if (h.st.officerV) {
+    q += SALVQ.officerSalv * (shipFx(h.st, s).salv ?? 0);
+    const c = groupOfficer(h.st, h.st.groups[s.groupId]);
+    if (c) q += SALVQ.officerMastery * masteryLevel(c.of.mastery.salvage ?? 0);
+  }
+  return Math.max(0, Math.min(1, q));
+}
+/** does quality apply: salvQV worlds, real salvage work (not loose pods, not one's own cargo, not fragments) */
+const qualityApplies = (h: Pick<Host, 'st'>, s: WShip, w: SalvSite, lot: WreckLot) =>
+  !!h.st.salvQV && lot.k !== 'frag' && !looseSite(h, w) && !(lot.k === 'cargo' && lot.owner === s.owner);
+
+/** [item, units] recovered from `take` units of the lot — deterministic (fractions carried on the ship) */
+function recoveredGoods(h: Host, s: WShip, w: SalvSite, lot: WreckLot, take: number): [string, number][] {
+  if (!qualityApplies(h, s, w, lot)) return [[lot.item, take]];
+  const q = salvageQuality(h, s, w), acc = (s.salvQ ??= {});
+  if (lot.k === 'equip') {
+    const fx = h.st.officerV ? shipFx(h.st, s).salvEquip ?? 0 : 0;
+    const chance = Math.min(1, SALVQ.intact[0] + SALVQ.intact[1] * q + SALVQ.intactEquipFx * fx);
+    let intact = 0, broken = 0;
+    for (let i = 0; i < take; i++) { acc._intact = (acc._intact ?? 0) + chance; if (acc._intact >= 1 - 1e-9) { acc._intact -= 1; intact++; } else broken++; }
+    const out: [string, number][] = [[lot.item, intact]];
+    if (broken > 0) {
+      // stripped for parts: a share of the module's value as weapon parts, never more than the hold takes
+      const per = lotValue(h.st, lot) * SALVQ.brokenShare / Math.max(1, assetReferenceValue(h.st, SALVQ.brokenItem));
+      const p = (acc[SALVQ.brokenItem] ?? 0) + broken * per;
+      const n = Math.min(Math.floor(p + 1e-9), Math.max(0, Math.floor(salvageRoom(h, s) - intact + 1e-9)));
+      acc[SALVQ.brokenItem] = Math.min(1, p - n);
+      if (n > 0) out.push([SALVQ.brokenItem, n]);
+    }
+    return out;
+  }
+  const [b, span] = SALVQ.yield[lot.k as 'cargo' | 'hull'];
+  const v = (acc[lot.item] ?? 0) + take * (b + span * q), n = Math.min(take, Math.floor(v + 1e-9));
+  acc[lot.item] = Math.min(1, v - n);
+  return [[lot.item, n]];
 }
 
 /** P13.2: the owner of jettisoned cargo hears (once per recovering company) that someone is taking it */
@@ -485,7 +566,11 @@ function status(h: Host, g: WGroup, S: SalvState, op: Op): string {
   void MODE_NAME;
   switch (S.phase) {
     case 'transit': case 'return': return `${head}: ${L.phase} — ${w?.name ?? ''}${fill}`;
-    case 'work': return `${head}: ${L.phase} — ${w?.name ?? ''} (잔여 ${Math.round(w ? w.lots.reduce((a, l) => a + l.n, 0) : 0)})${fill}${room < 1 ? ' · 화물칸 부족' : ''}`;
+    case 'work': {
+      // P17.1: the fleet's best salvage quality on this site (loose pods are picked up whole)
+      const q = h.st.salvQV && w && !looseSite(h, w) && ships.length ? ` · 인양 품질 ${Math.round(Math.max(...ships.map(s => salvageQuality(h, s, w))) * 100)}%` : '';
+      return `${head}: ${L.phase} — ${w?.name ?? ''} (잔여 ${Math.round(w ? w.lots.reduce((a, l) => a + l.n, 0) : 0)})${q}${fill}${room < 1 ? ' · 화물칸 부족' : ''}`;
+    }
     case 'unload': return `${head}${plunder ? ' — ' : ': '}${sta && ships.some(s => s.state === 'docked') ? `${sta.name} 정박·하역 중` : `하역하러 이동 — ${sta?.name ?? ''}`}`;
     case 'hold': return `${head}: ${S.why ?? '구역 대기'}`;
     case 'blocked': return `${head}: 작업 불가 — ${S.why ?? ''}`;
