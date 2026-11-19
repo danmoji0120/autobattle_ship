@@ -14,10 +14,10 @@ const pg = await b.newPage({ viewport: { width: 1600, height: 900 }, deviceScale
 pg.on('pageerror', e => console.log('pageerror', e.message));
 
 /** start a battle: `a` / `b` are [classId, loadoutId, weapon|null, pd|null][]; stages are page-side predicates */
-async function battle(a, bb, seed, stages) {
+async function battle(a, bb, seed, stages, ts = 1) {
   await pg.goto(base + '?manual');
   await pg.waitForFunction(() => window.fleetcmd, null, { timeout: 60000 });
-  await pg.evaluate(async ({ a, bb, seed, stages }) => {
+  await pg.evaluate(async ({ a, bb, seed, ts, stages }) => {
     const { getLoadout } = await import('/src/sim/data/ships.ts');
     const { WEAPONS } = await import('/src/sim/data/weapons.ts');
     await import('/src/content/registry.ts');
@@ -40,6 +40,7 @@ async function battle(a, bb, seed, stages) {
     window.fleetcmd.startBattle({ seed, scenarioId: 'p173shots', rules: 2, fleets: [{ name: 'A', root: G(a, 'engage') }, { name: 'B', root: G(bb, 'engage') }] });
     const s = window.fleetcmd.session, w = s.world;
     s.view.rig.setMode('tactical');
+    s.timeScale = ts;   // fast-forward to late moments (frames still render every step)
     // stage predicates arrive as source text: (w, e, st) => focus point | null
     const preds = stages.map(src => (0, eval)(src));
     const st = { i: 0, mark: {} };
@@ -53,7 +54,7 @@ async function battle(a, bb, seed, stages) {
     };
     window.__resume = () => { window.__shot = null; s.paused = false; };
     s.start();
-  }, { a, bb, seed, stages: stages.map(x => x.pred) });
+  }, { a, bb, seed, ts, stages: stages.map(x => x.pred) });
   for (const stg of stages) {
     await pg.waitForFunction(() => window.__shot, null, { timeout: 240000 });
     const sh = await pg.evaluate(({ dist, pitch, yaw }) => {
@@ -130,6 +131,6 @@ if (want.includes('mech')) {
     { name: 'mech_decoy', dist: 220, pitch: 0.5, settle: 200, pred: P`(w, ev) => { const d = ev.find(e => e.t === 'decoy'); return d ? d.pos : null; }` },
     { name: 'mech_beam_held', dist: 260, pitch: 0.5, settle: 150, pred: P`(w, ev) => { const b = ev.filter(e => e.t === 'beam'); return b.length ? b[0].to : null; }` },
     { name: 'mech_mine_armed', dist: 260, pitch: 0.7, settle: 1800, pred: P`(w) => { const m = w.munitions.find(x => !x.dead && x.mine === 1 && x.age >= (x.armAt ?? 0)); return m ? { x: m.pos.x, y: m.pos.y, z: m.pos.z } : null; }` },
-  ]);
+  ], 4);
 }
 await b.close();
