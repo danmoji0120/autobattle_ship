@@ -12,6 +12,13 @@ const list = [
   ['lineup_large', '?lineup=p17&cls=battlecruiser,battleship&view=three'],
   ['lineup_xl', '?lineup=p17&cls=dreadnought,carrier&view=three'],
   ['lineup_hostile', '?lineup=p17&cls=battlecruiser,battleship&view=three&team=1'],
+  // close-ups by size class (S / M / L / XL) and turret / engine placement (side and top views)
+  ['close_S', '?lineup=p17&ids=p17_cv_hornet,p17_ff_lantern,p17_cv_relic&view=three&dist=0.85'],
+  ['close_M', '?lineup=p17&ids=p17_dd_hammerhead,p17_cl_longbow&view=three&dist=0.85'],
+  ['close_L', '?lineup=p17&ids=p17_ca_swarm,p17_bc_falchion&view=three&dist=0.85'],
+  ['close_XL', '?lineup=p17&ids=p17_bb_bastion,p17_dn_citadel&view=three&dist=0.85'],
+  ['placement_side', '?lineup=p17&ids=p17_ca_hydra,p17_bb_solaris&view=side&dist=0.9'],
+  ['placement_top', '?lineup=p17&ids=p17_dd_spindle,p17_bc_corsair,p17_dn_leviathan&view=top&dist=0.9'],
 ];
 const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const pg = await b.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 });
