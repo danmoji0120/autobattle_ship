@@ -93,7 +93,7 @@ export function cpuOfFitting(f: ShipFitting | undefined): import('../sim/ai/comp
   if (!f) return undefined;
   for (const id of Object.keys(f.bay).sort()) {
     const c = EQUIPMENT[f.bay[id]]?.cpu;
-    if (c) return { id: f.bay[id], arch: c.arch, ...(c.react !== undefined ? { react: c.react } : {}) };
+    if (c) return { id: f.bay[id], arch: c.arch, ...(c.react !== undefined ? { react: c.react } : {}), ...(c.tune ? { tune: { ...c.tune } } : {}) };
   }
   return undefined;
 }

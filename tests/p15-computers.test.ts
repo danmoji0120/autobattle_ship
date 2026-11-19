@@ -2,6 +2,7 @@
 // per-computer movement behaviours, order priority, off-role fits and rules 0/1 compatibility.
 // docs/P15_1_COMBAT_COMPUTERS.md
 import { CARRIER_MODULES } from '../src/content/packs/growth/carrier';
+import { P17_CPUS } from '../src/content/packs/growth/parts17';
 import { SUPPORT_MODULES } from '../src/content/packs/growth/support';
 import { describe, expect, it } from 'vitest';
 import { World, BATTLE_RULES } from '../src/sim/world';
@@ -79,7 +80,8 @@ describe('P15.1 content: computer bay and equipment', () => {
     expect(validateContent(CONTENT).filter(i => i.level === 'error')).toEqual([]);
     // P16.3: the carrier computer is a product of the carrier pack (preview-gated with the carrier gear);
     // P16.7: the support computer is a product of the repair (support) pack
-    const archs = new Set([...CPU_MODULES, ...CARRIER_MODULES.filter(m => m.cpu), ...SUPPORT_MODULES.filter(m => m.cpu)].map(m => m.cpu!.arch));
+    // P17.3f: the missile-control and flank archetypes are products of the P17.3 parts pack
+    const archs = new Set([...CPU_MODULES, ...CARRIER_MODULES.filter(m => m.cpu), ...SUPPORT_MODULES.filter(m => m.cpu), ...P17_CPUS].map(m => m.cpu!.arch));
     for (const a of CPU_ACTIVE) expect(archs.has(a), a).toBe(true);
     expect(CPU_MODULES.filter(m => m.cpu!.arch === 'line').map(m => m.id).sort()).toEqual(['cpu_generic', 'cpu_line']);
     for (const ids of Object.values(CPU_MARKETS)) for (const id of ids) expect(EQUIPMENT[id], id).toBeTruthy();

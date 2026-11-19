@@ -58,7 +58,7 @@ export interface AirSpec {
  *  Its id is saved on fittings: never rename it. */
 export const COMPUTER_BAY: InternalSlotDef = { id: 'cpu1', kind: 'computer', size: 'S' };
 /** P15.1 combat computer: the behaviour archetype it runs (sim/ai/computer.ts) and how fast it re-decides */
-export interface CpuModSpec { arch: import('../sim/ai/computer').CpuArch; /** re-decision interval s (default 1) */ react?: number }
+export interface CpuModSpec { arch: import('../sim/ai/computer').CpuArch; /** re-decision interval s (default 1) */ react?: number; /** P17.3f product tuning */ tune?: import('../sim/ai/computer').CpuTune }
 /** industrial work an `industrial` module performs (mining laser, construction rig, salvage rig) */
 export type IndWork = 'mine' | 'build' | 'salvage' | 'repair';
 /** what an industrial module does: mine = units/s, build = construction work rate (1 = the old

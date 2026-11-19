@@ -14,10 +14,19 @@ import type { Group, Ship, Order, Mount } from '../types';
 import type { WeaponDef } from '../data/weapons';
 
 /** behaviour archetypes. 'carrier' (P16.3) needs strike craft in the battle (rules ≥ 3); without them it fights as basic. */
-export type CpuArch = 'basic' | 'swarm' | 'picket' | 'line' | 'artillery' | 'siege' | 'carrier' | 'support';
-export const CPU_ARCHS: CpuArch[] = ['basic', 'swarm', 'picket', 'line', 'artillery', 'siege', 'carrier', 'support'];
+export type CpuArch = 'basic' | 'swarm' | 'picket' | 'line' | 'artillery' | 'siege' | 'carrier' | 'support' | 'missile' | 'flank';
+export const CPU_ARCHS: CpuArch[] = ['basic', 'swarm', 'picket', 'line', 'artillery', 'siege', 'carrier', 'support', 'missile', 'flank'];
 /** archetypes with a working behaviour in this build */
-export const CPU_ACTIVE: CpuArch[] = ['swarm', 'picket', 'line', 'artillery', 'siege', 'carrier', 'support'];
+export const CPU_ACTIVE: CpuArch[] = ['swarm', 'picket', 'line', 'artillery', 'siege', 'carrier', 'support', 'missile', 'flank'];
+
+/** P17.3f: product tuning of one archetype. Behaviour only — never a hull / weapon stat:
+ *  range  — multiplier on the distance the archetype fights at (long-range vs close-assault products)
+ *  volley — missile control: a ready launcher waits up to this many seconds for the ship's other
+ *           launchers so the missiles leave together (one saturating wave instead of a trickle)
+ *  guide  — missile control: mid-course guidance, multiplier on the turn rate of this ship's missiles
+ *  cover  — air defence: radius (m) within which this ship's PD guards friends' incoming rounds
+ *  energy — energy management: below this shield fraction the ship backs out of range to recharge */
+export interface CpuTune { range?: number; volley?: number; guide?: number; cover?: number; energy?: number }
 
 /** what a battle needs to know about a fitted computer (ShipSpec.cpu): serialised with the setup, so a
  *  replay never depends on the content tables. Product id and archetype are separate on purpose. */
@@ -27,9 +36,11 @@ export interface CpuSpec {
   arch: CpuArch;
   /** re-decision interval in seconds (cheap computers react slower); default 1 */
   react?: number;
+  /** P17.3f product tuning (CpuTune) */
+  tune?: CpuTune;
 }
 
-export const CPU_NAME: Record<CpuArch, string> = { basic: '기본 제어', swarm: '군집·돌격', picket: '초계', line: '전열', artillery: '포격', siege: '공성·뇌격', carrier: '항모', support: '지원·수리' };
+export const CPU_NAME: Record<CpuArch, string> = { basic: '기본 제어', swarm: '군집·돌격', picket: '초계', line: '전열', artillery: '포격', siege: '공성·뇌격', carrier: '항모', support: '지원·수리', missile: '미사일 관제', flank: '측면 기동' };
 /** one-line tactic summary (fitting UI) */
 export const CPU_TACTIC: Record<CpuArch, string> = {
   basic: '함대 대형·지휘관 교전 거리를 그대로 따름',
@@ -40,15 +51,17 @@ export const CPU_TACTIC: Record<CpuArch, string> = {
   siege: '대형함에 어뢰 사거리까지 돌입, 측후방 발사각 확보 후 이탈·재진입',
   carrier: '적 함포 사거리 밖·비행대 작전 반경 안을 유지, 접근·유도탄에 회피, 호위 함대와 이격 제한 (함재기 없으면 기본 제어)',
   support: '전열 뒤편에서 수리할 아군 곁(수리 사거리 안)을 유지, 적 함포 사거리에 들면 후퇴 (수리 장비 없으면 기본 제어)',
+  missile: '미사일 최장 사거리 근처를 유지하며 접근당하면 이탈, 발사기를 맞춰 일제 발사 (미사일 없으면 기본 제어)',
+  flank: '표적의 측면·후방 사분면으로 크게 돌아 들어가 약한 장갑면을 노림',
 };
 /** which band of the usable weapons sets the range (UI) */
-export const CPU_BAND: Record<CpuArch, string> = { basic: '함대 기준', swarm: '최소', picket: '중앙값', line: '중앙값', artillery: '최대', siege: '어뢰', carrier: '작전 반경', support: '수리 사거리' };
+export const CPU_BAND: Record<CpuArch, string> = { basic: '함대 기준', swarm: '최소', picket: '중앙값', line: '중앙값', artillery: '최대', siege: '어뢰', carrier: '작전 반경', support: '수리 사거리', missile: '미사일', flank: '중앙값' };
 
 /** usable weapon ranges of a ship right now. min / median / max are taken over the attack weapons
  *  (shell, missile, torpedo) that can still fire and bear forward, weighted by damage per second;
  *  a band only counts weapons carrying a real share (≥ 20 %) of that firepower, so one small long-range
  *  mount does not decide where a ship fights. */
-export interface Bands { min: number; med: number; max: number; pd: number; torp: number; dps: number; unguided: boolean; offset: number; /** share of attack firepower bearing on a beam */ broad: number }
+export interface Bands { min: number; med: number; max: number; pd: number; torp: number; dps: number; unguided: boolean; offset: number; /** share of attack firepower bearing on a beam */ broad: number; /** P17.3f longest missile range */ msl: number }
 
 interface CpuState {
   spec: CpuSpec;
@@ -115,23 +128,24 @@ export function bandsOf(rows: BandRow[], unguided: (w: WeaponDef) => boolean): B
   }
   for (const r of atk) all += dpsOf(r.w);
   const list: { r: number; d: number }[] = [];
-  let pd = 0, torp = 0, total = 0, ung = false;
+  let pd = 0, torp = 0, total = 0, ung = false, msl = 0;
   for (const r of rows) {
     if (r.w.kind === 'pd') { pd = Math.max(pd, r.w.range); continue; }
+    if (r.w.kind === 'missile') msl = Math.max(msl, r.w.range);
     if (r.w.kind === 'craft' || r.w.kind === 'repair') continue;   // P16: strike craft (P16.7: repair rigs) are not a gun band
     if (!bearsAt(r.f, r.arc, offset) && r.arc < 170) continue;
     const d = dpsOf(r.w);
     if (r.w.kind === 'torpedo') { torp = Math.max(torp, r.w.range); if (unguided(r.w)) ung = true; }
     list.push({ r: r.w.range, d }); total += d;
   }
-  if (!list.length) return { min: 0, med: 0, max: 0, pd, torp: 0, dps: 0, unguided: false, offset: 0, broad: 0 };
+  if (!list.length) return { min: 0, med: 0, max: 0, pd, torp: 0, dps: 0, unguided: false, offset: 0, broad: 0, msl };
   list.sort((a, b) => a.r - b.r);
   const real = list.filter(x => x.d >= total * 0.2);
   const band = real.length ? real : list;
   let acc = 0, med = band[band.length - 1].r;
   const bt = band.reduce((a, x) => a + x.d, 0);
   for (const x of band) { acc += x.d; if (acc >= bt / 2) { med = x.r; break; } }
-  return { min: band[0].r, med, max: band[band.length - 1].r, pd, torp, dps: total, unguided: ung, offset, broad: all > 0 ? beam / all : 0 };
+  return { min: band[0].r, med, max: band[band.length - 1].r, pd, torp, dps: total, unguided: ung, offset, broad: all > 0 ? beam / all : 0, msl };
 }
 
 /** weapon bands from the mounts a ship can use now (see Bands) */
@@ -142,8 +156,14 @@ export function weaponBands(w: World, s: Ship): Bands {
 }
 
 /** the distance a computer aims to fight at with these bands (UI and the behaviours below agree) */
-export function cpuRange(arch: CpuArch, b: Bands): number | null {
+export function cpuRange(arch: CpuArch, b: Bands, k = 1): number | null {
+  const r = baseRange(arch, b);
+  return r === null ? null : r * k;
+}
+function baseRange(arch: CpuArch, b: Bands): number | null {
   switch (arch) {
+    case 'missile': return b.msl > 0 ? b.msl * 0.82 : null;
+    case 'flank': return b.dps > 0 ? b.med * 0.8 : null;
     case 'swarm': return b.dps > 0 ? b.min * 0.6 : null;
     case 'line': return b.dps > 0 ? b.med * 0.88 : null;
     case 'picket': return b.dps > 0 ? b.med * 0.85 : b.pd > 0 ? b.pd * 0.45 : null;
@@ -154,13 +174,24 @@ export function cpuRange(arch: CpuArch, b: Bands): number | null {
 }
 
 /** compact UI line for a fitted computer on a set of weapons: tactic, aim distance, band */
-export function cpuSummary(arch: CpuArch, mounts: { weapon: string; facing: number; arc: number }[], weapons: Record<string, WeaponDef>, react?: number): string {
+export function cpuSummary(arch: CpuArch, mounts: { weapon: string; facing: number; arc: number }[], weapons: Record<string, WeaponDef>, react?: number, tune?: CpuTune): string {
   const b = bandsOf(mounts.filter(m => weapons[m.weapon]).map(m => ({ w: weapons[m.weapon], f: m.facing * DEG, arc: m.arc })), x => !!x.p15?.unguided);
-  const r = cpuRange(arch, b);
+  const r = cpuRange(arch, b, tune?.range ?? 1);
   const pace = react !== undefined && react !== 1 ? ` · 판단 ${react}초` : '';
   if (arch === 'basic' || arch === 'carrier' || arch === 'support') return `${CPU_NAME[arch]} — ${CPU_TACTIC[arch]}`;
   if (r === null) return `${CPU_NAME[arch]} — 맞는 무장 없음: 기본 제어로 동작`;
-  return `${CPU_NAME[arch]} · 교전 ≈${Math.round(r)}m (${CPU_BAND[arch]}${arch === 'siege' ? '' : ` ${Math.round(arch === 'swarm' ? b.min : arch === 'artillery' ? b.max : b.dps > 0 ? b.med : b.pd)}m`})${pace} — ${CPU_TACTIC[arch]}`;
+  return `${CPU_NAME[arch]} · 교전 ≈${Math.round(r)}m (${CPU_BAND[arch]}${arch === 'siege' ? '' : ` ${Math.round(arch === 'swarm' ? b.min : arch === 'artillery' ? b.max : arch === 'missile' ? b.msl : b.dps > 0 ? b.med : b.pd)}m`})${pace}${tuneText(tune)} — ${CPU_TACTIC[arch]}`;
+}
+/** UI words for a product's tuning */
+export function tuneText(t?: CpuTune): string {
+  if (!t) return '';
+  const p: string[] = [];
+  if (t.range !== undefined && t.range !== 1) p.push(`거리 ×${t.range}`);
+  if (t.volley) p.push(`일제 발사 대기 ${t.volley}초`);
+  if (t.guide) p.push(`유도 선회 ×${t.guide}`);
+  if (t.cover) p.push(`방공 엄호 ${t.cover}m`);
+  if (t.energy) p.push(`실드 ${Math.round(t.energy * 100)}% 미만 시 재충전 후퇴`);
+  return p.length ? ` · ${p.join(' · ')}` : '';
 }
 
 /** a cheap signature of the usable mounts: bands are recomputed when it changes */
@@ -194,8 +225,22 @@ export function cpuOwnGuns(s: Ship, legacy: boolean): boolean {
 }
 /** PD cover radius / bonus for rounds aimed at a friend (picket computers guard their neighbours) */
 export function cpuPdCover(s: Ship): { radius: number; bonus: number } | null {
+  const cov = s.cpu?.spec.tune?.cover;
+  if (cov) return { radius: cov, bonus: 140 + cov * 0.04 };   // P17.3f air-defence products guard whatever their order
   return s.cpu?.acting === 'picket' ? { radius: 1100, bonus: 140 } : null;
 }
+
+/** P17.3f missile control: should this ready launcher wait for the ship's other launchers (volley)? */
+export function cpuVolleyHold(s: Ship, m: Mount): boolean {
+  const v = s.cpu?.spec.tune?.volley; if (!v) return false;
+  for (const o of s.mounts) {
+    if (o === m || o.weapon.kind !== 'missile' || !usable(o)) continue;
+    if (o.cooldown > 0 && o.cooldown <= v) return true;
+  }
+  return false;
+}
+/** P17.3f missile control: turn-rate multiplier of this ship's guided rounds */
+export const cpuGuide = (s: Ship): number => s.cpu?.spec.tune?.guide ?? 1;
 
 /** P15.1: apply the fitted computers of a group's ships after the legacy steering (rules ≥ 2) */
 export function steerComputers(w: World, g: Group, ships: Ship[], o: Order) {
@@ -221,12 +266,20 @@ export function steerComputers(w: World, g: Group, ships: Ship[], o: Order) {
     // P16.7: a support computer steers only a ship that carries combat repair rigs
     if (c.arch === 'support') { if (support(w, s)) c.acting = 'support'; continue; }
     if (c.arch === 'siege' && b.torp <= 0) continue;
-    if (c.arch !== 'picket' && b.dps <= 0) continue;
+    if (c.arch === 'missile' && b.msl <= 0) continue;
+    // P17.3f energy management: a shielded ship whose shield runs low steps out of range to recharge
+    if (c.spec.tune?.energy && s.maxShield && (s.shield ?? 0) < s.maxShield * c.spec.tune.energy) {
+      const t0 = targetOf(w, s);
+      if (t0 && recharge(w, s, t0, b)) { c.acting = c.arch; continue; }
+    }
+    if (c.arch !== 'picket' && c.arch !== 'missile' && b.dps <= 0) continue;
     if (c.arch === 'picket' && b.dps <= 0 && b.pd <= 0) continue;
     const t = targetOf(w, s);
     switch (c.arch) {
       case 'swarm': if (t) { swarm(w, s, t, b); c.acting = 'swarm'; } break;
-      case 'artillery': if (t) { artillery(w, s, t, b); c.acting = 'artillery'; } break;
+      case 'artillery': if (t) { artillery(w, s, t, b, cpuRange('artillery', b, rk(s))!); c.acting = 'artillery'; } break;
+      case 'missile': if (t) { artillery(w, s, t, b, cpuRange('missile', b, rk(s))!); c.acting = 'missile'; } break;
+      case 'flank': if (t) { flank(w, s, t, b); c.acting = 'flank'; } break;
       case 'line': {
         lineShips ??= ships.filter(x => x.cpu?.arch === 'line' && x.cpu.bands!.dps > 0);
         if (line(w, g, s, lineShips, b)) c.acting = 'line';
@@ -237,6 +290,8 @@ export function steerComputers(w: World, g: Group, ships: Ship[], o: Order) {
     }
   }
 }
+
+const rk = (s: Ship) => s.cpu?.spec.tune?.range ?? 1;
 
 function targetOf(w: World, s: Ship): Ship | null {
   const t = w.shipById.get(s.ai.targetId);
@@ -258,7 +313,7 @@ function faceWithOffset(s: Ship, at: Vec3, offset: number, out: Vec3): Vec3 {
 // run in past the target's side with the guns on it, extend out, turn and come again from the other side.
 function swarm(w: World, s: Ship, t: Ship, b: Bands) {
   const c = s.cpu!;
-  const R = Math.max(t.radius + s.radius + 60, cpuRange('swarm', b)!);
+  const R = Math.max(t.radius + s.radius + 60, cpuRange('swarm', b, rk(s))!);
   const to = tmp.subVectors(s.pos, t.pos); to.y *= 0.3;
   const d = to.length();
   if (d < 1) to.copy(t.fwd).scale(-1); else to.scale(1 / d);
@@ -300,9 +355,8 @@ function swarm(w: World, s: Ship, t: Ship, b: Bands) {
 // -------------------------------------------------------------- artillery
 // hold at the longest real band; when the enemy closes, turn away to open the range and sidestep, then
 // turn back to fire.
-function artillery(w: World, s: Ship, t: Ship, b: Bands) {
+function artillery(w: World, s: Ship, t: Ship, b: Bands, R: number) {
   const c = s.cpu!;
-  const R = cpuRange('artillery', b)!;
   const away = tmp.subVectors(s.pos, t.pos); away.y *= 0.3;
   const d = away.length();
   if (d < 1) away.copy(t.fwd); else away.scale(1 / d);
@@ -341,7 +395,7 @@ function line(w: World, g: Group, s: Ship, mates: Ship[], b: Bands): boolean {
   const C = w.centroid(mates, new Vec3());
   // P15.1.1: a mixed line stands where EVERY member's median band reaches (the shortest median), not at
   // the middle value — that left shorter-ranged members holding station out of their own gun range
-  const R = Math.min(...mates.map(x => x.cpu!.bands!.med)) * 0.88;
+  const R = Math.min(...mates.map(x => x.cpu!.bands!.med * rk(x))) * 0.88;
   const away = tmp.subVectors(C, Tc); away.y *= 0.3;
   if (away.lengthSq() < 1) away.copy(w.sides[s.team].home);
   away.normalize();
@@ -582,7 +636,7 @@ function siege(w: World, g: Group, s: Ship, o: Order, b: Bands, decide: boolean)
   }
   const t = targetOf(w, s);
   if (!t) return false;
-  const L = cpuRange('siege', b)!;
+  const L = cpuRange('siege', b, rk(s))!;
   const ready = tubes.some(m => m.cooldown <= 0.4 || m.salvoLeft > 0);
   const d = s.pos.distTo(t.pos);
   const tLeft = tmp2.crossVectors(UP, t.fwd).normalize();
@@ -627,6 +681,50 @@ function siege(w: World, g: Group, s: Ship, o: Order, b: Bands, decide: boolean)
     // the break ends once the boat is clear of the launch band (or at the point / after the timer)
     if (d > L * 1.45 || s.pos.distTo(c.point) < 160 || w.time >= c.timer) { c.mode = 'approach'; c.side = -c.side; c.reentries++; }
   }
+  s.ai.speedCap = s.maxSpeed;
+  s.ai.run = null;
+  return true;
+}
+
+// ------------------------------------------------------------------ flank (P17.3f)
+// swing wide round the target to its beam / stern quarter (thinner side and rear armour), holding the
+// median band there; the swing goes out through the beam so the ship never runs down the target's bow.
+function flank(w: World, s: Ship, t: Ship, b: Bands) {
+  const c = s.cpu!;
+  const R = Math.max(t.radius + s.radius + 80, cpuRange('flank', b, rk(s))!);
+  const tf = tmp.copy(t.fwd); tf.y = 0; if (tf.lengthSq() < 1e-6) tf.set(0, 0, 1); tf.normalize();
+  const beam = tmp2.crossVectors(UP, tf).normalize().scale(c.side);
+  // aim point: 135° off the target's bow on our side
+  const goal = tmp3.copy(beam).scale(0.71).addScaled(tf, -0.71);
+  const rel = new Vec3().subVectors(s.pos, t.pos); rel.y = 0;
+  const d = rel.length();
+  const bowCos = d > 1 ? (rel.x * tf.x + rel.z * tf.z) / d : 0;
+  if (bowCos > 0.2) {
+    // in front of the target: out through the beam first, wider than the band
+    s.ai.moveTo.copy(t.pos).addScaled(beam, R * 1.25).addScaled(tf, R * 0.2);
+    c.mode = 'break';
+  } else {
+    s.ai.moveTo.copy(t.pos).addScaled(goal, R).addScaled(t.vel, 2);
+    if (c.mode === 'break') { c.mode = 'approach'; c.reentries++; }
+  }
+  s.ai.moveTo.y = t.pos.y;
+  s.ai.faceTo = faceWithOffset(s, t.pos, b.offset, c.face);
+  s.ai.speedCap = s.maxSpeed;
+  s.ai.run = null;
+  // reached the quarter but the target swung its bow onto us: go round the other side (not while still swinging out)
+  if (c.mode === 'approach' && w.time >= c.timer && bowCos > 0.6 && d < R * 1.4) { c.side = -c.side; c.timer = w.time + 12; c.mode = 'break'; }
+}
+
+// --------------------------------------------------------- energy recharge (P17.3f)
+// back straight out to past the enemy's reach, bow (and so the thick front) toward it, until the shield refills.
+function recharge(w: World, s: Ship, t: Ship, b: Bands): boolean {
+  const away = tmp.subVectors(s.pos, t.pos); away.y *= 0.3;
+  const d = away.length(); if (d < 1) return false;
+  away.scale(1 / d);
+  const reach = Math.max(b.max, t.mounts.reduce((a, m) => Math.max(a, m.weapon.kind === 'pd' ? 0 : m.weapon.range), 0));
+  if (d > reach * 1.1) return false;
+  s.ai.moveTo.copy(t.pos).addScaled(away, reach * 1.2);
+  s.ai.faceTo = s.cpu!.face.copy(t.pos);
   s.ai.speedCap = s.maxSpeed;
   s.ai.run = null;
   return true;

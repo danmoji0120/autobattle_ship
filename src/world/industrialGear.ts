@@ -18,6 +18,7 @@ import { bayModules, legacySig } from './fitting';
 import { hullIdOf } from './hullops';
 import { variantLayout } from '../content/registry';
 import { CPU_MARKETS } from '../content/packs/growth/computers';
+import { P17_PART_MARKETS } from '../content/packs/growth/parts17';
 import { CARRIER_HULL, CARRIER_MARKETS } from '../content/packs/growth/carrier';
 import { hullReleased } from '../content/registry';
 import { REPAIR_MARKETS } from '../content/packs/growth/support';
@@ -58,6 +59,17 @@ export function stockComputers(st: WorldState): number {
     for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.5, st); n++; }
   }
   st.cpuV = 1;
+  return n;
+}
+
+/** P17.3: a few of the new computers / internal parts on public markets of a NEW growth world (world creation
+ *  only — no existing-world migration: those companies research and build them). Idempotent. */
+export function stockParts17(st: WorldState): number {
+  let n = 0;
+  for (const [sid, ids] of Object.entries(P17_PART_MARKETS)) {
+    const x = st.stations[sid]; if (!x?.public || !x.market) continue;
+    for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.4, st); n++; }
+  }
   return n;
 }
 

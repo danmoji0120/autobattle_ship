@@ -137,6 +137,13 @@ export function validateContent(reg: Registry, fs?: AssetFs): Issue[] {
     // P15.1 combat computers: a computer module runs exactly one behaviour, nothing else has one
     if (mc && (mc.slot === 'computer') !== !!mc.cpu) err(at, '전투 컴퓨터(slot computer)는 cpu(행동 원형)가 반드시 있어야 하고, 다른 모듈에는 없어야 함');
     if (mc?.cpu && (!CPU_ARCHS.includes(mc.cpu.arch) || mc.cpu.arch === 'basic' || (mc.cpu.react !== undefined && !(mc.cpu.react >= 0.3 && mc.cpu.react <= 4)))) err(at, `cpu ${JSON.stringify(mc.cpu)} (행동 원형 swarm/picket/line/artillery/siege/carrier, react 0.3~4초)`);
+    if (mc?.cpu?.tune) {
+      const t = mc.cpu.tune;
+      const bad = (t.range !== undefined && !(t.range >= 0.5 && t.range <= 1.4)) || (t.volley !== undefined && !(t.volley > 0 && t.volley <= 5))
+        || (t.guide !== undefined && !(t.guide >= 1 && t.guide <= 1.6)) || (t.cover !== undefined && !(t.cover >= 600 && t.cover <= 2200))
+        || (t.energy !== undefined && !(t.energy > 0 && t.energy <= 0.6)) || Object.keys(t).some(k => !['range', 'volley', 'guide', 'cover', 'energy'].includes(k));
+      if (bad) err(at, `cpu.tune ${JSON.stringify(t)} (range 0.5~1.4, volley 0~5초, guide 1~1.6, cover 600~2200m, energy 0~0.6)`);
+    }
     if (mc?.cpu && Object.keys(mc.fx).length) err(at, '전투 컴퓨터는 수치 효과(fx)를 갖지 않는다 — 행동만 바꾼다');
     // P16 aviation modules: a flight-bay module carries exactly an air spec, nothing else has one
     if (mc && (mc.slot === 'flight') !== !!mc.air) err(at, '항공 장비(slot flight)는 air(항공 효과)가 반드시 있어야 하고, 다른 모듈에는 없어야 함');

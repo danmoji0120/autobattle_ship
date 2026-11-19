@@ -303,7 +303,7 @@ export class FittingScreen {
         : w
         ? `${famBadge(w)}화력 ${fmt(weaponDps(w))}/s${d(weaponDps(w), cur ? dps(cur) : undefined, 1)} · 사거리 ${fmt(w.range)}${d(w.range, cur ? rng(cur) : undefined)} · 관통 ${w.pen}${d(w.pen, cw?.pen)} · ${TYPE_NAME[weaponType(w.id)]}${g ? statBars(w) : ''}`
         : e.ind ? `${indText(e.ind, CONTENT.hulls[lay.hull.id]?.ops?.bonus)}${cur && EQUIPMENT[cur]?.ind?.work === e.ind.work ? d(e.ind.rate, EQUIPMENT[cur].ind!.rate, 1) : ''}`
-        : e.cpu ? esc(cpuSummary(e.cpu.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS, e.cpu.react))
+        : e.cpu ? esc(cpuSummary(e.cpu.arch, cpuMountsOf(lay, this.draft.hp), WEAPONS, e.cpu.react, e.cpu.tune))
         : e.air ? esc(airText(e.air))
         : g && e.cfx ? `${esc(cfxText(e.cfx))}` : esc(e.desc);
       return `<div class="fitem${why ? ' no' : ''}${id === cur ? ' cur' : ''}" data-fpick="${id}" title="${esc(why ?? e.desc)}">

@@ -8,7 +8,7 @@ import type { FleetSpec, GroupSpec, ShipFx, ShipSpec } from './fleet';
 import type { Group, Ship, Munition, Mount, Order, SimEvent, RadioMsg, Highlight, Outcome, OrderRecord, Team, Relation, BattleEvent, SideSpec, SideStatus, SideResult } from './types';
 import { line } from './ai/lines';
 import { updateAI, orderKey, groupRoleOf } from './ai/commander';
-import { initCpu, CPU_ARCHS, cpuLaunchFactor, cpuOwnGuns, cpuPdCover } from './ai/computer';
+import { initCpu, CPU_ARCHS, cpuLaunchFactor, cpuOwnGuns, cpuPdCover, cpuVolleyHold } from './ai/computer';
 import { BBEX, BBEX_CLASS } from './bbex/data';
 import { CraftPool } from './craft';
 import { mechLaunch, mechFlight, mechSpeed, mechTurn, mineArmed, blast, chainArc, flakBurst, chargeHold, beamPulse, beamStart } from './mech17';
@@ -861,6 +861,8 @@ export class World {
         if (m.salvoLeft <= 0 && m.cooldown <= 0 && m.ammo > 0) {
           // P17.3 charged shot: charge on target first (sim/mech17.ts)
           if (m.weapon.mech?.charge && chargeHold(this, s, m)) continue;
+          // P17.3f missile-control computer: a ready launcher waits briefly for the others (one wave)
+          if (s.cpu && m.weapon.kind === 'missile' && cpuVolleyHold(s, m)) continue;
           m.salvoLeft = m.weapon.salvo; m.salvoTimer = 0; m.cooldown = m.weapon.reload * this.rng.range(0.95, 1.08);
           m.ammo--;
           if (m.ammo <= 0 && s.mounts.every(o => o.weapon.kind !== 'missile' || o.ammo <= 0)) {
@@ -1093,6 +1095,7 @@ export class World {
       targetId: m.targetId, hp: w.munitionHp ?? 1, age: 0, dead: false,
     };
     if (s.ofx?.mGuide && kind !== 'shell') mu.gm = 1 + s.ofx.mGuide;
+    if (s.cpu?.spec.tune?.guide && kind !== 'shell') mu.gm = (mu.gm ?? 1) * s.cpu.spec.tune.guide;   // P17.3f missile control
     if (kind !== 'shell' && this.unguided(w)) mu.straight = true;
     if (w.mech) mechLaunch(this, s, m, mu);
     this.munitions.push(mu); this.munitionById.set(mu.id, mu);

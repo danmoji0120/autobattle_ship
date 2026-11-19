@@ -11,7 +11,7 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
-import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers, migrateCarriers, migrateRepair } from './industrialGear';
+import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers, stockParts17, migrateCarriers, migrateRepair } from './industrialGear';
 import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, type RepairSettings } from './autoRepair';
 import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
@@ -336,7 +336,7 @@ export class WorldSim {
     // industrial hardpoints: opt-in for new growth worlds (saves: explicit migration, migrateIndustrial)
     if (opts.industrial === 'ind1' && growthOn(sim.st)) enableIndustrial(sim.st);
     // P15.1 combat computers on public markets: opt-in for new growth worlds (anyone can still produce them)
-    if (opts.computers === 'p151' && growthOn(sim.st)) stockComputers(sim.st);
+    if (opts.computers === 'p151' && growthOn(sim.st)) { stockComputers(sim.st); stockParts17(sim.st); }
     // P16.6: only the explicitly opted-in development build stocks carrier gear in new worlds.
     // Published builds remain unchanged. Existing worlds require the separate migration flag.
     if (DEV_CARRIER_RELEASE && growthOn(sim.st)) migrateCarriers(sim.st);
