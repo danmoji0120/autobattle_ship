@@ -62,9 +62,13 @@ export interface FactionLedger {
   seized?: Cargo;
   /** raider factions: material recovered from wrecks of a fight they took part in */
   salvaged?: Cargo;
+  /** P17.2: treasury paid to player repair businesses for field repair of the faction's navy */
+  services?: number;
 }
 export interface FactionEconState {
   dev: number; eff: number; rdy: number; budget: number;
+  /** P17.2: field repair paid in the last hour (hourly cap) */
+  repairLog?: { t: number; n: number }[];
   /** seconds of post-war reconstruction priority left */
   recon: number;
   /** goods this faction is shortest of after its last purchases: [item, units missing from its stock target] */

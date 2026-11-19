@@ -49,7 +49,7 @@ const ownCompany = (co: any) => co.repx ? { ...co, repx: { ...co.repx, keys: und
 function stationBody(st: Station, own: boolean) {
   return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
 }
-function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined, smug: undefined, lawStop: undefined, lawx: undefined }; }
+function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined, smug: undefined, lawStop: undefined, lawx: undefined, rbiz: undefined }; }
 function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined, pir: undefined, insp: undefined }; }
 /** P13.2: what pirates carried home stays with them (not replicated) */
 const lairBody = (l: any) => l.hold === undefined ? l : { ...l, hold: undefined };

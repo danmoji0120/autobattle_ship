@@ -33,7 +33,7 @@ export function salesPanelHtml(w: WorldView, me: string, busy: boolean): string 
 
 /** AUTO-P1: mining-hauler sale trips, automatic repair and what each automated hauler is doing */
 function autoOpsHtml(w: WorldView, me: string, busy: boolean): string {
-  const policy = w.companies[me]?.procurement, rep = policy?.repair;
+  const policy = w.companies[me]?.procurement, rep = policy?.repair, svc = w.companies[me]?.repairService;
   const jobs = Object.values(w.logisticsJobs ?? {}).filter(j => j.owner === me && j.ship && j.state !== 'complete' && j.state !== 'cancelled');
   const opOf = (gid: string) => { let g = w.groups[gid]; while (g && !g.override && g.parentId && w.groups[g.parentId]) g = w.groups[g.parentId]; return g?.op; };
   const ships = Object.values(w.ships).filter(s => s.owner === me && s.classId === 'hauler').sort((a, b) => a.name.localeCompare(b.name, 'ko'));
@@ -55,6 +55,8 @@ function autoOpsHtml(w: WorldView, me: string, busy: boolean): string {
       <label style="display:block"><input type="checkbox" name="repair" ${rep?.enabled ? 'checked' : ''}> 손상으로 배차에서 빠진 수송선 자동 수리</label>
       <div class="proc-policy-grid"><label>최소 잔고 (cr)<input name="minCredits" type="number" min="0" step="100" value="${rep?.minCredits ?? 0}"></label><label>1회 최대 수리비<input name="maxPerRepair" type="number" min="0" step="100" value="${rep?.maxPerRepair ?? 0}"></label><label>시간당 수리 예산<input name="perHour" type="number" min="0" step="100" value="${rep?.perHour ?? 0}"></label></div>
       <p class="dim small">자동 수리는 기본 꺼짐. 한도 안에서만 수리하고, 넘으면 화물·작업을 보존한 채 이유를 표시합니다. 정박한 정거장에서 수리할 수 없으면 경로 위험 제한 안의 가장 가까운 수리 정거장으로 갔다가 하던 일로 돌아갑니다.</p>
+      <label style="display:block"><input type="checkbox" name="svc" ${svc?.enabled ? 'checked' : ''}> 외부 수리 이용 — 다른 회사 수리선의 유료 현장 수리 허용</label>
+      <div class="proc-policy-grid"><label>가격 상한 (정거장 가격 ×)<input name="svcMul" type="number" min="0.5" max="3" step="0.1" value="${svc?.maxMul ?? 1.5}"></label><label>시간당 예산<input name="svcHour" type="number" min="0" step="100" value="${svc?.perHour ?? 5000}"></label><label>최소 잔고<input name="svcMin" type="number" min="0" step="100" value="${svc?.minCredits ?? 0}"></label></div>
       <button class="btn mini go" type="submit" ${busy ? 'disabled' : ''}>자동 운영 설정 저장</button></form></div>`;
 }
 const h1 = (w: WorldView, t: number) => w.time - t < 600;
@@ -71,7 +73,7 @@ export function bindSalesPanel(el: HTMLElement, send: (cmd: Cmd, ok: string) => 
   const ops = el.querySelector<HTMLFormElement>('[data-auto-ops-form]');
   if (ops) ops.onsubmit = e => {
     e.preventDefault(); const d = new FormData(ops);
-    send({ c: 'autoOpsPolicy', minerSales: !d.has('haulOnly'), repair: { enabled: d.has('repair'), minCredits: Number(d.get('minCredits') || 0), maxPerRepair: Number(d.get('maxPerRepair') || 0), perHour: Number(d.get('perHour') || 0) } }, '자동 운영 설정을 저장했습니다');
+    send({ c: 'autoOpsPolicy', minerSales: !d.has('haulOnly'), repair: { enabled: d.has('repair'), minCredits: Number(d.get('minCredits') || 0), maxPerRepair: Number(d.get('maxPerRepair') || 0), perHour: Number(d.get('perHour') || 0) }, repairService: { enabled: d.has('svc'), maxMul: Number(d.get('svcMul') || 1.5), perHour: Number(d.get('svcHour') || 0), minCredits: Number(d.get('svcMin') || 0) } }, '자동 운영 설정을 저장했습니다');
   };
   el.querySelectorAll<HTMLElement>('[data-sale-off]').forEach(b => b.onclick = () => send({ c: 'salesPolicy', settings: { item: b.dataset.saleOff!, sell: false } }, '자동 판매를 껐습니다. 이미 실린 화물은 판매를 마칩니다'));
 }

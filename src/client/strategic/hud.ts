@@ -72,7 +72,7 @@ const fieldUses = (w: { regionalV?: number }, item: string) => [...new Set(Objec
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
 
-const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', recover: '잔해 인양', salvzone: '구역 인양', lootTender: '약탈 회수 지원', fieldrepair: '현장 수리', repairzone: '구역 현장 수리', raid: '약탈', trade: '교역', guard: '경비', ...P12_OP_NAME };
+const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', recover: '잔해 인양', salvzone: '구역 인양', lootTender: '약탈 회수 지원', fieldrepair: '현장 수리', repairzone: '구역 현장 수리', repairbiz: '수리업', raid: '약탈', trade: '교역', guard: '경비', ...P12_OP_NAME };
 
 export interface PmcHudOpts { onOpenBattle: (eng: string) => void; onExit: () => void; onAccount?: () => void }
 
@@ -1196,9 +1196,18 @@ export class PmcHud {
     const near = Object.values(st.ships).filter(s => s.owner === this.me && s.hp < 0.999 && s.hp > 0 && !sub.includes(s) && s.state !== 'battle' && Math.hypot(s.pos.x - at.x, s.pos.z - at.z) < 30000)
       .sort((a, b) => a.hp - b.hp).slice(0, 4);
     const notes = reps.filter(s => s.frNote).map(s => `<div class="dim small">${esc(s.name)}: ${esc(s.frNote!)}</div>`).join('');
+    // P17.2 repair business: start (price level) / stop, current job, recent income
+    const op = g.op, biz = op.k === 'repairbiz' ? g.rbiz : undefined;
+    const start = (mul: number) => `<button class="btn mini" data-quick="${q({ k: 'repairbiz', at: { x: at.x, y: at.y, z: at.z }, jumps: 1, mul, clients: 'all', minFee: 200, avoidRisk: true })}">×${mul}</button>`;
+    const hourInc = biz ? biz.jobs.filter(j => j.t > st.time - 3600).reduce((a, j) => a + j.fee, 0) + (biz.billed ?? 0) : 0;
+    const bizHtml = op.k === 'repairbiz'
+      ? `<div class="small"><b>수리업</b> <span class="dim">— 반경 ${op.jumps}점프 · 정거장 가격 ×${op.mul} · 누적 수입 ${Math.round(biz?.income ?? 0).toLocaleString()} cr · 최근 1시간 ${Math.round(hourInc).toLocaleString()} cr</span>
+        <button class="btn mini" data-quick="${q({ k: 'idle' })}">수리업 중단</button></div>
+        ${(biz?.jobs ?? []).slice(0, 3).map(j => `<div class="dim small">완료: ${esc(j.name)} (${esc(st.companies[j.client]?.name ?? j.client)}) 선체 ${j.hull}% · ${j.fee.toLocaleString()} cr</div>`).join('')}`
+      : `<div class="row small"><span class="dim">수리업 시작 (현 위치 1점프 · 가격 배율):</span> ${[1, 1.3, 1.6].map(start).join('')}</div>`;
     return `<div class="sect"><div class="small"><b>현장 수리</b> <span class="dim">— 수리 장비 ${reps.length}척. 편대 안 손상 함선은 명령 없이 자동 수리(크레딧·시간 소모, 마모 제외, 적대 함대 접근 시 중단).</span></div>
       <div class="row small"><button class="btn mini" data-quick="${q({ k: 'repairzone', at: { x: at.x, y: at.y, z: at.z }, radius: 5000 })}" title="현 위치 반경 5km 안의 손상된 자사 함선을 차례로 수리합니다">수리 구역 지정 (현 위치 · 5km)</button>
-      ${near.map(s => `<button class="btn mini" data-quick="${q({ k: 'fieldrepair', ship: s.id })}">${esc(s.name)} 수리 (${Math.round(s.hp * 100)}%)</button>`).join('')}</div>${notes}</div>`;
+      ${near.map(s => `<button class="btn mini" data-quick="${q({ k: 'fieldrepair', ship: s.id })}">${esc(s.name)} 수리 (${Math.round(s.hp * 100)}%)</button>`).join('')}</div>${bizHtml}${notes}</div>`;
   }
 
   private groupHtml(g: WGroup): string {

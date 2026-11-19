@@ -318,7 +318,7 @@ export const OP_NAME: Record<string, string> = {
   mine: '채굴', haul: '수송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설 지원', survey: '탐사', salvage: '인양', move: '이동', dock: '정박', found: '정거장 설립', recover: '잔해 인양', salvzone: '구역 인양', lootTender: '약탈 회수 지원', fieldrepair: '현장 수리', repairzone: '구역 현장 수리',
 };
 /** operations without a natural end: they run until the player stops or changes them */
-const CONTINUOUS_OPS = new Set(['mine', 'haul', 'patrol', 'escort', 'build', 'salvzone', 'lootTender', 'repairzone']);
+const CONTINUOUS_OPS = new Set(['mine', 'haul', 'patrol', 'escort', 'build', 'salvzone', 'lootTender', 'repairzone', 'repairbiz']);
 /** set while workOp itself issues the order, so pausing/resuming does not open or close a work */
 let opControl = false;
 function opTarget(h: WorldSim, op: Op): string {
@@ -336,6 +336,7 @@ function opTarget(h: WorldSim, op: Op): string {
     case 'salvzone': return op.biz ? `${h.sysOf(op.at)?.name ?? ''} 주변 인양 사업` : `${h.sysOf(op.at)?.name ?? ''} 반경 ${Math.round(op.radius)}`;
     case 'repairzone': return `${h.sysOf(op.at)?.name ?? ''} 반경 ${Math.round(op.radius)}`;
     case 'fieldrepair': return h.st.ships[op.ship]?.name ?? '함선';
+    case 'repairbiz': return `${h.sysOf(op.at)?.name ?? ''} 수리업 (×${op.mul})`;
     case 'lootTender': return h.st.groups[op.group]?.name ?? '약탈 편대';
     case 'move': return h.sysOf(op.to)?.name ?? '';
     default: return '';

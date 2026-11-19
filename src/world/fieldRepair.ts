@@ -22,6 +22,7 @@ import { hostileNear } from './salvage';
 import { emit } from './observe';
 import { dist } from './geom';
 import { sizeRank } from '../content/schema';
+import { bizPatient, chargeBiz } from './repairBiz';
 
 export const FIELD = {
   /** a repair ship works on a patient within this distance */
@@ -109,15 +110,30 @@ export function stepFieldRepair(h: WorldSim, dt: number) {
   for (const s of repairers) {
     const near = hurt.get(s.owner);
     const g = st.groups[s.groupId];
-    if (!near?.length || !g || g.fleeing) { if (s.frTarget) { delete s.frTarget; flush(h, s); } continue; }
-    const t = pick(h, s, near, served);
-    if (!t) { if (s.frTarget) { delete s.frTarget; flush(h, s); } continue; }
+    // own ships first; a repair business (P17.2) works its paying customer only when no own ship is in reach
+    const own = near?.length && g && !g.fleeing ? pick(h, s, near, served) : null;
+    const paid = !own && g && !g.fleeing ? bizPatient(h, s, g, served) : null;
+    const t = own ?? paid;
+    if (!t || !g) { if (s.frTarget) { delete s.frTarget; flush(h, s); } continue; }
     let d = danger.get(g.id);
     if (d === undefined) { d = hostileNear(h, s.owner, s.pos, FIELD.hostileR * (st.officerV ? 1 + (groupFx(st, g).salvRisk ?? 0) : 1)); danger.set(g.id, d); }
     if (d) { s.frNote = '적대 함대 접근 — 현장 수리 중단'; if (s.frTarget) { delete s.frTarget; flush(h, s); } continue; }
     const k = served.get(t.id) ?? 0;
     let amount = Math.min(1 - t.hp, fieldRate(h, s) * FIELD.dim[k] / sizeWeight(t) / 3600 * dt);
     if (amount <= 0) continue;
+    if (paid) {
+      // P17.2: the customer pays the provider for exactly the hull restored (repairBiz.chargeBiz); never free
+      if (s.frTarget && s.frTarget !== t.id) flush(h, s);
+      if (t.hp + amount >= 0.999) amount = 1 - t.hp;   // the last sliver is charged too, never rounded up for free
+      amount = chargeBiz(h, s, g, t, amount);
+      if (amount <= 0) { s.frNote = `유료 수리 중단 — ${g.rbiz?.stop ?? '고객 예산 부족'}`; delete s.frTarget; continue; }
+      t.hp = Math.min(1, t.hp + amount); if (t.hp >= 1 - 1e-9) t.hp = 1;
+      t.frAt = h.time; served.set(t.id, k + 1);
+      if (s.frTarget !== t.id) { s.frTarget = t.id; h.say(g, `${s.name}: ${t.name} 유료 수리 시작 (내구 ${Math.round(t.hp * 100)}%)`, 'radio', 30); }
+      s.frNote = `유료 수리 중 — ${t.name} 내구 ${Math.round(t.hp * 100)}%`;
+      if (t.hp >= 1) { delete s.frTarget; s.frNote = `${t.name} 유료 수리 완료`; }
+      continue;
+    }
     const co = st.companies[s.owner], unit = fieldUnitCost(h, t);
     const pend = pending.get(s.owner) ?? 0;
     const b = budget(h, s.owner, pend + (s.frBill ?? 0));

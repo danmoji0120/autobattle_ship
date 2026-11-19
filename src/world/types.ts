@@ -57,6 +57,8 @@ export interface Company {
   lastTrade?: { seq: number; id: string; signature: string };
   /** Optional company procurement policy; absent means transport enabled and purchasing disabled. */
   procurement?: import('./procurement').ProcurementPolicy;
+  /** P17.2: consent to buy field repair from other companies (price cap, hourly budget, minimum balance) */
+  repairService?: import('./repairBiz').RepairService;
   /** A-3.2b (derelictV worlds): what the company has recovered by salvage — units by item, reference value, sites worked */
   salvage?: { units: number; value: number; items: Cargo; sites: string[]; first?: number };
   /** P12.5 (logisticsV worlds): false stops new automatic hauler dispatch; in-flight shipments finish */
@@ -149,6 +151,9 @@ export type Op =
   | { k: 'fieldrepair'; ship: string }
   /** P16.7: field repair zone — the commander picks damaged own ships around `at`, repairs them, comes back; continuing */
   | { k: 'repairzone'; at: V; radius: number }
+  /** P17.2 repair business: sell field repair to damaged ships of other companies within `jumps` of `at`'s system
+   *  (world/repairBiz.ts). `mul` × station price; `clients`; jobs below `minFee` skipped; `avoidRisk`: skip hostile areas */
+  | { k: 'repairbiz'; at: V; jumps: number; mul: number; clients: 'all' | 'npc' | 'players'; minFee: number; avoidRisk: boolean }
   // P12 fleet operations (opsV worlds only): the order names the purpose, the commander decides how
   | { k: 'rally'; at: V }
   | { k: 'defend'; at: V; radius: number }
@@ -244,6 +249,8 @@ export interface WShip {
   salvaged?: Cargo;
   /** P13.1: salvage work done but not yet a whole unit (per ship, the lot it was working on) */
   salvAcc?: { lot: string; a: number };
+  /** P17.2: the repair business group whose paid job this ship is */
+  rbBy?: string;
   /** P17.1 (salvQV): fractional recovery carried between work ticks, by item ('_intact' = intact-equipment chance) */
   salvQ?: Record<string, number>;
   /** A-3.2b: where the salvaged goods aboard came from (item key → site id → units), so a salvage contract
@@ -279,6 +286,8 @@ export interface WGroup {
   lastSay: number;
   /** NPC force bookkeeping (Union garrisons/patrols/response fleets, pirate bands) */
   npc?: NpcInfo;
+  /** P17.2 repair business state (repairbiz order) */
+  rbiz?: import('./repairBiz').RepairBizState;
   /** scouts / vanguard: moves on its own instead of keeping station with the parent fleet */
   detached?: boolean;
   /** fleet movement state, kept on the group whose order the fleet is executing */

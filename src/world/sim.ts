@@ -178,7 +178,7 @@ export type Cmd =
   /** AUTO-P0: an item's automatic excess-stock sale and/or its minimum stock at one store */
   | { c: 'salesPolicy'; settings: SalesSettings }
   /** AUTO-P1: mining-hauler sale trips and automatic repair of automated haulers */
-  | { c: 'autoOpsPolicy'; minerSales?: boolean; repair?: RepairSettings }
+  | { c: 'autoOpsPolicy'; minerSales?: boolean; repair?: RepairSettings; repairService?: import('./repairBiz').RepairService }
   // ── company operations (world/operations.ts)
   | { c: 'workOp'; work: string; op: WorkOp; value?: number; price?: number }
   | { c: 'workCreate'; goal: GoalSpec; title?: string; priority?: number; budget?: number; maxPrice?: number }
@@ -215,6 +215,7 @@ import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
 import { stepFieldRepair, stepRepairOrder, validateFieldRepair } from './fieldRepair';
+import { stepRepairBiz, validateRepairBiz, setRepairService } from './repairBiz';
 import { enableDerelicts, stepDerelicts, nudgeHomeRegion, DERELICT_CFG } from './derelicts';
 import { acceptSalvageContract, postSalvageContracts, refundSalvage, salvageContractsTick } from './salvageContracts';
 import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContractFailed, hullGate } from './reputation';
@@ -1712,6 +1713,7 @@ export class WorldSim {
         if (cmd.minerSales !== undefined && typeof cmd.minerSales !== 'boolean') return '채굴 수송선 판매 왕복 설정을 확인하세요';
         co.procurement ??= defaultProcurementPolicy();
         if (cmd.repair !== undefined) { const err = setRepairPolicy(this, company, cmd.repair); if (err) return err; }
+        if (cmd.repairService !== undefined) { const err = setRepairService(co, cmd.repairService); if (err) return err; }
         if (cmd.minerSales !== undefined) { co.procurement.minerSales = cmd.minerSales; if (!cmd.minerSales) delete co.procurement.minerTrip; }
         return null;
       }
@@ -2070,6 +2072,7 @@ export class WorldSim {
     if (op.k === 'lootTender') return validateTender(this, company, g, op, sub);
     if (op.k === 'recover' || op.k === 'salvzone') return validateSalvage(this, company, sub, op);
     if (op.k === 'fieldrepair' || op.k === 'repairzone') return validateFieldRepair(this, company, sub, op);
+    if (op.k === 'repairbiz') return validateRepairBiz(this, sub, op);
     if (op.k === 'smuggle') return validateSmuggle(this, company, sub, op);
     if (op.k === 'salvage' && this.st.salvageV) return '이 세계에는 유기선 인양 지점이 없습니다 — 전장 잔해를 지정해 인양하세요';
     switch (op.k) {
@@ -2809,6 +2812,7 @@ export class WorldSim {
     if (op.k === 'smuggle') { if (stepSmuggle(this, g, ships, op, dt)) return; }
     // P16.7: field repair orders (the repair work itself runs for every repair ship in stepFieldRepair)
     if (op.k === 'fieldrepair' || op.k === 'repairzone') { stepRepairOrder(this, g, ships, op, dt); return; }
+    if (op.k === 'repairbiz') { stepRepairBiz(this, g, ships, op, dt); return; }
     // P13.1: recovery orders and on-site pickup after a battle (before the fleet operations it may pause)
     if (this.st.salvageV && stepSalvage(this, g, ships, op, dt, c)) return;
     if (this.st.opsV && P12_OPS.has(op.k)) {
