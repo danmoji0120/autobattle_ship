@@ -16,7 +16,9 @@ import * as THREE from 'three';
 
 type G = THREE.BufferGeometry;
 export type Profile = [number, number][];
-export interface Parts { hull: G[]; dark: G[]; trim: G[]; accent: G[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[] }
+export interface Parts { hull: G[]; dark: G[]; trim: G[]; accent: G[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[];
+  /** muzzle of a hull-integrated spinal barrel (render/battleView.ts fires spinal mounts from here) */
+  spinal?: { x: number; y: number; z: number } }
 export interface Kit {
   slab: (profile: Profile, L: number, W: number, t0: number, t1: number, y0: number, h: number, bevel?: number) => G;
   box: (w: number, h: number, d: number, x: number, y: number, z: number) => G;
@@ -80,11 +82,23 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
     const step = (z1 - z0) / n;
     for (let i = 0; i < n; i++) pair(i % 2 ? p.hull : p.trim, s => box(t, h, step * 0.92, x * s, y, z0 + step * (i + 0.5)));
   };
-  /** barrel of an integrated (spinal) gun */
-  const spinal = (p: Parts, y: number, z0: number, len: number, r: number) => {
-    p.dark.push(cyl(r * 1.4, r * 1.6, len * 0.3, 0, y, z0 + len * 0.15, 'z', 14));
-    p.trim.push(cyl(r, r * 1.1, len, 0, y, z0 + len / 2, 'z', 14));
-    for (let k = 0; k < 4; k++) p.accent.push(cyl(r * 1.25, r * 1.25, 0.25, 0, y, z0 + len * (0.35 + k * 0.17), 'z', 14));
+  /** side-profile prism: a (z, y) outline extruded across the beam (half-width hw), centred on x — for wedge prows,
+   *  sloped casemates, keels and fins that a planform slab cannot make */
+  const side = (pts: [number, number][], hw: number, x = 0, bevel = 0.3): G => {
+    const s = new THREE.Shape(); pts.forEach(([z, y], i) => (i ? s.lineTo(z, y) : s.moveTo(z, y)));
+    const b = Math.min(bevel, hw * 0.3);
+    const g = new THREE.ExtrudeGeometry(s, { depth: Math.max(0.05, hw * 2 - b * 2), bevelEnabled: b > 0, bevelThickness: b, bevelSize: b, bevelSegments: 1 });
+    g.rotateY(-Math.PI / 2); g.translate(x + hw - b, 0, 0); return g;
+  };
+  /** fixed barrel of an integrated gun from z0 (breech side) to z1 (muzzle) at height y, with reinforcing bands and a
+   *  muzzle collar; the spinal mount's breech sits at z0 (shipMesh draws it), so rounds leave from the barrel's end */
+  const barrel = (p: Parts, y: number, z0: number, z1: number, r: number) => {
+    const len = z1 - z0;
+    p.trim.push(cyl(r * 0.9, r * 1.05, len, 0, y, z0 + len / 2, 'z', 14));
+    for (let k = 0; k < 3; k++) p.dark.push(cyl(r * 1.2, r * 1.2, len * 0.06, 0, y, z0 + len * (0.12 + k * 0.22), 'z', 14));
+    p.dark.push(cyl(r * 1.3, r * 1.15, len * 0.08, 0, y, z1 - len * 0.04, 'z', 14));
+    p.accent.push(cyl(r * 0.55, r * 0.55, 0.08, 0, y, z1 + 0.02, 'z', 14));
+    p.spinal = { x: 0, y, z: z1 };
   };
   const hangar = (p: Parts, x: number, y: number, z: number, w: number, h: number, d: number) => {
     p.hull.push(box(w, h, d, x, y, z));
@@ -263,13 +277,15 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
       const pr: Profile = [[-0.5, 0.5], [-0.25, 1], [0.15, 0.9], [0.5, 0.3]];
       return { profile: pr, W: 2.0, tint: TINT.helios, build: p => {
         body(p.hull, pr, 2.0, -0.9, 1.8);
-        spinal(p, 0, 4, 12, 0.45);
+        p.trim.push(side([[2.5, 0.6], [12, 0.6], [12.6, 0.85], [12, 1.1], [2.5, 1.1]], 0.75));      // coil housing under the breech
+        barrel(p, 2.2, 9.4, 16.5, 0.45);
+        p.dark.push(box(0.5, 0.8, 0.8, 0, 1.4, 11.2));
         pair(p.trim, s => box(1.4, 0.18, 6, 1.9 * s, 0.2, -6.5));
         pair(p.dark, s => box(0.18, 1.4, 4, 2.5 * s, 0.6, -7.5));
         p.hull.push(box(1.3, 0.9, 3.4, 0, 1.35, -3.0));
         p.accent.push(box(0.1, 0.12, 14, 0, 0.92, -1.5));
         strips(p, 1.6, 0.4, -2, 8);
-        p.light.push(V(0, 0, 16.2), V(2.5, 1.4, -9.4), V(-2.5, 1.4, -9.4));
+        p.light.push(V(0, 2.2, 16.9), V(2.5, 1.4, -9.4), V(-2.5, 1.4, -9.4));
         p.engines.push({ x: 0.9, y: 0, z: -12.6, r: 0.8 }, { x: -0.9, y: 0, z: -12.6, r: 0.8 });
       } };
     }
@@ -303,13 +319,15 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
       const pr: Profile = [[-0.5, 0.55], [-0.3, 1], [0.3, 0.75], [0.5, 0.2]];
       return { profile: pr, W: 2.6, tint: TINT.ceres, build: p => {
         body(p.hull, pr, 2.6, -1.2, 2.2);
-        spinal(p, 0.2, 6, 18, 0.6);
+        p.trim.push(side([[5, 0.7], [16, 0.7], [16.6, 0.95], [16, 1.2], [5, 1.2]], 0.9));         // rail cradle
+        barrel(p, 2.3, 13.6, 26.5, 0.6);
+        for (const z of [15.2, 18]) p.dark.push(box(0.7, 1.0, 0.8, 0, 1.6, z));
         for (let i = 0; i < 5; i++) p.trim.push(box(2.0, 0.5, 1.4, 0, 1.25, -6 + i * 1.9));
         p.accent.push(box(0.15, 0.6, 9, 0, 1.4, -2.2));
         p.hull.push(box(1.8, 1.2, 3.6, 0, 1.6, -11));
         mast(p, 0, 2.2, -11.6, 2.4, 0.8);
         pair(p.dark, s => box(0.2, 2.2, 4, 2.4 * s, 0.3, -13.5));
-        p.light.push(V(0, 0.2, 24.3), V(2.4, 1.4, -15.4), V(-2.4, 1.4, -15.4));
+        p.light.push(V(0, 2.3, 26.9), V(2.4, 1.4, -15.4), V(-2.4, 1.4, -15.4));
         p.engines.push({ x: 1.0, y: 0, z: -16.6, r: 0.9 }, { x: -1.0, y: 0, z: -16.6, r: 0.9 });
       } };
     }
@@ -338,6 +356,8 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
         strips(p, 3.45, 0.2, -1, 18);
         p.light.push(V(3.4, 0.6, -14), V(-3.4, 0.6, -14));
         p.dark.push(box(5.6, 2.4, 2.4, 0, -0.4, -16.8));
+        pair(p.trim, s => side([[-18.4, 1.0], [-14.6, 1.0], [-15.6, 4.2], [-18.0, 4.2]], 0.1, 2.2 * s, 0));
+        pair(p.trim, s => side([[-18.4, -2.6], [-14.6, -2.6], [-15.6, -5.0], [-18.0, -5.0]], 0.1, 1.6 * s, 0));
         p.engines.push({ x: 1.6, y: -0.3, z: -18.2, r: 1.0 }, { x: -1.6, y: -0.3, z: -18.2, r: 1.0 });
       } };
     }
@@ -387,20 +407,23 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
         for (const x of [-1.6, 1.6]) p.engines.push({ x, y: 0, z: -21.0, r: 1.15 });
       } };
     }
-    case 'p17_ca_aegis': {     // 헬리오스: tall faceted superstructure carrying four phased-array faces
-      const pr: Profile = [[-0.5, 0.65], [-0.3, 1], [0.25, 0.92], [0.5, 0.2]];
+
+    case 'p17_ca_aegis': {     // 헬리오스: octagonal sensor tower with four tilted phased-array faces, dagger hull, ventral blade
+      const pr: Profile = [[-0.5, 0.6], [-0.3, 1], [0.2, 0.9], [0.5, 0.15]];
       return { profile: pr, W: 4.0, tint: TINT.helios, build: p => {
         body(p.hull, pr, 4.0, -1.8, 3.0);
-        p.hull.push(box(4.4, 2.4, 9, 0, 2.4, -1.5), box(3.4, 2.2, 6.6, 0, 4.7, -1.8));
-        for (const [x, z, ry] of [[0, 1.6, 0], [0, -5.2, Math.PI], [1.8, -1.8, Math.PI / 2], [-1.8, -1.8, -Math.PI / 2]] as const) {
-          const g = new THREE.BoxGeometry(2.6, 2.0, 0.2); g.rotateX(-0.25); g.rotateY(ry); g.translate(x, 4.8, z); p.accent.push(g);
+        p.hull.push(cyl(2.0, 2.7, 3.2, 0, 2.8, -1.8, 'y', 8), cyl(1.7, 2.0, 2.2, 0, 5.5, -1.8, 'y', 8));
+        p.trim.push(cyl(2.2, 2.2, 0.25, 0, 4.4, -1.8, 'y', 8));
+        for (const [x, z, ry] of [[0, 0.15, 0], [0, -3.75, Math.PI], [1.95, -1.8, Math.PI / 2], [-1.95, -1.8, -Math.PI / 2]] as const) {
+          const g = new THREE.BoxGeometry(2.0, 1.8, 0.16); g.rotateX(-0.2); g.rotateY(ry); g.translate(x, 5.5, z); p.accent.push(g);
         }
-        mast(p, 0, 5.8, -2, 3.0);
+        mast(p, 0, 6.6, -1.8, 2.6);
+        p.trim.push(side([[12, -1.8], [-12, -1.8], [-17, -5.4], [-9, -5.0]], 0.5));                               // ventral blade
         cells(p, 0, 1.35, 9, 2, 2, 1.0); cells(p, 0, 1.35, -10.5, 2, 2, 1.0);
         strips(p, 3.9, 0, 0, 20);
-        p.light.push(V(3.9, 0.6, -15), V(-3.9, 0.6, -15));
-        p.dark.push(box(6, 3, 2.6, 0, -0.3, -20));
-        p.engines.push({ x: 1.8, y: -0.3, z: -21.5, r: 1.15 }, { x: -1.8, y: -0.3, z: -21.5, r: 1.15 });
+        p.light.push(V(3.9, 0.6, -15), V(-3.9, 0.6, -15), V(0, -5.2, -16));
+        pair(p.dark, s => cyl(1.4, 1.6, 4, 1.8 * s, -0.3, -19.4, 'z', 12));
+        p.engines.push({ x: 1.8, y: -0.3, z: -21.6, r: 1.15 }, { x: -1.8, y: -0.3, z: -21.6, r: 1.15 });
       } };
     }
     case 'p17_ca_hydra': {     // 세레스 실험작: three separate hulls on a frame, each with its own drive (expensive, fragile)
@@ -416,19 +439,26 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
       } };
     }
     // ═══════════════════════════════════════════════════════════════ battlecruisers (L 54)
-    case 'p17_bc_breaker': {   // 바스티온: siege — a massive armoured prow wedge, three heavy barbettes, belt plates
-      const pr: Profile = [[-0.5, 0.75], [-0.35, 0.95], [0.1, 1], [0.32, 0.9], [0.5, 0.45]];
-      return { profile: pr, W: 6.0, tint: TINT.bastion, build: p => {
-        body(p.hull, pr, 6.0, -2.6, 4.2);
-        body(p.hull, scaleW(pr, 0.68), 6.0, 1.6, 1.6, -0.4, 0.3);
-        p.trim.push(slab([[-0.5, 1.15], [0.5, 0.35]], 12, 6.0, -0.5, 0.5, -3.0, 5.2).translate(0, 0, 25));
-        plates(p, 6.3, -0.4, -22, 14, 6, 3.0, 0.5);
-        for (const z of [16, 7, -17]) p.dark.push(cyl(2.6, 3.0, 1.2, 0, 3.4, z, 'y', 16));
-        tower(p, 0, 3.2, -4, 4.4, 6.5, 3, 1.5);
-        mast(p, 0, 7.7, -5.2, 4.0, 1.1);
-        p.light.push(V(6.4, 1.2, -24), V(-6.4, 1.2, -24));
-        p.dark.push(box(10, 4, 3.4, 0, -0.4, -28.4));
-        for (const x of [-3.2, 0, 3.2]) p.engines.push({ x, y: -0.4, z: -30.4, r: 1.5 });
+
+    case 'p17_bc_breaker': {   // 바스티온: siege ram — an axe-head armour prow taller and wider than the hull, narrow spine, sponson belts, triangle drive
+      const pr: Profile = [[-0.5, 0.8], [-0.4, 1], [0.3, 0.9], [0.4, 0.75]];
+      return { profile: pr, W: 4.2, tint: TINT.bastion, build: p => {
+        body(p.hull, pr, 4.2, -2.6, 4.4, -0.5, 0.4);
+        p.trim.push(side([[-21, 1.6], [19, 1.6], [19, 2.6], [16, 3.4], [-19, 3.4], [-21, 2.6]], 2.8));          // dorsal gun ridge
+        for (const z of [16, 7, -17]) { p.dark.push(cyl(2.4, 2.8, 1.0, 0, 3.8, z, 'y', 16)); p.trim.push(cyl(2.9, 2.9, 0.2, 0, 3.4, z, 'y', 16)); }
+        pair(p.hull, s => side([[-15, -1.6], [15, -1.6], [17, 0.2], [15, 1.6], [-15, 1.6], [-17, 0.2]], 1.3, 4.9 * s));  // casemate sponsons
+        plates(p, 6.55, 0, -14, 14, 5, 2.4, 0.4);
+        // the axe head: armour block projecting above, below and to both sides of the hull, faced with spaced plates
+        p.hull.push(side([[19, -2.4], [19, 3.6], [24, 3.0], [32, 0.6], [31, -3.0], [24, -6.2], [19, -5.4]], 6.4));
+        pair(p.trim, s => side([[21, -4.4], [21, 2.4], [28.5, 0.6], [27.5, -2.8]], 0.25, 6.65 * s));
+        p.dark.push(box(13.6, 0.5, 7, 0, -0.6, 24.5));
+        p.dark.push(side([[-20, -2.4], [18, -2.4], [18, -4.6], [-14, -4.2]], 1.2));                              // ventral keel
+        p.hull.push(side([[-8, 3.4], [0.5, 3.4], [-1.2, 6.0], [-7, 6.0]], 2.6));                                    // sloped citadel
+        p.accent.push(box(4.4, 0.2, 0.25, 0, 5.1, -0.55));
+        mast(p, 0, 6.0, -5, 3.4, 1.0);
+        p.light.push(V(6.6, 1.4, -15), V(-6.6, 1.4, -15), V(0, 0.6, 32.2));
+        p.dark.push(side([[-30, -4.6], [-22, -4.6], [-20, -2], [-20, 2.4], [-22, 3.6], [-30, 3.6]], 5.6));   // drive block
+        for (const [x, y] of [[-3.2, 1.2], [3.2, 1.2], [0, -2.8]]) p.engines.push({ x, y, z: -30.6, r: 1.7 });
       } };
     }
     case 'p17_bc_falchion': {  // 헬리오스: fast blade hull, two long outboard engine pods on swept pylons
@@ -460,18 +490,24 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
         p.engines.push({ x: 2.6, y: -0.4, z: -30.2, r: 1.4 }, { x: -2.6, y: -0.4, z: -30.2, r: 1.4 }, { x: 6.0, y: 0.6, z: -18.6, r: 0.9 });
       } };
     }
-    case 'p17_bc_monitor': {   // 바스티온: low flat monitor around one enormous spinal cannon, almost no superstructure
-      const pr: Profile = [[-0.5, 0.85], [-0.2, 1], [0.3, 0.95], [0.5, 0.55]];
-      return { profile: pr, W: 7.0, tint: TINT.bastion, build: p => {
-        body(p.hull, pr, 7.0, -2.0, 2.8);
-        spinal(p, 0.6, 2, 34, 1.6);
-        p.trim.push(box(5.6, 2.2, 16, 0, 1.0, 4));
-        plates(p, 7.2, -0.6, -24, 22, 6, 2.2, 0.5);
-        p.hull.push(box(3.4, 1.4, 4.4, 0, 1.5, -16));
-        p.dark.push(box(2.6, 0.5, 1.6, 0, 2.45, -15.6));
-        p.light.push(V(0, 0.6, 36.2), V(7, 0.6, -24), V(-7, 0.6, -24));
-        p.dark.push(box(12.6, 3.2, 3.2, 0, -0.6, -28.4));
-        for (const x of [-4.6, -1.6, 1.6, 4.6]) p.engines.push({ x, y: -0.6, z: -30.2, r: 1.3 });
+
+    case 'p17_bc_monitor': {   // 바스티온: flat diamond raft around one enormous spinal cannon carried on a gun gallery
+      const pr: Profile = [[-0.5, 0.5], [-0.15, 1], [0.12, 1], [0.5, 0.2]];
+      return { profile: pr, W: 9.0, tint: TINT.bastion, build: p => {
+        body(p.hull, pr, 9.0, -1.6, 2.5);
+        body(p.dark, scaleW(pr, 0.7), 9.0, -3.0, 1.4, -0.44, 0.4);
+        body(p.trim, scaleW(pr, 1.04), 9.0, -0.7, 1.0, -0.48, 0.46);                                          // belt rim
+        p.trim.push(side([[-14, 0.9], [20, 0.9], [22, 1.8], [20, 3.3], [-12, 3.3], [-14, 2.4]], 2.2));          // gun gallery
+        pair(p.dark, s => box(0.3, 1.4, 26, 2.25 * s, 2.1, 4));
+        barrel(p, 4.3, 10.5, 36, 1.3);
+        for (const z of [14, 20]) p.dark.push(box(1.6, 1.2, 1.2, 0, 3.6, z));
+        p.trim.push(box(1.2, 3.0, 1.4, 0, 2.4, 25.5));
+        p.hull.push(side([[-19, 0.9], [-13, 0.9], [-14, 2.6], [-18, 2.6]], 1.8));                                 // low conning block
+        p.accent.push(box(3.2, 0.18, 0.2, 0, 2.2, -13.7));
+        p.light.push(V(0, 0.6, 36.2), V(8.6, 0.4, -2), V(-8.6, 0.4, -2));
+        for (const s of [1, -1]) pod(p, 6.2 * s, -0.4, -24, 1.5, 9);
+        p.dark.push(box(5, 2.6, 3, 0, -0.6, -27));
+        for (const x of [-1.4, 1.4]) p.engines.push({ x, y: -0.6, z: -28.8, r: 1.1 });
       } };
     }
     // ═══════════════════════════════════════════════════════════════ battleships (L 64)
@@ -497,25 +533,34 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
         for (const [x, z] of [[-3, 18], [3.6, 6], [-2.4, -6]]) p.trim.push(box(4.4, 2.0, 7, x, 2.8, z));
         for (let i = 0; i < 4; i++) { p.dark.push(box(0.35, 6, 0.35, 5.6, 4.2, -14 + i * 4)); p.dark.push(box(0.35, 0.35, 12, 5.6, 7.1, -8)); }
         p.hull.push(box(5, 3.2, 8, -1.2, 3.6, -16), box(3.4, 2.4, 5, -1.2, 6.4, -16.6));
+        { const g = slab([[-0.5, 0.7], [0.2, 1], [0.5, 0.35]], 34, 2.6, -0.5, 0.5, -3.2, 3.4); g.translate(-9.4, -3.4, 2); p.dark.push(g); }   // welded-on half-hull
+        for (const z of [-10, 0, 10]) p.trim.push(box(4.2, 0.6, 0.9, -7.2, -3.4, z));
+        for (let i = 0; i < 4; i++) { p.dark.push(box(0.3, 4.2, 0.3, 7.9, -1.2, 18 + i * 3)); p.dark.push(box(0.3, 0.3, 3.2, 7.9, -3.2 + (i % 2) * 4, 19.5 + i * 3)); }
+        p.trim.push(box(3.6, 3.6, 5, -9.4, -6.4, -10));
         p.light.push(V(-1.2, 8.1, -16.6), V(5.6, 7.5, -14), V(7.6, 1.6, 20));
         p.dark.push(box(12, 5, 3.6, 0, -0.6, -33.4));
         p.engines.push({ x: 3.8, y: -0.6, z: -35.4, r: 1.9 }, { x: -3.8, y: -0.6, z: -35.4, r: 1.7 }, { x: 0, y: 1.2, z: -35.4, r: 1.2 });
       } };
     }
-    case 'p17_bb_bastion': {   // 바스티온: ziggurat — three armour tiers, five barbettes, armoured citadel
-      const pr: Profile = [[-0.5, 0.8], [-0.4, 1], [0.2, 1], [0.42, 0.7], [0.5, 0.35]];
+
+    case 'p17_bb_bastion': {   // 바스티온: double ziggurat — armour tiers above and below a belt, sloped casemates, five barbettes
+      const pr: Profile = [[-0.5, 0.85], [-0.42, 1], [0.22, 1], [0.44, 0.72], [0.5, 0.45]];
       return { profile: pr, W: 8.0, tint: TINT.bastion, build: p => {
-        body(p.hull, pr, 8.0, -3.6, 5.4);
+        body(p.hull, pr, 8.0, -1.4, 3.2);
         body(p.trim, scaleW(pr, 0.78), 8.0, 1.8, 1.8, -0.44, 0.4);
         body(p.hull, scaleW(pr, 0.56), 8.0, 3.6, 1.6, -0.36, 0.28);
-        plates(p, 8.3, -1.0, -28, 22, 7, 3.6, 0.6);
+        body(p.trim, scaleW(pr, 0.78), 8.0, -3.2, 1.8, -0.46, 0.38);                                          // ventral tiers
+        body(p.dark, scaleW(pr, 0.5), 8.0, -5.0, 1.8, -0.4, 0.3);
+        pair(p.hull, s => side([[-17, -2.6], [10, -2.6], [13, -0.4], [10, 2.6], [-14, 2.6], [-17, 0]], 1.4, 8.4 * s));  // casemates
+        for (const z of [-10, -3, 4]) pair(p.dark, s => box(0.4, 0.8, 1.8, 9.85 * s, 0.3, z));
         for (const z of [24, 15, -22]) p.dark.push(cyl(3.0, 3.4, 1.4, 0, 4.3, z, 'y', 16));
         for (const z of [8, -14]) p.dark.push(cyl(3.0, 3.4, 1.4, 0, 6.0, z, 'y', 16));
-        const top = tower(p, 0, 5.2, -3, 5.6, 9, 3, 1.6);
-        mast(p, 0, top, -4.6, 4.0, 1.4);
-        p.light.push(V(8.3, 1.0, -30), V(-8.3, 1.0, -30));
-        p.dark.push(box(14, 5.4, 3.6, 0, -0.6, -33.6));
-        for (const x of [-4.8, -1.6, 1.6, 4.8]) p.engines.push({ x, y: -0.6, z: -35.8, r: 1.6 });
+        const top = tower(p, 0, 5.2, -3, 5.6, 9, 2, 1.8);
+        p.dark.push(cyl(1.8, 2.2, 1.2, 0, top + 0.6, -3.6, 'y', 8));
+        mast(p, 0, top + 1.2, -4.0, 3.4, 1.4);
+        p.light.push(V(9.8, 2.6, -14), V(-9.8, 2.6, -14), V(0, -5.0, 0));
+        p.dark.push(box(13, 8.4, 3.6, 0, -1.2, -33.6));
+        for (const [x, y] of [[-3.2, 1.0], [3.2, 1.0], [-3.2, -3.4], [3.2, -3.4]]) p.engines.push({ x, y, z: -35.8, r: 1.8 });
       } };
     }
     case 'p17_bb_vanguard': {  // 연합: split hull — two armoured hulls joined by a bridge deck and an open keel truss
@@ -533,21 +578,29 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
       } };
     }
     // ═══════════════════════════════════════════════════════════════ dreadnoughts (L 92)
-    case 'p17_dn_citadel': {   // 철갑 사령부: moving fortress — four stepped tiers, nine barbettes, castle keep
-      const pr: Profile = [[-0.5, 0.85], [-0.38, 1], [0.25, 1], [0.42, 0.75], [0.5, 0.4]];
+
+    case 'p17_dn_citadel': {   // 철갑 사령부: moving fortress — blunt block hull, four stepped tiers, corner bastion towers, ram face
+      const pr: Profile = [[-0.5, 0.92], [-0.46, 1], [0.4, 1], [0.48, 0.86], [0.5, 0.7]];
       return { profile: pr, W: 11, tint: TINT.bastion, build: p => {
-        body(p.hull, pr, 11, -5, 7);
+        body(p.hull, pr, 11, -3, 5);
         body(p.trim, scaleW(pr, 0.82), 11, 2.0, 2.0, -0.45, 0.42);
         body(p.hull, scaleW(pr, 0.64), 11, 4.0, 2.0, -0.4, 0.34);
         body(p.trim, scaleW(pr, 0.44), 11, 6.0, 1.6, -0.3, 0.2);
-        plates(p, 11.4, -1.2, -42, 34, 9, 5, 0.8);
+        body(p.dark, scaleW(pr, 0.8), 11, -6.4, 3.4, -0.46, 0.44);                                             // ventral foundation
+        plates(p, 11.4, -0.8, -33, 33, 8, 4.4, 0.8);
+        for (const sx of [1, -1]) for (const z of [39, -39]) {                                                   // corner bastions
+          p.hull.push(cyl(3.4, 3.8, 11, 11.2 * sx, -0.5, z, 'y', 8));
+          p.trim.push(cyl(3.9, 3.9, 0.6, 11.2 * sx, 5.3, z, 'y', 8));
+          p.accent.push(box(0.2, 0.2, 2.2, (11.2 + 3.55) * sx, 3.2, z));
+          p.light.push(V(11.2 * sx, 5.8, z));
+        }
+        p.trim.push(side([[44, -5], [44, 3], [48, 1.5], [49.5, -2.5], [47, -5.8]], 7));                          // ram face
         for (const z of [36, 26]) p.dark.push(cyl(3.6, 4.0, 1.6, 0, 5.0, z, 'y', 18));
         for (const z of [16, -32]) p.dark.push(cyl(3.6, 4.0, 1.6, 0, 7.0, z, 'y', 18));
         for (const s of [1, -1]) for (const z of [6, -12]) p.dark.push(cyl(2.6, 3.0, 1.2, 6.4 * s, 4.8, z, 'y', 16));
         p.dark.push(cyl(3.6, 4.0, 1.6, 0, 8.5, -22, 'y', 18));
         const top = tower(p, 0, 7.6, -3, 7, 10, 3, 1.8);
         mast(p, 2, top, -4.8, 5, 1.6); mast(p, -2, top, -5.2, 3.6);
-        p.light.push(V(11, 1.4, -44), V(-11, 1.4, -44), V(0, 1.4, 46));
         p.dark.push(box(19, 8, 5, 0, -1, -48.4));
         for (const [x, y] of [[-6, 1], [-2, 1], [2, 1], [6, 1], [-4, -2.6], [4, -2.6]]) p.engines.push({ x, y, z: -51.2, r: 2.0 });
       } };
@@ -557,14 +610,16 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
       return { profile: pr, W: 8.0, tint: TINT.helios, build: p => {
         body(p.hull, pr, 8.0, -3.6, 6.0);
         body(p.hull, scaleW(pr, 0.55), 8.0, 2.4, 2.2, -0.42, 0.3);
-        spinal(p, 0, 20, 36, 1.8);
+        p.trim.push(side([[26, 2.0], [42, 2.0], [43, 2.3], [42, 2.6], [26, 2.6]], 1.8));         // lance cradle
+        barrel(p, 3.7, 42, 60, 1.4);
+        p.dark.push(box(1.6, 1.4, 1.4, 0, 2.6, 44.6));
         p.trim.push(torus(12, 1.1, 0, 0, -34, 'z', 40));
         p.accent.push(torus(12, 0.4, 0, 0, -33, 'z', 40));
         for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) p.dark.push(box(Math.abs(Math.cos(a)) * 8 + 0.6, Math.abs(Math.sin(a)) * 8 + 0.6, 1.2, Math.cos(a) * 7.6, Math.sin(a) * 7.6, -34));
         pair(p.trim, s => box(10, 0.5, 9, 9.6 * s, -1.0, -24));
         tower(p, 0, 4.6, -12, 4.6, 9, 3, 1.6);
         strips(p, 7.6, 0, -2, 50);
-        p.light.push(V(0, 0, 56.4), V(12, 0, -34), V(-12, 0, -34), V(14.6, -1, -24), V(-14.6, -1, -24));
+        p.light.push(V(0, 3.7, 60.4), V(12, 0, -34), V(-12, 0, -34), V(14.6, -1, -24), V(-14.6, -1, -24));
         p.dark.push(box(10, 6, 4, 0, -0.6, -47.4));
         for (const [x, y] of [[-3, 1.4], [3, 1.4], [-3, -2.4], [3, -2.4]]) p.engines.push({ x, y, z: -49.8, r: 2.0 });
       } };

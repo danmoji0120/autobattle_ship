@@ -205,7 +205,7 @@ function cyl(rt: number, rb: number, h: number, x: number, y: number, z: number,
   g.translate(x, y, z); return g;
 }
 
-interface Parts { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[] }
+interface Parts { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[]; spinal?: { x: number; y: number; z: number } }
 
 const MESH_ALIAS: Record<string, [string, number]> = { frigate: ['destroyer', 1.0], light_cruiser: ['cruiser', 1.0], battlecruiser: ['battleship', 0.92], dreadnought: ['battleship', 1.6] };
 
