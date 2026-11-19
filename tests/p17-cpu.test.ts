@@ -10,6 +10,8 @@ import { cpuOfFitting } from '../src/world/fitting';
 import { cpuPdCover, type CpuSpec } from '../src/sim/ai/computer';
 import type { FleetSpec, GroupSpec, ShipSpec } from '../src/sim/fleet';
 import type { Ship, SimEvent } from '../src/sim/types';
+import { trial } from '../scripts/p17/flank-metrics';
+import { flankStats } from '../src/sim/ai/computer';
 
 void CONTENT;
 /** a ship whose gun mounts carry `weapon` (point defence kept) and that runs the computer product `cpu` */
@@ -94,6 +96,41 @@ describe('P17.3f computer products', () => {
     const f = rear('cpu_flanker'), l = rear('cpu_line');
     expect(f).toBeGreaterThan(0.5);
     expect(f).toBeGreaterThan(l + 0.3);
+  });
+
+  // P17.3.1 free-turning targets (nothing pinned): the target turns and fights back. Shares are measured with the
+  // bow-cosine test the engine uses; the hit columns are World.applyHit's own front / side / rear judgements.
+  it('flank vs a free-turning target with an ally drawing its fire (2 v 1): real side / rear time and rear hits', () => {
+    const f = [3, 7].map(sd => trial('two_v_one', 'cpu_flanker', sd)), l = [3, 7].map(sd => trial('two_v_one', 'cpu_line', sd));
+    const m = (rs: typeof f, k: 'rear' | 'side' | 'hR') => rs.reduce((a, r) => a + r[k], 0) / rs.length;
+    expect(m(f, 'rear')).toBeGreaterThan(0.2);
+    expect(m(f, 'rear') + m(f, 'side')).toBeGreaterThan(m(l, 'rear') + m(l, 'side') + 0.3);
+    expect(m(f, 'hR')).toBeGreaterThan(5);                        // the engine judged real rear hits
+    expect(f.some(r => (r.distracted ?? 0) > 0)).toBe(true);       // it used the target being busy with the ally
+  });
+
+  it('flank: a fast ship gets round a slow free-turning target; a target as agile as the flanker keeps its bow on it', () => {
+    const fast = [3, 11].map(sd => trial('fast_slow', 'cpu_flanker', sd));
+    expect(fast.reduce((a, r) => a + r.rear, 0) / fast.length).toBeGreaterThan(0.25);
+    expect(fast.some(r => (r.reached ?? 0) > 0)).toBe(true);
+    // similar agility, 1 v 1: no circle gets behind it (the target turns as fast as we orbit). The computer must
+    // say so in its statistics (failures by reason) rather than the test inventing a rear position
+    const sim = trial('similar', 'cpu_flanker', 3);
+    expect(sim.rear).toBeLessThan(0.1);
+    expect((sim.faced ?? 0) + (sim.timeout ?? 0)).toBeGreaterThan(0);
+  });
+
+  it('flank: persistent side and waypoints (re-planned on a beat, not every tick); orders gate it; same seed → same battle', () => {
+    const r = trial('free_1v1', 'cpu_flanker', 3, 120);
+    // ~1 re-plan per 0.8 s of flanking at most (the commander steers every 3 ticks: per-tick re-picking would be ×4+)
+    expect(r.replans!).toBeLessThan(120 / 0.8 + 10);
+    expect(r.switches!).toBeLessThan(10);
+    expect(JSON.stringify(trial('free_1v1', 'cpu_flanker', 3, 60))).toBe(JSON.stringify(trial('free_1v1', 'cpu_flanker', 3, 60)));
+    // a hold order: the computer does not move the ship
+    const w = new World(setup(G([ship('destroyer', 'strike', null, 'cpu_flanker')], 'hold'), G([ship('cruiser', 'aa', 'pd_gun')], 'hold'), 3));
+    run(w, 30);
+    expect(mine(w).cpu!.acting).toBe('basic');
+    expect(flankStats(mine(w))).toBeUndefined();
   });
 
   it('air defence: the aegis product guards friends over its cover radius whatever behaviour it is acting', () => {

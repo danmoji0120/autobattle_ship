@@ -91,6 +91,33 @@ interface CpuState {
   launches: number; breaks: number; reentries: number;
   /** P16.3 carrier: evasive turns (pressed by guns or a guided round inbound) and the stand-off distance chosen */
   evades: number; standoff: number;
+  /** P17.3.1 flank state machine (created on the first flank steer only, so no other computer changes) */
+  fl?: FlankState;
+}
+/** P17.3.1 flank manoeuvre: approach → circle (persistent side, waypoints re-planned on a beat, not every tick) →
+ *  engage on the beam / stern quarter; if the target turns its bow onto the flanker it either fights from the beam
+ *  or opens the range and re-enters (reattack). Also its statistics (time by target aspect, attempts, failures). */
+export interface FlankState {
+  phase: 'approach' | 'circle' | 'engage' | 'reattack';
+  /** committed side of the target (+1 = its left / port, -1 = starboard) */
+  side: number;
+  /** current waypoint and when it is re-planned */
+  wp: Vec3; replan: number;
+  /** target yaw on the last look and its smoothed turn rate (rad/s) */
+  tyaw: number; trate: number; at: number;
+  /** time the phase began; time the target has kept its bow on us */
+  since: number; faced: number;
+  /** engage goal angle off the target's bow (rad): 135° stern quarter, 90° beam when settling for the side */
+  goal: number;
+  /** statistics: seconds with the flanker in the target's front / side / rear sector, seconds engaged */
+  tFront: number; tSide: number; tRear: number; tEngage: number;
+  /** circling attempts, successes (reached the quarter), failures by reason, waypoint re-plans, side switches */
+  attempts: number; reached: number; fails: { faced: number; timeout: number }; replans: number; switches: number;
+  /** target was busy with someone else while we closed (exploited distractions) */
+  distracted: number;
+  /** tightening steps of the circle after it failed against a target we can out-turn; target they apply to;
+   *  gave up out-turning it (fights from the beam) */
+  shrink: number; tid: number; noOut: boolean;
 }
 export type ShipCpu = CpuState;
 
@@ -279,7 +306,7 @@ export function steerComputers(w: World, g: Group, ships: Ship[], o: Order) {
       case 'swarm': if (t) { swarm(w, s, t, b); c.acting = 'swarm'; } break;
       case 'artillery': if (t) { artillery(w, s, t, b, cpuRange('artillery', b, rk(s))!); c.acting = 'artillery'; } break;
       case 'missile': if (t) { artillery(w, s, t, b, cpuRange('missile', b, rk(s))!); c.acting = 'missile'; } break;
-      case 'flank': if (t) { flank(w, s, t, b); c.acting = 'flank'; } break;
+      case 'flank': if (t) { flank(w, s, t, b, o); c.acting = 'flank'; } break;
       case 'line': {
         lineShips ??= ships.filter(x => x.cpu?.arch === 'line' && x.cpu.bands!.dps > 0);
         if (line(w, g, s, lineShips, b)) c.acting = 'line';
@@ -686,34 +713,151 @@ function siege(w: World, g: Group, s: Ship, o: Order, b: Bands, decide: boolean)
   return true;
 }
 
-// ------------------------------------------------------------------ flank (P17.3f)
-// swing wide round the target to its beam / stern quarter (thinner side and rear armour), holding the
-// median band there; the swing goes out through the beam so the ship never runs down the target's bow.
-function flank(w: World, s: Ship, t: Ship, b: Bands) {
+// ------------------------------------------------------------------ flank (P17.3f, P17.3.1 rework)
+// A state machine instead of one fixed aim point (the old one chased a point 135° off the target's bow, which a
+// target that turns simply kept in front of itself):
+//   approach  — close to about 1.4 × the band on the committed side's beam (never down the target's bow);
+//   circle    — run round the target toward its beam / stern quarter on the committed side. The circle is
+//               planned on the target's *predicted* heading (its measured turn rate × our travel time) and the
+//               waypoint is re-planned on a beat (0.8 s), not every tick, so the ship does not dither;
+//   engage    — hold the quarter at the band, guns on the target (broadside offset kept);
+//   reattack  — the target turned its bow onto us: if we are already roughly abeam we settle for the beam;
+//               otherwise open the range outward on our side and re-enter, switching side only when the target is
+//               turning toward the side we were on.
+// A target busy with an ally (its target is someone else) is approached tighter and straight for the stern.
+// Nothing here changes speed, turn rate, the enemy, or how facing is judged (World.applyHit); orders gate it.
+const FL_REPLAN = 0.8, FL_CIRCLE_MAX = 28, FL_FACED = 3, FL_REATTACK = 9;
+function flank(w: World, s: Ship, t: Ship, b: Bands, o?: Order) {
   const c = s.cpu!;
   const R = Math.max(t.radius + s.radius + 80, cpuRange('flank', b, rk(s))!);
-  const tf = tmp.copy(t.fwd); tf.y = 0; if (tf.lengthSq() < 1e-6) tf.set(0, 0, 1); tf.normalize();
-  const beam = tmp2.crossVectors(UP, tf).normalize().scale(c.side);
-  // aim point: 135° off the target's bow on our side
-  const goal = tmp3.copy(beam).scale(0.71).addScaled(tf, -0.71);
-  const rel = new Vec3().subVectors(s.pos, t.pos); rel.y = 0;
-  const d = rel.length();
-  const bowCos = d > 1 ? (rel.x * tf.x + rel.z * tf.z) / d : 0;
-  if (bowCos > 0.2) {
-    // in front of the target: out through the beam first, wider than the band
-    s.ai.moveTo.copy(t.pos).addScaled(beam, R * 1.25).addScaled(tf, R * 0.2);
-    c.mode = 'break';
-  } else {
-    s.ai.moveTo.copy(t.pos).addScaled(goal, R).addScaled(t.vel, 2);
-    if (c.mode === 'break') { c.mode = 'approach'; c.reentries++; }
+  let f = c.fl;
+  if (!f) {
+    f = c.fl = { phase: 'approach', side: c.side, wp: new Vec3().copy(s.pos), replan: 0, tyaw: t.yaw, trate: 0, at: w.time, since: w.time, faced: 0, goal: 135 * DEG,
+      tFront: 0, tSide: 0, tRear: 0, tEngage: 0, attempts: 0, reached: 0, fails: { faced: 0, timeout: 0 }, replans: 0, switches: 0, distracted: 0, shrink: 0, tid: t.id, noOut: false };
   }
-  s.ai.moveTo.y = t.pos.y;
-  s.ai.faceTo = faceWithOffset(s, t.pos, b.offset, c.face);
+  // a commander's flank order names the side
+  if (o?.type === 'flank' && f.side !== o.side) { f.side = o.side; f.switches++; }
+  // target turn rate (smoothed) and heading
+  let dy = t.yaw - f.tyaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+  // (the commander steers every few ticks: rates and times use the time since the last steer)
+  const el = Math.max(1e-3, w.time - f.at); f.at = w.time;
+  f.tyaw = t.yaw; f.trate += (dy / el - f.trate) * Math.min(1, el * 2);
+  const tf = tmp.copy(t.fwd); tf.y = 0; if (tf.lengthSq() < 1e-6) tf.set(0, 0, 1); tf.normalize();
+  const tl = tmp2.crossVectors(UP, tf).normalize();            // the target's left
+  const rx = s.pos.x - t.pos.x, rz = s.pos.z - t.pos.z, d = Math.hypot(rx, rz) || 1;
+  const fwdC = (rx * tf.x + rz * tf.z) / d, lefC = (rx * tl.x + rz * tl.z) / d;
+  // our angle off the target's bow: 0 = dead ahead, ±π = astern, sign = the target's left (+) / right (−)
+  const ang = Math.atan2(lefC, fwdC);
+  // statistics: where we are relative to the target's armour sectors (World.applyHit judges by the same bow cosine)
+  if (fwdC > 0.5) f.tFront += el; else if (fwdC < -0.5) f.tRear += el; else f.tSide += el;
+  if (f.phase === 'engage') f.tEngage += el;
+  // is the target busy with someone else (its guns and bow on an ally)?
+  const busy = t.ai.targetId >= 0 && t.ai.targetId !== s.id;
+  // the target holds its bow on us
+  f.faced = fwdC > 0.8 && d < R * 2 ? f.faced + el : 0;
+  const set = (p: FlankState['phase']) => { f!.phase = p; f!.since = w.time; f!.replan = 0; };
+  // can we out-turn it? Round a target our angular speed is v / r; it keeps its bow on us while its turn rate is
+  // the larger. The tight radius where we win is v / (ω_t · 1.4) (margin for its drift and our losses in the turn) — usable if our own turning circle and the hulls
+  // allow it. Otherwise no circle gets behind it: we fight from the beam and re-enter when it turns onto us.
+  const vS = Math.max(1, s.maxSpeed), wT = Math.max(1e-3, t.state === 'alive' ? t.turnRate : 0);
+  // the floor: our own turning circle and the battle's hull separation distance (World.moveShip pushes ships apart inside it)
+  const rTight = vS / (wT * 1.4), rFloor = Math.max((s.radius + t.radius) * 2.6 + 34, vS / Math.max(1e-3, s.turnRate) * 1.1);
+  if (f.tid !== t.id) { f.tid = t.id; f.shrink = 0; f.noOut = false; }
+  // (three tightened circles all failed against this target: it out-turns us in practice — fight from the beam)
+  const canOut = rTight >= rFloor && !f.noOut;
+  const rCircle = busy ? R * 0.9 : canOut ? Math.min(R, Math.max(rFloor, rTight * (1 - 0.15 * f.shrink))) : R;
+  if (!canOut && !busy && f.goal > 100 * DEG && f.phase !== 'engage') f.goal = 90 * DEG;
+
+  switch (f.phase) {
+    case 'approach':
+      if (d < R * 1.6) {
+        // committing to a side: if we arrive ahead of the target's beam on the other side, take that side rather
+        // than cross its bow (a commander's flank order keeps its side)
+        if (o?.type !== 'flank' && Math.sign(ang) !== f.side && Math.abs(ang) < 100 * DEG) { f.side = -f.side; f.switches++; }
+        set('circle'); f.attempts++; if (busy) f.distracted++;
+      }
+      break;
+    case 'circle': {
+      const err = Math.abs(ang - f.side * (busy ? 160 * DEG : f.goal));
+      if (Math.sign(ang) === f.side && err < 30 * DEG && d < Math.max(R, rCircle) * 1.35) { set('engage'); f.reached++; break; }
+      // a circle needs time: it has failed only when the target has held its bow on us for a while well into it
+      if (!busy && f.faced > FL_FACED && w.time - f.since > 10) {
+        f.fails.faced++;
+        // we can out-turn it: keep circling, tighter (no running away from a target we can get behind)
+        if (canOut && f.shrink >= 2) { f.noOut = true; set('reattack'); }
+        else if (canOut) { f.shrink++; f.attempts++; f.since = w.time; f.faced = 0; }
+        else set('reattack');
+        break;
+      }
+      if (w.time - f.since > FL_CIRCLE_MAX) { f.fails.timeout++; set('reattack'); }
+      break;
+    }
+    case 'engage':
+      // the target has turned onto us: settle for the beam if we are abeam, else come round again
+      if (!busy && f.faced > FL_FACED) {
+        if (Math.abs(ang) > 60 * DEG && f.goal > 100 * DEG) { f.goal = 90 * DEG; f.faced = 0; }
+        else { f.fails.faced++; if (canOut) { set('circle'); f.attempts++; } else set('reattack'); }
+      } else if (f.goal < 100 * DEG && canOut && fwdC < -0.2) f.goal = 135 * DEG;   // it turned away again: back to the quarter
+      if (d > Math.max(R, rCircle) * 1.9) set('approach');
+      break;
+    case 'reattack':
+      if (w.time - f.since > FL_REATTACK || d > R * 1.6) {
+        // switch side only if the target is swinging toward the side we were on (its bow would meet us there)
+        if (f.trate * f.side > 0.05) { f.side = -f.side; f.switches++; }
+        f.goal = canOut ? 135 * DEG : 90 * DEG;
+        set('circle'); f.attempts++; if (busy) f.distracted++;
+      }
+      break;
+  }
+
+  // waypoint: re-planned on a beat (or at a phase change)
+  if (w.time >= f.replan) {
+    f.replan = w.time + FL_REPLAN; f.replans++;
+    const travel = Math.min(5, d / Math.max(30, s.maxSpeed));
+    const yawAhead = clamp(f.trate * travel, -1.2, 1.2);   // where the target's bow will be when we get there
+    const at = (a: number, r: number) => {
+      // a point at angle `a` off the predicted bow, radius r
+      const h = a;
+      const cy = Math.cos(yawAhead), sy = Math.sin(yawAhead);
+      // the target's bow turned on by yawAhead (fwd = (sin yaw, cos yaw))
+      const fx = tf.x * cy + tf.z * sy, fz = -tf.x * sy + tf.z * cy;
+      const lx = fz, lz = -fx;   // UP × fwd
+      return f!.wp.set(t.pos.x + (fx * Math.cos(h) + lx * Math.sin(h)) * r + t.vel.x * travel * 0.5, t.pos.y, t.pos.z + (fz * Math.cos(h) + lz * Math.sin(h)) * r + t.vel.z * travel * 0.5);
+    };
+    const goal = f.side * (busy ? 160 * DEG : f.goal);
+    switch (f.phase) {
+      case 'approach': at(f.side * 95 * DEG, R * 1.4); break;
+      case 'circle': {
+        // run round toward the goal angle
+        // (the side was chosen so that the short way round does not cross the target's bow, see below)
+        let delta = goal - ang;
+        while (delta > Math.PI) delta -= 2 * Math.PI; while (delta < -Math.PI) delta += 2 * Math.PI;
+        // orbit carrot: a point ~2.6 s of travel ahead along the circle's tangent from where we are now, pulled
+        // onto the circle radius (the mover slows near its point and when the point is off its bow, so a carrot
+        // on the tangent keeps full speed round the turn), plus the target's own drift over that time
+        const r0 = !canOut && !busy && Math.abs(ang) < 70 * DEG ? R * 1.25 : rCircle;
+        if (Math.abs(delta) < 4 * DEG) { at(goal, r0); break; }
+        const dir = Math.sign(delta), L = vS * 2.6;
+        const tx = (-Math.sin(ang) * tf.x + Math.cos(ang) * tl.x) * dir, tz = (-Math.sin(ang) * tf.z + Math.cos(ang) * tl.z) * dir;
+        const ux = rx / d, uz = rz / d, lt = L / vS;
+        f.wp.set(t.pos.x + ux * r0 + tx * L + t.vel.x * lt, t.pos.y, t.pos.z + uz * r0 + tz * L + t.vel.z * lt);
+        break;
+      }
+      case 'engage': at(goal, busy ? R * 0.85 : rCircle); break;
+      case 'reattack': at(f.side * 115 * DEG, R * 1.5); break;
+    }
+  }
+  s.ai.moveTo.copy(f.wp);
+  // circling, the bow follows the travel (a ship crabbing sideways at its guns is slow); engaged, the guns' facing
+  s.ai.faceTo = f.phase === 'engage' ? faceWithOffset(s, t.pos, b.offset, c.face) : null;
   s.ai.speedCap = s.maxSpeed;
   s.ai.run = null;
-  // reached the quarter but the target swung its bow onto us: go round the other side (not while still swinging out)
-  if (c.mode === 'approach' && w.time >= c.timer && bowCos > 0.6 && d < R * 1.4) { c.side = -c.side; c.timer = w.time + 12; c.mode = 'break'; }
+  c.mode = f.phase === 'reattack' ? 'break' : 'approach';
+  c.side = f.side;
 }
+
+/** P17.3.1 flank statistics of a ship (tests / tuning) */
+export function flankStats(s: Ship): FlankState | undefined { return s.cpu?.fl; }
 
 // --------------------------------------------------------- energy recharge (P17.3f)
 // back straight out to past the enemy's reach, bow (and so the thick front) toward it, until the shield refills.
