@@ -121,6 +121,10 @@ export interface Ship {
   air?: import('./fleet').AirFx;
   /** B-1: last hull hit and emergency repair done (regen) */
   ofHit?: number; ofHeal?: number;
+  /** P16.7 combat repair (only in a battle with a repair rig, World.repairOn): repair rigs carried (support ship),
+   *  last hull hit time, hull restored on this ship by repair ships, recent repairers, and — on a repair ship —
+   *  its current patient, hull restored and damage time cut for others */
+  rep?: number; hitAt?: number; rpHeal?: number; rpBy?: { id: number; t: number }[]; repTarget?: number; rpDone?: number; rpCut?: number;
 }
 
 export interface Munition {
@@ -216,6 +220,8 @@ export type SimEvent =
   | { t: 'craftLaunch'; ship: number; mount: number; pos: Vec3 }
   | { t: 'craftDown'; team: number; pos: Vec3; by: number }
   | { t: 'craftLeave'; ship: number; pos: Vec3 }
+  // P16.7 combat repair (sim/repair.ts): one work cycle of a repair rig on a friendly ship
+  | { t: 'repair'; ship: number; mount: number; target: number; hull: number; cut: number; from: Vec3; to: Vec3 }
   | import('./bbex/state').ExEvent;
 
 export interface RadioMsg {

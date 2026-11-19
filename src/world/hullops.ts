@@ -22,6 +22,9 @@ export interface HullEcon extends ShipEcon {
   /** industrial-hardpoint ships only: salvage multiplier of the fitted salvage gear × hull bonus (0 = cannot
    *  salvage). Absent on ships without industrial hardpoint rules (legacy class table in salvage.ts). */
   salv?: number;
+  /** P16.7 industrial-hardpoint ships only: field repair rate of the fitted repair gear × hull bonus (hull share per
+   *  hour on a size-S hull; 0 = no field repair) */
+  fieldRep?: number;
 }
 
 /** hull id of a ship (legacy ships without content ids map to their class's mk1 hull) */
@@ -59,8 +62,8 @@ export function hullEcon(hullId: string, variantId?: string): HullEcon {
 }
 
 /** industrial work rates of fitted gear (bay id → equipment id), before hull bonus and variant mods */
-export function gearRates(bay: Record<string, string> | undefined): { mine: number; build: number; salvage: number } {
-  const r = { mine: 0, build: 0, salvage: 0 };
+export function gearRates(bay: Record<string, string> | undefined): { mine: number; build: number; salvage: number; repair: number } {
+  const r = { mine: 0, build: 0, salvage: 0, repair: 0 };
   for (const id of Object.values(bay ?? {})) { const g = EQUIPMENT[id]?.ind; if (g) r[g.work] += g.rate; }
   return r;
 }
@@ -75,7 +78,7 @@ export function gearEcon(hullId: string, variantId: string | undefined, bay: Rec
   const base = hullEcon(hullId, variantId);
   const h = CONTENT.hulls[hullId], m = (variantId ? CONTENT.variants[variantId]?.mods : undefined) ?? {}, b = h?.ops?.bonus ?? {};
   const g = gearRates(bay);
-  const e: HullEcon = { ...base, mine: g.mine * (b.mine ?? 1) * (m.mineMul ?? 1), build: g.build * (b.build ?? 1) * (m.buildMul ?? 1), salv: g.salvage * (b.salvage ?? 1) };
+  const e: HullEcon = { ...base, mine: g.mine * (b.mine ?? 1) * (m.mineMul ?? 1), build: g.build * (b.build ?? 1) * (m.buildMul ?? 1), salv: g.salvage * (b.salvage ?? 1), ...(g.repair ? { fieldRep: g.repair * (b.repair ?? 1) } : {}) };
   if (gearCache.size > 4096) gearCache.clear();
   gearCache.set(key, e);
   return e;

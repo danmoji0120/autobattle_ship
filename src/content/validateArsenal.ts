@@ -28,7 +28,7 @@ export const AREA_EFFECTS: Record<ResearchArea, { fx?: string[]; cfx?: string[];
   station: { fx: ['researchMul', 'constructMul'] },
   tactics: { fx: ['skillGain'], cfx: ['evasion'] },
 };
-const FAMILY_KIND: Record<string, WeaponStats['kind']> = { missile: 'missile', torpedo: 'torpedo', pd: 'pd', craft: 'craft' };
+const FAMILY_KIND: Record<string, WeaponStats['kind']> = { missile: 'missile', torpedo: 'torpedo', pd: 'pd', craft: 'craft', repair: 'repair' };
 
 /** P16 strike-craft budget (armScore does not fit craft: they fire nothing from the hull). Damage one squadron
  *  delivers per second of its sortie cycle: guns over half the sortie plus one ordnance drop, × complement,
@@ -57,6 +57,16 @@ export function referenceScores(): Record<Size, number> {
     best[sz] = Math.max(best[sz], armScore(w as Parameters<typeof armScore>[0]));
   }
   return best as Record<Size, number>;
+}
+
+/** P16.7: a combat repair rig fires nothing; it is checked on its work reach, cycle and repair amounts instead */
+function repairArm(a: ArmContent, at: string, err: (w: string, m: string) => void) {
+  const c = a.combat, r = c.repair;
+  if (!r || !(r.hull > 0 && r.hull <= 0.1) || !(r.crit >= 0 && r.crit <= 0.8)) err(at, `combat.repair ${JSON.stringify(r)} (hull 0–0.1, crit 0–0.8)`);
+  if (!(c.range >= 150 && c.range <= 1500)) err(at, `combat.range ${c.range} (150–1500)`);
+  if (!(c.reload >= 1 && c.reload <= 30)) err(at, `combat.reload ${c.reload} (1–30)`);
+  if (c.damage !== 0 || c.salvo !== 0) err(at, '수리 장비는 damage 0, salvo 0');
+  if (a.size === 'L') err(at, '수리 장비 크기는 S/M');
 }
 
 export function validateArsenal(reg: Registry, err: (w: string, m: string) => void, warn: (w: string, m: string) => void) {
@@ -107,6 +117,7 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     if (!a.tech && a.tier >= 2) warn(at, '2티어 이상 무장에 해금 연구(tech)가 없음');
     const want = FAMILY_KIND[a.family] ?? 'shell';
     if (c.kind !== want) err(at, `${a.family} 계열의 combat.kind 는 "${want}"`);
+    if (c.kind === 'repair') { repairArm(a, at, err); (byFamily.get(a.family) ?? byFamily.set(a.family, []).get(a.family)!).push(a); continue; }
     if (c.kind === 'craft' || c.craft) { craftArm(a, at); (byFamily.get(a.family) ?? byFamily.set(a.family, []).get(a.family)!).push(a); continue; }
     const rng = (k: keyof WeaponStats, lo: number, hi: number) => { const v = c[k] as number | undefined; if (v === undefined || !(v >= lo && v <= hi)) err(at, `combat.${String(k)} ${v} (${lo}–${hi})`); };
     rng('damage', 1, 3000); rng('pen', 1, 200); rng('range', 150, 3000); rng('reload', 0.05, 60); rng('salvo', 1, 12); rng('salvoGap', 0, 2);
@@ -133,7 +144,7 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
   }
   // a higher tier must not beat a lower tier of the same family on every axis (strike craft: craftScore budget instead)
   for (const [fam, list] of byFamily) {
-    if (fam === 'craft') continue;
+    if (fam === 'craft' || fam === 'repair') continue;
     for (const hi of list) for (const lo of list) {
       if (hi.tier <= lo.tier) continue;
       const better = armScore(hi.combat) >= armScore(lo.combat) && hi.combat.pen >= lo.combat.pen && hi.combat.range >= lo.combat.range && hi.combat.turnSpeed >= lo.combat.turnSpeed;

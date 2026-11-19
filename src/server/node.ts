@@ -16,6 +16,7 @@
 // Accounts (login ID + password, see accounts.ts) live in siderarium_accounts / siderarium_sessions
 // (or data/accounts.json without a database). The WebSocket only opens for a valid session cookie.
 import { DEV_CARRIER_RELEASE } from '../content/carrierRelease';
+import { DEV_REPAIR_RELEASE } from '../content/repairRelease';
 import http from 'node:http';
 import { monitorEventLoopDelay } from 'node:perf_hooks';
 import fs from 'node:fs';
@@ -43,6 +44,14 @@ if (DEV_CARRIER_RELEASE && process.env.DATABASE_URL) {
 }
 if (process.env.CARRIERS_P16_MIGRATE === '1' && !DEV_CARRIER_RELEASE)
   throw new Error('P16 항모 시장 이전은 개발 공개 모드에서만 허용합니다 — 운영 마이그레이션 미승인');
+// P16.7: the repair switch is development-only as well (same temporary-database rule); no production migration
+if (DEV_REPAIR_RELEASE && process.env.DATABASE_URL) {
+  let local = false;
+  try { local = ['localhost', '127.0.0.1', '::1'].includes(new URL(process.env.DATABASE_URL).hostname); } catch { /* invalid URL is unsafe */ }
+  if (!local || process.env.P16_DEV_TEMP_DB !== '1') throw new Error('P16.7 개발 수리함 공개는 임시 로컬 DB에서만 허용합니다 (P16_DEV_TEMP_DB=1)');
+}
+if (process.env.REPAIR_P167_MIGRATE === '1' && !DEV_REPAIR_RELEASE)
+  throw new Error('P16.7 수리 장비 시장 이전은 개발 공개 모드에서만 허용합니다 — 운영 마이그레이션 미승인');
 
 const PORT = Number(process.env.PORT ?? 8080);
 const ROOT = path.resolve(process.env.STATIC_DIR ?? 'dist');
@@ -353,7 +362,7 @@ async function main() {
   }
   let saver: Saver | null = null;
   const game = new GameServer(saved, {
-    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, ...worldFlags, repMigrate: process.env.REPUTATION_P14_MIGRATE === '1', derelictMigrate: process.env.DERELICTS_A32B_MIGRATE === '1', officerMigrate: process.env.OFFICERS_B1_MIGRATE === '1', milMigrate: process.env.MILITARY_B2_MIGRATE === '1', sovMigrate: process.env.TERRITORY_B3_MIGRATE === '1', indMigrate: process.env.INDUSTRIAL_MIGRATE === '1', cpuMigrate: process.env.COMPUTERS_P151_MIGRATE === '1', carrierMigrate: process.env.CARRIERS_P16_MIGRATE === '1',
+    singleplayer: false, accounts: true, migrateContent: applyContent, migrateEcon: applyEcon, ...worldFlags, repMigrate: process.env.REPUTATION_P14_MIGRATE === '1', derelictMigrate: process.env.DERELICTS_A32B_MIGRATE === '1', officerMigrate: process.env.OFFICERS_B1_MIGRATE === '1', milMigrate: process.env.MILITARY_B2_MIGRATE === '1', sovMigrate: process.env.TERRITORY_B3_MIGRATE === '1', indMigrate: process.env.INDUSTRIAL_MIGRATE === '1', cpuMigrate: process.env.COMPUTERS_P151_MIGRATE === '1', carrierMigrate: process.env.CARRIERS_P16_MIGRATE === '1', repairMigrate: process.env.REPAIR_P167_MIGRATE === '1',
     // Verify migration conservation before the intentionally granted BB-EX changes the census.
     deferExclusiveGrant: true,
     adminAccounts, ...(bbOwner ? { exclusiveOwner: bbOwner } : {}),

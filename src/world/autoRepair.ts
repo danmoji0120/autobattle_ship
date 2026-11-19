@@ -51,6 +51,8 @@ export function setRepairPolicy(h: WorldSim, owner: string, s: RepairSettings): 
 /** ships automatic repair looks after: automatic-logistics haulers and mining fleets' own haulers */
 function covered(h: WorldSim, s: WShip): boolean {
   if (s.hp <= 0 || s.state === 'building' || s.reserve || s.listed) return false;
+  // P16.7: a ship a field repair ship is working on stays where it is
+  if (s.frAt !== undefined && h.time - s.frAt < 30) return false;
   const g = h.st.groups[s.groupId]; if (!g) return false;
   if (s.classId === 'hauler' && h.opOf(g).k === 'mine') return true;
   return poolMember(h.st, s) && h.opOf(g).k === 'idle' && econOf(s).cargo > 0;

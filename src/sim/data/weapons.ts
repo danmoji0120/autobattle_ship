@@ -1,11 +1,25 @@
 /** 'craft' (P16, battle rules ≥ 3): a strike-craft weapon on an H (hangar) mount. It fires nothing itself:
  *  the mount launches a squadron of light craft (sim/craft.ts) described by WeaponDef.craft. Its
  *  `salvo` is 0, so generic firepower sums (damage × salvo / reload) count it as no gun firepower. */
-export type WeaponKind = 'shell' | 'missile' | 'torpedo' | 'pd' | 'craft';
+export type WeaponKind = 'shell' | 'missile' | 'torpedo' | 'pd' | 'craft' | 'repair';
 /** P16: a strike-craft (H slot) weapon — no gun: never part of gun range, gun firepower or gun bands */
 export const isCraft = (w: { kind: WeaponKind } | undefined): boolean => w?.kind === 'craft';
 /** a weapon that fires at ships itself (shell / missile / torpedo): what gun range and firepower sums count */
-export const isShipGun = (w: { kind: WeaponKind } | undefined): boolean => !!w && w.kind !== 'pd' && w.kind !== 'craft';
+export const isShipGun = (w: { kind: WeaponKind } | undefined): boolean => !!w && w.kind !== 'pd' && w.kind !== 'craft' && w.kind !== 'repair';
+/** P16.7: a combat repair rig on a support (R) hardpoint — no gun: it repairs friendly ships (sim/repair.ts) */
+export const isRepair = (w: { kind: WeaponKind } | undefined): boolean => w?.kind === 'repair';
+/** one-line summary of a combat repair rig (UI: fitting, lab, catalogue) */
+export function repairSummary(w: { repair?: RepairStats; range: number; reload: number }): string {
+  const r = w.repair; if (!r) return '';
+  return `응급 수리 — ${w.reload}초마다 아군 1척 · 선체 최대체력 ${(r.hull * 100).toFixed(1)}% · 화재·기관·함교·무장 손상 시간 ${Math.round(r.crit * 100)}% 단축 · 사거리 ${w.range}`;
+}
+/** P16.7 combat repair rig (kind 'repair'): what one work cycle (`reload` seconds) does to one friendly ship */
+export interface RepairStats {
+  /** hull restored per cycle, as a share of the target's maximum hull (within the battle's emergency budget) */
+  hull: number;
+  /** share of the remaining fire / engine / bridge / weapon damage time cut per cycle */
+  crit: number;
+}
 const ROLE_KO = { fighter: '전투기', bomber: '뇌격기', interceptor: '요격기' } as const;
 /** one-line summary of a strike-craft weapon (UI: fitting, lab, catalogue) */
 export function craftSummary(w: { craft?: CraftStats }): string {
@@ -66,7 +80,7 @@ export interface WeaponDef {
   /** what it is for (target preference) */
   role?: 'anti-small' | 'general' | 'anti-capital' | 'pd';
   /** hardpoint category (default: derived from kind / built-in ids) */
-  hp?: 'ballistic' | 'energy' | 'missile' | 'pd' | 'hangar';
+  hp?: 'ballistic' | 'energy' | 'missile' | 'pd' | 'hangar' | 'support';
   /** effectiveness against shields (default 1) */
   vsShield?: number;
   /** combat visual: tracer/beam colour (0xRRGGBB) and size */
@@ -86,6 +100,8 @@ export interface WeaponDef {
   p15?: { unguided?: boolean; magazine?: number };
   /** P16: strike craft launched by a kind 'craft' weapon */
   craft?: CraftStats;
+  /** P16.7: what a kind 'repair' rig does per cycle */
+  repair?: RepairStats;
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {

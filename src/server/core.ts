@@ -6,7 +6,7 @@ import { migrateTerritory } from '../world/sovereignty';
 import { backgroundOf } from '../world/backgrounds';
 import { migrateRep } from '../world/repMigrate';
 import { migrateOfficers } from '../world/officers';
-import { migrateIndustrial, migrateComputers, migrateCarriers } from '../world/industrialGear';
+import { migrateIndustrial, migrateComputers, migrateCarriers, migrateRepair } from '../world/industrialGear';
 import { enableDerelicts } from '../world/derelicts';
 import { newWorldOptions, type WorldPreset } from '../world/worldPreset';
 import { Analytics, type AnalyticsOptions } from './analytics';
@@ -77,6 +77,8 @@ export interface ServerOptions {
   cpuMigrate?: boolean;
   /** P16.3 carrier gear markets (refused while carriers are a preview) */
   carrierMigrate?: boolean;
+  /** P16.7 repair gear market rows (REPAIR_P167_MIGRATE=1; only under the development repair switch) */
+  repairMigrate?: boolean;
   /** B-2: turn PMC military contracts on for an existing P11/P12 save (MILITARY_B2_MIGRATE=1; idempotent, existing contracts untouched) */
   milMigrate?: boolean;
   /** B-3: turn sovereignty & territory war on for an existing P10/P11/P12 save (TERRITORY_B3_MIGRATE=1; idempotent; no system changes hands) */
@@ -143,6 +145,7 @@ export class GameServer {
     if (save && opts.indMigrate) { const r = migrateIndustrial(this.sim.st); console.log(`[siderarium] 산업 하드포인트: ${r.applied ? `적용 — 함선 ${r.ships}척 · 장비 ${r.gear}개 지급 · 시장 ${r.markets}행` : `건너뜀 — ${r.reason}`}`); }
     if (save && opts.cpuMigrate) { const r = migrateComputers(this.sim.st); console.log(`[siderarium] P15.1 전투 컴퓨터 판매: ${r.applied ? `적용 — 시장 ${r.markets}행` : `건너뜀 — ${r.reason}`}`); }
     if (save && opts.carrierMigrate) { const r = migrateCarriers(this.sim.st); console.log(`[siderarium] P16 항모 장비 판매: ${r.applied ? `적용 — 시장 ${r.markets}행` : `건너뜀 — ${r.reason}`}`); }
+    if (save && opts.repairMigrate) { const r = migrateRepair(this.sim.st); console.log(`[siderarium] P16.7 수리 장비 판매: ${r.applied ? `적용 — 시장 ${r.markets}행` : `건너뜀 — ${r.reason}`}`); }
     if (save && opts.officerMigrate) { const r = migrateOfficers(this.sim.st); console.log(`[siderarium] B-1 장교 육성: 전환 ${r.converted}명 · 기존 ${r.already}명 · 제외 ${r.skipped}명`); }
     this.analytics = opts.analytics?.enabled === false ? null : new Analytics(this.sim, save?.analytics, opts.analytics);
     if (!this.analytics && save?.analytics) { this.inactiveAnalytics = structuredClone(save.analytics); this.inactiveAnalytics.pausedAt ??= this.sim.time; }

@@ -89,6 +89,9 @@ describe('P16.2 fitting rules (T6): hull structure and equipment decide, not the
       if (hp.type === 'hangar') continue;
       for (const eq of weaponsEq) {
         if (CRAFT_EQ.includes(eq)) { expect(hpAccepts(hp, eq), `${v}/${hp.id} ${eq}`).toMatch(/격납\(H\)/); continue; }
+        // P16.7: combat repair rigs fit only support (R) hardpoints, and support hardpoints take only them
+        const isRep = WEAPONS[EQUIPMENT[eq]?.weapon ?? '']?.kind === 'repair';
+        if (isRep || hp.type === 'support') { if (!(isRep && hp.type === 'support')) expect(hpAccepts(hp, eq), `${v}/${hp.id} ${eq}`).not.toBeNull(); continue; }
         expect(hpAccepts(hp, eq) === null, `${v}/${hp.id} ${eq}`).toBe(oldHpAccepts(hp, eq) === null);
         n++;
       }

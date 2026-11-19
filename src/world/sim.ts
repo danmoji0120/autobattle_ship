@@ -2,6 +2,7 @@
 // and inside the browser (single player). All state lives in `st` (plain JSON).
 
 import { DEV_CARRIER_RELEASE } from '../content/carrierRelease';
+import { DEV_REPAIR_RELEASE } from '../content/repairRelease';
 import { emit, emitMetric, metricBatch, observing, watchMoney, observedWork, observationCostMs } from './observe';
 import { putRoute, controlRoutes, manualRoutes, pauseManualRoutes, maintainRoutes, stepRouteShip, usableRouteGate, withdrawRouteCargo, type RouteConfig } from './logistics';
 import { createPoolJob, controlPoolJob, setPoolShips, interruptPoolShips, dispatchPool, maintainPool, stepPoolShip, type PoolRequest } from './autonomousLogistics';
@@ -10,7 +11,7 @@ import { pruneLogisticsJobs } from './retention';
 /** P12.5: finished automatic shipments kept per company as history (older ones are pruned) */
 const AUTO_JOB_HISTORY = 100;
 import { enableAutoLogistics } from './logisticsMigrate';
-import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers, migrateCarriers } from './industrialGear';
+import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers, migrateCarriers, migrateRepair } from './industrialGear';
 import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, type RepairSettings } from './autoRepair';
 import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
@@ -213,6 +214,7 @@ const START_CREDITS_LEGACY = 7000;
 import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
+import { stepFieldRepair, stepRepairOrder, validateFieldRepair } from './fieldRepair';
 import { enableDerelicts, stepDerelicts, nudgeHomeRegion, DERELICT_CFG } from './derelicts';
 import { acceptSalvageContract, postSalvageContracts, refundSalvage, salvageContractsTick } from './salvageContracts';
 import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContractFailed, hullGate } from './reputation';
@@ -337,6 +339,8 @@ export class WorldSim {
     // P16.6: only the explicitly opted-in development build stocks carrier gear in new worlds.
     // Published builds remain unchanged. Existing worlds require the separate migration flag.
     if (DEV_CARRIER_RELEASE && growthOn(sim.st)) migrateCarriers(sim.st);
+    // P16.7: likewise repair gear, under its own switch (content/repairRelease.ts)
+    if (DEV_REPAIR_RELEASE && growthOn(sim.st)) migrateRepair(sim.st);
     return sim;
   }
 
@@ -2065,6 +2069,7 @@ export class WorldSim {
     if (p12 !== undefined) return p12;
     if (op.k === 'lootTender') return validateTender(this, company, g, op, sub);
     if (op.k === 'recover' || op.k === 'salvzone') return validateSalvage(this, company, sub, op);
+    if (op.k === 'fieldrepair' || op.k === 'repairzone') return validateFieldRepair(this, company, sub, op);
     if (op.k === 'smuggle') return validateSmuggle(this, company, sub, op);
     if (op.k === 'salvage' && this.st.salvageV) return '이 세계에는 유기선 인양 지점이 없습니다 — 전장 잔해를 지정해 인양하세요';
     switch (op.k) {
@@ -2324,6 +2329,8 @@ export class WorldSim {
       if (growthOn(st)) for (const co of Object.values(st.companies)) if (co.pendingLoot) this.recoverLoot(co);
       if (st.piracyV && st.drops) for (const d of expireDrops(st, this.time)) for (const c of d.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${d.name} ${d.lots.length ? '소멸 — 남은 화물은 흩어졌습니다' : '회수 완료'}`, { company: c, pos: d.pos, ref: d.id, tag: 'piracy' });
       if (st.derelictV) stepDerelicts(st, this.time);
+      // P16.7: field repair ships work on damaged own ships in reach (industrial hardpoint worlds only)
+      if (st.indV) stepFieldRepair(this, sdt);
       if (st.salvageV && (st.wrecks || st.drops)) { markSeen(st); for (const w of expireWrecks(st, this.time)) for (const c of w.seen) if (st.companies[c]?.kind === 'player') this.ev('info', `${w.name} ${w.lots.length ? '소멸 — 남은 잔해는 흩어졌습니다' : '회수 완료'}`, { company: c, pos: w.pos, ref: w.id, tag: 'salvage' }); }
       this.npcSlow();
       if (this.st.combatV === 2) this.detectEngagementsP11(); else this.detectEngagements();
@@ -2800,6 +2807,8 @@ export class WorldSim {
     }
     // P13.3: a smuggling run (load → gates → dock → sell)
     if (op.k === 'smuggle') { if (stepSmuggle(this, g, ships, op, dt)) return; }
+    // P16.7: field repair orders (the repair work itself runs for every repair ship in stepFieldRepair)
+    if (op.k === 'fieldrepair' || op.k === 'repairzone') { stepRepairOrder(this, g, ships, op, dt); return; }
     // P13.1: recovery orders and on-site pickup after a battle (before the fleet operations it may pause)
     if (this.st.salvageV && stepSalvage(this, g, ships, op, dt, c)) return;
     if (this.st.opsV && P12_OPS.has(op.k)) {

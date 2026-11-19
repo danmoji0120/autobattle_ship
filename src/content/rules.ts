@@ -10,13 +10,14 @@ export function weaponType(weapon: string): HardpointType {
   const w = WEAPONS[weapon];
   if (!w) return 'universal';
   if (w.kind === 'craft') return 'hangar';   // P16: whatever `hp` says, strike craft are H-slot equipment
+  if (w.kind === 'repair') return 'support';   // P16.7: combat repair rigs are R-slot equipment
   if (w.hp) return w.hp;
   if (w.kind === 'pd') return 'pd';
   if (w.kind === 'missile' || w.kind === 'torpedo') return 'missile';
   return weapon === 'pulse_laser' || weapon === 'particle_lance' ? 'energy' : 'ballistic';
 }
 
-export const TYPE_NAME: Record<HardpointType, string> = { ballistic: '실탄', energy: '에너지', missile: '미사일', universal: '범용', pd: '방공', hangar: '격납(H)' };
+export const TYPE_NAME: Record<HardpointType, string> = { ballistic: '실탄', energy: '에너지', missile: '미사일', universal: '범용', pd: '방공', hangar: '격납(H)', support: '지원(R)' };
 export const MOUNT_NAME: Record<string, string> = { turret: '포탑', fixed: '고정', vls: '수직발사', spinal: '척추', deck: '비행갑판' };
 export const BAY_NAME: Record<string, string> = { engine: '엔진', reactor: '동력', sensor: '센서', fcs: '사격통제', ew: '전자전', armor: '장갑', special: '범용', industrial: '산업', computer: '전투 컴퓨터', flight: '항공 장비' };
 
@@ -35,6 +36,9 @@ export function hpAccepts(hp: HardpointDef, equipId: string, reg: Registry = CON
   // before size so the reason shown is the real one.
   if (hp.type === 'hangar' && t !== 'hangar') return `격납(H) 하드포인트에는 함재기 무장만`;
   if (t === 'hangar' && hp.type !== 'hangar') return `함재기 무장은 격납(H) 하드포인트에만 장착`;
+  // P16.7: likewise the support (R) slot and combat repair rigs belong only to each other
+  if (hp.type === 'support' && t !== 'support') return `지원(R) 하드포인트에는 전투 수리 장비만`;
+  if (t === 'support' && hp.type !== 'support') return `전투 수리 장비는 지원(R) 하드포인트에만 장착`;
   if (sizeRank(spec.size) > sizeRank(hp.size)) return `크기 초과 — 장비 ${spec.size}, 하드포인트 ${hp.size}`;
   if (hp.type === 'pd' && t !== 'pd') return `방공 하드포인트에는 방공 무장만`;
   if (t !== 'pd' && hp.type !== 'universal' && hp.type !== t) return `${TYPE_NAME[hp.type]} 하드포인트에 ${TYPE_NAME[t]} 무장 불가`;

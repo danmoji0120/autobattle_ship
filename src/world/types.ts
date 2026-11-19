@@ -144,6 +144,10 @@ export type Op =
   | { k: 'recover'; wreck: string; illegal?: boolean }
   /** P13.1: salvage zone — the commander picks wrecks around `at`, unloads at a station and comes back, until told otherwise */
   | { k: 'salvzone'; at: V; radius: number; illegal?: boolean }
+  /** P16.7: field repair — fly to one own ship and repair its hull to full (repair ships with field repair gear) */
+  | { k: 'fieldrepair'; ship: string }
+  /** P16.7: field repair zone — the commander picks damaged own ships around `at`, repairs them, comes back; continuing */
+  | { k: 'repairzone'; at: V; radius: number }
   // P12 fleet operations (opsV worlds only): the order names the purpose, the commander decides how
   | { k: 'rally'; at: V }
   | { k: 'defend'; at: V; radius: number }
@@ -198,6 +202,9 @@ export interface WShip {
   fitting?: import('./fitting').ShipFitting;
   /** industrial hardpoint rules (indV worlds): this ship mines / builds / salvages only with fitted gear */
   ind?: 1;
+  /** P16.7 field repair: on a repair ship — its current patient, credits run up but not yet booked, last status line;
+   *  on a patient — last time it was field-repaired (automatic station repair leaves it alone meanwhile) */
+  frTarget?: string; frBill?: number; frNote?: string; frAt?: number;
   name: string;
   hp: number;                // 0..1 hull fraction (persists between battles)
   pos: V; vel: V; heading: number;
@@ -658,6 +665,8 @@ export interface WorldState {
   cpuV?: number;
   /** P16.3: carrier gear market rows added (migrateCarriers; only after carriers are released) */
   carrierV?: 1;
+  /** P16.7: repair gear market rows stocked (new worlds under the repair switch, or the explicit migration) */
+  repairV?: 1;
   /** A-3.2b natural derelicts and salvage contracts (salvageV worlds; new standard worlds, saves by explicit migration) */
   derelictV?: 1;
   /** B-1 officer development (new standard worlds; saves by explicit migration OFFICERS_B1_MIGRATE) */

@@ -1,6 +1,7 @@
 // Content registry: merges every pack into id-indexed tables. Game code reads hulls, variants,
 // presets and assets only through here. Pure data — safe on server and client.
 import { DEV_CARRIER_RELEASE, DEV_CARRIER_HULL_ID } from './carrierRelease';
+import { DEV_REPAIR_RELEASE, DEV_REPAIR_HULL_ID } from './repairRelease';
 import type { AssetDef, BlueprintDef, ContentPack, EquipSpec, HardpointDef, HullDef, InternalSlotDef, LegacyLoadoutMap, PresetDef, VariantDef, ArmContent, ModuleContent, ItemContent, TechContent, FacilityContent, RecipeContent, WeaponFamily, ExclusiveArm, ExclusiveModule } from './schema';
 import { PACKS } from './packs';
 import { COMPUTER_BAY } from './schema';
@@ -111,7 +112,7 @@ export function installContent(r: Registry) {
   for (const id of [...Object.keys(r.arms), ...Object.keys(r.modules), ...Object.keys(r.exArms), ...Object.keys(r.exModules)]) INSTALLED_EQUIPMENT.add(id);
   for (const a of Object.values(r.exArms)) {
     const wid = armWeaponId(a.id), c = a.combat;
-    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind === 'craft' ? 'auto' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: c.kind === 'craft' ? 'hangar' : familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
+    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind === 'craft' ? 'auto' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: c.kind === 'craft' ? 'hangar' : c.kind === 'repair' ? 'support' : familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
     EQUIPMENT[a.id] ??= { id: a.id, name: a.name, kind: 'weapon', weapon: wid, size: sizeNum(a.size), desc: a.desc, growth: true, exclusive: true };
   }
   for (const m of Object.values(r.exModules)) EQUIPMENT[m.id] ??= { id: m.id, name: m.name, kind: 'module', size: sizeNum(m.size), desc: m.desc, growth: true, exclusive: true };
@@ -119,7 +120,7 @@ export function installContent(r: Registry) {
   for (const a of Object.values(r.arms)) {
     const wid = armWeaponId(a.id), g = r.growthOnly.has(a.id);
     const c = a.combat;
-    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind === 'craft' ? 'auto' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: c.kind === 'craft' ? 'hangar' : familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
+    WEAPONS[wid] ??= { id: wid, name: a.name, desc: a.desc, ...c, sound: c.sound ?? (c.kind === 'shell' ? 'medium' : c.kind === 'craft' ? 'auto' : c.kind), family: a.family, tier: a.tier, role: a.role, hp: c.kind === 'craft' ? 'hangar' : c.kind === 'repair' ? 'support' : familyHp(a.family), vsShield: c.vsShield ?? 1, ...(a.vis ? { vis: { color: hex(a.vis.color), len: a.vis.len, wid: a.vis.wid, beam: a.vis.beam } } : {}) };
     EQUIPMENT[a.id] ??= { id: a.id, name: a.name, kind: 'weapon', weapon: wid, size: sizeNum(a.size), desc: a.desc, ...(a.tech ? { tech: a.tech } : {}), ...(a.supply ? { supply: a.supply } : {}), ...(g ? { growth: true } : {}) };
     RECIPES[a.id] ??= { id: a.id, name: `${a.name} 생산`, fac: a.recipe.fac, time: a.recipe.time, in: a.recipe.in, out: { [a.id]: 1 }, ...(a.tech ? { tech: a.tech } : {}), ...(g ? { growth: true } : {}) };
   }
@@ -189,13 +190,19 @@ export function legacyOf(classId: string, loadoutId: string, reg: Registry = CON
 
 /** P16: a hull the world has released (not a dev, account-exclusive or preview hull) — catalogues, purchase,
  *  construction and blueprint offers use only these */
-export const hullReleased = (hullId: string | undefined, reg: Registry = CONTENT): boolean => { const h = hullId ? reg.hulls[hullId] : undefined; return !!h && !h.dev && !h.exclusive && (!h.preview || (DEV_CARRIER_RELEASE && hullId === DEV_CARRIER_HULL_ID)); };
+export const hullReleased = (hullId: string | undefined, reg: Registry = CONTENT): boolean => { const h = hullId ? reg.hulls[hullId] : undefined; return !!h && !h.dev && !h.exclusive && (!h.preview || (DEV_CARRIER_RELEASE && hullId === DEV_CARRIER_HULL_ID) || (DEV_REPAIR_RELEASE && hullId === DEV_REPAIR_HULL_ID)); };
 /** P16.3: equipment a released hull can use. Strike-craft weapons fit only an H (hangar) hardpoint and
  *  aviation modules only a flight bay — while no released hull has one, that gear is useless to a player,
  *  so production, purchase and reverse-engineering refuse it (docs/P16_3_CARRIER_OPERATIONS.md §2). Every
  *  other item is released. */
 export function gearReleased(equipId: string, reg: Registry = CONTENT): boolean {
   const spec = reg.equipment[equipId]; if (!spec) return true;
+  // P16.7 repair content has its own release switch (separate from the carrier's): field repair rigs fit any
+  // industrial bay, so they are held back by the switch itself; combat repair rigs and the support computer
+  // need a released hull with a support (R) hardpoint
+  if (reg.modules[equipId]?.ind?.work === 'repair') return DEV_REPAIR_RELEASE;
+  const support = (spec.slot === 'hardpoint' && reg.arms[equipId]?.combat.kind === 'repair') || reg.modules[equipId]?.cpu?.arch === 'support';
+  if (support) return Object.values(reg.variants).some(v => hullReleased(v.hull, reg) && !!variantLayout(v.id, reg)?.hardpoints.some(h => h.type === 'support'));
   // the carrier computer only does something on a ship with strike craft
   const craft = (spec.slot === 'hardpoint' && reg.arms[equipId]?.combat.kind === 'craft') || reg.modules[equipId]?.cpu?.arch === 'carrier';
   const flight = spec.slot === 'flight';

@@ -14,10 +14,10 @@ import type { Group, Ship, Order, Mount } from '../types';
 import type { WeaponDef } from '../data/weapons';
 
 /** behaviour archetypes. 'carrier' (P16.3) needs strike craft in the battle (rules ≥ 3); without them it fights as basic. */
-export type CpuArch = 'basic' | 'swarm' | 'picket' | 'line' | 'artillery' | 'siege' | 'carrier';
-export const CPU_ARCHS: CpuArch[] = ['basic', 'swarm', 'picket', 'line', 'artillery', 'siege', 'carrier'];
+export type CpuArch = 'basic' | 'swarm' | 'picket' | 'line' | 'artillery' | 'siege' | 'carrier' | 'support';
+export const CPU_ARCHS: CpuArch[] = ['basic', 'swarm', 'picket', 'line', 'artillery', 'siege', 'carrier', 'support'];
 /** archetypes with a working behaviour in this build */
-export const CPU_ACTIVE: CpuArch[] = ['swarm', 'picket', 'line', 'artillery', 'siege', 'carrier'];
+export const CPU_ACTIVE: CpuArch[] = ['swarm', 'picket', 'line', 'artillery', 'siege', 'carrier', 'support'];
 
 /** what a battle needs to know about a fitted computer (ShipSpec.cpu): serialised with the setup, so a
  *  replay never depends on the content tables. Product id and archetype are separate on purpose. */
@@ -29,7 +29,7 @@ export interface CpuSpec {
   react?: number;
 }
 
-export const CPU_NAME: Record<CpuArch, string> = { basic: '기본 제어', swarm: '군집·돌격', picket: '초계', line: '전열', artillery: '포격', siege: '공성·뇌격', carrier: '항모' };
+export const CPU_NAME: Record<CpuArch, string> = { basic: '기본 제어', swarm: '군집·돌격', picket: '초계', line: '전열', artillery: '포격', siege: '공성·뇌격', carrier: '항모', support: '지원·수리' };
 /** one-line tactic summary (fitting UI) */
 export const CPU_TACTIC: Record<CpuArch, string> = {
   basic: '함대 대형·지휘관 교전 거리를 그대로 따름',
@@ -39,9 +39,10 @@ export const CPU_TACTIC: Record<CpuArch, string> = {
   artillery: '주무장 최장 사거리 · 접근당하면 거리를 벌리고 측방 이동',
   siege: '대형함에 어뢰 사거리까지 돌입, 측후방 발사각 확보 후 이탈·재진입',
   carrier: '적 함포 사거리 밖·비행대 작전 반경 안을 유지, 접근·유도탄에 회피, 호위 함대와 이격 제한 (함재기 없으면 기본 제어)',
+  support: '전열 뒤편에서 수리할 아군 곁(수리 사거리 안)을 유지, 적 함포 사거리에 들면 후퇴 (수리 장비 없으면 기본 제어)',
 };
 /** which band of the usable weapons sets the range (UI) */
-export const CPU_BAND: Record<CpuArch, string> = { basic: '함대 기준', swarm: '최소', picket: '중앙값', line: '중앙값', artillery: '최대', siege: '어뢰', carrier: '작전 반경' };
+export const CPU_BAND: Record<CpuArch, string> = { basic: '함대 기준', swarm: '최소', picket: '중앙값', line: '중앙값', artillery: '최대', siege: '어뢰', carrier: '작전 반경', support: '수리 사거리' };
 
 /** usable weapon ranges of a ship right now. min / median / max are taken over the attack weapons
  *  (shell, missile, torpedo) that can still fire and bear forward, weighted by damage per second;
@@ -106,7 +107,7 @@ interface BandRow { w: WeaponDef; f: number; arc: number }
 export function bandsOf(rows: BandRow[], unguided: (w: WeaponDef) => boolean): Bands {
   // best facing: the bow offset (0, ±60°, ±90°) that brings the most attack firepower to bear
   let offset = 0, bestDps = -1, beam = 0, all = 0;
-  const atk = rows.filter(r => r.w.kind !== 'pd' && r.w.kind !== 'craft');
+  const atk = rows.filter(r => r.w.kind !== 'pd' && r.w.kind !== 'craft' && r.w.kind !== 'repair');
   for (const off of [0, 60 * DEG, -60 * DEG, 90 * DEG, -90 * DEG]) {
     let d = 0; for (const r of atk) if (bearsAt(r.f, r.arc, off)) d += dpsOf(r.w);
     if (d > bestDps * 1.15) { bestDps = d; offset = off; }
@@ -117,7 +118,7 @@ export function bandsOf(rows: BandRow[], unguided: (w: WeaponDef) => boolean): B
   let pd = 0, torp = 0, total = 0, ung = false;
   for (const r of rows) {
     if (r.w.kind === 'pd') { pd = Math.max(pd, r.w.range); continue; }
-    if (r.w.kind === 'craft') continue;   // P16: strike craft are not a gun band
+    if (r.w.kind === 'craft' || r.w.kind === 'repair') continue;   // P16: strike craft (P16.7: repair rigs) are not a gun band
     if (!bearsAt(r.f, r.arc, offset) && r.arc < 170) continue;
     const d = dpsOf(r.w);
     if (r.w.kind === 'torpedo') { torp = Math.max(torp, r.w.range); if (unguided(r.w)) ung = true; }
@@ -157,7 +158,7 @@ export function cpuSummary(arch: CpuArch, mounts: { weapon: string; facing: numb
   const b = bandsOf(mounts.filter(m => weapons[m.weapon]).map(m => ({ w: weapons[m.weapon], f: m.facing * DEG, arc: m.arc })), x => !!x.p15?.unguided);
   const r = cpuRange(arch, b);
   const pace = react !== undefined && react !== 1 ? ` · 판단 ${react}초` : '';
-  if (arch === 'basic' || arch === 'carrier') return `${CPU_NAME[arch]} — ${CPU_TACTIC[arch]}`;
+  if (arch === 'basic' || arch === 'carrier' || arch === 'support') return `${CPU_NAME[arch]} — ${CPU_TACTIC[arch]}`;
   if (r === null) return `${CPU_NAME[arch]} — 맞는 무장 없음: 기본 제어로 동작`;
   return `${CPU_NAME[arch]} · 교전 ≈${Math.round(r)}m (${CPU_BAND[arch]}${arch === 'siege' ? '' : ` ${Math.round(arch === 'swarm' ? b.min : arch === 'artillery' ? b.max : b.dps > 0 ? b.med : b.pd)}m`})${pace} — ${CPU_TACTIC[arch]}`;
 }
@@ -172,7 +173,7 @@ export function orderAllows(g: Group, o: Order, arch: CpuArch): boolean {
   switch (o.type) {
     case 'engage': case 'attack': return true;
     case 'flank': return g.ai.phase === 'strike';
-    case 'escort': return arch === 'picket';
+    case 'escort': return arch === 'picket' || arch === 'support';
     default: return false;   // move / hold / reserve / retreat
   }
 }
@@ -217,6 +218,8 @@ export function steerComputers(w: World, g: Group, ships: Ship[], o: Order) {
     if (c.arch === 'basic') continue;
     // P16.3: a carrier computer runs only when the battle flies this ship's strike craft (rules ≥ 3)
     if (c.arch === 'carrier') { if (carrier(w, g, s, decide)) c.acting = 'carrier'; continue; }
+    // P16.7: a support computer steers only a ship that carries combat repair rigs
+    if (c.arch === 'support') { if (support(w, s)) c.acting = 'support'; continue; }
     if (c.arch === 'siege' && b.torp <= 0) continue;
     if (c.arch !== 'picket' && b.dps <= 0) continue;
     if (c.arch === 'picket' && b.dps <= 0 && b.pd <= 0) continue;
@@ -439,7 +442,7 @@ const CARRIER_MARGIN = 220, CARRIER_SEP = 1100;
 /** furthest a ship can hit with its usable guns, missiles and torpedoes (not point defence or craft) */
 function gunReach(e: Ship): number {
   let r = 0;
-  for (const m of e.mounts) if (usable(m) && m.weapon.kind !== 'pd' && m.weapon.kind !== 'craft' && m.weapon.range > r) r = m.weapon.range;
+  for (const m of e.mounts) if (usable(m) && m.weapon.kind !== 'pd' && m.weapon.kind !== 'craft' && m.weapon.kind !== 'repair' && m.weapon.range > r) r = m.weapon.range;
   return r;
 }
 function carrier(w: World, g: Group, s: Ship, decide: boolean): boolean {
@@ -504,6 +507,55 @@ function carrier(w: World, g: Group, s: Ship, decide: boolean): boolean {
   s.ai.faceTo = s.pos.distTo(P) < 250 ? (near ? near.pos : null) : null;
   s.ai.speedCap = s.maxSpeed;
   s.ai.run = null;
+  return true;
+}
+
+// ---------------------------------------------------------------- support
+// P16.7. A combat repair ship keeps behind its own line, near the friend its repair rigs are working on (or the one
+// that needs it most), inside the rigs' reach but never in front of the friendly centre toward the enemy. Inside
+// some enemy's gun reach it backs off (it carries almost no guns and is a priority target).
+const SUPPORT_BACK = 160;
+function support(w: World, s: Ship): boolean {
+  let reach = 0;
+  for (const m of s.mounts) if (m.weapon.kind === 'repair' && m.disabled <= 0 && m.weapon.range > reach) reach = m.weapon.range;
+  if (!reach) return false;
+  const foes = w.aliveEnemyShips(s.team);
+  if (!foes.length) return false;
+  const friends = w.ships.filter(f => f !== s && f.team === s.team && f.state === 'alive');
+  if (!friends.length) return false;
+  const F = w.centroid(friends, tmp3);
+  let near: Ship = foes[0], nd = Infinity, pressed = false;
+  const push = tmp.set(0, 0, 0);
+  // back off only when exposed: inside an enemy's gun reach AND either in front of our own line (nearer that
+  // enemy than the friendly centre is) or hit in the last few seconds. Behind the line it stays to work.
+  const hitNow = w.time - (s.hitAt ?? -99) <= 3;
+  for (const e of foes) {
+    const d = e.pos.distTo(s.pos), gr = gunReach(e);
+    if (d < nd) { nd = d; near = e; }
+    if (d < gr + 60 && (hitNow || d < e.pos.distTo(F) - 50)) { pressed = true; push.addScaled(tmp2.subVectors(s.pos, e.pos).normalize(), 1 + (gr - d) / Math.max(1, gr)); }
+  }
+  // the axis from the enemy toward our own line
+  const axis = tmp2.subVectors(F, near.pos); axis.y = 0;
+  if (axis.lengthSq() < 1) axis.copy(w.sides[s.team].home);
+  axis.normalize();
+  if (pressed) {
+    const away = push.lengthSq() > 1e-6 ? push.normalize() : axis;
+    s.ai.moveTo.copy(s.pos).addScaled(away, 500); s.ai.moveTo.y = s.pos.y;
+    s.ai.faceTo = null; s.ai.speedCap = s.maxSpeed; s.ai.run = null;
+    return true;
+  }
+  // the friend to stay with: the rigs' current patient, else the most damaged friend
+  let T = s.repTarget !== undefined ? w.shipById.get(s.repTarget) : undefined;
+  if (!T || T.state !== 'alive' || T.team !== s.team) {
+    let worst = -1;
+    for (const f of friends) { const need = 1 - f.hp / f.maxHp + (f.crit.fire > 0 ? 0.3 : 0) + (f.crit.engine > 0 || f.crit.bridge > 0 ? 0.15 : 0); if (need > worst) { worst = need; T = f; } }
+  }
+  const P = s.ai.moveTo.copy(T!.pos).addScaled(axis, reach * 0.55);
+  // never ahead of the friendly centre (toward the enemy)
+  const ahead = (P.x - F.x) * -axis.x + (P.z - F.z) * -axis.z + SUPPORT_BACK;
+  if (ahead > 0) P.addScaled(axis, ahead);
+  P.y = s.pos.y * 0.5 + T!.pos.y * 0.5;
+  s.ai.faceTo = null; s.ai.speedCap = s.maxSpeed; s.ai.run = null;
   return true;
 }
 

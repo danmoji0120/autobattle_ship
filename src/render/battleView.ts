@@ -214,6 +214,13 @@ export class BattleView implements FxHost {
         case 'highlight': break;
         case 'craftLaunch': this.craftView.launch(V(e.pos), w.shipById.get(e.ship)?.team ?? 0); break;
         case 'craftDown': this.craftView.down(V(e.pos), e.team); break;
+        case 'repair': {
+          // P16.7: a combat repair rig's work — a soft green link and a brief glow on the patient
+          const to = V(e.to);
+          this.beams.push({ a: V(e.from), b: to, life: 0.5, max: 0.5, w: 0.45, c: C(0x7dffb0) });
+          this.glow.emit(to, { life: 0.6, size: 4, size1: 9, color: 0x9dffc8, alpha: 0.7 });
+          break;
+        }
         case 'craftLeave': this.glow.emit(V(e.pos), { life: 0.3, size: 2.5, size1: 0.5, color: 0xa0c0ff, alpha: 0.6 }); break;
         default: if (this.ex && e.t.startsWith('ex')) this.ex.handle(e as never);
       }

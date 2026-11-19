@@ -269,7 +269,7 @@ function preferredRange(w: World, g: Group, ships: Ship[]): number {
       }
       continue;
     }
-    if (m.weapon.kind === 'pd' || m.weapon.kind === 'torpedo' || m.ammo <= 0) continue;
+    if (m.weapon.kind === 'pd' || m.weapon.kind === 'torpedo' || m.weapon.kind === 'repair' || m.ammo <= 0) continue;
     const dps = m.weapon.damage * m.weapon.salvo / m.weapon.reload;
     dpsByRange.set(m.weapon.range, (dpsByRange.get(m.weapon.range) ?? 0) + dps);
   }
@@ -476,7 +476,7 @@ function assignTargets(w: World, g: Group, ships: Ship[], tShips: Ship[], enemie
   }
   const score = (s: Ship, t: Ship) => {
     let eff = 0;
-    for (const m of s.mounts) if (m.weapon.kind !== 'pd' && m.weapon.kind !== 'craft') eff += m.weapon.damage / m.weapon.reload * m.weapon.salvo * w.suitability(m.weapon, t);
+    for (const m of s.mounts) if (m.weapon.kind !== 'pd' && m.weapon.kind !== 'craft' && m.weapon.kind !== 'repair') eff += m.weapon.damage / m.weapon.reload * m.weapon.salvo * w.suitability(m.weapon, t);
     const d = s.pos.distTo(t.pos);
     return eff * (1.3 - 0.7 * t.hp / t.maxHp) * (1 + t.value / 400) / (d + 400);
   };

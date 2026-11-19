@@ -152,7 +152,7 @@ function prospect(h: Host, ships: WShip[], w: SalvSite, illegal: boolean): { val
   return { value, units, time };
 }
 
-function hostileNear(h: Host, owner: string, p: V, r: number): boolean {
+export function hostileNear(h: Host, owner: string, p: V, r: number): boolean {
   for (const g of Object.values(h.st.groups)) {
     if (g.owner === owner || !g.shipIds.length || g.cooldown > 0 || coRelation(h.st, owner, g.owner) !== -1) continue;
     const c = h.groupCenter(g); if (!c || Math.abs(c.x - p.x) > r || dist(c, p) > r) continue;

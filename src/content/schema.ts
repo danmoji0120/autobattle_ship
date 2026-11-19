@@ -15,8 +15,8 @@ export const sizeRank = (s: Size) => SIZES.indexOf(s);
 
 /** what a hardpoint accepts (universal takes any non-PD gun or launcher; `hangar` = the P16 H slot, which
  *  takes strike-craft weapons only, and strike craft go nowhere else — rules.ts hpAccepts) */
-export type HardpointType = 'ballistic' | 'energy' | 'missile' | 'universal' | 'pd' | 'hangar';
-export const HARDPOINT_TYPES: HardpointType[] = ['ballistic', 'energy', 'missile', 'universal', 'pd', 'hangar'];
+export type HardpointType = 'ballistic' | 'energy' | 'missile' | 'universal' | 'pd' | 'hangar' | 'support';
+export const HARDPOINT_TYPES: HardpointType[] = ['ballistic', 'energy', 'missile', 'universal', 'pd', 'hangar', 'support'];
 
 /** how the weapon is mounted: turret (traverses within arc), fixed (aimed by turning the ship),
  *  vls (vertical launch: missiles, any bearing), spinal (keel-long, very narrow arc), deck (P16: a flight
@@ -60,9 +60,10 @@ export const COMPUTER_BAY: InternalSlotDef = { id: 'cpu1', kind: 'computer', siz
 /** P15.1 combat computer: the behaviour archetype it runs (sim/ai/computer.ts) and how fast it re-decides */
 export interface CpuModSpec { arch: import('../sim/ai/computer').CpuArch; /** re-decision interval s (default 1) */ react?: number }
 /** industrial work an `industrial` module performs (mining laser, construction rig, salvage rig) */
-export type IndWork = 'mine' | 'build' | 'salvage';
+export type IndWork = 'mine' | 'build' | 'salvage' | 'repair';
 /** what an industrial module does: mine = units/s, build = construction work rate (1 = the old
- *  standard constructor), salvage = multiplier on the salvage base rates (1 = the old constructor) */
+ *  standard constructor), salvage = multiplier on the salvage base rates (1 = the old constructor),
+ *  repair (P16.7) = field repair rate: hull share per hour on a size-S hull (world/fieldRepair.ts) */
 export interface IndSpec { work: IndWork; rate: number }
 export interface InternalSlotDef { id: string; kind: InternalKind; size: Size }
 
@@ -294,8 +295,8 @@ export interface AssetDef {
 // ─────────────────────────────────────────────── P5: weapons, research, facilities (growth content)
 
 /** weapon family: tiers of one family share a technology line and a look in combat */
-export type WeaponFamily = 'cannon' | 'coil' | 'laser' | 'plasma' | 'particle' | 'missile' | 'torpedo' | 'pd' | 'craft';
-export const WEAPON_FAMILIES: WeaponFamily[] = ['cannon', 'coil', 'laser', 'plasma', 'particle', 'missile', 'torpedo', 'pd', 'craft'];
+export type WeaponFamily = 'cannon' | 'coil' | 'laser' | 'plasma' | 'particle' | 'missile' | 'torpedo' | 'pd' | 'craft' | 'repair';
+export const WEAPON_FAMILIES: WeaponFamily[] = ['cannon', 'coil', 'laser', 'plasma', 'particle', 'missile', 'torpedo', 'pd', 'craft', 'repair'];
 /** what a weapon is for: target selection prefers matching targets, the UI explains the trade-off */
 export type WeaponRole = 'anti-small' | 'general' | 'anti-capital' | 'pd';
 /** the 13 research areas (each owns its own kinds of effect — see validate.ts AREA_EFFECTS) */
@@ -305,7 +306,7 @@ export const RESEARCH_AREAS: ResearchArea[] = ['hull', 'propulsion', 'power', 'k
 /** combat statistics of a weapon (the combat engine's WeaponDef without id/name/desc) */
 export interface WeaponStats {
   /** 'craft' (P16): a strike-craft squadron on a `hangar` (H) hardpoint — family 'craft', salvo 0, `craft` required */
-  kind: 'shell' | 'missile' | 'torpedo' | 'pd' | 'craft';
+  kind: 'shell' | 'missile' | 'torpedo' | 'pd' | 'craft' | 'repair';
   damage: number; pen: number; range: number; speed: number; reload: number;
   salvo: number; salvoGap: number; spread: number; turnSpeed: number; caliber: number;
   guidedTurn?: number; munitionHp?: number; pdChance?: number; magazine?: number;
@@ -318,6 +319,8 @@ export interface WeaponStats {
   p15?: { unguided?: boolean; magazine?: number };
   /** P16 strike craft (kind 'craft' only): what the squadron is and does (sim/data/weapons.ts CraftStats) */
   craft?: import('../sim/data/weapons').CraftStats;
+  /** P16.7 combat repair rig (kind 'repair' only, family 'repair', support hardpoint, salvo 0) */
+  repair?: import('../sim/data/weapons').RepairStats;
 }
 /** visual of a weapon in combat (tracer / beam colour and size) */
 export interface WeaponVis { color: string; len: number; wid: number; beam?: boolean }

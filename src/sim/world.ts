@@ -11,6 +11,7 @@ import { updateAI, orderKey, groupRoleOf } from './ai/commander';
 import { initCpu, CPU_ARCHS, cpuLaunchFactor, cpuOwnGuns, cpuPdCover } from './ai/computer';
 import { BBEX, BBEX_CLASS } from './bbex/data';
 import { CraftPool } from './craft';
+import { REPAIR_RULES, updateRepairMount } from './repair';
 import { initEx, placeEx, updateEx, exSteer, exWeaponsFree, exIncoming, exGraze, exVeto, exRewrite, exNoteHit, exNoteKill, exNoteShot, exSeek, exPhase } from './bbex/system';
 
 export interface BattleSetup {
@@ -118,6 +119,8 @@ export class World {
   private pdLoad = new Map<number, number>();
   /** P16 strike craft (rules ≥ 3 with a craft weapon present); null otherwise and none of it runs */
   craft: CraftPool | null = null;
+  /** P16.7: a ship with a combat repair rig is in this battle (any rules); false otherwise and none of sim/repair.ts runs */
+  repairOn = false;
 
   constructor(setup: BattleSetup) {
     this.setup = setup;
@@ -327,6 +330,7 @@ export class World {
     };
     if (ox) s.ofx = ox;
     if (fx.air) s.air = fx.air;
+    { const n = lo.mounts.reduce((a, md) => a + (WEAPONS[md.weapon]?.kind === 'repair' ? 1 : 0), 0); if (n) { s.rep = n; this.repairOn = true; } }
     if (fx.shield) { s.maxShield = s.shield = hp * fx.shield; s.shieldRegen = fx.shieldRegen ?? 0.02; s.shieldHitAt = -99; }
     lo.mounts.forEach((md, i) => {
       const f = md.facing * Math.PI / 180;
@@ -776,7 +780,9 @@ export class World {
     s.recentDamage *= Math.exp(-dt / 1.6);
     // B-1 emergency repair: after 4 s without a hull hit, up to a total share of the hull per battle
     if (s.ofx?.regen && s.hp < s.maxHp && this.time - (s.ofHit ?? -99) > 4) {
-      const room = s.maxHp * (0.1 + (s.ofx.regenCap ?? 0)) - (s.ofHeal ?? 0);
+      let room = s.maxHp * (0.1 + (s.ofx.regenCap ?? 0)) - (s.ofHeal ?? 0);
+      // P16.7: shared ceiling with repair ships (only a ship repair ships have worked on)
+      if (s.rpHeal) room = Math.min(room, s.maxHp * REPAIR_RULES.total - (s.ofHeal ?? 0) - s.rpHeal);
       if (room > 0) { const h = Math.min(room, s.maxHp - s.hp, s.maxHp * s.ofx.regen * dt); s.hp += h; s.ofHeal = (s.ofHeal ?? 0) + h; }
     }
     // shields recover once the ship has not been hit for 4 s
@@ -799,6 +805,7 @@ export class World {
       if (m.weapon.special) continue;   // driven by its own system (DCP-Ω)
       if (m.disabled > 0) { m.disabled -= dt; continue; }
       if (m.weapon.kind === 'craft') continue;   // P16: launches craft (sim/craft.ts); fires nothing itself
+      if (m.weapon.kind === 'repair') { updateRepairMount(this, s, m); continue; }   // P16.7: repairs friends (sim/repair.ts)
       m.cooldown -= dt;
       m.retarget -= dt;
       // re-acquire immediately when the current target is gone (critical for point defense)
@@ -952,6 +959,7 @@ export class World {
       const hitP = clamp((t.radius + 3) / (d * Math.max(w.spread, 0.004) * 3 + 1), 0.05, 1);
       let score = suit * hitP * (1.2 - 0.5 * t.hp / t.maxHp) * (t.id === s.ai.targetId ? (s.ofx?.focus ? 2.5 : 1.5) : 1) * (1 + t.value / 600);
       if (own) score *= this.gunThreat(s, m, t, d);
+      if (t.rep) score *= REPAIR_RULES.threatMul;   // P16.7: repair ships are priority targets
       if (score > bestScore) { bestScore = score; best = t.id; }
     }
     m.targetId = best;
@@ -1270,6 +1278,7 @@ export class World {
     if (ax) { const big = t.role === 'line'; dmg *= 1 + (big ? ax.dmgCap ?? 0 : ax.dmgSmall ?? 0) + (facing === 'rear' ? ax.rearDmg ?? 0 : 0); }
     else if (air && ao?.airDmg) dmg *= 1 + ao.airDmg;
     if (t.ofx) { if (t.ofx.brace && t.hp < t.maxHp * 0.3) dmg *= 1 - t.ofx.brace; t.ofHit = this.time; }
+    if (this.repairOn) t.hitAt = this.time;   // P16.7: repair ships see the last hull hit
     // P15: a large hull's subdivision limits what one hit can wreck (the stern is less protected)
     const struct = this.rules >= 1 ? t.cls.structure : undefined;
     if (struct && dmg > struct.bulk) dmg = struct.bulk + (dmg - struct.bulk) * (1 - struct.absorb * (facing === 'rear' ? 0.5 : 1));
@@ -1331,6 +1340,7 @@ export class World {
       if (dmg <= 0.5) { this.events.push({ t: 'hit', target: t.id, attacker: attackerId, pos: pos.clone(), dir: dir.clone(), dmg: 0, result: 'shield', weapon, facing: 'side' }); return; }
     }
     t.hp -= dmg; t.stats.dmgTaken += dmg; t.recentDamage += dmg; t.lastAttacker = attackerId; t.lastWeapon = weapon;
+    if (this.repairOn) t.hitAt = this.time;
     const a = this.shipById.get(attackerId);
     if (a) { a.stats.dmgDealt += dmg; a.stats.hits++; this.groupById.get(a.groupId)!.stats.dmgDealt += dmg; if (a.ex) exNoteHit(a, weapon, dmg); }
     this.events.push({ t: 'hit', target: t.id, attacker: attackerId, pos: pos.clone(), dir: dir.clone(), dmg, result: 'cut', weapon, facing: 'side' });

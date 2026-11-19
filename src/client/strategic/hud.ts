@@ -24,6 +24,7 @@ import { secAt, effSec } from '../../world/security';
 import { FACTION_NAME, LAIR_FOOTHOLD } from '../../world/factions';
 import { secBand } from '../../world/worldgen';
 import { sysAt, jumps } from '../../world/geom';
+import { repairGearRate } from '../../world/fieldRepair';
 import { coRelation } from '../../world/battleAuth';
 import { REL_COLOR } from '../../ui/perspective';
 import { CHART_STARS, chartPoint, chartRoute, chartSize, edgeKey } from './galaxyMap';
@@ -71,7 +72,7 @@ const fieldUses = (w: { regionalV?: number }, item: string) => [...new Set(Objec
 const fmtT = (t: number) => `${Math.floor(t / 3600) ? Math.floor(t / 3600) + ':' : ''}${String(Math.floor(t / 60) % 60).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const hpCol = (f: number) => f > 0.6 ? 'var(--good)' : f > 0.3 ? 'var(--warn)' : 'var(--enemy)';
 
-const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', recover: '잔해 인양', salvzone: '구역 인양', lootTender: '약탈 회수 지원', raid: '약탈', trade: '교역', guard: '경비', ...P12_OP_NAME };
+const OP_NAME: Record<string, string> = { idle: '대기', move: '이동', dock: '정박', mine: '채굴', haul: '운송', patrol: '순찰', escort: '호위', attack: '공격', build: '건설', found: '정거장 설립', survey: '탐사', salvage: '인양', recover: '잔해 인양', salvzone: '구역 인양', lootTender: '약탈 회수 지원', fieldrepair: '현장 수리', repairzone: '구역 현장 수리', raid: '약탈', trade: '교역', guard: '경비', ...P12_OP_NAME };
 
 export interface PmcHudOpts { onOpenBattle: (eng: string) => void; onExit: () => void; onAccount?: () => void }
 
@@ -1186,6 +1187,20 @@ export class PmcHud {
     return '';
   }
 
+  /** P16.7a: field repair — passive repair of the fleet, plus a target / zone order for repair ships */
+  private fieldRepairHtml(g: WGroup, sub: WShip[]): string {
+    const reps = sub.filter(s => repairGearRate(s) > 0);
+    if (!reps.length) return '';
+    const st = this.st, at = reps[0].pos;
+    const q = (op: object) => esc(JSON.stringify(op));
+    const near = Object.values(st.ships).filter(s => s.owner === this.me && s.hp < 0.999 && s.hp > 0 && !sub.includes(s) && s.state !== 'battle' && Math.hypot(s.pos.x - at.x, s.pos.z - at.z) < 30000)
+      .sort((a, b) => a.hp - b.hp).slice(0, 4);
+    const notes = reps.filter(s => s.frNote).map(s => `<div class="dim small">${esc(s.name)}: ${esc(s.frNote!)}</div>`).join('');
+    return `<div class="sect"><div class="small"><b>현장 수리</b> <span class="dim">— 수리 장비 ${reps.length}척. 편대 안 손상 함선은 명령 없이 자동 수리(크레딧·시간 소모, 마모 제외, 적대 함대 접근 시 중단).</span></div>
+      <div class="row small"><button class="btn mini" data-quick="${q({ k: 'repairzone', at: { x: at.x, y: at.y, z: at.z }, radius: 5000 })}" title="현 위치 반경 5km 안의 손상된 자사 함선을 차례로 수리합니다">수리 구역 지정 (현 위치 · 5km)</button>
+      ${near.map(s => `<button class="btn mini" data-quick="${q({ k: 'fieldrepair', ship: s.id })}">${esc(s.name)} 수리 (${Math.round(s.hp * 100)}%)</button>`).join('')}</div>${notes}</div>`;
+  }
+
   private groupHtml(g: WGroup): string {
     const st = this.st;
     const ships = this.shipsOf(g);
@@ -1225,6 +1240,7 @@ export class PmcHud {
         ${hasMiner ? this.mineFormHtml(g) : ''}
         ${this.exploreHtml(g, hasCargo)}
         ${salvageOn(st) && st.companies[g.owner]?.kind === 'player' ? groupSalvageHtml(st, g) : ''}
+        ${g.owner === this.me ? this.fieldRepairHtml(g, sub) : ''}
         ${piracyOn(st) && g.owner === this.me ? groupPiracyHtml(st, this.me, g, this.plunderPolicy, this.plunderNeutral, hasMil, sub.some(s => !econOf(s).military && econOf(s).cargo > 0)) : ''}
         <div class="dim small">우클릭: 소행성 지대=채굴 · 정거장=정박 · 해적=공격 · 자사 함선=호위 · 빈 곳=이동. 지휘관의 판단력이 높을수록 해적을 일찍 감지하고 효율적으로 일한다.</div>
         ${selShip && selShip.owner === this.me ? this.shipDetail(selShip) : ''}

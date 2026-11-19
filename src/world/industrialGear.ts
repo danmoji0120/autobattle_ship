@@ -20,6 +20,8 @@ import { variantLayout } from '../content/registry';
 import { CPU_MARKETS } from '../content/packs/growth/computers';
 import { CARRIER_HULL, CARRIER_MARKETS } from '../content/packs/growth/carrier';
 import { hullReleased } from '../content/registry';
+import { REPAIR_MARKETS } from '../content/packs/growth/support';
+import { DEV_REPAIR_RELEASE } from '../content/repairRelease';
 
 export const indOn = (st: Pick<WorldState, 'indV'> | undefined) => !!st?.indV;
 
@@ -144,5 +146,23 @@ export function migrateCarriers(st: WorldState, opt: { released?: boolean } = {}
     for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.3, st); n++; }
   }
   st.carrierV = 1;
+  return { applied: true, markets: n };
+}
+
+export interface RepairMigration { applied: boolean; reason?: string; markets: number }
+/** P16.7 repair gear market rows (REPAIR_MARKETS: field repair rigs, combat repair rigs, the support computer) on public
+ *  stations. New growth worlds get them only under the repair switch (WorldSim.create); an existing save only by this
+ *  explicit, idempotent migration (REPAIR_P167_MIGRATE=1, refused without the switch — production is not approved).
+ *  Ships, fittings, credits, items, blueprints and existing rows are untouched. `released` overrides the switch (tests). */
+export function migrateRepair(st: WorldState, opt: { released?: boolean } = {}): RepairMigration {
+  if ((st.contentV ?? 0) < 3) return { applied: false, reason: '성장 콘텐츠(c3) 이전 월드', markets: 0 };
+  if (st.repairV) return { applied: false, reason: '이미 적용됨', markets: 0 };
+  if (!(opt.released ?? DEV_REPAIR_RELEASE)) return { applied: false, reason: '수리 콘텐츠 미공개 — 공개 결정 전에는 적용하지 않음', markets: 0 };
+  let n = 0;
+  for (const [sid, ids] of Object.entries(REPAIR_MARKETS)) {
+    const x = st.stations[sid]; if (!x?.public || !x.market) continue;
+    for (const id of ids) if (EQUIPMENT[id] && !x.market[id]) { addGood(x.market, id, PROFILES[sid]?.mult ?? 1, 0.4, st); n++; }
+  }
+  st.repairV = 1;
   return { applied: true, markets: n };
 }
