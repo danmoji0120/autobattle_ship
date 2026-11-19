@@ -327,6 +327,8 @@ export interface WeaponStats {
   craft?: import('../sim/data/weapons').CraftStats;
   /** P16.7 combat repair rig (kind 'repair' only, family 'repair', support hardpoint, salvo 0) */
   repair?: import('../sim/data/weapons').RepairStats;
+  /** P17.3 special mechanism (sim/data/weapons.ts Mech17) */
+  mech?: import('../sim/data/weapons').Mech17;
 }
 /** visual of a weapon in combat (tracer / beam colour and size) */
 export interface WeaponVis { color: string; len: number; wid: number; beam?: boolean }

@@ -49,6 +49,8 @@ export interface Mount {
   ammo: number;         // salvos left
   /** P16 (rules ≥ 3): point defence is following a strike craft (targetId = its CraftPool uid) */
   targetIsCraft?: boolean;
+  /** P17.3 (sim/mech17.ts): charge complete at this time; sustained beam held until / next pulse; time-on-target arrival of the salvo */
+  chargeAt?: number; beamUntil?: number; beamTick?: number; totAt?: number;
 }
 
 export interface ShipStats {
@@ -150,6 +152,11 @@ export interface Munition {
   straight?: boolean;
   /** P16.3: dropped by a strike craft (its hit takes air-wing officer effects, not the carrier's gunnery) */
   air?: boolean;
+  /** P17.3 (sim/mech17.ts): child of container `sub`; a decoy (no warhead); planned arrival time (time on
+   *  target); stage (false = cruising, true = sprint); mechanism step done (split / decoys released);
+   *  mine state (0 laying, 1 waiting) with its lay point and arming time */
+  sub?: number; decoy?: boolean; tot?: number; staged?: boolean; done?: boolean;
+  mine?: 0 | 1; minePt?: Vec3; armAt?: number;
 }
 
 export interface GroupAI {
@@ -222,6 +229,16 @@ export type SimEvent =
   | { t: 'craftLeave'; ship: number; pos: Vec3 }
   // P16.7 combat repair (sim/repair.ts): one work cycle of a repair rig on a friendly ship
   | { t: 'repair'; ship: number; mount: number; target: number; hull: number; cut: number; from: Vec3; to: Vec3 }
+  // P17.3 weapon mechanisms (sim/mech17.ts)
+  | { t: 'split'; pos: Vec3; dir: Vec3; n: number; weapon: string }
+  | { t: 'stage'; pos: Vec3; dir: Vec3; weapon: string }
+  | { t: 'decoy'; pos: Vec3; n: number }
+  | { t: 'charge'; ship: number; mount: number; dur: number; weapon: string }
+  | { t: 'chain'; from: Vec3; to: Vec3; weapon: string }
+  | { t: 'burst'; pos: Vec3; radius: number; weapon: string }
+  | { t: 'flak'; pos: Vec3; radius: number; kills: number }
+  | { t: 'mineArm'; pos: Vec3 }
+  | { t: 'beam'; ship: number; mount: number; from: Vec3; to: Vec3; hit: boolean; weapon: string }
   | import('./bbex/state').ExEvent;
 
 export interface RadioMsg {

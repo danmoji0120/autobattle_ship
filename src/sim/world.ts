@@ -11,6 +11,7 @@ import { updateAI, orderKey, groupRoleOf } from './ai/commander';
 import { initCpu, CPU_ARCHS, cpuLaunchFactor, cpuOwnGuns, cpuPdCover } from './ai/computer';
 import { BBEX, BBEX_CLASS } from './bbex/data';
 import { CraftPool } from './craft';
+import { mechLaunch, mechFlight, mechSpeed, mechTurn, mineArmed, blast, chainArc, flakBurst, chargeHold, beamPulse, beamStart } from './mech17';
 import { REPAIR_RULES, updateRepairMount } from './repair';
 import { initEx, placeEx, updateEx, exSteer, exWeaponsFree, exIncoming, exGraze, exVeto, exRewrite, exNoteHit, exNoteKill, exNoteShot, exSeek, exPhase } from './bbex/system';
 
@@ -108,7 +109,8 @@ export class World {
   intensity = 0;
   /** BB-EX hulls in this battle (empty in every ordinary battle: none of the exotic code runs) */
   exShips: Ship[] = [];
-  private nextId = 1;
+  /** next munition / entity id (public for sim/mech17.ts) */
+  nextId = 1;
   private radioId = 1;
   nextRadioId() { return this.radioId++; }
   readonly setup: BattleSetup;
@@ -846,6 +848,8 @@ export class World {
         // traverse
         if (m.aim.lengthSq() < 0.5) m.aim.copy(localToWorld(m.facingLocal, new Vec3(), s.yaw, s.pitch, tmpD));
         rotateToward(m.aim, desiredDir, m.weapon.turnSpeed * Math.PI / 180 * dt);
+        // P17.3 sustained beam: while held, the pulses follow the turret (sim/mech17.ts)
+        if (m.beamUntil !== undefined) { beamPulse(this, s, m, muzzle); continue; }
         if (!inArc || !inRange) continue;
         const err = angleBetween(m.aim, desiredDir);
         const tol = m.weapon.kind === 'shell' ? 0.03 : m.weapon.kind === 'pd' ? 0.15 : 3.2;
@@ -855,6 +859,8 @@ export class World {
           continue;
         }
         if (m.salvoLeft <= 0 && m.cooldown <= 0 && m.ammo > 0) {
+          // P17.3 charged shot: charge on target first (sim/mech17.ts)
+          if (m.weapon.mech?.charge && chargeHold(this, s, m)) continue;
           m.salvoLeft = m.weapon.salvo; m.salvoTimer = 0; m.cooldown = m.weapon.reload * this.rng.range(0.95, 1.08);
           m.ammo--;
           if (m.ammo <= 0 && s.mounts.every(o => o.weapon.kind !== 'missile' || o.ammo <= 0)) {
@@ -876,6 +882,8 @@ export class World {
         if (m.aim.lengthSq() < 0.5) m.aim.copy(rd);
         rotateToward(m.aim, rd, m.weapon.turnSpeed * Math.PI / 180 * dt * 0.5);
         m.salvoLeft = 0;
+        if (m.chargeAt !== undefined) m.chargeAt = undefined;   // P17.3: the charge is lost with the target
+        if (m.beamUntil !== undefined) m.beamUntil = undefined;
       }
     }
   }
@@ -985,6 +993,8 @@ export class World {
    *  emitters already follow it (enough for its armour are left to it; the rest look elsewhere). */
   private pdThreat(s: Ship, mu: Munition, m: Mount): number {
     let score = Math.min(150, mu.weapon.damage / 8);
+    // P17.3: a laid mine is a cold, still object — cleared only when it lies close to this ship
+    if (mu.mine === 1) return score + (mu.pos.distTo(s.pos) < s.radius + 160 ? 60 : -220);
     if (mu.straight) {
       // closest approach of the straight run to this ship, or to the friend it was fired at (within 600 m)
       const at = this.shipById.get(mu.targetId);
@@ -1036,6 +1046,13 @@ export class World {
   private fireMunition(s: Ship, m: Mount, muzzle: Vec3, solution: Vec3) {
     const w = m.weapon;
     m.lastFire = this.time;
+    if (w.mech?.sustain) {
+      // P17.3 sustained beam: the shot is held as a beam (pulses in updateWeapons)
+      beamStart(this, s, m);
+      this.events.push({ t: 'fire', ship: s.id, mount: m.index, kind: 'shell', weapon: w.id, pos: muzzle.clone(), dir: solution.clone().normalize() });
+      if (this.firstContact < 0) this.firstContact = this.time;
+      return;
+    }
     s.stats.shots++;
     // fire control: once the turret is on target, the shot follows the computed firing solution
     const dir = solution.clone().normalize();
@@ -1077,6 +1094,7 @@ export class World {
     };
     if (s.ofx?.mGuide && kind !== 'shell') mu.gm = 1 + s.ofx.mGuide;
     if (kind !== 'shell' && this.unguided(w)) mu.straight = true;
+    if (w.mech) mechLaunch(this, s, m, mu);
     this.munitions.push(mu); this.munitionById.set(mu.id, mu);
     this.events.push({ t: 'fire', ship: s.id, mount: m.index, kind, weapon: w.id, pos: muzzle.clone(), dir: dir.clone() });
     if (s.ex) exNoteShot(s, w.id);
@@ -1094,10 +1112,12 @@ export class World {
       if (s.jamUntil !== undefined && s.jamUntil > this.time) chance *= 0.55;   // BLACKOUT
       // P15: an unguided round runs a predictable straight line — fire control leads it far better
       if (mu.straight) chance *= 1.6;
+      if (mu.staged) chance *= 0.6;   // P17.3: a sprinting second stage is hard to track
       const hit = this.rng.chance(chance);
       const to = mu.pos.clone();
       if (!hit) to.add(new Vec3(this.rng.range(-8, 8), this.rng.range(-8, 8), this.rng.range(-8, 8)));
       this.events.push({ t: 'pd', ship: s.id, mount: m.index, from: muzzle.clone(), to, hit });
+      if (w.mech?.flak) flakBurst(this, s, w, to, mu);   // P17.3 proximity flak: the burst catches rounds around it
       if (hit) {
         mu.hp--;
         if (mu.hp <= 0 && !mu.dead) {
@@ -1151,24 +1171,29 @@ export class World {
       if (mu.dead) continue;
       mu.age += dt;
       mu.life -= dt;
-      if (mu.kind !== 'shell') this.guide(mu);
+      if (mu.weapon.mech && mechFlight(this, mu)) { if (mu.dead) continue; }
+      else if (mu.kind !== 'shell') this.guide(mu);
       else if (mu.weapon.seek) exSeek(this, mu);
       mu.pos.addScaled(mu.vel, dt);
       // collision against enemy ships
       const speed = mu.vel.length();
+      const mx = mu.weapon.mech;
+      // P17.3: a mine still being laid or not yet armed touches nothing; a proximity fuse widens the hull
+      const fuse = mx ? (mu.mine !== undefined ? (mineArmed(mu) ? mx.mine!.trigger : -1) : mx.burst ? mx.burst.fuse : 0) : 0;
       for (const t of this.ships) {
+        if (fuse < 0) break;
         // shells and missiles only strike ships of sides hostile to the shooter (allied and neutral
         // hulls are passed through, as friendly ones always were)
         if (!this.hostile(mu.team, t.team) || (t.state !== 'alive' && t.state !== 'dying')) continue;
         if (mu.through && mu.through.includes(t.id)) continue;
-        const reach = t.halfLen + t.radius + speed * dt + 4;
+        const reach = t.halfLen + t.radius + speed * dt + 4 + fuse;
         if (Math.abs(t.pos.x - mu.pos.x) > reach || Math.abs(t.pos.z - mu.pos.z) > reach || Math.abs(t.pos.y - mu.pos.y) > reach) continue;
         // capsule along ship forward axis
         tmpA.copy(t.pos).addScaled(t.fwd, t.halfLen * 0.92);
         tmpB.copy(t.pos).addScaled(t.fwd, -t.halfLen * 0.92);
         const extra = mu.kind === 'shell' ? 0 : 2.5;
         const d2 = segSegDistSq(mu.prevPos, mu.pos, tmpA, tmpB, segEnd);
-        const rr = t.radius + extra;
+        const rr = t.radius + extra + fuse;
         // PARADOX field (BB-EX): a shell passing close off the hull may still be relocated
         if (d2 > rr * rr && t.ex && mu.kind === 'shell' && t.state === 'alive' && d2 <= BBEX.pField * BBEX.pField) {
           if (exGraze(this, t, mu, segEnd)) { mu.dead = true; break; }
@@ -1181,9 +1206,13 @@ export class World {
             if (this.rng.chance(0.6)) { mu.targetId = -1; mu.life = Math.min(mu.life, 1.5); continue; }
           }
           mu.dead = true;
+          // P17.3: a decoy carries no warhead; a burst / mine goes off over every ship in its radius
+          if (mu.decoy) { this.events.push({ t: 'munitionExpire', pos: mu.pos.clone(), kind: mu.kind }); break; }
+          if (mx && (mx.burst || mx.mine)) { blast(this, mu, mu.pos, mx.burst ? mx.burst.radius : mx.mine!.radius); break; }
           const dir = mu.vel.clone().normalize();
           if (t.state === 'alive') this.applyHit(t, mu.weapon, mu.ownerId, segEnd.clone(), dir, mu.kind, mu.air);
           else this.events.push({ t: 'hit', target: t.id, attacker: mu.ownerId, pos: segEnd.clone(), dir, dmg: 0, result: 'pen', weapon: mu.weapon.id, facing: 'side' });
+          if (mx?.chain) chainArc(this, mu, t, segEnd);   // P17.3: the discharge jumps on to nearby enemy ships
           // ABYSS-LANCE: the lance leaves the far side of the hull and keeps going
           if (mu.weapon.pierce && (mu.through?.length ?? 0) < mu.weapon.pierce) {
             (mu.through ??= []).push(t.id); mu.dead = false;
@@ -1194,7 +1223,8 @@ export class World {
       }
       if (!mu.dead && mu.life <= 0) {
         mu.dead = true;
-        if (mu.kind !== 'shell') this.events.push({ t: 'munitionExpire', pos: mu.pos.clone(), kind: mu.kind });
+        if (mx?.burst) blast(this, mu, mu.pos, mx.burst.radius);   // P17.3: a plasma bolt bursts at the end of its run
+        else if (mu.kind !== 'shell') this.events.push({ t: 'munitionExpire', pos: mu.pos.clone(), kind: mu.kind });
       }
     }
     if (this.tick % 10 === 0) {
@@ -1229,10 +1259,12 @@ export class World {
       const tt = t.pos.distTo(mu.pos) / Math.max(speed, 50);
       const aim = new Vec3(t.pos.x + t.vel.x * tt - mu.pos.x, t.pos.y + t.vel.y * tt - mu.pos.y, t.pos.z + t.vel.z * tt - mu.pos.z).normalize();
       let turn = (w.guidedTurn ?? 1) * dt * (mu.age < boost + 0.6 ? 2.2 : 1) * (mu.gm ?? 1) * (t.ofx?.mJam ? 1 - t.ofx.mJam : 1);
+      if (w.mech) turn *= mechTurn(mu);
       if (this.exShips.length) { const o = this.shipById.get(mu.ownerId); if (o && o.jamUntil !== undefined && o.jamUntil > this.time) turn *= 0.4; }   // BLACKOUT
       rotateToward(dir, aim, turn);
     }
-    const ns = Math.min(w.speed, speed + w.speed * 1.2 * dt);
+    const vmax = w.mech ? mechSpeed(this, mu, w.speed) : w.speed;
+    const ns = Math.min(vmax, speed + w.speed * 1.2 * dt);
     mu.vel.copy(dir).scale(mu.age < boost ? speed * (1 - 0.6 * dt) + 5 * dt : ns);
   }
 

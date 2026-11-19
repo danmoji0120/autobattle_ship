@@ -102,6 +102,40 @@ export interface WeaponDef {
   craft?: CraftStats;
   /** P16.7: what a kind 'repair' rig does per cycle */
   repair?: RepairStats;
+  /** P17.3 special mechanism (sim/mech17.ts); absent on every older weapon, so older battles replay unchanged */
+  mech?: Mech17;
+}
+
+/** P17.3 weapon mechanisms. Each one changes what the weapon physically does in the battle (sim/mech17.ts),
+ *  not only its numbers; the renderer draws each one (render/mech17Fx.ts). */
+export interface Mech17 {
+  /** container missile: the mother splits `at` m from its target into `n` real child munitions of weapon
+   *  `child`, spread in a cone (rad) over enemy ships within `radius` m of the target. Shot down before
+   *  that, it releases nothing. */
+  split?: { n: number; child: string; at: number; cone: number; radius: number };
+  /** two-stage missile: cruises at `cruise` × speed, drops the booster `at` m out and sprints (full speed,
+   *  turn × `turn`; point defence hits the sprint stage less often) */
+  stage?: { at: number; cruise: number; turn: number };
+  /** decoys: `at` m from the target the missile releases `n` decoys that fly like it (point defence cannot
+   *  tell them apart) but carry no warhead */
+  decoy?: { n: number; at: number; life: number };
+  /** time on target: the rounds of one salvo fan out and pace themselves to arrive together */
+  tot?: { slack: number; fan: number };
+  /** charged shot: the mount charges `time` s on target before it fires (losing the target drops the charge) */
+  charge?: { time: number };
+  /** chain arc: on a hit the discharge jumps to up to `n` more enemy ships within `radius` m, × `falloff` each */
+  chain?: { n: number; radius: number; falloff: number };
+  /** plasma burst: proximity-fused bolt that bursts within `fuse` m of a hull (or at the end of its run) and
+   *  burns every enemy ship within `radius` m */
+  burst?: { radius: number; fuse: number };
+  /** proximity flak (point defence): each shot bursts at the round it tracks and can kill every enemy round
+   *  within `radius` m (each with chance `p`) */
+  flak?: { radius: number; p: number };
+  /** mine: flies to a point ahead of the target, stops, arms after `arm` s and waits `life` s; an enemy hull
+   *  within `trigger` m sets it off (blast `radius` m). Point defence can clear it. */
+  mine?: { arm: number; trigger: number; radius: number; life: number };
+  /** sustained beam: one shot holds the beam for `time` s, a damage pulse every `tick` s while on target */
+  sustain?: { time: number; tick: number };
 }
 
 export const WEAPONS: Record<string, WeaponDef> = {
@@ -162,3 +196,24 @@ export const WEAPONS: Record<string, WeaponDef> = {
     desc: '뇌격기가 출격마다 한 발 투하하는 경어뢰. 함재기 전용 탄체.',
   },
 };
+
+/** P17.3 child munitions of the container missiles (WeaponDef.mech.split). Not equipment: nothing fits,
+ *  builds or sells them — they exist only as the rounds a container releases in battle. */
+export const SUBMUNITIONS: Record<string, WeaponDef> = {
+  swarm_dart: {
+    id: 'swarm_dart', name: '군집 자탄', kind: 'missile', damage: 46, pen: 48, range: 650, speed: 430, reload: 1, salvo: 1, salvoGap: 0,
+    spread: 0, turnSpeed: 360, caliber: 0.4, guidedTurn: 3.0, munitionHp: 1, sound: 'missile', desc: '컨테이너가 뿌린 독립 유도 자탄.',
+    family: 'missile', role: 'general', hp: 'missile', vsShield: 0.8, vis: { color: 0xffd090, len: 0, wid: 0.35 },
+  },
+  cluster_dart: {
+    id: 'cluster_dart', name: '확산 자탄', kind: 'missile', damage: 34, pen: 38, range: 520, speed: 460, reload: 1, salvo: 1, salvoGap: 0,
+    spread: 0, turnSpeed: 360, caliber: 0.35, guidedTurn: 3.2, munitionHp: 1, sound: 'missile', desc: '확산탄의 경량 자탄.',
+    family: 'missile', role: 'anti-small', hp: 'missile', vsShield: 0.8, vis: { color: 0xffe0b0, len: 0, wid: 0.3 },
+  },
+  swarm_lance: {
+    id: 'swarm_lance', name: '관통 자탄', kind: 'missile', damage: 150, pen: 88, range: 760, speed: 380, reload: 1, salvo: 1, salvoGap: 0,
+    spread: 0, turnSpeed: 360, caliber: 0.6, guidedTurn: 2.2, munitionHp: 1, sound: 'missile', desc: '관통 컨테이너의 대함 자탄.',
+    family: 'missile', role: 'anti-capital', hp: 'missile', vsShield: 0.85, vis: { color: 0xffa070, len: 0, wid: 0.45 },
+  },
+};
+Object.assign(WEAPONS, SUBMUNITIONS);

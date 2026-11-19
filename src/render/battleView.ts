@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WEAPONS } from '../sim/data/weapons';
+import { WEAPONS, SUBMUNITIONS } from '../sim/data/weapons';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -14,6 +14,7 @@ import { Environment, type Backdrop } from './environment';
 import { CameraRig, type FollowTarget, type ShotRequest, type ShakeKind } from './camera';
 import { BbexFx, type FxHost } from './bbex/fx';
 import { CraftView } from './craftView';
+import { Mech17Fx } from './mech17Fx';
 
 export interface AudioSink { play(name: string, pos: THREE.Vector3 | null, vol?: number, rate?: number): void }
 
@@ -31,7 +32,7 @@ interface ShipView {
 
 interface Wreck { obj: THREE.Object3D; vel: THREE.Vector3; spin: THREE.Vector3; life: number; burn: THREE.Vector3[]; size: number }
 
-interface TrailRec { pts: THREE.Vector3[]; kind: string; team: number; dead: number; head: THREE.Vector3; col?: [number, number, number] }
+interface TrailRec { pts: THREE.Vector3[]; kind: string; team: number; dead: number; head: THREE.Vector3; col?: [number, number, number]; wmul?: number; max?: number }
 
 const V = (v: { x: number; y: number; z: number }) => new THREE.Vector3(v.x, v.y, v.z);
 const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), tmpQ = new THREE.Quaternion();
@@ -59,6 +60,8 @@ export class BattleView implements FxHost {
   private beams: { a: THREE.Vector3; b: THREE.Vector3; life: number; max: number; w: number; c: THREE.Color }[] = [];
   private world: World | null = null;
   audio: AudioSink | null = null;
+  /** P17.3 weapon-mechanism effects (display only) */
+  private readonly m17 = new Mech17Fx(this, () => this.world);
   selectedShipIds = new Set<number>();
   private time = 0;
   /** director interest bookkeeping */
@@ -161,6 +164,7 @@ export class BattleView implements FxHost {
   handleEvents(events: SimEvent[]) {
     const w = this.world!;
     for (const e of events) {
+      if (this.m17.handle(e)) continue;
       switch (e.t) {
         case 'fire': this.onFire(e.ship, e.mount, e.weapon, V(e.pos), V(e.dir)); break;
         case 'pd': {
@@ -192,6 +196,15 @@ export class BattleView implements FxHost {
         case 'crit': {
           const p = V(e.pos);
           this.explosion(p, 0.6);
+          if (e.crit === 'engine') {
+            // P17.3: an engine hit visibly — a gout of burning fuel and sparks blown out of the stern
+            const v = this.views.get(e.ship);
+            if (v) for (const en of v.model.engines) {
+              const ep = en.glow.getWorldPosition(new THREE.Vector3());
+              this.burst(ep, 6, 0xffe0a0, 0xff4000, 3, 60, v.wfwd.clone().multiplyScalar(-1));
+              this.smoke.emit(ep, { life: 4, size: en.base * 3, size1: en.base * 10, color: 0x1e1c1c, alpha: 0.5, drag: 0.4 });
+            }
+          }
           break;
         }
         case 'secondary': this.explosion(V(e.pos), 0.8 + Math.random() * 0.6); break;
@@ -331,7 +344,10 @@ export class BattleView implements FxHost {
       if (Math.random() < 0.08) this.audio?.play('hitsmall', p, 0.25);
       return;
     }
-    const scale = e.weapon === 'torpedo' ? 2.6 : e.weapon === 'air_torpedo' ? 1.8 : e.weapon === 'blast' ? 1.6 : heavy ? 1.6 : e.weapon === 'missile_rack' ? 0.9 : 0.6;
+    // P17.3 mechanism weapons and submunitions: the hit is sized by the damage it actually did
+    const m17 = wd?.mech || SUBMUNITIONS[e.weapon];
+    const scale = m17 ? THREE.MathUtils.clamp(Math.sqrt(Math.max(e.dmg, wd?.damage ?? 0) / 160), 0.35, 2.2)
+      : e.weapon === 'torpedo' ? 2.6 : e.weapon === 'air_torpedo' ? 1.8 : e.weapon === 'blast' ? 1.6 : heavy ? 1.6 : e.weapon === 'missile_rack' ? 0.9 : 0.6;
     this.glow.emit(p, { life: 0.18, size: 14 * scale, size1: 22 * scale, color: 0xfff2d0, alpha: 1.4 });
     this.burst(p, Math.round(10 * scale), 0xffd080, 0xff3000, 3 * scale, 90 * scale, dir.clone().multiplyScalar(-1));
     for (let i = 0; i < 3 * scale; i++) this.glow.emit(p, { life: 0.6 + Math.random() * 0.6, size: 5 * scale, size1: 12 * scale, color: 0xff9030, color1: 0x401000, alpha: 0.9, vel: new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20).multiplyScalar(scale), drag: 1.5 });
@@ -508,10 +524,19 @@ export class BattleView implements FxHost {
       }
       // engines
       const thr = s.state === 'alive' ? 0.25 + s.throttle * 0.95 : 0.1;
+      // P17.3 engine damage: a crippled drive (engine crit) or a hull near death sputters — the plume cuts out
+      // and coughs back, sparks and black smoke leak from the nozzles
+      const sick = s.state === 'alive' && (s.crit.engine > 0 || s.hp < s.maxHp * 0.3);
       for (const e of v.model.engines) {
-        e.plume.scale.z = e.base * (3 + thr * 9) * (0.92 + Math.random() * 0.16);
-        (e.plume.material as THREE.MeshBasicMaterial).opacity = 0.5;
-        e.glow.scale.setScalar(e.base * (0.8 + thr * 0.4));
+        const cough = sick ? (Math.random() < 0.25 ? 0.05 : 0.35 + Math.random() * 0.4) : 1;
+        e.plume.scale.z = e.base * (3 + thr * 9) * (0.92 + Math.random() * 0.16) * cough;
+        (e.plume.material as THREE.MeshBasicMaterial).opacity = sick ? 0.25 + cough * 0.3 : 0.5;
+        e.glow.scale.setScalar(e.base * (0.8 + thr * 0.4) * (sick ? 0.4 + cough * 0.6 : 1));
+        if (sick && Math.random() < realDt * (s.crit.engine > 0 ? 9 : 3)) {
+          const ep = e.glow.getWorldPosition(tmp2);
+          this.glow.emit(ep, { life: 0.3 + Math.random() * 0.3, size: e.base * 1.4, size1: 0.3, color: 0xffc070, color1: 0x601000, vel: v.wfwd.clone().multiplyScalar(-20).add(new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(30)), drag: 2 });
+          this.smoke.emit(ep, { life: 2.5, size: e.base * 1.5, size1: e.base * 6, color: 0x1a1818, alpha: 0.4, vel: v.wvel.clone().multiplyScalar(0.6), drag: 0.4 });
+        }
       }
       // nav lights blink
       const blink = (Math.sin(this.time * 3 + s.id) > 0.7) ? 1 : 0.15;
@@ -565,6 +590,7 @@ export class BattleView implements FxHost {
       else this.trackGuided(m, px, py, pz);
     }
     this.drawGuidedTrails(realDt);
+    this.m17.frame();
     if (this.beams.length > 800) this.beams.splice(0, this.beams.length - 800);
     for (let i = this.beams.length - 1; i >= 0; i--) {
       const b = this.beams[i];
@@ -623,14 +649,19 @@ export class BattleView implements FxHost {
 
   private trackGuided(m: Munition, x: number, y: number, z: number) {
     let rec = this.trailRecs.get(m.id);
-    if (!rec) { rec = { pts: [], kind: m.kind, team: m.team, dead: 0, head: new THREE.Vector3(), ...(m.weapon.phase ? { col: [2.0, 0.85, 3.0] as [number, number, number] } : {}) }; this.trailRecs.set(m.id, rec); }
+    if (!rec) {
+      const st = m.weapon.mech || m.sub !== undefined ? this.m17.trail(m) : null;
+      rec = { pts: [], kind: m.kind, team: m.team, dead: 0, head: new THREE.Vector3(), ...(m.weapon.phase ? { col: [2.0, 0.85, 3.0] as [number, number, number] } : {}), ...(st ?? {}) };
+      this.trailRecs.set(m.id, rec);
+    }
+    if (m.mine !== undefined) this.m17.munition(m, tmp.set(x, y, z), this.time);
     // SERAPH-EX skipped through space: the trail does not bridge the gap
     if (rec.col && rec.pts.length && rec.pts[rec.pts.length - 1].distanceToSquared(tmp.set(x, y, z)) > 200 * 200) rec.pts.length = 0;
     rec.head.set(x, y, z);
     const last = rec.pts[rec.pts.length - 1];
     if (!last || last.distanceToSquared(rec.head) > (m.kind === 'torpedo' ? 30 : 60)) {
       rec.pts.push(rec.head.clone());
-      if (rec.pts.length > (m.kind === 'torpedo' ? 26 : 36)) rec.pts.shift();
+      if (rec.pts.length > (rec.max ?? (m.kind === 'torpedo' ? 26 : 36))) rec.pts.shift();
       if (m.kind === 'missile' && !rec.col && Math.random() < 0.3) this.smoke.emit(rec.head, { life: 1.4, size: 1.6, size1: 5, color: 0x8a8480, alpha: 0.09, drag: 0.5 });
     }
   }
@@ -643,16 +674,16 @@ export class BattleView implements FxHost {
       const fade = 1 - rec.dead / 1.2;
       const torp = rec.kind === 'torpedo';
       const col = rec.col ?? (torp ? (this.friendly(rec.team) ? [0.8, 1.4, 3.2] : [3.0, 0.8, 2.0]) : [1.8, 1.1, 0.6]);
-      const n = rec.pts.length;
+      const n = rec.pts.length, wd = (torp ? 2.2 : 0.7) * (rec.wmul ?? 1), hs = rec.wmul ?? 1;
       for (let i = 1; i < n; i++) {
         const a = rec.pts[i - 1], b = rec.pts[i];
         const t0 = (i - 1) / n, t1 = i / n;
-        this.trails.seg(a.x, a.y, a.z, b.x, b.y, b.z, (torp ? 2.2 : 0.7) * t0, (torp ? 2.2 : 0.7) * t1, col[0], col[1], col[2], t0 * 0.5 * fade, t1 * 0.5 * fade);
+        this.trails.seg(a.x, a.y, a.z, b.x, b.y, b.z, wd * t0, wd * t1, col[0], col[1], col[2], t0 * 0.5 * fade, t1 * 0.5 * fade);
       }
       if (rec.dead === 0) {
         const tail = rec.pts[n - 1] ?? rec.head;
-        this.trails.seg(tail.x, tail.y, tail.z, rec.head.x, rec.head.y, rec.head.z, torp ? 2.2 : 0.7, torp ? 2.2 : 0.7, col[0], col[1], col[2], 0.5, 0.5);
-        if (Math.random() < 0.7) this.glow.emit(rec.head, { life: 0.05, size: torp ? 9 : 4, size1: torp ? 7 : 3, color: rec.col ? 0xe0b8ff : torp ? (this.friendly(rec.team) ? 0x80b0ff : 0xff70c0) : 0xfff0c0, alpha: 1.3 });
+        this.trails.seg(tail.x, tail.y, tail.z, rec.head.x, rec.head.y, rec.head.z, wd, wd, col[0], col[1], col[2], 0.5, 0.5);
+        if (Math.random() < 0.7) this.glow.emit(rec.head, { life: 0.05, size: (torp ? 9 : 4) * hs, size1: (torp ? 7 : 3) * hs, color: rec.col ? 0xe0b8ff : torp ? (this.friendly(rec.team) ? 0x80b0ff : 0xff70c0) : 0xfff0c0, alpha: 1.3 });
       }
     }
   }

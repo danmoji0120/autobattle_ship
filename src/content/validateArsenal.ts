@@ -43,8 +43,11 @@ export const CRAFT_BUDGET: Partial<Record<Size, number>> = { L: 100 };
 
 /** comparable strength of a weapon: sustained damage × armour reach × range reach. Used to compare a
  *  new weapon with the existing ones of its size (docs/CODEX_CONTENT_GUIDE.md §7). */
-export function armScore(w: Pick<WeaponStats, 'damage' | 'salvo' | 'reload' | 'pen' | 'range' | 'kind'>): number {
-  const dps = w.damage * w.salvo / Math.max(0.05, w.reload);
+export function armScore(w: Pick<WeaponStats, 'damage' | 'salvo' | 'reload' | 'pen' | 'range' | 'kind'> & { mech?: WeaponStats['mech'] }): number {
+  // P17.3: what one salvo really delivers — a container's children, a held beam's pulses
+  const x = w.mech, child = x?.split ? WEAPONS[x.split.child] : undefined;
+  const per = child ? child.damage * x!.split!.n : x?.sustain ? w.damage * Math.floor(x.sustain.time / x.sustain.tick) : x?.chain ? w.damage * (1 + x.chain.falloff) : w.damage;
+  const dps = per * w.salvo / Math.max(0.05, w.reload);
   return Math.round(dps * Math.sqrt(Math.max(1, w.pen) / 40) * Math.sqrt(w.range / 1000));
 }
 const sizeOfEquip = (id: string): Size | undefined => ({ 1: 'S', 2: 'M', 3: 'L' } as const)[EQUIPMENT[id]?.size as 1 | 2 | 3];
@@ -122,6 +125,7 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
     const rng = (k: keyof WeaponStats, lo: number, hi: number) => { const v = c[k] as number | undefined; if (v === undefined || !(v >= lo && v <= hi)) err(at, `combat.${String(k)} ${v} (${lo}–${hi})`); };
     rng('damage', 1, 3000); rng('pen', 1, 200); rng('range', 150, 3000); rng('reload', 0.05, 60); rng('salvo', 1, 12); rng('salvoGap', 0, 2);
     rng('spread', 0, 0.3); rng('turnSpeed', 1, 600); rng('caliber', 0.2, 4);
+    if (c.mech) mechCheck(c, at);
     if (c.kind === 'shell' || c.kind === 'missile' || c.kind === 'torpedo') rng('speed', 50, 8000);
     if (c.kind === 'missile' || c.kind === 'torpedo') { rng('guidedTurn', 0.1, 5); rng('munitionHp', 1, 8); }
     if (c.kind === 'pd') rng('pdChance', 0.01, 0.3);
@@ -151,6 +155,26 @@ export function validateArsenal(reg: Registry, err: (w: string, m: string) => vo
       const cheaper = hi.power <= lo.power && hi.mass <= lo.mass && sizeRank(hi.size) <= sizeRank(lo.size);
       if (better && cheaper) err(`arm ${hi.id}`, `${fam} ${hi.tier}티어가 ${lo.id}(${lo.tier}티어)를 모든 면에서 압도 — 전력·크기·선회·연사 중 하나는 불리해야 함`);
     }
+  }
+
+  /** P17.3 weapon mechanism: one per weapon, on the kind it belongs to, with sane numbers */
+  function mechCheck(c: WeaponStats, at: string) {
+    const x = c.mech!, keys = Object.keys(x).filter(k => (x as Record<string, unknown>)[k]);
+    if (keys.length !== 1) err(at, `combat.mech 는 메커니즘 하나만 (${keys.join(',')})`);
+    const guided = c.kind === 'missile' || c.kind === 'torpedo';
+    const need: Record<string, boolean> = { split: guided, stage: guided, decoy: guided, tot: guided, mine: c.kind === 'missile', charge: c.kind === 'shell', sustain: c.kind === 'shell', chain: c.kind === 'shell', burst: c.kind === 'shell', flak: c.kind === 'pd' };
+    for (const k of keys) if (!need[k]) err(at, `combat.mech.${k} 는 ${c.kind} 무장에 쓸 수 없음`);
+    const bad = (k: string, v: number | undefined, lo: number, hi: number) => { if (v === undefined || !(v >= lo && v <= hi)) err(at, `combat.mech.${k} ${v} (${lo}–${hi})`); };
+    if (x.split) { const ch = WEAPONS[x.split.child]; if (!ch || (ch.kind !== 'missile' && ch.kind !== 'torpedo')) err(at, `combat.mech.split.child "${x.split.child}" 유도 자탄 무장 없음`); bad('split.n', x.split.n, 2, 24); bad('split.at', x.split.at, 100, 1200); bad('split.cone', x.split.cone, 0.02, 1); }
+    if (x.stage) { bad('stage.cruise', x.stage.cruise, 0.2, 0.9); bad('stage.turn', x.stage.turn, 1, 3); }
+    if (x.decoy) { bad('decoy.n', x.decoy.n, 1, 8); bad('decoy.life', x.decoy.life, 1, 10); }
+    if (x.tot) { bad('tot.slack', x.tot.slack, 0, 6); bad('tot.fan', x.tot.fan, 0, 150); if (c.salvo < 2) err(at, '동시 탄착은 일제사(salvo ≥ 2)에만 의미가 있음'); }
+    if (x.mine) { bad('mine.trigger', x.mine.trigger, 10, 120); bad('mine.radius', x.mine.radius, 10, 150); bad('mine.life', x.mine.life, 5, 120); }
+    if (x.charge) bad('charge.time', x.charge.time, 0.3, 6);
+    if (x.sustain) { bad('sustain.time', x.sustain.time, 0.5, 8); bad('sustain.tick', x.sustain.tick, 0.1, 1); if (x.sustain.time >= c.reload) err(at, '지속 빔 유지 시간은 재장전보다 짧아야 함'); }
+    if (x.chain) { bad('chain.n', x.chain.n, 1, 5); bad('chain.falloff', x.chain.falloff, 0.2, 0.9); bad('chain.radius', x.chain.radius, 50, 500); }
+    if (x.burst) { bad('burst.radius', x.burst.radius, 10, 150); bad('burst.fuse', x.burst.fuse, 0, 60); }
+    if (x.flak) { bad('flak.radius', x.flak.radius, 10, 120); bad('flak.p', x.flak.p, 0.05, 0.6); }
   }
 
   /** P16 strike-craft weapon: H-slot equipment that launches a squadron */
