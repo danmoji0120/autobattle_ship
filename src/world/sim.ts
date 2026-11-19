@@ -227,6 +227,12 @@ import { enableMilitary, milOn, isMil, acceptMil, milDispatch, milCancel, milPos
 import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, groupFx, mineBonus, shipFx, stationFx, stationDirector, type XpSource, type Officer } from './officers';
 import { XP_RATE, type Tree } from './officerData';
 
+/** P17.3 (npc17V): which P17 hull replaces a legacy pirate band slot (pirate / salvage product lines) */
+const PIRATE17: Record<string, string> = {
+  'corvette/gun': 'p17_cv_relic', 'corvette/torp': 'p17_cv_blackwing', 'destroyer/strike': 'p17_dd_scavenger',
+  'destroyer/aa': 'p17_ff_scrap', 'cruiser/missile': 'p17_ca_swarm', 'battleship/std': 'p17_bb_hulk',
+};
+
 export class WorldSim {
   st: WorldState;
   rng: Rng;
@@ -297,7 +303,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1'; computers?: 'p151' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1'; computers?: 'p151'; npc17?: 'p173' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -337,6 +343,8 @@ export class WorldSim {
     if (opts.industrial === 'ind1' && growthOn(sim.st)) enableIndustrial(sim.st);
     // P15.1 combat computers on public markets: opt-in for new growth worlds (anyone can still produce them)
     if (opts.computers === 'p151' && growthOn(sim.st)) { stockComputers(sim.st); stockParts17(sim.st); }
+    // P17.3: pirates field some P17 hulls (opt-in: it changes what NPC bands fight with — a balance decision, P17.4)
+    if (opts.npc17 === 'p173' && growthOn(sim.st)) sim.st.npc17V = 1;
     // P16.6: only the explicitly opted-in development build stocks carrier gear in new worlds.
     // Published builds remain unchanged. Existing worlds require the separate migration flag.
     if (DEV_CARRIER_RELEASE && growthOn(sim.st)) migrateCarriers(sim.st);
@@ -1857,9 +1865,13 @@ export class WorldSim {
     const s = this.spawnShip(owner, h.classId, getLoadout(h.classId, '').id, groupId, pos, name);
     const p = (presetId && CONTENT.presets[presetId]?.variant === variantId ? CONTENT.presets[presetId] : undefined) ?? Object.values(CONTENT.presets).find(x => x.variant === variantId);
     s.hull = hullId; s.variant = variantId;
-    if (this.fitsV2(s)) {
+    // P17.3g: in npc17 worlds an NPC ship of a growth hull (no legacy loadout) is fitted from its preset so it
+    // fights with the hull's real hardpoints, and flies its maker's recommended computer (players buy their own)
+    const npc17 = !!this.st.npc17V && this.st.companies[owner]?.kind !== 'player';
+    if (this.fitsV2(s) || npc17) {
       s.fitting = { hp: { ...(p?.weapons ?? {}) }, bay: {}, ...(p ? { preset: p.id } : {}) };
       s.fit = [];
+      if (npc17 && h.cpu && EQUIPMENT[h.cpu]?.cpu) s.fitting.bay.cpu1 = h.cpu;
       s.loadoutId = loadoutLabel(h.classId, variantId, s.fitting);
       s.fitting.sig = legacySig(s.loadoutId, s.fit);
       markIndustrial(this.st, s);
@@ -2675,7 +2687,13 @@ export class WorldSim {
     const cm = this.newCommander('pirates', tier * 0.5);
     cm.voice = 'savage'; cm.aggression = Math.max(cm.aggression, 0.7); cm.color = '#ff7050';
     g.commanderId = cm.id;
-    for (const [c, lo] of comp) this.spawnShip('pirates', c, lo, g.id, vadd(at, { x: this.rng.range(-150, 150), y: 0, z: this.rng.range(-150, 150) }));
+    comp.forEach(([c, lo], i) => {
+      const p = vadd(at, { x: this.rng.range(-150, 150), y: 0, z: this.rng.range(-150, 150) });
+      // P17.3 (npc17V): every other matching slot is a P17 pirate-line hull (same RNG draws as the legacy ship)
+      const h17 = this.st.npc17V && i % 2 === 1 ? PIRATE17[`${c}/${lo}`] : undefined;
+      if (h17 && CONTENT.hulls[h17]) this.spawnHull('pirates', h17, `${h17}_std`, `${h17}_p`, g.id, p);
+      else this.spawnShip('pirates', c, lo, g.id, p);
+    });
     const sys = this.st.systems[info.sys]; if (sys) sys.stats.bands++;
     return g;
   }

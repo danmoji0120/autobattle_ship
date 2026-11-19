@@ -163,3 +163,14 @@ export const P17_TECHS: TechContent[] = [
   T({ id: 'plasma_bursts', name: '플라즈마 폭렬 신관', area: 'energy', field: 'energy', time: 10800, credits: 28000, cost: { electronics: 16, chemicals: 30, optics: 2 }, pre: ['plasma_containment'], desc: '근접 신관으로 봉입을 푸는 플라즈마탄.', unlocks: '무장: 플라즈마 폭렬포 · 대형 플라즈마 폭렬포' }),
   T({ id: 'proximity_flak', name: '근접 탄막', area: 'kinetic', field: 'kinetic', time: 7200, credits: 16000, cost: { munitions: 16, electronics: 8 }, pre: ['flak_fuzes'], desc: '표적 옆에서 터져 주변 탄체까지 잡는 탄막.', unlocks: '무장: 근접 신관 탄막포 · 중(重) 탄막 포대' }),
 ];
+
+/** public stations that stock some P17.3 weapons on NEW growth worlds (world/industrialGear.ts stockParts17).
+ *  Mass-production rows and a few entry mechanisms are buyable; the elite mechanisms (full container swarm,
+ *  heavy swarm, charge lance, large beam, heavy mines, ghost decoys) are research + own production only. */
+export const P17_ARM_MARKETS: Record<string, string[]> = {
+  astra: ['eq_autocannon_40', 'eq_flak_prox', 'eq_swarm_lite'],
+  bastion: ['eq_howitzer_l', 'eq_flak_prox', 'eq_missile_2stage'],
+  helios: ['eq_coil_l', 'eq_beam_s', 'eq_missile_decoy'],
+  drakeout: ['eq_autocannon_40', 'eq_mine_layer'],
+  cinderco: ['eq_plasma_burst', 'eq_arc_s'],
+};

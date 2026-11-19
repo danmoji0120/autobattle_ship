@@ -678,6 +678,8 @@ export interface WorldState {
   indV?: 1;
   /** P15.1: combat computers stocked on public markets at creation (new growth worlds) */
   cpuV?: number;
+  /** P17.3: NPC (pirate) bands field some of the P17 hulls with their makers' computers (WorldSim.create opts.npc17 — new worlds only) */
+  npc17V?: number;
   /** P16.3: carrier gear market rows added (migrateCarriers; only after carriers are released) */
   carrierV?: 1;
   /** P16.7: repair gear market rows stocked (new worlds under the repair switch, or the explicit migration) */
