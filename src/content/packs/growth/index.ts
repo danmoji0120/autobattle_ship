@@ -7,6 +7,7 @@ import { P8_ASSETS } from './p8-assets';
 import { IND_MODULES, IND_REPAIR_MODULES } from './industrial';
 import { CPU_MODULES } from './computers';
 import { CARRIER_ARMS, CARRIER_MODULES, CARRIER_HULLS, CARRIER_VARIANTS, CARRIER_PRESETS, CARRIER_BLUEPRINTS } from './carrier';
+import { P17_HULLS, P17_VARIANTS, P17_PRESETS, P17_BLUEPRINTS } from './fleet17';
 import { SUPPORT_ARMS, SUPPORT_MODULES, SUPPORT_HULLS, SUPPORT_VARIANTS, SUPPORT_PRESETS, SUPPORT_BLUEPRINTS } from './support';
 
 export const GROWTH_PACK: ContentPack = {
@@ -18,6 +19,6 @@ export const GROWTH_PACK: ContentPack = {
 export const ARSENAL_PACK: ContentPack = {
   id: 'arsenal', name: '무장·연구·시설 확장 (P5)', minContentV: 3,
   items: P5_ITEMS, arms: [...P5_ARMS, ...CARRIER_ARMS, ...SUPPORT_ARMS], modules: [...P5_MODULES, ...IND_MODULES, ...IND_REPAIR_MODULES, ...CPU_MODULES, ...CARRIER_MODULES, ...SUPPORT_MODULES], techs: P5_TECHS, facilities: P5_FACILITIES, recipes: P5_RECIPES,
-  hulls: [...P8_HULLS, ...CARRIER_HULLS, ...SUPPORT_HULLS], variants: [...P5_VARIANTS, ...P8_VARIANTS, ...CARRIER_VARIANTS, ...SUPPORT_VARIANTS], presets: [...P5_PRESETS, ...P8_PRESETS, ...CARRIER_PRESETS, ...SUPPORT_PRESETS],
-  blueprints: [...P8_BLUEPRINTS, ...CARRIER_BLUEPRINTS, ...SUPPORT_BLUEPRINTS], assets: P8_ASSETS,
+  hulls: [...P8_HULLS, ...CARRIER_HULLS, ...SUPPORT_HULLS, ...P17_HULLS], variants: [...P5_VARIANTS, ...P8_VARIANTS, ...CARRIER_VARIANTS, ...SUPPORT_VARIANTS, ...P17_VARIANTS], presets: [...P5_PRESETS, ...P8_PRESETS, ...CARRIER_PRESETS, ...SUPPORT_PRESETS, ...P17_PRESETS],
+  blueprints: [...P8_BLUEPRINTS, ...CARRIER_BLUEPRINTS, ...SUPPORT_BLUEPRINTS, ...P17_BLUEPRINTS], assets: P8_ASSETS,
 };

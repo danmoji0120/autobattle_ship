@@ -93,6 +93,7 @@ function startBattle(bs: BattleSetup, replay: OrderRecord[] | null = null) {
 
 if (params.get('devskirmish') === '1') showDevCombatGate(app, getCanvas);
 else if (params.has('modelview')) void import('./render/modelPreview').then(m => m.startModelPreview(app, getCanvas(), params));
+else if (params.has('lineup')) void import('./render/lineup').then(m => m.startLineup(app, getCanvas(), params));
 else if (params.has('bbex') && import.meta.env.DEV) {
   // development showcase / visual verification of the account-exclusive BB-EX (not in production builds):
   //   ?bbex=descent[&n=200]  ANGEL DESCENT    ?bbex=<trial id>  one of the combat trials (sim/bbex/trials.ts)

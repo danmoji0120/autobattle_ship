@@ -128,6 +128,11 @@ export interface HullDef {
   upkeep?: HullUpkeep;
   /** NPC supply: which public yards stock it and how fast they rebuild their stock */
   sale?: HullSale;
+  /** P17.3: the maker's recommended combat computer (computer module id). Not free equipment: shown to the
+   *  player as the factory recommendation and fitted on NPC ships of this hull (world/fleet17Npc.ts). */
+  cpu?: string;
+  /** P17.3: faction / product-line label (UI and NPC selection; no rule effect) */
+  line?: string;
 }
 
 /** strategic operation of a hull (units as ECON) */

@@ -4,6 +4,7 @@ import type { ShipClassDef, LoadoutDef, MountDef } from '../sim/data/ships';
 import { WEAPONS } from '../sim/data/weapons';
 import { loadModel, modelReady, modelsEnabled, type ModelTemplate } from './modelLoader';
 import { bbexDesign, bbexTurret, BBEX_COLORS } from './bbex/hull';
+import { design17 } from './hulls17';
 import { BBEX_CLASS } from '../sim/bbex/data';
 
 // Ship-local frame: +x port, +y up, +z bow (matches the simulation).
@@ -147,6 +148,22 @@ function mats(team: 0 | 1): Mats {
     gun: new THREE.MeshStandardMaterial({ color: team === 0 ? 0x5a6470 : 0x3a3234, roughness: 0.45, metalness: 0.85 }),
   };
   matCache[team] = m;
+  return m;
+}
+
+/** maker-tinted hull materials (P17.3): same textures, hull/dark colours multiplied by the maker tint */
+const tintCache = new Map<string, Mats>();
+function matsTint(team: 0 | 1, tint: number | undefined): Mats {
+  const base = mats(team);
+  if (tint === undefined || tint === 0xffffff) return base;
+  const k = `${team}:${tint}`;
+  let m = tintCache.get(k);
+  if (!m) {
+    const hull = base.hull.clone(); hull.color.multiply(new THREE.Color(tint));
+    const dark = base.dark.clone(); dark.color.multiply(new THREE.Color(tint));
+    m = { ...base, hull, dark };
+    tintCache.set(k, m);
+  }
   return m;
 }
 
@@ -388,12 +405,13 @@ function design(cls: ShipClassDef, team: 0 | 1): { profile: Profile; W: number; 
 // ---------------------------------------------------------------- content hull silhouettes (P3)
 // Each base is its own shape (not a recolor or a scaled copy). Built at the class length; buildShip
 // then scales the whole model uniformly by HullDef.mesh.scale so hardpoints line up.
-type Design = { profile: Profile; W: number; build: (p: Parts, L: number) => void };
+type Design = { profile: Profile; W: number; build: (p: Parts, L: number) => void; tint?: number };
 function designExtra(base: string, L: number, team: 0 | 1): Design | undefined {
   const enemy = team === 1;
   const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
   switch (base) {
     case 'bbex': return bbexDesign(L, { slab, box, cyl });
+    default: { const d17 = design17(base, L, { slab, box, cyl }); if (d17) return d17; break; }
     case 'dd_vls': {            // flat broad deck, missile cell grid amidships, low aft bridge
       const profile: Profile = [[-0.5, 0.85], [-0.2, 1], [0.25, 0.9], [0.5, 0.25]];
       const W = 3.8;
@@ -762,9 +780,9 @@ function splitByZ(geos: THREE.BufferGeometry[]): [THREE.BufferGeometry | null, T
 
 export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): ShipModel {
   const bbex = cls.id === BBEX_CLASS;
-  const m = bbex ? matsBbex() : mats(team);
   const mb = loadout.mesh ?? (bbex ? { base: 'bbex', scale: 1 } : undefined);
   const xd = mb ? designExtra(mb.base, cls.length, team) : undefined;
+  const m = bbex ? matsBbex() : matsTint(team, xd?.tint);
   const key = xd ? `${mb!.base}@${mb!.scale}:${team}` : `${cls.id}:${team}`;
   let cached = geoCache.get(key);
   if (!cached) {
@@ -899,3 +917,13 @@ function applyModel(sm: ShipModel, t: ModelTemplate, m: Mats) {
 
 export function factionColor(team: 0 | 1): number { return STYLE[team].accent; }
 export function engineColor(team: 0 | 1): number { return STYLE[team].engine; }
+
+/** P17.3: the raw hull parts of a content silhouette at its class length (unscaled, no materials) —
+ *  used by tests/p17-hulls.test.ts to check that every hardpoint sits on the hull surface */
+export function hullParts(base: string, L: number): { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[] } | undefined {
+  const d = designExtra(base, L, 0);
+  if (!d) return undefined;
+  const parts: Parts = { hull: [], dark: [], trim: [], accent: [], light: [], engines: [] };
+  d.build(parts, L);
+  return parts;
+}
