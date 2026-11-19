@@ -9,7 +9,9 @@ import { BBEX_CLASS } from '../sim/bbex/data';
 
 // Ship-local frame: +x port, +y up, +z bow (matches the simulation).
 
-export interface TurretView { root: THREE.Object3D; barrels: THREE.Object3D | null; mount: MountDef; recoil: number; rotates: boolean }
+export interface TurretView { root: THREE.Object3D; barrels: THREE.Object3D | null; mount: MountDef; recoil: number; rotates: boolean;
+  /** P17.3.1: distance from the mount point to the muzzle along the barrel (render only; the sim fires from the mount point) */
+  muzzle?: number; spinal?: boolean }
 export interface ShipModel {
   root: THREE.Group;          // positioned/rotated by the renderer
   bank: THREE.Group;          // roll for banking
@@ -221,7 +223,7 @@ function cyl(rt: number, rb: number, h: number, x: number, y: number, z: number,
   g.translate(x, y, z); return g;
 }
 
-interface Parts { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[]; spinal?: { x: number; y: number; z: number } }
+interface Parts { hull: THREE.BufferGeometry[]; dark: THREE.BufferGeometry[]; trim: THREE.BufferGeometry[]; accent: THREE.BufferGeometry[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[]; spinal?: { x: number; y: number; z: number; z0: number; r: number } }
 
 const MESH_ALIAS: Record<string, [string, number]> = { frigate: ['destroyer', 1.0], light_cruiser: ['cruiser', 1.0], battlecruiser: ['battleship', 0.92], dreadnought: ['battleship', 1.6] };
 
@@ -755,9 +757,12 @@ function buildTurret(md: MountDef, team: 0 | 1): TurretView {
   if (ex && !ex.barrels) for (const [parent] of [...buckets]) if (parent !== root) buckets.delete(parent);
   for (const [parent, b] of buckets) for (const [mat, geos] of b) parent.add(new THREE.Mesh(mergeAll(geos), mat));
   if (barrels) root.add(barrels);
+  // P17.3.1: muzzle distance = forward end of the barrel group (proto is built at the origin, facing 0)
+  let muzzle = 0;
+  if (barrels) { root.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(barrels); if (isFinite(bb.max.z)) muzzle = Math.max(0, bb.max.z); }
   root.rotation.y = md.facing * Math.PI / 180;
   void w;
-  return { root, barrels, mount: md, recoil: 0, rotates };
+  return { root, barrels, mount: md, recoil: 0, rotates, muzzle };
 }
 
 // -------------------------------------------------------------------------- build
@@ -881,6 +886,22 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
   const turrets: TurretView[] = [];
   const peds: [THREE.BufferGeometry[], THREE.BufferGeometry[]] = [[], []];
   for (const md of loadout.mounts) {
+    // P17.3.1: a mount on a hull-integrated spinal barrel gets a fixed breech block, not a traversing turret —
+    // the barrel is part of the hull, rounds leave from its end (parts.spinal)
+    const sp = parts.spinal;
+    if (sp && md.arc <= 8 && Math.abs(md.facing) < 1 && Math.abs(md.pos[0] - sp.x) < 0.6 && Math.abs(md.pos[1] - sp.y) < 0.8 && sp.z > md.pos[2]) {
+      const root = new THREE.Group();
+      root.position.set(md.pos[0], md.pos[1], md.pos[2]);
+      // breech block from just behind the mount point to the barrel's breech end (z0), sized by the barrel bore
+      const r = sp.r, zb = -r * 1.6, ze = sp.z0 - md.pos[2] + r * 0.3, len = ze - zb;
+      const g = [box(r * 2.6, r * 2.2, len, 0, 0, zb + len / 2), box(r * 3.2, r * 0.6, len * 0.8, 0, -r * 0.9, zb + len * 0.45),
+        box(r * 1.2, r * 0.7, len * 0.5, 0, r * 1.3, zb + len * 0.3)];
+      const breech = new THREE.Mesh(mergeAll(g), m.dark); breech.userData.own = true; root.add(breech);
+      const band = new THREE.Mesh(box(r * 2.75, r * 2.35, r * 0.3, 0, 0, ze - r * 0.5), m.accent); band.userData.own = true; root.add(band);
+      (md.pos[2] >= 0 ? front : rear).add(root);
+      turrets.push({ root, barrels: null, mount: md, recoil: 0, rotates: false, muzzle: sp.z - md.pos[2], spinal: true });
+      continue;
+    }
     const key = `${md.weapon}:${team}`;
     let proto = turretCache.get(key);
     if (!proto) { proto = buildTurret({ ...md, pos: [0, 0, 0], facing: 0 }, team); turretCache.set(key, proto); }
@@ -888,7 +909,7 @@ export function buildShip(cls: ShipClassDef, loadout: LoadoutDef, team: 0 | 1): 
     root.position.set(md.pos[0], md.pos[1], md.pos[2]);
     root.rotation.y = md.facing * Math.PI / 180;
     const barrels = proto.barrels ? root.children[root.children.length - 1] : null;
-    const t: TurretView = { root, barrels, mount: md, recoil: 0, rotates: proto.rotates };
+    const t: TurretView = { root, barrels, mount: md, recoil: 0, rotates: proto.rotates, muzzle: proto.muzzle };
     if (bbex) {
       // flush mounts on their own fairings (no pedestals); ventral mounts hang upside-down
       let node: THREE.Object3D = root;

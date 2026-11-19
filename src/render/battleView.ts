@@ -144,6 +144,8 @@ export class BattleView implements FxHost {
   shipPose(id: number) { const v = this.views.get(id); return v && !v.gone ? { pos: v.wpos, fwd: v.wfwd, root: v.model.root as THREE.Object3D, front: v.model.front as THREE.Object3D, rear: v.model.rear as THREE.Object3D, ship: v.ship } : null; }
   beam(a: THREE.Vector3, b: THREE.Vector3, life: number, w: number, color: number) { this.beams.push({ a, b, life, max: life, w, c: C(color) }); }
   shake(p: THREE.Vector3, amount: number, range = 1200) { this.shakeNear(p, amount, range, 'special'); }
+  /** P17.3.1: drawn distance from a mount point to its muzzle (0 when unknown) */
+  muzzleLen(ship: number, mount: number): number { return this.views.get(ship)?.model.turrets[mount]?.muzzle ?? 0; }
 
   dispose() {
     this.ex?.dispose();
@@ -186,6 +188,15 @@ export class BattleView implements FxHost {
         case 'intercept': {
           const p = V(e.pos);
           const big = e.kind === 'torpedo';
+          // P17.3.1: a container child (or decoy) shot down pops small and alone — each one vanishes on its own
+          let child = false;
+          for (const rec of this.trailRecs.values()) if (rec.wmul !== undefined && rec.wmul < 0.5 && rec.head.distanceToSquared(p) < 900) { child = true; break; }
+          if (child) {
+            this.glow.emit(p, { life: 0.16, size: 6, size1: 9, color: 0xffe6b8, alpha: 1.1 });
+            this.burst(p, 4, 0xffc070, 0x803010, 3, 25);
+            if (Math.random() < 0.3) this.audio?.play('intercept', p, 0.2, 1.3);
+            break;
+          }
           this.burst(p, big ? 14 : 8, 0xffc070, 0x803010, big ? 10 : 6, 30);
           this.glow.emit(p, { life: 0.25, size: big ? 22 : 12, size1: big ? 30 : 18, color: 0xffe0b0, alpha: 1 });
           this.smoke.emit(p, { life: 2.5, size: big ? 8 : 5, size1: big ? 22 : 14, color: 0x3a3532, alpha: 0.45, drag: 1 });
@@ -246,6 +257,9 @@ export class BattleView implements FxHost {
     const t = v.model.turrets[mountIdx];
     if (t) t.recoil = 1;
     const team = v.ship.team;
+    // P17.3.1: flashes and beams start at the drawn muzzle (turret barrel end / spinal barrel end); a weapon-based
+    // guess is kept only for mounts without a measured muzzle. Render only — the sim's shot origin is untouched.
+    const mz = (fallback: number) => pos.clone().addScaledVector(dir, t?.muzzle && t.muzzle > 0.3 ? t.muzzle : fallback);
     if (this.ex && v.ship.ex && this.ex.onFire(v.ship, weapon, pos, dir)) {
       if (weapon === 'seraph_ex') this.noteInterest(shipId, 2.5, 'missile');
       return;
@@ -253,7 +267,7 @@ export class BattleView implements FxHost {
     switch (weapon) {
       case 'heavy_cannon': case 'rail_cannon': {
         const rail = weapon === 'rail_cannon';
-        const mp = pos.clone().addScaledVector(dir, rail ? 16 : 10);
+        const mp = mz(rail ? 16 : 10);
         this.glow.emit(mp, { life: 0.22, size: rail ? 18 : 26, size1: rail ? 6 : 40, color: rail ? 0xc0f0ff : 0xffe0a0, alpha: 1.4 });
         for (let i = 0; i < 10; i++) {
           const vv = dir.clone().multiplyScalar(60 + Math.random() * 120).add(new THREE.Vector3((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50));
@@ -268,7 +282,7 @@ export class BattleView implements FxHost {
         break;
       }
       case 'medium_gun': {
-        const mp = pos.clone().addScaledVector(dir, 4.5);
+        const mp = mz(4.5);
         this.glow.emit(mp, { life: 0.12, size: 9, size1: 14, color: 0xffd090, alpha: 1.2 });
         this.smoke.emit(mp, { life: 1.8, size: 3, size1: 9, color: 0x6a6460, alpha: 0.25, vel: dir.clone().multiplyScalar(15), drag: 1 });
         if (Math.random() < 0.6) this.audio?.play('medium', mp, 0.55);
@@ -276,7 +290,7 @@ export class BattleView implements FxHost {
         break;
       }
       case 'autocannon': {
-        const mp = pos.clone().addScaledVector(dir, 2.6);
+        const mp = mz(2.6);
         this.glow.emit(mp, { life: 0.06, size: 3.5, size1: 5, color: 0xffd080, alpha: 1 });
         if (Math.random() < 0.35) this.audio?.play('auto', mp, 0.3);
         break;
@@ -299,7 +313,7 @@ export class BattleView implements FxHost {
         const w = WEAPONS[weapon]; if (!w) break;
         const col = w.vis?.color ?? (w.kind === 'torpedo' ? (this.friendly(team) ? 0xa0c8ff : 0xff90c0) : 0xffd090);
         const big = (w.tier ?? 1) >= 4 || w.caliber >= 2;
-        const mp = pos.clone().addScaledVector(dir, 2 + w.caliber * 2);
+        const mp = mz(2 + w.caliber * 2);
         this.glow.emit(mp, { life: w.kind === 'shell' ? 0.12 : 0.3, size: 4 + w.caliber * 5, size1: 2 + w.caliber * 4, color: col, alpha: 1.2 });
         if (w.vis?.beam) this.beams.push({ a: mp, b: mp.clone().addScaledVector(dir, Math.min(w.range, 260 + w.vis.len * 3)), life: big ? 0.2 : 0.09, max: big ? 0.2 : 0.09, w: w.vis.wid, c: C(col) });
         if (w.kind === 'missile' || w.kind === 'torpedo') this.noteInterest(shipId, w.kind === 'torpedo' ? 7 : 2.5, w.kind, v.ship.mounts[mountIdx]?.targetId);
@@ -342,6 +356,24 @@ export class BattleView implements FxHost {
       this.glow.emit(p, { life: 0.12, size: 3, size1: 5, color: 0xffc070, alpha: 0.9 });
       if (Math.random() < 0.3) this.burst(p, 2, 0xffd090, 0x803000, 2, 40);
       if (Math.random() < 0.08) this.audio?.play('hitsmall', p, 0.25);
+      return;
+    }
+    // P17.3.1 energy hits (laser / particle / plasma, incl. held beams and arcs): a burn in the weapon's colour —
+    // a white-hot core, molten droplets and a little vapour, no shrapnel cloud
+    const fam = wd?.family;
+    if (fam === 'laser' || fam === 'particle' || fam === 'plasma') {
+      const col = wd!.vis?.color ?? 0xa0d0ff;
+      const sc = THREE.MathUtils.clamp(Math.sqrt(Math.max(e.dmg, 20) / 140), 0.35, 2.2);
+      this.glow.emit(p, { life: 0.14, size: 9 * sc, size1: 15 * sc, color: 0xffffff, alpha: 1.3 });
+      this.glow.emit(p, { life: 0.4, size: 12 * sc, size1: 20 * sc, color: col, alpha: 0.9 });
+      for (let i = 0; i < 3 + 4 * sc; i++) this.glow.emit(p, { life: 0.5 + Math.random() * 0.6, size: 1.2 + sc, size1: 0.3, color: 0xffc080, color1: 0x601000, vel: dir.clone().multiplyScalar(-25).add(new THREE.Vector3((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50, (Math.random() - 0.5) * 50).multiplyScalar(sc)), drag: 1.8 });
+      if (Math.random() < 0.5) this.smoke.emit(p, { life: 2.2, size: 3 * sc, size1: 10 * sc, color: 0x34302e, alpha: 0.3, drag: 0.8 });
+      if (sc > 1.2) { this.flashes.flash(p, 30 * sc, 160, 0.18, col); this.shakeNear(p, 0.4 * sc, 1000, 'hit'); }
+      if (Math.random() < (sc > 1 ? 0.8 : 0.3)) this.audio?.play(sc > 1 ? 'hitheavy' : 'hit', p, 0.4 * sc, 1.2);
+      if (v && v.ship.state !== 'dead') {
+        v.hitFlash = Math.max(v.hitFlash, 0.6);
+        if (e.dmg > 60 && v.burns.length < 10) v.burns.push({ local: this.worldToShipLocal(v, p), life: 4 + Math.random() * 5 * sc, size: Math.min(3, sc) });
+      }
       return;
     }
     // P17.3 mechanism weapons and submunitions: the hit is sized by the damage it actually did
@@ -641,7 +673,8 @@ export class BattleView implements FxHost {
       }
     }
     if (!this.friendly(team) && w.id !== 'rail_cannon') { g *= 0.75; b *= 0.6; }
-    const k = len / Math.max(sp, 1);
+    // P17.3.1: the streak never reaches back past where the round started (no tail poking out behind the gun)
+    const k = Math.min(len, m.age * sp) / Math.max(sp, 1);
     this.trails.seg(x - m.vel.x * k, y - m.vel.y * k, z - m.vel.z * k, x, y, z, wid * 0.2, wid, r, g, b, 0, 1);
     if (w.pierce) {
       // ABYSS-LANCE: a blue-white spear inside a violet wake, shedding motes
@@ -662,7 +695,7 @@ export class BattleView implements FxHost {
       rec = { pts: [], kind: m.kind, team: m.team, dead: 0, head: new THREE.Vector3(), ...(m.weapon.phase ? { col: [2.0, 0.85, 3.0] as [number, number, number] } : {}), ...(st ?? {}) };
       this.trailRecs.set(m.id, rec);
     }
-    if (m.mine !== undefined) this.m17.munition(m, tmp.set(x, y, z), this.time);
+    if (m.mine !== undefined || m.decoy || m.weapon.mech?.split) this.m17.munition(m, tmp.set(x, y, z), this.time);
     // SERAPH-EX skipped through space: the trail does not bridge the gap
     if (rec.col && rec.pts.length && rec.pts[rec.pts.length - 1].distanceToSquared(tmp.set(x, y, z)) > 200 * 200) rec.pts.length = 0;
     rec.head.set(x, y, z);

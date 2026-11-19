@@ -21,7 +21,17 @@ async function battle(a, bb, seed, stages) {
     const { getLoadout } = await import('/src/sim/data/ships.ts');
     const { WEAPONS } = await import('/src/sim/data/weapons.ts');
     await import('/src/content/registry.ts');
-    const ship = ([c, l, w, pd]) => {
+    const { shipLoadout } = await import('/src/world/fitting.ts');
+    const { CONTENT } = await import('/src/content/registry.ts');
+    const ship = (row) => {
+      // P17.3.1: { p17: hullId } — a P17 hull with its preset fitting (its own mesh, spinal mounts included)
+      if (row.p17) {
+        const h = CONTENT.hulls[row.p17], pr = Object.values(CONTENT.presets).find(p => p.hull === row.p17);
+        const loadoutId = getLoadout(h.classId, 'std') ? 'std' : undefined;
+        const lo = shipLoadout({ classId: h.classId, loadoutId, variant: pr.variant, fitting: { hp: pr.weapons, bay: {} } });
+        return { classId: h.classId, loadoutId, fit: { name: 'p17', mounts: lo.mounts, mesh: lo.mesh } };
+      }
+      const [c, l, w, pd] = row;
       const lo = getLoadout(c, l);
       const mounts = lo.mounts.map(m => ({ ...m, weapon: WEAPONS[m.weapon].kind === 'pd' ? (pd ?? m.weapon) : (w ?? m.weapon) }));
       return { classId: c, loadoutId: l, fit: { name: 'p17', mounts } };
@@ -102,6 +112,24 @@ if (want.includes('thrust')) {
   await battle([['cruiser', 'aa', null, null], ['destroyer', 'aa', null, null]], [['battleship', 'std', null, null], ['cruiser', 'aa', null, null]], 4, [
     { name: 'thrust_underway', dist: 70, pitch: 0.35, yaw: 2.6, pred: P`(w) => { if (w.time < 6) return null; const s = w.ships.find(x => x.team === 0 && x.state === 'alive'); return s ? { x: s.pos.x, y: s.pos.y, z: s.pos.z } : null; }` },
     { name: 'thrust_crippled', dist: 80, pitch: 0.35, yaw: 2.6, pred: P`(w) => { const s = w.ships.find(x => x.state === 'alive' && (x.crit.engine > 0 || x.hp < x.maxHp * 0.3)); return s ? { x: s.pos.x, y: s.pos.y, z: s.pos.z } : null; }` },
+  ]);
+}
+if (want.includes('spinal')) {
+  // P17.3.1 spinal muzzles: the monitor's rail and the Leviathan-II's charge lance leave from the barrel's end
+  await battle([{ p17: 'p17_bc_monitor' }, { p17: 'p17_dn_leviathan' }], [['battleship', 'std', null, null], ['cruiser', 'aa', null, null]], 6, [
+    { name: 'spinal_charge', dist: 150, pitch: 0.35, yaw: 2.2, pred: P`(w, ev, m) => { for (const e of ev) if (e.t === 'charge' && !m.c) m.c = { t: w.time, s: e.ship, d: e.dur };
+        if (!m.c || w.time < m.c.t + m.c.d * 0.8) return null; const s = w.ships.find(x => x.id === m.c.s); return s ? { x: s.pos.x, y: s.pos.y, z: s.pos.z } : null; }` },
+    { name: 'spinal_fire', dist: 130, pitch: 0.4, yaw: 2.2, settle: 120, pred: P`(w, ev) => { const f = ev.find(e => e.t === 'fire' && w.shipById.get(e.ship)?.team === 0 && w.shipById.get(e.ship)?.mounts[e.mount]?.def.arc <= 6);
+        if (!f) return null; const s = w.shipById.get(f.ship); return { x: s.pos.x, y: s.pos.y, z: s.pos.z }; }` },
+  ]);
+}
+if (want.includes('mech')) {
+  // P17.3.1 held beam, decoys, mines (arming → armed danger radius)
+  await battle([['destroyer', 'strike', 'beam_cutter', null], ['destroyer', 'aa', 'mine_layer', null], ['cruiser', 'aa', 'missile_decoy', null]],
+    [['cruiser', 'aa', null, null], ['destroyer', 'aa', null, null]], 9, [
+    { name: 'mech_decoy', dist: 220, pitch: 0.5, settle: 200, pred: P`(w, ev) => { const d = ev.find(e => e.t === 'decoy'); return d ? d.pos : null; }` },
+    { name: 'mech_beam_held', dist: 260, pitch: 0.5, settle: 150, pred: P`(w, ev) => { const b = ev.filter(e => e.t === 'beam'); return b.length ? b[0].to : null; }` },
+    { name: 'mech_mine_armed', dist: 260, pitch: 0.7, settle: 1800, pred: P`(w) => { const m = w.munitions.find(x => !x.dead && x.mine === 1 && x.age >= (x.armAt ?? 0)); return m ? { x: m.pos.x, y: m.pos.y, z: m.pos.z } : null; }` },
   ]);
 }
 await b.close();

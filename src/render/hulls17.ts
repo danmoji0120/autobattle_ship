@@ -18,7 +18,7 @@ type G = THREE.BufferGeometry;
 export type Profile = [number, number][];
 export interface Parts { hull: G[]; dark: G[]; trim: G[]; accent: G[]; light: THREE.Vector3[]; engines: { x: number; y: number; z: number; r: number }[];
   /** muzzle of a hull-integrated spinal barrel (render/battleView.ts fires spinal mounts from here) */
-  spinal?: { x: number; y: number; z: number } }
+  spinal?: { x: number; y: number; z: number; z0: number; r: number } }
 export interface Kit {
   slab: (profile: Profile, L: number, W: number, t0: number, t1: number, y0: number, h: number, bevel?: number) => G;
   box: (w: number, h: number, d: number, x: number, y: number, z: number) => G;
@@ -98,7 +98,7 @@ export function design17(base: string, L: number, K: Kit): Design17 | undefined 
     for (let k = 0; k < 3; k++) p.dark.push(cyl(r * 1.2, r * 1.2, len * 0.06, 0, y, z0 + len * (0.12 + k * 0.22), 'z', 14));
     p.dark.push(cyl(r * 1.3, r * 1.15, len * 0.08, 0, y, z1 - len * 0.04, 'z', 14));
     p.accent.push(cyl(r * 0.55, r * 0.55, 0.08, 0, y, z1 + 0.02, 'z', 14));
-    p.spinal = { x: 0, y, z: z1 };
+    p.spinal = { x: 0, y, z: z1, z0, r };
   };
   const hangar = (p: Parts, x: number, y: number, z: number, w: number, h: number, d: number) => {
     p.hull.push(box(w, h, d, x, y, z));
