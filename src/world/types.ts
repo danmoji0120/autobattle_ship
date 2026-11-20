@@ -570,6 +570,9 @@ export interface Contract {
   spawned?: boolean;
   /** A-3.2b: why it ended without completion (shown to the taker) */
   ended?: string;
+  /** P17.4: how a taken contract ended (complete / failed / expired / void = not the taker's fault / cancelled by
+   *  the taker). Set where the contract closes so the taker's work reports the real result, not "object gone". */
+  outcome?: 'complete' | 'failed' | 'expired' | 'void' | 'cancelled';
   /** B-2 military contract terms, progress and settlement (kind 'mil'; world/military.ts) */
   mil?: import('./military').MilTerms;
 }

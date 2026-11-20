@@ -671,7 +671,7 @@ const XP_SPLIT: Record<MilType, Partial<Record<Tree, number>>> = {
 export function settle(h: Host, k: Contract & { mil: MilTerms }, ok: boolean, why: string, frac: number, quit = false, voided = false) {
   if (k.done) return;
   const w = h.st, m = k.mil, c = k.takenBy!, co = w.companies[c];
-  k.done = true; k.ended = why;
+  k.done = true; k.ended = why; k.outcome = ok ? 'complete' : voided ? 'void' : quit ? 'cancelled' : 'failed';
   const pay = ok ? m.base : 0, bonus = ok ? Math.round(m.bonus * Math.max(0, Math.min(1, frac))) : 0;
   const escrow = k.escrow ?? 0, out = Math.min(escrow, pay + bonus);
   if (co && out > 0) watchMoney(w, 'contract_mil', { company: c, station: k.stationId }, () => { co.credits += out; co.stats.earned += out; co.stats.contracts++; k.escrow = escrow - out; });

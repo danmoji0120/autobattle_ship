@@ -470,9 +470,16 @@ export function projectWork(h: WorldSim, w: Work) {
     }
     case 'operation': return projectOperation(h, w);
     case 'contract': {
+      // AUD-14: the work follows the contract's real outcome; a contract record that disappeared before its
+      // outcome was seen is NOT a success
       const c = h.st.contracts[w.ref.contract ?? ''];
-      if (!c) { w.result = '계약 종료'; return setState(h, w, 'done', ''); }
-      return setState(h, w, 'running', '계약 수행 중');
+      if (!c) { w.result = '계약 기록이 정리되어 결과를 확인할 수 없음'; return setState(h, w, 'cancelled', w.result); }
+      if (c.takenBy !== w.owner) { w.result = '수주 상태가 아님'; return setState(h, w, 'cancelled', w.result); }
+      if (!c.done) return setState(h, w, 'running', c.amount ? `계약 수행 중 · 납품 ${fmt(c.progress)}/${fmt(c.amount)}` : '계약 수행 중');
+      const out = c.outcome ?? (c.ended ? 'void' : h.time > c.expires ? 'expired' : 'complete');
+      if (out === 'complete') { if (w.state !== 'done') { w.income = c.mil ? (w.income ?? 0) : c.reward; w.result = `완수 · 보수 ${fmt(c.reward)} cr`; } return setState(h, w, 'done', ''); }
+      w.result = out === 'expired' ? `기한 만료 · 납품 ${fmt(c.progress)}/${fmt(c.amount ?? 0)}` : out === 'cancelled' ? `포기${c.ended ? ` — ${c.ended}` : ''}` : out === 'failed' ? `실패${c.ended ? ` — ${c.ended}` : ''}` : `무효 종료${c.ended ? ` — ${c.ended}` : ''} (불이익 없음)`;
+      return setState(h, w, out === 'expired' || out === 'failed' ? 'failed' : 'cancelled', w.result);
     }
   }
 }

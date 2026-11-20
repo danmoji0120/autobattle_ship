@@ -10,10 +10,11 @@ import { MilitaryPanel, militaryAvailable } from './militaryUi';
 import { TerritoryPanel, partyLabel } from './sovereigntyUi';
 import { STATUS_NAME as SOV_STATUS, STAGE_NAME as SOV_STAGE } from '../../world/sovereignty';
 import { milFirstOn } from '../../world/military';
+import { deliveryQuote, directDeliverable } from '../../world/contractDelivery';
 import * as THREE from 'three';
 import type { GameClient } from '../net';
 import type { StrategicView, Pick } from './view';
-import type { WGroup, WShip, Op, Station, Res, WorldEvent, V, Field } from '../../world/types';
+import type { WGroup, WShip, Op, Station, Res, WorldEvent, V, Field, Contract } from '../../world/types';
 import { RES, cargoSum, qty, cargoKeys } from '../../world/types';
 import type { WorldView } from '../../server/protocol';
 import { SHIP_CLASSES, getLoadout } from '../../sim/data/ships';
@@ -1723,6 +1724,7 @@ export class PmcHud {
     m.querySelectorAll<HTMLButtonElement>('[data-openfit]').forEach(b => b.onclick = () => this.openFitting(b.dataset.openfit!));
     m.querySelectorAll<HTMLSelectElement>('[data-refit]').forEach(sel => sel.onchange = () => { if (sel.value) this.cmd({ c: 'refit', ship: sel.dataset.refit!, loadoutId: sel.value }); });
     m.querySelectorAll<HTMLButtonElement>('[data-hire]').forEach(b => b.onclick = () => this.cmd({ c: 'hire', commander: b.dataset.hire! }));
+    m.querySelectorAll<HTMLButtonElement>('[data-deliver]').forEach(b => b.onclick = async () => { const [contract, upTo] = b.dataset.deliver!.split(':'); if (await this.cmd({ c: 'deliverStock', contract, upTo: Number(upTo) })) this.toast('보관 재고 납품', 'good'); });
     m.querySelectorAll<HTMLButtonElement>('[data-accept]').forEach(b => b.onclick = () => this.cmd({ c: 'accept', contract: b.dataset.accept! }));
     m.querySelectorAll<HTMLButtonElement>('[data-milopen]').forEach(b => b.onclick = () => this.openMilitary(b.dataset.milopen!));
     m.querySelectorAll<HTMLButtonElement>('[data-module]').forEach(b => b.onclick = async () => {
@@ -1834,6 +1836,14 @@ export class PmcHud {
       <button class="btn go" data-hire="${c.id}">영입</button></div>`).join('')}</div>`;
   }
 
+  /** P17.4a: own delivery contract — progress, deliverable stock in the store, direct delivery */
+  private deliverHtml(k: Contract): string {
+    if (!directDeliverable(k) || !growthOn(this.st)) return '<div class="good">수주함 — 진행 중</div>';
+    const q = deliveryQuote({ st: this.st as never }, this.me, k);
+    const n = Math.min(q.remaining, q.usable);
+    return `<div class="good">수주함 · 보관 ${fmt(q.stored)} · 납품 가능 ${fmt(q.usable)}</div>${q.why ? `<div class="dim small">${esc(q.why)}</div>` : ''}${n >= 1 ? `<button class="btn go" data-deliver="${k.id}:${Math.round(k.progress + n)}">보관 재고 ${fmt(n)} 납품</button>` : ''}`;
+  }
+
   private contractsHtml(s: Station): string {
     const ks = Object.values(this.st.contracts).filter(k => k.stationId === s.id && !k.done);
     if (!ks.length) return '<div class="dim">게시된 계약이 없습니다.</div>';
@@ -1841,8 +1851,8 @@ export class PmcHud {
       <div class="dim">${esc(k.desc)}</div>
       <div class="ys">${(k.kind === 'delivery' || k.kind === 'salvage') ? `진행 ${Math.round(k.progress)}/${k.amount} · ` : ''}${Math.max(0, Math.round((k.expires - this.st.time) / 60))}분 남음</div>
       ${k.kind === 'mil' ? (k.takenBy && k.takenBy !== this.me ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn${k.takenBy ? '' : ' go'}" data-milopen="${k.id}">${k.takenBy === this.me ? '진행 상황 · 군사 계약' : '군사 계약 화면에서 수주 (함대 선택)'}</button>`)
-        : k.takenBy === this.me ? '<div class="good">수주함 — 진행 중</div>' : k.takenBy ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn go" data-accept="${k.id}">수주</button>`}</div>`).join('')}</div>
-      <div class="dim small">납품 계약: 해당 정거장에 자원을 하역하면 자동으로 납품됩니다. 현상금: 해당 해적 무리 격멸 전투에 참여하면 완수됩니다. 인양: 지정 잔해에서 회수한 물품을 이 정거장에 하역하면 납품됩니다(보상은 수주 때 정거장 예산에서 예약).</div>`;
+        : k.takenBy === this.me ? this.deliverHtml(k) : k.takenBy ? `<div class="warn">${esc(this.st.companies[k.takenBy]?.name ?? '')} 수주</div>` : `<button class="btn go" data-accept="${k.id}">수주</button>`}</div>`).join('')}</div>
+      <div class="dim small">납품 계약: 해당 정거장에 자원을 하역하거나, 그 정거장 보관함의 여유 재고로 바로 납품할 수 있습니다(최소 재고·비축 목표·생산 예약분은 쓰지 않음). 현상금: 해당 해적 무리 격멸 전투에 참여하면 완수됩니다. 인양: 지정 잔해에서 회수한 물품을 이 정거장에 하역하면 납품됩니다(보상은 수주 때 정거장 예산에서 예약).</div>`;
   }
 
   /** facility picked in the build tab's detail panel: a module kind (new plan) or a plan id */

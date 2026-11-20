@@ -70,7 +70,7 @@ export function salvageContractsTick(h: Host) {
     // target exhausted or decayed
     const aboard = k.takenBy ? Object.values(w.ships).some(s => s.owner === k.takenBy && fromTarget(s, k.res!, k.target!) > 0) : false;
     if (aboard) continue;
-    k.done = true; k.ended = '대상 소멸';
+    k.done = true; k.ended = '대상 소멸'; k.outcome = 'void';
     if (k.takenBy) {
       refundSalvage(h, k);
       emit(w, { kind: 'contract', amount: 1, reason: 'fail', company: k.takenBy, item: k.kind, station: k.stationId });

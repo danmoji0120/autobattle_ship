@@ -49,6 +49,7 @@ import { firstProfitReached, pnlSinceFounding } from './firstBusiness';
 import type { Background, BackgroundTerm } from './backgrounds';
 import { rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
+import { deliverFromStore } from './contractDelivery';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
 import { sortieProblem, buybackProblem, buybackValue, earner, miner, tradeInOpen, recoveryShips, yardStock, RECOVERY_SHIPS, SWAP_HULLS } from './recovery';
 import { enforceExclusive, exclusiveGuard, exclusiveLost, stepExclusive, isExclusiveShip, isExclusiveEquip, grantExclusive } from './exclusive';
@@ -124,6 +125,8 @@ export type Cmd =
   | { c: 'officerFocus'; commander: string; tree: string | null }
   | { c: 'officerPost'; commander: string; post: string | null }
   | { c: 'accept'; contract: string; group?: string }
+  /** P17.4a: deliver a taken delivery contract from the company's free stock at the contract station (upTo = target progress, idempotent) */
+  | { c: 'deliverStock'; contract: string; upTo?: number }
   /** B-2 military contracts: send the committed fleet, give up a contract, post an escort job for one's own cargo group */
   | { c: 'milDispatch'; contract: string }
   | { c: 'milCancel'; contract: string }
@@ -1199,6 +1202,7 @@ export class WorldSim {
         this.ev('info', `계약 수주: ${k.title}`, { company, pos: S(k.stationId).pos });
         return null;
       }
+      case 'deliverStock': return growthOn(this.st) ? deliverFromStore(this, company, cmd.contract, cmd.upTo) : '보관함이 없는 월드';
       case 'milDispatch': return milOn(this.st) ? milDispatch(this, company, cmd.contract) : '군사 계약 월드가 아님';
       case 'milCancel': return milOn(this.st) ? milCancel(this, company, cmd.contract) : '군사 계약 월드가 아님';
       case 'milPostEscort': return milPostEscort(this, company, cmd.group, cmd.to, cmd.reward);
@@ -4904,7 +4908,7 @@ export class WorldSim {
       const g = st.groups[k.target];
       if (g && g.shipIds.length) continue;
       if (k.takenBy && players.includes(k.takenBy) && (e.v === 2 ? vsPir(k.takenBy) > 0 : (dmgBy.get(k.takenBy) ?? 0) > 0)) this.completeContract(k);
-      else { k.done = true; if (k.takenBy) this.ev('info', `계약 "${k.title}" 대상이 다른 세력에 의해 소멸했다.`, { company: k.takenBy }); }
+      else { k.done = true; k.outcome = 'void'; k.ended ??= '대상이 다른 세력에 의해 소멸'; if (k.takenBy) this.ev('info', `계약 "${k.title}" 대상이 다른 세력에 의해 소멸했다.`, { company: k.takenBy }); }
     }
     // B-2: the battle counts toward at most one military contract per company (hunt targets, escorts, patrol / defence areas)
     if (st.milV && e.v === 2) {
@@ -4968,7 +4972,7 @@ export class WorldSim {
       } else if (co?.kind === 'player') { co.rep += 15; emit(this.st, { kind: 'reputation', reason: 'lair_destroyed', amount: 15, company: co.id, system: e.sys }); if (!co.milestones.includes('lair')) this.milestone(co, 'lair'); }
     }
     for (const k of Object.values(this.st.contracts)) if (!k.done && k.kind === 'lair' && k.target === l.id) {
-      if (k.takenBy && e.sides[0].includes(k.takenBy)) this.completeContract(k); else k.done = true;
+      if (k.takenBy && e.sides[0].includes(k.takenBy)) this.completeContract(k); else { k.done = true; k.outcome = 'void'; k.ended ??= '다른 세력이 거점을 파괴'; }
     }
   }
 
@@ -4988,9 +4992,25 @@ export class WorldSim {
       const res = this.rng.pick(goods);
       const amount = Math.max(5, Math.round(targetFor(res) * this.rng.range(0.08, 0.16) / 5) * 5);
       const base = h.market?.[res]?.base ?? itemPriceOf(res);
-      this.offerContract({ stationId: h.id, kind: 'delivery', title: `재건 물자: ${RES_NAME[res]} ${amount}`, desc: `해적 거점이 무너진 ${sys.name}의 재건에 ${RES_NAME[res]} ${amount}단위가 필요하다. 시장가의 2.2배를 지급한다.`, reward: Math.round(amount * base * 2.2 / 50) * 50, rep: 4, res, amount }, RECOVERY_TIME);
+      const reward = this.deliveryReward(h, res, amount, Math.round(amount * base * 2.2 / 50) * 50);
+      this.offerContract({ stationId: h.id, kind: 'delivery', title: `재건 물자: ${RES_NAME[res]} ${amount}`, desc: `해적 거점이 무너진 ${sys.name}의 재건에 ${RES_NAME[res]} ${amount}단위가 필요하다. ${reward.local ? '현지 시장 재고가 있어 보수는 현지 매입가 수준이다.' : '시장가의 2.2배를 지급한다.'}`, reward: reward.n, rep: 4, res, amount }, RECOVERY_TIME);
     }
     if (hosts.length) this.ev('world', `${sys.name}: 해방 후 재건이 시작되었다 — 상인 길드가 진출하고 재건 물자 납품 계약이 게시되었다.`, { pos: hosts[0].pos });
+  }
+
+  /**
+   * P17.4a (AUD-18): a delivery contract pays a premium for bringing goods the station lacks. When the posting
+   * station's own market can sell the whole lot right now, buying it there and delivering at once (directly from the
+   * store, with no ship) would be a riskless instant profit (measured: ~40 % median margin, ~300k cr/h across the
+   * standard world). Such a contract pays at most 95 % of the walked local purchase cost — still better than the local
+   * sell price, so hauling from a cheaper market pays, while buy-here-deliver-here does not. Growth worlds only
+   * (the worlds with stores and direct delivery); other worlds keep the old reward.
+   */
+  private deliveryReward(s: Station, res: string, amount: number, reward: number): { n: number; local: boolean } {
+    const m = s.market?.[res];
+    if (!growthOn(this.st) || !m || m.stock < amount) return { n: reward, local: false };
+    const cap = Math.floor(marketBuyCost(m, amount, true) * 0.95 / 50) * 50;
+    return cap < reward ? { n: Math.max(50, cap), local: true } : { n: reward, local: false };
   }
 
   private contracts() {
@@ -5000,7 +5020,7 @@ export class WorldSim {
     for (const k of Object.values(st.contracts)) {
       if (k.done || k.kind === 'mil') continue;
       if (this.time > k.expires) {
-        k.done = true;
+        k.done = true; if (k.takenBy) k.outcome = 'expired';
         if (k.escrow) refundSalvage(this, k);
         if (k.takenBy) { const co = st.companies[k.takenBy]; const prev = co.rep; if (st.repV) repContractFailed(st, co.id, k); else { co.rep = Math.max(0, co.rep - 2); emit(st, { kind: 'reputation', amount: co.rep - prev, reason: 'contract_expired', company: co.id }); } emit(st, { kind: 'contract', amount: 1, reason: 'fail', company: co.id, item: k.kind, station: k.stationId }); this.ev('warn', `계약 기한 만료: ${k.title} (${st.repV ? '신용도·발주 세력 신뢰도 하락' : '평판 -2'})`, { company: k.takenBy }); }
       }
@@ -5017,7 +5037,8 @@ export class WorldSim {
         const base = s.market?.[res]?.base ?? 20;
         // remote, dangerous stations pay far more for the same cargo
         const mult = 1.6 + (100 - this.secAt(s.pos)) / 70;
-        this.offerContract({ stationId: s.id, kind: 'delivery', title: `${RES_NAME[res]} ${amount} 납품`, desc: `${s.name}에 ${RES_NAME[res]} ${amount}단위를 납품하라. 시장가의 약 ${mult.toFixed(1)}배를 지급한다.`, reward: Math.round(amount * base * mult / 50) * 50, rep: 2, res, amount });
+        const reward = this.deliveryReward(s, res, amount, Math.round(amount * base * mult / 50) * 50);
+        this.offerContract({ stationId: s.id, kind: 'delivery', title: `${RES_NAME[res]} ${amount} 납품`, desc: reward.local ? `${s.name}에 ${RES_NAME[res]} ${amount}단위를 납품하라. 이 정거장 시장에서도 구할 수 있는 물품이라 보수는 현지 매입가 수준이다 — 더 싼 곳에서 실어 오면 이익.` : `${s.name}에 ${RES_NAME[res]} ${amount}단위를 납품하라. 시장가의 약 ${mult.toFixed(1)}배를 지급한다.`, reward: reward.n, rep: 2, res, amount });
       }
     }
     // A-3.2b salvage contracts on derelicts (reward reserved from the station's funds at acceptance)
@@ -5055,7 +5076,7 @@ export class WorldSim {
 
   private completeContractObserved(k: Contract) {
     if (k.done) return;
-    k.done = true;
+    k.done = true; k.outcome = 'complete';
     const co = k.takenBy ? this.st.companies[k.takenBy] : null;
     if (!co) return;
     // A-3.2b: a salvage contract pays what was reserved from the station (a transfer), never new money
