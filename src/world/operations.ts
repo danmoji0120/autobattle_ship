@@ -7,6 +7,7 @@
 // through `WorldSim.command`, so every rule, price, capacity and ownership check of the
 // original systems still applies. Approvals (결재) are raised only where automatic work would
 // spend money without authority or take a risk the company has not accepted.
+import type { ActHour } from './industryPnl';
 import { waitCode, type WaitCode } from './waitCode';
 import { territoryRisk } from './territory';
 import { validateFieldGoal, runFieldGoal, type FieldGoal } from './fieldOps';
@@ -165,6 +166,8 @@ export interface CompanyOps {
   spend: { t: number; n: number }[];
   /** balance last seen by the ledger reconciliation */
   credits?: number;
+  /** P17.4f: the same real money by activity (industryPnl.ts) */
+  act?: ActHour[];
 }
 
 export const defaultOpsPolicy = (): OpsPolicy => ({ autonomy: 'ask', minCredits: 0, hourlyLimit: 0, autoApproveBelow: 0, maxRisk: 50, preferProduce: true, autoBuy: {}, delegatedBudget: 0, delegatedSpent: 0 });

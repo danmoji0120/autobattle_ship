@@ -14,6 +14,7 @@ import { enableAutoLogistics } from './logisticsMigrate';
 import { enableIndustrial, fitGear, fitStandardGear, markIndustrial, stockComputers, stockParts17, migrateCarriers, migrateRepair } from './industrialGear';
 import { planAutoRepairs, stepAutoRepair, autoRepairDocked, setRepairPolicy, type RepairSettings } from './autoRepair';
 import { planProcurement, planSales, planMinerSaleTrip, saleQuote, setSalesPolicy, type SalesSettings, setProcurementPolicy, setProcurementSource, stopProcurement, defaultProcurementPolicy, type ProcurementSettings, type ProcurementKind } from './procurement';
+import { bookAct, activityOf } from './industryPnl';
 import { registerCommand, stockFloor, companySaleCap, snapshot as opsSnapshot, stepOperations, workOp, createGoal, decideApproval, setOpsPolicy, book, bookedSoFar, CMD_CATEGORY, type GoalSpec, type WorkOp, type ApprovalScope, type OpsPolicy } from './operations';
 import { Rng } from '../sim/rng';
 import { World, BATTLE_RULES, CPU_BEHAVIOUR } from '../sim/world';
@@ -852,7 +853,11 @@ export class WorldSim {
       if (!err && opsBefore) {
         const co = this.st.companies[company];
         // cash ledger: what this command moved, minus what nested paths (market sales) already booked
-        if (co) book(this, company, CMD_CATEGORY[cmd.c] ?? (cmd.c === 'sell' ? 'sales' : 'other'), co.credits - opsBefore.credits - (bookedSoFar(this.st, company) - bookedBefore));
+        const moved = co ? co.credits - opsBefore.credits - (bookedSoFar(this.st, company) - bookedBefore) : 0;
+        if (co) book(this, company, CMD_CATEGORY[cmd.c] ?? (cmd.c === 'sell' ? 'sales' : 'other'), moved);
+        // P17.4f: a station repair / refit of a ship is a cost of the business that ship serves
+        const rs = (cmd.c === 'repair' || cmd.c === 'refit') && 'ship' in cmd ? this.st.ships[String(cmd.ship)] : undefined;
+        if (rs && growthOn(this.st)) bookAct(this.st, this.time, company, activityOf(this.st, rs), moved);
         registerCommand(this, company, cmd, opsBefore);
       }
       if (!err && manual.length) pauseManualRoutes(this, manual);
@@ -3989,7 +3994,7 @@ export class WorldSim {
         if (amt <= epsilon) continue;
       }
       if (sell && st.market?.[r]) {
-        const v = watchMoney(this.st, 'market_sale', { company: s.owner, group: s.groupId, ship: s.id, station: st.id, item: r }, () => this.sellAt(st, s.owner, r, amt));
+        const v = watchMoney(this.st, 'market_sale', { company: s.owner, group: s.groupId, ship: s.id, station: st.id, item: r }, () => this.sellAt(st, s.owner, r, amt, s));
         msg += `${RES_NAME[r]} ${Math.round(v.sold)} → +${Math.round(v.value).toLocaleString()} cr `;
         // the station ran out of budget: the rest is kept in the company's storage there (never dumped)
         let left = amt - v.sold;
@@ -4021,10 +4026,11 @@ export class WorldSim {
 
   /** sell to the station's NPC market; returns credits paid and units sold (contentV ≥ 3: limited
    *  by the station's buying budget — what it cannot pay for is not sold) */
-  sellAt(st: Station, company: string, r: Res, amt: number): { value: number; sold: number } {
-    return watchMoney(this.st, 'market_sale', { company, station: st.id, item: r }, () => this.sellAtObserved(st, company, r, amt));
+  /** `ship`: the ship selling its own cargo (P17.4f: the income is booked to that ship's activity; none = stock sale) */
+  sellAt(st: Station, company: string, r: Res, amt: number, ship?: WShip): { value: number; sold: number } {
+    return watchMoney(this.st, 'market_sale', { company, station: st.id, item: r }, () => this.sellAtObserved(st, company, r, amt, ship));
   }
-  private sellAtObserved(st: Station, company: string, r: Res, amt: number): { value: number; sold: number } {
+  private sellAtObserved(st: Station, company: string, r: Res, amt: number, ship?: WShip): { value: number; sold: number } {
     // sell in chunks so large dumps walk the price down
     let total = 0, left = amt, sold = 0;
     const m = st.market![r];
@@ -4040,6 +4046,7 @@ export class WorldSim {
     const co = this.st.companies[company];
     co.credits += total; co.stats.earned += total;
     book(this, company, 'sales', total, r);
+    if (growthOn(this.st)) bookAct(this.st, this.time, company, ship ? activityOf(this.st, ship) : 'stock', total);
     const beforeDebt = co.credits; payFromSale(this.st, co, total);
     if (co.credits !== beforeDebt) book(this, company, 'upkeep', co.credits - beforeDebt);
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');

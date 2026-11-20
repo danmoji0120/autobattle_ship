@@ -14,6 +14,7 @@
 // The price per whole hull = ship value × REPAIR_RATE (the station price) × the provider's multiplier, fixed when
 // the job is accepted. Own ships always come first: a repair ship works a paying job only when no damaged ship of
 // its own company is in reach. docs/P17_INDUSTRY.md §P17.2.
+import { activityOf, bookAct } from './industryPnl';
 import type { WorldSim } from './sim';
 import type { Company, Op, V, WGroup, WShip } from './types';
 import { econOf, shipWorth } from './hullops';
@@ -234,8 +235,9 @@ export function chargeBiz(h: WorldSim, s: WShip, g: WGroup, t: WShip, amount: nu
     const log = (e.repairLog ??= []); log.push({ t: h.time, n: fee }); trim(log, h.time);
   }
   // AUD-17: the client's paid repair and the provider's repair-business income are separate ledger lines
-  if (p.kind === 'player') book(h, p.co.id, 'repair_service', -fee);
+  if (p.kind === 'player') { book(h, p.co.id, 'repair_service', -fee); bookAct(h.st, h.time, p.co.id, activityOf(h.st, t), -fee); }
   prov.credits += fee; prov.stats.earned += fee; book(h, g.owner, 'repair_biz', fee);
+  bookAct(h.st, h.time, g.owner, 'repair', fee);   // P17.4f: repair-business income
   S.billed = (S.billed ?? 0) + fee; S.income += fee;
   emit(h.st, { kind: 'cost', reason: 'repair_service', amount: fee, company: p.kind === 'player' ? p.co.id : t.owner, ship: t.id, to: g.owner, ...(p.kind === 'faction' ? { method: `faction:${p.fid}` } : {}) });
   emit(h.st, { kind: 'income', reason: 'repair_service', amount: fee, company: g.owner, group: g.id, ship: s.id, from: t.owner });

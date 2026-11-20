@@ -1,5 +1,6 @@
 // Company HQ (회사 본부): one screen over the unified work system. Every action here sends the same
 // commands as the detailed screens; nothing is computed authoritatively on the client.
+import { pnlRows } from '../../world/industryPnl';
 import type { GameClient } from '../net';
 import type { Cmd } from '../../world/sim';
 import { companyInventory, terminal, GOAL_KINDS, KIND_NAME, STATE_NAME, LEDGER_NAME, itemName, defaultOpsPolicy, type Work, type Approval, type ApprovalScope, type GoalSpec, type InventoryRow } from '../../world/operations';
@@ -530,6 +531,7 @@ export class OperationsPanel {
       <section class="pool-section"><div class="pool-section-head"><div><h3>현금 흐름 <small>최근 ${led.length}시간 실적</small></h3><p>실제 입출금만 기록합니다 (장부가치 제외).</p></div></div>
       <table class="ops-table"><thead><tr><th>항목</th><th>수입</th><th>지출</th></tr></thead><tbody>${cats.map(c => `<tr><td>${esc(LEDGER_NAME[c] ?? c)}</td><td class="good">${tot('inc', c) ? n0(tot('inc', c)) : ''}</td><td class="warn">${tot('exp', c) ? n0(tot('exp', c)) : ''}</td></tr>`).join('') || '<tr><td colspan="3" class="dim">아직 기록 없음</td></tr>'}</tbody></table>
       <div class="proc-policy-status"><span>판매 수입<b>${n0(sales)} cr</b></span><span>운영 유지비<b>${n0(upkeep)} cr</b></span><span>판매 − 유지비<b class="${sales - upkeep >= 0 ? 'good' : 'warn'}">${n0(sales - upkeep)} cr</b></span></div>
+      ${this.pnlHtml()}
       ${this.valuationNote()}
       <h3 class="ops-h3">목표별 예산</h3>${goals.map(x => `<div class="proc-plan"><b>${esc(x.title)}</b> <span>지출 ${n0(x.cost)} cr · ${x.budget ? x.budget.open ? '목표 전체 승인' : `예산 ${n0(x.budget.spent)}/${n0(x.budget.limit)} cr` : '예산 없음 (필요 시 결재)'}</span></div>`).join('') || '<p class="dim">없음</p>'}
       <h3 class="ops-h3">위임 정책</h3><div class="proc-policy-form"><div class="proc-policy-grid">
@@ -540,6 +542,15 @@ export class OperationsPanel {
         <label class="ops-check"><input type="checkbox" name="p-produce" ${pol.preferProduce ? 'checked' : ''}> 구매보다 자체 생산 우선</label>
         <p class="dim">위임 품목: ${Object.entries(pol.autoBuy).map(([i, p]) => `${esc(itemName(i))} ≤ ${n0(p)} cr`).join(', ') || '없음'} — 결재에서 "정책 위임"을 고르면 추가됩니다.</p>
         <button class="btn go" data-a="policy">정책 저장</button></div></section></div>`;
+  }
+  /** P17.4f F1: the same real money by the business each ship served (industryPnl.ts) */
+  private pnlHtml() {
+    const rows = pnlRows(this.w.companies[this.me], this.w.time, 24);
+    const sum = (k: 'inc' | 'exp' | 'net') => rows.reduce((a, r) => a + r[k], 0);
+    return `<h3 class="ops-h3">사업별 손익 <small>최근 24시간 실적</small></h3><p class="dim small">함선이 그 순간 수행한 업무 기준입니다. 운영비 = 유지비·정박료(+간접비)와 소모품(기준가), 수리비는 수리받은 함선의 업무에 붙습니다. 함선이 직접 하역·판매한 수입은 그 함선의 업무로, 보관함에서 판 재고는 "보관 재고 판매"로 잡힙니다.</p>
+      <div class="ops-table-wrap"><table class="ops-table ops-pnl"><thead><tr><th>사업</th><th>평균 함선</th><th>수입</th><th>운영·수리비</th><th>손익</th></tr></thead><tbody>${rows.map(r => `<tr data-act="${r.act}"><td>${esc(r.name)}</td><td>${r.ships ? r.ships.toFixed(1) : ''}</td><td class="good">${r.inc ? n0(r.inc) : ''}</td><td class="warn">${r.exp ? n0(r.exp) : ''}</td><td class="${r.net >= 0 ? 'good' : 'warn'}">${r.net >= 0 ? '+' : '−'}${n0(Math.abs(r.net))}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">아직 기록 없음</td></tr>'}</tbody>
+      ${rows.length ? `<tfoot><tr><td>합계</td><td></td><td>${n0(sum('inc'))}</td><td>${n0(sum('exp'))}</td><td class="${sum('net') >= 0 ? 'good' : 'warn'}">${sum('net') >= 0 ? '+' : '−'}${n0(Math.abs(sum('net')))}</td></tr></tfoot>` : ''}</table></div>
+      <p class="dim small">사업 손익에 들어가지 않는 지출(건설·조선·연구·구매·임대·장교 급여)과 계약·현상금 수입은 위 현금 흐름 표에만 있습니다.</p>`;
   }
   /** value-chain migration: what the company's goods were worth before vs now (reference, NOT cash) */
   private valuationNote() {

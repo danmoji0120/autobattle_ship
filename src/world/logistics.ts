@@ -198,7 +198,7 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
     let moved = 0, earned = 0;
     if (m.mode === 'sell') {
       if (!st.market?.[m.item]) { block(h, r, s, c, 'market', '이 품목의 시장 수요가 없습니다 — 시장 회복 또는 노선 변경 필요', st.id); return; }
-      const result = watchMoney(h.st, 'market_sale', { company: r.owner, group: g.id, ship: s.id, station: st.id, item: m.item, route: r.id }, () => h.sellAt(st, r.owner, m.item, m.amount));
+      const result = watchMoney(h.st, 'market_sale', { company: r.owner, group: g.id, ship: s.id, station: st.id, item: m.item, route: r.id }, () => h.sellAt(st, r.owner, m.item, m.amount, s));
       moved = result.sold; earned = result.value;
       if (moved) { takec(s.cargo, m.item, moved); record(r, h.time, { sold: moved, earned }); }
     } else {

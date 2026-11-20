@@ -11,6 +11,7 @@
 // patient's hull size. Several repair ships on one patient: diminishing returns. A hostile fleet nearby stops the
 // work. Spending respects the company's minimum balance and hourly limits (and the automatic repair policy's when it
 // is on). Paid repair for other companies or NPCs is P17. docs/P16_7_REPAIR_SHIPS_DESIGN.md §3.
+import { activityOf, bookAct } from './industryPnl';
 import type { WorldSim } from './sim';
 import type { Op, V, WGroup, WShip } from './types';
 import { econOf, hullDefOf, shipWorth } from './hullops';
@@ -148,6 +149,7 @@ export function stepFieldRepair(h: WorldSim, dt: number) {
     t.frAt = h.time;
     co.credits -= cost;
     book(h, s.owner, 'repair_fleet', -cost);   // AUD-17: own-fleet field maintenance (a cost, never income)
+    bookAct(h.st, h.time, s.owner, activityOf(h.st, t), -cost);   // P17.4f: a cost of the patient's business
     s.frBill = (s.frBill ?? 0) + cost;
     pending.set(s.owner, pend + cost);
     served.set(t.id, k + 1);

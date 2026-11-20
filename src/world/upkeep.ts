@@ -15,6 +15,7 @@
 //   stage 4 (120 min)        idle docked ships are proposed for reserve; moved only with consent
 //                            (the player's command, or the company's opt-in auto-reserve)
 // Nothing is ever deleted or confiscated, no interest is charged, and paying the debt clears it.
+import { activityOf, bookAct, countShip } from './industryPnl';
 import { shipFx, payroll, groupOfficer, grantXp } from './officers';
 import { XP_RATE } from './officerData';
 import { emit, watchMoney } from './observe';
@@ -147,6 +148,10 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     emit(w, { kind: 'cost', reason: 'fleet_upkeep', amount: (r.credits * om + r.dock) * h, company: co.id, ship: s.id, group: s.groupId });
     u.acc += (r.credits * om + r.dock) * h;
     for (const [k, n] of Object.entries(r.supplies)) u.supplies[k] = (u.supplies[k] ?? 0) + n * h;
+    // P17.4f: the ship's running cost (consumables at base price) belongs to the business it is serving now
+    const act = activityOf(w, s);
+    bookAct(w, w.time, co.id, act, -((r.credits * om + r.dock) * h + Object.entries(r.supplies).reduce((a, [k, n]) => a + n * h * itemPrice(k), 0)));
+    countShip(w, w.time, co.id, act, h);
     // wear: accumulates while the ship works in space; slower without supplies (stage ≥ 2 doubles it)
     const wr = hullUpkeep(hullIdOf(s), s.variant).wear ?? 0;
     if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) {
