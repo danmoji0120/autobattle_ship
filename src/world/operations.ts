@@ -83,7 +83,14 @@ export interface Work {
   log: { t: number; text: string }[];
   /** goal runtime state (persisted so a restart resumes exactly) */
   rt?: {
-    order?: string; launched?: number; cycles?: number; losses?: number; profit?: number; phase?: 'buy' | 'move';
+    order?: string; launched?: number; cycles?: number; losses?: number; profit?: number;
+    /** recurring trade cycle: 'buy' (nothing bought yet) → 'bought' (purchase settled, shipment not registered yet —
+     *  P17.4.0 AUD-02: never bought again, only re-dispatched) → 'move' (shipment registered) → settled → 'buy' */
+    phase?: 'buy' | 'bought' | 'move';
+    /** P17.4.0: failed shipment registrations of the bought cycle and when the purchase was made */
+    shipFails?: number; boughtAt?: number;
+    /** P17.4.0 AUD-01: since when reachable remote stock has had no pool hauler to bring it */
+    strandSince?: number;
     /** value-chain worlds: estimated hauling cost of the cycle in flight (counted in its profit) */
     cycleHaul?: number;
     cycleCost?: number; cycleJob?: string; sellQuote?: number; sellRatio?: number; bought?: number; riskOk?: number; noBuyUntil?: number; creditsOk?: number;
@@ -1074,12 +1081,26 @@ function runStockpile(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'stockpile
       if (blocked || deficit < 1) break;
     }
   }
-  // stock still free elsewhere (waiting for transport slots, no pool haulers, or beyond the risk limit):
-  // never produce or buy what the company already has
-  const pending = company ? 0 : Object.values(h.st.stations).filter(s => s.id !== st.id && s.storage[w.owner]).reduce((n, s) => n + freeStock(h, w.owner, s, g.item, w.id), 0);
+  // stock still free elsewhere. P17.4.0 AUD-01: only stock that can actually come here holds back production or
+  // purchase — a store the company cannot dock at, or one with no route inside the risk limit, is reported but
+  // not counted; reachable stock waiting for a hauler is counted for a grace period (dispatch is only delayed),
+  // then no longer (no hauler is coming), so the goal can fall back to production / purchase (with approval).
+  const remote = company ? [] : Object.values(h.st.stations).filter(s => s.id !== st.id && s.storage[w.owner]).map(s => ({ s, n: freeStock(h, w.owner, s, g.item, w.id) })).filter(x => x.n >= 1);
+  const reach = remote.filter(x => h.canDock(x.s, w.owner) && routeRisk(h, x.s, st, pol.maxRisk));
+  const unreach = remote.filter(x => !reach.includes(x));
+  const rt = (w.rt ??= {});
+  let pending = reach.reduce((n, x) => n + x.n, 0);
+  if (pending >= 1 && !ships.length) {
+    rt.strandSince ??= h.time;
+    if (h.time - rt.strandSince > STRAND_GRACE) { parts.push(`자사 재고 ${fmt(pending)}: 공용 배차 수송선 없이 ${Math.round((h.time - rt.strandSince) / 60)}분 — 계획에서 제외`); pending = 0; }
+  } else delete rt.strandSince;
   if (deficit > EPS && pending >= 1) {
     deficit -= pending;
-    parts.push(`자사 재고 ${fmt(pending)} 이송 대기${!ships.length ? ' — 공용 배차 수송선 없음 (물류 관리에서 함선 참여)' : liveChildren(h, w, 'transport').length >= MAX_LIVE_CHILDREN ? ' (운송 순번 대기)' : ' (경로 위험 허용치·도킹 조건 확인)'}`);
+    parts.push(`자사 재고 ${fmt(pending)} 이송 대기${!ships.length ? ' — 공용 배차 수송선 없음 (물류 관리에서 함선 참여)' : ' (운송 순번 대기)'}`);
+  }
+  if (unreach.length) {
+    const why = (s: Station) => !h.canDock(s, w.owner) ? '정박 불가' : routeRisk(h, s, st, 100) ? '경로 위험 허용치 초과' : '경로 없음';
+    parts.push(`도달 불가 재고 ${fmt(unreach.reduce((n, x) => n + x.n, 0))} (${unreach.map(x => `${x.s.name} ${why(x.s)}`).join(', ')}) — 계획에서 제외`);
   }
   // 2) own production anywhere in the company: output already planned counts, then plan the rest
   const notes: string[] = [];
@@ -1224,10 +1245,11 @@ export function tradeHaulCost(h: WorldSim, ship: { hull?: string; classId: strin
   return perH * roundTripH * Math.ceil(n / cargo);
 }
 
-function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
+function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>): void {
   const a = h.st.stations[g.from], b = h.st.stations[g.to]; if (!a?.market?.[g.item] || !b?.market?.[g.item]) return setState(h, w, 'failed', '시장 소실');
   const rt = (w.rt ??= {}); rt.phase ??= 'buy'; rt.cycles ??= 0; rt.losses ??= 0; rt.profit ??= 0;
   w.progress = { done: rt.cycles, total: g.cycles || 0, unit: '회' };
+  if (rt.phase === 'bought') return dispatchTrade(h, w, g, a, b, `${rt.cycles + 1}회차 매입 완료`);
   if (rt.phase === 'move') {
     const j = h.st.logisticsJobs?.[rt.cycleJob ?? ''];
     if (j && liveJob(j)) return setState(h, w, 'running', `${rt.cycles + 1}회차 운송·판매 중 · 누적 손익 ${fmt(rt.profit)} cr`);
@@ -1272,12 +1294,46 @@ function runTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>) {
   const co = h.st.companies[w.owner], before = co.credits, held = qty(a.storage[w.owner], g.item);
   const err = cmd(h, w, { c: 'buy', station: a.id, res: g.item, amount: n }); if (err) return setState(h, w, 'waiting', `매입 실패: ${err}`);
   const paid = before - co.credits, got = Math.floor(qty(a.storage[w.owner], g.item) - held + EPS); charge(h, w, paid, buy, g.item);
-  const ids = Object.keys(h.st.logisticsJobs ?? {}).length;
-  const e2 = cmd(h, w, { c: 'poolCreate', request: { from: a.id, to: b.id, item: g.item, kind: 'sell', amount: got, priority: w.priority, repeat: false } });
-  if (e2) return setState(h, w, 'waiting', `운송 등록 실패: ${e2} — 매입품은 ${a.name} 보관함에 보존`);
-  rt.cycleJob = Object.keys(h.st.logisticsJobs ?? {})[ids]; rt.cycleCost = paid; rt.phase = 'move'; rt.sellQuote = sell; rt.bought = got;
+  // P17.4.0 AUD-02: the purchase is settled first (persisted with the work), then the shipment is registered; a
+  // failed registration leaves the cycle in 'bought' and the next pass only re-dispatches what was bought
+  rt.cycleCost = paid; rt.phase = 'bought'; rt.sellQuote = sell; rt.bought = got; rt.shipFails = 0; rt.boughtAt = h.time; delete rt.cycleJob;
   if (chainOn(h.st)) rt.cycleHaul = Math.round(tradeHaulCost(h, ships[0], hops, got)); else delete rt.cycleHaul;
-  return setState(h, w, 'running', `${rt.cycles + 1}회차: ${fmt(got)} 매입 (${fmt(paid)} cr) → ${b.name} 판매 운송`);
+  return dispatchTrade(h, w, g, a, b, `${rt.cycles + 1}회차: ${fmt(got)} 매입 (${fmt(paid)} cr)`);
+}
+/** P17.4.0 AUD-02: register the sale shipment of a cycle already bought (never buys). After repeated failures the
+ *  bought goods stay in the origin store and the player is offered recovery options (keep retrying / end the trade). */
+const TRADE_SHIP_GRACE = 600;
+/** P17.4.0 AUD-01: how long reachable remote stock with no pool hauler at all still holds back production / purchase (s) */
+const STRAND_GRACE = 1800;
+function dispatchTrade(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'trade' }>, a: Station, b: Station, head: string): void {
+  const rt = w.rt!;
+  const n = Math.floor(Math.min(rt.bought ?? 0, qty(a.storage[w.owner], g.item)) + EPS);
+  if (n < 1) {
+    // the bought goods are no longer in the origin store (sold or moved by the player): settle the cycle as it stands
+    note(w, h.time, `${(rt.cycles ?? 0) + 1}회차 매입품이 ${a.name} 보관함에 없음 — 회차를 매출 0으로 정산`);
+    rt.phase = 'move'; delete rt.cycleJob;
+    return runTrade(h, w, g);
+  }
+  const ids = Object.keys(h.st.logisticsJobs ?? {}).length;
+  const e2 = cmd(h, w, { c: 'poolCreate', request: { from: a.id, to: b.id, item: g.item, kind: 'sell', amount: n, priority: w.priority, repeat: false } });
+  if (!e2) {
+    rt.cycleJob = Object.keys(h.st.logisticsJobs ?? {})[ids]; rt.phase = 'move'; rt.bought = n; rt.shipFails = 0;
+    resolveOpen(h, w, 'ship', '판매 운송 등록');
+    return setState(h, w, 'running', `${head} → ${b.name} 판매 운송`);
+  }
+  rt.shipFails = (rt.shipFails ?? 0) + 1;
+  const kept = `매입품 ${fmt(n)}은 ${a.name} 보관함에 보존 · 다시 매입하지 않고 운송만 재시도`;
+  if (rt.shipFails >= 3 && h.time - (rt.boughtAt ?? h.time) >= TRADE_SHIP_GRACE) {
+    raise(h, w, 'loss', 'ship', {
+      title: `${w.title} — 판매 운송 불가`, reason: `매입한 화물의 판매 운송을 등록하지 못했습니다 (${e2})`,
+      situation: `${a.name} 보관함에 ${itemName(g.item)} ${fmt(n)} (매입 ${fmt(rt.cycleCost ?? 0)} cr) — ${b.name} 판매 운송 ${rt.shipFails}회 실패`, items: [],
+      estimate: { cost: 0, note: '추가 매입은 없습니다' },
+      options: [{ id: 'approve', label: '운송 재시도 유지', detail: '수송선·경로가 회복되면 이 화물만 운송합니다', recommended: true, scopes: ['once'] },
+        { id: 'cancel', label: '반복 무역 종료', detail: '화물은 출발지 보관함에 남습니다 — 재고 화면에서 직접 판매·운송', scopes: ['once'] }],
+      rejectEffect: '', scopeNote: '이번 결정만 적용',
+    });
+  }
+  return setState(h, w, 'waiting', `${head} — 판매 운송 등록 실패: ${e2} · ${kept}`);
 }
 
 function runCondition(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'condition' }>) {
