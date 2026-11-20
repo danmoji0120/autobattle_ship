@@ -24,8 +24,8 @@ export interface LegacyWorldFlags {
 }
 
 /** the creation options for a brand-new world — the single source for a first start and for an operator reset */
-export function newWorldOptions(o: LegacyWorldFlags & { worldPreset?: WorldPreset }): WorldCreateOpts {
-  if (o.worldPreset === 'standard') return { ...STANDARD_WORLD };
+export function newWorldOptions(o: LegacyWorldFlags & { worldPreset?: WorldPreset; strategicNew?: boolean }): WorldCreateOpts {
+  if (o.worldPreset === 'standard') return { ...STANDARD_WORLD, ...(o.strategicNew ? { strategic: 'p175' } : {}) };
   return {
     ...(o.econNew ? { econ: 'chain' as const } : {}), ...(o.combatNew ? { combat: 'p11' as const } : {}), ...(o.opsNew ? { ops: 'p12' as const } : {}),
     ...(o.logisticsNew ? { logistics: 'p125' as const } : {}), ...(o.salvageNew ? { salvage: 'p131' as const } : {}), ...(o.piracyNew ? { piracy: 'p132' as const } : {}),
@@ -34,10 +34,10 @@ export function newWorldOptions(o: LegacyWorldFlags & { worldPreset?: WorldPrese
 }
 
 /** what a world actually runs, read from its state (for logs, status and checks) */
-export function worldRules(w: { factions?: unknown; factionEcon?: unknown; combatV?: number; opsV?: number; logisticsV?: number; salvageV?: number; piracyV?: number; blackMarketV?: number; lawV?: number; repV?: number; derelictV?: number; officerV?: number; milV?: number; sovV?: number; indV?: number; econ?: unknown; systems: Record<string, unknown> }) {
+export function worldRules(w: { factions?: unknown; factionEcon?: unknown; combatV?: number; opsV?: number; logisticsV?: number; salvageV?: number; piracyV?: number; blackMarketV?: number; lawV?: number; repV?: number; strategicV?: number; derelictV?: number; officerV?: number; milV?: number; sovV?: number; indV?: number; econ?: unknown; systems: Record<string, unknown> }) {
   return {
     layout: w.factions ? 'p10' : 'p9', systems: Object.keys(w.systems).length, factions: w.factions ? Object.keys(w.factions as object).length : 0,
     factionEcon: !!w.factionEcon, combat: w.combatV === 2, ops: !!w.opsV, logistics: !!w.logisticsV, salvage: !!w.salvageV, piracy: !!w.piracyV,
-    blackMarket: !!w.blackMarketV, law: !!w.lawV, rep: !!w.repV, derelicts: !!w.derelictV, officers: !!w.officerV, military: !!w.milV, territory: !!w.sovV, industrial: !!w.indV, econChain: !!w.econ,
+    blackMarket: !!w.blackMarketV, law: !!w.lawV, rep: !!w.repV, derelicts: !!w.derelictV, officers: !!w.officerV, military: !!w.milV, territory: !!w.sovV, industrial: !!w.indV, ...(w.strategicV ? { strategic: true } : {}), econChain: !!w.econ,
   };
 }

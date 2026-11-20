@@ -30,7 +30,8 @@ import { repairGearRate } from '../../world/fieldRepair';
 import { coRelation } from '../../world/battleAuth';
 import { REL_COLOR } from '../../ui/perspective';
 import { CHART_STARS, chartPoint, chartRoute, chartSize, edgeKey } from './galaxyMap';
-import { fieldIntelHtml, territoryHtml, unidentified } from './territoryUi';
+import { outpostProblem } from '../../world/strategicFields';
+import { fieldIntelHtml, strategicFieldHtml, territoryHtml, unidentified } from './territoryUi';
 import { FACTIONS } from '../../world/territory';
 import { morph, trackSelects } from '../../ui/morph';
 import { planState, PLAN_STATE_NAME, missing, queueShortfall, plans as planList, planMats, type Mat } from '../../world/construction';
@@ -728,7 +729,7 @@ export class PmcHud {
       case 'move': { const pt = plane(); if (pt) this.setOp({ k: 'move', to: pt }); return; }
       case 'patrol': { if (p?.kind === 'field') { const f = this.st.fields[p.id]; this.setOp({ k: 'patrol', at: f.pos, radius: f.radius + 400 }); return; } const pt = plane(); if (pt) this.setOp({ k: 'patrol', at: pt, radius: 900 }); return; }
       case 'dock': if (p?.kind === 'station') this.setOp({ k: 'dock', station: p.id }); else this.hint('정박할 정거장을 클릭하세요'); return;
-      case 'mine': if (p?.kind === 'field') { this.mineForm = { group: g.id, field: p.id, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.setMode(null); this.hint('하역 목적지와 하역 방식을 고른 뒤 「작업 시작」을 누르세요'); this.refresh(true); } else this.hint('소행성 지대를 클릭하세요'); return;
+      case 'mine': if (p?.kind === 'field') { this.mineForm = { group: g.id, field: p.id, deliver: 'auto', sell: this.st.fields[p.id]?.strategic ? false : this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.setMode(null); this.hint('하역 목적지와 하역 방식을 고른 뒤 「작업 시작」을 누르세요'); this.refresh(true); } else this.hint('소행성 지대를 클릭하세요'); return;
       case 'haul_from': if (p?.kind === 'station') { this.haulFrom = p.id; this.mode = 'haul_to'; this.hint('운송 목적지 정거장을 클릭하세요'); } else this.hint('출발 정거장을 클릭하세요'); return;
       case 'haul_to': if (p?.kind === 'station' && this.haulFrom) this.openHaulRes(this.haulFrom, p.id); else this.hint('목적지 정거장을 클릭하세요'); return;
       case 'escort': { const target = p?.kind === 'ship' ? this.st.ships[p.id]?.groupId : p?.kind === 'group' ? p.id : undefined; const tg = target ? this.st.groups[target] : undefined; if (tg && tg.owner === this.me && tg.id !== g.id) this.setOp({ k: 'escort', group: tg.id }); else this.hint('호위할 자사 함선이나 편대 이름표를 클릭하세요'); return; }
@@ -838,6 +839,8 @@ export class PmcHud {
   }
 
   select(s: Sel) {
+    if (s?.kind === 'field' && s.id !== this.sel?.id && this.st.fields[s.id]?.strategic)
+      document.getElementById('sel')!.scrollTop = 0;
     this.sel = s;
     if (s?.kind === 'group') this.group = s.id;
     this.refresh(true);
@@ -1072,17 +1075,24 @@ export class PmcHud {
     if (this.mineForm?.live && g && (g.id !== this.mineForm.group || performance.now() - this.mineForm.t > 4000 || (g.op.k === 'mine' && this.sameMine(g.op, this.mineForm)))) this.mineForm = null;
     if (this.mineForm && !this.mineForm.live && this.mineForm.group !== this.group) this.mineForm = null;
     const selectedField = s?.kind === 'field' ? this.st.fields[s.id] : undefined;
-    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.commanderId && [this.st.commanders[g.commanderId]?.level, this.st.commanders[g.commanderId]?.of?.sp], g?.parentId, g?.override, this.st.companies[this.me]?.tech, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, selectedField && [Math.round(selectedField.amount), selectedField.danger, selectedField.regen], Math.round(this.st.companies[this.me]?.credits / 100)]);
+    const strategicView = selectedField?.strategic ? strategicFieldHtml(this.st, this.me, selectedField) : '';
+    const selKey = JSON.stringify([s, this.group, this.mode, g?.op, this.mineForm, g?.status, g?.commanderId, g?.commanderId && [this.st.commanders[g.commanderId]?.level, this.st.commanders[g.commanderId]?.of?.sp], g?.parentId, g?.override, this.st.companies[this.me]?.tech, s?.kind === 'ship' ? this.st.ships[s.id] && [Math.round(this.st.ships[s.id].hp * 100), this.st.ships[s.id].state, Math.round(cargoSum(this.st.ships[s.id].cargo))] : 0, selectedField && [Math.round(selectedField.amount), selectedField.danger, selectedField.regen, strategicView], Math.round(this.st.companies[this.me]?.credits / 100)]);
     if (!force && selKey === this.lastSelKey) return;
     this.lastSelKey = selKey;
     if (!s && !g) { el.classList.add('hidden'); return; }
     el.classList.remove('hidden');
     let html = '';
-    if (s && s.kind !== 'group' && !(s.kind === 'ship' && this.st.ships[s.id]?.owner === this.me)) html += this.infoHtml(s);
+    if (s && s.kind !== 'group' && !(s.kind === 'ship' && this.st.ships[s.id]?.owner === this.me)) html += this.infoHtml(s, strategicView);
     if (g && g.owner === this.me) html += this.groupHtml(g);
     trackSelects(el);
     morph(el, html);
     this.bindMineForm(el);
+    el.querySelectorAll<HTMLButtonElement>('[data-field-guard]').forEach(b => b.onclick = () => {
+      const reward = b.closest('.strategic-field')?.querySelector<HTMLInputElement>('[data-field-pay]')?.valueAsNumber;
+      if (!reward || reward < 500 || reward > 200000) return this.toast('경비 보수는 500~200,000 cr입니다', 'warn');
+      if (confirm(`15분 광구 경비를 요청하고 ${fmt(reward)} cr를 예치할까요?`))
+        void this.cmd({ c: 'milPostFieldGuard', field: b.dataset.fieldGuard!, station: b.dataset.guardStation!, reward });
+    });
     el.querySelectorAll<HTMLButtonElement>('[data-op]').forEach(b => b.onclick = () => this.opButton(b.dataset.op!));
     const size = el.querySelector<HTMLSelectElement>('[data-found-size]'); if (size) size.onchange = () => { this.foundSize = size.value as Size; if (this.mode === 'found') this.setMode('found'); else this.renderSel(true); };
     el.querySelectorAll<HTMLSelectElement>('[data-escfocus]').forEach(b => b.onchange = () => { const gr = this.st.groups[b.dataset.escfocus!]; if (gr?.op.k === 'escort') this.cmd({ c: 'setOp', group: gr.id, op: { k: 'escort', group: gr.op.group, focus: b.value as EscortFocus } }); });
@@ -1114,7 +1124,7 @@ export class PmcHud {
     el.querySelectorAll<HTMLInputElement>('[data-pir-neutral]').forEach(b => b.onchange = () => { this.plunderNeutral = b.checked; });
     el.querySelectorAll<HTMLSelectElement>('[data-pir-policy]').forEach(b => b.onchange = () => this.cmd({ c: 'piracyPolicy', group: b.dataset.pirPolicy!, policy: (b.value || null) as never }));
     el.querySelectorAll<HTMLInputElement>('[data-salv-auto]').forEach(b => b.onchange = () => this.cmd({ c: 'autoSalvage', group: b.dataset.salvAuto!, on: b.checked }));
-    el.querySelectorAll<HTMLButtonElement>('[data-minehere]').forEach(b => b.onclick = () => { if (!this.group) return; this.mineForm = { group: this.group, field: b.dataset.minehere!, deliver: 'auto', sell: this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.refresh(true); });
+    el.querySelectorAll<HTMLButtonElement>('[data-minehere]').forEach(b => b.onclick = () => { if (!this.group) return; this.mineForm = { group: this.group, field: b.dataset.minehere!, deliver: 'auto', sell: this.st.fields[b.dataset.minehere!]?.strategic ? false : this.mineForm?.sell ?? true, live: false, t: performance.now() }; this.refresh(true); });
     const nm = el.querySelector<HTMLInputElement>('[data-rename]'); if (nm) nm.onchange = () => this.cmd({ c: 'renameGroup', group: nm.dataset.rename!, name: nm.value });
     const ofl = el.querySelector<HTMLButtonElement>('[data-officer]'); if (ofl) ofl.onclick = () => this.openOfficers(ofl.dataset.officer);
     const cs = el.querySelector<HTMLSelectElement>('[data-cmdsel]'); if (cs) cs.onchange = () => this.cmd({ c: 'assignCmd', group: cs.dataset.cmdsel!, commander: cs.value || null });
@@ -1123,7 +1133,7 @@ export class PmcHud {
     const del = el.querySelector<HTMLButtonElement>('[data-delgroup]'); if (del) del.onclick = () => { if (confirm('편대를 해체할까요? 함선은 상위/다른 편대로 이동합니다.')) this.cmd({ c: 'deleteGroup', group: del.dataset.delgroup! }).then(ok => { if (ok) { this.group = null; this.select(null); } }); };
   }
 
-  private infoHtml(s: NonNullable<Sel>): string {
+  private infoHtml(s: NonNullable<Sel>, strategicView: string): string {
     const st = this.st;
     if (s.kind === 'station') {
       const x = st.stations[s.id]; if (!x) return '';
@@ -1147,6 +1157,7 @@ export class PmcHud {
         <div class="dim">총 매장량 ${fmt(f.amount)} / ${fmt(f.max)} · ${f.regen > 0 ? `총 재생 ${cargoNum(f.regen)}/초` : f.expires > 0 ? `재생 없음 · ${Math.max(0, Math.round((f.expires - st.time) / 60))}분 후 소멸` : '재생 없음'} · 채굴 효율 ×${(f.rich ?? 1).toFixed(2)}</div>
         <div class="svc">위험 지표 ${f.danger} · ${this.secLine(f.pos)}</div>
         ${unidentified(f) ? fieldIntelHtml(st, this.me, f) : `<div class="small">${parts}</div><div class="dim small">혼합비는 채굴물과 재생량에 적용됩니다. 실제 위협은 치안과 해적 활동에 따라 달라집니다.</div>`}
+        ${strategicView}
         ${this.group ? `<button class="btn" data-minehere="${f.id}">이 지대 채굴 설정…</button><button class="btn" data-quick='${JSON.stringify({ k: 'patrol', at: f.pos, radius: f.radius + 400 })}'>이 지역 순찰</button>` : '<div class="dim">편대를 선택하고 우클릭하면 채굴을 지시합니다.</div>'}</div>`;
     }
     if (s.kind === 'drop') {
@@ -1350,7 +1361,7 @@ export class PmcHud {
     const fsys = f ? sysAt(st.systems, f.pos)?.id : undefined;
     const sysName = (p: V) => st.systems[sysAt(st.systems, p)?.id ?? '']?.name ?? '';
     const hop = (p: V) => { const ss = sysAt(st.systems, p)?.id; const j = fsys && ss ? jumps(st.systems, fsys, ss) : 0; return j ? ` · 점프 ${j}회` : ''; };
-    const stOpt = (x: Station) => { const why = this.deliverWhy(x.id, form.sell); return `<option value="${x.id}"${form.deliver === x.id ? ' selected' : ''}${why ? ' disabled' : ''}>${esc(x.name)} (${sysName(x.pos)}${hop(x.pos)})${why ? ` — ${why}` : x.tax ? ` · 세금 ${Math.round(x.tax * 100)}%` : ''}</option>`; };
+    const stOpt = (x: Station) => { const why = (f?.strategic ? outpostProblem(st, f, x, this.me) : null) ?? this.deliverWhy(x.id, form.sell); return `<option value="${x.id}"${form.deliver === x.id ? ' selected' : ''}${why ? ' disabled' : ''}>${esc(x.name)} (${sysName(x.pos)}${hop(x.pos)})${why ? ` — ${why}` : x.tax ? ` · 세금 ${Math.round(x.tax * 100)}%` : ''}</option>`; };
     const all = Object.values(st.stations);
     const own = all.filter(x => x.owner === this.me), pub = all.filter(x => x.public);
     const fieldsBySys = Object.values(st.systems).map(sy => [sy, Object.values(st.fields).filter(x => sysAt(st.systems, x.pos)?.id === sy.id)] as const).filter(([, fs]) => fs.length);
@@ -1358,19 +1369,22 @@ export class PmcHud {
     const autoId = form.deliver === 'auto' ? (op?.auto && op.field === form.field && op.sell === form.sell ? op.deliver : null) : form.deliver;
     const dest = autoId ? st.stations[autoId] : null;
     const why = form.deliver === 'auto' ? null : this.deliverWhy(form.deliver, form.sell);
-    const problem = op && form.live ? this.deliverWhy(op.deliver, op.sell) : why;
+    const strategicWhy = f?.strategic ? form.deliver === 'auto'
+      ? (own.some(s => !outpostProblem(st, f, s, this.me)) ? null : '가동 중인 인근 자사 전초기지가 필요합니다')
+      : outpostProblem(st, f, st.stations[form.deliver], this.me) : null;
+    const problem = strategicWhy ?? (op && form.live ? this.deliverWhy(op.deliver, op.sell) : why);
     return `<div class="minecfg" data-mineform="${g.id}">
       <div class="mh"><b>${form.live ? '채굴 작업' : '채굴 작업 설정'}</b>${form.live ? `<span class="dim"> · 변경 즉시 적용</span>` : ''}</div>
       <label>채굴 구역<select data-mf="field">${fieldsBySys.map(([sy, fs]) => `<optgroup label="${esc(sy.name)}">${fs.map(x => `<option value="${x.id}"${x.id === form.field ? ' selected' : ''}>${esc(x.name)} · ${RES_NAME[x.res]} ${fmt(x.amount)}${(x.rich ?? 1) !== 1 ? ` · 효율 ×${(x.rich ?? 1).toFixed(2)}` : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
       <label>하역 목적지<select data-mf="deliver"><option value="auto"${form.deliver === 'auto' ? ' selected' : ''}>자동 선택 (가까운 이용 가능 정거장)</option>
         ${own.length ? `<optgroup label="내 정거장">${own.map(stOpt).join('')}</optgroup>` : ''}<optgroup label="공용 정거장">${pub.map(stOpt).join('')}</optgroup></select></label>
-      <label>하역 방식<select data-mf="sell"><option value="0"${!form.sell ? ' selected' : ''}>창고 보관 (정거장 내 자사 창고)</option><option value="1"${form.sell ? ' selected' : ''}>자동 판매 (정거장 시장)</option></select></label>
+      <label>하역 방식<select data-mf="sell"><option value="0"${!form.sell ? ' selected' : ''}>창고 보관 (정거장 내 자사 창고)</option><option value="1"${form.sell ? ' selected' : ''}${f?.strategic ? ' disabled' : ''}>자동 판매 (정거장 시장)</option></select></label>
       <div class="mstat">${f ? `채굴 구역: <b>${esc(f.name)}</b> <span class="dim">(${sysName(f.pos)})</span>` : '<span class="warn">채굴 구역 없음</span>'}
         · 하역 목적지: <b>${form.deliver === 'auto' ? `자동${dest ? ` → ${esc(dest.name)}` : ''}` : esc(st.stations[form.deliver]?.name ?? '(소멸)')}</b>
         · 하역 방식: <b>${form.sell ? '자동 판매' : '창고 보관'}</b>${form.live ? ` · 현재 작업: <b>${esc(g.status)}</b>` : ''}</div>
       ${f && form.sell && fieldMix(f).some(([id]) => REGIONAL_ORIGINS[id]) ? '<div class="dim small">지역 희귀 자원을 시장이 매입하지 않으면 해당 정거장의 자사 창고에 보관합니다. 공간이 부족하면 남은 화물은 함선에 유지됩니다.</div>' : ''}
       ${problem ? `<div class="warn small">⚠ 하역지 문제: ${problem}. 화물은 판매되지 않고 보관됩니다 — 목적지를 다시 지정하세요.</div>` : ''}
-      ${form.live ? '' : `<div class="row"><button class="btn go" data-mf-start ${why || !f ? 'disabled' : ''}>작업 시작</button><button class="btn" data-mf-cancel>취소</button></div>`}
+      ${form.live ? '' : `<div class="row"><button class="btn go" data-mf-start ${problem || !f || f.strategic && form.sell ? 'disabled' : ''}>작업 시작</button><button class="btn" data-mf-cancel>취소</button></div>`}
     </div>`;
   }
 
@@ -1391,6 +1405,7 @@ export class PmcHud {
       // switching to "sell" with a station that has no market: fall back to automatic choice, visibly
       if (k === 'sell' && f.deliver !== 'auto' && this.deliverWhy(f.deliver, f.sell)) { f.deliver = 'auto'; this.toast('이 정거장에서는 판매할 수 없어 하역 목적지를 자동 선택으로 바꿨습니다.', 'warn'); }
       f.t = performance.now();
+      if (k === 'field' && this.st.fields[f.field]?.strategic) { f.sell = false; f.deliver = 'auto'; }
       this.mineForm = f;
       if (f.live) this.cmd({ c: 'setOp', group: gid, op: toOp(f) }).then(ok => { if (!ok) this.mineForm = null; this.refresh(true); });
       else this.refresh(true);

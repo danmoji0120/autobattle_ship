@@ -14,6 +14,7 @@ import { territoryRisk, FACTIONS } from './territory';
 import { fieldReport, intelOf, CONFIDENCE_NAME, knowsField } from './intel';
 import { itemPrice } from './industry';
 import { RES_NAME } from './data';
+import { outpostProblem } from './strategicFields';
 
 export type FieldGoal =
   /** test-mine `samples` units from a deposit with `group`, then stop and report */
@@ -47,6 +48,13 @@ export function validateFieldGoal(h: WorldSim, owner: string, g: FieldGoal): str
   if (!grp || grp.owner !== owner) return '자사 편대를 선택하세요';
   if (!h.subtreeShips(grp).some(s => econOf(s).mine > 0)) return '편대에 채굴선이 없습니다';
   if (g.deliver !== undefined && g.deliver !== '' && !h.st.stations[g.deliver]) return '하역 정거장을 확인하세요';
+  if (f.strategic) {
+    if (g.k === 'develop_field' && g.sell) return '전략 광구의 채굴품은 전초기지에 하역한 뒤 판매 운송을 등록하세요';
+    if (g.deliver) {
+      const why = outpostProblem(h.st, f, h.st.stations[g.deliver], owner);
+      if (why) return why;
+    }
+  }
   if (g.k === 'survey_field' && (!Number.isSafeInteger(g.samples) || g.samples < 10 || g.samples > 20000)) return '표본 수는 10–20,000';
   if (g.k === 'develop_field') {
     if (!Number.isSafeInteger(g.miners) || g.miners < 0 || g.miners > 30) return '채굴선 목표는 0–30척';

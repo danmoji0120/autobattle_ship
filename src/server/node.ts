@@ -259,10 +259,10 @@ async function main() {
   const presetEnv = (process.env.WORLD_PRESET ?? 'standard').trim();
   if (presetEnv !== 'standard' && presetEnv !== 'legacy') { console.error(`[siderarium] !!! WORLD_PRESET 값 오류: ${presetEnv} (standard | legacy)`); process.exit(1); }
   const worldFlags = {
-    worldPreset: presetEnv as WorldPreset, econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1',
+    worldPreset: presetEnv as WorldPreset, strategicNew: process.env.STRATEGIC_P175 === '1', econNew: process.env.ECON_PRICING === 'chain', combatNew: process.env.COMBAT_P11 === '1', opsNew: process.env.FLEET_OPS_P12 === '1', logisticsNew: process.env.AUTO_LOGISTICS_P125 === '1',
     salvageNew: process.env.SALVAGE_P131 === '1', piracyNew: process.env.PIRACY_P132 === '1', blackMarketNew: process.env.BLACKMARKET_P133 === '1', lawNew: process.env.LAW_P134 === '1', repNew: process.env.REPUTATION_P14 === '1',
   };
-  if (presetEnv === 'standard' && Object.entries(worldFlags).some(([k, v]) => k !== 'worldPreset' && v))
+  if (presetEnv === 'standard' && Object.entries(worldFlags).some(([k, v]) => k !== 'worldPreset' && k !== 'strategicNew' && v))
     console.log('[siderarium] WORLD_PRESET=standard — 개별 기능 플래그(COMBAT_P11 등)는 새 월드 생성에 쓰이지 않습니다');
   // operator-requested world reset (env WORLD_RESET=<token>): applied once per token
   const resetTok = (process.env.WORLD_RESET ?? '').trim();

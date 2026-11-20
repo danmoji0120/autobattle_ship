@@ -38,6 +38,7 @@ import { CONTENT, legacyOf, contentAvail, gearReleased, hullReleased } from '../
 import { normPlan, allocate, advance, activePlan, cancelRefund, plans, queueShortfall, missing, isSecured, prereqBuilt, planMats } from './construction';
 import { stepProduction, storageCap, stationPower, stationSupportOnline, stationNeeds, stepBuilds, buildNeeds, fitUnits, yardSlots, hullName, YARD_NAME, type ProdOrder } from './production';
 import { RECIPES, ITEMS, TECHS, EQUIPMENT, HULLS, facilityBuild, facilityTech, techUnlocks, techFx, fitFx, growthFx, airFx, loadoutEquipment, recipeFor, itemPrice as itemPriceOf } from './industry';
+import { enableStrategicFields, outpostProblem, strategicDefense, strategicRaidValue } from './strategicFields';
 import { normalizeRegionalOrders, regionalHullMaterials, regionalMarketRequired } from './regional';
 import { upgradeIndustry, npcMarketStep, SALVAGE_MIX, PROFILES, targetFor } from './economy';
 import { factionStep, bump, supplyMul, LAIR_FOOTHOLD, RECOVERY_TIME, ensureInfluence } from './factions';
@@ -137,6 +138,7 @@ export type Cmd =
   /** B-2 military contracts: send the committed fleet, give up a contract, post an escort job for one's own cargo group */
   | { c: 'milDispatch'; contract: string }
   | { c: 'milCancel'; contract: string }
+  | { c: 'milPostFieldGuard'; field: string; station: string; reward: number }
   | { c: 'milPostEscort'; group: string; to: string; reward: number }
   /** B-3 territory: declare / withdraw a claim, policies, permits, cession, war, treaties, guard & war contracts */
   | SovCmd
@@ -235,7 +237,7 @@ import { stepLaw, lawGroup, lawAnswer, lawPay, engRel, lawJoinAllowed, lawOnBatt
 import { seedBlackMarkets, stepBlackMarkets, discoverByIntel, onDock, onJump, bmSell, bmBuy, isHot, stepSmuggle, validateSmuggle, customsClaim } from './blackmarket';
 import { plunderOrder, stepPlunder, stepPirateRaid, stepTender, validateTender, validatePlunder, truceBlocks, truceShields, endTruce, endPlunder, expireDrops, raidLootValue, type VictimPolicy } from './piracy';
 import { enableTerritory, sovTick, sovCommand, sovGateTransit, sovMineBlock, sovMined, sovFoundRule, sovFoundPay, sovGovernanceRule, sovSieged, sovSiegeTargets, relIn, govReservedSpace, type SovCmd } from './sovereignty';
-import { enableMilitary, milOn, isMil, acceptMil, milDispatch, milCancel, milPostEscort, milTick, milOnBattle, milEscortAllowed, milWardHold, milIsWard, milTraderDocked } from './military';
+import { enableMilitary, milOn, isMil, acceptMil, milDispatch, milCancel, milPostFieldGuard, milPostEscort, milTick, milOnBattle, milEscortAllowed, milWardHold, milIsWard, milTraderDocked } from './military';
 import { ensureOfficers, initOfficer, wantsOfficer, effSkill, battleFx, grantXp, groupOfficer, onAssigned, onHired, learn, setFocus, setPost, nextNamed, makeNamed, combatXp, groupFx, mineBonus, shipFx, stationFx, stationDirector, type XpSource, type Officer } from './officers';
 import { XP_RATE, type Tree } from './officerData';
 
@@ -319,7 +321,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1'; computers?: 'p151'; npc17?: 'p173'; upkeep?: 'p174' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1'; computers?: 'p151'; npc17?: 'p173'; upkeep?: 'p174'; strategic?: 'p175' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -346,6 +348,10 @@ export class WorldSim {
     if (opts.econ === 'chain') enableEconChainNew(sim.st, { eq: opts.eq, alloyDirect: opts.alloyDirect });
     // v2 faction economy is opt-in (new isolated P10 worlds only); enabled after pricing so stockpiles use final prices
     if (opts.factionEcon === 'v2') enableFactionEcon2(sim.st);
+    if (opts.strategic === 'p175') {
+      if (opts.layout !== 'p10') throw new Error('P17.5 needs layout p10');
+      enableStrategicFields(sim.st);
+    }
     if (sim.st.salvageV) delete sim.st.sites;
     if (sim.st.blackMarketV) seedBlackMarkets(sim);
     // A-3.2b natural derelicts & salvage contracts: opt-in for new salvage worlds (saves: explicit migration)
@@ -496,11 +502,12 @@ export class WorldSim {
   /** best station to unload a field's ore: same system first, own stations preferred for storage */
   autoDeliver(company: string, fieldId: string, sell: boolean, berth: Size = 'S', cargo?: Cargo): string | null {
     const f = this.st.fields[fieldId]; if (!f) return null;
+    if (f.strategic && (sell || this.st.fog && !knowsField(this.st, company, f))) return null;
     const fs = sysAt(this.st.systems, f.pos)?.id;
     const goods = cargo && cargoKeys(cargo).length ? cargo : believedMix(this.st, company, f);
     let best: string | null = null, bd = Infinity;
     for (const st of Object.values(this.st.stations)) {
-      if (this.deliverProblem(st, company, sell, berth) || this.intakeProblem(st, company, sell, expandedLayout(this.st) ? goods : cargo ?? f.mix ?? { [f.res]: 1 })) continue;
+      if (outpostProblem(this.st, f, st, company, berth) || this.deliverProblem(st, company, sell, berth) || this.intakeProblem(st, company, sell, expandedLayout(this.st) ? goods : cargo ?? f.mix ?? { [f.res]: 1 })) continue;
       if (expandedLayout(this.st) && sell && !cargoKeys(goods).some(k => st.market?.[k])) continue;
       const ss = sysAt(this.st.systems, st.pos)?.id;
       const j = !expandedLayout(this.st) && fs && ss ? jumps(this.st.systems, fs, ss) : 0;
@@ -924,8 +931,12 @@ export class WorldSim {
         const g = G(cmd.group); if (!g) return '부대를 찾을 수 없음';
         // automatic unloading: resolve the station now (and again whenever it stops being usable)
         if (cmd.op.k === 'mine' && cmd.op.auto) {
+          const field = this.st.fields[cmd.op.field];
+          if (field?.strategic && this.st.fog && !knowsField(this.st, company, field)) return '소행성 지대 없음';
+          if (field?.strategic && cmd.op.sell) return '전략 광구의 채굴품은 전초기지에 하역한 뒤 판매 운송을 등록하세요';
           const berth = this.berthOfGroup(g), cargo = this.deliveryCargo(g, cmd.op.field, true);
           const deliver = this.autoDeliver(company, cmd.op.field, cmd.op.sell, berth, cargo);
+          if (!deliver && field?.strategic) return '가동·하역 가능한 인근 자사 전초기지가 없습니다. 코어, 전력, 창고와 정박 규격을 확인하세요';
           if (!deliver && growthOn(this.st) && this.st.fields[cmd.op.field] && this.subtreeShips(g).some(s => econOf(s).mine > 0)) {
             const causes = new Map<string, number>();
             for (const station of Object.values(this.st.stations)) if (station.public || station.owner === company) {
@@ -1249,6 +1260,7 @@ export class WorldSim {
       case 'deliverStock': return growthOn(this.st) ? deliverFromStore(this, company, cmd.contract, cmd.upTo) : '보관함이 없는 월드';
       case 'milDispatch': return milOn(this.st) ? milDispatch(this, company, cmd.contract) : '군사 계약 월드가 아님';
       case 'milCancel': return milOn(this.st) ? milCancel(this, company, cmd.contract) : '군사 계약 월드가 아님';
+      case 'milPostFieldGuard': return milPostFieldGuard(this, company, cmd.field, cmd.station, cmd.reward);
       case 'milPostEscort': return milPostEscort(this, company, cmd.group, cmd.to, cmd.reward);
       case 'sov': return sovCommand(this, company, cmd);
       case 'queueModule': {
@@ -2142,6 +2154,12 @@ export class WorldSim {
       case 'mine': {
         const f = this.st.fields[op.field]; const st = this.st.stations[op.deliver];
         if (!f || (this.st.fog && !knowsField(this.st, company, f))) return '소행성 지대 없음';
+        if (f.strategic) {
+          if (op.sell) return '전략 광구의 채굴품은 전초기지에 하역한 뒤 판매 운송을 등록하세요';
+          const why = outpostProblem(this.st, f, st, company, this.berthOfGroup(g))
+            ?? sovMineBlock(this, company, this.sysOf(f.pos)?.id);
+          if (why) return why;
+        }
         if (!st) return op.auto ? '하역 가능한 정거장이 없음' : '하역 정거장 없음';
         if (!sub.some(s => econOf(s).mine > 0)) return '채굴선이 없음';
         return this.deliverProblem(st, company, op.sell, this.berthOfGroup(g));
@@ -3626,11 +3644,22 @@ export class WorldSim {
     return best;
   }
 
+  private strategicBlocks = new WeakSet<WGroup>();
   private behaveMine(s: WShip, g: WGroup, op: Extract<Op, { k: 'mine' }>, dt: number, speed: number, c: CommanderDef) {
     const st = this.st;
     const f = st.fields[op.field];
     if (!f) { g.status = '작전 대상 소멸'; return; }
     const dock = this.mineDock(g, op);
+    if (f.strategic && !dock) {
+      g.status = '전략 광구 채굴 중단 · 전초기지 하역 불가 · 화물 보존';
+      if (!this.strategicBlocks.has(g)) {
+        this.strategicBlocks.add(g);
+        this.ev('warn', `${g.name} · ${g.status}`, { company: g.owner, pos: f.pos, ref: g.id, tag: 'strategic_block' });
+      }
+      if (s.state === 'space') { s.task = { k: 'none' }; s.vel.x *= 0.8; s.vel.z *= 0.8; }
+      return;
+    }
+    this.strategicBlocks.delete(g);
     const ec = econOf(s);
     const groupShips = this.subtreeShipsInOp(g);
     // AUTO-P1: a hauler on a sale round trip is not collecting: full miners unload themselves meanwhile
@@ -3763,7 +3792,9 @@ export class WorldSim {
     let st: Station | undefined = this.st.stations[op.deliver];
     const berth = this.berthOfGroup(g);
     const cargo = this.deliveryCargo(g, op.field);
-    let why = this.deliverProblem(st, g.owner, op.sell, berth) ?? this.intakeProblem(st, g.owner, op.sell, cargo);
+    const f = this.st.fields[op.field];
+    let why = (f ? outpostProblem(this.st, f, st, g.owner, berth) : null)
+      ?? this.deliverProblem(st, g.owner, op.sell, berth) ?? this.intakeProblem(st, g.owner, op.sell, cargo);
     if (why && op.auto) {
       const alt = this.autoDeliver(g.owner, op.field, op.sell, berth, cargo);
       if (alt) { op.deliver = alt; st = this.st.stations[alt]; why = null; this.say(g, `자동 하역지 변경: ${st.name}.`, 'radio', 0.3); }
@@ -4109,6 +4140,7 @@ export class WorldSim {
     }
   }
 
+  private strategicContacts = new WeakMap<WGroup, string>();
   private behaveRaid(s: WShip, g: WGroup, op: Extract<Op, { k: 'raid' }>, dt: number, speed: number) {
     const home = this.st.lairs[op.home];
     const homePos = home?.pos ?? g.npc?.homePos ?? s.pos;
@@ -4127,6 +4159,19 @@ export class WorldSim {
     }
     const t = op.target ? this.st.groups[op.target] : null;
     const tc = t ? this.groupCenter(t) : null;
+    if (this.st.strategicV && g.shipIds[0] === s.id) {
+      if (t && tc && this.shipsOf(t).some(ward => ward.state === 'space' && !ward.warp && dist(ward.pos, s.pos) <= 5600)
+        && strategicRaidValue(this, t, tc)) {
+        if (this.strategicContacts.get(g) !== t.id) {
+          this.strategicContacts.set(g, t.id);
+          const responders = Object.values(this.st.groups).filter(ready => ready.owner === t.owner && !ready.fleeing
+            && this.shipsOf(ready).some(unit => unit.state === 'space' && !unit.warp && econOf(unit).military && dist(unit.pos, tc) < 8000));
+          const responder = responders.find(ready => this.opOf(ready).k === 'defend' || this.opOf(ready).k === 'escort') ?? responders[0];
+          this.ev('warn', `${t.name} · 전략 작업 중 해적 함대 접근 감지${responder ? ` · 대응 ${responder.name}` : ''}`,
+            { company: t.owner, pos: { ...s.pos }, ref: responder?.id ?? t.id, tag: 'strategic_contact' });
+        }
+      } else this.strategicContacts.delete(g);
+    }
     if (tc) {
       this.moveTo(s, this.formationSlot(s, g, tc, 40), bandSpeed, dt, 5);
       g.status = `${t!.name} 사냥 중`;
@@ -4150,6 +4195,7 @@ export class WorldSim {
   private pickRaidTarget(g: WGroup, home: V): string | undefined {
     let best: string | undefined, bs = 0;
     const myVal = this.groupValue(g);
+    const raidAt = this.groupCenter(g) ?? home;
     const boldness = 52 + Math.min(22, myVal / 40);
     for (const o of Object.values(this.st.groups)) {
       const k = this.st.companies[o.owner]?.kind;
@@ -4160,12 +4206,14 @@ export class WorldSim {
       if (this.sysOf(c) !== this.sysOf(home) || dist(c, home) > (this.sysOf(home)?.radius ?? 40000) * 1.5) continue;
       // pirates stay out of policed space; bigger bands push further in
       if (this.secAt(c) > boldness) continue;
-      const civ = this.groupValue(o, false), mil = this.groupValue(o, true);
+      const civ = this.groupValue(o, false);
+      const strategicValue = strategicRaidValue(this, o, c);
+      const mil = this.groupValue(o, true) + (strategicValue ? strategicDefense(this, o.owner, c, o.id) : 0);
       if (mil > myVal * 1.3) continue;
       if (this.unionNear(c, 4500) > myVal * 0.8) continue;
       // P13.2: what the band could actually carry off counts, not only the hulls
       const loot = this.st.piracyV ? raidLootValue(this, g, o) : 0;
-      const score = (civ * 2 + 60 + loot * 0.5) / (mil + 80) / (dist(c, this.groupCenter(g) ?? home) + 1200) * (k === 'guild' ? 0.35 : 1) * (this.st.officerV ? 1 - (groupFx(this.st, o).stealth ?? 0) : 1);
+      const score = (civ * 2 + 60 + loot * 0.5 + strategicValue) / (mil + 80) / (dist(c, raidAt) + 1200) * (k === 'guild' ? 0.35 : 1) * (this.st.officerV ? 1 - (groupFx(this.st, o).stealth ?? 0) : 1);
       if (score > bs) { bs = score; best = o.id; }
     }
     return best;

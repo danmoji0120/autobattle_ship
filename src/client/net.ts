@@ -32,7 +32,9 @@ export class LocalTransport implements Transport {
   constructor(fresh: boolean) {
     let save: SaveFile | null = null;
     if (!fresh) { try { const raw = localStorage.getItem(SP_KEY); if (raw) save = JSON.parse(raw); } catch { save = null; } }
+    const strategic = fresh && new URLSearchParams(location.search).get('strategic') === '1';
     this.server = new GameServer(save, {
+      ...(strategic ? { worldPreset: 'standard', strategicNew: true } : {}),
       singleplayer: true, analytics: { maxBytes: 1048576 }, snapInterval: 0.5, movInterval: 0.1, saveInterval: 20,
       save: d => { try { localStorage.setItem(SP_KEY, JSON.stringify(d)); } catch (e) { console.warn('save failed', e); } },
     }, (Date.now() & 0xffff) + 1);

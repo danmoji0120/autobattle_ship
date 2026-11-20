@@ -56,6 +56,7 @@ export function driftV3(s: Station, m: Market, dt: number, supply: number, skip?
   for (const [k, e] of Object.entries(m)) {
     if (skip?.(k)) continue;   // v2 faction economy: the faction's own production/purchases move this stock
     if (k.startsWith('bp:')) { if (e.stock < e.target) e.stock = Math.min(e.target, e.stock + dt / 7200); continue; }
+    if (e.demandOnly) { e.stock = Math.max(0, e.stock - absorbRate(s, k, e.target) * dt); continue; }
     const d = e.target - e.stock;
     if (d > 0) e.stock += d * 0.0032 * supply * dt * (EQUIPMENT[k] || (ITEMS[k]?.tier ?? 1) >= 4 ? 0.3 : 1);
     else e.stock = Math.max(e.target, e.stock - absorbRate(s, k, e.target) * dt);

@@ -65,6 +65,8 @@ export interface ServerOptions {
   /** A-1: 'standard' = a brand-new world is the integrated P10 world (world/worldPreset.ts) and the per-system
    *  *New flags above are ignored; 'legacy' or unset = those flags decide (the old opt-in behaviour) */
   worldPreset?: WorldPreset;
+  /** Enable the P17.5 resource pilot when creating a fresh standard world. */
+  strategicNew?: boolean;
   /** P14.0: convert an existing growth save to the reputation rules (REPUTATION_P14_MIGRATE=1; idempotent) */
   repMigrate?: boolean;
   /** A-3.2b: turn natural derelicts & salvage contracts on for an existing salvage save (DERELICTS_A32B_MIGRATE=1; idempotent) */

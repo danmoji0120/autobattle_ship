@@ -83,10 +83,12 @@ function redactGates(st: WorldState, s: StarSystem, c: string | undefined) {
 }
 const sysBody = (st: WorldState, s: StarSystem, c: string | undefined, vis: SysVis) => vis === 'full' ? s : vis === 'redact' ? redactGates(st, s, c) : stubSystem(st, s, c);
 const fieldVisible = (st: WorldState, f: Field, c: string | undefined) => !st.fog || (c ? knowsField(st, c, f) : !f.geo && contentsKnown(st, c, f.pos));
-/** an unidentified deposit: appearance, rough size and hints only — never its composition */
+const contractVisible = (st: WorldState, k: WorldState['contracts'][string], c: string | undefined) =>
+  !st.fog || !k.mil?.field || !!c && (k.mil.poster === c || k.takenBy === c || !!st.fields[k.mil.field] && fieldVisible(st, st.fields[k.mil.field], c));
+/** An unidentified deposit shows rough reserves and clues, with composition revealed by sampling. */
 function geoField(f: Field) {
   const g = f.geo!, q = (n: number) => Math.round(n / Math.max(1, f.max) * 20) / 20 * f.max;
-  return { ...f, mix: undefined, geo: undefined, res: g.look, amount: q(f.amount), regen: 0, unidentified: { look: g.look, size: g.size, hints: g.hints, hidden: !!g.hidden } };
+  return { ...f, mix: undefined, geo: undefined, res: g.look, amount: q(f.amount), regen: f.strategic ? f.regen : 0, unidentified: { look: g.look, size: g.size, hints: g.hints, hidden: !!g.hidden } };
 }
 /** the system a fog viewer may look at */
 export function viewAllowed(st: WorldState, company: string | undefined, sysId: string) {
@@ -131,7 +133,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
     engagements: Object.fromEntries(Object.entries(eng).filter(([, e]) => contentsKnown(st, c, e.pos) || (!!c && e.sides.some((x: string[]) => x.includes(c))))),
   } : {};
   return {
-    ...base, engagements: eng, battleLog: log, companies, stations, ships, groups, lairs: st.fog ? undefined : Object.fromEntries(Object.values(st.lairs).map(l => [l.id, lairBody(l)])), ...fog, factions: publicFactions(base.factions),
+    ...base, ...(st.strategicV ? { contracts: Object.fromEntries(Object.entries(st.contracts).filter(([, k]) => contractVisible(st, k, c))) } : {}), engagements: eng, battleLog: log, companies, stations, ships, groups, lairs: st.fog ? undefined : Object.fromEntries(Object.values(st.lairs).map(l => [l.id, lairBody(l)])), ...fog, factions: publicFactions(base.factions),
     intel: base.intel ? (c && base.intel[c] ? { [c]: base.intel[c] } : {}) : undefined,
     blackMarkets: base.blackMarkets ? Object.fromEntries(Object.entries(base.blackMarkets).filter(([id]) => !!c && !!st.companies[c]?.bm?.known.includes(id))) : undefined,
     logistics: own(base.logistics), logisticsJobs: own(base.logisticsJobs), procurementPlans: own(base.procurementPlans),
@@ -308,6 +310,9 @@ function entities(f: SyncFrame, col: Col, v: Viewer, origin: { x: number } | und
         else if (vis === 'redact') one(id, 'sy.r:' + c, () => redactGates(st, map[id], c));
         else if (vis === 'stub') one(id, 'sy.u:' + c, () => stubSystem(st, map[id], c));
       }
+      return;
+    case 'contracts':
+      for (const id in map) if (contractVisible(st, map[id], c)) one(id, 'contracts', () => map[id]);
       return;
     case 'fields':
       for (const id in map) { const fd = map[id] as Field; if (!fieldVisible(st, fd, c)) continue; if (fd.geo) one(id, 'fd.g', () => geoField(fd)); else one(id, 'fields', () => fd); }

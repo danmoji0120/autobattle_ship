@@ -392,7 +392,7 @@ export interface Module {
   secured?: boolean;
 }
 
-export interface Market { [res: string]: { stock: number; target: number; base: number } }
+export interface Market { [res: string]: { stock: number; target: number; base: number; demandOnly?: true } }
 
 export interface Station {
   id: string;
@@ -507,6 +507,8 @@ export interface Field {
   rich?: number;
   /** P10: unidentified deposit model (world/geology.ts). Composition is server-only; companies learn it from samples. */
   geo?: import('./geology').FieldGeo;
+  /** P17.5: distance from the field centre within which an owned operational station can support extraction. */
+  strategic?: { radius: number };
 }
 
 export interface Lair {
@@ -658,6 +660,7 @@ export interface WorldEvent {
 }
 
 export interface WorldState {
+  strategicV?: 1;
   /** sim sub-tick accumulators (restored on load) */
   clock?: { acc: number; slow: number; npcRot: number; battleAcc?: Record<string, number> };
   version: number;

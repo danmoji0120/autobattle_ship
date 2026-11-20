@@ -13,6 +13,8 @@
 // it. Cancellation, expiry and failure return the reservation exactly. No money is created here — the pirate bounty
 // of a battle (P11 settlement, unchanged) is a separate, booked flow.
 // See docs/B2_MILITARY_BUSINESS.md.
+import { outpostProblem, STRATEGIC_RAW } from './strategicFields';
+import { knowsField } from './intel';
 import type { WorldSim } from './sim';
 import type { Company, Contract, Engagement, Op, StarSystem, Station, V, WGroup, WorldState, WShip } from './types';
 import { econOf, shipWorth } from './hullops';
@@ -28,6 +30,7 @@ import { repairQuote } from './repair';
 import { forecast } from './upkeep';
 import { BACKGROUND } from './backgrounds';
 import { book } from './operations';
+import { bookAct } from './industryPnl';
 
 type Host = WorldSim;
 export type MilType = 'patrol' | 'escort' | 'defend' | 'hunt' | 'strike';
@@ -73,7 +76,10 @@ export interface MilTerms {
   quota?: number;
   /** escort */
   ward?: string; dest?: string; from?: string; wleg?: number;
-  /** another company's escort: who posts and pays (credits reserved at posting) */
+  /** P17.5: confirmed field protected by this contract. */
+  field?: string;
+  outpost?: string;
+  /** Another company's contract: who posts and pays (credits reserved at posting). */
   poster?: string;
   base: number; bonus: number;
   risk: number; est: number; power: number; jumps: number;
@@ -226,7 +232,7 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
     }
     case 'hunt': case 'strike': {
       const maxJ = type === 'hunt' ? MIL.huntJumps : MIL.strikeJumps;
-      type Cand = { key: string; name: string; value: number; pos: V; sys: StarSystem; j: number; lair?: number };
+      type Cand = { key: string; name: string; value: number; pos: V; sys: StarSystem; j: number; lair?: number; field?: string };
       const cands: Cand[] = [];
       for (const g of Object.values(w.groups)) {
         if (!isPirate(w, g.owner) || !g.shipIds.length || claimed(w, g.id)) continue;
@@ -236,7 +242,12 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
         if (value <= 0) continue;
         const big = g.shipIds.length >= 6 || value >= 360;
         if ((type === 'strike') !== big) continue;
-        cands.push({ key: g.id, name: g.name, value, pos: p, sys: gs, j });
+        const ward = w.strategicV && g.op.k === 'raid' && g.op.target ? w.groups[g.op.target] : undefined;
+        const order = ward && h.opOf(ward);
+        const deposit = order?.k === 'mine' ? w.fields[order.field] : undefined;
+        const field = deposit?.strategic && dist(deposit.pos, p) < 5600
+          && ward && h.shipsOf(ward).some(x => x.state === 'space' && x.task.k === 'mine' && x.task.field === deposit.id) ? deposit.id : undefined;
+        cands.push({ key: g.id, name: g.name, value, pos: p, sys: gs, j, field });
       }
       for (const l of Object.values(w.lairs)) {
         if (!l.alive || claimed(w, `lair:${l.id}`)) continue;
@@ -258,7 +269,7 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
       if (!cands.length) return null;
       // hunts: one of the least dangerous targets in reach (a start can find work it can survive); strikes: any
       const danger = (x: Cand) => x.value * (1 + (100 - effSec(x.sys)) / 100) + x.j * 40;
-      if (type === 'hunt') cands.sort((a, b) => danger(a) - danger(b));
+      if (type === 'hunt') cands.sort((a, b) => danger(a) - danger(b) - (a.field ? 35 : 0) + (b.field ? 35 : 0));
       const c = cands[hashId(seed) % (type === 'hunt' ? Math.min(3, cands.length) : cands.length)];
       const tsec = effSec(c.sys);
       // the way there counts: the most dangerous system on the route (pirate space on the way is part of the job)
@@ -275,10 +286,10 @@ function make(h: Host, st: Station, sys: StarSystem, type: MilType): string | nu
       const bonus = round(c.value * (type === 'hunt' ? 16 : 20));
       const lane = c.key.startsWith('lane:');
       const what = c.lair ? `해적 소굴 ${c.name} (등급 ${c.lair})` : lane ? `${c.sys.name}의 해적 전력` : `해적 무리 ${c.name} (${w.groups[c.key]?.shipIds.length ?? 0}척)`;
-      return post(h, st, type, `${type === 'hunt' ? '토벌' : lane ? '항로 확보' : '강습'}: ${c.name}`,
+      return post(h, st, type, `${type === 'hunt' ? c.field ? '광구 위협 토벌' : '토벌' : lane ? '항로 확보' : '강습'}: ${c.name}`,
         lane ? `${c.sys.name}(치안 ${Math.round(tsec)})에서 해적 전력 ${c.value} 상당을 격침해 항로를 확보한다. 격침 몫은 해적에게 준 피해 비율로 계산한다.`
           : `${c.sys.name}(${c.j}회 도약, 대상 성계 치안 ${Math.round(tsec)}, 경로 최저 치안 ${Math.round(worst)}) — ${what}을(를) 격멸한다. 계약사가 실제로 참가한 전투에서 대상이 격파되어야 완수. 다른 회사가 먼저 격파하면 계약은 무효(예치금 반환, 불이익 없음).`,
-        { sys: c.sys.id, target: c.key, tname: c.name, ...(lane ? { quota: c.value, at: c.sys.origin, radius: Math.min(9000, c.sys.radius * 0.6) } : {}), base, bonus, risk, est, power, jumps: c.j });
+        { sys: c.sys.id, target: c.key, tname: c.name, ...(c.field ? { field: c.field } : {}), ...(lane ? { quota: c.value, at: c.sys.origin, radius: Math.min(9000, c.sys.radius * 0.6) } : {}), base, bonus, risk, est, power, jumps: c.j });
     }
   }
 }
@@ -333,7 +344,10 @@ export function acceptMil(h: Host, company: string, k: Contract & { mil: MilTerm
   const w = h.st, m = k.mil, co = w.companies[company];
   if (!co || co.kind !== 'player') return '수주 불가';
   if (h.time > k.expires) return '게시 기한이 지난 계약입니다';
-  if (m.poster === company) return '자사가 게시한 호위 계약은 수주할 수 없습니다';
+  if (m.poster === company) return '자사가 게시한 계약은 수주할 수 없습니다';
+  if (m.field && w.fog && (!w.fields[m.field] || !knowsField(w, company, w.fields[m.field]))) return '먼저 계약 광구가 있는 성계를 탐사하세요';
+  if (m.field && m.poster && coRelation(w, company, m.poster) === -1) return '적대 회사의 광구는 경비할 수 없습니다';
+  if (m.outpost && w.stations[m.outpost]?.owner !== m.poster) return '발주 전초기지 소실';
   const g = typeof groupId === 'string' ? w.groups[groupId] : undefined;
   const why = fleetProblem(h, company, g); if (why) return why;
   if (m.type === 'escort') {
@@ -427,20 +441,57 @@ export function restorePriorOrder(h: Host, k: Contract & { mil: MilTerms }) {
 export function milCancel(h: Host, company: string, contractId: unknown): string | null {
   const k = typeof contractId === 'string' ? h.st.contracts[contractId] : undefined;
   if (!isMil(k) || k.done) return '취소할 수 있는 계약이 아닙니다';
-  // the poster may withdraw its own escort offer while nobody has taken it
-  if (k.mil.poster === company && !k.takenBy) { k.done = true; k.ended = '게시자 철회'; refund(h, k); h.ev('info', `호위 의뢰 철회: ${k.title} — 예치금 반환`, { company }); return null; }
+  // The poster can withdraw an unclaimed offer.
+  if (k.mil.poster === company && !k.takenBy) { k.done = true; k.ended = '게시자 철회'; refund(h, k); h.ev('info', `군사 의뢰 철회: ${k.title} — 예치금 반환`, { company }); return null; }
   if (k.takenBy !== company) return '자사가 수주한 계약만 취소할 수 있습니다';
   settle(h, k, false, '계약 포기', 0, true);
   return null;
 }
 
-/** another company's escort job: the poster names its own cargo group, the destination and the reward (reserved now) */
+/** A field operator funds a fixed watch at its working outpost. */
+export function milPostFieldGuard(h: Host, company: string, field: unknown, station: unknown, reward: unknown): string | null {
+  const w = h.st, co = w.companies[company];
+  if (!w.strategicV || !milOn(w) || co?.kind !== 'player') return '전략 광구 경비 의뢰를 이용할 수 없습니다';
+  const f = typeof field === 'string' && Object.hasOwn(w.fields, field) ? w.fields[field] : undefined;
+  if (!f?.strategic || w.fog && !knowsField(w, company, f)) return '발견한 전략 광구를 지정하세요';
+  const outpost = typeof station === 'string' && Object.hasOwn(w.stations, station) ? w.stations[station] : undefined;
+  const why = outpostProblem(w, f, outpost, company);
+  if (why || !outpost) return why ?? '전초기지 없음';
+  const sys = sysOfPos(w, f.pos); if (!sys) return '광구 성계 없음';
+  const cooldown = `${company}:p175:${f.id}`;
+  if ((M(w).posts[cooldown] ?? 0) > h.time) return '이 광구의 다음 의뢰를 게시할 때까지 기다리세요';
+  if (Object.values(w.contracts).some(k => isMil(k) && !k.done && k.mil.field === f.id && k.mil.poster === company && k.mil.type === 'defend'))
+    return '이 광구의 경비 의뢰가 이미 진행 중입니다';
+  const pay = typeof reward === 'number' && Number.isFinite(reward) ? Math.floor(reward) : 0;
+  if (pay < 500 || pay > 200000) return '보수는 500 ~ 200,000 cr';
+  if (co.credits < pay) return '경비 보수를 예치할 자금이 부족합니다';
+  const base = Math.round(pay * 0.8), sec = effSec(sys);
+  const dur = 900, radius = 3000;
+  watchMoney(w, 'contract_escrow', { company, station: outpost.id }, () => {
+    co.credits -= pay;
+    h.offerContract({
+      stationId: outpost.id, kind: 'mil', title: `광구 경비 · ${f.name}`,
+      desc: `${outpost.name} 인근 광구 3km 안에서 전투함으로 15분 근무합니다. 기본 보수 ${base.toLocaleString()} cr, 교전 성과에 따라 추가 지급합니다.`,
+      reward: pay, rep: 0, escrow: pay,
+      mil: { type: 'defend', sys: sys.id, field: f.id, outpost: outpost.id, at: { ...f.pos }, radius, dur,
+        poster: company, src: 'poster', base, bonus: pay - base, risk: 1 + (100 - sec) / 60,
+        est: dur + 200, power: Math.max(140, presence(h, new Set([sys.id])), Math.round(120 + (100 - sec) * 4)), jumps: 0 },
+    }, MIL.board);
+  });
+  M(w).posts[cooldown] = h.time + 1800;
+  bookMil(h, company, 'mil_contract', -pay);
+  bookAct(w, h.time, company, 'military', -pay);
+  return null;
+}
+
+/** The poster names its cargo group, destination and prepaid reward. */
 export function milPostEscort(h: Host, company: string, groupId: unknown, to: unknown, reward: unknown): string | null {
   const w = h.st, co = w.companies[company];
   if (!milOn(w) || !co || co.kind !== 'player') return '이 월드에서는 호위 의뢰를 게시할 수 없습니다';
   const g = typeof groupId === 'string' ? w.groups[groupId] : undefined;
   if (!g || g.owner !== company) return '자사 선단을 선택하세요';
   const wards = h.subtreeShips(g).filter(s => econOf(s).cargo > 0);
+  const strategicCargo = w.strategicV && wards.some(s => STRATEGIC_RAW.some(item => (s.cargo[item] ?? 0) > 0));
   if (!wards.length) return '화물선이 있는 선단만 호위를 의뢰할 수 있습니다';
   if (claimed(w, g.id)) return '이미 호위 의뢰가 걸린 선단입니다';
   const dest = typeof to === 'string' ? w.stations[to] : undefined;
@@ -458,7 +509,7 @@ export function milPostEscort(h: Host, company: string, groupId: unknown, to: un
   let id = '';
   watchMoney(w, 'contract_escrow', { company, station: board.id }, () => {
     co.credits -= pay;
-    id = h.offerContract({ stationId: board.id, kind: 'mil', title: `호위 의뢰: ${co.name} ${g.name} → ${dest.name}`, desc: `${co.name}의 ${g.name}(화물선 ${wards.length}척)을 ${dest.name}까지 호위 (${nj}회 도약, 경로 최저 치안 ${Math.round(worst)}). 보수는 의뢰사가 예치했다 — 기본 ${base.toLocaleString()} + 무사 도착 보너스 ${bonus.toLocaleString()} cr.`, reward: pay, rep: 0, escrow: pay,
+    id = h.offerContract({ stationId: board.id, kind: 'mil', title: `${strategicCargo ? '희귀 원광 호위' : '호위 의뢰'} · ${co.name} ${g.name} → ${dest.name}`, desc: `${co.name}의 ${g.name}(화물선 ${wards.length}척)을 ${dest.name}까지 호위 (${nj}회 도약, 경로 최저 치안 ${Math.round(worst)}). 보수는 의뢰사가 예치했다 — 기본 ${base.toLocaleString()} + 무사 도착 보너스 ${bonus.toLocaleString()} cr.`, reward: pay, rep: 0, escrow: pay,
       mil: { type: 'escort', sys: a.id, ward: g.id, dest: dest.id, poster: company, src: 'poster', base, bonus, risk: 1 + (100 - worst) / 60, est: 150 + nj * 60, power: Math.max(90, Math.round(90 + (100 - worst) * 3)), jumps: nj } }, 1800);
   });
   h.ev('info', `호위 의뢰 게시: ${g.name} → ${dest.name} (예치 ${pay.toLocaleString()} cr, ${board.name} 게시판)`, { company });
@@ -495,7 +546,8 @@ export function milTick(h: Host) {
   for (const k of Object.values(w.contracts)) {
     if (!isMil(k) || k.done) continue;
     if (!k.takenBy) {
-      if (h.time > k.expires) { k.done = true; k.ended = '게시 기한 만료'; refund(h, k); if (k.mil.poster) h.ev('info', `호위 의뢰 기한 만료: ${k.title} — 수주사가 없어 예치금 반환`, { company: k.mil.poster }); }
+      if (h.time > k.expires) { k.done = true; k.ended = '게시 기한 만료'; refund(h, k); if (k.mil.poster) h.ev('info', `의뢰 기한 만료: ${k.title} — 수주사가 없어 예치금 반환`, { company: k.mil.poster }); }
+      else if (k.mil.outpost && w.stations[k.mil.outpost]?.owner !== k.mil.poster) { k.done = true; k.ended = '발주 전초기지 소실'; refund(h, k); }
       else if (k.mil.ward && !w.groups[k.mil.ward]?.shipIds.length) { k.done = true; k.ended = '호위 대상 소멸'; refund(h, k); }
       else if (k.mil.target && !targetAlive(h, k.mil.target)) { k.done = true; k.ended = '대상 소멸'; }
       continue;
@@ -516,6 +568,10 @@ function targetAlive(h: Host, t: string): boolean {
 
 function evaluate(h: Host, k: Contract & { mil: MilTerms }) {
   const w = h.st, m = k.mil;
+  if (m.outpost && w.stations[m.outpost]?.owner !== m.poster)
+    return settle(h, k, false, '발주 전초기지 소실', 0, false, true);
+  if (m.outpost && m.poster && k.takenBy && coRelation(w, k.takenBy, m.poster) === -1)
+    return settle(h, k, false, '발주사와 적대 관계', 0);
   const g = m.group ? w.groups[m.group] : undefined;
   const mil = g ? milShips(h, g) : [];
   const fighting = mil.some(s => s.state === 'battle');
@@ -637,6 +693,7 @@ export function milOnBattle(h: Host, e: Engagement, b: MilBattle) {
     const m = k.mil, c = k.takenBy;
     // anti-abuse: a contractor that fires on the ships it is paid to protect forfeits the contract
     const ward = m.ward ? w.groups[m.ward] : undefined;
+    if (m.field && m.poster && (e.dmg?.[c]?.[m.poster] ?? 0) > 0) { settle(h, k, false, '경비 의뢰 회사 공격', 0); continue; }
     if (ward && (e.dmg?.[c]?.[ward.owner] ?? 0) > 0 && ward.owner !== c) { settle(h, k, false, '보호 대상 공격', 0); continue; }
   }
   for (const c of b.players) {
@@ -681,7 +738,13 @@ function refund(h: Host, k: Contract & { mil?: MilTerms }) {
   if (!k.escrow) return;
   const amt = k.escrow, poster = k.mil?.poster;
   watchMoney(h.st, 'contract_refund', { company: poster ?? k.takenBy ?? undefined, station: k.stationId }, () => {
-    if (poster && h.st.companies[poster]) h.st.companies[poster].credits += amt;
+    if (poster && h.st.companies[poster]) {
+      h.st.companies[poster].credits += amt;
+      if (k.mil?.field && k.mil.type === 'defend') {
+        bookMil(h, poster, 'mil_contract', amt);
+        bookAct(h.st, h.time, poster, 'military', amt);
+      }
+    }
     else { const st = h.st.stations[k.stationId]; if (st) st.funds = (st.funds ?? 0) + amt; }
     k.escrow = 0;
   });
@@ -705,7 +768,10 @@ export function settle(h: Host, k: Contract & { mil: MilTerms }, ok: boolean, wh
   if (co && out > 0) watchMoney(w, 'contract_mil', { company: c, station: k.stationId }, () => { co.credits += out; co.stats.earned += out; co.stats.contracts++; k.escrow = escrow - out; });
   const back = k.escrow ?? 0;
   refund(h, k);
-  if (co && out > 0) bookMil(h, c, 'mil_contract', out);
+  if (co && out > 0) {
+    bookMil(h, c, 'mil_contract', out);
+    if (m.field) bookAct(w, h.time, c, 'military', out);
+  }
   // reputation: station work counts with the issuer's faction; a fault costs credit; a voided job costs nothing
   if (co && !m.poster) {
     if (ok) repContract(w, c, { id: k.id, kind: m.type === 'hunt' || m.type === 'strike' ? 'lair' : 'bounty', stationId: k.stationId, reward: k.reward });
@@ -723,7 +789,7 @@ export function settle(h: Host, k: Contract & { mil: MilTerms }, ok: boolean, wh
   const cr = (n: number) => Math.round(n).toLocaleString();
   if (ok) h.ev('money', `계약 완수: ${k.title} — 기본 +${cr(pay)} · 성과 +${cr(bonus)} cr (전투 현상금 별도 ${cr(res.bounty)}) · 작전 순손익 ${res.net >= 0 ? '+' : ''}${cr(res.net)} cr${xpTxt}`, { company: c, pos: w.stations[k.stationId]?.pos, tag: 'mil' });
   else h.ev(voided ? 'info' : 'warn', `계약 ${voided ? '무효' : quit ? '포기' : '실패'}: ${k.title} — ${why}${voided ? ' (예치금 반환, 신용 불이익 없음)' : m.poster ? '' : ' (신용도·발주 세력 신뢰도 하락)'} · 작전 순손익 ${res.net >= 0 ? '+' : ''}${cr(res.net)} cr`, { company: c, tag: 'mil' });
-  if (m.poster && w.companies[m.poster]) h.ev(ok ? 'info' : 'warn', `호위 의뢰 ${ok ? '완료' : '종료'}: ${k.title} — ${why}${ok ? ` (지급 ${cr(out)} cr${back ? `, 반환 ${cr(back)} cr` : ''})` : back ? ` (예치금 ${cr(back)} cr 반환)` : ''}`, { company: m.poster, tag: 'mil' });
+  if (m.poster && w.companies[m.poster]) h.ev(ok ? 'info' : 'warn', `군사 의뢰 ${ok ? '완료' : '종료'}: ${k.title} — ${why}${ok ? ` (지급 ${cr(out)} cr${back ? `, 반환 ${cr(back)} cr` : ''})` : back ? ` (예치금 ${cr(back)} cr 반환)` : ''}`, { company: m.poster, tag: 'mil' });
   if (ok && co && !co.milestones.includes('first_contract')) h.milestone(co, 'first_contract');
   if (ok && co && !co.milestones.includes('first_mil')) co.milestones.push('first_mil');
   if (co) milFirstProfit(h, co);
