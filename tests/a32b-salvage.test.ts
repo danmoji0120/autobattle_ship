@@ -2,6 +2,7 @@
 // (reward reserved from the station's funds, provenance-checked delivery), the salvager's guide and the
 // salvage → sale link. Scenario numbers refer to docs/A3_2B_FIRST_SALVAGE.md §8.
 import { describe, expect, it } from 'vitest';
+import { pnlRows } from '../src/world/industryPnl';
 import { WorldSim } from '../src/world/sim';
 import { STANDARD_WORLD } from '../src/world/worldPreset';
 import { qty, type Contract, type WShip } from '../src/world/types';
@@ -178,6 +179,8 @@ describe('A-3.2b salvage contracts: real budget, provenance, no new money', () =
   it('S13/S14: goods the company already had never count; only goods from the target, handed over at the station; extras stay; paid from the reservation', () => {
     const { sim, me, x, st, k, item } = setup();
     const co = sim.st.companies[me];
+    // Keep stock alongside incoming contract items without dispatching the starter's auto-sale rule.
+    expect(sim.command(me, { c: 'salesPolicy', settings: { item, sell: false } })).toBeNull();
     // pre-owned identical goods in the warehouse and aboard
     sim.storage(st, me)[item] = 500;
     const hauler = shipsOf(sim, me).find(s => s.classId === 'hauler')!; hauler.cargo[item] = 40;
@@ -200,6 +203,8 @@ describe('A-3.2b salvage contracts: real budget, provenance, no new money', () =
     const pay = money.filter(e => e.reason === 'contract_salvage');
     expect(pay.length).toBe(1); expect(pay[0].kind).toBe('currency.transfer'); expect(pay[0].amount).toBeCloseTo(k.reward, 6);
     expect(money.some(e => e.kind !== 'currency.transfer')).toBe(false);
+    const business = pnlRows(co, sim.time).find(row => row.act === 'salvage');
+    expect((business?.inc ?? 0) - (business?.sales ?? 0)).toBeCloseTo(k.reward, 6);
     expect(co.credits).toBeGreaterThan(c0 + k.reward - 2000);   // reward in, minus upkeep paid meanwhile
     // extras: what was recovered beyond the contract is the company's
     const got = Object.values(x.taken[me] ?? {}).reduce((a, b) => a + b, 0);

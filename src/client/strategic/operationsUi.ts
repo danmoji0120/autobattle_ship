@@ -529,7 +529,7 @@ export class OperationsPanel {
       ${open.map(a => this.approvalCard(a)).join('') || '<p class="dim">대기 중인 결재가 없습니다.</p>'}
       <h3 class="ops-h3">결재 이력</h3>${hist.map(a => `<div class="proc-plan"><b>${esc(a.title)}</b> <span>${a.state === 'resolved' ? '자동 해소' : a.state === 'rejected' ? '거절' : '승인'} · ${ago(w.time, a.decided ?? a.updated)}</span><p>${esc(a.choice ? a.options.find(o => o.id === a.choice)?.label ?? a.choice : a.note ?? '')}${a.scope && a.scope !== 'once' ? ` (${a.scope === 'work' ? '이 목표 전체' : '정책 위임'})` : ''}</p></div>`).join('') || '<p class="dim">없음</p>'}</section>
       <section class="pool-section"><div class="pool-section-head"><div><h3>현금 흐름 <small>최근 ${led.length}시간 실적</small></h3><p>실제 입출금만 기록합니다 (장부가치 제외).</p></div></div>
-      <table class="ops-table"><thead><tr><th>항목</th><th>수입</th><th>지출</th></tr></thead><tbody>${cats.map(c => `<tr><td>${esc(LEDGER_NAME[c] ?? c)}</td><td class="good">${tot('inc', c) ? n0(tot('inc', c)) : ''}</td><td class="warn">${tot('exp', c) ? n0(tot('exp', c)) : ''}</td></tr>`).join('') || '<tr><td colspan="3" class="dim">아직 기록 없음</td></tr>'}</tbody></table>
+      <div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>항목</th><th>수입</th><th>지출</th></tr></thead><tbody>${cats.map(c => `<tr><td>${esc(LEDGER_NAME[c] ?? c)}</td><td class="good">${tot('inc', c) ? n0(tot('inc', c)) : ''}</td><td class="warn">${tot('exp', c) ? n0(tot('exp', c)) : ''}</td></tr>`).join('') || '<tr><td colspan="3" class="dim">아직 기록 없음</td></tr>'}</tbody></table></div>
       <div class="proc-policy-status"><span>판매 수입<b>${n0(sales)} cr</b></span><span>운영 유지비<b>${n0(upkeep)} cr</b></span><span>판매 − 유지비<b class="${sales - upkeep >= 0 ? 'good' : 'warn'}">${n0(sales - upkeep)} cr</b></span></div>
       ${this.pnlHtml()}
       ${this.valuationNote()}
@@ -543,14 +543,20 @@ export class OperationsPanel {
         <p class="dim">위임 품목: ${Object.entries(pol.autoBuy).map(([i, p]) => `${esc(itemName(i))} ≤ ${n0(p)} cr`).join(', ') || '없음'} — 결재에서 "정책 위임"을 고르면 추가됩니다.</p>
         <button class="btn go" data-a="policy">정책 저장</button></div></section></div>`;
   }
-  /** P17.4f F1: the same real money by the business each ship served (industryPnl.ts) */
   private pnlHtml() {
     const rows = pnlRows(this.w.companies[this.me], this.w.time, 24);
-    const sum = (k: 'inc' | 'exp' | 'net') => rows.reduce((a, r) => a + r[k], 0);
-    return `<h3 class="ops-h3">사업별 손익 <small>최근 24시간 실적</small></h3><p class="dim small">함선이 그 순간 수행한 업무 기준입니다. 운영비 = 유지비·정박료(+간접비)와 소모품(기준가), 수리비는 수리받은 함선의 업무에 붙습니다. 함선이 직접 하역·판매한 수입은 그 함선의 업무로, 보관함에서 판 재고는 "보관 재고 판매"로 잡힙니다.</p>
-      <div class="ops-table-wrap"><table class="ops-table ops-pnl"><thead><tr><th>사업</th><th>평균 함선</th><th>수입</th><th>운영·수리비</th><th>손익</th></tr></thead><tbody>${rows.map(r => `<tr data-act="${r.act}"><td>${esc(r.name)}</td><td>${r.ships ? r.ships.toFixed(1) : ''}</td><td class="good">${r.inc ? n0(r.inc) : ''}</td><td class="warn">${r.exp ? n0(r.exp) : ''}</td><td class="${r.net >= 0 ? 'good' : 'warn'}">${r.net >= 0 ? '+' : '−'}${n0(Math.abs(r.net))}</td></tr>`).join('') || '<tr><td colspan="5" class="dim">아직 기록 없음</td></tr>'}</tbody>
-      ${rows.length ? `<tfoot><tr><td>합계</td><td></td><td>${n0(sum('inc'))}</td><td>${n0(sum('exp'))}</td><td class="${sum('net') >= 0 ? 'good' : 'warn'}">${sum('net') >= 0 ? '+' : '−'}${n0(Math.abs(sum('net')))}</td></tr></tfoot>` : ''}</table></div>
-      <p class="dim small">사업 손익에 들어가지 않는 지출(건설·조선·연구·구매·임대·장교 급여)과 계약·현상금 수입은 위 현금 흐름 표에만 있습니다.</p>`;
+    const allocated = rows.filter(r => r.act !== 'unallocated');
+    const unallocated = rows.find(r => r.act === 'unallocated');
+    const sum = (k: 'inc' | 'exp' | 'operating' | 'supplies' | 'net') => allocated.reduce((a, r) => a + r[k], 0);
+    const amount = (n: number) => n ? n0(n) : '—';
+    const net = (n: number) => `<td data-label="사업 손익" class="${n >= 0 ? 'good' : 'warn'}">${n < 0 ? '−' : n > 0 ? '+' : ''}${n0(Math.abs(n))}</td>`;
+    return `<h3 class="ops-h3">사업별 손익 <small>최근 24시간 · cr</small></h3>
+      <p class="dim small">채광·인양품 판매는 확인된 생산 사업에, 수송선 운영비는 물류에 귀속합니다. 사업 손익은 귀속 수입에서 직접 지출과 배분 운영비를 뺀 값입니다. 소모품은 기준가 추정치이며 참고용입니다.</p>
+      <div class="ops-table-wrap"><table class="ops-table ops-pnl"><thead><tr><th>사업</th><th>평균 함선</th><th>현금 수입</th><th>직접 지출</th><th>배분 운영비</th><th>소모품 추정</th><th>사업 손익</th></tr></thead><tbody>
+      ${allocated.map(r => `<tr data-act="${r.act}"><td>${esc(r.name)}</td><td data-label="평균 함선">${r.ships ? r.ships.toFixed(1) : '—'}</td><td data-label="현금 수입" class="good">${amount(r.inc)}</td><td data-label="직접 지출">${amount(r.exp)}</td><td data-label="배분 운영비">${amount(r.operating)}</td><td data-label="소모품 추정">${amount(r.supplies)}</td>${net(r.net)}</tr>`).join('') || '<tr><td colspan="7" class="dim">귀속된 사업 실적 없음</td></tr>'}</tbody>
+      ${allocated.length ? `<tfoot><tr><td>사업 귀속 합계</td><td data-label="평균 함선">—</td><td data-label="현금 수입">${amount(sum('inc'))}</td><td data-label="직접 지출">${amount(sum('exp'))}</td><td data-label="배분 운영비">${amount(sum('operating'))}</td><td data-label="소모품 추정">${amount(sum('supplies'))}</td>${net(sum('net'))}</tr></tfoot>` : ''}</table></div>
+      <div class="proc-policy-status" data-act="unallocated"><span>미배분 판매 매출<b>${n0(unallocated?.sales ?? 0)} cr</b></span><span>미배분 기타 수입<b>${n0(Math.max(0, (unallocated?.inc ?? 0) - (unallocated?.sales ?? 0)))} cr</b></span><span>미배분 현금 지출<b>${n0(unallocated?.exp ?? 0)} cr</b></span></div>
+      <p class="dim small">사업 귀속 합계와 회사 전체 현금 흐름은 집계 기준이 다릅니다. 혼합 재고 판매, 운영비 납부, 공통·투자 지출은 미배분 현금에 포함됩니다. 이전 기록의 실제 입출금도 현금 흐름에 남아 있습니다.</p>`;
   }
   /** value-chain migration: what the company's goods were worth before vs now (reference, NOT cash) */
   private valuationNote() {

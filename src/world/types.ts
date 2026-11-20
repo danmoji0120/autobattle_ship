@@ -1,3 +1,4 @@
+import { updateCargoOrigin, type CargoOrigins, type ProductionOrigin } from './productionOrigin';
 // Persistent-world state. Everything here is plain JSON: it is what the server saves,
 // what clients receive in snapshots, and what single-player stores locally.
 
@@ -230,6 +231,7 @@ export interface WShip {
   state: 'space' | 'docked' | 'battle' | 'building';
   task: ShipTask;
   cargo: Cargo;
+  cargoOrigins?: CargoOrigins;
   /** installed fitting modules (EQUIPMENT ids) */
   fit?: string[];
   engagement?: string;
@@ -298,6 +300,8 @@ export interface WGroup {
   lastSay: number;
   /** NPC force bookkeeping (Union garrisons/patrols/response fleets, pirate bands) */
   npc?: NpcInfo;
+  /** NPC fleet is returning to its home base after heavy damage. */
+  _repair?: boolean;
   /** P17.2 repair business state (repairbiz order) */
   rbiz?: import('./repairBiz').RepairBizState;
   /** scouts / vanguard: moves on its own instead of keeping station with the parent fleet */
@@ -404,6 +408,7 @@ export interface Station {
   radius: number;
   market: Market | null;
   services: { repair: boolean; shipyard: string[]; recruit: boolean; contracts: boolean; refit: boolean };
+  storageOrigins?: Record<string, CargoOrigins>;
   storage: Record<string, Cargo>;  // per company
   modules: Module[];
   defenseHp: number;           // fraction for defense platform
@@ -782,7 +787,12 @@ export interface WorldState {
 
 export const emptyCargo = (): Cargo => ({ ore: 0, alloy: 0, crystal: 0 });
 export const qty = (c: Cargo | undefined, r: string) => c?.[r] ?? 0;
-export const addc = (c: Cargo, r: string, n: number) => { c[r] = (c[r] ?? 0) + n; if (Math.abs(c[r]) < 1e-9 && !RES.includes(r)) delete c[r]; };
+export const addc = (c: Cargo, r: string, n: number, origin?: ProductionOrigin) => {
+  const before = c[r] ?? 0;
+  updateCargoOrigin(c, r, before, n, origin);
+  c[r] = before + n;
+  if (Math.abs(c[r]) < 1e-9 && !RES.includes(r)) delete c[r];
+};
 export const cargoSum = (c: Cargo) => { let n = 0; for (const k in c) n += c[k]; return n; };
 /** item ids with a positive amount */
 export const cargoKeys = (c: Cargo) => Object.keys(c).filter(k => c[k] > 1e-9);

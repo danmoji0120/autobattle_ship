@@ -65,7 +65,11 @@ export type IndWork = 'mine' | 'build' | 'salvage' | 'repair';
  *  standard constructor), salvage = multiplier on the salvage base rates (1 = the old constructor),
  *  repair (P16.7) = field repair rate: hull share per hour on a size-S hull (world/fieldRepair.ts) */
 /** `prec` (salvage gear, P17.1): recovery precision 0..1 — share of a wreck's goods recovered intact (salvQV worlds) */
-export interface IndSpec { work: IndWork; rate: number; prec?: number }
+export interface IndSpec {
+  work: IndWork; rate: number; prec?: number;
+  /** Change in equipment servicing credits per hour of active extraction. */
+  miningUpkeep?: number;
+}
 export interface InternalSlotDef { id: string; kind: InternalKind; size: Size }
 
 /** fitting rules of one equipment item (EQUIPMENT id). `slot: 'hardpoint'` = weapon; otherwise the

@@ -1213,13 +1213,13 @@ export class PmcHud {
     const notes = reps.filter(s => s.frNote).map(s => `<div class="dim small">${esc(s.name)}: ${esc(s.frNote!)}</div>`).join('');
     // P17.2 repair business: start (price level) / stop, current job, recent income
     const op = g.op, biz = op.k === 'repairbiz' ? g.rbiz : undefined;
-    const start = (mul: number) => `<button class="btn mini" data-quick="${q({ k: 'repairbiz', at: { x: at.x, y: at.y, z: at.z }, jumps: 1, mul, clients: 'all', minFee: 200, avoidRisk: true })}">×${mul}</button>`;
+    const start = (mul: number) => `<button class="btn mini" data-quick="${q({ k: 'repairbiz', at: { x: at.x, y: at.y, z: at.z }, jumps: 1, mul, clients: 'all', minFee: 50, avoidRisk: true })}">×${mul}</button>`;
     const hourInc = biz ? biz.jobs.filter(j => j.t > st.time - 3600).reduce((a, j) => a + j.fee, 0) + (biz.billed ?? 0) : 0;
     const bizHtml = op.k === 'repairbiz'
       ? `<div class="small"><b>유료 수리업 · 수입</b> <span class="dim">— 반경 ${op.jumps}점프 · 정거장 가격 ×${op.mul} · 누적 수입 ${Math.round(biz?.income ?? 0).toLocaleString()} cr · 최근 1시간 ${Math.round(hourInc).toLocaleString()} cr</span>
         <button class="btn mini" data-quick="${q({ k: 'idle' })}">수리업 중단</button></div>
-        ${(biz?.jobs ?? []).slice(0, 3).map(j => `<div class="dim small">완료: ${esc(j.name)} (${esc(st.companies[j.client]?.name ?? j.client)}) 선체 ${j.hull}% · ${j.fee.toLocaleString()} cr</div>`).join('')}`
-      : `<div class="row small"><span class="dim">유료 수리업 시작 — 다른 회사·세력 함선을 고치고 수리비를 받음 (현 위치 1점프 · 정거장 가격 배율):</span> ${[1, 1.3, 1.6].map(start).join('')}</div>`;
+        ${(biz?.jobs ?? []).slice(0, 3).map(j => `<div class="dim small">완료: ${esc(j.name)} (${esc(st.companies[j.client]?.name ?? j.client)}) 선체 ${j.hull}% · ${j.fee.toLocaleString()} cr${j.savedSeconds ? ` · 모항 왕복 대비 약 ${j.savedSeconds}초 절약` : ''}</div>`).join('')}`
+      : `<div class="row small"><span class="dim">분쟁 지역의 후방에서 손상된 순찰대와 다른 회사 함선을 수리합니다. 현 위치 1점프 · 최소 50 cr · 정거장 가격 배율</span> ${[0.9, 1.2, 1.5].map(start).join('')}</div>`;
     // AUD-17: own-fleet maintenance (a cost) and the paid repair business (income) are separate blocks
     return `<div class="sect"><div class="small"><b>자사 함선 현장 정비 · 비용</b> <span class="dim">— 수리 장비 ${reps.length}척. 같은 편대의 손상 함선은 명령 없이 수리(크레딧·시간 소모, 마모 제외, 적대 함대 접근 시 중단).</span></div>
       <div class="row small"><button class="btn mini" data-quick="${q({ k: 'repairzone', at: { x: at.x, y: at.y, z: at.z }, radius: 5000 })}" title="현 위치 반경 5km 안의 손상된 자사 함선을 차례로 수리합니다">수리 구역 지정 (현 위치 · 5km)</button>

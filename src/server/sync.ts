@@ -47,10 +47,10 @@ function publicCompany(id: string, co: any) {
 const ownCompany = (co: any) => co.repx ? { ...co, repx: { ...co.repx, keys: undefined, cases: undefined } } : co;
 /** station without its storage map (storage is per viewer and is added separately) */
 function stationBody(st: Station, own: boolean) {
-  return { ...st, storage: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
+  return { ...st, storage: undefined, storageOrigins: undefined, ...(own ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) };
 }
 function publicGroup(g: any) { return { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined, opx: undefined, salv: undefined, autoSalvage: undefined, plx: undefined, piracyPolicy: undefined, smug: undefined, lawStop: undefined, lawx: undefined, rbiz: undefined }; }
-function publicShip(s: WShip) { return { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined, pir: undefined, insp: undefined }; }
+function publicShip(s: WShip) { return { ...s, cargo: {}, cargoOrigins: undefined, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, logisticsExcluded: undefined, logisticsStow: undefined, fitting: undefined, fit: undefined, salvaged: undefined, salvAcc: undefined, pir: undefined, insp: undefined }; }
 /** P13.2: what pirates carried home stays with them (not replicated) */
 const lairBody = (l: any) => l.hold === undefined ? l : { ...l, hold: undefined };
 /** P13.1 wrecks: news of a battle is public, but under fog only where the viewer can see (or it took part) */
@@ -119,7 +119,7 @@ export function legacyView(st: WorldState, v: Viewer, sysId: string): WorldView 
   const log = (battleLog ?? []).map(({ setup: _x, orders: _o, ...lite }) => { void _x; void _o; return lite; });
   const c = v.company;
   const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, fullCompany(id, co, c) ? ownCompany(co) : publicCompany(id, co)]));
-  const stations = Object.fromEntries(Object.entries(base.stations).filter(([, s]) => s.owner === c || contentsKnown(st, c, s.pos)).map(([id, s]) => [id, { ...s, storage: { ...(c && s.storage[c] ? { [c]: s.storage[c] } : {}) }, ...(s.owner === c ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: s.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
+  const stations = Object.fromEntries(Object.entries(base.stations).filter(([, s]) => s.owner === c || contentsKnown(st, c, s.pos)).map(([id, s]) => [id, { ...s, storageOrigins: undefined, storage: { ...(c && s.storage[c] ? { [c]: s.storage[c] } : {}) }, ...(s.owner === c ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: s.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
   const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, fullGroup(st, g, c) ? npcView(g) : publicGroup(g)]));
   const origin = st.systems[sysId]?.origin;
   const ships = Object.fromEntries(Object.values(st.ships).filter(s => shipVisible(s, c, origin)).map(s => [s.id, s.owner === c ? s : publicShip(s)]));

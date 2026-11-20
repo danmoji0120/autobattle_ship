@@ -166,7 +166,7 @@ export interface CompanyOps {
   spend: { t: number; n: number }[];
   /** balance last seen by the ledger reconciliation */
   credits?: number;
-  /** P17.4f: the same real money by activity (industryPnl.ts) */
+  /** Cash attribution and operating charge allocations by business. */
   act?: ActHour[];
 }
 
@@ -1622,7 +1622,7 @@ export const CMD_CATEGORY: Partial<Record<Cmd['c'], string>> = {
   repair: 'repair', refit: 'repair', fit: 'repair', fitShip: 'repair', buyShip: 'ships', buyShipListing: 'ships', hire: 'crew', lease: 'storage', payArrears: 'upkeep', recovery: 'upkeep', recoverySell: 'upkeep',
 };
 export const LEDGER_NAME: Record<string, string> = {
-  sales: '판매', purchase: '구매', construction: '건설', shipbuilding: '조선', research: '연구', repair: '정거장 수리·개장', repair_fleet: '자사 함선 현장 정비', hauler_recovery: '수송선 복구 수리', repair_service: '외부 유료 수리 이용', repair_biz: '수리업 수입', ships: '함선 매매', crew: '지휘관', storage: '보관 임대', upkeep: '운영 유지비', blackmarket: '암시장', fines: '벌금', law_fines: '치안 벌금', mil_contract: '군사 계약', bounty: '전투 현상금', other: '전투·계약·기타',
+  sales: '판매', purchase: '구매', construction: '건설', shipbuilding: '조선', research: '연구', repair: '정거장 수리·개장', repair_fleet: '자사 함선 현장 정비', hauler_recovery: '수송선 복구 수리', repair_service: '외부 유료 수리 이용', repair_biz: '수리업 수입', salvage_contract: '인양 계약', ships: '함선 매매', crew: '지휘관', storage: '보관 임대', upkeep: '운영 유지비', blackmarket: '암시장', fines: '벌금', law_fines: '치안 벌금', mil_contract: '군사 계약', bounty: '전투 현상금', other: '전투·계약·기타',
 };
 /** everything not booked by a known path since the last reconciliation → "other" (contracts, bounties, refunds …) */
 function reconcileLedger(h: WorldSim) {

@@ -19,13 +19,15 @@ export function postSalvageContracts(h: Host) {
   let open = Object.values(w.contracts).filter(k => !k.done && k.kind === 'salvage').length;
   // salvagers' home stations keep a follow-up job within reach even when distant boards fill the world cap
   const homes = new Set(Object.values(w.companies).filter(c => c.kind === 'player' && c.background === 'salvager').map(c => c.homeStation));
-  for (const st of Object.values(w.stations)) {
+  const starters = new Set(Object.values(w.companies).filter(c => c.kind === 'player' && c.background === 'salvager' && !c.milestones.includes('first_salvage')).map(c => c.homeStation));
+  const stations = Object.values(w.stations);
+  for (const st of [...stations.filter(s => starters.has(s.id)), ...stations.filter(s => !starters.has(s.id))]) {
     if (open >= C.maxOpen + (homes.size ? C.homeExtra : 0)) return;
     if (open >= C.maxOpen && !homes.has(st.id)) continue;
     if (!st.public || !st.services.contracts || st.funds === undefined) continue;
     if (Object.values(w.contracts).some(k => !k.done && k.kind === 'salvage' && k.stationId === st.id)) continue;
-    if ((D.posts[st.id] ?? -Infinity) > h.time || !h.rng.chance(C.chance)) continue;
-    const o = salvageOffer(w, st, h.time, () => h.rng.next(), s => effSec(s));
+    if ((D.posts[st.id] ?? -Infinity) > h.time || !starters.has(st.id) && !h.rng.chance(C.chance)) continue;
+    const o = salvageOffer(w, st, h.time, () => h.rng.next(), s => effSec(s), starters.has(st.id));
     D.posts[st.id] = h.time + C.cooldown;   // tried: wait the cooldown either way (no posting loop)
     if (typeof o === 'string') continue;
     let target = o.target;

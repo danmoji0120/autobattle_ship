@@ -1,7 +1,8 @@
 // Company-owned, opt-in dispatch. Existing managed routes remain on their original execution path.
+import { cargoOrigin, type ProductionOrigin } from './productionOrigin';
 import type { WorldSim } from './sim';
 import type { WShip, WGroup, Station, WorldState } from './types';
-import { addc, takec, qty, cargoSum, cargoKeys } from './types';
+import { takec, qty, cargoSum, cargoKeys } from './types';
 import { autoLogistics, poolMember, haulerAvailability } from './haulers';
 import { econOf, berthFits, growthOn } from './hullops';
 import { EQUIPMENT, ITEMS, techFx, itemPrice } from './industry';
@@ -41,6 +42,8 @@ export interface LogisticsJob extends PoolRequest {
   pirated?: number;
   /** AUTO-P0: created by the excess-stock sales planner (procurement.ts `planSales`) — may be re-targeted */
   sale?: true;
+  /** Proven origin of the items removed from free stock for this reservation. */
+  reservedOrigin?: ProductionOrigin;
   /** AUTO-P1: a sale round trip flown by a mining fleet's own hauler (the group it mines with). It never enters the
    *  pool: the hauler returns to mining when it ends, and it is cancelled if the ship is lost or the fleet's order changes. */
   miner?: string;
@@ -51,7 +54,7 @@ export interface LogisticsJob extends PoolRequest {
   /** AUTO-P1.1: when the trip started waiting without any market to go on to (and how much it had sold then) */
   stuck?: { since: number; delivered: number };
 }
-type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev' | 'price' | 'officerXp' | 'groupOfficer'>;
+type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOf' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'storeProduction' | 'addShipCargo' | 'sysOf' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'intakeRoom' | 'sellAt' | 'undock' | 'ev' | 'price' | 'officerXp' | 'groupOfficer'>;
 const EPS = 1e-9;
 const isTerminal = (j: LogisticsJob) => j.state === 'complete' || j.state === 'cancelled';
 const compatibleItem = (item: string) => Object.hasOwn(ITEMS, item) || Object.hasOwn(EQUIPMENT, item) || item.startsWith('bp:') || item.startsWith('bpf:');
@@ -79,7 +82,7 @@ export function createPoolJob(h: Host, owner: string, request: PoolRequest, proc
 }
 function releaseReservation(h: Host, j: LogisticsJob) {
   const source = h.st.stations[j.from];
-  if (source && j.reserved > 0) { addc(h.storage(source, j.owner), j.item, j.reserved); j.reserved = 0; }
+  if (source && j.reserved > 0) { h.storeProduction(source, j.owner, j.item, j.reserved, j.reservedOrigin); j.reserved = 0; delete j.reservedOrigin; }
 }
 function clearWait(h: Host, j: LogisticsJob, s?: WShip) {
   if (j.code && j.ship) emit(h.st, { kind: 'logistics', reason: 'resumed', amount: 0, company: j.owner, group: s?.groupId, ship: j.ship });
@@ -266,6 +269,7 @@ export function dispatchPool(h: Host) {
     if (j.kind === 'construction') amount = Math.min(amount, Math.max(0, constructionRoom(b, j.item, true) - incomingRoutes(h, j.owner, j.to, j.item) - incomingPool(h.st, j.owner, j.to, j.item)));
     if (j.kind !== 'construction') amount = Math.floor(amount + EPS);
     if (amount <= EPS) { j.state = 'waiting'; j.code = 'source'; j.reason = '적재 가능한 자유 재고 또는 현장 필요량 대기'; continue; }
+    j.reservedOrigin = cargoOrigin(a.storage[j.owner], j.item);
     j.reserved = takec(h.storage(a, j.owner), j.item, amount);
     ships.splice(ships.indexOf(s), 1); s.logisticsJob = j.id; j.ship = s.id; j.state = 'active'; j.updated = h.time; delete j.reason; delete j.code; delete j.retryAt; delete j.attempts;
   }
@@ -282,6 +286,7 @@ function endMinerTrip(h: Host, j: LogisticsJob, reason: string, lost = false) {
 export function assignMinerTrip(h: Host, j: LogisticsJob, s: WShip, salvage = false) {
   const a = h.st.stations[j.from];
   j.miner = s.groupId; if (salvage) j.salvTrip = true;
+  j.reservedOrigin = cargoOrigin(a.storage[j.owner], j.item);
   j.reserved = takec(h.storage(a, j.owner), j.item, j.amount);
   s.logisticsJob = j.id; j.ship = s.id; j.state = 'active'; j.updated = h.time; delete j.reason; delete j.code;
   emit(h.st, { kind: 'logistics', reason: 'assign', amount: j.reserved, company: j.owner, group: s.groupId, ship: s.id, station: a.id, item: j.item });
@@ -357,13 +362,14 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
     const present = Math.min(j.carried, qty(s.cargo, j.item));
     if (present < j.carried) { j.withdrawn += j.carried - present; j.carried = present; }
     if (j.carried <= EPS) { detach(h, j, '화물이 작업에서 회수됨 — 잔량 재배차'); j.state = 'queued'; return true; }
+    const origin = cargoOrigin(s.cargo, j.item);
     let moved = 0;
     // AUTO-P1.1: a sale trip that gave up is back at its source: store what fits, keep the rest aboard (still this job's)
     if (j.kind === 'sell' && j.returning && j.to === j.from) {
       const desired = Math.min(j.carried, h.intakeRoom(station, j.owner, j.item));
       const permit = desired > EPS ? h.cargoPermit(s, station, `pool:${j.id}:return`, desired) : 0; if (permit === null) return true;
       moved = Math.min(desired, permit);
-      if (moved > EPS) { takec(s.cargo, j.item, moved); addc(h.storage(station, j.owner), j.item, moved); j.carried -= moved; j.withdrawn += moved; j.amount = Math.max(j.cycleDelivered, j.amount - moved); j.updated = h.time; j.lastAction = h.time; emit(h.st, { kind: 'logistics', reason: 'unload', amount: moved, company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item }); }
+      if (moved > EPS) { takec(s.cargo, j.item, moved); h.storeProduction(station, j.owner, j.item, moved, origin); j.carried -= moved; j.withdrawn += moved; j.amount = Math.max(j.cycleDelivered, j.amount - moved); j.updated = h.time; j.lastAction = h.time; emit(h.st, { kind: 'logistics', reason: 'unload', amount: moved, company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item }); }
       if (j.carried > EPS) { wait(h, j, s, 'returned', `판매 실패로 ${station.name}에 복귀 — 창고 가득, 화물 ${Math.round(j.carried)} 함선에 보존 · 공간이 생기면 보관, 판매 시장이 생기면 다시 판매`); return true; }
       j.carried = 0; delete s.logisticsJob; delete j.ship; j.state = 'cancelled'; j.reason = `판매 실패로 ${station.name}에 복귀 — 화물 창고 보관`;
       return true;
@@ -380,7 +386,7 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
     } else {
       const desired = Math.min(j.carried, j.procurement ? Math.max(0, j.amount - j.cycleDelivered) : Infinity, h.intakeRoom(station, j.owner, j.item, site), site ? constructionRoom(station, j.item, true) : Infinity);
       const permit = h.cargoPermit(s, station, `pool:${j.id}:unload`, desired); if (permit === null) return true;
-      moved = Math.min(desired, permit); if (moved > 0) { takec(s.cargo, j.item, moved); addc(h.storage(station, j.owner), j.item, moved); }
+      moved = Math.min(desired, permit); if (moved > 0) { takec(s.cargo, j.item, moved); h.storeProduction(station, j.owner, j.item, moved, origin); }
     }
     j.carried -= moved; j.delivered += moved; j.cycleDelivered += moved; j.updated = h.time;
     if (moved > 0) { j.lastAction = h.time; emit(h.st, { kind: 'logistics', reason: 'unload', amount: moved, company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item }); }
@@ -406,8 +412,9 @@ export function stepPoolShip(h: Host, s: WShip, g: WGroup, dt: number, speed: nu
   const permit = h.cargoPermit(s, station, `pool:${j.id}:load`, amount); if (permit === null) return true;
   const loaded = Math.min(j.reserved, amount, permit);
   if (loaded <= EPS) { wait(h, j, s, 'source', '출발지 자유 재고 부족 — 재고 회복 대기'); return true; }
-  j.reserved -= loaded; releaseReservation(h, j);
-  addc(s.cargo, j.item, loaded); j.carried = loaded; j.lastAction = h.time; j.updated = h.time;
+  const origin = j.reservedOrigin;
+  j.reserved -= loaded; releaseReservation(h, j); delete j.reservedOrigin;
+  h.addShipCargo(s, j.item, loaded, origin); j.carried = loaded; j.lastAction = h.time; j.updated = h.time;
   emit(h.st, { kind: 'logistics', reason: 'depart', amount: loaded, company: j.owner, group: g.id, ship: s.id, station: station.id, item: j.item });
   return true;
 }

@@ -51,6 +51,13 @@ export function stockIndustrialGear(st: WorldState): number {
   return n;
 }
 
+const SPECIALIZED_MARKETS: Record<string, string[]> = {
+  astra: ['ind_mine_s_output', 'ind_mine_s_efficient'],
+  barcaco: ['ind_mine_m_output', 'ind_mine_m_efficient'],
+  p9_ceres_works: ['ind_salv_s_cutter', 'ind_salv_s_precision'],
+  exchange: ['ind_salv_m_cutter', 'ind_salv_m_precision'],
+};
+
 /** P15.1: standard combat computers on the public markets of a new growth world (idempotent; st.cpuV marks it).
  *  Existing saves are not converted automatically: their companies can produce computers (electronics_fab). */
 export function stockComputers(st: WorldState): number {
@@ -104,6 +111,11 @@ export function enableIndustrial(st: WorldState) {
   st.indV = 1;
   st.salvQV = 1;   // P17.1: salvage quality (gear precision · officer · wreck condition) from the start
   stockIndustrialGear(st);
+  for (const [sid, items] of Object.entries(SPECIALIZED_MARKETS)) {
+    const station = st.stations[sid];
+    if (!station?.public || !station.market) continue;
+    for (const id of items) if (!station.market[id]) addGood(station.market, id, PROFILES[sid]?.mult ?? 1, 0.4, st);
+  }
 }
 
 export interface IndMigration { applied: boolean; reason?: string; ships: number; gear: number; markets: number }

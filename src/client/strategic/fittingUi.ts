@@ -465,7 +465,8 @@ function indText(g: import('../../content/schema').IndSpec, bonus: Partial<Recor
   const b = bonus?.[g.work] ?? 1, v = g.rate * b;
   const r = (x: number) => Number(x.toFixed(2)).toLocaleString();
   const what = g.work === 'mine' ? `채굴 ${r(v)}/s` : g.work === 'build' ? `건설 ×${r(v)}` : g.work === 'repair' ? `현장 수리 ${r(v)} (소형 선체 기준 시간당 ${Math.round(v * 100)}%)` : `인양 ×${r(v)}${g.prec ? ` · 정밀도 ${Math.round(g.prec * 100)}%` : ''}`;
-  return b !== 1 ? `${what} (기본 ${r(g.rate)} × 선체 ${b})` : what;
+  const rate = b !== 1 ? `${what} (기본 ${r(g.rate)} × 선체 ${b})` : what;
+  return g.miningUpkeep ? `${rate} · 채굴 중 정비비 ${g.miningUpkeep > 0 ? '+' : '−'}${r(Math.abs(g.miningUpkeep))} cr/h` : rate;
 }
 function cfxText(c: import('../../content/schema').CombatFx): string {
   const out: string[] = [];

@@ -160,6 +160,30 @@ describe('P17.2 repair business', () => {
     expect(RB.npcMaxMul).toBeLessThan(2);
   }, 120_000);
 
+  it('a nearby patrol holds position for faster service and pays from its faction treasury', () => {
+    const { sim, A, reps } = world(2);
+    run(sim, 25);
+    const patrol = Object.values(sim.st.groups).find(g => g.op.k === 'guard' && g.npc?.role === 'patrol' && sim.shipsOf(g).some(s => s.classId === 'corvette'))!;
+    const base = sim.st.stations[patrol.npc!.home];
+    const ship = sim.shipsOf(patrol).find(s => s.classId === 'corvette')!;
+    const at = { ...base.pos, x: base.pos.x + 5500 };
+    for (const s of sim.shipsOf(patrol)) { s.pos = { ...at }; s.state = 'space'; s.vel = { x: 0, y: 0, z: 0 }; delete s.warp; }
+    ship.hp = 0.966;
+    for (const r of reps) { r.pos = { ...at }; r.state = 'space'; r.vel = { x: 0, y: 0, z: 0 }; }
+    const group = sim.st.groups[reps[0].groupId];
+    expect(sim.command(A, { c: 'moveShip', ship: reps[1].id, group: group.id })).toBeNull();
+    expect(sim.command(A, { c: 'setOp', group: group.id, op: { k: 'repairbiz', at, jumps: 0, mul: 1.2, clients: 'npc', minFee: 0, avoidRisk: true } })).toBeNull();
+    const { m, off } = ledger(sim);
+    run(sim, 160, () => !!group.rbiz?.jobs.length);
+    off();
+    const done = group.rbiz!.jobs[0];
+    expect(done?.ship).toBe(ship.id);
+    expect(done?.savedSeconds).toBeGreaterThan(0);
+    expect(ship.hp).toBe(1);
+    expect(m.got).toBeGreaterThan(0);
+    expect(m.paid).toBeCloseTo(m.got, 6);
+  });
+
   it('validation: needs field repair gear and sane settings; a customer sets only its own consent', () => {
     const { sim, A, B, reps } = world();
     const gA = sim.st.groups[reps[0].groupId];

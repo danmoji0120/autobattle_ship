@@ -10,6 +10,7 @@
 // a warehouse by docking and unloading. Cargo of a non-hostile company is protected: automatic salvage never
 // takes it, an explicit order must say so, and doing it where the law reaches costs reputation / standing.
 // See docs/P13_1_SALVAGE.md.
+import { cargoOrigin } from './productionOrigin';
 import type { WorldSim } from './sim';
 import type { Cargo, Op, Station, V, WGroup, WShip } from './types';
 import { addc, cargoSum, qty, takec } from './types';
@@ -46,6 +47,9 @@ export interface SalvState {
   phase: 'transit' | 'work' | 'unload' | 'return' | 'hold' | 'blocked' | 'done';
   wreck?: string;
   station?: string;
+  /** Last receiving station, where idle haulers can collect a sale shipment after stock accumulates. */
+  saleStation?: string;
+  saleCheck?: number;
   since: number;
   next: number;
   /** automatic pickup: gives up at this time */
@@ -189,7 +193,7 @@ function workShip(h: Host, s: WShip, w: SalvSite, illegal: boolean, dt: number):
       const src = item === lot.item ? lot : { ...lot, item };
       // P13.3: another company's cargo becomes stolen goods (its own key), the owner's own goods come back plain
       const k = recoveredKey(h.st, s.owner, src);
-      addc(s.cargo, k, n);
+      h.addShipCargo(s, k, n, h.st.companies[s.owner]?.kind === 'player' ? 'salvage' : undefined);
       addc((s.salvaged ??= {}), k, n);
       const v = n * lotValue(h.st, src); value += v;
       if (h.st.derelictV) noteSalvageSource(h.st, s, k, w.id, n, v);
@@ -328,7 +332,8 @@ function unloadToStore(h: Host, s: WShip, st: Station): number {
   for (const k of Object.keys(sal)) {
     const n = Math.min(qty(sal, k), qty(s.cargo, k), h.intakeRoom(st, s.owner, k), limit - moved);
     if (n <= 1e-9) continue;
-    takec(s.cargo, k, n); takec(sal, k, n); addc(h.storage(st, s.owner), k, n); moved += n;
+    const origin = cargoOrigin(s.cargo, k);
+    takec(s.cargo, k, n); takec(sal, k, n); h.storeProduction(st, s.owner, k, n, origin); moved += n;
     emit(h.st, { kind: 'logistics', reason: 'salvage_unload', amount: n, company: s.owner, group: s.groupId, ship: s.id, station: st.id, item: k });
   }
   for (const k of Object.keys(sal)) if (qty(sal, k) <= 1e-9 || qty(s.cargo, k) <= 1e-9) delete sal[k];
@@ -465,7 +470,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
     S.station = undefined;
     setPhase(h, S, 'return');
   }
-  let target: SalvSite | undefined;
+  let target: SalvSite | undefined, idleReason = '';
   if (op.k === 'recover') {
     target = siteOf(st, op.wreck);
     if (!target || !workable(h, ships, target, illegal)) {
@@ -475,7 +480,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
     }
   } else {
     const ign = S.ignore ?? {};
-    let best = -Infinity;
+    let best = -Infinity, nearby = 0, workableCount = 0, unsafe = 0, belowMin = 0;
     const home = op.biz ? h.sysOf(op.at)?.id : undefined, hops = new Map<string, number>();
     const inRange = (w: SalvSite) => {
       if (!op.biz) return dist(w.pos, op.at) <= op.radius + 400;
@@ -484,20 +489,27 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
       return n <= SALV.bizJumps;
     };
     for (const w of allSites(st)) {
-      if ((ign[w.id] ?? 0) > h.time || !inRange(w)) continue;
+      if (!inRange(w)) continue;
+      nearby++;
+      if ((ign[w.id] ?? 0) > h.time) { unsafe++; continue; }
       if (!workable(h, ships, w, illegal)) continue;
-      const p = prospect(h, ships, w, illegal); if (p.value <= 0 || (op.biz && p.value < SALV.bizMin)) continue;
+      const contractId = st.wrecks?.[w.id]?.contract;
+      const contract = contractId ? st.contracts[contractId] : undefined;
+      if (op.biz && contract?.takenBy && !contract.done && contract.takenBy !== g.owner) continue;
+      const hasJob = op.biz && contract?.takenBy === g.owner && !contract.done;
+      workableCount++;
+      const p = prospect(h, ships, w, illegal); if (p.value <= 0 || (op.biz && !hasJob && p.value < SALV.bizMin)) { belowMin++; continue; }
       const travel = h.routeDistance(center, w.pos) / Math.max(50, h.groupSpeedOf(g));
       const danger = hostileNear(h, g.owner, w.pos, SALV.hostileR * (h.st.officerV ? 1 + (groupFx(h.st, g).salvRisk ?? 0) : 1));
       // a business run does not fly into a fight: a site with hostiles near is left alone for a while
-      if (danger && op.biz) { (S.ignore ??= {})[w.id] = h.time + SALV.bizRiskIgnore; continue; }
+      if (danger && op.biz) { unsafe++; (S.ignore ??= {})[w.id] = h.time + SALV.bizRiskIgnore; continue; }
       const risk = danger ? 0.2 : 1;
       const left = w.expires - h.time; if (left < travel + 30) continue;
-      const score = p.value / (travel + p.time + 30) * risk;
+      const score = w.id === S.wreck && S.phase === 'work' ? Infinity : hasJob ? Number.MAX_SAFE_INTEGER : p.value / (travel + p.time + 30) * risk;
       if (score > best) { best = score; target = w; }
     }
-    const cur = siteOf(st, S.wreck);
-    if (target && cur && cur.id !== target.id && workable(h, ships, cur, illegal) && S.phase === 'work') target = cur;   // finish the current one first
+    if (op.biz) idleReason = !nearby ? `반경 ${SALV.bizJumps}점프 안에 잔해 없음` : !workableCount && !unsafe ? '주변 잔해는 장비·화물칸·회수 권한 조건 불충족'
+      : unsafe ? '위험한 잔해는 교전 지역이 안전해질 때까지 보류' : belowMin ? '주변 잔해의 회수 가치가 출항 기준 미달' : '소멸 전에 도착할 수 있는 잔해 없음';
   }
   if (target && room >= 1 || target && target.lots.some(l => l.k === 'frag' && l.n >= 1 && ships.some(s => salvageRate(h, s, 'frag') > 0))) {
     S.wreck = target.id;
@@ -507,7 +519,7 @@ function decide(h: Host, g: WGroup, ships: WShip[], op: Extract<Op, { k: 'recove
   }
   if (loaded && S.nounload) { finish(h, g, S, '화물칸이 가득 찼습니다'); return; }
   if (loaded) { const skip = { risky: 0 }; const sta = pickStation(h, g, ships, center, S.ignore, skip); if (sta) { S.station = sta.id; setPhase(h, S, 'unload'); } else blockUnload(h, g, S, skip); return; }
-  if (op.k === 'salvzone') { S.wreck = undefined; setPhase(h, S, 'hold', op.biz ? `주변 ${SALV.bizJumps}점프 안에 수익성 있는 잔해가 없습니다 — 정거장에서 대기` : '구역에 회수 가능한 잔해가 없습니다 — 새 잔해를 기다립니다'); return; }
+  if (op.k === 'salvzone') { S.wreck = undefined; setPhase(h, S, 'hold', op.biz ? `${idleReason} · 첫 사업 안내에서 잔해·계약 확인` : '구역에 회수 가능한 잔해가 없습니다 — 새 잔해를 기다립니다'); return; }
   setPhase(h, S, 'blocked', '화물칸이 가득 찼고 하역할 화물이 없습니다');
 }
 
@@ -529,6 +541,7 @@ function move(h: Host, g: WGroup, ships: WShip[], S: SalvState, illegal: boolean
     for (const s of ships) {
       if (!h.goDock(s, sta, dt, speed)) continue;
       docked++; const got = unloadSalvage(h, s, sta); moved += got;
+      if (got > 0) S.saleStation = sta.id;
       // like a mining hauler: planned once, right after it has unloaded everything
       if (op && got > 0 && trySaleTrip(h, g, s, ships, sta, S, illegal)) docked--;
     }
@@ -553,7 +566,21 @@ function move(h: Host, g: WGroup, ships: WShip[], S: SalvState, illegal: boolean
     const op = h.opOf(g); const at = op.k === 'salvzone' ? op.at : null;
     // P17.0 business: wait docked at the station nearest the home point (not hovering in space)
     const park = op.k === 'salvzone' && op.biz ? h.nearestDock(op.at, g.owner) : null;
-    for (const s of ships) { if (park) h.goDock(s, park, dt, speed); else if (at) h.moveTo(s, h.formationSlot(s, g, at, 120), speed, dt, 60); else if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; } }
+    const saleDock = S.saleStation ? st.stations[S.saleStation] : undefined;
+    const haulers = ships.filter(s => s.classId === 'hauler' && !s.logisticsJob && !s.cargoWork && cargoSum(s.cargo) <= 1e-9);
+    const carrier = haulers.find(s => !(econOf(s).salv ?? 0)) ?? haulers[0];
+    for (const s of ships) {
+      const co = st.companies[s.owner];
+      const hasSaleStock = saleDock && s === carrier && Object.keys(co?.procurement?.sales ?? {}).some(item => qty(saleDock.storage[s.owner], item) >= 1);
+      const dock = hasSaleStock && h.canDock(saleDock, g.owner) && unloadRisk(h, g.owner, s.pos, saleDock, [s]) <= 0 ? saleDock : park;
+      if (dock) {
+        if (h.goDock(s, dock, dt, speed) && op.k === 'salvzone' && op.biz && h.time >= (S.saleCheck ?? 0) && s === carrier) {
+          S.saleCheck = h.time + 30;
+          trySaleTrip(h, g, s, ships, dock, S, illegal);
+        }
+      } else if (at) h.moveTo(s, h.formationSlot(s, g, at, 120), speed, dt, 60);
+      else if (s.state === 'space') { s.vel.x *= 0.9; s.vel.z *= 0.9; }
+    }
   }
 }
 

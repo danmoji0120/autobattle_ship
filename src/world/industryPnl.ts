@@ -1,24 +1,21 @@
-// P17.4f F1: per-industry profit and loss from real money only.
-//
-// The company ledger (operations.book) tells what the money was spent on (upkeep, repair, sales …) but not which
-// business earned or burned it, so "is my mining fleet paying for itself" had no answer. This ledger re-books the same
-// real movements by the *activity* of the ship involved:
-//   • running cost — each ship's hourly credits + dock fee (the same figure upkeep accrues, overhead included) and its
-//     consumables valued at their base price, booked to the activity the ship is doing at that moment;
-//   • sales — a ship's own unload-and-sell is income of its activity (a miner selling its ore → mining); a sale from
-//     the company's storage is "stock sale" (the goods' origin is no longer known once they are pooled);
-//   • repair — the repair-business fee is repair income; a field repair or a paid repair is a cost of the patient's
-//     activity; an automatic hauler recovery repair is a logistics cost.
-// Nothing here moves credits: it only records. Buckets are hourly and the last 48 are kept, like the cash ledger.
+// Business attribution of cash movements and separately allocated operating charges.
 import type { Company, WGroup, WShip, WorldState } from './types';
 import { opsOf } from './operations';
 
-export type Activity = 'mining' | 'salvage' | 'repair' | 'logistics' | 'military' | 'other' | 'stock';
-export const ACTIVITIES: Activity[] = ['mining', 'salvage', 'repair', 'logistics', 'military', 'other', 'stock'];
+export type Activity = 'mining' | 'salvage' | 'repair' | 'logistics' | 'military' | 'other' | 'unallocated';
+export const ACTIVITIES: Activity[] = ['mining', 'salvage', 'repair', 'logistics', 'military', 'other', 'unallocated'];
 export const ACTIVITY_NAME: Record<Activity, string> = {
-  mining: '채광', salvage: '인양', repair: '수리업', logistics: '물류·수송', military: '군사·호위', other: '기타·대기', stock: '보관 재고 판매',
+  mining: '채광', salvage: '인양', repair: '수리업', logistics: '물류·수송', military: '군사·호위', other: '기타·대기', unallocated: '미배분',
 };
-export interface ActHour { h: number; inc: Partial<Record<Activity, number>>; exp: Partial<Record<Activity, number>>; ships?: Partial<Record<Activity, number>> }
+type Amounts = Partial<Record<Activity, number>>;
+export interface ActHour {
+  h: number; v?: 1;
+  inc: Amounts; exp: Amounts;
+  sales?: Amounts;
+  ships?: Amounts;
+  operating?: Amounts;
+  supplies?: Amounts;
+}
 
 const OP_ACT: Record<string, Activity> = {
   mine: 'mining', survey: 'mining',
@@ -39,44 +36,69 @@ function groupOp(st: WorldState, g: WGroup | undefined): string | undefined {
 export function activityOf(st: WorldState, s: WShip): Activity {
   if (s.logisticsJob) return 'logistics';
   const k = groupOp(st, st.groups[s.groupId]);
+  if (s.classId === 'hauler' && k === 'mine' && s.task.k !== 'mine') return 'logistics';
   return (k ? OP_ACT[k] : undefined) ?? (s.task?.k === 'mine' ? 'mining' : 'other');
 }
 
 const hourOf = (t: number) => Math.floor(t / 3600);
 const EPS = 1e-9;
 
-/** record a real credit movement (positive income, negative cost) under an activity; `ship` counts a ship-hour */
-export function bookAct(st: WorldState, time: number, owner: string, act: Activity, delta: number) {
+/** Record an attributed credit movement. Running charges are allocated separately. */
+export function bookAct(st: WorldState, time: number, owner: string, act: Activity, delta: number, sale = false) {
   const co: Company | undefined = st.companies[owner];
   if (!co || co.kind !== 'player' || Math.abs(delta) < EPS) return;
   const b = bucket(co, time);
-  if (delta > 0) b.inc[act] = (b.inc[act] ?? 0) + delta; else b.exp[act] = (b.exp[act] ?? 0) - delta;
+  if (delta > 0) {
+    b.inc[act] = (b.inc[act] ?? 0) + delta;
+    if (sale) { const sales = (b.sales ??= {}); sales[act] = (sales[act] ?? 0) + delta; }
+  } else b.exp[act] = (b.exp[act] ?? 0) - delta;
 }
-/** a ship spent `hours` on `act` (for the per-activity ship count) */
-export function countShip(st: WorldState, time: number, owner: string, act: Activity, hours: number) {
-  const co = st.companies[owner];
-  if (!co || co.kind !== 'player' || hours <= 0) return;
-  const b = bucket(co, time); (b.ships ??= {})[act] = (b.ships[act] ?? 0) + hours;
+/** Accrue assessed fleet operating charges and the reference value of supplies requested. */
+export function allocateRunningCost(time: number, co: Company, act: Activity, hours: number, operating: number, supplies: number) {
+  const b = bucket(co, time);
+  const o = (b.operating ??= {}), s = (b.supplies ??= {}), n = (b.ships ??= {});
+  o[act] = (o[act] ?? 0) + operating;
+  s[act] = (s[act] ?? 0) + supplies;
+  n[act] = (n[act] ?? 0) + hours;
 }
 function bucket(co: Company, time: number): ActHour {
   const ops = opsOf(co), hr = hourOf(time), list = (ops.act ??= []);
   let b = list.at(-1);
-  if (!b || b.h !== hr) { b = { h: hr, inc: {}, exp: {} }; list.push(b); if (list.length > 48) list.splice(0, list.length - 48); }
+  if (!b || b.h !== hr || !b.v) { b = { h: hr, v: 1, inc: {}, exp: {} }; list.push(b); while (list.length && list[0].h <= hr - 48) list.shift(); }
   return b;
 }
 
-export interface ActRow { act: Activity; name: string; inc: number; exp: number; net: number; ships: number }
-/** the last `hours` full hours plus the current one, summed per activity (ships = average ships on it) */
+export interface ActRow {
+  act: Activity; name: string; inc: number; exp: number; sales: number; operating: number; supplies: number; net: number; ships: number;
+}
+
 export function pnlRows(co: Company | undefined, now: number, hours = 24): ActRow[] {
-  const from = hourOf(now) - hours + 1, list = co?.ops?.act ?? [];
-  // average over the recorded part of the window (a new company has less than `hours` of history)
-  const start = Math.max(from, list.find(b => b.h >= from)?.h ?? hourOf(now)) * 3600;
+  const from = hourOf(now) - hours + 1, ops = co?.ops;
+  const list = (ops?.act ?? []).filter(b => b.v === 1 && b.h >= from);
+  const start = Math.max(from, list[0]?.h ?? hourOf(now), (co?.createdAt ?? 0) / 3600) * 3600;
   const span = Math.max(1, now - start) / 3600;
-  const acc: Record<string, ActRow> = {};
-  for (const b of list) if (b.h >= from) for (const a of ACTIVITIES) {
-    const r = (acc[a] ??= { act: a, name: ACTIVITY_NAME[a], inc: 0, exp: 0, net: 0, ships: 0 });
-    r.inc += b.inc[a] ?? 0; r.exp += b.exp[a] ?? 0; r.ships += (b.ships?.[a] ?? 0);
+  const rows = ACTIVITIES.map(act => {
+    const row: ActRow = { act, name: ACTIVITY_NAME[act], inc: 0, exp: 0, sales: 0, operating: 0, supplies: 0, net: 0, ships: 0 };
+    for (const b of list) {
+      row.inc += b.inc[act] ?? 0;
+      row.exp += b.exp[act] ?? 0;
+      row.sales += b.sales?.[act] ?? 0;
+      row.operating += b.operating?.[act] ?? 0; row.supplies += b.supplies?.[act] ?? 0;
+      row.ships += b.ships?.[act] ?? 0;
+    }
+    row.ships /= span;
+    return row;
+  });
+  // The cash journal also includes payments of accrued bills, capital expenses and miscellaneous income.
+  // Earlier activity buckets stay in the save, but cannot prove either production origin or the cash/cost split.
+  const cash = (ops?.ledger ?? []).filter(b => b.h >= from);
+  const residual = rows.find(r => r.act === 'unallocated')!;
+  for (const k of ['inc', 'exp'] as const) {
+    const actual = cash.reduce((sum, b) => sum + Object.values(b[k]).reduce((a, v) => a + v, 0), 0);
+    residual[k] += Math.max(0, actual - rows.reduce((sum, row) => sum + row[k], 0));
   }
-  return ACTIVITIES.map(a => acc[a]).filter((r): r is ActRow => !!r && (r.inc > EPS || r.exp > EPS || r.ships > EPS))
-    .map(r => ({ ...r, net: r.inc - r.exp, ships: r.ships / span }));
+  const marketSales = cash.reduce((sum, b) => sum + (b.inc.sales ?? 0), 0);
+  residual.sales += Math.max(0, marketSales - rows.reduce((sum, row) => sum + row.sales, 0));
+  for (const row of rows) row.net = row.inc - row.exp - row.operating;
+  return rows.filter(r => r.inc > EPS || r.exp > EPS || r.operating > EPS || r.supplies > EPS || r.ships > EPS);
 }

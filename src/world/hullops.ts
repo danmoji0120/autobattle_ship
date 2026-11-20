@@ -25,6 +25,7 @@ export interface HullEcon extends ShipEcon {
   /** P16.7 industrial-hardpoint ships only: field repair rate of the fitted repair gear × hull bonus (hull share per
    *  hour on a size-S hull; 0 = no field repair) */
   fieldRep?: number;
+  miningUpkeep?: number;
 }
 
 /** hull id of a ship (legacy ships without content ids map to their class's mk1 hull) */
@@ -87,7 +88,8 @@ export function gearEcon(hullId: string, variantId: string | undefined, bay: Rec
   const base = hullEcon(hullId, variantId);
   const h = CONTENT.hulls[hullId], m = (variantId ? CONTENT.variants[variantId]?.mods : undefined) ?? {}, b = h?.ops?.bonus ?? {};
   const g = gearRates(bay);
-  const e: HullEcon = { ...base, mine: g.mine * (b.mine ?? 1) * (m.mineMul ?? 1), build: g.build * (b.build ?? 1) * (m.buildMul ?? 1), salv: g.salvage * (b.salvage ?? 1), ...(g.repair ? { fieldRep: g.repair * (b.repair ?? 1) } : {}) };
+  const miningUpkeep = Object.values(bay ?? {}).reduce((cost, id) => cost + (EQUIPMENT[id]?.ind?.miningUpkeep ?? 0), 0);
+  const e: HullEcon = { ...base, ...(miningUpkeep ? { miningUpkeep } : {}), mine: g.mine * (b.mine ?? 1) * (m.mineMul ?? 1), build: g.build * (b.build ?? 1) * (m.buildMul ?? 1), salv: g.salvage * (b.salvage ?? 1), ...(g.repair ? { fieldRep: g.repair * (b.repair ?? 1) } : {}) };
   if (gearCache.size > 4096) gearCache.clear();
   gearCache.set(key, e);
   return e;

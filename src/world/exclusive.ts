@@ -174,7 +174,7 @@ export function enforceExclusive(st: WorldState): number {
 export function exclusiveLost(h: ExclusiveHost, s: WShip): void {
   const st = h.st, led = ledgerOf(st);
   const home = homeStation(st, s.owner);
-  s.hp = 0.05; s.engagement = undefined; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; s.cargo = { ore: 0, alloy: 0, crystal: 0 };
+  s.hp = 0.05; s.engagement = undefined; s.vel = { x: 0, y: 0, z: 0 }; s.warp = undefined; s.cargo = { ore: 0, alloy: 0, crystal: 0 }; delete s.cargoOrigins;
   s.state = 'space'; s.task = { k: 'none' };
   if (home) { s.pos = { ...home.pos }; h.dockShip(s, home); }
   const until = h.time + EXCLUSIVE_RECOVER_S;

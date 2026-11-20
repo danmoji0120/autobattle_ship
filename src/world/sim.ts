@@ -1,3 +1,4 @@
+import { bindCargoOrigins, cargoOrigin, type ProductionOrigin } from './productionOrigin';
 // Authoritative persistent-world simulation. Runs identically on the Node server (multiplayer)
 // and inside the browser (single player). All state lives in `st` (plain JSON).
 
@@ -46,7 +47,7 @@ import { STATION_CREW_RATE } from './data';
 import { econOf, canBuild, miningCargoCapacity, hullEcon, hullBuild, hullSale, hullStock, yardHulls, berthFits, berthNeed, berthOf, wearMul, growthOn, hullIdOf, shipWorth, yardShipPrice } from './hullops';
 import { assetReferenceValue, regionalShipValueAdjustment, yardRestockNeed, valueOf, hullPrice, yardFee } from './valuation';
 import { BACKGROUND, backgroundOf, backgroundShips, backgroundsOn, backgroundStanding, backgroundTerms } from './backgrounds';
-import { firstProfitReached, pnlSinceFounding } from './firstBusiness';
+import { firstProfitReached, pnlSinceFounding, SALVAGE_SELL_ITEMS } from './firstBusiness';
 import type { Background, BackgroundTerm } from './backgrounds';
 import { rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
@@ -226,7 +227,7 @@ import { P12_OPS, planOp, stepOpShips, validateP12 } from './fleetops';
 import { makeWrecks, expireWrecks, markSeen, type DeadShip } from './wrecks';
 import { stepSalvage, validateSalvage } from './salvage';
 import { stepFieldRepair, stepRepairOrder, validateFieldRepair } from './fieldRepair';
-import { stepRepairBiz, validateRepairBiz, setRepairService } from './repairBiz';
+import { navyRepairStop, RB, stepRepairBiz, validateRepairBiz, setRepairService } from './repairBiz';
 import { enableDerelicts, stepDerelicts, nudgeHomeRegion, DERELICT_CFG } from './derelicts';
 import { acceptSalvageContract, postSalvageContracts, refundSalvage, salvageContractsTick } from './salvageContracts';
 import { repOn, enableRepV, repTrade, repBattle, repLair, repContract, repContractFailed, hullGate } from './reputation';
@@ -306,6 +307,10 @@ export class WorldSim {
       w.scheduleReplay(e.orders.map(o => ({ ...o })));
       while (w.tick < e.tick && !w.outcome) w.step();
       this.battles.set(e.id, w);
+    }
+    for (const ship of Object.values(st.ships)) if (ship.cargoOrigins) bindCargoOrigins(ship.cargo, ship.cargoOrigins);
+    for (const station of Object.values(st.stations)) for (const [owner, tags] of Object.entries(station.storageOrigins ?? {})) {
+      if (station.storage[owner]) bindCargoOrigins(station.storage[owner], tags);
     }
     enforceExclusive(st);
     ensureOfficers(st);
@@ -456,6 +461,18 @@ export class WorldSim {
     return this.shipsOf(g).filter(s => s.state !== 'battle' && (military === undefined || econOf(s).military === military)).reduce((a, s) => a + shipValue(s.classId) * (0.4 + 0.6 * s.hp), 0);
   }
   storage(st: Station, company: string): Cargo { return st.storage[company] ??= emptyCargo(); }
+
+  /** Store a proven production item using the existing warehouse and capacity rules at the call site. */
+  storeProduction(st: Station, owner: string, item: string, amount: number, origin?: ProductionOrigin) {
+    const store = this.storage(st, owner);
+    if (origin) bindCargoOrigins(store, ((st.storageOrigins ??= {})[owner] ??= {}));
+    addc(store, item, amount, origin);
+  }
+
+  addShipCargo(s: WShip, item: string, amount: number, origin?: ProductionOrigin) {
+    if (origin && !s.cargoOrigins) bindCargoOrigins(s.cargo, s.cargoOrigins = {});
+    addc(s.cargo, item, amount, origin);
+  }
   hasModule(st: Station, kind: string) { return st.modules.some(m => m.kind === kind && m.built); }
   /** P9 system origins are storage coordinates, not a measure of travel distance. */
   routeDistance(a: V, b: V): number {
@@ -773,7 +790,13 @@ export class WorldSim {
       s.state = 'docked'; s.task = { k: 'docked', station: st.id, berth: b }; s.pos = berthPos(st, b); s.vel = { x: 0, y: 0, z: 0 };
     }
     // A-3.2b: a salvager's home region gets its next derelict now if it is below its caps (shared, never a copy)
-    if (bg.id === 'salvager') nudgeHomeRegion(this.st, this.sysOf(st.pos)?.id, this.time, st.id);
+    if (bg.id === 'salvager') {
+      nudgeHomeRegion(this.st, this.sysOf(st.pos)?.id, this.time, st.id);
+      if (this.st.derelictV) {
+        co.procurement = defaultProcurementPolicy();
+        co.procurement.sales = Object.fromEntries(SALVAGE_SELL_ITEMS.map(item => [item, { minPrice: 0 }]));
+      }
+    }
     this.ev('world', `신생 PMC "${co.name}"(${bg.name})가 ${st.name}에 등록했다.`);
     this.ev('info', bg.hint, { company: id });
     return id;
@@ -2674,9 +2697,9 @@ export class WorldSim {
       const ships = this.shipsOf(g);
       const home = st.stations[g.npc!.home] ?? p.home;
       const c = this.groupCenter(g);
-      const atHome = !c || dist(c, home.pos) < 3500;
+      const atHome = !c || dist(c, home.pos) < RB.homeR;
       // field repairs at the home base
-      if (c && atHome) for (const s of ships) if (s.state === 'space' && s.hp < 1) s.hp = Math.min(1, s.hp + 0.012);
+      if (c && atHome) for (const s of ships) if (s.state === 'space' && s.hp < 1) s.hp = Math.min(1, s.hp + RB.homeRate);
       if (this.time < g.npc!.nextRefit || ships.some(s => s.state === 'battle')) continue;
       if (!ships.length) {
         for (const [cl, lo] of p.template) this.spawnUnion(g, cl, lo, home);
@@ -2906,7 +2929,7 @@ export class WorldSim {
     if (!a || !b || a.id === b.id) return true;
     return !!nextGate(this.st.systems, a.id, b.id, this.st.conflicts ? gate => gateOpen(this.st, gate) : undefined);
   }
-  private escortEta(from: V, to: V, speed: number): number {
+  travelEta(from: V, to: V, speed: number): number {
     const a = this.sysOf(from), b = this.sysOf(to);
     // long in-system legs use the warp drive (WARP_MIN); each jump is roughly one warp to the next gate
     const leg = (d: number) => d > WARP_MIN ? 8 + d / 4000 + WARP_EXIT / Math.max(1, speed) : d / Math.max(1, speed);
@@ -2966,7 +2989,7 @@ export class WorldSim {
     const reach = this.reachable(best.c, wc);
     if (!reach) return { hold: new Set(), note: null };
     if (atWork || !safe || g.fleeing || ward.gaveUp) return { hold: new Set(), note: null };
-    const eta = Math.round(this.escortEta(best.c, wc, escortSpeed));
+    const eta = Math.round(this.travelEta(best.c, wc, escortSpeed));
     ward.waitSince ??= this.time;
     const waited = this.time - ward.waitSince;
     if (waited > ESCORT.waitMax || eta > ESCORT.etaMax) {
@@ -3661,7 +3684,7 @@ export class WorldSim {
         if (f.geo) {
           // unidentified deposit: discrete units drawn from the local (zone, depth) composition; the company learns only these
           const units = mineGeo(f, s, a, rock, this.st.fields);
-          for (const [k, n] of Object.entries(units)) { addc(s.cargo, k, n); emit(st, { kind: 'produce', amount: n, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: 'mining', ref: f.id }); }
+          for (const [k, n] of Object.entries(units)) { this.addShipCargo(s, k, n, g3 && st.companies[s.owner]?.kind === 'player' ? 'mining' : undefined); emit(st, { kind: 'produce', amount: n, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: 'mining', ref: f.id }); }
           // B-1 assay: the officer reads a trial cut better — the same ore counts as a bigger sample (knowledge only)
           if (cargoKeys(units).length) this.sampled(s.owner, f, ofx?.assay ? Object.fromEntries(Object.entries(units).map(([k, n]) => [k, n * (1 + ofx.assay!)])) : units);
           got = units;
@@ -3672,7 +3695,7 @@ export class WorldSim {
             const best = Object.keys(mix).sort((x, y) => itemPriceOf(y) - itemPriceOf(x))[0];
             mix = Object.fromEntries(Object.entries(mix).map(([k, w]) => [k, w * (1 - ofx.select!) + (k === best ? ofx.select! : 0)]));
           }
-          for (const [k, w] of Object.entries(mix)) { addc(s.cargo, k, a * w); got[k] = a * w; if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
+          for (const [k, w] of Object.entries(mix)) { this.addShipCargo(s, k, a * w, g3 && st.companies[s.owner]?.kind === 'player' ? f.salvage ? 'salvage' : 'mining' : undefined); got[k] = a * w; if (a > 0) emit(st, { kind: 'produce', amount: a * w, company: s.owner, group: g.id, ship: s.id, system: this.sysOf(f.pos)?.id, item: k, reason: f.salvage ? 'wreck_mining' : 'mining', ref: f.id }); }
           if (this.st.intel && a > 0 && !f.salvage) recordSample(this.st, s.owner, f, Object.fromEntries(Object.entries(f.mix ?? { [f.res]: 1 }).map(([k, w]) => [k, a * w * (1 + (ofx?.assay ?? 0))])));
         }
         if (sovSys && a > 0) { let v = 0; for (const [k, n] of Object.entries(got)) v += n * itemPriceOf(k); sovMined(this, s.owner, sovSys, v); }
@@ -3708,7 +3731,7 @@ export class WorldSim {
         if (this.moveTo(s, near, speed, dt, 40)) {
           const amt = Math.min(30 * dt * (st.officerV ? 1 + (groupFx(st, st.groups[s.groupId]).transfer ?? 0) : 1), cargoSum(donor.cargo), cap - load);
           let left = amt;
-          for (const r of cargoKeys(donor.cargo)) { const t = takec(donor.cargo, r, left); addc(s.cargo, r, t); if (t > 0 && growthOn(this.st)) withdrawRouteCargo(this, donor.owner, donor.id, r, t); left -= t; if (left <= 1e-9) break; }
+          for (const r of cargoKeys(donor.cargo)) { const origin = cargoOrigin(donor.cargo, r); const t = takec(donor.cargo, r, left); this.addShipCargo(s, r, t, origin); if (t > 0 && growthOn(this.st)) withdrawRouteCargo(this, donor.owner, donor.id, r, t); left -= t; if (left <= 1e-9) break; }
           s.fx = { transfer: donor.id };
           if ((donor.task as any).why === 'deliver') donor.task = { k: 'none' };
         }
@@ -3916,8 +3939,9 @@ export class WorldSim {
   private unloadStored(s: WShip, st: Station, limit = Infinity): number {
     let moved = 0, remaining = limit;
     for (const item of cargoKeys(s.cargo)) {
+      const origin = cargoOrigin(s.cargo, item);
       const n = takec(s.cargo, item, Math.min(remaining, this.intakeRoom(st, s.owner, item)));
-      if (n > 0) { addc(this.storage(st, s.owner), item, n); moved += n; remaining -= n; withdrawRouteCargo(this, s.owner, s.id, item, n); emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company: s.owner, group: s.groupId, ship: s.id, station: st.id, item }); }
+      if (n > 0) { this.storeProduction(st, s.owner, item, n, origin); moved += n; remaining -= n; withdrawRouteCargo(this, s.owner, s.id, item, n); emit(this.st, { kind: 'logistics', reason: 'unload', amount: n, company: s.owner, group: s.groupId, ship: s.id, station: st.id, item }); }
     }
     if (moved) this.ev('info', `${s.name}: ${moved.toLocaleString()}단위 자사 창고로 하역 (판매·계약 소비 없음)`, { company: s.owner, pos: st.pos });
     return moved;
@@ -3942,6 +3966,7 @@ export class WorldSim {
     let room = st.owner === s.owner || (st.public && growthOn(this.st)) ? this.room(st, s.owner) : Infinity;
     let held = 0;
     for (const r of cargoKeys(s.cargo)) {
+      const origin = cargoOrigin(s.cargo, r);
       let amt = Math.min(limit, qty(s.cargo, r)); limit -= amt;
       if (amt <= epsilon) continue;
       // Delivery contracts consume cargo directly; a full warehouse must not block them.
@@ -3972,7 +3997,7 @@ export class WorldSim {
       if (sell && st.market?.[r] && growthOn(this.st)) {
         const need = Math.max(0, stockFloor(this, s.owner, st, r) - qty(this.storage(st, s.owner), r));
         const put = Math.max(0, Math.min(amt, need, takesSpace(r) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : Infinity));
-        if (put > epsilon) { addc(this.storage(st, s.owner), r, put); if (takesSpace(r)) room -= put; amt -= put; msg += `${RES_NAME[r]} ${Math.round(put)} 비축 `; }
+        if (put > epsilon) { this.storeProduction(st, s.owner, r, put, origin); if (takesSpace(r)) room -= put; amt -= put; msg += `${RES_NAME[r]} ${Math.round(put)} 비축 `; }
         if (amt <= epsilon) continue;
         // AUTO-P0.1: the company-wide stockpile target (counting these units in hand) and the item's auto-sale
         // minimum price bound the direct sale too; what may not be sold is stored, or stays aboard when there is no room
@@ -3986,27 +4011,27 @@ export class WorldSim {
         const keep = amt - canSell;
         if (keep > epsilon) {
           const put = Math.max(0, Math.min(keep, takesSpace(r) ? Math.min(room, this.intakeRoom(st, s.owner, r)) : Infinity));
-          if (put > epsilon) { addc(this.storage(st, s.owner), r, put); if (takesSpace(r)) room -= put; }
-          if (keep - put > epsilon) { addc(s.cargo, r, keep - put); held += keep - put; }
+          if (put > epsilon) { this.storeProduction(st, s.owner, r, put, origin); if (takesSpace(r)) room -= put; }
+          if (keep - put > epsilon) { this.addShipCargo(s, r, keep - put, origin); held += keep - put; }
           msg += `${RES_NAME[r]} ${Math.round(keep)} 판매 보류(${canSell < byCap - epsilon ? '최저 판매 단가 미달' : '회사 비축 목표'}) `;
           amt = canSell;
         }
         if (amt <= epsilon) continue;
       }
       if (sell && st.market?.[r]) {
-        const v = watchMoney(this.st, 'market_sale', { company: s.owner, group: s.groupId, ship: s.id, station: st.id, item: r }, () => this.sellAt(st, s.owner, r, amt, s));
+        const v = watchMoney(this.st, 'market_sale', { company: s.owner, group: s.groupId, ship: s.id, station: st.id, item: r }, () => this.sellAt(st, s.owner, r, amt, origin ?? 'unallocated'));
         msg += `${RES_NAME[r]} ${Math.round(v.sold)} → +${Math.round(v.value).toLocaleString()} cr `;
         // the station ran out of budget: the rest is kept in the company's storage there (never dumped)
         let left = amt - v.sold;
         if (left > epsilon && growthOn(this.st)) {
           // growth: only what fits in the warehouse is kept; the rest stays aboard
           const put = Math.max(0, Math.min(left, room)); room -= put;
-          if (left - put > epsilon) { addc(s.cargo, r, left - put); held += left - put; }
+          if (left - put > epsilon) { this.addShipCargo(s, r, left - put, origin); held += left - put; }
           left = put;
         }
-        if (left > epsilon) { addc(this.storage(st, s.owner), r, left); msg += `(구매 예산 소진 — ${Math.round(left)} 보관) `; }
+        if (left > epsilon) { this.storeProduction(st, s.owner, r, left, origin); msg += `(구매 예산 소진 — ${Math.round(left)} 보관) `; }
       }
-      else { addc(this.storage(st, s.owner), r, amt); msg += `${RES_NAME[r]} ${Math.round(amt)} 입고 `; }
+      else { this.storeProduction(st, s.owner, r, amt, origin); msg += `${RES_NAME[r]} ${Math.round(amt)} 입고 `; }
     }
     if (trackedBefore) for (const [item, amount] of Object.entries(trackedBefore)) {
       const removed = Math.max(0, amount - qty(s.cargo, item));
@@ -4026,11 +4051,10 @@ export class WorldSim {
 
   /** sell to the station's NPC market; returns credits paid and units sold (contentV ≥ 3: limited
    *  by the station's buying budget — what it cannot pay for is not sold) */
-  /** `ship`: the ship selling its own cargo (P17.4f: the income is booked to that ship's activity; none = stock sale) */
-  sellAt(st: Station, company: string, r: Res, amt: number, ship?: WShip): { value: number; sold: number } {
-    return watchMoney(this.st, 'market_sale', { company, station: st.id, item: r }, () => this.sellAtObserved(st, company, r, amt, ship));
+  sellAt(st: Station, company: string, r: Res, amt: number, origin?: ProductionOrigin | 'unallocated' | WShip): { value: number; sold: number } {
+    return watchMoney(this.st, 'market_sale', { company, station: st.id, item: r }, () => this.sellAtObserved(st, company, r, amt, origin));
   }
-  private sellAtObserved(st: Station, company: string, r: Res, amt: number, ship?: WShip): { value: number; sold: number } {
+  private sellAtObserved(st: Station, company: string, r: Res, amt: number, origin?: ProductionOrigin | 'unallocated' | WShip): { value: number; sold: number } {
     // sell in chunks so large dumps walk the price down
     let total = 0, left = amt, sold = 0;
     const m = st.market![r];
@@ -4046,9 +4070,8 @@ export class WorldSim {
     const co = this.st.companies[company];
     co.credits += total; co.stats.earned += total;
     book(this, company, 'sales', total, r);
-    if (growthOn(this.st)) bookAct(this.st, this.time, company, ship ? activityOf(this.st, ship) : 'stock', total);
-    const beforeDebt = co.credits; payFromSale(this.st, co, total);
-    if (co.credits !== beforeDebt) book(this, company, 'upkeep', co.credits - beforeDebt);
+    if (growthOn(this.st)) bookAct(this.st, this.time, company, (typeof origin === 'object' ? cargoOrigin(origin.cargo, r) : origin ?? cargoOrigin(st.storage[company], r)) ?? 'unallocated', total, true);
+    payFromSale(this.st, co, total, paid => book(this, company, 'upkeep', -paid));
     if (sold > 0 && !co.milestones.includes('first_sale')) this.milestone(co, 'first_sale');
     if (sold > 0) this.firstProfit(co);
     if (sold) emit(this.st, { kind: 'market', reason: 'sell', amount: sold, value: total, company, station: st.id, item: r });
@@ -4163,10 +4186,15 @@ export class WorldSim {
     if (!g.npc) return false;
     const ships = this.shipsOf(g).filter(x => x.state !== 'battle');
     const hp = ships.reduce((a, x) => a + x.hp, 0) / Math.max(1, ships.length);
-    const f = (g as any)._repair as boolean | undefined;
-    if (!f && hp < 0.5) (g as any)._repair = true;
-    if (f && hp > 0.92) (g as any)._repair = false;
-    if (!(g as any)._repair) return false;
+    if (hp < 0.5) g._repair = true;
+    if (hp > 0.92) delete g._repair;
+    if (!g._repair) {
+      const stop = navyRepairStop(this, s);
+      if (!stop) return false;
+      this.moveTo(s, stop, speed, dt, 20);
+      g.status = '순찰 중 현장 수리';
+      return true;
+    }
     const home = this.st.stations[g.npc.home]; if (!home) return false;
     this.moveTo(s, this.formationSlot(s, g, { x: home.pos.x + home.radius + 600, y: home.pos.y, z: home.pos.z }, 70), speed, dt, 40);
     g.status = '손상 — 기지 귀환 수리';
@@ -5109,6 +5137,10 @@ export class WorldSim {
     const pay = k.escrow !== undefined ? k.escrow : k.reward;
     if (k.escrow !== undefined) k.escrow = 0;
     co.credits += pay; co.stats.earned += pay; co.stats.contracts++;
+    if (k.kind === 'salvage') {
+      book(this, co.id, 'salvage_contract', pay);
+      bookAct(this.st, this.time, co.id, 'salvage', pay);
+    }
     const r0 = co.rep, f0 = this.st.stations[k.stationId]?.faction, s0 = f0 ? co.standing?.[f0] ?? 0 : 0;
     if (this.st.repV) repContract(this.st, co.id, k);
     else { co.rep += k.rep; emit(this.st, { kind: 'reputation', reason: `contract_${k.kind}`, amount: k.rep, company: co.id, station: k.stationId }); }

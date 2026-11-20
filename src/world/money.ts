@@ -69,8 +69,8 @@ export function payDebt(w: WorldState, co: Company, source: 'sale' | 'manual' | 
   if (!inTransaction(w)) emit(w, { kind: 'currency.destroy', reason: source === 'rent' ? 'warehouse_rent_payment' : 'arrears_payment', amount: before - co.credits, from: `co:${co.id}`, company: co.id });
   return moneyNumber(amount);
 }
-export function payFromSale(w: WorldState, co: Company, proceeds: number) {
+export function payFromSale(w: WorldState, co: Company, proceeds: number, booked?: (paid: number) => void) {
   if ((w.contentV ?? 0) < 3 || proceeds <= 0 || !co.upkeep?.debt) return;
   // Wait until the gross transfer has been observed, so collection cannot net away trade volume.
-  afterTransaction(w, () => payDebt(w, co, 'sale', proceeds));
+  afterTransaction(w, () => { const paid = payDebt(w, co, 'sale', proceeds); if (paid > 0) booked?.(paid); });
 }

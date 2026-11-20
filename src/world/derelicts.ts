@@ -167,7 +167,7 @@ export function enableDerelicts(w: WorldState, time: number): { made: number } {
 }
 
 /** one region: spawn when its timer is due and its caps allow; returns whether one was made */
-function stepRegion(w: WorldState, key: string, systems: StarSystem[], time: number, initial = false): boolean {
+function stepRegion(w: WorldState, key: string, systems: StarSystem[], time: number, initial = false, preferred?: { system: StarSystem; pos?: V }): boolean {
   const D = w.derelicts!, R = (D.regions[key] ??= { next: time });
   if (!initial && R.next > time) return false;
   const B = DERELICT_CFG.band[key.split(':')[1] as BandKey];
@@ -180,8 +180,8 @@ function stepRegion(w: WorldState, key: string, systems: StarSystem[], time: num
   // a system of the region with no derelict yet, else any of them
   const used = new Set(mine.map(x => x.system));
   const free = systems.filter(s => !used.has(s.id)), pool = free.length ? free : systems;
-  const sys = pool[Math.min(pool.length - 1, Math.floor(r() * pool.length))];
-  spawnDerelict(w, { system: sys, grade: B.grade, region: key, time, life: B.life });
+  const sys = preferred?.system ?? pool[Math.min(pool.length - 1, Math.floor(r() * pool.length))];
+  spawnDerelict(w, { system: sys, grade: B.grade, region: key, time, life: B.life, near: preferred?.pos });
   return true;
 }
 
@@ -202,6 +202,10 @@ export function nudgeHomeRegion(w: WorldState, sysId: string | undefined, time: 
   if ((R.nudged ?? -Infinity) + DERELICT_CFG.nudgeEvery > time) return false;
   R.nudged = time; R.next = Math.min(R.next, time);
   D.check = Math.min(D.check, time);
+  const nearby = live(w).some(x => x.grade === 'small' && x.expires > time + 600 && jumps(w.systems, s.id, x.system) <= 1);
+  if (bandOf(s.security) === 'safe' && !nearby) {
+    stepRegion(w, key, regions(w).get(key) ?? [s], time, false, { system: s, pos: homeStation ? w.stations[homeStation]?.pos : undefined });
+  }
   // the home station may post its next salvage job now (same once-per-nudgeEvery limit; budget and target rules unchanged)
   if (homeStation && (D.posts[homeStation] ?? -Infinity) > time) D.posts[homeStation] = time;
   return true;
@@ -215,14 +219,15 @@ export const siteItem = (x: Pick<WreckSite, 'lots'>, item: string) => x.lots.fil
 export interface SalvageOffer { target: WreckSite; res: string; amount: number; reward: number; spawn?: SpawnOpts }
 
 /** what a station would post now (pure: nothing changes), or why not */
-export function salvageOffer(w: WorldState, st: Station, time: number, r: () => number, secOf: (s: StarSystem) => number): SalvageOffer | string {
+export function salvageOffer(w: WorldState, st: Station, time: number, r: () => number, secOf: (s: StarSystem) => number, starter = false): SalvageOffer | string {
   const C = DERELICT_CFG.contract, D = w.derelicts; if (!D) return 'off';
   const home = sysAt(w.systems, st.pos); if (!home) return 'no system';
   if ((st.funds ?? 0) < C.minFunds) return 'funds';
-  const open = live(w).filter(x => !x.contract && x.expires - time > C.life + C.board && jumps(w.systems, home.id, x.system) <= C.jumps)
+  const open = live(w).filter(x => !x.contract && x.expires - time > C.life + C.board && jumps(w.systems, home.id, x.system) <= (starter ? 1 : C.jumps)
+      && (!starter || x.grade === 'small' && (w.systems[x.system]?.security ?? 0) >= DERELICT_CFG.band.safe.minSec))
     .sort((a, b) => jumps(w.systems, home.id, a.system) - jumps(w.systems, home.id, b.system) || a.id.localeCompare(b.id));
   // half the time the nearest one (often a safe beginner job), otherwise any within reach (farther ones pay a risk premium)
-  let target = open.length ? (r() < 0.5 ? open[0] : open[Math.min(open.length - 1, Math.floor(r() * open.length))]) : undefined;
+  let target = open.length ? (starter || r() < 0.5 ? open[0] : open[Math.min(open.length - 1, Math.floor(r() * open.length))]) : undefined;
   let spawn: SpawnOpts | undefined;
   if (!target) {
     if (live(w).filter(x => x.contract && w.contracts[x.contract]?.spawned).length >= C.maxSpawned) return 'spawn cap';

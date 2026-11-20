@@ -161,6 +161,7 @@ export class FirstBusinessPanel {
     const list = rows ? `<table class="gt fbtrades"><tr><th>대상</th><th class="n">기준가 cr</th><th></th></tr>${rows}</table>` : `<div class="small dim">${SALVAGE_JUMPS}점프 안에 보이는 인양 대상이 없습니다. 유기선은 지역마다 정해진 수만큼 불규칙하게 나타나고(모든 회사 공유), 전장 잔해는 실제 전투 뒤에 생깁니다 — 잠시 뒤 다시 확인하세요.</div>`;
     const op = this.opHtml(w, salvageOperatingStatus(w, me), stn);
     return `<div class="ptitle"><span>인양반</span><button class="btn mini" data-fblog>물류 현황</button></div>${op}${roles}${now}${got}${sales}
+      ${g && cur?.op !== 'salvzone' ? '<button class="btn mini" data-fbautobiz>자동 인양 시작 · 1점프</button>' : ''}
       <div class="small fbintro"><b>인양 시작</b>을 누르면 인양반 전체가 그 대상으로 가서 회수하고, 화물칸이 차면 가까운 정거장(인양 계약이 있으면 그 납품처)에 하역한 뒤 대상이 빌 때까지 반복합니다. 처음에는 <span class="good">추천</span>(경로 위험 30 이하·현장 위협 없음·최근 30분 안에 전투 없음) 대상을 고르세요 — 31~55는 출발 전에 확인하고, 55를 넘으면 격침 경고가 뜹니다. 자동 판매가 켜져 있으면 하역을 마친 수송선이 그 정거장이 사지 않는 회수품을 가까운 시장(3점프 안)에 팔고 돌아오며, 그동안 나머지 함선은 계속 인양합니다. 끝나면 정박 대기로 돌아가 수송선은 공용 물류에 쓰입니다. 금액은 회수 기준가이며 실제 판매가는 시장·예산에 따라 다릅니다. 위험 경로는 함선을 잃을 수 있습니다(호위 없음).</div>
       <label class="small fbauto"><input type="checkbox" data-fbautosell ${autoOn || !w.companies[me].procurement?.sales ? 'checked' : ''}> 회수품 자동 판매 — 하역한 고철·부품을 그 정거장 시장에 팔고, 사지 않는 품목은 대기 수송선이 다른 시장으로 운송 (물류 관리 › 재고 정책과 같음 · 장비·설계도 조각 제외)${autoOn ? ` <span class="good">켜짐 ${autoOn}품목</span>` : ''}</label>
       ${list}${mine}${board}`;
@@ -240,6 +241,15 @@ export class FirstBusinessPanel {
       await this.host.cmd({ c: 'accept', contract: b.dataset.fbaccept! });
       this.cache = null; this.render(true);
     });
+    const autoBiz = e.querySelector<HTMLButtonElement>('[data-fbautobiz]');
+    if (autoBiz) autoBiz.onclick = async () => {
+      const g = this.salvageGroup(w, me), home = w.stations[w.companies[me].homeStation];
+      if (!g || !home) return;
+      autoBiz.disabled = true;
+      if (e.querySelector<HTMLInputElement>('[data-fbautosell]')?.checked) await this.autoSell(true);
+      await this.host.cmd({ c: 'setOp', group: g.id, op: { k: 'salvzone', at: home.pos, radius: 0, biz: true } });
+      this.cache = null; this.render(true);
+    };
     const autoSell = e.querySelector<HTMLInputElement>('[data-fbautosell]');
     if (autoSell) autoSell.onchange = async () => { autoSell.disabled = true; await this.autoSell(autoSell.checked); autoSell.disabled = false; this.render(true); };
     e.querySelectorAll<HTMLButtonElement>('[data-fbmine]').forEach(b => b.onclick = async () => {

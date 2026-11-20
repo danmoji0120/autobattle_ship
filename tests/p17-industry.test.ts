@@ -4,8 +4,12 @@ import { WorldSim } from '../src/world/sim';
 import { STANDARD_WORLD } from '../src/world/worldPreset';
 import { econOf, salvagePrecision } from '../src/world/hullops';
 import { spawnDerelict } from '../src/world/derelicts';
+import { fitGear } from '../src/world/industrialGear';
+import { shipRate } from '../src/world/upkeep';
+import { bayAccepts } from '../src/content/rules';
+import { CONTENT } from '../src/content/registry';
 import { jumps } from '../src/world/geom';
-import { SALV, salvageQuality, siteDifficulty } from '../src/world/salvage';
+import { SALV, salvageQuality, siteDifficulty, stepCollect } from '../src/world/salvage';
 import { migrateSalvageQuality } from '../src/world/salvageMigrate';
 import { observeWorld } from '../src/world/observe';
 import type { WShip, WGroup } from '../src/world/types';
@@ -134,4 +138,64 @@ describe('P17.1 salvage quality', () => {
     expect(st.salvQV).toBe(1);
     expect(migrateSalvageQuality(st).applied).toBe(false);
   }, 120_000);
+});
+
+
+describe('P17.4 industrial equipment and salvage proceeds', () => {
+  it.each(['s', 'm'])('makes size %s speed and intact returns differ in actual salvage', size => {
+    function cut(type: string, seconds: number) {
+      const { sim, salv, g, home } = bizWorld();
+      salv.fitting!.bay = {};
+      const id = `ind_salv_${size}_${type}`;
+      expect(fitGear(salv, [id])).toEqual([id]);
+      const wreck = spawn(sim, home);
+      wreck.lots = [{ id: 'eq', k: 'equip', item: 'eq_medium_gun', owner: '', n: 20 }];
+      wreck.initial = 20;
+      salv.state = 'space'; salv.task = { k: 'none' }; salv.pos = { ...wreck.pos };
+      for (let t = 0; t < seconds && wreck.lots[0].n; t++) stepCollect(sim, g, [salv], wreck.id, false, 1, true);
+      const taken = 20 - wreck.lots[0].n;
+      return { taken, intact: salv.cargo.eq_medium_gun ?? 0 };
+    }
+    expect(cut('cutter', 50).taken).toBeGreaterThan(cut('precision', 50).taken);
+    const fast = cut('cutter', 600), fine = cut('precision', 600);
+    expect(fast.taken).toBe(20);
+    expect(fine.taken).toBe(20);
+    expect(fine.intact).toBeGreaterThan(fast.intact);
+  });
+
+  it('enforces slot size, and tradeoffs change mining rate and real assessed upkeep only while mining', () => {
+    const { sim, p, salv, g } = bizWorld();
+    const slot = { id: 'ind1', kind: 'industrial', size: 'S' } as const;
+    expect(bayAccepts(slot, 'ind_mine_s_output')).toBeFalsy();
+    expect(bayAccepts(slot, 'ind_mine_m_efficient')).toBeTruthy();
+    const stats = (miner: WShip, id: string) => {
+      miner.fitting!.bay = {};
+      expect(fitGear(miner, [id])).toEqual([id]);
+      miner.state = 'space'; miner.fx = { mining: 'fixture', rock: 0 };
+      const operating = shipRate(sim.st, miner).credits;
+      delete miner.fx;
+      return [econOf(miner).mine, operating, shipRate(sim.st, miner).credits, CONTENT.modules[id].power];
+    };
+    for (const size of ['s', 'm']) {
+      const hull = size === 's' ? 'miner_mk1' : 'miner_m';
+      const miner = sim.spawnHull(p, hull, `${hull}_std`, undefined, g.id, salv.pos);
+      const base = stats(miner, `ind_mine_${size}`), fast = stats(miner, `ind_mine_${size}_output`), efficient = stats(miner, `ind_mine_${size}_efficient`);
+      for (const index of [0, 1, 3]) {
+        expect(fast[index]).toBeGreaterThan(base[index]);
+        expect(efficient[index]).toBeLessThan(base[index]);
+      }
+      expect(fast[2]).toBe(base[2]);
+      expect(efficient[2]).toBe(base[2]);
+    }
+  });
+
+  it('a standard salvage starter can recover goods and receive their sale proceeds without additional configuration', () => {
+    const sim = WorldSim.create(31, { ...STANDARD_WORLD }), p = sim.addPlayer('인양 시작', 'salvager');
+    const co = sim.st.companies[p], home = sim.st.stations[co.homeStation];
+    const g = Object.values(sim.st.groups).find(g => g.owner === p)!;
+    expect(sim.command(p, { c: 'setOp', group: g.id, op: { k: 'salvzone', at: home.pos, radius: 0, biz: true } })).toBeNull();
+    run(sim, 1200, () => !!co.ops?.act?.some(b => b.inc.salvage));
+    expect(co.salvage?.units).toBeGreaterThan(0);
+    expect(co.ops?.act?.some(b => (b.inc.salvage ?? 0) > 0)).toBe(true);
+  });
 });

@@ -15,7 +15,7 @@
 //   stage 4 (120 min)        idle docked ships are proposed for reserve; moved only with consent
 //                            (the player's command, or the company's opt-in auto-reserve)
 // Nothing is ever deleted or confiscated, no interest is charged, and paying the debt clears it.
-import { activityOf, bookAct, countShip } from './industryPnl';
+import { activityOf, allocateRunningCost } from './industryPnl';
 import { shipFx, payroll, groupOfficer, grantXp } from './officers';
 import { XP_RATE } from './officerData';
 import { emit, watchMoney } from './observe';
@@ -58,7 +58,7 @@ export function shipRate(w: WorldState, s: WShip): { credits: number; supplies: 
   const res = !!s.reserve && !s.reserve.until;
   const mul = res ? RESERVE_MUL : 1;
   let dock = 0;
-  const berth = econOf(s).berth;
+  const econ = econOf(s), berth = econ.berth;
   if (s.task.k === 'docked' && sizeRank(berth) >= 2) {
     const st = w.stations[s.task.station];
     if (st?.public) dock = (BIG_DOCK_FEE[berth] ?? 0) * (res ? 2 : 1);   // laid-up giants still occupy a big berth
@@ -71,7 +71,8 @@ export function shipRate(w: WorldState, s: WShip): { credits: number; supplies: 
   // B-1: the commanding officer's supply management
   const sup = w.officerV ? shipFx(w, s).supply ?? 0 : 0;
   if (sup) for (const k of Object.keys(supplies)) supplies[k] *= 1 - sup;
-  return { credits: u.credits * mul * tf.upkeepMul, supplies, dock };
+  const mining = !res && s.state === 'space' && s.fx?.mining ? econ.miningUpkeep ?? 0 : 0;
+  return { credits: Math.max(0, u.credits + mining) * mul * tf.upkeepMul, supplies, dock };
 }
 
 export interface Forecast { ships: number; credits: number; supplies: Record<string, number>; suppliesCr: number; dock: number; overhead: number; lease: number; station: number; perHour: number; /** B-1 officer salaries */ officers: number }
@@ -148,10 +149,8 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
     emit(w, { kind: 'cost', reason: 'fleet_upkeep', amount: (r.credits * om + r.dock) * h, company: co.id, ship: s.id, group: s.groupId });
     u.acc += (r.credits * om + r.dock) * h;
     for (const [k, n] of Object.entries(r.supplies)) u.supplies[k] = (u.supplies[k] ?? 0) + n * h;
-    // P17.4f: the ship's running cost (consumables at base price) belongs to the business it is serving now
-    const act = activityOf(w, s);
-    bookAct(w, w.time, co.id, act, -((r.credits * om + r.dock) * h + Object.entries(r.supplies).reduce((a, [k, n]) => a + n * h * itemPrice(k), 0)));
-    countShip(w, w.time, co.id, act, h);
+    allocateRunningCost(w.time, co, activityOf(w, s), h, (r.credits * om + r.dock) * h,
+      Object.entries(r.supplies).reduce((a, [k, n]) => a + n * h * itemPrice(k), 0));
     // wear: accumulates while the ship works in space; slower without supplies (stage ≥ 2 doubles it)
     const wr = hullUpkeep(hullIdOf(s), s.variant).wear ?? 0;
     if (s.state === 'space' && !s.reserve && (Math.abs(s.vel.x) + Math.abs(s.vel.z) > 1 || s.task.k === 'mine')) {
@@ -313,6 +312,7 @@ export function maintainOnDock(w: WorldState, s: WShip, st: Station, repairCapab
   emit(w, { kind: 'cost', reason: 'maintenance', amount: cost, company: co.id, group: s.groupId, ship: s.id, station: st.id });
   s.wear = s.wear! - fix;
   upkeepOf(co).acc += cost;
+  allocateRunningCost(w.time, co, activityOf(w, s), 0, cost, 0);
   if (st.public) fundsIn(st, cost);
   return cost;
 }

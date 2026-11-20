@@ -1,4 +1,4 @@
-// P17.4f F3: balance check — per-industry real P&L (industryPnl.ts) of starter companies left on their business in the
+// P17.4f F3: balance check — per-industry cash and allocated costs (industryPnl.ts) of starter companies left on their business in the
 // standard world. Miner starter: best field from the first-business field options, sell at the best delivery.
 // Salvager starter: P17.0 salvage business. Repair: a default company whose industrial ship carries M repair gear,
 // running the P17.2 repair business next to the busiest navy system (as scripts/p17/repairbiz-sim.ts).
@@ -42,7 +42,7 @@ for (let h = 1; h <= HOURS; h++) {
     for (const [label, p] of cos) {
       const co = sim.st.companies[p];
       const rows = pnlRows(co, sim.time, h);
-      console.log(`${label} credits Δ ${n0(co.credits - c0[p])} | ` + rows.map(r => `${r.name}: +${n0(r.inc)} −${n0(r.exp)} = ${n0(r.net)} (${r.ships.toFixed(1)}척)`).join(' | '));
+      console.log(`${label} credits Δ ${n0(co.credits - c0[p])} | ` + rows.map(r => `${r.name}: +${n0(r.inc)} −${n0(r.exp + r.operating)} = ${n0(r.net)} (${r.ships.toFixed(1)}척)`).join(' | '));
     }
   }
 }

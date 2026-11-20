@@ -1,8 +1,9 @@
 // Authoritative managed transport. Uses the existing docking, gates, stock, market and upkeep paths.
+import { cargoOrigin } from './productionOrigin';
 import { gateOpen } from './territory';
 import type { WorldSim } from './sim';
 import type { WorldState, WShip, WGroup, Gate } from './types';
-import { cargoSum, qty, takec, addc } from './types';
+import { cargoSum, qty, takec } from './types';
 import { econOf, growthOn, berthFits } from './hullops';
 import { ITEMS, EQUIPMENT, recipeFor, techFx, itemPrice } from './industry';
 import { XP_RATE } from './officerData';
@@ -33,7 +34,7 @@ export interface LogisticsRoute {
   /** P12.5 conversion: a player-set repeating sale/transfer loop kept on this legacy path (pause/cancel only) */
   compat?: true;
 }
-type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'undock' | 'sellAt' | 'ev' | 'officerXp' | 'groupOfficer'>;
+type Host = Pick<WorldSim, 'st' | 'time' | 'id' | 'opOwner' | 'subtreeShips' | 'shipsOf' | 'canDock' | 'storage' | 'storeProduction' | 'addShipCargo' | 'sysOf' | 'intakeRoom' | 'goDock' | 'goConstruction' | 'cargoPermit' | 'undock' | 'sellAt' | 'ev' | 'officerXp' | 'groupOfficer'>;
 export const routeShips = (w: Pick<WorldState, 'ships' | 'groups'>, route: Pick<LogisticsRoute, 'group' | 'owner'>): WShip[] => {
   const out: WShip[] = [], root = w.groups[route.group]; if (!root) return out;
   const walk = (g: WGroup) => { for (const id of g.shipIds) { const s = w.ships[id]; if (s?.owner === route.owner && econOf(s).cargo > 0) out.push(s); } for (const id of g.childIds) { const child = w.groups[id]; if (child && !child.override) walk(child); } }; walk(root); return out;
@@ -207,7 +208,7 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
       const permit = h.cargoPermit(s, st, `route:${r.id}:unload`, desired);
       if (permit === null) { g.status = `${st.name}: 화물 하역 중`; return; }
       moved = Math.min(desired, permit);
-      if (moved) { takec(s.cargo, m.item, moved); addc(h.storage(st, r.owner), m.item, moved); }
+      if (moved) { const origin = cargoOrigin(s.cargo, m.item); takec(s.cargo, m.item, moved); h.storeProduction(st, r.owner, m.item, moved, origin); }
     }
     m.amount -= moved;
     // B-1 experience: cargo really delivered on a route (sales and construction in full; plain transfers at half)
@@ -246,7 +247,8 @@ export function stepRouteShip(h: Host, r: LogisticsRoute, s: WShip, g: WGroup, d
   const permit = h.cargoPermit(s, st, `route:${r.id}:load`, amount);
   if (permit === null) { g.status = `${st.name}: 화물 적재 중`; return; }
   amount = Math.min(amount, permit);
-  const loaded = takec(stock, r.config.item, amount); addc(s.cargo, r.config.item, loaded);
+  const origin = cargoOrigin(stock, r.config.item);
+  const loaded = takec(stock, r.config.item, amount); h.addShipCargo(s, r.config.item, loaded, origin);
   r.manifests[s.id] = { from: r.config.from, to: r.config.to, item: r.config.item, mode: r.config.mode, amount: loaded, targetStock: r.config.targetStock, loadedAt: h.time };
   record(r, h.time, { loaded }); resetCursor(c, 'destination'); c.lastAction = h.time;
   emit(h.st, { kind: 'logistics', reason: 'depart', amount: loaded, company: r.owner, group: g.id, ship: s.id, station: st.id, item: r.config.item, route: r.id });

@@ -1,10 +1,10 @@
-// P17.4f F1: per-industry profit and loss — the same real money as the cash ledger, booked by the business each ship
-// serves (running cost, own sales, repair-business income, repair costs of the patient's business).
+// Industrial cash attribution and operating charges, including the saved logistics path.
 import { describe, expect, it } from 'vitest';
 import { WorldSim } from '../src/world/sim';
 import { STANDARD_WORLD } from '../src/world/worldPreset';
+import { opsOf } from '../src/world/operations';
 import { activityOf, pnlRows } from '../src/world/industryPnl';
-import type { WShip } from '../src/world/types';
+import { addc, type WShip } from '../src/world/types';
 
 const own = (sim: WorldSim, id: string) => Object.values(sim.st.ships).filter(s => s.owner === id);
 const run = (sim: WorldSim, sec: number, stop?: () => boolean) => { for (let t = 0; t < sec && !stop?.(); t++) sim.update(1); };
@@ -43,19 +43,53 @@ describe('P17.4f F1 real money by activity', () => {
     const rows = pnlRows(sim.st.companies[A], sim.time, 24);
     const ships = own(sim, A).filter(s => s.classId !== 'platform').length;
     expect(rows.reduce((n, r) => n + r.ships, 0)).toBeCloseTo(ships, 0);
-    expect(rows.reduce((n, r) => n + r.exp, 0)).toBeGreaterThan(0);
+    expect(rows.reduce((n, r) => n + r.operating, 0)).toBeGreaterThan(0);
+    expect(rows.reduce((n, r) => n + r.supplies, 0)).toBeGreaterThan(0);
+    expect(rows.find(r => r.act === 'unallocated')?.exp).toBeCloseTo(led(sim, A, 'exp', 'upkeep'), 6);
     expect(rows.find(r => r.act === 'repair')?.ships ?? 0).toBeCloseTo(0, 0);   // the repair ship has no repair op yet
   }, 60_000);
 
-  it('a ship\'s own sale is income of its activity; a storage sale is "stock"; totals match the cash ledger', () => {
-    const { sim, A, rep } = world();
-    sim.st.groups[rep.groupId].op = { k: 'mine' } as never;
-    const st = Object.values(sim.st.stations).find(s => s.public && s.market?.ore)!;
-    const r1 = sim.sellAt(st, A, 'ore', 40, rep), r2 = sim.sellAt(st, A, 'ore', 40);
-    expect(r1.value).toBeGreaterThan(0);
-    expect(act(sim, A, 'inc', 'mining')).toBeCloseTo(r1.value, 6);
-    expect(act(sim, A, 'inc', 'stock')).toBeCloseTo(r2.value, 6);
-    expect(led(sim, A, 'inc', 'sales')).toBeCloseTo(r1.value + r2.value, 6);
+  it('attributes a saved hauler sale to the proven source, and keeps mixed stock income unallocated', () => {
+    const { sim, A } = world();
+    const from = sim.st.stations.astra, to = sim.st.stations.helios;
+    const hauler = own(sim, A).find(s => s.classId === 'hauler')!;
+    expect(sim.command(A, { c: 'newGroup', name: '판매 수송', ships: [hauler.id] })).toBeNull();
+    expect(sim.command(A, { c: 'poolShips', ships: [hauler.id], on: true })).toBeNull();
+    sim.storeProduction(from, A, 'ore', 40, 'mining');
+    expect(sim.command(A, { c: 'poolCreate', request: { from: from.id, to: to.id, item: 'ore', kind: 'sell', amount: 40, priority: 5, repeat: false } })).toBeNull();
+    const jobId = Object.keys(sim.st.logisticsJobs!)[0];
+    run(sim, 180, () => sim.st.logisticsJobs![jobId].reserved > 0 || sim.st.logisticsJobs![jobId].carried > 0);
+    expect(sim.st.logisticsJobs![jobId].reserved + sim.st.logisticsJobs![jobId].carried).toBe(40);
+    const restored = new WorldSim(JSON.parse(sim.serialize()));
+    run(restored, 900, () => restored.st.logisticsJobs![jobId].state === 'complete');
+    const value = restored.st.logisticsJobs![jobId].earned;
+    expect(value).toBeGreaterThan(0);
+    expect(act(restored, A, 'inc', 'mining')).toBeCloseTo(value, 6);
+    expect(pnlRows(restored.st.companies[A], restored.time).find(r => r.act === 'logistics')?.operating).toBeGreaterThan(0);
+
+    const market = restored.st.stations.astra;
+    restored.storeProduction(market, A, 'ore', 20, 'mining');
+    addc(restored.storage(market, A), 'ore', 1);
+    restored.storeProduction(market, A, 'ore', 19, 'mining');
+    const r = restored.sellAt(market, A, 'ore', 40);
+    expect(r.value).toBeGreaterThan(0);
+    expect(act(restored, A, 'inc', 'unallocated')).toBeCloseTo(r.value, 6);
+    const rows = pnlRows(restored.st.companies[A], restored.time);
+    expect(rows.find(row => row.act === 'unallocated')?.sales).toBeCloseTo(r.value, 6);
+    expect(rows.find(row => row.act === 'mining')?.sales).toBeCloseTo(value, 6);
+    expect(led(restored, A, 'inc', 'sales')).toBeCloseTo(value + r.value, 6);
+  });
+
+  it('uses the historic cash journal for mixed-format saves without reclassifying old entries', () => {
+    const { sim, A } = world(), co = sim.st.companies[A];
+    const ops = opsOf(co);
+    ops.act = [{ h: 0, inc: { mining: 100 }, exp: { mining: 50 } }];
+    ops.ledger = [{ h: 0, inc: { sales: 100 }, exp: { upkeep: 20 } }];
+    const restored = new WorldSim(JSON.parse(sim.serialize()));
+    expect(pnlRows(restored.st.companies[A], restored.time)).toEqual([
+      expect.objectContaining({ act: 'unallocated', inc: 100, exp: 20, sales: 100, operating: 0, supplies: 0 }),
+    ]);
+    expect(restored.st.companies[A].ops!.act![0].exp.mining).toBe(50);
   });
 
   it('the repair business is repair income for the provider and a cost of the client ship\'s activity', () => {
@@ -71,10 +105,10 @@ describe('P17.4f F1 real money by activity', () => {
     const income = g.rbiz!.income;
     expect(income).toBeGreaterThan(0);
     expect(act(sim, A, 'inc', 'repair')).toBeCloseTo(income, 3);
-    expect(act(sim, B, 'exp', 'other')).toBeGreaterThanOrEqual(income - 1e-6);   // the fee + that ship's running cost
+    expect(act(sim, B, 'exp', 'other')).toBeCloseTo(income, 6);
     const repRow = pnlRows(sim.st.companies[A], sim.time, 24).find(r => r.act === 'repair')!;
-    expect(repRow.exp).toBeGreaterThan(0);   // the repair ship's own running cost is the business's cost
-    expect(repRow.net).toBeCloseTo(repRow.inc - repRow.exp, 6);
+    expect(repRow.operating).toBeGreaterThan(0);
+    expect(repRow.net).toBeCloseTo(repRow.inc - repRow.exp - repRow.operating, 6);
     // restore keeps the record (it lives in the save)
     const sim2 = new WorldSim(JSON.parse(sim.serialize()));
     expect(act(sim2, A, 'inc', 'repair')).toBeCloseTo(income, 3);

@@ -47,14 +47,19 @@ export const RB = {
   ignore: 900,
   /** completed jobs kept for the panel */
   log: 12,
+  /** Bound a navy ship's time off patrol while it waits for a nearby repair fleet. */
+  fieldWindow: 240,
+  homeR: 3500,
+  homeRate: 0.012,
 };
 
 export interface RepairService { enabled: boolean; maxMul: number; perHour: number; minCredits: number; log?: { t: number; n: number }[] }
-export interface RepairBizJob { t: number; ship: string; name: string; client: string; fee: number; hull: number }
+export interface RepairBizJob { t: number; ship: string; name: string; client: string; fee: number; hull: number; savedSeconds?: number }
 export interface RepairBizState {
   target?: string; client?: string; unit?: number; billed?: number; hp0?: number;
   /** why the last job ended early (budget, battle, …) — the group step drops it */
   stop?: string;
+  rendezvous?: { at: V; since: number; until: number; homeSeconds: number };
   next?: number; ignore?: Record<string, number>;
   income: number; jobs: RepairBizJob[]; note?: string; since: number;
 }
@@ -89,15 +94,17 @@ const maxMul = (p: Payer) => p.kind === 'player' ? p.co.repairService!.maxMul : 
 /** station price of one whole hull of this ship (no customer discounts) */
 export const baseUnit = (h: WorldSim, t: WShip) => shipWorth(h.st, t) * REPAIR_RATE;
 
-function clientOk(op: RepairBizOp, h: WorldSim, provider: string, t: WShip): Payer | null {
+function clientPayer(op: RepairBizOp, h: WorldSim, provider: string, t: WShip): Payer | null {
   if (t.owner === provider) return null;
   const co = h.st.companies[t.owner];
   if (!co || co.kind === 'pirate' || coRelation(h.st, provider, t.owner) === -1) return null;
   if (op.clients === 'npc' && co.kind === 'player') return null;
   if (op.clients === 'players' && co.kind !== 'player') return null;
-  const p = payerOf(h, t);
-  if (!p || op.mul > maxMul(p) + 1e-9) return null;
-  return p;
+  return payerOf(h, t);
+}
+function clientOk(op: RepairBizOp, h: WorldSim, provider: string, t: WShip): boolean {
+  const payer = clientPayer(op, h, provider, t);
+  return !!payer && op.mul <= maxMul(payer) + 1e-9;
 }
 /** a hostile fleet or a running battle near this point (repair businesses keep clear of both) */
 export function riskyAt(h: WorldSim, owner: string, p: V): boolean {
@@ -115,30 +122,59 @@ function heldByOther(h: WorldSim, t: WShip, g: WGroup): boolean {
   return !!o && o.rbiz?.target === t.id && h.opOf(o).k === 'repairbiz';
 }
 
-/** the best job for this fleet now (null + the reason when there is none) */
-export function findJob(h: WorldSim, g: WGroup, op: RepairBizOp, ships: WShip[]): { t: WShip; unit: number } | string {
-  const S = g.rbiz!, rate = ships.reduce((a, s) => a + fieldRate(h, s), 0);
+export function inspectRepairCandidate(h: WorldSim, g: WGroup, op: RepairBizOp, t: WShip) {
+  if (t.owner === g.owner || !patientOk(t) || t.state !== 'space' || 1 - t.hp < RB.minHurt) return 'damage';
+  if (!inZone(h, op, t.pos)) return 'range';
+  const p = clientPayer(op, h, g.owner, t);
+  if (!p) return 'payer';
+  if (op.mul > maxMul(p) + 1e-9) return 'price';
+  const unit = baseUnit(h, t) * op.mul, fee = (1 - t.hp) * unit;
+  if (fee < op.minFee) return 'minFee';
+  if (payRoom(h, p) < Math.min(fee, FIELD.bill)) return 'budget';
+  if (op.avoidRisk && riskyAt(h, g.owner, t.pos)) return 'risk';
+  return { unit, fee, faction: p.kind === 'faction' };
+}
+
+/** The best job for this fleet now, with a wait reason when there is none. */
+export function findJob(h: WorldSim, g: WGroup, op: RepairBizOp, ships: WShip[]): { t: WShip; unit: number; rendezvous?: RepairBizState['rendezvous'] } | string {
+  const S = g.rbiz!, rate = ships.reduce((a, s, i) => a + fieldRate(h, s) * (FIELD.dim[i] ?? 0), 0);
   if (rate <= 0) return '현장 수리 장비 없음';
   const from = h.groupCenter(g) ?? ships[0].pos, speed = Math.max(1, h.groupSpeedOf(g));
-  let best: { t: WShip; unit: number } | null = null, bs = 0, seen = 0, poor = 0;
+  let best: { t: WShip; unit: number; rendezvous?: RepairBizState['rendezvous'] } | null = null, bs = 0;
+  const reasons = new Set<string>();
   for (const t of Object.values(h.st.ships)) {
-    if (t.owner === g.owner || !patientOk(t) || t.state !== 'space' || 1 - t.hp < RB.minHurt) continue;
-    if (!inZone(h, op, t.pos)) continue;
-    const p = clientOk(op, h, g.owner, t); if (!p) continue;
-    seen++;
     if ((S.ignore?.[t.id] ?? 0) > h.time || heldByOther(h, t, g) || (t.frAt ?? -1e9) > h.time - 10) continue;
-    const unit = baseUnit(h, t) * op.mul, fee = (1 - t.hp) * unit;
-    if (fee < op.minFee) { poor++; continue; }
-    if (payRoom(h, p) < Math.min(fee, FIELD.bill)) { poor++; continue; }
-    if (op.avoidRisk && riskyAt(h, g.owner, t.pos)) continue;
-    const here = h.sysOf(from), there = h.sysOf(t.pos);
-    const travel = (here && there && here.id !== there.id ? jumps(h.st.systems, here.id, there.id) * 20000 : 0) + dist(from, t.pos);
+    const cand = inspectRepairCandidate(h, g, op, t);
+    if (typeof cand === 'string') { reasons.add(cand); continue; }
+    const travel = h.travelEta(from, t.pos, speed);
     const work = (1 - t.hp) * sizeWeight(t) / rate * 3600;
-    const score = fee / (travel / speed + work + 60);
-    if (score > bs || (score === bs && best && t.id < best.t.id)) { bs = score; best = { t, unit }; }
+    let rendezvous: RepairBizState['rendezvous'];
+    if (cand.faction) {
+      const navy = h.st.groups[t.groupId], home = navy?.npc?.home ? h.st.stations[navy.npc.home] : undefined;
+      const atHome = home && dist(h.groupCenter(navy) ?? t.pos, home.pos) < RB.homeR;
+      if (atHome && travel >= (1 - t.hp) / RB.homeRate) { reasons.add('home'); continue; }
+      const onDuty = navy?.op.k === 'guard' || navy?.op.k === 'respond' && !navy.op.target;
+      if (home && !atHome && onDuty && !navy._repair && !t.warp && h.sysOf(from)?.id === h.sysOf(t.pos)?.id
+        && travel <= 45 && travel + work + 8 <= RB.fieldWindow && !riskyAt(h, t.owner, t.pos)) {
+        const homeSeconds = 2 * h.travelEta(t.pos, home.pos, h.groupSpeedOf(navy)) + (1 - t.hp) / RB.homeRate;
+        if (travel + work + 8 < homeSeconds) rendezvous = { at: { ...t.pos }, since: h.time, until: h.time + RB.fieldWindow, homeSeconds };
+      }
+    }
+    const score = cand.fee / (travel + work + 60);
+    if (score > bs || (score === bs && best && t.id < best.t.id)) { bs = score; best = { t, unit: cand.unit, rendezvous }; }
   }
   if (best) return best;
-  return seen ? (poor ? '수익 기준·고객 예산을 만족하는 의뢰 없음' : '조건에 맞는 의뢰 없음 (전투·위험·다른 수리 진행)') : '영업 지역에 수리가 필요한 고객 함선 없음';
+  if (reasons.has('risk')) return '교전·적대 함대 때문에 의뢰 보류';
+  if (reasons.has('budget') || reasons.has('minFee') || reasons.has('price') || reasons.has('payer')) return '가격·최소 수익·고객 예산 조건을 충족하는 의뢰 없음';
+  if (reasons.has('home')) return '후보 함대가 모항에서 자체 수리 중';
+  return '영업 지역에 수리가 필요한 고객 함선 없음';
+}
+
+/** An on-duty navy patrol can wait for a confirmed, faster field service at its current position. */
+export function navyRepairStop(h: WorldSim, s: WShip): V | undefined {
+  const provider = s.rbBy ? h.st.groups[s.rbBy] : undefined;
+  const job = provider?.rbiz, stop = job?.rendezvous;
+  return provider && job?.target === s.id && !job.stop && stop && h.time < stop.until && h.opOf(provider).k === 'repairbiz' ? stop.at : undefined;
 }
 
 function drop(h: WorldSim, g: WGroup, why: string, ignore = RB.ignore) {
@@ -146,16 +182,19 @@ function drop(h: WorldSim, g: WGroup, why: string, ignore = RB.ignore) {
   if (t && t.rbBy === g.id) delete t.rbBy;
   if (S.target && ignore > 0) (S.ignore ??= {})[S.target] = h.time + ignore;
   if (S.target && (S.billed ?? 0) > 0) h.say(g, `유료 수리 중단 — ${why} (정산 ${Math.round(S.billed!).toLocaleString()} cr)`, 'info', 0);
-  delete S.target; delete S.client; delete S.unit; delete S.billed; delete S.hp0; delete S.stop;
+  if (S.target) emit(h.st, { kind: 'repair_job', reason: why, amount: 1, company: g.owner, group: g.id, ship: S.target });
+  delete S.target; delete S.client; delete S.unit; delete S.billed; delete S.hp0; delete S.stop; delete S.rendezvous;
   S.note = why; S.next = h.time + 5;
 }
 function complete(h: WorldSim, g: WGroup, t: WShip) {
   const S = g.rbiz!;
-  S.jobs.unshift({ t: h.time, ship: t.id, name: t.name, client: t.owner, fee: Math.round(S.billed ?? 0), hull: Math.round((1 - (S.hp0 ?? t.hp)) * 100) });
+  const savedSeconds = S.rendezvous && Math.max(0, Math.round(S.rendezvous.homeSeconds - (h.time - S.rendezvous.since)));
+  S.jobs.unshift({ t: h.time, ship: t.id, name: t.name, client: t.owner, fee: Math.round(S.billed ?? 0), hull: Math.round((1 - (S.hp0 ?? t.hp)) * 100), ...(savedSeconds ? { savedSeconds } : {}) });
+  emit(h.st, { kind: 'repair_job', reason: 'complete', amount: 1, value: savedSeconds, company: g.owner, group: g.id, ship: t.id });
   if (S.jobs.length > RB.log) S.jobs.length = RB.log;
   h.say(g, `${t.name} 유료 수리 완료 — ${Math.round(S.billed ?? 0).toLocaleString()} cr`, 'radio', 0);
   if (t.rbBy === g.id) delete t.rbBy;
-  delete S.target; delete S.client; delete S.unit; delete S.billed; delete S.hp0; delete S.stop;
+  delete S.target; delete S.client; delete S.unit; delete S.billed; delete S.hp0; delete S.stop; delete S.rendezvous;
   S.next = h.time;
 }
 
@@ -176,7 +215,10 @@ export function stepRepairBiz(h: WorldSim, g: WGroup, ships: WShip[], op: Repair
   }
   let t = S.target ? h.st.ships[S.target] : undefined;
   if (S.target) {
-    const why = S.stop ?? (!t || t.hp <= 0 ? '대상 소실' : t.state === 'battle' ? '고객 함선 교전 중' : t.state !== 'space' ? '고객 함선 정박·이동' : !inZone(h, op, t.pos) ? '영업 지역 이탈'
+    const navy = S.rendezvous && t ? h.st.groups[t.groupId] : undefined;
+    const expired = S.rendezvous && (h.time >= S.rendezvous.until || navy?._repair || navy?.op.k === 'respond' && !!navy.op.target
+      || !!t && (dist(t.pos, S.rendezvous.at) > FIELD.reach * 2 || !op.avoidRisk && riskyAt(h, t.owner, t.pos)));
+    const why = S.stop ?? (expired ? '함대가 작전 복귀' : null) ?? (!t || t.hp <= 0 ? '대상 소실' : t.state === 'battle' ? '고객 함선 교전 중' : t.state !== 'space' ? '고객 함선 정박·이동' : !inZone(h, op, t.pos) ? '영업 지역 이탈'
       : op.avoidRisk && riskyAt(h, g.owner, t.pos) ? '고객 주변 적대 함대·교전' : !clientOk(op, h, g.owner, t) ? '고객 이용 조건 변경' : null);
     // repaired by someone else (NPC home dock, the owner's own repair ship) before any paid work: not a job
     if (t && !why && t.hp >= 0.999) { if ((S.billed ?? 0) > 0) complete(h, g, t); else drop(h, g, '고객 함선이 다른 경로로 수리됨', 0); t = undefined; }
@@ -187,7 +229,8 @@ export function stepRepairBiz(h: WorldSim, g: WGroup, ships: WShip[], op: Repair
     S.next = h.time + RB.scan;
     if (typeof r === 'string') S.note = r;
     else {
-      t = r.t; S.target = t.id; S.client = t.owner; S.unit = r.unit; S.billed = 0; S.hp0 = t.hp; t.rbBy = g.id; delete S.note;
+      t = r.t; S.target = t.id; S.client = t.owner; S.unit = r.unit; S.billed = 0; S.hp0 = t.hp; t.rbBy = g.id; S.rendezvous = r.rendezvous; delete S.note;
+      emit(h.st, { kind: 'repair_job', reason: 'accepted', amount: 1, company: g.owner, group: g.id, ship: t.id });
       h.say(g, `수리 의뢰 수주 — ${h.st.companies[t.owner]?.name ?? t.owner} ${t.name} (내구 ${Math.round(t.hp * 100)}%, 단가 ${Math.round(r.unit * (1 - t.hp)).toLocaleString()} cr 이내)`, 'radio', 0);
     }
   }
@@ -198,7 +241,7 @@ export function stepRepairBiz(h: WorldSim, g: WGroup, ships: WShip[], op: Repair
     return true;
   }
   for (const s of mobile) {
-    const slot = h.formationSlot(s, g, t.pos, 90);
+    const slot = h.formationSlot(s, g, S.rendezvous?.at ?? t.pos, 90);
     if (dist(s.pos, slot) > 40) h.moveTo(s, slot, dist(s.pos, t.pos) < FIELD.reach ? speed * 0.5 : speed, dt, 30);
     else if (s.state === 'space') { s.vel.x *= 0.8; s.vel.z *= 0.8; }
   }

@@ -24,6 +24,7 @@
 // faction cedes a system, the faction simply leaves it. Public, per-viewer data: `StarSystem.terr` (only for systems
 // the viewer may see) and `Company.sovx` (the owner's own reports). Everything else in `w.sov` is server-side.
 // See docs/B3_TERRITORY.md.
+import { addc } from './types';
 import type { WorldSim } from './sim';
 import type { Company, Contract, Gate, StarSystem, Station, V, WGroup, WorldState, WShip } from './types';
 import { econOf, shipWorth } from './hullops';
@@ -581,7 +582,7 @@ const RESERVE_H = 1;
 /** give a reservation back to the seat's storage (governance stopped, seat moved, claim ended) */
 function releaseRes(h: Host, g: GovLog, co: string) {
   const st = g.seat ? h.st.stations[g.seat] : undefined;
-  if (st && g.res) { const sto = (st.storage[co] ??= {}); for (const [k, n] of Object.entries(g.res)) if (n > 0) sto[k] = (sto[k] ?? 0) + n; }
+  if (st && g.res) { const sto = (st.storage[co] ??= {}); for (const [k, n] of Object.entries(g.res)) if (n > 0) addc(sto, k, n); }
   delete g.res; delete g.lack; delete g.seat;
 }
 /** consume administration goods for this cycle (reservation first), measure the inflow since the last cycle, and

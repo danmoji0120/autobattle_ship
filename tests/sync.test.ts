@@ -1,6 +1,6 @@
 // Protocol 2 replication must give every client exactly the state the original full snapshots gave it.
 // The oracle below is the per-client snapshot code of the production server before the change
-// (src/server/core.ts sendSnap/snapBase at ff69c74), copied verbatim apart from being a free function.
+// (src/server/core.ts sendSnap/snapBase at ff69c74), with redaction for later private cargo metadata.
 import { describe, expect, it } from 'vitest';
 import { GameServer, type Conn } from '../src/server/core';
 import { applyPatch, applySync, legacyView, makePatch, SYNC_PROTO, type SyncMsg } from '../src/server/sync';
@@ -33,9 +33,9 @@ function originalView(st: WorldState, sysOf: (p: any) => { id: string } | undefi
   };
   const base = snapBase();
   const companies = Object.fromEntries(Object.entries(base.companies).map(([id, co]) => [id, id === c.company || co.kind !== 'player' ? co : { id, name: co.name, kind: co.kind, color: co.color, online: co.online, createdAt: co.createdAt, homeStation: co.homeStation, credits: 0, rep: 0, stats: { earned: 0, mined: 0, kills: 0, lost: 0, battlesWon: 0, contracts: 0 }, milestones: [] }]));
-  const stations = Object.fromEntries(Object.entries(base.stations).map(([id, st]) => [id, { ...st, storage: { ...(c.company && st.storage[c.company] ? { [c.company]: st.storage[c.company] } : {}) }, ...(st.owner === c.company ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
+  const stations = Object.fromEntries(Object.entries(base.stations).map(([id, st]) => [id, { ...st, storageOrigins: undefined, storage: { ...(c.company && st.storage[c.company] ? { [c.company]: st.storage[c.company] } : {}) }, ...(st.owner === c.company ? {} : { builds: undefined, orders: undefined, jobs: undefined, modules: st.modules.map(m => ({ kind: m.kind, progress: m.progress, built: m.built, slot: m.slot })) }) }]));
   const groups = Object.fromEntries(Object.entries(base.groups).map(([id, g]) => [id, g.owner === c.company || base.companies[g.owner]?.kind !== 'player' ? g : { ...g, op: { k: 'idle' as const }, status: '운항 중', commanderId: null, march: undefined }]));
-  const ships = Object.fromEntries(Object.entries(visibleShips()).map(([id, s]) => [id, s.owner === c.company ? s : { ...s, cargo: {}, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, fitting: undefined, fit: undefined }]));
+  const ships = Object.fromEntries(Object.entries(visibleShips()).map(([id, s]) => [id, s.owner === c.company ? s : { ...s, cargo: {}, cargoOrigins: undefined, cargoWork: undefined, logisticsPool: undefined, logisticsJob: undefined, fitting: undefined, fit: undefined }]));
   return { ...base, companies, stations, ships, groups, logistics: base.logistics ? Object.fromEntries(Object.entries(base.logistics).filter(([, r]) => r.owner === c.company)) : undefined, logisticsJobs: base.logisticsJobs ? Object.fromEntries(Object.entries(base.logisticsJobs).filter(([, j]) => j.owner === c.company)) : undefined, procurementPlans: base.procurementPlans ? Object.fromEntries(Object.entries(base.procurementPlans).filter(([, p]) => p.owner === c.company)) : undefined, works: base.works ? Object.fromEntries(Object.entries(base.works).filter(([, w]) => w.owner === c.company)) : undefined, approvals: base.approvals ? Object.fromEntries(Object.entries(base.approvals).filter(([, a]) => a.owner === c.company)) : undefined, grants: undefined, conversions: undefined, sites: base.sites ? Object.fromEntries(Object.entries(base.sites).filter(([, s]) => !!c.company && s.seen.includes(c.company)).map(([id, s]) => [id, { ...s, scan: c.company && s.scan[c.company] !== undefined ? { [c.company]: s.scan[c.company] } : {}, seen: c.company ? [c.company] : [] }])) : undefined } as WorldView;
 }
 
