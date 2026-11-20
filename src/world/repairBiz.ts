@@ -23,6 +23,7 @@ import { hostileNear } from './salvage';
 import { FIELD, fieldRate, patientOk, repairGearRate, sizeWeight } from './fieldRepair';
 import { dist, jumps } from './geom';
 import { emit } from './observe';
+import { book } from './operations';
 import { factionOf } from './territory';
 import { feOn } from './factionEcon2';
 
@@ -232,7 +233,9 @@ export function chargeBiz(h: WorldSim, s: WShip, g: WGroup, t: WShip, amount: nu
     e.led.services = (e.led.services ?? 0) + fee;
     const log = (e.repairLog ??= []); log.push({ t: h.time, n: fee }); trim(log, h.time);
   }
-  prov.credits += fee; prov.stats.earned += fee;
+  // AUD-17: the client's paid repair and the provider's repair-business income are separate ledger lines
+  if (p.kind === 'player') book(h, p.co.id, 'repair_service', -fee);
+  prov.credits += fee; prov.stats.earned += fee; book(h, g.owner, 'repair_biz', fee);
   S.billed = (S.billed ?? 0) + fee; S.income += fee;
   emit(h.st, { kind: 'cost', reason: 'repair_service', amount: fee, company: p.kind === 'player' ? p.co.id : t.owner, ship: t.id, to: g.owner, ...(p.kind === 'faction' ? { method: `faction:${p.fid}` } : {}) });
   emit(h.st, { kind: 'income', reason: 'repair_service', amount: fee, company: g.owner, group: g.id, ship: s.id, from: t.owner });

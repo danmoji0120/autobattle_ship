@@ -17,7 +17,7 @@ import { cargoSum } from './types';
 import { HAULER_MIN_HP, poolMember } from './haulers';
 import { canRepairAt, repairQuote } from './repair';
 import { berthFits, econOf, growthOn } from './hullops';
-import { opsOf, spentLastHour } from './operations';
+import { opsOf, spentLastHour, rebookExpense } from './operations';
 import { routeScore } from './procurement';
 
 export interface RepairPolicy {
@@ -78,6 +78,8 @@ function repairHere(h: WorldSim, s: WShip, p: RepairPolicy): boolean {
   const err = h.command(s.owner, { c: 'repair', ship: s.id, quote: q.cost });
   if (err) { note(h, p, s, err); return false; }
   (p.log ??= []).push({ t: h.time, n: q.cost, ship: s.id }); opsOf(co).spend.push({ t: h.time, n: q.cost });
+  // AUD-17: hauler recovery is its own ledger line, not the player's own station repair
+  rebookExpense(h, s.owner, 'repair', 'hauler_recovery', q.cost);
   note(h, p, s, `자동 수리 완료 — ${q.cost.toLocaleString()} cr`);
   delete s.repairAt;
   return true;

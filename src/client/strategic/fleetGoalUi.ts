@@ -64,7 +64,8 @@ export function fleetFormHtml(w: WorldView, me: string, d: FleetDraft): string {
   const st = w.stations[d.station];
   const lines = normLines(w as never, co, toLines(d));
   let est = '';
-  if (typeof lines === 'string') est = `<p class="warn">${esc(lines)}</p>`;
+  if (!own.length) est = '<p class="warn small ops-fleet-est">자사 조선소가 없어 건조 목표를 둘 수 없습니다 — 완성함은 공영 정거장의 조선소 화면에서 삽니다.</p>';
+  else if (typeof lines === 'string') est = `<p class="warn">${esc(lines)}</p>`;
   else if (st) {
     const e = fleetEstimate(clientSaleHost(w) as never, me, st, lines, d.buy);
     const noYard = e.lines.filter(x => !x.yard);

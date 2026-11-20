@@ -17,7 +17,7 @@ import { econOf, hullDefOf, shipWorth } from './hullops';
 import { REPAIR_RATE } from './repair';
 import { techFx } from './industry';
 import { shipFx, groupFx } from './officers';
-import { opsOf, spentLastHour } from './operations';
+import { opsOf, spentLastHour, book } from './operations';
 import { hostileNear } from './salvage';
 import { emit } from './observe';
 import { dist } from './geom';
@@ -147,6 +147,7 @@ export function stepFieldRepair(h: WorldSim, dt: number) {
     if (t.hp >= 0.999) t.hp = 1;
     t.frAt = h.time;
     co.credits -= cost;
+    book(h, s.owner, 'repair_fleet', -cost);   // AUD-17: own-fleet field maintenance (a cost, never income)
     s.frBill = (s.frBill ?? 0) + cost;
     pending.set(s.owner, pend + cost);
     served.set(t.id, k + 1);

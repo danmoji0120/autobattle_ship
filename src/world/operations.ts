@@ -1603,6 +1603,15 @@ export function book(h: { st: WorldState; time: number }, owner: string, cat: st
   else b.exp[cat] = (b.exp[cat] ?? 0) - delta;
   const m = seen.get(h.st) ?? new Map(); seen.set(h.st, m); m.set(owner, (m.get(owner) ?? 0) + delta);
 }
+/** move an expense already booked this hour from one category to another (a command booked by its generic category,
+ *  e.g. an automatic hauler repair booked as 'repair', reclassified as 'hauler_recovery'). Totals do not change. */
+export function rebookExpense(h: { st: WorldState; time: number }, owner: string, from: string, to: string, amount: number) {
+  const co = h.st.companies[owner]; if (!co || co.kind !== 'player' || !growthOn(h.st) || !(amount > 0)) return;
+  const b = opsOf(co).ledger.at(-1); if (!b || b.h !== hourOf(h.time)) return;
+  const n = Math.min(amount, b.exp[from] ?? 0); if (n <= 0) return;
+  b.exp[from] -= n; if (b.exp[from] < EPS) delete b.exp[from];
+  b.exp[to] = (b.exp[to] ?? 0) + n;
+}
 export const bookedSoFar = (st: WorldState, owner: string) => seen.get(st)?.get(owner) ?? 0;
 export const CMD_CATEGORY: Partial<Record<Cmd['c'], string>> = {
   buy: 'purchase', buyListing: 'purchase', queueModule: 'construction', planOp: 'construction', setOp: 'construction', buildShip: 'shipbuilding', buildOp: 'shipbuilding',
@@ -1610,7 +1619,7 @@ export const CMD_CATEGORY: Partial<Record<Cmd['c'], string>> = {
   repair: 'repair', refit: 'repair', fit: 'repair', fitShip: 'repair', buyShip: 'ships', buyShipListing: 'ships', hire: 'crew', lease: 'storage', payArrears: 'upkeep', recovery: 'upkeep', recoverySell: 'upkeep',
 };
 export const LEDGER_NAME: Record<string, string> = {
-  sales: '판매', purchase: '구매', construction: '건설', shipbuilding: '조선', research: '연구', repair: '수리·개장', ships: '함선 매매', crew: '지휘관', storage: '보관 임대', upkeep: '운영 유지비', blackmarket: '암시장', fines: '벌금', law_fines: '치안 벌금', mil_contract: '군사 계약', bounty: '전투 현상금', other: '전투·계약·기타',
+  sales: '판매', purchase: '구매', construction: '건설', shipbuilding: '조선', research: '연구', repair: '정거장 수리·개장', repair_fleet: '자사 함선 현장 정비', hauler_recovery: '수송선 복구 수리', repair_service: '외부 유료 수리 이용', repair_biz: '수리업 수입', ships: '함선 매매', crew: '지휘관', storage: '보관 임대', upkeep: '운영 유지비', blackmarket: '암시장', fines: '벌금', law_fines: '치안 벌금', mil_contract: '군사 계약', bounty: '전투 현상금', other: '전투·계약·기타',
 };
 /** everything not booked by a known path since the last reconciliation → "other" (contracts, bounties, refunds …) */
 function reconcileLedger(h: WorldSim) {
