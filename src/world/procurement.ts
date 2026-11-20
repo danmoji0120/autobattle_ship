@@ -18,8 +18,16 @@ import { techFx } from './industry';
 import { priceOf, tradeChunk, buyCost } from './market';
 import { shipRate } from './upkeep';
 import { takec } from './types';
+import { projectCost, missingPre, fieldsAt, salvageItem } from './research';
+import { TECHS } from './industry';
 
-export type ProcurementKind = 'construction' | 'production' | 'ship';
+export type ProcurementKind = 'construction' | 'production' | 'ship' | 'research';
+/** the source record a plan feeds (an unbuilt module, a production order, an unstarted build, an unstarted research
+ *  project), or undefined once it is gone / started. P17.4a: research projects join the planner (AUD-05). */
+export function procurementOrigin(w: { companies: Record<string, Company>; stations: Record<string, Station> }, owner: string, station: string, kind: ProcurementKind, source: string): { paused?: boolean } | undefined {
+  const st = w.stations[station];
+  return kind === 'construction' ? st?.modules.find(m => m.id === source && !m.built) : kind === 'production' ? st?.orders?.find(o => o.id === source) : kind === 'ship' ? st?.builds?.find(b => b.id === source && !b.started) : w.companies[owner]?.research?.find(r => r.id === source && r.station === station && !r.started);
+}
 export interface ProcurementPolicy {
   enabled: boolean; autoBuy: boolean; budget: number; spent: number; minCredits: number; maxRisk: number;
   maxPrice: Record<string, number>; protectedStock: Record<string, Cargo>;
@@ -123,6 +131,14 @@ function stationDemand(h: Pick<WorldSim, 'st'>, co: Company, st: Station, push: 
       // At most one not-yet-started batch per order; already started batches consumed their inputs.
       for (const [item, amount] of Object.entries(r.in)) push(st, 'production', o.id, item, amount);
     }
+    // P17.4a (AUD-05): unstarted research projects whose prerequisites are known and whose field has a lab here.
+    // The captured item a salvage analysis consumes is never procured (it is not a trade good).
+    for (const r of co.research ?? []) {
+      if (r.station !== st.id || r.started || r.paused) continue;
+      const t = TECHS[r.tech]; if (!t || r.source !== 'copy' && missingPre(co, r.tech).length || !fieldsAt(st).has(t.field)) continue;
+      const own = r.source === 'salvage' ? salvageItem(r.tech) : undefined;
+      for (const [item, amount] of Object.entries(projectCost(r))) if (item !== own && !item.startsWith('bp:')) push(st, 'research', r.id, item, amount);
+    }
   }
 }
 /** AUTO-P0: units of `item` at an own station still needed by its construction, ship builds and production
@@ -194,7 +210,7 @@ export function planProcurement(h: WorldSim) {
   const activeKeys = new Set(demand.map(d => JSON.stringify([d.owner, d.station.id, d.kind, d.source, d.item])));
   for (const p of Object.values(plans)) if (!activeKeys.has(JSON.stringify([p.owner, p.station, p.sourceKind, p.sourceId, p.item])) && p.state !== 'closed') {
     const co = h.st.companies[p.owner], st = h.st.stations[p.station];
-    const origin = p.sourceKind === 'construction' ? st?.modules.find(m => m.id === p.sourceId && !m.built) : p.sourceKind === 'production' ? st?.orders?.find(o => o.id === p.sourceId) : st?.builds?.find(b => b.id === p.sourceId && !b.started);
+    const origin = procurementOrigin(h.st, p.owner, p.station, p.sourceKind, p.sourceId);
     const suspended = !!origin && (co?.procurement?.enabled === false || !!co?.procurement?.disabled[sourceKey(p.station, p.sourceKind, p.sourceId)] || !!origin.paused);
     if (!suspended) for (const j of allJobs) if (j.procurement === p.id && live(j)) controlPoolJob(h, p.owner, j.id, 'cancel');
     p.state = suspended ? 'paused' : 'closed';

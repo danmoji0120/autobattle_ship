@@ -14,7 +14,7 @@ import { salesPanelHtml, bindSalesPanel } from './salesPolicyUi';
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const num = (v: number) => (Math.round(v * 10) / 10).toLocaleString(undefined, { maximumFractionDigits: 1 });
 const STATE = { queued: '배차 대기', active: '운송 중', waiting: '조건 대기', paused: '일시정지', complete: '완료', cancelled: '취소' } as const;
-const SOURCE = { construction: '시설 건설', production: '생산', ship: '함선 건조' } as const;
+const SOURCE = { construction: '시설 건설', production: '생산', ship: '함선 건조', research: '연구' } as const;
 interface Actions { station(id: string): void; fleet(group: string, ship?: string): void; close(): void }
 
 export class AutoLogisticsPanel {

@@ -50,6 +50,7 @@ import type { Background, BackgroundTerm } from './backgrounds';
 import { rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
 import { deliverFromStore } from './contractDelivery';
+import { setSupplyPolicy, DEFAULT_SUPPLY_POLICY } from './upkeep';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
 import { sortieProblem, buybackProblem, buybackValue, earner, miner, tradeInOpen, recoveryShips, yardStock, RECOVERY_SHIPS, SWAP_HULLS } from './recovery';
 import { enforceExclusive, exclusiveGuard, exclusiveLost, stepExclusive, isExclusiveShip, isExclusiveEquip, grantExclusive } from './exclusive';
@@ -127,6 +128,8 @@ export type Cmd =
   | { c: 'accept'; contract: string; group?: string }
   /** P17.4a: deliver a taken delivery contract from the company's free stock at the contract station (upTo = target progress, idempotent) */
   | { c: 'deliverStock'; contract: string; upTo?: number }
+  /** P17.4a: consumable supply policy (source stores, emergency purchase); null = back to the legacy rule */
+  | { c: 'supplyPolicy'; policy: { source?: 'all' | 'local'; emergency?: 'allow' | 'cap' | 'forbid'; capPerHour?: number } | null }
   /** B-2 military contracts: send the committed fleet, give up a contract, post an escort job for one's own cargo group */
   | { c: 'milDispatch'; contract: string }
   | { c: 'milCancel'; contract: string }
@@ -306,7 +309,7 @@ export class WorldSim {
   }
 
   /** New worlds use the P9 layout; P10 (40 systems, territory, fog) is opt-in. Saves are never converted. */
-  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1'; computers?: 'p151'; npc17?: 'p173' } = {}): WorldSim {
+  static create(seed = 1, opts: { layout?: 'p9' | 'p10'; econ?: 'chain'; eq?: EqPolicy; alloyDirect?: number; factionEcon?: 'v2'; combat?: 'p11'; ops?: 'p12'; logistics?: 'p125'; salvage?: 'p131'; piracy?: 'p132'; blackMarket?: 'p133'; law?: 'p134'; rep?: 'p14'; derelicts?: 'a32b'; officers?: 'b1'; military?: 'b2'; territory?: 'b3'; industrial?: 'ind1'; computers?: 'p151'; npc17?: 'p173'; upkeep?: 'p174' } = {}): WorldSim {
     const sim = new WorldSim(newWorld(seed));
     // P11 multi-side combat & PvP is opt-in (new worlds only); legacy worlds keep the two-coalition engagements
     if (opts.combat === 'p11') sim.st.combatV = 2;
@@ -348,6 +351,8 @@ export class WorldSim {
     if (opts.computers === 'p151' && growthOn(sim.st)) { stockComputers(sim.st); stockParts17(sim.st); }
     // P17.3: pirates field some P17 hulls (opt-in: it changes what NPC bands fight with — a balance decision, P17.4)
     if (opts.npc17 === 'p173' && growthOn(sim.st)) sim.st.npc17V = 1;
+    // P17.4a: new companies get a consumable supply policy (local stores only, capped emergency purchase)
+    if (opts.upkeep === 'p174' && growthOn(sim.st)) sim.st.upkeepV = 1;
     // P16.6: only the explicitly opted-in development build stocks carrier gear in new worlds.
     // Published builds remain unchanged. Existing worlds require the separate migration flag.
     if (DEV_CARRIER_RELEASE && growthOn(sim.st)) migrateCarriers(sim.st);
@@ -736,7 +741,7 @@ export class WorldSim {
     };
     // new companies start with no blueprints: they are needed only to build in an own yard (granted and bought
     // ships need none); companies that already hold blueprints keep them (migrate.ts handles old build rights)
-    if (growthOn(this.st)) { const co = this.st.companies[id]; co.credits = START_CREDITS_GROWTH; co.blueprints = {}; upkeepOf(co).last = this.time; }
+    if (growthOn(this.st)) { const co = this.st.companies[id]; co.credits = START_CREDITS_GROWTH; co.blueprints = {}; upkeepOf(co).last = this.time; if (this.st.upkeepV) upkeepOf(co).policy = { ...DEFAULT_SUPPLY_POLICY }; }
     for (const s of Object.values(this.st.stations)) s.storage[id] = emptyCargo();
     return id;
   }
@@ -1202,6 +1207,7 @@ export class WorldSim {
         this.ev('info', `계약 수주: ${k.title}`, { company, pos: S(k.stationId).pos });
         return null;
       }
+      case 'supplyPolicy': return growthOn(this.st) ? setSupplyPolicy(co, cmd.policy) : '운영비 체계가 없는 월드';
       case 'deliverStock': return growthOn(this.st) ? deliverFromStore(this, company, cmd.contract, cmd.upTo) : '보관함이 없는 월드';
       case 'milDispatch': return milOn(this.st) ? milDispatch(this, company, cmd.contract) : '군사 계약 월드가 아님';
       case 'milCancel': return milOn(this.st) ? milCancel(this, company, cmd.contract) : '군사 계약 월드가 아님';

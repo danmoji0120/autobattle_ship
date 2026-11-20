@@ -985,7 +985,7 @@ export class PmcHud {
   private renderUpkeep(force: boolean) {
     if (!this.upkOpen || !growthOn(this.st)) { this.upkEl?.remove(); this.upkEl = null; return; }
     const co = this.st.companies[this.me]; if (!co) return;
-    const key = JSON.stringify([co.credits, co.upkeep?.stage, co.upkeep?.debt, co.upkeep?.rent?.sinceMs, co.upkeep?.rent?.cancelled, Math.floor(this.st.time), co.upkeep?.bill?.t, co.upkeep?.autoReserve, co.upkeep?.recovery, Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [s.id, s.state, s.reserve, s.listed, s.recovery, s.task.k, Math.round((s.wear ?? 0) * 100)])]);
+    const key = JSON.stringify([co.credits, co.upkeep?.stage, co.upkeep?.debt, co.upkeep?.rent?.sinceMs, co.upkeep?.rent?.cancelled, Math.floor(this.st.time), co.upkeep?.bill?.t, co.upkeep?.autoReserve, co.upkeep?.policy, co.upkeep?.recovery, Object.values(this.st.ships).filter(s => s.owner === this.me).map(s => [s.id, s.state, s.reserve, s.listed, s.recovery, s.task.k, Math.round((s.wear ?? 0) * 100)])]);
     if (!force && key === this.upkKey && this.upkEl) return;
     this.upkKey = key;
     if (!this.upkEl) { this.upkEl = h('div', 'upkwrap'); this.root.appendChild(this.upkEl); }
@@ -994,6 +994,13 @@ export class PmcHud {
     e.querySelector<HTMLButtonElement>('[data-upclose]')!.onclick = () => { this.upkOpen = false; this.renderUpkeep(true); this.fb?.close(); };
     const pay = e.querySelector<HTMLButtonElement>('[data-payarrears]');
     if (pay) pay.onclick = () => this.cmd({ c: 'payArrears' });
+    e.querySelectorAll<HTMLSelectElement>('[data-supsrc], [data-supem]').forEach(sel => sel.onchange = () => {
+      const src = e.querySelector<HTMLSelectElement>('[data-supsrc]')!.value, em = e.querySelector<HTMLSelectElement>('[data-supem]')!.value;
+      const cap = Number(e.querySelector<HTMLInputElement>('[data-supcap]')?.value ?? 5000);
+      this.cmd({ c: 'supplyPolicy', policy: src === 'legacy' ? null : { source: src as 'all', emergency: em as 'allow', capPerHour: cap } });
+    });
+    const capIn = e.querySelector<HTMLInputElement>('[data-supcap]');
+    if (capIn) capIn.onchange = () => this.cmd({ c: 'supplyPolicy', policy: { capPerHour: Number(capIn.value) } });
     const ar = e.querySelector<HTMLInputElement>('[data-autores]');
     if (ar) ar.onchange = () => { if (ar.checked && !confirm('체납 4단계가 되면 정박 중인 유휴 함선을 자동으로 예비역으로 돌립니다. 함선·장비는 그대로이며 재취역할 수 있습니다. 동의할까요?')) { ar.checked = false; return; } this.cmd({ c: 'autoReserve', on: ar.checked }); };
     e.querySelectorAll<HTMLButtonElement>('[data-recov]').forEach(b => b.onclick = async () => { const [ship, on] = b.dataset.recov!.split(':'); if (await this.cmd({ c: 'recovery', ship, on: on === '1' })) this.renderUpkeep(true); });

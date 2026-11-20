@@ -15,7 +15,7 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&a
 const num = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const modes = { transfer: '창고 운송', sell: '자동 판매', supply: '생산 공급', construction: '건설 공급' };
 interface Options { station?: string; group?: string; create?: boolean; construction?: boolean }
-interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard'): void; fleet(group: string, ship?: string): void; analytics(): void; close(): void }
+interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard' | 'research'): void; fleet(group: string, ship?: string): void; analytics(): void; close(): void }
 export class LogisticsPanel {
   private el = document.createElement('div');
   private editing = false; private editId = ''; private editKey = 0; private group = '';
@@ -117,12 +117,12 @@ export class LogisticsPanel {
       <div class="lg-route-status ${j.reason ? 'warn' : 'dim'}">${esc(j.reason ?? (ship ? `${ship.name} 배정 · ${j.carried > 0 ? '목적지로 운송' : '출발지 이동·적재'}` : j.state === 'complete' ? '요청 수량 운송 완료 · 함선은 다음 작업을 받습니다' : '가용 함선 배정 대기'))}</div>
       <div class="lg-metrics"><span>완료 <b>${num(j.delivered)}</b></span><span>운송 중 <b>${num(j.carried)}</b></span><span>출발지 예약 <b>${num(j.reserved)}</b></span></div>
       ${j.lost || j.withdrawn ? `<p class="dim small">손실 ${num(j.lost)} · 작업에서 회수 ${num(j.withdrawn)} (생존 함선 화물 보존)</p>` : ''}
-      <div class="lg-card-actions">${plan ? `<button class="btn mini" data-proc-open="${esc(plan.station)}" data-proc-tab="${plan.sourceKind === 'construction' ? 'build' : plan.sourceKind === 'production' ? 'prod' : 'yard'}">원본 작업 →</button>` : ''}${done ? '' : `<button class="btn mini" data-pool-control="${esc(j.id)}" data-pool-action="${j.state === 'paused' ? 'resume' : 'pause'}" ${this.busy ? 'disabled' : ''}>${j.state === 'paused' ? '재개' : '일시정지'}</button><button class="btn mini warnb" data-pool-control="${esc(j.id)}" data-pool-action="cancel" ${this.busy ? 'disabled' : ''}>취소</button>`}</div>${j.procurement && !done ? '<p class="dim small">이 운송만 취소하면 원본 수요에 따라 다시 생성될 수 있습니다. 조달 전체 정지는 원본 작업에서 설정하세요.</p>' : ''}</article>`;
+      <div class="lg-card-actions">${plan ? `<button class="btn mini" data-proc-open="${esc(plan.station)}" data-proc-tab="${plan.sourceKind === 'construction' ? 'build' : plan.sourceKind === 'production' ? 'prod' : plan.sourceKind === 'research' ? 'research' : 'yard'}">원본 작업 →</button>` : ''}${done ? '' : `<button class="btn mini" data-pool-control="${esc(j.id)}" data-pool-action="${j.state === 'paused' ? 'resume' : 'pause'}" ${this.busy ? 'disabled' : ''}>${j.state === 'paused' ? '재개' : '일시정지'}</button><button class="btn mini warnb" data-pool-control="${esc(j.id)}" data-pool-action="cancel" ${this.busy ? 'disabled' : ''}>취소</button>`}</div>${j.procurement && !done ? '<p class="dim small">이 운송만 취소하면 원본 수요에 따라 다시 생성될 수 있습니다. 조달 전체 정지는 원본 작업에서 설정하세요.</p>' : ''}</article>`;
   }
   private procurementPanel() {
     const w = this.c.state!, policy = w.companies[this.c.company]?.procurement;
     const plans = Object.values(w.procurementPlans ?? {}).filter(p => p.owner === this.c.company && p.state !== 'closed').sort((a, b) => b.priority - a.priority || a.created - b.created || a.id.localeCompare(b.id));
-    const kinds = { construction: '시설 건설', production: '생산', ship: '함선 건조' };
+    const kinds = { construction: '시설 건설', production: '생산', ship: '함선 건조', research: '연구' };
     const items = [...new Set([...Object.keys(ITEMS).filter(id => !ITEMS[id].regional || regionalOn(w)), ...Object.keys(EQUIPMENT).filter(id => !EQUIPMENT[id].exclusive)])].sort((a, b) => itemName(a).localeCompare(itemName(b), 'ko'));
     const stations = Object.values(w.stations).filter(s => s.owner === this.c.company || s.public || this.hasExternalSource(s.id));
     const caps = Object.entries(policy?.maxPrice ?? {}).map(([item, price]) => `${esc(itemName(item))} ${num(price)} cr`).join(' · ');
@@ -136,7 +136,7 @@ export class LogisticsPanel {
         <div class="proc-policy-grid"><label>최대 단가를 변경할 품목<select name="priceItem" data-keep><option value="">변경 안 함</option>${items.map(id => `<option value="${esc(id)}">${esc(itemName(id))}</option>`).join('')}</select></label><label>최대 단가 (0이면 해제)<input name="maxUnitPrice" type="number" min="0" max="1000000000000" step="any" placeholder="변경 안 함"></label></div>
         <div class="proc-policy-grid"><label>보호할 보관함<select name="protectStation" data-keep><option value="">변경 안 함</option>${stations.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select></label><label>보호 품목<select name="protectItem" data-keep><option value="">품목 선택</option>${items.map(id => `<option value="${esc(id)}">${esc(itemName(id))}</option>`).join('')}</select></label><label>남겨 둘 수량 (0이면 해제)<input name="protectAmount" type="number" min="0" max="1000000000000" step="any" placeholder="변경 안 함"></label></div><p class="dim small">보호 수량은 이 보관함에서 출발하는 자동 조달에 적용됩니다. 현장의 생산·건설과 직접 명령은 기존 규칙대로 처리됩니다.</p>
         <button class="btn go" type="submit" ${this.busy ? 'disabled' : ''}>조달 설정 저장</button></form>` : ''}
-      ${plans.length ? `<div class="proc-plans"><h4>원본 작업별 조달</h4>${plans.map(p => `<article class="proc-plan"><div><b>${kinds[p.sourceKind]} · ${esc(itemName(p.item))}</b> <span>${esc(w.stations[p.station]?.name ?? p.station)} · 우선순위 ${p.priority}</span></div><p>필요 ${num(p.required)} · 투입 ${num(p.used)} · 원본 예약 ${num(p.secured)} · 현장 ${num(p.local)} · 기존 운송 ${num(p.otherIncoming)} · 계획 ${num(p.planned)} · 출발지 예약 ${num(p.reserved)} · 운송 중 ${num(p.inTransit)} · 미확보 ${num(p.shortage)}</p><p class="${p.state === 'waiting' ? 'warn' : 'dim'}">${esc(p.reason)}</p><button class="an-link" data-proc-open="${esc(p.station)}" data-proc-tab="${p.sourceKind === 'construction' ? 'build' : p.sourceKind === 'production' ? 'prod' : 'yard'}">원본 작업 확인 →</button></article>`).join('')}</div>` : '<p class="dim small">현재 표시할 조달 수요가 없습니다.</p>'}</section>`;
+      ${plans.length ? `<div class="proc-plans"><h4>원본 작업별 조달</h4>${plans.map(p => `<article class="proc-plan"><div><b>${kinds[p.sourceKind]} · ${esc(itemName(p.item))}</b> <span>${esc(w.stations[p.station]?.name ?? p.station)} · 우선순위 ${p.priority}</span></div><p>필요 ${num(p.required)} · 투입 ${num(p.used)} · 원본 예약 ${num(p.secured)} · 현장 ${num(p.local)} · 기존 운송 ${num(p.otherIncoming)} · 계획 ${num(p.planned)} · 출발지 예약 ${num(p.reserved)} · 운송 중 ${num(p.inTransit)} · 미확보 ${num(p.shortage)}</p><p class="${p.state === 'waiting' ? 'warn' : 'dim'}">${esc(p.reason)}</p><button class="an-link" data-proc-open="${esc(p.station)}" data-proc-tab="${p.sourceKind === 'construction' ? 'build' : p.sourceKind === 'production' ? 'prod' : p.sourceKind === 'research' ? 'research' : 'yard'}">원본 작업 확인 →</button></article>`).join('')}</div>` : '<p class="dim small">현재 표시할 조달 수요가 없습니다.</p>'}</section>`;
   }
   private poolForm() {
     const w = this.c.state!, d = this.poolDraft;
@@ -208,7 +208,7 @@ export class LogisticsPanel {
     this.el.querySelectorAll<HTMLElement>('[data-lg-view]').forEach(b => b.onclick = () => { this.view = b.dataset.lgView as 'pool' | 'routes'; this.editing = false; this.error = ''; this.notice = ''; this.render(); });
     this.el.querySelectorAll<HTMLElement>('[data-pool-new]').forEach(b => b.onclick = () => this.newPoolJob());
     on('[data-proc-policy-open]', 'click', () => { this.policyEditing = !this.policyEditing; this.render(); });
-    this.el.querySelectorAll<HTMLElement>('[data-proc-open]').forEach(b => b.onclick = () => { const id = b.dataset.procOpen!, tab = b.dataset.procTab as 'build' | 'prod' | 'yard'; this.close(); this.actions.station(id, tab); });
+    this.el.querySelectorAll<HTMLElement>('[data-proc-open]').forEach(b => b.onclick = () => { const id = b.dataset.procOpen!, tab = b.dataset.procTab as 'build' | 'prod' | 'yard' | 'research'; this.close(); this.actions.station(id, tab); });
     on('[data-proc-policy-form]', 'submit', e => {
       e.preventDefault(); const f = e.target as HTMLFormElement, data = new FormData(f);
       const priceItem = String(data.get('priceItem') ?? ''), price = String(data.get('maxUnitPrice') ?? '');

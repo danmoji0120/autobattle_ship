@@ -524,9 +524,9 @@ export function charge(h: WorldSim, w: Work, amount: number, price: number, item
  * order whose work (or its goal) carries an approved budget may be supplied by purchase.
  * Returns undefined when the work system grants nothing (the legacy procurement policy still applies).
  */
-export function procurementAuthority(h: WorldSim, owner: string, station: string, kind: 'construction' | 'production' | 'ship', source: string, item: string) {
+export function procurementAuthority(h: WorldSim, owner: string, station: string, kind: 'construction' | 'production' | 'ship' | 'research', source: string, item: string) {
   if (!h.st.works) return undefined;
-  const w = findWork(h, owner, x => !terminal(x) && x.ref.station === station && (kind === 'construction' ? x.ref.module === source : kind === 'production' ? x.ref.order === source : x.ref.build === source));
+  const w = findWork(h, owner, x => !terminal(x) && x.ref.station === station && (kind === 'construction' ? x.ref.module === source : kind === 'production' ? x.ref.order === source : kind === 'research' ? x.ref.research === source : x.ref.build === source));
   if (!w) return undefined;
   const co = h.st.companies[owner], pol = opsOf(co).policy, holder = budgetHolder(h, w), b = holder.budget;
   const delegated = pol.autoBuy[item] > 0 ? pol.autoBuy[item] : 0;
@@ -1586,7 +1586,7 @@ export function adoptEngineWork(h: WorldSim) {
     if (!players.has(j.owner) || !liveJob(j)) continue;
     // a procurement shipment belongs under the construction / production / ship work it supplies
     const plan = j.procurement ? h.st.procurementPlans?.[j.procurement] : undefined;
-    const parent = plan ? findWork(h, j.owner, w => !terminal(w) && w.ref.station === plan.station && (plan.sourceKind === 'construction' ? w.ref.module === plan.sourceId || (w.kind === 'station' && h.st.stations[plan.station]?.modules.find(m => m.kind === 'core')?.id === plan.sourceId) : plan.sourceKind === 'production' ? w.ref.order === plan.sourceId : w.ref.build === plan.sourceId)) : undefined;
+    const parent = plan ? findWork(h, j.owner, w => !terminal(w) && w.ref.station === plan.station && (plan.sourceKind === 'construction' ? w.ref.module === plan.sourceId || (w.kind === 'station' && h.st.stations[plan.station]?.modules.find(m => m.kind === 'core')?.id === plan.sourceId) : plan.sourceKind === 'production' ? w.ref.order === plan.sourceId : plan.sourceKind === 'research' ? w.ref.research === plan.sourceId : w.ref.build === plan.sourceId)) : undefined;
     const from = h.st.stations[j.from]?.name ?? j.from, to = h.st.stations[j.to]?.name ?? j.to;
     adopt(j.owner, 'transport', `${plan ? '조달 · ' : ''}${itemName(j.item)} ${fmt(j.amount)} ${from} → ${to}${j.kind === 'sell' ? ' 판매' : ''}`, { job: j.id, item: j.item, station: j.to }, refKey('job', j.id),
       { mode: j.repeat ? 'repeat' : 'once', priority: j.priority, progress: { done: 0, total: j.amount }, ...(parent ? { parent: parent.id, auto: true } : plan ? { auto: true } : {}) });

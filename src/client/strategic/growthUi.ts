@@ -17,7 +17,7 @@ import { placeModules } from '../../world/fitting';
 import { hullEcon, hullBuild, hullSale, hullUpkeep, yardHulls, berthOf, berthFits } from '../../world/hullops';
 import { hullGate } from '../../world/reputation';
 import { holds, hullBlueprint, variantBlueprint, buildTech, offersAt, ownedBlueprints, bpName, SRC_NAME, FRAG_PREFIX, fragmentsNeeded } from '../../world/blueprints';
-import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld } from '../../world/upkeep';
+import { forecast, shipRate, STAGE_NAME, STAGE_AT, REACTIVATE_S, departureHeld, supplyOutlook, EMERGENCY_MUL } from '../../world/upkeep';
 import { inRecovery, earner, miner, tradeInOpen, sortieProblem, buybackProblem, buybackValue, recoveryShips, recoveryProgress, RECOVERY_SHIPS, RECOVERY_STAGE, SWAP_HULLS } from '../../world/recovery';
 import { iname, itemList } from './industryUi';
 import { hullPrice, materialReferenceCost, yardFee } from '../../world/valuation';
@@ -230,10 +230,11 @@ export function upkeepHtml(w: WorldState, me: string): string {
   const b = u?.bill;
   return `<div class="panel upk"><div class="shdr"><div class="stitle">운영비</div><button class="btn" data-upclose>✕</button></div>
     <div class="bdr">시간당 약 <b class="money">${fmt(f.perHour)} cr</b> — 선체 유지 ${fmt(f.credits)} · 관리비 ${fmt(f.overhead)} · 대형선 정박료 ${fmt(f.dock)} · 정거장 ${fmt(f.station)} · 창고 임대 ${fmt(f.lease)} · 소모품 ${fmt(f.suppliesCr)}${Object.keys(f.supplies).length ? ` (${itemList(f.supplies)})` : ''}</div>
-    <div class="dim small">소모품은 자사 창고(자사 정거장 → 본거지)에서 먼저 쓰고, 없으면 본거지 시장에서 실제 재고·가격으로 삽니다. 함선은 우주에서 일하며 마모되고, 수리 시설이 있는 곳에 정박할 때마다 자동 정비됩니다. 관리비는 함선마다 똑같이 유지비의 10%입니다 (함대를 나눠도 줄지 않음). 대형 함대의 진짜 부담은 정비 능력입니다 — 공용 정비소는 모든 회사가 나눠 쓰므로 붐비면 마모가 다 지워지지 않고, 자사 정비소·격납고가 있어야 대함대를 유지할 수 있습니다.</div>
+    ${supplyHtml(w, me)}
+    <div class="dim small">함선은 우주에서 일하며 마모되고, 수리 시설이 있는 곳에 정박할 때마다 자동 정비됩니다. 관리비는 함선마다 똑같이 유지비의 10%입니다 (함대를 나눠도 줄지 않음). 대형 함대의 진짜 부담은 정비 능력입니다 — 공용 정비소는 모든 회사가 나눠 쓰므로 붐비면 마모가 다 지워지지 않고, 자사 정비소·격납고가 있어야 대함대를 유지할 수 있습니다.</div>
     <div class="bdr">상태: <b class="${stage >= 2 ? 'warn' : stage ? 'warnish' : 'good'}">${!stage && u?.debt ? '소액 미납' : STAGE_NAME[stage]}</b>${u?.debt ? ` · 체납 <b class="warn">${moneyText(u.debt)} cr</b>` : ''}${next > 0 ? ` · 다음 단계까지 ${dur(next)}` : ''}</div>
     ${stage ? '<div class="small">체납 단계: 1 경고 → 2 보급·정비 지연(30분) → 3 정박 함선 신규 출항 보류(60분) → 4 예비역 전환 권고(120분). 운항·전투 중인 함선은 건드리지 않으며, 함선·장비는 삭제되지 않습니다. 자금이 들어오면 자동으로 갚습니다.</div>' : ''}
-    ${b ? `<div class="dim small">최근 정산: 청구 ${moneyText(b.credits + b.supplies)} cr · 지불 ${moneyText(b.paid)} cr${b.short ? ` · 미납 ${moneyText(b.short)}` : ''}${Object.keys(b.fromStore).length ? ` · 창고 사용 ${itemList(b.fromStore)}` : ''}${Object.keys(b.bought).length ? ` · 시장 구매 ${itemList(b.bought)}` : ''}</div>` : ''}
+    ${b ? `<div class="dim small">최근 정산: 청구 ${moneyText(b.credits + b.supplies)} cr · 지불 ${moneyText(b.paid)} cr${b.short ? ` · 미납 ${moneyText(b.short)}` : ''}${b.stores && Object.keys(b.stores).length ? ` · 창고 사용 ${Object.entries(b.stores).map(([id, c]) => `${esc(w.stations[id]?.name ?? id)} ${itemList(c)}`).join(', ')}` : Object.keys(b.fromStore).length ? ` · 창고 사용 ${itemList(b.fromStore)}` : ''}${Object.keys(b.bought).length ? ` · 시장 구매 ${itemList(b.bought)}` : ''}${b.emergency && Object.keys(b.emergency).length ? ` · <span class="warnish">긴급 구매 ${Object.entries(b.emergency).map(([k, e]) => `${esc(itemName(k))} ${e.n}개 × ${fmt(e.unit)} cr (${esc(e.why)})`).join(', ')}</span>` : ''}${b.lacking && Object.keys(b.lacking).length ? ` · <span class="warn">미보급 ${itemList(b.lacking)} — 운항 마모 증가</span>` : ''}</div>` : ''}
     ${u?.debt ? `<div class="bdr small"><button class="btn" data-payarrears ${co.credits <= 0 ? 'disabled' : ''}>보유 크레딧으로 미납금 납부</button> · 물품·함선 판매대금은 미납금부터 자동 정산합니다. 잔액 부족분은 보존되며 잔액을 음수로 만들지 않습니다.</div>` : ''}
     ${u?.rent?.sinceMs !== undefined && Object.values(co.leases ?? {}).some(n => n > 0) ? `<div class="warn small">창고 임대료 미납 ${moneyText(Number(u.rent.debtU) / 1e9)} cr · 추가 임대 구획 자동 해지까지 ${dur(Math.max(0, u.rent.sinceMs / 1000 + 3600 - w.time))}. 일부 납부만으로 유예 시간이 초기화되지 않습니다.</div>` : ''}
     ${u?.rent?.cancelled ? `<div class="warnish small">최근 임대 해지: 임대료 미납으로 추가 구획이 자동 해지됐습니다 (게임 시간 ${dur(u.rent.cancelled.t)}). 기존 물품은 보존됩니다. 미납 정산 후 다시 임대할 수 있습니다.</div>` : ''}
@@ -244,6 +245,19 @@ export function upkeepHtml(w: WorldState, me: string): string {
       return `<tr><td>${esc(s.name)} <span class="dim small">${esc(hullTitle(s.hull ?? `${s.classId}_mk1`))}</span></td><td class="small">${s.state === 'docked' ? '정박' : s.state === 'space' ? '운항' : esc(s.state)}${held ? ` · <span class="warn">${esc(held)}</span>` : ''}</td><td class="n">${fmt(r.credits + r.dock)}</td><td class="n">${Math.round((s.wear ?? 0) * 100)}%</td>
         <td>${recoveryButtons(w, me, s)}${s.reserve ? (s.reserve.until ? `<span class="dim small">재취역 ${dur(Math.max(0, s.reserve.until - w.time))}</span>` : `<button class="btn mini" data-reserve="${s.id}:0" title="재취역 ${REACTIVATE_S / 60}분, 2시간분 운영비">재취역</button>`) : s.state === 'docked' && !s.listed ? `<button class="btn mini" data-reserve="${s.id}:1" title="운영비 85% 절감, 출항 불가">예비역</button>` : ''}</td></tr>`;
     }).join('')}</table></div>`;
+}
+
+/** P17.4a (AUD-07/08): consumable policy, and where the next hour of consumables comes from */
+function supplyHtml(w: WorldState, me: string): string {
+  const co = w.companies[me], p = co.upkeep?.policy;
+  const o = supplyOutlook(full(w), co);
+  const src = p ? p.source : 'legacy', em = p?.emergency ?? 'allow';
+  const rows = o.map(r => `<tr><td>${esc(itemName(r.item))}</td><td class="n">${fmt(r.perHour)}</td><td class="n">${fmt(r.store)}</td><td class="n">${fmt(r.market)}${r.market ? ` <span class="dim">@${fmt(r.marketUnit)}</span>` : ''}</td><td class="n${r.emergency ? ' warnish' : ''}">${r.emergency ? `${fmt(r.emergency)} <span class="dim">@${fmt(r.emergencyUnit)}</span>` : '—'}</td><td class="n${r.lacking ? ' warn' : ''}">${r.lacking ? fmt(r.lacking) : '—'}</td><td class="small dim">${esc(r.why)}</td></tr>`).join('');
+  return `<div class="bdr small"><b>소모품 보급</b>
+    <label>보급원 <select data-supsrc><option value="local"${src === 'local' ? ' selected' : ''}>함선이 있는 성계의 자사 창고</option><option value="all"${src === 'all' ? ' selected' : ''}>모든 자사 창고</option><option value="legacy"${src === 'legacy' ? ' selected' : ''}>기존 규칙(모든 창고·긴급 구매 무제한)</option></select></label>
+    ${p ? `<label>긴급 구매 <select data-supem><option value="allow"${em === 'allow' ? ' selected' : ''}>허용</option><option value="cap"${em === 'cap' ? ' selected' : ''}>시간당 상한</option><option value="forbid"${em === 'forbid' ? ' selected' : ''}>금지</option></select></label>${em === 'cap' ? ` <label>상한 <input data-supcap type="number" min="0" step="500" value="${p.capPerHour}" style="width:6em"> cr/h</label>` : ''}` : '<select data-supem hidden><option value="allow" selected></option></select>'}
+    <div class="dim">창고 → 본거지 시장(실제 재고·가격) → 긴급 구매(기준가 ×${EMERGENCY_MUL}) 순. 긴급 구매를 막거나 상한을 넘으면 그만큼 보급되지 않고 운항 중 마모가 빨라집니다.</div>
+    ${o.length ? `<table class="gt"><tr><th>다음 1시간</th><th class="n">필요</th><th class="n">창고</th><th class="n">시장</th><th class="n">긴급</th><th class="n">미보급</th><th></th></tr>${rows}</table>` : ''}</div>`;
 }
 
 /** A-2.1: what the company can do to get out of arrears (shown only while departures are held or a recovery is open) */

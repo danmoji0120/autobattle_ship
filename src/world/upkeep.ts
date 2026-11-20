@@ -28,6 +28,7 @@ import { leaseRate, advanceRent, dockCapacity, useDock, repairPoints, serviceOf 
 import { stationUpkeep } from './stations';
 import { stationPower } from './production';
 import { stationSize } from './stations';
+import { sysAt as geoSysAt } from './geom';
 import { recoveryHold } from './recovery';
 
 export const SETTLE_DT = 60;
@@ -90,6 +91,38 @@ export function forecast(w: WorldState, co: Company): Forecast {
   return { ships: ships.length, credits, supplies, suppliesCr, dock, overhead, lease, station, officers, perHour: credits + overhead + dock + suppliesCr + lease + station + officers };
 }
 
+/** P17.4a (AUD-08): the next hour of consumables — where each comes from, what an emergency purchase would cost and
+ *  why, and what the policy would leave unsupplied. Uses the same rules as `settle` (stores, home market, policy). */
+export interface SupplyOutlook { item: string; perHour: number; store: number; market: number; marketUnit: number; emergency: number; emergencyUnit: number; emergencyCr: number; lacking: number; why: string }
+export function supplyOutlook(w: WorldState, co: Company): SupplyOutlook[] {
+  const f = forecast(w, co), stores = supplyStores(w, co), market = homeMarket(w, co);
+  let room = emergencyRoom(w, co);
+  const out: SupplyOutlook[] = [];
+  for (const [k, need] of Object.entries(f.supplies)) {
+    const perHour = Math.ceil(need - 1e-9); if (perHour <= 0) continue;
+    const store = Math.min(perHour, stores.reduce((n, st) => n + Math.floor(qty(st.storage[co.id], k) + 1e-9), 0));
+    const m = market?.market?.[k], mk = m ? Math.min(perHour - store, Math.floor(m.stock)) : 0;
+    const rest = perHour - store - mk, unit = itemPrice(k) * EMERGENCY_MUL;
+    const em = Math.min(rest, unit > 0 ? Math.floor(room / unit + 1e-9) : rest); room -= em * unit;
+    const why = rest <= 0 ? '' : !market ? '공영 시장 없음' : !m ? `${market.name} 시장에 없는 품목` : `${market.name} 시장 재고 부족`;
+    out.push({ item: k, perHour, store, market: mk, marketUnit: m ? priceOf(m, 'buy', true) : 0, emergency: em, emergencyUnit: unit, emergencyCr: em * unit, lacking: rest - em, why });
+  }
+  return out;
+}
+
+/** P17.4a: set the consumable policy (the player's explicit choice; also how an old save opts in) */
+export function setSupplyPolicy(co: Company, p: { source?: string; emergency?: string; capPerHour?: number } | null): string | null {
+  const u = upkeepOf(co);
+  if (p === null) { delete u.policy; return null; }
+  const cur = u.policy ?? { source: 'all', emergency: 'allow', capPerHour: DEFAULT_SUPPLY_POLICY.capPerHour };
+  const source = p.source ?? cur.source, emergency = p.emergency ?? cur.emergency, cap = p.capPerHour ?? cur.capPerHour;
+  if (source !== 'all' && source !== 'local') return '보급원 설정이 올바르지 않습니다';
+  if (emergency !== 'allow' && emergency !== 'cap' && emergency !== 'forbid') return '긴급 구매 설정이 올바르지 않습니다';
+  if (!Number.isFinite(cap) || cap < 0 || cap > 1e9) return '시간당 상한이 올바르지 않습니다';
+  u.policy = { source, emergency, capPerHour: Math.round(cap) };
+  return null;
+}
+
 /** the market a company buys its consumables at: its home station's, else the nearest public market */
 export function homeMarket(w: WorldState, co: Company): Station | undefined {
   const home = w.stations[co.homeStation];
@@ -120,7 +153,7 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
       // B-1: preventive maintenance slows wear; bulk mining wears equipment faster while it mines
       const ofx = w.officerV ? shipFx(w, s) : undefined;
       const om = ofx ? (1 - (ofx.wear ?? 0)) * (s.task.k === 'mine' ? 1 + (ofx.mineWear ?? 0) : 1) : 1;
-      s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : 1) * om);
+      s.wear = Math.min(1, (s.wear ?? 0) + wr * h * (u.stage >= 2 ? 2 : u.supplyShort ? SUPPLY_SHORT_WEAR : 1) * om);
     }
   }
   // B-1 officer salaries: posting, command size and a small allowance per level (unpaid → ordinary upkeep debt)
@@ -138,33 +171,69 @@ export function stepUpkeep(w: WorldState, co: Company, dt: number): UpkeepEvent[
   return out;
 }
 
+/** P17.4a: the default consumable policy a new company gets in an upkeepV world */
+export const DEFAULT_SUPPLY_POLICY = { source: 'local', emergency: 'cap', capPerHour: 5000 } as const;
+export const EMERGENCY_MUL = 2;
+export const SUPPLY_SHORT_WEAR = 1.5;
+
+/** the stores consumables may be drawn from. Legacy (no policy / 'all'): every own station, then the home store.
+ *  'local' (AUD-07): only those in a system where one of the company's active ships is — remote stock never
+ *  teleports to a fleet. */
+export function supplyStores(w: WorldState, co: Company): Station[] {
+  const own = Object.values(w.stations).filter(s => s.owner === co.id);
+  const home = w.stations[co.homeStation];
+  const all = [...own, ...(home && !own.includes(home) ? [home] : [])];
+  if (co.upkeep?.policy?.source !== 'local') return all;
+  const near = new Set<string>();
+  for (const s of Object.values(w.ships)) if (s.owner === co.id && s.classId !== 'platform' && !s.reserve) { const y = sysAt(w, s.pos); if (y) near.add(y); }
+  return all.filter(st => { const y = sysAt(w, st.pos); return !!y && near.has(y); });
+}
+const sysAt = (w: WorldState, p: WShip['pos']) => geoSysAt(w.systems, p)?.id;
+/** emergency purchase credits still allowed this hour by the policy (Infinity = legacy / allow) */
+export function emergencyRoom(w: WorldState, co: Company): number {
+  const p = co.upkeep?.policy; if (!p || p.emergency === 'allow') return Infinity;
+  if (p.emergency === 'forbid') return 0;
+  const used = (co.upkeep?.emergencyLog ?? []).filter(e => e.t > w.time - 3600).reduce((n, e) => n + e.n, 0);
+  return Math.max(0, p.capPerHour - used);
+}
+
 function settle(w: WorldState, co: Company, u: UpkeepState): UpkeepEvent[] {
   const out: UpkeepEvent[] = [];
   const delayed = u.stage >= 2;
   const fromStore: Record<string, number> = {}, bought: Record<string, number> = {};
+  const stores: Record<string, Record<string, number>> = {}, emergency: Record<string, { n: number; unit: number; why: string }> = {}, lacking: Record<string, number> = {};
   let supplyCr = 0;
   // consumables: whole units only (fractions carry over); own storage first, then the market
-  const own = Object.values(w.stations).filter(s => s.owner === co.id);
-  const home = w.stations[co.homeStation];
-  const sources = [...own, ...(home && !own.includes(home) ? [home] : [])];
+  const sources = supplyStores(w, co);
   const market = homeMarket(w, co);
+  u.emergencyLog = (u.emergencyLog ?? []).filter(e => e.t > w.time - 3600);
+  let room = emergencyRoom(w, co);
   for (const [k, owed] of Object.entries(u.supplies)) {
     let n = Math.floor(owed + 1e-9); if (n <= 0) continue;
     if (delayed) continue;   // resupply delayed: the bill keeps accruing, nothing is drawn
     for (const st of sources) {
       const S = st.storage[co.id]; const t = Math.min(n, Math.floor(qty(S, k) + 1e-9));
-      if (t > 0) { emit(w, { kind: 'consume', reason: 'upkeep', amount: t, company: co.id, station: st.id, item: k }); addc(S as Cargo, k, -t); n -= t; fromStore[k] = (fromStore[k] ?? 0) + t; }
+      if (t > 0) { emit(w, { kind: 'consume', reason: 'upkeep', amount: t, company: co.id, station: st.id, item: k }); addc(S as Cargo, k, -t); n -= t; fromStore[k] = (fromStore[k] ?? 0) + t; (stores[st.id] ??= {})[k] = ((stores[st.id] ??= {})[k] ?? 0) + t; }
       if (!n) break;
     }
     if (n > 0) {
       const m = market?.market?.[k];
       const fromM = m ? Math.min(n, Math.floor(m.stock)) : 0;
       if (fromM > 0) { const c = fromM * priceOf(m, 'buy', true); supplyCr += c; m!.stock -= fromM; fundsIn(market!, c); bought[k] = (bought[k] ?? 0) + fromM; }
-      if (n - fromM > 0) supplyCr += (n - fromM) * itemPrice(k) * 2;   // emergency procurement (no stock: double price)
-      if (n - fromM > 0) bought[k] = (bought[k] ?? 0) + n - fromM;
+      // emergency procurement (no stock: double the base price) — within the company's policy (AUD-08)
+      const rest = n - fromM, unit = itemPrice(k) * EMERGENCY_MUL;
+      if (rest > 0) {
+        const why = !market ? '공영 시장 없음' : !m ? `${market.name} 시장에 없는 품목` : `${market.name} 시장 재고 부족`;
+        const can = Math.min(rest, unit > 0 ? Math.floor(room / unit + 1e-9) : rest);
+        if (can > 0) { supplyCr += can * unit; room -= can * unit; bought[k] = (bought[k] ?? 0) + can; emergency[k] = { n: can, unit, why }; if (u.policy) u.emergencyLog.push({ t: w.time, n: can * unit }); }
+        if (rest - can > 0) lacking[k] = rest - can;
+      }
     }
     u.supplies[k] = owed - Math.floor(owed + 1e-9);
   }
+  const wasShort = !!u.supplyShort;
+  if (Object.keys(lacking).length) { u.supplyShort = true; if (!wasShort) out.push({ kind: 'warn', tag: 'upkeep', text: `소모품 미보급: ${Object.entries(lacking).map(([k, n]) => `${k} ${n}`).join(', ')} — ${u.policy?.emergency === 'forbid' ? '긴급 구매 금지 정책' : '긴급 구매 시간당 상한 도달'}. 보급될 때까지 운항 중 마모 ×${SUPPLY_SHORT_WEAR}.` }); }
+  else if (wasShort && !delayed) { delete u.supplyShort; out.push({ kind: 'info', tag: 'upkeep', text: '소모품 보급 정상화' }); }
   const rent = moneyNumber(BigInt(u.rent?.billChargeU ?? '0'));
   // Prepayments already emitted their cost when the lease was signed.
   const previousPrepaid = u.rent?.prepaidReportedU ?? '0';
@@ -178,7 +247,7 @@ function settle(w: WorldState, co: Company, u: UpkeepState): UpkeepEvent[] {
   payDebt(w, co, 'settlement');
   const f = forecast(w, co);
   const pay = moneyNumber(BigInt(u.paymentWindowU ?? '0'));
-  u.bill = { t: w.time, lease: rent, credits: moneyNumber(credit) + rent, supplies: moneyNumber(supply), dock: Math.round(f.dock), overhead: Math.round(f.overhead), fromStore, bought, paid: pay, short: u.debt, perHour: Math.round(f.perHour) };
+  u.bill = { t: w.time, lease: rent, credits: moneyNumber(credit) + rent, supplies: moneyNumber(supply), dock: Math.round(f.dock), overhead: Math.round(f.overhead), fromStore, bought, paid: pay, short: u.debt, perHour: Math.round(f.perHour), stores, emergency, lacking };
   u.paymentWindowU = '0';
   if (u.rent) u.rent.billChargeU = '0';
   // Keep the established warning thresholds, but never erase small unpaid obligations.

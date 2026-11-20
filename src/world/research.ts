@@ -125,7 +125,10 @@ export function stepResearch(stt: WorldState, co: Company, dt: number): Research
       const S = st.storage[co.id] ??= {};
       if (!hasAll(S, cost)) {
         const short = Object.entries(cost).filter(([k, n]) => qty(S, k) < n).map(([k, n]) => `${itemName(k)} ${Math.ceil(n - qty(S, k))}`);
-        p.why = `재료 부족: ${short.join(', ')}`;
+        // P17.4a (AUD-05): say what the procurement planner is doing about it (transfer / purchase / why it cannot)
+        const plans = Object.values(stt.procurementPlans ?? {}).filter(x => x.owner === co.id && x.sourceKind === 'research' && x.sourceId === p.id && x.state !== 'closed');
+        const moving = plans.filter(x => x.state === 'moving').length, why = plans.find(x => x.state === 'waiting' && x.reason)?.reason;
+        p.why = `재료 부족: ${short.join(', ')}${moving ? ' · 조달 운송 중' : ''}${why ? ` · 조달: ${why}` : plans.length ? '' : ' · 자동 조달 대상 아님(연구소·선행 연구 확인)'}`;
         continue;
       }
       for (const [k, n] of Object.entries(cost)) { addc(S, k, -n); emit(stt, { kind: 'consume', reason: 'research', amount: n, company: co.id, station: st.id, item: k }); }

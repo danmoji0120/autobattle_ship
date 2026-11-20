@@ -107,11 +107,21 @@ export interface UpkeepState {
   leaseAcc?: number;
   last: number;
   /** last settlement: what it cost and how it was covered (for the client) */
-  bill?: { t: number; lease?: number; credits: number; supplies: number; dock: number; overhead: number; fromStore: Record<string, number>; bought: Record<string, number>; paid: number; short: number; perHour: number };
+  bill?: { t: number; lease?: number; credits: number; supplies: number; dock: number; overhead: number; fromStore: Record<string, number>; bought: Record<string, number>; paid: number; short: number; perHour: number;
+    /** P17.4a (AUD-07/08): which store gave what, emergency purchases (units, unit price, why), what went unsupplied */
+    stores?: Record<string, Record<string, number>>; emergency?: Record<string, { n: number; unit: number; why: string }>; lacking?: Record<string, number> };
+  /** P17.4a (AUD-08): emergency purchase credits in the trailing hour (for the hourly cap) */
+  emergencyLog?: { t: number; n: number }[];
+  /** P17.4a: the last settlement went without some consumables (forbidden / capped emergency purchase) — wear ×1.5 */
+  supplyShort?: boolean;
   /** running totals (econsim / UI) */
   total: { credits: number; supplies: number; paid: number };
   /** let the server move idle docked ships to reserve at stage 4 (off unless the player opts in) */
   autoReserve?: boolean;
+  /** P17.4a (AUD-07/08) consumable supply policy. Absent = the legacy rule (every own store, unlimited emergency
+   *  purchase at 2×) — saves keep it until the player chooses. New worlds (upkeepV) give new companies a policy.
+   *  source 'local': only stores in a system where one of the company's ships is; emergency: allow / cap per hour / forbid */
+  policy?: { source: 'all' | 'local'; emergency: 'allow' | 'cap' | 'forbid'; capPerHour: number };
   /** A-2.1: an open recovery (회생) — started when the player first uses a recovery tool at stage ≥ 3, closed when
    *  the debt is paid. debt0 / paid0: the debt and the paid total when it started (progress for the UI) */
   recovery?: { since: number; debt0: number; paid0: number; sold?: number; swapped?: number };
@@ -683,6 +693,8 @@ export interface WorldState {
   cpuV?: number;
   /** P17.3: NPC (pirate) bands field some of the P17 hulls with their makers' computers (WorldSim.create opts.npc17 — new worlds only) */
   npc17V?: number;
+  /** P17.4a: new companies get a consumable supply policy (local stores, capped emergency purchase) */
+  upkeepV?: number;
   /** P16.3: carrier gear market rows added (migrateCarriers; only after carriers are released) */
   carrierV?: 1;
   /** P16.7: repair gear market rows stocked (new worlds under the repair switch, or the explicit migration) */

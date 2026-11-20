@@ -15,7 +15,7 @@ import { usableRouteGate, incomingRoutes } from './logistics';
 import { emit, watchMoney } from './observe';
 import { effSec } from './security';
 import { stockFloor } from './operations';
-import { saleQuote } from './procurement';
+import { saleQuote, procurementOrigin } from './procurement';
 
 export interface PoolRequest {
   from: string; to: string; item: string;
@@ -187,7 +187,7 @@ export function controlPoolJob(h: Host, owner: string, id: string, action: 'paus
     if (j.state !== 'paused') return '일시정지된 작업만 재개할 수 있습니다';
     if (j.procurementSuspended && j.procurement) {
       const p = h.st.procurementPlans?.[j.procurement], st = p && h.st.stations[p.station], policy = h.st.companies[owner]?.procurement;
-      const origin = p?.sourceKind === 'construction' ? st?.modules.find(m => m.id === p.sourceId && !m.built) : p?.sourceKind === 'production' ? st?.orders?.find(o => o.id === p.sourceId) : p?.sourceKind === 'ship' ? st?.builds?.find(b => b.id === p.sourceId && !b.started) : undefined;
+      const origin = p ? procurementOrigin(h.st, p.owner, p.station, p.sourceKind, p.sourceId) : undefined;
       if (!p || !origin || origin.paused || policy?.enabled === false || policy?.disabled[JSON.stringify([p.station, p.sourceKind, p.sourceId])]) return '원본 작업의 자동 조달을 먼저 재개하세요';
     }
     const err = problem(h, owner, j, !!j.procurement, j.reserved, !!j.ship && j.carried > EPS); if (err) return err;
