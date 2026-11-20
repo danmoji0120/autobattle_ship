@@ -1485,7 +1485,11 @@ export function workOp(h: WorldSim, owner: string, id: string, op: WorkOp, value
   }
   // pause / resume / cancel
   if (GOAL_KINDS.includes(w.kind)) {
-    if (op === 'resume') { if (w.state !== 'paused') return '일시정지된 업무만 재개할 수 있습니다'; setState(h, w, 'running', '재개'); }
+    if (op === 'resume') {
+      if (w.state !== 'paused') return '일시정지된 업무만 재개할 수 있습니다'; setState(h, w, 'running', '재개');
+      // P17.4c AUD-11: resuming a field goal is the player's choice to hand the group back — assign the goal's order again
+      if ((w.kind === 'survey_field' || w.kind === 'develop_field') && w.rt) delete (w.rt as Record<string, unknown>).issued;
+    }
     for (const c of liveChildren(h, w)) {
       if (op === 'cancel' && c.kind === 'transport') { const j = h.st.logisticsJobs?.[c.ref.job ?? '']; if (j && j.carried > EPS) continue; } // loaded cargo completes its trip
       if (op === 'resume' ? c.state === 'paused' : c.state !== 'paused' || op === 'cancel') workOp(h, owner, c.id, op);

@@ -9,7 +9,7 @@
 // is on record. Pure over the world state, so the client and the server read the same answer.
 import type { WGroup, WShip, WorldState, Op } from './types';
 
-export interface AutoHold { kind: 'route' | 'pool' | 'field' | 'mil' | 'operation'; label: string; effect: string }
+export interface AutoHold { kind: 'route' | 'pool' | 'field' | 'mil' | 'operation'; label: string; effect: string; /** the route / work / contract id */ ref?: string }
 
 const OP_LABEL: Record<string, string> = {
   mine: '채굴', haul: '수송', patrol: '순찰', escort: '호위', build: '건설 지원', salvzone: '구역 인양', recover: '잔해 인양',
@@ -57,7 +57,7 @@ export function automationHolds(w: Pick<WorldState, 'groups' | 'ships' | 'logist
   for (const k of Object.values(w.contracts ?? {})) {
     const m = (k as { mil?: { group?: string } }).mil;
     if (!m || k.done || k.takenBy !== owner || (m.group !== g.id && m.group !== root.id)) continue;
-    out.push({ kind: 'mil', label: `군사 계약 · ${k.title}`, effect: '함대가 계약 작전에서 이탈 — 계약은 유지되며 기한 안에 다시 투입하지 않으면 실패(보증금·평판 손실)' });
+    out.push({ kind: 'mil', ref: k.id, label: `군사 계약 · ${k.title}`, effect: '함대가 계약 작전에서 이탈 — 계약은 유지되며 기한 안에 다시 투입하지 않으면 실패(보증금·평판 손실). 계약이 끝나도 계약 전 명령으로 되돌리지 않고 이 명령을 유지' });
   }
   // a running continuous operation (mining, salvage zone, repair business…) ends
   if (!sel.ship && CONTINUOUS.has(op.k) && !out.some(x => x.kind === 'route')) out.push({ kind: 'operation', label: `${root.name} · ${OP_LABEL[op.k] ?? op.k} 운영`, effect: '운영 종료 — 새 명령으로 대체되며 자동으로 되돌아가지 않음' });

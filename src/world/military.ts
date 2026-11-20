@@ -79,6 +79,11 @@ export interface MilTerms {
   risk: number; est: number; power: number; jumps: number;
   /** the fleet the taker committed (explicit consent) */
   group?: string;
+  /** P17.4c AUD-10: the fleet's order before the contract first sent it out (restored when the contract ends);
+   *  `prevFollow` = it was following its parent formation's order */
+  prevOp?: Op; prevFollow?: boolean;
+  /** P17.4c AUD-10: when the player last gave the fleet a manual order during the contract (then nothing is restored) */
+  overridden?: number;
   t0?: number;
   duty?: number;
   visits?: number[];
@@ -393,7 +398,30 @@ export function milDispatch(h: Host, company: string, contractId: unknown): stri
   const g = k.mil.group ? h.st.groups[k.mil.group] : undefined;
   if (!g || g.owner !== company) return '투입 함대를 찾을 수 없습니다';
   const op = milOrder(h, k); if (!op) return '작전 대상이 없습니다';
-  return h.command(company, { c: 'setOp', group: g.id, op });
+  // P17.4c AUD-10: remember the order the contract interrupts (once — a re-sortie keeps the original)
+  const prev = k.mil.prevOp === undefined && k.mil.prevFollow === undefined ? { op: structuredClone(g.op), follow: !g.override && !!g.parentId } : undefined;
+  const err = h.command(company, { c: 'setOp', group: g.id, op });
+  if (err) return err;
+  if (prev) { if (prev.follow) k.mil.prevFollow = true; else k.mil.prevOp = prev.op; }
+  delete k.mil.overridden;   // the contract's own sortie (and a player's re-sortie) hands the fleet back to the contract
+  return null;
+}
+
+/**
+ * P17.4c AUD-10: when a contract ends, its fleet goes back to the order it had before the contract — unless the
+ * player gave the fleet a manual order during the contract (that order stands; the player's latest decision wins).
+ * An order that can no longer be given (its target is gone) leaves the fleet idle, with the reason logged.
+ */
+export function restorePriorOrder(h: Host, k: Contract & { mil: MilTerms }) {
+  const m = k.mil, c = k.takenBy, g = m.group ? h.st.groups[m.group] : undefined;
+  if (!c || !g || g.owner !== c || (m.prevOp === undefined && !m.prevFollow)) return;
+  if (m.overridden !== undefined) { h.ev('info', `${g.name}: 계약 중 내린 직접 명령을 유지합니다 (계약 전 명령으로 되돌리지 않음)`, { company: c, tag: 'mil' }); return; }
+  const prev = m.prevOp, what = m.prevFollow ? '상위 편대 지휘' : prev!.k === 'idle' ? '대기' : prev!.k;
+  delete m.prevOp; delete m.prevFollow;
+  if (prev?.k === 'found') { h.command(c, { c: 'setOp', group: g.id, op: { k: 'idle' } }); h.ev('warn', `${g.name}: 계약 전 정거장 설립 명령은 자동으로 되살리지 않습니다 — 대기`, { company: c, tag: 'mil' }); return; }
+  const err = m.prevFollow ? h.command(c, { c: 'release', group: g.id }) : h.command(c, { c: 'setOp', group: g.id, op: prev! });
+  if (err) { h.command(c, { c: 'setOp', group: g.id, op: { k: 'idle' } }); h.ev('warn', `${g.name}: 계약 전 명령(${what})으로 돌아갈 수 없어 대기 — ${err}`, { company: c, tag: 'mil' }); return; }
+  h.ev('info', `${g.name}: 계약 종료 — 계약 전 명령(${what})으로 복귀`, { company: c, tag: 'mil' });
 }
 
 export function milCancel(h: Host, company: string, contractId: unknown): string | null {
@@ -699,6 +727,7 @@ export function settle(h: Host, k: Contract & { mil: MilTerms }, ok: boolean, wh
   if (ok && co && !co.milestones.includes('first_contract')) h.milestone(co, 'first_contract');
   if (ok && co && !co.milestones.includes('first_mil')) co.milestones.push('first_mil');
   if (co) milFirstProfit(h, co);
+  restorePriorOrder(h, k);
 }
 
 /** B-2 first business of a security / veteran start: a completed military contract, then cash above the founding funds */

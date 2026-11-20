@@ -841,7 +841,7 @@ export class WorldSim {
       }
     }
     // P17.4b AUD-15: automatic work this order takes over (recorded once the order is accepted)
-    const holds = growthOn(this.st) && ['setOp', 'release', 'setParent', 'deleteGroup', 'moveShip', 'unloadCargo'].includes(cmd.c)
+    const holds = (growthOn(this.st) || milOn(this.st)) && ['setOp', 'release', 'setParent', 'deleteGroup', 'moveShip', 'unloadCargo'].includes(cmd.c)
       ? automationHolds(this.st, company, { group: 'group' in cmd && typeof cmd.group === 'string' ? cmd.group : undefined, ship: 'ship' in cmd && typeof cmd.ship === 'string' ? cmd.ship : undefined }, cmd.c === 'setOp' ? cmd.op : undefined) : [];
     const opsBefore = growthOn(this.st) ? opsSnapshot(this, company, cmd) : undefined, bookedBefore = bookedSoFar(this.st, company);
     return watchMoney(this.st, cmd.c, meta, () => {
@@ -853,6 +853,8 @@ export class WorldSim {
         registerCommand(this, company, cmd, opsBefore);
       }
       if (!err && manual.length) pauseManualRoutes(this, manual);
+      // P17.4c AUD-10: a manual order during a military contract stands when the contract ends (no restore over it)
+      if (!err) for (const x of holds) if (x.kind === 'mil' && x.ref) { const k = this.st.contracts[x.ref]; if (isMil(k)) k.mil.overridden = this.time; }
       if (!err && holds.length) this.ev('info', `명령 우선 — 자동 업무 중단: ${holds.map(x => `${x.label} (${x.effect.split(' — ')[0]})`).join(', ')}`, { company });
       if (!err && poolManual.length) { interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존'); for (const s of poolManual) delete s.repairAt; }
       if (!err && growthOn(this.st)) {

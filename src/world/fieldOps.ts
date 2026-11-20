@@ -6,7 +6,7 @@
 //   develop_field  continuous mining with delivery/sale, miner top-up via a child fleet goal,
 //                  tracking of units mined and their estimated value, and a list of current problems
 import type { WorldSim } from './sim';
-import type { Field } from './types';
+import type { Field, Op } from './types';
 import { econOf } from './hullops';
 import { effSec } from './security';
 import { sysAt } from './geom';
@@ -65,22 +65,42 @@ function minedSince(now: Record<string, number>, start: Record<string, number>) 
 }
 const sum = (c: Record<string, number>) => Object.values(c).reduce((a, b) => a + b, 0);
 
-/** ensure the group is mining the deposit with the goal's delivery; returns a status or error text */
-function ensureMining(x: FieldGoalHost, g: FieldGoal, sell: boolean): string | null {
+/**
+ * P17.4c AUD-11: the goal's mining order, compared on every setting it controls — the deposit, the unloading station
+ * (or automatic unloading), and the sale flag. Before, only the deposit was compared: a group already mining the field
+ * with another station or sale setting counted as "assigned", and a player's later change of those settings went
+ * unnoticed (the goal reported progress for an order it no longer matched).
+ */
+function mineConflict(h: WorldSim, op: Op, g: FieldGoal, sell: boolean): string | null {
+  if (op.k !== 'mine') return op.k === 'idle' ? '편대 대기 명령' : `다른 명령(${op.k})`;
+  const parts: string[] = [];
+  if (op.field !== g.field) parts.push(`광구 ${h.st.fields[op.field]?.name ?? op.field}`);
+  const st = (id?: string) => (id && h.st.stations[id]?.name) || id || '없음';
+  if (g.deliver) { if (op.auto || op.deliver !== g.deliver) parts.push(`하역지 ${op.auto ? '자동' : st(op.deliver)} (목표: ${st(g.deliver)})`); }
+  else if (!op.auto) parts.push(`하역지 ${st(op.deliver)} 고정 (목표: 자동 하역)`);
+  if (!!op.sell !== sell) parts.push(`하역 판매 ${op.sell ? '켜짐' : '꺼짐'} (목표: ${sell ? '켜짐' : '꺼짐'})`);
+  return parts.length ? parts.join(', ') : null;
+}
+
+/** ensure the group is mining the deposit with the goal's delivery and sale settings; returns null when it is,
+ *  `{ changed }` when the player has since given the group a different order (the goal pauses, never fights it),
+ *  or an error text */
+function ensureMining(x: FieldGoalHost, g: FieldGoal, sell: boolean): string | { changed: string } | null {
   const grp = x.h.st.groups[g.group]; if (!grp) return '편대 소실';
-  const op = grp.op;
-  if (op.k === 'mine' && op.field === g.field) return null;
-  if (x.rt.issued && x.rt.issuedOp !== undefined) {
-    // the player gave the group another order: do not fight the player, pause the goal
-    return 'changed';
-  }
+  const conflict = mineConflict(x.h, grp.op, g, sell);
+  // a group already running exactly the goal's order is the goal's from now on: a later change is the player's
+  if (!conflict) { x.rt.issued = true; x.rt.issuedOp = 'mine'; return null; }
+  // the goal assigned the order before and it no longer matches: the player changed it — do not fight the player
+  if (x.rt.issued) return { changed: conflict };
   const deliver = g.deliver ?? '';
+  const prior = grp.op.k === 'mine' ? ` — 기존 채굴 설정(${conflict})을 목표 설정으로 교체` : grp.op.k !== 'idle' ? ` — 기존 ${conflict}을 목표로 교체` : '';
   const err = x.cmd({ c: 'setOp', group: g.group, op: { k: 'mine', field: g.field, deliver, sell, auto: !deliver } });
   if (err) return err;
   x.rt.issued = true; x.rt.issuedOp = 'mine';
-  x.log(`${grp.name}: ${x.h.st.fields[g.field]?.name} 채굴 배정`);
+  x.log(`${grp.name}: ${x.h.st.fields[g.field]?.name} 채굴 배정${prior}`);
   return null;
 }
+const changedText = (c: { changed: string }) => `편대 명령이 목표와 다름: ${c.changed} — 플레이어 명령 우선, 재개하면 목표 설정으로 다시 배정`;
 
 export function runFieldGoal(x: FieldGoalHost, g: FieldGoal) {
   const h = x.h, f = h.st.fields[g.field];
@@ -107,14 +127,14 @@ export function runFieldGoal(x: FieldGoalHost, g: FieldGoal) {
       return x.setState('done', '');
     }
     const m = ensureMining(x, g, false);
-    if (m === 'changed') return x.setState('paused', '편대에 다른 명령이 내려짐 — 재개하면 다시 배정');
+    if (m && typeof m === 'object') return x.setState('paused', changedText(m));
     if (m) return x.setState('waiting', m);
     const here = minersOf(h, g.group).some(s => sysAt(h.st.systems, s.pos)?.id === sys?.id);
     return x.setState('running', here ? `시험 채굴 중 ${Math.floor(n)}/${g.samples}` : '광구로 이동 중');
   }
   // develop_field
   const m = ensureMining(x, g, g.sell);
-  if (m === 'changed') return x.setState('paused', '편대에 다른 명령이 내려짐 — 재개하면 다시 배정');
+  if (m && typeof m === 'object') return x.setState('paused', changedText(m));
   if (m) return x.setState('waiting', m);
   const problems: string[] = [];
   const miners = minersOf(h, g.group);
