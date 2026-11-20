@@ -11,6 +11,8 @@ import { morph, trackSelects } from '../../ui/morph';
 import { qty } from '../../world/types';
 import { priceOf } from '../../world/market';
 import { fieldPanelHtml } from './territoryUi';
+import { saleSearchHtml, transferButtons, type SaleSearchState } from './saleSearchUi';
+import { waitCode, waitActions, WAIT_NAME } from '../../world/waitCode';
 import { econOf } from '../../world/hullops';
 import { companyPiracyHtml } from './piracyUi';
 import { companyLawHtml } from './lawUi';
@@ -31,6 +33,8 @@ export class OperationsPanel {
   private el = document.createElement('div');
   private tab: Tab = 'hq'; private closed = false; private busy = false; private error = ''; private notice = '';
   private search = ''; private stateFilter = 'live'; private kindFilter = ''; private open = new Set<string>(); private item = '';
+  /** P17.4b AUD-04: sale search inputs per item (kept across snapshot re-renders) */
+  private saleQ: Record<string, SaleSearchState> = {};
   private scope: Record<string, ApprovalScope> = {}; private goalKind: GoalSpec['k'] = 'stockpile'; private formOpen = false;
   private onSnap = () => this.render();
   private key = (e: KeyboardEvent) => { if (e.code === 'Escape') { e.stopImmediatePropagation(); this.close(); } };
@@ -41,7 +45,7 @@ export class OperationsPanel {
     this.el.onkeydown = e => e.stopPropagation();
     this.el.onclick = e => this.click(e);
     this.el.oninput = e => { const t = e.target as HTMLInputElement; if (t.dataset.search !== undefined) { this.search = t.value; this.render(); } };
-    this.el.onchange = e => { const t = e.target as HTMLSelectElement; if (t.dataset.filter === 'state') this.stateFilter = t.value; else if (t.dataset.filter === 'kind') this.kindFilter = t.value; else if (t.dataset.scope) this.scope[t.dataset.scope] = t.value as ApprovalScope; else if (t.dataset.goalkind !== undefined) this.goalKind = t.value as GoalSpec['k']; else if (t.dataset.pirDefault !== undefined) { void this.send({ c: 'piracyPolicy', policy: t.value as 'survive' | 'balanced' | 'protect' }, '화물 요구 대응 기본값을 저장했습니다'); return; } else if (t.dataset.prio) { void this.send({ c: 'workOp', work: t.dataset.prio, op: 'priority', value: Number(t.value) }, '우선순위를 바꿨습니다'); return; } else return; this.render(); };
+    this.el.onchange = e => { const t = e.target as HTMLSelectElement; if (t.dataset.filter === 'state') this.stateFilter = t.value; else if (t.dataset.filter === 'kind') this.kindFilter = t.value; else if (t.dataset.scope) this.scope[t.dataset.scope] = t.value as ApprovalScope; else if (t.dataset.goalkind !== undefined) this.goalKind = t.value as GoalSpec['k']; else if (t.dataset.pirDefault !== undefined) { void this.send({ c: 'piracyPolicy', policy: t.value as 'survive' | 'balanced' | 'protect' }, '화물 요구 대응 기본값을 저장했습니다'); return; } else if (t.dataset.saleQ && this.item) { const q = this.saleQ[this.item]; if (q) { const k = t.dataset.saleQ as keyof SaleSearchState; (q as any)[k] = k === 'amount' || k === 'minPrice' ? Math.max(0, Number(t.value) || 0) : t.value; } } else if (t.dataset.prio) { void this.send({ c: 'workOp', work: t.dataset.prio, op: 'priority', value: Number(t.value) }, '우선순위를 바꿨습니다'); return; } else return; this.render(); };
     root.appendChild(this.el); trackSelects(this.el); c.onSnap.push(this.onSnap); window.addEventListener('keydown', this.key, true); this.render(); this.el.focus();
   }
   close() { if (this.closed) return; this.closed = true; const i = this.c.onSnap.indexOf(this.onSnap); if (i >= 0) this.c.onSnap.splice(i, 1); window.removeEventListener('keydown', this.key, true); this.el.remove(); this.actions.close(); document.getElementById('opsBtn')?.focus(); }
@@ -124,6 +128,9 @@ export class OperationsPanel {
         const station = this.val('inv-market'), amount = this.numv('inv-amount'); if (!station || !(amount > 0)) { this.error = '시장과 수량을 입력하세요'; return this.render(); }
         return void this.send({ c: 'sell', station, res: id, amount }, '판매했습니다');
       }
+      case 'sale-here': return void this.send({ c: 'sell', station: b.dataset.st!, res: id, amount: Number(b.dataset.n) }, '판매했습니다');
+      case 'sale-ship': return void this.send({ c: 'poolCreate', request: { from: b.dataset.from!, to: b.dataset.st!, item: id, kind: 'sell', amount: Number(b.dataset.n), priority: 5, repeat: false } }, '판매 운송을 등록했습니다 — 공용 수송선이 싣고 가서 팝니다');
+      case 'xfer': return void this.send({ c: 'poolCreate', request: { from: b.dataset.from!, to: b.dataset.st!, item: id, kind: 'transfer', amount: Number(b.dataset.n), priority: 5, repeat: false } }, '이송 업무를 등록했습니다 — 물류 탭·업무 탭에서 진행을 볼 수 있습니다');
       case 'inv-move': {
         const from = this.val('inv-from'), to = this.val('inv-station'), amount = this.numv('inv-amount'); if (!from || !to || from === to || !(amount > 0)) { this.error = '출발·도착 정거장과 수량을 확인하세요'; return this.render(); }
         return void this.send({ c: 'poolCreate', request: { from, to, item: id, kind: 'transfer', amount, priority: 5, repeat: false } }, '운송 업무를 등록했습니다');
@@ -192,24 +199,34 @@ export class OperationsPanel {
 
   /** what the player can do about a waiting work, derived from its reason */
   private fixes(x: Work): string {
+    // P17.4b AUD-09: the server classifies every wait (x.wait.code, since when); the generic recovery actions come from
+    // that code, and the specific shortcuts (facility / stockpile goals) are added from the reason's details
     const why = x.reason ?? '', st = x.ref.station ?? (x.goal && 'station' in x.goal ? x.goal.station : undefined), out: string[] = [];
+    const code = x.wait?.code ?? (x.state === 'waiting' ? waitCode(why) : undefined);
     const ap = this.approvals().find(a => a.work === x.id && a.state === 'open');
-    if (ap || /결재/.test(why)) out.push(`<button class="btn go" data-a="goto" data-id="finance">결재함에서 결정</button>`);
-    if (/수송선|배차|함선을 참여/.test(why)) out.push(`<button class="btn" data-a="logistics">물류 관리 — 수송선 참여</button>`);
+    const item = x.ref.item ?? (x.goal && 'item' in x.goal ? x.goal.item as string : undefined);
+    const seen = new Set<string>();
+    const add = (key: string, html: string) => { if (!seen.has(key)) { seen.add(key); out.push(html); } };
+    if (ap) add('finance', `<button class="btn go" data-a="goto" data-id="finance">결재함에서 결정</button>`);
+    for (const a of code ? waitActions(code, { station: st && this.w.stations[st] ? st : undefined, item }) : []) {
+      const html = a.go === 'logistics' ? `<button class="btn" data-a="logistics">${esc(a.label)}</button>`
+        : a.go === 'market' || a.go === 'store' ? `<button class="btn" data-a="station" data-id="${st}" data-tab="${a.go === 'store' && this.w.stations[st!]?.owner === this.me && code === 'storage' ? 'build' : a.go}">${esc(a.go === 'store' && this.w.stations[st!]?.owner === this.me && code === 'storage' ? '창고 증설' : a.label)}</button>`
+        : a.go === 'sale' ? `<button class="btn" data-a="goto" data-id="stock" data-item="${item}">${esc(a.label)}</button>`
+        : `<button class="btn${a.go === 'finance' && code === 'approval' ? ' go' : ''}" data-a="goto" data-id="${a.go}"${a.go === 'stock' && item ? ` data-item="${item}"` : ''}>${esc(a.label)}</button>`;
+      add(a.go === 'finance' && code === 'approval' ? 'finance' : `${a.go}:${a.label}`, html);
+    }
     const fac = /(\S+) 필요\)/.exec(why) ?? /(\S+) 없음/.exec(why);
     const facKind = fac ? Object.values(MODULES).find(m => why.includes(m.name))?.kind : undefined;
-    if (facKind && st && this.w.stations[st]?.owner === this.me) out.push(`<button class="btn" data-a="quick-fac" data-id="${facKind}" data-st="${st}">${esc(MODULES[facKind].name)} 건설 목표</button>`);
+    if (facKind && st && this.w.stations[st]?.owner === this.me) add(`fac:${facKind}`, `<button class="btn" data-a="quick-fac" data-id="${facKind}" data-st="${st}">${esc(MODULES[facKind].name)} 건설 목표</button>`);
     const short = /(?:원료 부족|자재 확보 중|부품 부족|조달)[: ]+([^·;]+)/.exec(why);
     if (short && st) {
-      const item = Object.keys(ITEMS).find(i => short[1].includes(ITEMS[i].name));
-      if (item) out.push(`<button class="btn" data-a="quick-stock" data-id="${item}" data-st="${st}">${esc(ITEMS[item].name)} 비축 목표</button><button class="btn" data-a="goto" data-id="stock" data-item="${item}">재고 위치 보기</button>`);
+      const it = Object.keys(ITEMS).find(i => short[1].includes(ITEMS[i].name));
+      if (it) add(`stock:${it}`, `<button class="btn" data-a="quick-stock" data-id="${it}" data-st="${st}">${esc(ITEMS[it].name)} 비축 목표</button><button class="btn" data-a="goto" data-id="stock" data-item="${it}">재고 위치 보기</button>`);
     }
-    if (/공간|창고 가득|보관/.test(why) && st) out.push(`<button class="btn" data-a="station" data-id="${st}" data-tab="${this.w.stations[st]?.owner === this.me ? 'build' : 'store'}">${this.w.stations[st]?.owner === this.me ? '창고 증설' : '보관함 정리'}</button>`);
-    if (/전력/.test(why) && st) out.push(`<button class="btn" data-a="station" data-id="${st}" data-tab="build">발전소 건설</button>`);
-    if (/연구 필요|설계 연구/.test(why)) out.push(`<button class="btn" data-a="goto" data-id="research">연구 현황</button>`);
-    if (/자금 부족|최소 잔액|최소 보유/.test(why)) out.push(`<button class="btn" data-a="goto" data-id="finance">재무·정책 확인</button>`);
-    if (x.kind === 'operation' && /배속된 함선 없음/.test(why)) out.push('<span class="dim">함대 패널에서 이 부대에 함선을 배속하세요</span>');
-    return out.length ? `<div class="lg-card-actions ops-fix"><span class="dim">해결</span>${out.join('')}</div>` : '';
+    if (/전력/.test(why) && st) add('power', `<button class="btn" data-a="station" data-id="${st}" data-tab="build">발전소 건설</button>`);
+    if (x.kind === 'operation' && /배속된 함선 없음/.test(why)) add('assign', '<span class="dim">함대 패널에서 이 부대에 함선을 배속하세요</span>');
+    const head = code ? `<span class="dim">${esc(WAIT_NAME[code])}${x.wait ? ` · ${ago(this.w.time, x.wait.since).replace(' 전', '째')}` : ''}</span>` : '<span class="dim">해결</span>';
+    return out.length || code ? `<div class="lg-card-actions ops-fix">${head}${out.join('')}</div>` : '';
   }
 
   private hq() {
@@ -273,17 +290,23 @@ export class OperationsPanel {
       ${top.length ? top.map(x => this.workRow(x)).join('') : '<p class="lg-empty">조건에 맞는 업무가 없습니다. 시장에서 사고팔거나, 건설·생산·연구를 주문하면 자동으로 업무가 됩니다.</p>'}`;
   }
 
+  private saleSearch(r: InventoryRow): string {
+    const best = [...r.stations].sort((a, b) => b.available - a.available)[0];
+    const q = this.saleQ[r.item] ??= { from: best?.station ?? '', amount: Math.max(1, Math.floor(best?.available ?? 1)), minPrice: this.w.companies[this.me]?.procurement?.sales?.[r.item]?.minPrice ?? 0, strategy: this.w.companies[this.me]?.procurement?.sales?.[r.item]?.strategy ?? 'local' };
+    const from = this.w.stations[q.from] ?? (best ? this.w.stations[best.station] : undefined);
+    return saleSearchHtml(this.w, this.me, r.item, from, q);
+  }
   private stockTab() {
     const w = this.w, rows = companyInventory(w as never, this.me).filter(r => r.total > 0.5 || r.target > 0 || r.planned > 0 || r.consumption > 0.5);
     const usable = Object.values(w.stations).filter(s => s.owner === this.me || s.public), markets = Object.values(w.stations).filter(s => s.public && s.market);
     const sel = (name: string, list: typeof usable, pick?: string) => `<select data-keep name="${name}">${list.map(s => `<option value="${s.id}" ${s.id === pick ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select>`;
     const detail = (r: InventoryRow) => `<tr class="ops-detail"><td colspan="10"><div class="ops-inv-detail">
-      <div><h4>보관 위치</h4>${r.stations.map(s => `<p><button class="an-link" data-a="station" data-id="${s.station}" data-tab="store">${esc(this.stationName(s.station))}</button> 보관 ${n0(s.stored)} · 예약 ${n0(s.reserved)} · 가용 ${n0(s.available)}${s.protected ? ` · 보호 ${n0(s.protected)}` : ''}</p>`).join('') || '<p class="dim">없음</p>'}</div>
+      <div><h4>보관 위치</h4>${r.stations.map(s => `<p><button class="an-link" data-a="station" data-id="${s.station}" data-tab="store">${esc(this.stationName(s.station))}</button> 보관 ${n0(s.stored)} · 예약 ${n0(s.reserved)} · 가용 ${n0(s.available)}${s.protected ? ` · 보호 ${n0(s.protected)}` : ''}</p>${s.available >= 1 ? `<div class="lg-card-actions">${transferButtons(w, this.me, r.item, s.station, s.available)}</div>` : ''}`).join('') || '<p class="dim">없음</p>'}</div>
       <div><h4>비축 목표</h4>${r.works.map(id => w.works?.[id]).filter(x => x?.goal?.k === 'stockpile').map(x => `<p>${esc(x!.title)} — ${STATE_NAME[x!.state]}${x!.reason ? ` · ${esc(x!.reason)}` : ''}</p>`).join('') || '<p class="dim">없음 — 아래에서 정할 수 있습니다</p>'}
         <h4>운송 중</h4>${r.ships.map(s => `<p>${esc(w.ships[s.ship]?.name ?? s.ship)} ${n0(s.amount)}${s.to ? ` → ${esc(this.stationName(s.to))}` : ''}</p>`).join('') || '<p class="dim">없음</p>'}
         <h4>관련 업무</h4>${r.works.map(id => w.works?.[id]).filter(x => x && x.goal?.k !== 'stockpile').map(x => `<p>${esc(x!.title)} — ${STATE_NAME[x!.state]}</p>`).join('') || '<p class="dim">없음</p>'}</div>
       <div><h4>처리</h4><div class="proc-policy-grid"><label>정거장${sel('inv-station', usable, r.stations[0]?.station)}</label><label>출발 (운송)${sel('inv-from', usable, r.stations.find(s => s.available > 0)?.station)}</label><label>시장${sel('inv-market', markets)}</label><label>수량<input type="number" name="inv-amount" min="1" value="100"></label><label>비축 목표<input type="number" name="inv-target" min="1" value="${Math.max(r.target, Math.ceil(r.total))}"></label></div>
-        <div class="lg-card-actions"><button class="btn" data-a="inv-buy" data-id="${r.item}">구매</button><button class="btn" data-a="inv-sell" data-id="${r.item}">판매</button><button class="btn" data-a="inv-move" data-id="${r.item}">운송 요청</button><button class="btn go" data-a="inv-stock" data-id="${r.item}">비축 목표 설정</button></div></div></div></td></tr>`;
+        <div class="lg-card-actions"><button class="btn" data-a="inv-buy" data-id="${r.item}">구매</button><button class="btn" data-a="inv-sell" data-id="${r.item}">판매</button><button class="btn" data-a="inv-move" data-id="${r.item}">운송 요청</button><button class="btn go" data-a="inv-stock" data-id="${r.item}">비축 목표 설정</button></div></div>${this.saleSearch(r)}</div></td></tr>`;
     return `<p class="dim ops-note">각 수량은 한 곳에만 집계됩니다 — 보관(자유 재고) · 예약(운송·건설에 묶임) · 운송 중(함선 화물) · 거래소 등록. 회사 총량 = 보관 + 예약 + 운송 중 + 등록. 가용 = 보관 중 보호·출고 예정분을 뺀 양. 생산·소비 예정과 비축 목표는 총량에 더하지 않습니다.</p>
       <div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>품목</th><th>회사 총량</th><th>위치</th><th>가용</th><th>예약</th><th>운송 중</th><th>생산 예정</th><th>소비 예정</th><th>비축 목표</th><th>부족·잉여</th></tr></thead><tbody>
       ${rows.map(r => `<tr class="${r.shortage > 0 ? 'warn' : ''}" data-a="item" data-id="${r.item}"><td><button class="an-link">${esc(itemName(r.item))}</button></td><td>${n0(r.total)}</td><td>${r.stations.filter(s => s.stored + s.reserved > 0.5).length ? `${esc(this.stationName([...r.stations].sort((a, b) => b.stored - a.stored)[0].station))}${r.stations.filter(s => s.stored + s.reserved > 0.5).length > 1 ? ` 외 ${r.stations.filter(s => s.stored + s.reserved > 0.5).length - 1}곳` : ''}` : r.inTransit ? '운송 중' : '—'}</td><td>${n0(r.available)}</td><td>${n0(r.reserved)}</td><td>${n0(r.inTransit)}</td><td>${n0(r.planned)}</td><td>${n0(r.consumption)}</td><td>${r.target ? n0(r.target) : '—'}</td><td>${r.shortage > 0 ? `<b class="warn">−${n0(r.shortage)}</b>` : r.surplus > 0 ? `<span class="good">+${n0(r.surplus)}</span>` : '—'}</td></tr>${this.item === r.item ? detail(r) : ''}`).join('') || '<tr><td colspan="10" class="dim">보유 재고가 없습니다</td></tr>'}</tbody></table></div>`;

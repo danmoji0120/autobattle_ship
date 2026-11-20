@@ -7,6 +7,7 @@
 // through `WorldSim.command`, so every rule, price, capacity and ownership check of the
 // original systems still applies. Approvals (결재) are raised only where automatic work would
 // spend money without authority or take a risk the company has not accepted.
+import { waitCode, type WaitCode } from './waitCode';
 import { territoryRisk } from './territory';
 import { validateFieldGoal, runFieldGoal, type FieldGoal } from './fieldOps';
 import type { WorldSim, Cmd } from './sim';
@@ -80,6 +81,8 @@ export interface Work {
   /** credits received (sales) */
   income?: number;
   result?: string;
+  /** P17.4b AUD-09: kind of block while waiting and since when (cleared when the work stops waiting) */
+  wait?: { code: WaitCode; since: number };
   log: { t: number; text: string }[];
   /** goal runtime state (persisted so a restart resumes exactly) */
   rt?: {
@@ -193,6 +196,9 @@ export function note(w: Work, t: number, text: string) {
 function setState(h: WorldSim, w: Work, state: WorkState, reason: string) {
   if (w.state !== state || w.reason !== reason) { w.updated = h.time; if (w.state !== state) note(w, h.time, `${STATE_NAME[state]}${reason ? ` — ${reason}` : ''}`); }
   w.state = state; w.reason = reason;
+  // P17.4b AUD-09: a structured code and start time for the current block (advisory; the reason text stays the source)
+  if (state === 'waiting') { const code = waitCode(reason); if (w.wait?.code !== code) w.wait = { code, since: h.time }; }
+  else if (w.wait) delete w.wait;
   if (terminal(w) && w.finished === undefined) {
     w.finished = h.time;
     for (const a of Object.values(h.st.approvals ?? {})) if (a.work === w.id && a.state === 'open') { a.state = 'resolved'; a.note = '업무 종료로 결재 불필요'; a.updated = h.time; }

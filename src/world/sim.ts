@@ -49,6 +49,7 @@ import { firstProfitReached, pnlSinceFounding } from './firstBusiness';
 import type { Background, BackgroundTerm } from './backgrounds';
 import { rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
+import { automationHolds } from './automationHolds';
 import { deliverFromStore } from './contractDelivery';
 import { setSupplyPolicy, DEFAULT_SUPPLY_POLICY } from './upkeep';
 import { stepUpkeep, departureHeld, maintainOnDock, upkeepOf, shipRate, REACTIVATE_S } from './upkeep';
@@ -839,6 +840,9 @@ export class WorldSim {
         const r = this.st.logistics?.[id], g = r && this.st.groups[r.group]; if (r?.owner === company && g) poolManual.push(...this.subtreeShipsInOp(g, true));
       }
     }
+    // P17.4b AUD-15: automatic work this order takes over (recorded once the order is accepted)
+    const holds = growthOn(this.st) && ['setOp', 'release', 'setParent', 'deleteGroup', 'moveShip', 'unloadCargo'].includes(cmd.c)
+      ? automationHolds(this.st, company, { group: 'group' in cmd && typeof cmd.group === 'string' ? cmd.group : undefined, ship: 'ship' in cmd && typeof cmd.ship === 'string' ? cmd.ship : undefined }, cmd.c === 'setOp' ? cmd.op : undefined) : [];
     const opsBefore = growthOn(this.st) ? opsSnapshot(this, company, cmd) : undefined, bookedBefore = bookedSoFar(this.st, company);
     return watchMoney(this.st, cmd.c, meta, () => {
       const err = this.executeCommand(company, cmd);
@@ -849,6 +853,7 @@ export class WorldSim {
         registerCommand(this, company, cmd, opsBefore);
       }
       if (!err && manual.length) pauseManualRoutes(this, manual);
+      if (!err && holds.length) this.ev('info', `명령 우선 — 자동 업무 중단: ${holds.map(x => `${x.label} (${x.effect.split(' — ')[0]})`).join(', ')}`, { company });
       if (!err && poolManual.length) { interruptPoolShips(this, poolManual, '수동 명령 우선 — 기존 화물은 함선에 보존'); for (const s of poolManual) delete s.repairAt; }
       if (!err && growthOn(this.st)) {
         this.reconcileFoundEscrows(company);

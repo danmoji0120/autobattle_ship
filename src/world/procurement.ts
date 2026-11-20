@@ -20,6 +20,7 @@ import { shipRate } from './upkeep';
 import { takec } from './types';
 import { projectCost, missingPre, fieldsAt, salvageItem } from './research';
 import { TECHS } from './industry';
+import { compareSale, SALE_STRATEGIES, type SaleStrategy } from './saleSearch';
 
 export type ProcurementKind = 'construction' | 'production' | 'ship' | 'research';
 /** the source record a plan feeds (an unbuilt module, a production order, an unstarted build, an unstarted research
@@ -48,7 +49,8 @@ export interface ProcurementPolicy {
   /** AUTO-P1: automatic repair of automated haulers that fell out of dispatch (off by default) */
   repair?: import('./autoRepair').RepairPolicy;
 }
-export interface SalesRule { minPrice: number }
+/** P17.4b AUD-06: `strategy` orders the markets tried (unset = 'local', the original behaviour) */
+export interface SalesRule { minPrice: number; strategy?: SaleStrategy }
 export interface SalesStatus { t: number; excess: number; moving: number; reason: string; sold: number; earned: number; since?: Record<string, number> }
 export interface ProcurementPlan {
   id: string; owner: string; station: string; sourceKind: ProcurementKind; sourceId: string; item: string;
@@ -154,9 +156,14 @@ export function industryHold(h: Pick<WorldSim, 'st'>, owner: string, station: St
   return n;
 }
 /** Only ordinary stations are considered: sites, deposits and other hidden exploration data are never searched. */
-export function routeScore(h: WorldSim, a: Station, b: Station, maxRisk: number): number {
-  const start = h.sysOf(a.pos), end = h.sysOf(b.pos); if (!start || !end || 100 - effSec(start) > maxRisk || 100 - effSec(end) > maxRisk) return Infinity;
-  if (start.id === end.id) return dist(a.pos, b.pos);
+export function routeScore(h: Pick<WorldSim, 'st' | 'sysOf'>, a: Station, b: Station, maxRisk: number): number {
+  return routeInfo(h, a, b, maxRisk)?.score ?? Infinity;
+}
+/** P17.4b: the route behind `routeScore` — fewest jumps (gate order breaks ties), the summed risk of the systems it
+ *  enters (start system included) and the same score; null when no route stays within `maxRisk` */
+export function routeInfo(h: Pick<WorldSim, 'st' | 'sysOf'>, a: Station, b: Station, maxRisk: number): { score: number; hops: number; risk: number } | null {
+  const start = h.sysOf(a.pos), end = h.sysOf(b.pos); if (!start || !end || 100 - effSec(start) > maxRisk || 100 - effSec(end) > maxRisk) return null;
+  if (start.id === end.id) return { score: dist(a.pos, b.pos), hops: 0, risk: 100 - effSec(start) };
   const queue = [{ id: start.id, hops: 0, risk: 0 }], seen = new Set([start.id]);
   while (queue.length) {
     const node = queue.shift()!;
@@ -164,18 +171,18 @@ export function routeScore(h: WorldSim, a: Station, b: Station, maxRisk: number)
       const next = h.st.systems[gate.to]; if (!next || seen.has(next.id) || !usableRouteGate(h.st, gate)) continue;
       const risk = 100 - effSec(next); if (risk > maxRisk) continue;
       const hops = node.hops + 1, sumRisk = node.risk + risk;
-      if (next.id === end.id) return hops * 200000 + sumRisk * 1000 + dist(a.pos, start.origin) + dist(b.pos, end.origin);
+      if (next.id === end.id) return { score: hops * 200000 + sumRisk * 1000 + dist(a.pos, start.origin) + dist(b.pos, end.origin), hops, risk: sumRisk + 100 - effSec(start) };
       seen.add(next.id); queue.push({ id: next.id, hops, risk: sumRisk });
     }
   }
-  return Infinity;
+  return null;
 }
 function poolShips(h: WorldSim, owner: string): WShip[] {
   return Object.values(h.st.ships).filter(s => {
     const g = h.st.groups[s.groupId]; return s.owner === owner && poolMember(h.st, s) && !!g && h.opOf(g).k === 'idle' && s.state !== 'battle' && s.state !== 'building' && !s.reserve && !s.listed && econOf(s).cargo > 0 && !econOf(s).military && s.classId !== 'miner' && s.classId !== 'constructor';
   });
 }
-function canCarry(ships: WShip[], a: Station, b: Station, construction: boolean, external = false) { return ships.some(s => (external || berthFits(a, econOf(s).berth)) && (construction || berthFits(b, econOf(s).berth))); }
+export function canCarry(ships: WShip[], a: Station, b: Station, construction: boolean, external = false) { return ships.some(s => (external || berthFits(a, econOf(s).berth)) && (construction || berthFits(b, econOf(s).berth))); }
 function freeAt(co: Company, station: Station, item: string, claims: Map<string, number>) {
   const key = JSON.stringify([co.id, station.id, item]);
   return Math.max(0, qty(station.storage[co.id], item) - (co.procurement?.protectedStock[station.id]?.[item] ?? 0) - (claims.get(key) ?? 0));
@@ -353,7 +360,7 @@ export function planProcurement(h: WorldSim) {
 
 // ─────────────────────────────────────────── AUTO-P0: stock floors and excess-stock sales
 
-export interface SalesSettings { item: string; sell: boolean; minPrice?: number; station?: string; keep?: number }
+export interface SalesSettings { item: string; sell: boolean; minPrice?: number; station?: string; keep?: number; strategy?: SaleStrategy }
 const sellableItem = (item: unknown): item is string => typeof item === 'string' && (Object.hasOwn(ITEMS, item) || Object.hasOwn(EQUIPMENT, item));
 /**
  * One item's sales policy: sell its excess automatically (never below `minPrice` a unit) or stop, and optionally
@@ -369,7 +376,8 @@ export function setSalesPolicy(h: WorldSim, owner: string, s: SalesSettings): st
     if (!st || !(h.canDock(st, owner) || Object.hasOwn(st.storage, owner)) || !finiteMoney(s.keep) || s.keep! > 1e9) return '최소 비축 수량과 보관 정거장을 확인하세요';
   }
   const policy = co.procurement ??= defaultProcurementPolicy();
-  if (s.sell) (policy.sales ??= {})[s.item] = { minPrice: s.minPrice ?? 0 };
+  if (s.strategy !== undefined && !SALE_STRATEGIES.includes(s.strategy)) return '판매 전략을 확인하세요';
+  if (s.sell) { const prev = policy.sales?.[s.item]; const strategy = s.strategy ?? prev?.strategy; (policy.sales ??= {})[s.item] = { minPrice: s.minPrice ?? 0, ...(strategy && strategy !== 'local' ? { strategy } : {}) }; }
   else if (policy.sales?.[s.item]) {
     delete policy.sales[s.item]; delete policy.salesStatus?.[s.item];
     // unassigned automatic shipments of this item stop; loaded ones finish their sale
@@ -397,7 +405,6 @@ export function saleQuote(h: Pick<WorldSim, 'st' | 'price'>, st: Station, item: 
   }
   return { sold, value };
 }
-const hopsOf = (score: number) => Math.floor(score / 200000);
 /** credits already promised to each market by this company's live sale shipments (their budget is not counted twice) */
 function salePromised(h: WorldSim, owner: string): Map<string, number> {
   const promised = new Map<string, number>();
@@ -411,11 +418,11 @@ function salePromised(h: WorldSim, owner: string): Map<string, number> {
 }
 /** markets that buy `amount` of `item` from `from` at no less than the rule's price, best first (value less a jump discount) */
 function saleMarkets(h: WorldSim, owner: string, carriers: WShip[], promised: Map<string, number>, item: string, from: Station, amount: number, rule: SalesRule, exclude?: string) {
-  const maxRisk = h.st.companies[owner]?.procurement?.maxRisk ?? 100;
+  const maxRisk = h.st.companies[owner]?.procurement?.maxRisk ?? 100, cmp = compareSale(rule.strategy);
   return Object.values(h.st.stations)
     .filter(m => m.id !== from.id && m.id !== exclude && m.public && m.market?.[item] && h.canDock(m, owner) && canCarry(carriers, from, m, false))
-    .map(m => { const score = routeScore(h, from, m, maxRisk); const q = Number.isFinite(score) ? saleQuote(h, m, item, amount, rule.minPrice, promised.get(m.id) ?? 0) : { sold: 0, value: 0 }; return { m, hops: hopsOf(score), q, rank: q.value * Math.max(0.5, 1 - 0.06 * hopsOf(score)) }; })
-    .filter(x => x.q.sold >= 1).sort((a, b) => b.rank - a.rank || a.hops - b.hops || a.m.id.localeCompare(b.m.id));
+    .map(m => { const r = routeInfo(h, from, m, maxRisk); const q = r ? saleQuote(h, m, item, amount, rule.minPrice, promised.get(m.id) ?? 0) : { sold: 0, value: 0 }; return { m, hops: r?.hops ?? 0, risk: r?.risk ?? 0, q }; })
+    .filter(x => x.q.sold >= 1).sort((a, b) => cmp({ net: a.q.value, hops: a.hops, risk: a.risk, local: false, id: a.m.id }, { net: b.q.value, hops: b.hops, risk: b.risk, local: false, id: b.m.id }));
 }
 /** AUTO-P1: a mining hauler's sale trip must stay short and pay for the mining time it takes */
 export const MINER_TRIP_MAX_JUMPS = 3;
@@ -571,7 +578,11 @@ export function planSales(h: WorldSim) {
         // 1. this station's own market pays enough: sell here, no shipment
         if (st.market?.[item] && h.canDock(st, co.id)) {
           const q = saleQuote(h, st, item, excess, rule.minPrice, promised.get(st.id) ?? 0);
-          if (q.sold >= 1) {
+          // P17.4b AUD-06 'profit': keep the lot for a shipment when a reachable market pays clearly more after its jump discount
+          const away = rule.strategy === 'profit' && q.sold >= 1 && ships.some(s => s.hp >= HAULER_MIN_HP) ? markets(item, st, Math.min(excess, Math.floor(maxCargo + EPS)), rule)[0] : undefined;
+          const better = away && compareSale('profit')({ net: away.q.value / away.q.sold, hops: away.hops, risk: away.risk, local: false }, { net: q.value / q.sold, hops: 0, risk: 0, local: true }) < 0;
+          if (better) reasons.push(`${st.name}: 최대 순수익 — ${away!.m.name}이(가) 현지보다 높게 매입 (${Math.round(away!.q.value / away!.q.sold).toLocaleString()} vs ${Math.round(q.value / q.sold).toLocaleString()} cr/개), 운송 판매`);
+          if (q.sold >= 1 && !better) {
             const r = h.sellAt(st, co.id, item, q.sold); takec(h.storage(st, co.id), item, r.sold);
             st0.sold += r.sold; st0.earned += r.value; excess -= r.sold; cap -= r.sold;
             if (r.sold > 0) h.ev('money', `자동 판매: ${st.name}에서 ${ITEMS[item]?.name ?? EQUIPMENT[item]?.name ?? item} ${Math.round(r.sold)} 판매 +${Math.round(r.value).toLocaleString()} cr (초과 재고)`, { company: co.id, pos: st.pos });

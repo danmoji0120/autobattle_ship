@@ -1,4 +1,5 @@
 import { LogisticsPanel } from './logisticsUi';
+import { automationHolds, holdsText } from '../../world/automationHolds';
 import { AutoLogisticsPanel } from './autoLogisticsUi';
 import { procurementSourceHtml } from './procurementUi';
 import { AnalyticsPanel } from './analyticsUi';
@@ -708,7 +709,13 @@ export class PmcHud {
 
   private async setOp(op: Op) {
     if (!this.group) return;
+    if (!this.confirmHolds({ group: this.group }, op)) return;
     if (await this.cmd({ c: 'setOp', group: this.group, op })) this.setMode(null);
+  }
+  /** P17.4b AUD-15: before a manual order takes a fleet away from automatic work, say what stops and ask */
+  private confirmHolds(sel: { group?: string; ship?: string }, next?: Op): boolean {
+    const hs = automationHolds(this.st, this.me, sel, next);
+    return !hs.length || confirm(`이 명령은 다음 자동 업무를 중단합니다 (수동 명령이 우선하며, 자동으로 되돌리지 않습니다):\n${holdsText(hs)}\n\n계속합니까?`);
   }
 
   private applyMode(p: Pick | null, x: number, y: number) {
@@ -848,7 +855,7 @@ export class PmcHud {
     if (!g) return;
     switch (k) {
       case 'idle': this.setOp({ k: 'idle' }); break;
-      case 'release': this.cmd({ c: 'release', group: g.id }); break;
+      case 'release': if (this.confirmHolds({ group: g.id })) this.cmd({ c: 'release', group: g.id }); break;
       // P12: one click — the commander chooses the station, the route and when to dock
       case 'return': this.setOp({ k: 'return' }); break;
       case 'haul': if (growthOn(this.st)) this.openLogistics({ group: g.id, create: true }); else this.setMode('haul_from'); break;
@@ -1080,7 +1087,7 @@ export class PmcHud {
     const size = el.querySelector<HTMLSelectElement>('[data-found-size]'); if (size) size.onchange = () => { this.foundSize = size.value as Size; if (this.mode === 'found') this.setMode('found'); else this.renderSel(true); };
     el.querySelectorAll<HTMLSelectElement>('[data-escfocus]').forEach(b => b.onchange = () => { const gr = this.st.groups[b.dataset.escfocus!]; if (gr?.op.k === 'escort') this.cmd({ c: 'setOp', group: gr.id, op: { k: 'escort', group: gr.op.group, focus: b.value as EscortFocus } }); });
     el.querySelectorAll<HTMLInputElement>('[data-detach]').forEach(b => b.onchange = () => this.cmd({ c: 'setDetached', group: b.dataset.detach!, on: b.checked }));
-    el.querySelectorAll<HTMLButtonElement>('[data-unloadship]').forEach(b => b.onclick = () => this.cmd({ c: 'unloadCargo', ship: b.dataset.unloadship! }));
+    el.querySelectorAll<HTMLButtonElement>('[data-unloadship]').forEach(b => b.onclick = () => { if (this.confirmHolds({ ship: b.dataset.unloadship! })) this.cmd({ c: 'unloadCargo', ship: b.dataset.unloadship! }); });
     el.querySelectorAll<HTMLButtonElement>('[data-open]').forEach(b => b.onclick = () => this.openStation(b.dataset.open!));
     el.querySelectorAll<HTMLButtonElement>('[data-battle]').forEach(b => b.onclick = () => this.opts.onOpenBattle(b.dataset.battle!));
     el.querySelectorAll<HTMLButtonElement>('[data-viewsys]').forEach(b => b.onclick = () => this.v.setSystem(b.dataset.viewsys!));
@@ -1112,7 +1119,7 @@ export class PmcHud {
     const ofl = el.querySelector<HTMLButtonElement>('[data-officer]'); if (ofl) ofl.onclick = () => this.openOfficers(ofl.dataset.officer);
     const cs = el.querySelector<HTMLSelectElement>('[data-cmdsel]'); if (cs) cs.onchange = () => this.cmd({ c: 'assignCmd', group: cs.dataset.cmdsel!, commander: cs.value || null });
     const ps = el.querySelector<HTMLSelectElement>('[data-parent]'); if (ps) ps.onchange = () => this.cmd({ c: 'setParent', group: ps.dataset.parent!, parent: ps.value || null });
-    el.querySelectorAll<HTMLSelectElement>('[data-mvship]').forEach(sel => sel.onchange = () => { if (sel.value === '__new') this.cmd({ c: 'newGroup', name: '새 편대', parent: null, ships: [sel.dataset.mvship!] }); else if (sel.value) this.cmd({ c: 'moveShip', ship: sel.dataset.mvship!, group: sel.value }); });
+    el.querySelectorAll<HTMLSelectElement>('[data-mvship]').forEach(sel => sel.onchange = () => { if (sel.value === '__new') this.cmd({ c: 'newGroup', name: '새 편대', parent: null, ships: [sel.dataset.mvship!] }); else if (sel.value && this.confirmHolds({ ship: sel.dataset.mvship! })) this.cmd({ c: 'moveShip', ship: sel.dataset.mvship!, group: sel.value }); else this.refresh(true); });
     const del = el.querySelector<HTMLButtonElement>('[data-delgroup]'); if (del) del.onclick = () => { if (confirm('편대를 해체할까요? 함선은 상위/다른 편대로 이동합니다.')) this.cmd({ c: 'deleteGroup', group: del.dataset.delgroup! }).then(ok => { if (ok) { this.group = null; this.select(null); } }); };
   }
 
@@ -1389,7 +1396,7 @@ export class PmcHud {
     });
     const start = box.querySelector<HTMLButtonElement>('[data-mf-start]');
     const doneHint = () => document.getElementById('modeHint')?.classList.add('hidden');
-    if (start) start.onclick = () => { const f = cur(); this.cmd({ c: 'setOp', group: gid, op: toOp(f) }).then(ok => { if (ok) { this.mineForm = null; doneHint(); } this.refresh(true); }); };
+    if (start) start.onclick = () => { const f = cur(); if (!this.confirmHolds({ group: gid }, toOp(f))) return; this.cmd({ c: 'setOp', group: gid, op: toOp(f) }).then(ok => { if (ok) { this.mineForm = null; doneHint(); } this.refresh(true); }); };
     const cancel = box.querySelector<HTMLButtonElement>('[data-mf-cancel]');
     if (cancel) cancel.onclick = () => { this.mineForm = null; doneHint(); this.refresh(true); };
   }
