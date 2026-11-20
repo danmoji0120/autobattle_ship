@@ -1,7 +1,7 @@
 // P17.3f combat computers: the new archetypes (missile control, flank) and product tuning (range, volley,
 // guide, cover, energy) each change how a ship actually fights, measured in real battles (rules 2).
 import { describe, expect, it } from 'vitest';
-import { World, type BattleSetup } from '../src/sim/world';
+import { World, CPU_BEHAVIOUR, type BattleSetup } from '../src/sim/world';
 import { WEAPONS } from '../src/sim/data/weapons';
 import { getLoadout, type MountDef } from '../src/sim/data/ships';
 import { CONTENT } from '../src/content/registry';
@@ -24,7 +24,7 @@ function ship(classId: string, loadoutId: string, weapon: string | null, cpu?: s
 }
 const G = (ships: ShipSpec[], order: GroupSpec['order'] = 'engage'): GroupSpec => ({ name: 'g', commanderId: 'wolf', order, retreatAt: 0, ships, children: [] });
 const F = (g: GroupSpec, name: string): FleetSpec => ({ name, root: g });
-const setup = (a: GroupSpec, b: GroupSpec, seed = 5): BattleSetup => ({ seed, scenarioId: 'p173f', fleets: [F(a, 'A'), F(b, 'B')], rules: 2 });
+const setup = (a: GroupSpec, b: GroupSpec, seed = 5): BattleSetup => ({ seed, scenarioId: 'p173f', fleets: [F(a, 'A'), F(b, 'B')], rules: 2, cpuV: CPU_BEHAVIOUR });
 function run(w: World, T: number, each?: (e: SimEvent[]) => void) {
   while (!w.outcome && w.time < T) { w.step(); each?.(w.events); }
   return w;
@@ -118,6 +118,33 @@ describe('P17.3f computer products', () => {
     const sim = trial('similar', 'cpu_flanker', 3);
     expect(sim.rear).toBeLessThan(0.1);
     expect((sim.faced ?? 0) + (sim.timeout ?? 0)).toBeGreaterThan(0);
+  });
+
+  // P17.3.1 final: a 1 v 1 the flanker cannot get behind (the target out-turns its orbit) falls back to a steady
+  // stand-off fight instead of trying the rear again and again; favourable → median band, else the long band
+  it('flank 1 v 1 it cannot out-turn: stand-off instead of repeated rear tries; bow-on only when favourable', () => {
+    const sim = [3, 7].map(sd => trial('similar', 'cpu_flanker', sd));
+    for (const r of sim) {
+      expect(r.stands!).toBeGreaterThan(0);
+      expect(r.att!).toBeLessThanOrEqual(3);                       // (the P17.3.1d state machine kept trying: 8)
+      expect(r.tStand!).toBeGreaterThan(60);
+    }
+    // equal destroyers, ours with the heavier guns: it judges the fight favourable and closes to the median band
+    expect(sim.some(r => r.tHead! > 30)).toBe(true);
+    // a cruiser out-guns the destroyer: it holds at the long band, it does not charge
+    const free = [3, 7].map(sd => trial('free_1v1', 'cpu_flanker', sd));
+    for (const r of free) { expect(r.stands!).toBeGreaterThan(0); expect(r.att!).toBeLessThanOrEqual(4); expect(r.tHead!).toBeLessThan(r.tStand! * 0.1); }
+    expect(free.reduce((a, r) => a + r.dist, 0) / free.length).toBeGreaterThan(600);
+  });
+
+  it('flank stand-off: a move order still overrides it (orders keep priority)', () => {
+    const w = new World(setup(G([ship('destroyer', 'strike', 'medium_gun', 'cpu_flanker')]), G([ship('destroyer', 'aa', null)]), 3));
+    run(w, 90);
+    expect(flankStats(mine(w))!.stands).toBeGreaterThan(0);
+    const g = w.groups.find(x => x.team === 0)!;
+    w.issueOrder(g.id, { type: 'move', point: { x: 0, y: 0, z: -3000 } });
+    run(w, 96);
+    expect(mine(w).cpu!.acting).toBe('basic');
   });
 
   it('flank: persistent side and waypoints (re-planned on a beat, not every tick); orders gate it; same seed → same battle', () => {

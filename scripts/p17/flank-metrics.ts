@@ -1,7 +1,7 @@
 // P17.3.1 flank manoeuvre metrics on free-turning targets (rules 2). Run: npx vite-node scripts/p17/flank-metrics.ts
 // Every number comes from the ordinary battle: the target turns freely and fights back; facing shares use the same
 // bow-cosine test World.applyHit uses, and the hit columns are the engine's own front / side / rear judgements.
-import { World, type BattleSetup } from '../../src/sim/world';
+import { World, CPU_BEHAVIOUR, type BattleSetup } from '../../src/sim/world';
 import { WEAPONS } from '../../src/sim/data/weapons';
 import { getLoadout, type MountDef } from '../../src/sim/data/ships';
 import { CONTENT } from '../../src/content/registry';
@@ -20,7 +20,7 @@ function ship(classId: string, loadoutId: string, weapon: string | null, c?: str
 }
 const G = (ships: ShipSpec[], order: GroupSpec['order'] = 'engage'): GroupSpec => ({ name: 'g', commanderId: 'wolf', order, retreatAt: 0, ships, children: [] });
 
-export interface Row { scen: string; cpu: string; seed: number; front: number; side: number; rear: number; dist: number; fire: number; hF: number; hS: number; hR: number; dmg: number; att?: number; reached?: number; faced?: number; timeout?: number; replans?: number; switches?: number; distracted?: number }
+export interface Row { scen: string; cpu: string; seed: number; front: number; side: number; rear: number; dist: number; fire: number; hF: number; hS: number; hR: number; dmg: number; att?: number; reached?: number; stands?: number; tStand?: number; tHead?: number; resumes?: number; sAlive?: number; tAlive?: number; faced?: number; timeout?: number; replans?: number; switches?: number; distracted?: number }
 const SCEN: Record<string, (c: string) => { a: ShipSpec[]; b: ShipSpec[] }> = {
   // free-turning 1v1, flanker faster than the target
   free_1v1: c => ({ a: [ship('destroyer', 'strike', 'medium_gun', c)], b: [ship('cruiser', 'aa', null)] }),
@@ -31,9 +31,9 @@ const SCEN: Record<string, (c: string) => { a: ShipSpec[]; b: ShipSpec[] }> = {
   // similar agility
   similar: c => ({ a: [ship('destroyer', 'strike', 'medium_gun', c)], b: [ship('destroyer', 'aa', null)] }),
 };
-export function trial(scen: string, c: string, seed: number, T = 150): Row {
+export function trial(scen: string, c: string, seed: number, T = 150, cpuV = CPU_BEHAVIOUR): Row {
   const sc = SCEN[scen](c);
-  const setup: BattleSetup = { seed, scenarioId: 'p1731flank', fleets: [{ name: 'A', root: G(sc.a) }, { name: 'B', root: G(sc.b) }], rules: 2 };
+  const setup: BattleSetup = { seed, scenarioId: 'p1731flank', fleets: [{ name: 'A', root: G(sc.a) }, { name: 'B', root: G(sc.b) }], rules: 2, cpuV };
   const w = new World(setup);
   const s = w.ships.find(x => x.team === 0)!, t = w.ships.find(x => x.team === 1)!;
   // the flanker and its target are tough enough to see the manoeuvre through (same for every computer)
@@ -54,20 +54,23 @@ export function trial(scen: string, c: string, seed: number, T = 150): Row {
     k++; dsum += d;
   }
   const n = Math.max(1, k), f = (cpu as { flankStats?: (s: unknown) => cpu.FlankState | undefined }).flankStats?.(s);
-  return { scen, cpu: c, seed, front: front / n, side: side / n, rear: rear / n, dist: dsum / n, fire, hF, hS, hR, dmg,
-    ...(f ? { att: f.attempts, reached: f.reached, faced: f.fails.faced, timeout: f.fails.timeout, replans: f.replans, switches: f.switches, distracted: f.distracted } : {}) };
+  return { scen, cpu: c, seed, front: front / n, side: side / n, rear: rear / n, dist: dsum / n, fire, hF, hS, hR, dmg, sAlive: s.hp / s.maxHp, tAlive: t.hp / t.maxHp,
+    ...(f ? { att: f.attempts, reached: f.reached, faced: f.fails.faced, timeout: f.fails.timeout, replans: f.replans, switches: f.switches, distracted: f.distracted, stands: f.stands, tStand: f.tStand, tHead: f.tHead, resumes: f.resumes } : {}) };
 }
 
 if (process.env.RUN) {
   const seeds = [3, 7, 11, 19];
   const out: Row[] = [];
-  for (const scen of Object.keys(SCEN)) for (const c of ['cpu_flanker', 'cpu_line']) for (const seed of seeds) out.push(trial(scen, c, seed));
+  // LEGACY=1: the flank as recorded battles before P17.3.1 run it (BattleSetup.cpuV 0)
+  const v = process.env.LEGACY ? 0 : CPU_BEHAVIOUR;
+  for (const scen of Object.keys(SCEN)) for (const c of ['cpu_flanker', 'cpu_line']) for (const seed of seeds) out.push(trial(scen, c, seed, 150, v));
   const pct = (x: number) => (x * 100).toFixed(0).padStart(3) + '%';
-  console.log('scen        cpu          front side rear  dist  fire(s) hits F/S/R   dmg    | att reach faced tmo replan sw busy');
+  console.log('scen        cpu          front side rear  dist  fire(s) hits F/S/R   dmg    hp us/them | att reach faced tmo replan sw busy | stand tStand tHead resume');
   for (const scen of Object.keys(SCEN)) for (const c of ['cpu_flanker', 'cpu_line']) {
     const rs = out.filter(r => r.scen === scen && r.cpu === c), m = (k: keyof Row) => rs.reduce((a, r) => a + (r[k] as number ?? 0), 0) / rs.length;
-    console.log(`${scen.padEnd(11)} ${c.padEnd(12)} ${pct(m('front'))} ${pct(m('side'))} ${pct(m('rear'))} ${m('dist').toFixed(0).padStart(5)} ${m('fire').toFixed(0).padStart(6)}  ${m('hF').toFixed(0)}/${m('hS').toFixed(0)}/${m('hR').toFixed(0)}`.padEnd(78) + ` ${m('dmg').toFixed(0).padStart(6)}` +
-      (rs[0].att !== undefined ? ` | ${m('att').toFixed(1)} ${m('reached').toFixed(1)} ${m('faced').toFixed(1)} ${m('timeout').toFixed(1)} ${m('replans').toFixed(0)} ${m('switches').toFixed(1)} ${m('distracted').toFixed(1)}` : ''));
+    console.log(`${scen.padEnd(11)} ${c.padEnd(12)} ${pct(m('front'))} ${pct(m('side'))} ${pct(m('rear'))} ${m('dist').toFixed(0).padStart(5)} ${m('fire').toFixed(0).padStart(6)}  ${m('hF').toFixed(0)}/${m('hS').toFixed(0)}/${m('hR').toFixed(0)}`.padEnd(78) + ` ${m('dmg').toFixed(0).padStart(6)}  ${pct(m('sAlive'))}/${pct(m('tAlive'))}` +
+      (rs[0].att !== undefined ? ` | ${m('att').toFixed(1)} ${m('reached').toFixed(1)} ${m('faced').toFixed(1)} ${m('timeout').toFixed(1)} ${m('replans').toFixed(0)} ${m('switches').toFixed(1)} ${m('distracted').toFixed(1)}` +
+        (rs[0].stands !== undefined ? ` | ${m('stands').toFixed(1)} ${m('tStand').toFixed(0)} ${m('tHead').toFixed(0)} ${m('resumes').toFixed(1)}` : '') : ''));
   }
   if (process.env.JSON) console.log(JSON.stringify(out));
 }

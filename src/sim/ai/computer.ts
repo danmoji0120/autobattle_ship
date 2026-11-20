@@ -98,7 +98,7 @@ interface CpuState {
  *  engage on the beam / stern quarter; if the target turns its bow onto the flanker it either fights from the beam
  *  or opens the range and re-enters (reattack). Also its statistics (time by target aspect, attempts, failures). */
 export interface FlankState {
-  phase: 'approach' | 'circle' | 'engage' | 'reattack';
+  phase: 'approach' | 'circle' | 'engage' | 'reattack' | 'standoff';
   /** committed side of the target (+1 = its left / port, -1 = starboard) */
   side: number;
   /** current waypoint and when it is re-planned */
@@ -118,6 +118,15 @@ export interface FlankState {
   /** tightening steps of the circle after it failed against a target we can out-turn; target they apply to;
    *  gave up out-turning it (fights from the beam) */
   shrink: number; tid: number; noOut: boolean;
+  /** stand-off fallback (no circle gets behind this target alone): times entered, seconds in it, of which
+   *  fought bow-on at the median band (favourable) / held at the long band (unfavourable); flank attempts
+   *  resumed from it (an ally drew the target's guns, or we gained the speed / turn edge); the target turn rate
+   *  when out-turning it was given up (a slower target since then re-opens the try) */
+  stands: number; tStand: number; tHead: number; tHold: number; resumes: number; noOutW: number;
+  /** stand-off: fighting bow-on at the median band (favourable) rather than holding at the long band */
+  head?: boolean;
+  /** stand-off range held and when the stand-off assessment is next re-made */
+  sr: number; sAt: number;
 }
 export type ShipCpu = CpuState;
 
@@ -306,7 +315,8 @@ export function steerComputers(w: World, g: Group, ships: Ship[], o: Order) {
       case 'swarm': if (t) { swarm(w, s, t, b); c.acting = 'swarm'; } break;
       case 'artillery': if (t) { artillery(w, s, t, b, cpuRange('artillery', b, rk(s))!); c.acting = 'artillery'; } break;
       case 'missile': if (t) { artillery(w, s, t, b, cpuRange('missile', b, rk(s))!); c.acting = 'missile'; } break;
-      case 'flank': if (t) { flank(w, s, t, b, o); c.acting = 'flank'; } break;
+      // (battles recorded before P17.3.1 — BattleSetup.cpuV absent — re-run with the flank they were fought with)
+      case 'flank': if (t) { if (w.cpuV >= 1) flank(w, s, t, b, o); else flankLegacy(w, s, t, b); c.acting = 'flank'; } break;
       case 'line': {
         lineShips ??= ships.filter(x => x.cpu?.arch === 'line' && x.cpu.bands!.dps > 0);
         if (line(w, g, s, lineShips, b)) c.acting = 'line';
@@ -726,14 +736,15 @@ function siege(w: World, g: Group, s: Ship, o: Order, b: Bands, decide: boolean)
 //               turning toward the side we were on.
 // A target busy with an ally (its target is someone else) is approached tighter and straight for the stern.
 // Nothing here changes speed, turn rate, the enemy, or how facing is judged (World.applyHit); orders gate it.
-const FL_REPLAN = 0.8, FL_CIRCLE_MAX = 28, FL_FACED = 3, FL_REATTACK = 9;
+const FL_REPLAN = 0.8, FL_CIRCLE_MAX = 28, FL_FACED = 3, FL_REATTACK = 9, FL_STAND_MIN = 4;
 function flank(w: World, s: Ship, t: Ship, b: Bands, o?: Order) {
   const c = s.cpu!;
   const R = Math.max(t.radius + s.radius + 80, cpuRange('flank', b, rk(s))!);
   let f = c.fl;
   if (!f) {
     f = c.fl = { phase: 'approach', side: c.side, wp: new Vec3().copy(s.pos), replan: 0, tyaw: t.yaw, trate: 0, at: w.time, since: w.time, faced: 0, goal: 135 * DEG,
-      tFront: 0, tSide: 0, tRear: 0, tEngage: 0, attempts: 0, reached: 0, fails: { faced: 0, timeout: 0 }, replans: 0, switches: 0, distracted: 0, shrink: 0, tid: t.id, noOut: false };
+      tFront: 0, tSide: 0, tRear: 0, tEngage: 0, attempts: 0, reached: 0, fails: { faced: 0, timeout: 0 }, replans: 0, switches: 0, distracted: 0, shrink: 0, tid: t.id, noOut: false,
+      stands: 0, tStand: 0, tHead: 0, tHold: 0, resumes: 0, noOutW: 0, sr: 0, sAt: 0 };
   }
   // a commander's flank order names the side
   if (o?.type === 'flank' && f.side !== o.side) { f.side = o.side; f.switches++; }
@@ -759,12 +770,16 @@ function flank(w: World, s: Ship, t: Ship, b: Bands, o?: Order) {
   // can we out-turn it? Round a target our angular speed is v / r; it keeps its bow on us while its turn rate is
   // the larger. The tight radius where we win is v / (ω_t · 1.4) (margin for its drift and our losses in the turn) — usable if our own turning circle and the hulls
   // allow it. Otherwise no circle gets behind it: we fight from the beam and re-enter when it turns onto us.
-  const vS = Math.max(1, s.maxSpeed), wT = Math.max(1e-3, t.state === 'alive' ? t.turnRate : 0);
+  // (effective now: our engine hit halves our speed, a bridge hit slows its turning — World.moveShip)
+  const vS = Math.max(1, s.maxSpeed * (s.crit.engine > 0 ? 0.5 : 1)), wT = Math.max(1e-3, t.state === 'alive' ? t.turnRate * (t.crit.bridge > 0 ? 0.6 : 1) : 0);
   // the floor: our own turning circle and the battle's hull separation distance (World.moveShip pushes ships apart inside it)
   const rTight = vS / (wT * 1.4), rFloor = Math.max((s.radius + t.radius) * 2.6 + 34, vS / Math.max(1e-3, s.turnRate) * 1.1);
-  if (f.tid !== t.id) { f.tid = t.id; f.shrink = 0; f.noOut = false; }
-  // (three tightened circles all failed against this target: it out-turns us in practice — fight from the beam)
-  const canOut = rTight >= rFloor && !f.noOut;
+  if (f.tid !== t.id) { f.tid = t.id; f.shrink = 0; f.noOut = false; f.noOutW = 0; }
+  // (three tightened circles all failed against this target: it out-turns us in practice — unless it has since
+  //  lost a good part of its turn rate)
+  const canOut = rTight >= rFloor && (!f.noOut || wT < f.noOutW * 0.8);
+  // no circle gets behind it alone: after a failed try the flanker stands off instead of trying again and again
+  const stand = () => { set('standoff'); f!.stands++; f!.sAt = 0; };
   const rCircle = busy ? R * 0.9 : canOut ? Math.min(R, Math.max(rFloor, rTight * (1 - 0.15 * f.shrink))) : R;
   if (!canOut && !busy && f.goal > 100 * DEG && f.phase !== 'engage') f.goal = 90 * DEG;
 
@@ -784,21 +799,29 @@ function flank(w: World, s: Ship, t: Ship, b: Bands, o?: Order) {
       if (!busy && f.faced > FL_FACED && w.time - f.since > 10) {
         f.fails.faced++;
         // we can out-turn it: keep circling, tighter (no running away from a target we can get behind)
-        if (canOut && f.shrink >= 2) { f.noOut = true; set('reattack'); }
+        if (canOut && f.shrink >= 2) { f.noOut = true; f.noOutW = wT; stand(); }
         else if (canOut) { f.shrink++; f.attempts++; f.since = w.time; f.faced = 0; }
-        else set('reattack');
+        else stand();
         break;
       }
-      if (w.time - f.since > FL_CIRCLE_MAX) { f.fails.timeout++; set('reattack'); }
+      if (w.time - f.since > FL_CIRCLE_MAX) { f.fails.timeout++; if (canOut || busy) set('reattack'); else stand(); }
       break;
     }
     case 'engage':
       // the target has turned onto us: settle for the beam if we are abeam, else come round again
       if (!busy && f.faced > FL_FACED) {
         if (Math.abs(ang) > 60 * DEG && f.goal > 100 * DEG) { f.goal = 90 * DEG; f.faced = 0; }
-        else { f.fails.faced++; if (canOut) { set('circle'); f.attempts++; } else set('reattack'); }
+        else { f.fails.faced++; if (canOut) { set('circle'); f.attempts++; } else stand(); }
       } else if (f.goal < 100 * DEG && canOut && fwdC < -0.2) f.goal = 135 * DEG;   // it turned away again: back to the quarter
       if (d > Math.max(R, rCircle) * 1.9) set('approach');
+      break;
+    case 'standoff':
+      // back to flanking only when it can work: an ally has drawn the target's guns, or we have gained the edge
+      // (its turning slowed / our speed back). Not within the first seconds, so the ship does not dither.
+      if (w.time - f.since > FL_STAND_MIN && (busy || canOut)) {
+        f.resumes++; f.goal = canOut ? 135 * DEG : 90 * DEG;
+        set('circle'); f.attempts++; if (busy) f.distracted++;
+      }
       break;
     case 'reattack':
       if (w.time - f.since > FL_REATTACK || d > R * 1.6) {
@@ -847,13 +870,71 @@ function flank(w: World, s: Ship, t: Ship, b: Bands, o?: Order) {
       case 'reattack': at(f.side * 115 * DEG, R * 1.5); break;
     }
   }
-  s.ai.moveTo.copy(f.wp);
-  // circling, the bow follows the travel (a ship crabbing sideways at its guns is slow); engaged, the guns' facing
-  s.ai.faceTo = f.phase === 'engage' ? faceWithOffset(s, t.pos, b.offset, c.face) : null;
+  if (f.phase === 'standoff') standoff(w, s, t, b, f, R, d, rx, rz, el);
+  else s.ai.moveTo.copy(f.wp);
+  // circling, the bow follows the travel (a ship crabbing sideways at its guns is slow); engaged / standing off,
+  // the guns' facing
+  s.ai.faceTo = f.phase === 'engage' || f.phase === 'standoff' ? faceWithOffset(s, t.pos, b.offset, c.face) : null;
   s.ai.speedCap = s.maxSpeed;
   s.ai.run = null;
   c.mode = f.phase === 'reattack' ? 'break' : 'approach';
   c.side = f.side;
+}
+
+// ------------------------------------------------------------------ flank, P17.3f (battles recorded before P17.3.1)
+// Kept verbatim for replays: BattleSetup.cpuV absent/0 re-runs a recorded battle with the flank it was fought with.
+// swing wide round the target to its beam / stern quarter (thinner side and rear armour), holding the
+// median band there; the swing goes out through the beam so the ship never runs down the target's bow.
+function flankLegacy(w: World, s: Ship, t: Ship, b: Bands) {
+  const c = s.cpu!;
+  const R = Math.max(t.radius + s.radius + 80, cpuRange('flank', b, rk(s))!);
+  const tf = tmp.copy(t.fwd); tf.y = 0; if (tf.lengthSq() < 1e-6) tf.set(0, 0, 1); tf.normalize();
+  const beam = tmp2.crossVectors(UP, tf).normalize().scale(c.side);
+  // aim point: 135° off the target's bow on our side
+  const goal = tmp3.copy(beam).scale(0.71).addScaled(tf, -0.71);
+  const rel = new Vec3().subVectors(s.pos, t.pos); rel.y = 0;
+  const d = rel.length();
+  const bowCos = d > 1 ? (rel.x * tf.x + rel.z * tf.z) / d : 0;
+  if (bowCos > 0.2) {
+    // in front of the target: out through the beam first, wider than the band
+    s.ai.moveTo.copy(t.pos).addScaled(beam, R * 1.25).addScaled(tf, R * 0.2);
+    c.mode = 'break';
+  } else {
+    s.ai.moveTo.copy(t.pos).addScaled(goal, R).addScaled(t.vel, 2);
+    if (c.mode === 'break') { c.mode = 'approach'; c.reentries++; }
+  }
+  s.ai.moveTo.y = t.pos.y;
+  s.ai.faceTo = faceWithOffset(s, t.pos, b.offset, c.face);
+  s.ai.speedCap = s.maxSpeed;
+  s.ai.run = null;
+  // reached the quarter but the target swung its bow onto us: go round the other side (not while still swinging out)
+  if (c.mode === 'approach' && w.time >= c.timer && bowCos > 0.6 && d < R * 1.4) { c.side = -c.side; c.timer = w.time + 12; c.mode = 'break'; }
+}
+
+/** P17.3.1 stand-off fallback of the flank computer (a target it cannot get behind alone): a steady gun fight
+ *  instead of circling again and again. Favourable — we would kill it clearly sooner than it kills us, and we are
+ *  not badly hurt — it closes to the median band (R) and fights it out; otherwise it holds at the long band, just
+ *  outside the target's reach when we outrange it, and never charges in. The range is held with a slow sideways
+ *  drift on the committed side (spoils the enemy's aim, keeps it off the bow line); nothing else changes. */
+function standoff(w: World, s: Ship, t: Ship, b: Bands, f: FlankState, R: number, d: number, rx: number, rz: number, el: number) {
+  f.tStand += el;
+  if (w.time >= f.sAt) {
+    f.sAt = w.time + FL_REPLAN * 2;
+    const tb = weaponBands(w, t);
+    // seconds each side needs to kill the other at the present rates (hull + shield over sustained fire)
+    const ours = (t.hp + (t.shield ?? 0)) / Math.max(1, b.dps), theirs = (s.hp + (s.shield ?? 0)) / Math.max(1, tb.dps);
+    const hurt = s.hp < s.maxHp * (f.head ? 0.35 : 0.45);
+    f.head = !hurt && ours < theirs * (f.head ? 1 : 0.8);
+    // long band: stay out of its reach if our guns outrange it; otherwise at our own long band
+    const far = b.max > tb.max * 1.05 ? Math.min(b.max * 0.95, Math.max(tb.max * 1.08, R)) : Math.max(R, b.max * 0.9);
+    f.sr = f.head ? R : far;
+  }
+  if (f.head) f.tHead += el; else f.tHold += el;
+  const r = f.sr, ux = rx / d, uz = rz / d;
+  // sideways drift on the committed side: a point a quarter of the range round from where we are
+  const lx = -uz * f.side, lz = ux * f.side;
+  s.ai.moveTo.set(t.pos.x + ux * r + lx * r * 0.25, t.pos.y, t.pos.z + uz * r + lz * r * 0.25);
+  s.cpu!.mode = 'approach';
 }
 
 /** P17.3.1 flank statistics of a ship (tests / tuning) */

@@ -44,10 +44,17 @@ export interface BattleSetup {
    *  3 = P16 strike craft: 'craft' weapons launch light craft (sim/craft.ts, World.craft); without a craft
    *  weapon in the battle nothing changes. */
   rules?: number;
+  /** combat-computer behaviour version (independent of `rules`, which also gates carriers). Absent/0 = the
+   *  behaviour every battle recorded before P17.3.1 was fought with (replays and restored battles re-run their
+   *  setup, so they keep it); new battles stamp CPU_BEHAVIOUR. 1 = P17.3.1 flank state machine with its
+   *  stand-off fallback (ai/computer.ts flank); 0 keeps the P17.3f fixed-quarter flank (flankLegacy). */
+  cpuV?: number;
 }
 
 /** the rules new battles are fought under (BattleSetup.rules) */
 export const BATTLE_RULES = DEV_CARRIER_RELEASE ? 3 : 2;
+/** the combat-computer behaviour new battles are fought with (BattleSetup.cpuV) */
+export const CPU_BEHAVIOUR = 1;
 
 export const DT = 1 / 30;
 export const FIELD_RADIUS = 3600;
@@ -117,6 +124,8 @@ export class World {
   readonly spawnZ: number;
   /** BattleSetup.rules (0 = pre-P15 rules) */
   readonly rules: number;
+  /** BattleSetup.cpuV (0 = computer behaviour before P17.3.1) */
+  readonly cpuV: number;
   /** P15: point-defence mounts following each munition (kept current as mounts retarget) */
   private pdLoad = new Map<number, number>();
   /** P16 strike craft (rules ≥ 3 with a craft weapon present); null otherwise and none of it runs */
@@ -127,6 +136,7 @@ export class World {
   constructor(setup: BattleSetup) {
     this.setup = setup;
     this.rules = setup.rules ?? 0;
+    this.cpuV = setup.cpuV ?? 0;
     this.spawnZ = setup.spawnZ ?? SPAWN_Z;
     this.rng = new Rng(setup.seed);
     this.lineRng = new Rng(setup.seed ^ 0x5bd1e995);
