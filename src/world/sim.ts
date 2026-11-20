@@ -49,6 +49,7 @@ import { firstProfitReached, pnlSinceFounding } from './firstBusiness';
 import type { Background, BackgroundTerm } from './backgrounds';
 import { rightsProblem, hullBlueprint, variantBlueprint, holds, useRun, buyBlueprint, assembleBlueprint, wreckFragments, contractAwards, bpName } from './blueprints';
 import { payDebt, payFromSale, addDebt, chargeTotals, moneyUnits } from './money';
+import { saveTemplate, deleteTemplate } from './fleetPlan';
 import { automationHolds } from './automationHolds';
 import { deliverFromStore } from './contractDelivery';
 import { setSupplyPolicy, DEFAULT_SUPPLY_POLICY } from './upkeep';
@@ -152,6 +153,8 @@ export type Cmd =
    *  `buy` lets a public station sell missing items at 1.2× market price. */
   | { c: 'fit'; ship: string; variant?: string; hp: Record<string, string>; bay: Record<string, string>; buy?: boolean; preset?: string }
   | { c: 'savePreset'; name: string; variant: string; hp: Record<string, string>; bay: Record<string, string> }
+  | { c: 'saveFleetTemplate'; name: string; lines: import('./fleetPlan').FleetLine[] }
+  | { c: 'delFleetTemplate'; id: string }
   | { c: 'delPreset'; id: string }
   | { c: 'research'; station: string; tech: string; source?: 'lab' | 'salvage' | 'copy' }
   | { c: 'researchOp'; project: string; op: 'pause' | 'resume' | 'cancel' | 'up' | 'down' | 'top' }
@@ -1573,6 +1576,9 @@ export class WorldSim {
         this.ev('info', `피팅 프리셋 저장: ${name}`, { company });
         return null;
       }
+      // P17.4d: mixed-fleet templates are free designs (no ship, yard or credits)
+      case 'saveFleetTemplate': { const e = saveTemplate(this.st, co, cmd.name, cmd.lines, () => this.id('ft')); if (!e) this.ev('info', `함대 구성 저장: ${String(cmd.name ?? '').trim().slice(0, 24) || '함대 구성'}`, { company }); return e; }
+      case 'delFleetTemplate': return deleteTemplate(co, cmd.id);
       case 'delPreset': {
         const list = co.fitPresets ?? []; const i = list.findIndex(x => x.id === cmd.id);
         if (i < 0) return '프리셋 없음';

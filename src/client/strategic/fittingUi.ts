@@ -84,8 +84,21 @@ export class FittingScreen {
   }
 
   private get st() { return this.getState(); }
-  private get ship(): WShip | undefined { return this.st?.ships[this.shipId]; }
-  private get station(): Station | undefined { const s = this.ship; return s && s.task.k === 'docked' ? this.st!.stations[(s.task as any).station] : undefined; }
+  /** P17.4d D1: design mode (`design:<variant>`) — a catalogue hull with no ship behind it; only "save as company
+   *  fitting" is offered, nothing is bought, moved or applied */
+  private get design(): string | undefined { return this.shipId.startsWith('design:') ? this.shipId.slice(7) : undefined; }
+  private designShip?: WShip;
+  private get ship(): WShip | undefined {
+    const v = this.design; if (!v) return this.st?.ships[this.shipId];
+    if (!this.designShip) {
+      const vv = CONTENT.variants[v], hull = vv && CONTENT.hulls[vv.hull]; if (!hull) return undefined;
+      const pre = Object.values(CONTENT.presets).find(p => p.variant === v);
+      const lay = variantLayout(v);
+      this.designShip = { id: this.shipId, name: '설계', owner: this.me, classId: hull.classId, hull: hull.id, variant: v, loadoutId: '', fitting: { hp: { ...(pre?.weapons ?? {}) }, bay: {} }, task: { k: 'idle' }, ...(lay?.internals.some(b => b.kind === 'industrial') ? { ind: 1 } : {}) } as unknown as WShip;
+    }
+    return this.designShip;
+  }
+  private get station(): Station | undefined { if (this.design) return undefined; const s = this.ship; return s && s.task.k === 'docked' ? this.st!.stations[(s.task as any).station] : undefined; }
   private fromShip(s: WShip): Draft { return { variant: s.variant!, hp: { ...s.fitting!.hp }, bay: { ...s.fitting!.bay } }; }
   private keyOf(d: Draft) { return JSON.stringify([d.variant, Object.entries(d.hp).sort(), Object.entries(d.bay).sort()]); }
   private get dirty() { const s = this.ship; return !!s?.fitting && this.keyOf(this.draft) !== this.keyOf(this.fromShip(s)); }
@@ -167,6 +180,7 @@ export class FittingScreen {
   update(force = false) {
     const s = this.ship;
     if (!s || !s.fitting || s.owner !== this.me) { this.close(); return; }
+    if (this.design) { if (force || !this.el.childElementCount) this.render(); else this.renderLive(); return; }
     // the ship changed under us (applied, or refitted elsewhere): follow it unless the user is editing
     const bk = this.keyOf(this.fromShip(s));
     if (bk !== this.baseKey) { if (!this.dirtySince(this.baseKey)) this.draft = this.fromShip(s); this.baseKey = bk; force = true; }
@@ -225,8 +239,8 @@ export class FittingScreen {
             <tr><td>인양</td><td>${indCell(ie0.salv ?? 0, ie1.salv ?? 0, '×', 2)}</td><td>선체 보너스</td><td>${Object.entries(bon).map(([k, v]) => `${({ mine: '채굴', build: '건설', salvage: '인양' } as Record<string, string>)[k]} ×${v}`).join(' · ') || '<span class="dim">없음</span>'}</td></tr>` : '';
 
     morph(this.el, `<div class="panel fbox">
-      <div class="shdr"><div><div class="stitle">${esc(s.name)} <span class="dim" style="font-size:14px">${esc(hull.name)} ${esc(cls.type)} · ${esc(CONTENT.variants[this.draft.variant]?.name ?? '')}</span></div>
-        <div class="dim">${st ? `${esc(st.name)} 정박 · ${p.ownFit ? '자사 피팅 시설 (수수료 없음, 보관함 장비만 사용)' : p.pub ? '공용 개조 서비스 (수수료, 부족분 구매 가능)' : '피팅 시설 없음'}` : '정박 중이 아님 — 피팅은 정박 중에만 바꿀 수 있습니다'}</div></div>
+      <div class="shdr"><div><div class="stitle">${this.design ? '함선 설계' : esc(s.name)} <span class="dim" style="font-size:14px">${esc(hull.name)} ${esc(cls.type)} · ${esc(CONTENT.variants[this.draft.variant]?.name ?? '')}</span></div>
+        <div class="dim">${this.design ? '카탈로그 설계 — 함선·장비·크레딧을 쓰지 않습니다. 회사 피팅으로 저장하면 조선소 출고와 함대 목표에서 고를 수 있습니다' : st ? `${esc(st.name)} 정박 · ${p.ownFit ? '자사 피팅 시설 (수수료 없음, 보관함 장비만 사용)' : p.pub ? '공용 개조 서비스 (수수료, 부족분 구매 가능)' : '피팅 시설 없음'}` : '정박 중이 아님 — 피팅은 정박 중에만 바꿀 수 있습니다'}</div></div>
         <div class="money">${fmt(co.credits)} cr</div><button class="btn" data-fclose>✕</button></div>
       <div class="fgrid">
         <section class="fcol fleft">
@@ -240,7 +254,7 @@ export class FittingScreen {
             ${indRows}
           </table>
           ${ind && ie1 && !ie1.mine && !ie1.build && !ie1.salv ? '<div class="dim small">산업 장비가 없어 채굴·건설·인양을 할 수 없습니다 — 산업 하드포인트에 장비를 장착하세요.</div>' : ''}
-          <div class="frow"><label class="dim">구조 변형</label><select data-fvar data-keep>${variants.map(v => `<option value="${v.id}"${v.id === this.draft.variant ? ' selected' : ''}${v.blueprint !== 'common' && v.id !== s.variant ? ' disabled' : ''}>${esc(v.name)}${v.mods ? ` (${[v.mods.hpMul && `내구 ${pct(v.mods.hpMul)}`, v.mods.armorMul && `장갑 ${pct(v.mods.armorMul)}`, v.mods.speedMul && `속도 ${pct(v.mods.speedMul)}`].filter(Boolean).join(' ')})` : ''}</option>`).join('')}</select></div>
+          <div class="frow"><label class="dim">구조 변형</label><select data-fvar data-keep>${variants.map(v => `<option value="${v.id}"${v.id === this.draft.variant ? ' selected' : ''}${v.blueprint !== 'common' && v.id !== s.variant && !this.design ? ' disabled' : ''}>${esc(v.name)}${v.mods ? ` (${[v.mods.hpMul && `내구 ${pct(v.mods.hpMul)}`, v.mods.armorMul && `장갑 ${pct(v.mods.armorMul)}`, v.mods.speedMul && `속도 ${pct(v.mods.speedMul)}`].filter(Boolean).join(' ')})` : ''}</option>`).join('')}</select></div>
         </section>
         <section class="fcol fmid">
           <h3>하드포인트 <span class="dim">${lay.hardpoints.filter(h => this.draft.hp[h.id]).length}/${lay.hardpoints.length}</span></h3>
@@ -256,6 +270,7 @@ export class FittingScreen {
       </div>
       <div class="ffoot">
         <div class="fchg">
+          ${this.design ? `<div><b>건조 시 필요한 장비</b> ${items(Object.entries(fittingItems(this.draft))) || '<span class="dim">없음 (선체만)</span>'} <span class="dim">— 조선소 보관함에서 착공 때 소모</span></div>${p.rep.errors.length ? `<div class="warn">${esc(p.rep.errors[0])}</div>` : ''}${this.msg ? `<div class="${this.msg.warn ? 'warn' : 'good'}">${esc(this.msg.t)}</div>` : ''}</div><div class="fact"><button class="btn" data-fundo ${this.undo.length ? '' : 'disabled'}>되돌리기</button></div></div></div>` : ''}${this.design ? '' : `
           ${p.take.length || p.back.length ? `${p.take.length ? `<div><b class="dn">장착</b> ${items(p.take)} <span class="dim">(보관함에서)</span></div>` : ''}${p.back.length ? `<div><b class="up">해제</b> ${items(p.back)} <span class="dim">(보관함으로)</span></div>` : ''}${p.short.length ? `<div class="warn">부족 ${items(p.short)}${p.pub ? p.marketShort.length ? ' · 시장 재고 부족' : ` · 구매 시 ${fmt(p.fullBuy)} cr` : ''}</div>` : ''}` : '<div class="dim">변경 사항 없음 — 슬롯을 고르고 오른쪽 목록에서 장비를 선택하세요</div>'}
           ${this.msg ? `<div class="${this.msg.warn ? 'warn' : 'good'}">${esc(this.msg.t)}</div>` : p.block && this.dirty ? `<div class="warn">${esc(p.block)}</div>` : ''}
         </div>
@@ -266,7 +281,7 @@ export class FittingScreen {
           <button class="btn" data-freset ${this.dirty ? '' : 'disabled'}>초기화</button>
           <button class="btn go" data-fapply ${p.block || this.busy ? 'disabled' : ''}>적용</button>
         </div>
-      </div></div>`);
+      </div></div>`}`);
     const cv = this.el.querySelector<HTMLCanvasElement>('[data-fcanvas]')!;
     this.attachPreview(cv);
     this.syncModel();

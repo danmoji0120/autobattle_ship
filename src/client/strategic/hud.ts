@@ -1480,6 +1480,8 @@ export class PmcHud {
       logistics: () => { this.opsPanel?.close(); this.openLogistics(); },
       analytics: () => { this.opsPanel?.close(); this.openAnalytics(); },
       close: () => { this.opsPanel = null; },
+      // P17.4d D1: the design screen opens over the HQ (closing it returns to the same goal form)
+      design: variant => this.openFitting(`design:${variant}`),
     }, tab);
   }
 

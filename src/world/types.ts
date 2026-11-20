@@ -38,6 +38,8 @@ export interface Company {
   research?: ResearchProject[];
   /** saved fitting presets (fitting screen) */
   fitPresets?: FitPreset[];
+  /** P17.4d: saved mixed-fleet compositions (free designs; world/fleetPlan.ts) */
+  fleetTemplates?: import('./fleetPlan').FleetTemplate[];
   rseq?: number;
   /** production rights (P6, contentV ≥ 3): blueprint id → holding */
   blueprints?: Record<string, BlueprintHolding>;

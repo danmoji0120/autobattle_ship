@@ -890,6 +890,8 @@ select.gone { border-color: var(--warn) !important; color: var(--warn); }
 .lg-badge.failed { color:#ff8a8a; border-color:#6e3232; }
 .ops-progress { height:4px; background:rgba(255,255,255,.06); margin:9px 0 7px; }.ops-progress i { display:block; height:100%; background:var(--accent); }
 .ops-meta { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:11px; color:var(--dim); line-height:1.6; }.ops-meta .ops-why { color:#d7c9a5; flex-basis:100%; overflow-wrap:anywhere; }.ops-meta .good { color:var(--good); }
+.ops-ships { display:flex; flex-wrap:wrap; gap:4px 10px; font-size:11px; margin:2px 0 4px; }.ops-ships span { padding:1px 6px; border:1px solid rgba(255,255,255,.12); border-radius:3px; }.ops-ships span.waiting { color:#d7c9a5; }
+.ops-fleet-form { margin:8px 0; }.ops-fleet-form select { max-width:14em; }.ops-fleet-est p { margin:4px 0; }
 .ops-log { margin:8px 0 0; padding-left:18px; font-size:11px; color:var(--dim); line-height:1.6; }.ops-log span { color:#6d8597; }
 .ops-prio { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--dim); }.ops-prio select { width:auto !important; padding:4px 6px !important; }
 .ops-check { display:flex !important; flex-direction:row !important; align-items:center; gap:7px; font-size:12px; color:var(--text) !important; }

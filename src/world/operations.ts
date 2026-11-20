@@ -28,6 +28,7 @@ import { CONTENT, gearReleased } from '../content/registry';
 import { dist } from './geom';
 import { industryHold } from './procurement';
 import { buyCost } from './market';
+import { normLines, lineName, yardCapacity, blockedQueue, partsWait, publicOffers, QUEUE_AHEAD, PARTS_AHEAD, type FleetLine } from './fleetPlan';
 
 // ───────────────────────────────────────────────────────────────────────── types
 
@@ -47,7 +48,11 @@ export type GoalSpec =
   /** buy at `from`, carry and sell at `to`; one cycle moves `amount`; `cycles` 0 = until stopped */
   | { k: 'trade'; item: string; from: string; to: string; amount: number; maxBuy: number; minSell: number; minProfit: number; cycles: number }
   /** have `count` new hulls of this design built at `station` */
-  | { k: 'fleet'; station: string; hull: string; variant?: string; preset?: string; count: number; group?: string }
+  | { k: 'fleet'; station: string; hull: string; variant?: string; preset?: string; fitPreset?: string; count: number; group?: string;
+      /** P17.4d: mixed fleet — every line is built (hull / variant / preset / count are the first line, count the total) */
+      lines?: FleetLine[];
+      /** P17.4d: buy what public yards stock (standard builds) before laying keels */
+      buy?: boolean }
   /** have `count` built facilities of `kind` at `station` */
   | { k: 'facilities'; station: string; kind: string; count: number }
   /** buy below / sell above `price` at `station`, `amount` per trigger */
@@ -106,6 +111,11 @@ export interface Work {
     market?: string;
     /** fleet operation held while paused (restored on resume) */
     heldOp?: Op;
+    /** P17.4d fleet goal: child ship work id → line index; per-ship progress (pct −1 = not started) */
+    lineOf?: Record<string, number>;
+    /** hulls bought ready-made per line */
+    boughtLines?: number[];
+    ships?: { work: string; line: number; pct: number; why?: string }[];
   };
 }
 
@@ -840,10 +850,16 @@ export function createGoal(h: WorldSim, owner: string, spec: GoalSpec, opts: { t
     }
     case 'fleet': {
       const st = ownStation(spec.station); if (!st || st.owner !== owner) return '자사 조선소 정거장을 선택하세요';
-      if (typeof spec.hull !== 'string' || !Object.hasOwn(CONTENT.hulls, spec.hull)) return '선체를 확인하세요';
-      if (!Number.isSafeInteger(spec.count) || spec.count < 1 || spec.count > 50) return '척수는 1–50';
-      spec = { k: 'fleet', station: st.id, hull: spec.hull, variant: spec.variant, preset: spec.preset, count: spec.count, group: spec.group };
-      title ??= `${st.name} · ${CONTENT.hulls[spec.hull].name} ${spec.count}척 건조`; total = spec.count; unit = '척';
+      // P17.4d: one line (hull / variant / preset / company fitting / count) or a mixed fleet, checked like a build
+      const lines = normLines(h.st, h.st.companies[owner], spec.lines ?? [{ hull: spec.hull, variant: spec.variant, preset: spec.preset, fitPreset: spec.fitPreset, count: spec.count }]);
+      if (typeof lines === 'string') return lines;
+      if (spec.group !== undefined && spec.group !== '' && h.st.groups[spec.group]?.owner !== owner) return '배속할 자사 편대를 확인하세요';
+      const no = lines.find(l => !yardCapacity(st, l));
+      if (no) return `${st.name}에는 ${CONTENT.hulls[no.hull].name}을(를) 건조할 수 있는 조선소 슬롯이 없습니다`;
+      const n = lines.reduce((a, l) => a + l.count, 0), co = h.st.companies[owner];
+      spec = { k: 'fleet', station: st.id, hull: lines[0].hull, variant: lines[0].variant, preset: lines[0].preset, fitPreset: lines[0].fitPreset, count: n, group: spec.group || undefined, ...(lines.length > 1 ? { lines } : {}), ...(spec.buy ? { buy: true } : {}) };
+      title ??= lines.length > 1 ? `${st.name} · 혼합 함대 ${n}척 (${lines.map(l => `${CONTENT.hulls[l.hull].name} ${l.count}`).join(', ')})` : `${st.name} · ${lineName(co, lines[0])} ${n}척 건조`;
+      total = n; unit = '척';
       break;
     }
     case 'facilities': {
@@ -1199,33 +1215,86 @@ function buyFor(h: WorldSim, w: Work, st: Station, item: string, need: number, p
   return setState(h, w, 'running', parts.join(' · '));
 }
 
+/** the goal's lines (a pre-P17.4d goal is its single hull line) */
+const fleetLines = (g: Extract<GoalSpec, { k: 'fleet' }>): FleetLine[] => g.lines ?? [{ hull: g.hull, variant: g.variant, preset: g.preset, fitPreset: g.fitPreset, count: g.count }];
+
 function runFleet(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'fleet' }>) {
   const st = h.st.stations[g.station]; if (!st || st.owner !== w.owner) return setState(h, w, 'failed', '조선소 정거장 소실');
+  const lines = fleetLines(g), rt = (w.rt ??= {}), lineOf: Record<string, number> = (rt.lineOf ??= {});
   const kids = children(h, w).filter(c => c.kind === 'ship');
-  const launched = kids.filter(c => c.state === 'done').length, live = kids.filter(c => !terminal(c)).length;
+  // a hull belongs to the line it was started for (recorded at start); older goals have one line
+  const per = lines.map(() => ({ launched: 0, live: 0 }));
+  for (const c of kids) { const i = lineOf[c.id] ?? 0; const p = per[i] ?? per[0]; if (c.state === 'done') p.launched++; else if (!terminal(c)) p.live++; }
+  // hulls bought ready-made count as delivered the moment the purchase succeeds (never bought twice: counted in the same step)
+  const bought = (rt.boughtLines ??= lines.map(() => 0));
+  if (g.buy) { const r = buyFleetHulls(h, w, g, lines, per, bought); if (r) return; }
+  per.forEach((p, i) => { p.launched += bought[i] ?? 0; });
+  const launched = per.reduce((a, p) => a + p.launched, 0);
   w.progress = { done: launched, total: g.count, unit: '척' };
-  if (launched >= g.count) { w.result = `${g.count}척 진수 완료`; return setState(h, w, 'done', ''); }
-  const parts = [`진수 ${launched}/${g.count}`, live ? `건조 중·대기 ${live}` : ''].filter(Boolean);
-  if (launched + live >= g.count || live >= 2) return setState(h, w, 'running', parts.join(' · '));
-  return startHull(h, w, g, st, launched, live, parts);
+  if (per.every((p, i) => p.launched >= lines[i].count)) { w.result = `${launched}척 진수 완료`; return setState(h, w, 'done', ''); }
+  // per-ship progress, kept apart from the fleet total (AUD-13)
+  const build = (c: Work) => st.builds?.find(b => b.id === c.ref.build);
+  const ships = kids.filter(c => !terminal(c)).map(c => { const b = build(c); return { c, b, pct: b?.started ? Math.round(100 * (1 - b.left / Math.max(EPS, b.total))) : -1 }; });
+  rt.ships = ships.map(x => ({ work: x.c.id, line: lineOf[x.c.id] ?? 0, pct: x.pct, why: x.pct < 0 ? x.b?.why ?? '착공 대기' : undefined }));
+  const parts = [`진수 ${launched}/${g.count}`, ...(lines.length > 1 ? [lines.map((l, i) => `${CONTENT.hulls[l.hull]?.name ?? l.hull} ${per[i].launched}/${l.count}`).join(', ')] : []),
+    ships.length ? `건조 ${ships.filter(x => x.pct >= 0).map(x => `${x.pct}%`).join('·') || '없음'}${ships.some(x => x.pct < 0) ? ` · 대기 ${ships.filter(x => x.pct < 0).length}` : ''}` : ''].filter(Boolean);
+  const stuck = ships.find(x => x.pct < 0 && blockedQueue(x.b?.why)) ?? (ships.filter(x => x.pct < 0 && partsWait(x.b?.why)).length >= PARTS_AHEAD ? ships.find(x => x.pct < 0 && partsWait(x.b?.why)) : undefined);
+  if (stuck) return setState(h, w, 'running', [...parts, `추가 착공 보류 — ${stuck.b!.why}`].join(' · '));
+  return startHull(h, w, g, st, lines, per, parts);
 }
-function startHull(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'fleet' }>, st: Station, launched: number, live: number, parts: string[]): void {
-  const variant = g.variant ?? (g.preset ? CONTENT.presets[g.preset]?.variant : undefined) ?? `${g.hull}_std`;
-  let est = 0; try { const b = hullBuild(g.hull, variant); est = b.credits + yardFee(b); } catch { est = 0; }
-  const auth = authorize(h, w, est, est, `hull:${g.hull}`, est * (g.count - launched - live));
-  if (!auth.ok) {
-    purchaseApproval(h, w, auth, [{ item: `hull:${g.hull}`, amount: g.count - launched - live, price: est, station: st.id }], { context: `${st.name}에서 ${CONTENT.hulls[g.hull]?.name ?? g.hull} 착공 비용(인건비+조선소 운영비) 척당 ${fmt(est)} cr — 자재는 생산·조달 체계가 확보` });
-    return setState(h, w, 'waiting', [...parts, `결재 대기: ${auth.why}`].join(' · '));
+/** buy what public yards stock for lines still short; returns true when the work state was set (waiting on approval) */
+function buyFleetHulls(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'fleet' }>, lines: FleetLine[], per: { launched: number; live: number }[], bought: number[]): boolean {
+  const co = h.st.companies[w.owner];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    for (let guard = 0; guard < 50; guard++) {
+      const left = l.count - per[i].launched - per[i].live - (bought[i] ?? 0); if (left <= 0) break;
+      const o = publicOffers(h, w.owner, l)[0]; if (!o) break;
+      const auth = authorize(h, w, o.price, o.price, `hull:${l.hull}`, o.price * left);
+      if (!auth.ok) {
+        purchaseApproval(h, w, auth, [{ item: `hull:${l.hull}`, amount: left, price: o.price, station: o.station }], { context: `${o.name} 공영 조선소에서 ${lineName(co, l)} 완성함 구매 척당 ${fmt(o.price)} cr (재고 ${o.stock}척)` });
+        setState(h, w, 'waiting', `결재 대기: 완성함 구매 — ${auth.why}`); return true;
+      }
+      const before = co.credits;
+      const err = cmd(h, w, { c: 'buyShip', station: o.station, classId: CONTENT.hulls[l.hull].classId, loadoutId: '', hull: l.hull, variant: l.variant, preset: l.preset, group: g.group });
+      if (err) { note(w, h.time, `${o.name} 구매 불가: ${err} — 건조로 진행`); break; }
+      const paid = before - co.credits;
+      bought[i] = (bought[i] ?? 0) + 1; opsOf(co).spend.push({ t: h.time, n: paid }); w.cost += paid;
+      note(w, h.time, `${o.name}에서 ${lineName(co, l)} 구매 · ${fmt(paid)} cr`);
+    }
   }
-  const before = h.st.companies[w.owner].credits;
-  const err = cmd(h, w, { c: 'buildShip', station: st.id, classId: CONTENT.hulls[g.hull]?.classId ?? '', loadoutId: '', hull: g.hull, variant, preset: g.preset, group: g.group });
-  if (err) return setState(h, w, 'waiting', [...parts, `착공 불가: ${err}`].join(' · '));
-  const paid = before - h.st.companies[w.owner].credits;
-  // the child ship work already charged the goal budget (chargeParent); count it toward the hourly limit and goal cost
-  const co = h.st.companies[w.owner]; opsOf(co).spend.push({ t: h.time, n: paid }); w.cost += paid;
-  for (const k of ['purchase', 'budget']) resolveOpen(h, w, k, '권한 범위 안에서 착공');
-  live++; parts.push('추가 착공');
-  if (launched + live < g.count && live < 2) return startHull(h, w, g, st, launched, live, parts);
+  return false;
+}
+function startHull(h: WorldSim, w: Work, g: Extract<GoalSpec, { k: 'fleet' }>, st: Station, lines: FleetLine[], per: { launched: number; live: number }[], parts: string[]): void {
+  const co = h.st.companies[w.owner];
+  for (let guard = 0; guard < 50; guard++) {
+    // the line furthest behind (share of its count launched or in work) that still needs hulls and has a free place
+    const open = lines.map((l, i) => ({ l, i, cap: yardCapacity(st, l) + QUEUE_AHEAD, left: l.count - per[i].launched - per[i].live }))
+      .filter(x => x.left > 0 && per.reduce((a, p) => a + p.live, 0) < x.cap);
+    if (!open.length) break;
+    const pick = open.sort((a, b) => (per[a.i].launched + per[a.i].live) / a.l.count - (per[b.i].launched + per[b.i].live) / b.l.count || a.i - b.i)[0];
+    const l = pick.l, variant = l.variant ?? (l.preset ? CONTENT.presets[l.preset]?.variant : undefined) ?? `${l.hull}_std`;
+    let est = 0; try { const b = hullBuild(l.hull, variant); est = b.credits + yardFee(b); } catch { est = 0; }
+    const auth = authorize(h, w, est, est, `hull:${l.hull}`, est * pick.left);
+    if (!auth.ok) {
+      purchaseApproval(h, w, auth, [{ item: `hull:${l.hull}`, amount: pick.left, price: est, station: st.id }], { context: `${st.name}에서 ${lineName(co, l)} 착공 비용(인건비+조선소 운영비) 척당 ${fmt(est)} cr — 자재는 생산·조달 체계가 확보` });
+      return setState(h, w, 'waiting', [...parts, `결재 대기: ${auth.why}`].join(' · '));
+    }
+    const before = co.credits, seen = new Set(children(h, w).map(c => c.id));
+    const err = cmd(h, w, { c: 'buildShip', station: st.id, classId: CONTENT.hulls[l.hull]?.classId ?? '', loadoutId: '', hull: l.hull, variant, ...(l.fitPreset ? { outfit: 'preset' as const, fitPreset: l.fitPreset } : { preset: l.preset }), group: g.group });
+    if (err) return setState(h, w, 'waiting', [...parts, `착공 불가: ${err}`].join(' · '));
+    const paid = before - co.credits;
+    // the child ship work already charged the goal budget (chargeParent); count it toward the hourly limit and goal cost
+    opsOf(co).spend.push({ t: h.time, n: paid }); w.cost += paid;
+    let blocked: string | undefined;
+    for (const c of children(h, w)) if (!seen.has(c.id) && c.kind === 'ship') { (w.rt!.lineOf ??= {})[c.id] = pick.i; const b = st.builds?.find(x => x.id === c.ref.build); if (b && !b.started && blockedQueue(b.why)) blocked = b.why; }
+    const waiting = children(h, w).filter(c => c.kind === 'ship' && !terminal(c)).map(c => st.builds?.find(x => x.id === c.ref.build)).filter(b => b && !b.started && partsWait(b.why));
+    if (!blocked && waiting.length >= PARTS_AHEAD) blocked = waiting[0]!.why;
+    for (const k of ['purchase', 'budget']) resolveOpen(h, w, k, '권한 범위 안에서 착공');
+    per[pick.i].live++; parts.push(`${CONTENT.hulls[l.hull]?.name ?? l.hull} 추가 착공`);
+    // the hull just queued already waits on parts / research / facilities: more keels would only wait behind it
+    if (blocked) { parts.push(`추가 착공 보류 — ${blocked}`); break; }
+  }
   return setState(h, w, 'running', parts.join(' · '));
 }
 
@@ -1475,6 +1544,7 @@ export function workOp(h: WorldSim, owner: string, id: string, op: WorkOp, value
     if (!finite(value, 1e7) || value! < 1) return '수량을 확인하세요';
     const g = w.goal;
     if (g?.k === 'stockpile') g.target = Math.floor(value!);
+    else if (g?.k === 'fleet' && g.lines) return '혼합 함대 목표는 구성별 척수로 관리합니다 — 구성을 바꾸려면 새 목표를 등록하세요';
     else if (g?.k === 'fleet' || g?.k === 'facilities') g.count = Math.min(g.k === 'fleet' ? 50 : 20, Math.floor(value!));
     else if (g?.k === 'trade') g.cycles = Math.floor(value!);
     else if (g?.k === 'condition') g.amount = Math.floor(value!);

@@ -11,6 +11,7 @@ import { morph, trackSelects } from '../../ui/morph';
 import { qty } from '../../world/types';
 import { priceOf } from '../../world/market';
 import { fieldPanelHtml } from './territoryUi';
+import { fleetFormHtml, fleetDraftChange, fleetGoal, loadTemplate, newDraft, newLine, saveTemplateCmd, type FleetDraft } from './fleetGoalUi';
 import { saleSearchHtml, transferButtons, type SaleSearchState } from './saleSearchUi';
 import { waitCode, waitActions, WAIT_NAME } from '../../world/waitCode';
 import { econOf } from '../../world/hullops';
@@ -20,7 +21,7 @@ import { companyRepHtml } from './repUi';
 
 type Tab = 'hq' | 'works' | 'stock' | 'industry' | 'research' | 'logistics' | 'build' | 'fields' | 'finance' | 'rep';
 const TABS: [Tab, string][] = [['hq', '본부'], ['works', '업무'], ['stock', '재고'], ['industry', '산업'], ['research', '연구'], ['logistics', '물류'], ['build', '건설·조선'], ['fields', '광구'], ['finance', '재무·결재'], ['rep', '평판·관계']];
-interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard' | 'research'): void; logistics(): void; analytics(): void; close(): void }
+interface Actions { station(id: string, tab?: 'store' | 'market' | 'prod' | 'build' | 'yard' | 'research'): void; logistics(): void; analytics(): void; close(): void; /** P17.4d: catalogue fitting design (no ship) */ design?(variant: string): void }
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const n0 = (v: number) => Math.round(v).toLocaleString();
@@ -35,6 +36,8 @@ export class OperationsPanel {
   private search = ''; private stateFilter = 'live'; private kindFilter = ''; private open = new Set<string>(); private item = '';
   /** P17.4b AUD-04: sale search inputs per item (kept across snapshot re-renders) */
   private saleQ: Record<string, SaleSearchState> = {};
+  /** P17.4d: fleet goal draft (lines, group, buy) kept across re-renders */
+  private fleet?: FleetDraft;
   private scope: Record<string, ApprovalScope> = {}; private goalKind: GoalSpec['k'] = 'stockpile'; private formOpen = false;
   private onSnap = () => this.render();
   private key = (e: KeyboardEvent) => { if (e.code === 'Escape') { e.stopImmediatePropagation(); this.close(); } };
@@ -45,7 +48,7 @@ export class OperationsPanel {
     this.el.onkeydown = e => e.stopPropagation();
     this.el.onclick = e => this.click(e);
     this.el.oninput = e => { const t = e.target as HTMLInputElement; if (t.dataset.search !== undefined) { this.search = t.value; this.render(); } };
-    this.el.onchange = e => { const t = e.target as HTMLSelectElement; if (t.dataset.filter === 'state') this.stateFilter = t.value; else if (t.dataset.filter === 'kind') this.kindFilter = t.value; else if (t.dataset.scope) this.scope[t.dataset.scope] = t.value as ApprovalScope; else if (t.dataset.goalkind !== undefined) this.goalKind = t.value as GoalSpec['k']; else if (t.dataset.pirDefault !== undefined) { void this.send({ c: 'piracyPolicy', policy: t.value as 'survive' | 'balanced' | 'protect' }, '화물 요구 대응 기본값을 저장했습니다'); return; } else if (t.dataset.saleQ && this.item) { const q = this.saleQ[this.item]; if (q) { const k = t.dataset.saleQ as keyof SaleSearchState; (q as any)[k] = k === 'amount' || k === 'minPrice' ? Math.max(0, Number(t.value) || 0) : t.value; } } else if (t.dataset.prio) { void this.send({ c: 'workOp', work: t.dataset.prio, op: 'priority', value: Number(t.value) }, '우선순위를 바꿨습니다'); return; } else return; this.render(); };
+    this.el.onchange = e => { const t = e.target as HTMLSelectElement; if (t.dataset.filter === 'state') this.stateFilter = t.value; else if (t.dataset.filter === 'kind') this.kindFilter = t.value; else if (t.dataset.scope) this.scope[t.dataset.scope] = t.value as ApprovalScope; else if (t.dataset.goalkind !== undefined) this.goalKind = t.value as GoalSpec['k']; else if (t.dataset.fl && this.fleet) fleetDraftChange(this.fleet, t.dataset.fl, t.value, (t as unknown as HTMLInputElement).checked); else if (t.dataset.flTpl !== undefined && this.fleet) { if (t.value) loadTemplate(this.w, this.me!, this.fleet, t.value); else this.fleet.tpl = ''; } else if (t.dataset.pirDefault !== undefined) { void this.send({ c: 'piracyPolicy', policy: t.value as 'survive' | 'balanced' | 'protect' }, '화물 요구 대응 기본값을 저장했습니다'); return; } else if (t.dataset.saleQ && this.item) { const q = this.saleQ[this.item]; if (q) { const k = t.dataset.saleQ as keyof SaleSearchState; (q as any)[k] = k === 'amount' || k === 'minPrice' ? Math.max(0, Number(t.value) || 0) : t.value; } } else if (t.dataset.prio) { void this.send({ c: 'workOp', work: t.dataset.prio, op: 'priority', value: Number(t.value) }, '우선순위를 바꿨습니다'); return; } else return; this.render(); };
     root.appendChild(this.el); trackSelects(this.el); c.onSnap.push(this.onSnap); window.addEventListener('keydown', this.key, true); this.render(); this.el.focus();
   }
   close() { if (this.closed) return; this.closed = true; const i = this.c.onSnap.indexOf(this.onSnap); if (i >= 0) this.c.onSnap.splice(i, 1); window.removeEventListener('keydown', this.key, true); this.el.remove(); this.actions.close(); document.getElementById('opsBtn')?.focus(); }
@@ -102,6 +105,11 @@ export class OperationsPanel {
         return void this.send({ c: 'approvalDecide', approval: id, option: opt, scope, ...(value && value > 0 ? { value } : {}) }, '결재를 처리했습니다');
       }
       case 'goal': return this.createGoal();
+      case 'fl-add': if (this.fleet && this.fleet.lines.length < 8) this.fleet.lines.push(newLine()); return this.render();
+      case 'fl-del': this.fleet?.lines.splice(Number(id), 1); return this.render();
+      case 'fl-design': return this.actions.design?.(id);
+      case 'fl-tpl-save': { if (!this.fleet) return; const name = (this.el.querySelector('[data-fl-tplname]') as HTMLInputElement | null)?.value.trim() || '함대 구성'; return void this.send(saveTemplateCmd(this.fleet, name), `함대 구성 "${name}"을(를) 저장했습니다 — 비용 없음`); }
+      case 'fl-tpl-del': if (this.fleet) this.fleet.tpl = ''; return void this.send({ c: 'delFleetTemplate', id }, '함대 구성을 삭제했습니다');
       case 'form': this.formOpen = !this.formOpen; return this.render();
       case 'policy': return this.savePolicy();
       case 'lawpay': {
@@ -143,7 +151,7 @@ export class OperationsPanel {
     switch (k) {
       case 'stockpile': goal = { k, station: this.val('g-station'), item: this.val('g-item'), target: this.numv('g-n'), maintain: this.checked('g-maintain'), buy: this.checked('g-buy'), produce: this.checked('g-produce'), ...(this.val('g-scope') === 'company' ? { scope: 'company' as const } : {}) }; break;
       case 'trade': goal = { k, item: this.val('g-item'), from: this.val('g-from'), to: this.val('g-station'), amount: this.numv('g-n'), maxBuy: this.numv('g-maxbuy'), minSell: this.numv('g-minsell'), minProfit: this.numv('g-minprofit') || 0, cycles: Math.floor(this.numv('g-cycles') || 0) }; break;
-      case 'fleet': goal = { k, station: this.val('g-station'), hull: this.val('g-hull'), count: Math.floor(this.numv('g-n')) }; break;
+      case 'fleet': if (!this.fleet) return; goal = fleetGoal(this.fleet); break;
       case 'facilities': goal = { k, station: this.val('g-station'), kind: this.val('g-fac'), count: Math.floor(this.numv('g-n')) }; break;
       case 'survey_field': goal = { k, field: this.val('g-field'), group: this.val('g-group'), samples: Math.floor(this.numv('g-n')), ...(this.val('g-station') ? { deliver: this.val('g-station') } : {}) }; break;
       case 'develop_field': goal = { k, field: this.val('g-field'), group: this.val('g-group'), sell: this.checked('g-sell'), miners: Math.floor(this.numv('g-n') || 0), ...(this.val('g-station') ? { deliver: this.val('g-station') } : {}), ...(this.val('g-yard') ? { yard: this.val('g-yard') } : {}) }; break;
@@ -191,6 +199,7 @@ export class OperationsPanel {
       <div class="ops-work-top">${kids.length ? `<button class="an-link" data-a="toggle" data-id="${x.id}" aria-expanded="${open}">${open ? '▾' : '▸'} ${kids.length}</button>` : ''}<span class="ops-kind">${KIND_NAME[x.kind]}${x.auto ? ' · 자동' : ''}</span><b>${esc(x.title)}</b><span class="lg-badge ${STATE_CLASS[x.state]}">${STATE_NAME[x.state]}</span></div>
       <div class="ops-progress" role="progressbar" aria-valuenow="${Math.round(bar)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${bar}%"></i></div>
       <div class="ops-meta">${p.total > 0 ? `<span>${n0(p.done)} / ${n0(p.total)} ${esc(p.unit ?? '')}</span>` : ''}${x.reason ? `<span class="ops-why">${esc(x.reason)}</span>` : ''}${x.result ? `<span class="good">${esc(x.result)}</span>` : ''}${x.cost ? `<span>지출 ${n0(x.cost)} cr</span>` : ''}${x.income ? `<span>수입 ${n0(x.income)} cr</span>` : ''}${x.budget ? `<span>예산 ${x.budget.open ? '목표 전체 승인' : `${n0(x.budget.spent)} / ${n0(x.budget.limit)} cr`}${x.budget.maxPrice ? ` · 단가 ≤ ${n0(x.budget.maxPrice)}` : ''}</span>` : ''}<span>${ago(this.w.time, x.updated)}</span>${st && this.w.stations[st] ? `<button class="an-link" data-a="station" data-id="${st}" data-tab="${x.kind === 'production' ? 'prod' : x.kind === 'ship' ? 'yard' : x.kind === 'facility' ? 'build' : 'store'}">${esc(this.stationName(st))} 열기</button>` : ''}</div>
+      ${x.kind === 'fleet' && !terminal(x) && x.rt?.ships?.length ? `<div class="ops-ships">${x.rt.ships.slice(0, 12).map(z => `<span class="${z.pct < 0 ? 'waiting' : ''}" title="${esc(z.why ?? '')}">${esc(this.w.works?.[z.work]?.title.split(' · ').pop()?.replace(/ 건조$/, '') ?? '함선')} ${z.pct < 0 ? `대기${z.why ? ` — ${esc(z.why.slice(0, 40))}` : ''}` : `${z.pct}%`}</span>`).join('')}</div>` : ''}
       ${x.log.length && open ? `<ol class="ops-log">${x.log.slice(-6).map(l => `<li><span>${ago(this.w.time, l.t)}</span> ${esc(l.text)}</li>`).join('')}</ol>` : ''}
       ${!terminal(x) && x.state !== 'running' ? this.fixes(x) : ''}
       ${ctrl ? `<div class="lg-card-actions">${ctrl}</div>` : ''}
@@ -265,12 +274,12 @@ export class OperationsPanel {
     let f = '';
     if (k === 'stockpile') f = field('범위', '<select data-keep name="g-scope"><option value="station">특정 정거장에 비축</option><option value="company">회사 전체 합계로 비축</option></select>') + field('정거장 (회사 전체: 구매품 입고지)', opt(usable, 'g-station')) + field('품목', opt(items, 'g-item')) + field('목표 수량', num('g-n', '3000')) + `<label class="ops-check"><input type="checkbox" name="g-maintain" checked> 계속 유지</label><label class="ops-check"><input type="checkbox" name="g-produce" checked> 자체 생산 우선</label><label class="ops-check"><input type="checkbox" name="g-buy" checked> 부족분 구매 허용</label>`;
     else if (k === 'trade') f = field('품목', opt(items, 'g-item')) + field('매입 시장', opt(markets, 'g-from')) + field('판매 시장', opt(markets, 'g-station')) + field('회당 수량', num('g-n', '400')) + field('최대 매입가', num('g-maxbuy')) + field('최소 판매가', num('g-minsell')) + field('회당 최소 이익', num('g-minprofit', '0')) + field('반복 횟수 (0=계속)', num('g-cycles', '0'));
-    else if (k === 'fleet') f = field('조선소', opt(own, 'g-station')) + field('선체', opt(Object.entries(CONTENT.hulls).filter(([id, h]) => hullReleased(id) && h.classId !== 'platform').map(([id, h]) => ({ id, name: h.name })), 'g-hull')) + field('척수', num('g-n', '2'));
+    else if (k === 'fleet') { this.fleet ??= newDraft(w, me!); if (!w.stations[this.fleet.station]) this.fleet.station = own[0]?.id ?? ''; }
     else if (k === 'facilities') f = field('정거장', opt(own, 'g-station')) + field('시설', opt(Object.values(MODULES).filter(m => m.kind !== 'core').map(m => ({ id: m.kind, name: m.name })), 'g-fac')) + field('개수', num('g-n', '2'));
     else if (k === 'survey_field') f = field('광구', opt(fields, 'g-field')) + field('채굴 편대', opt(groups, 'g-group')) + field('목표 표본 수', num('g-n', '300')) + field('하역 정거장', optE(usable, 'g-station', '자동 선택 (창고 보관)'));
     else if (k === 'develop_field') f = field('광구', opt(fields, 'g-field')) + field('채굴 편대', opt(groups, 'g-group')) + field('목표 채굴선 수', num('g-n', '3')) + field('하역 정거장', optE(usable, 'g-station', '자동 선택')) + field('증원 조선소 (선택)', optE(own, 'g-yard', '증원 안 함')) + '<label class="ops-check"><input type="checkbox" name="g-sell"> 하역 시 판매 (끄면 창고 보관·내부 공급)</label>';
     else f = field('시장', opt(markets, 'g-station')) + field('품목', opt(items, 'g-item')) + field('구분', '<select data-keep name="g-side"><option value="buy">이하일 때 구매</option><option value="sell">이상일 때 판매</option></select>') + field('기준 가격', num('g-cond')) + field('수량', num('g-n', '100')) + '<label class="ops-check"><input type="checkbox" name="g-repeat"> 반복</label>';
-    return `<div class="ops-goal-form"><button class="btn ${this.formOpen ? '' : 'go'}" data-a="form" aria-expanded="${this.formOpen}">${this.formOpen ? '− 목표 입력 닫기' : '+ 새 회사 목표'}</button>${!this.formOpen ? '</div>' : ''}${this.formOpen ? `<div class="proc-policy-form"><div class="proc-policy-grid">${field('목표 종류', `<select data-goalkind>${kinds.map(([id, l]) => `<option value="${id}" ${id === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}${f}${field('예산 (cr, 비우면 결재)', num('g-budget'))}${field('최대 단가 (선택)', num('g-price'))}</div>
+    return `<div class="ops-goal-form"><button class="btn ${this.formOpen ? '' : 'go'}" data-a="form" aria-expanded="${this.formOpen}">${this.formOpen ? '− 목표 입력 닫기' : '+ 새 회사 목표'}</button>${!this.formOpen ? '</div>' : ''}${this.formOpen ? `<div class="proc-policy-form"><div class="proc-policy-grid">${field('목표 종류', `<select data-goalkind>${kinds.map(([id, l]) => `<option value="${id}" ${id === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}${f}${field('예산 (cr, 비우면 결재)', num('g-budget'))}${field('최대 단가 (선택)', num('g-price'))}</div>${k === 'fleet' && this.fleet ? fleetFormHtml(w, me!, this.fleet) : ''}
       <p class="dim">예산을 정하면 그 범위 안에서는 묻지 않고 진행합니다. 비워 두면 돈이 필요한 순간 결재를 한 번 요청합니다.</p><button class="btn go" data-a="goal">목표 등록</button></div></div>` : ''}`;
   }
   private fieldsTab() {
